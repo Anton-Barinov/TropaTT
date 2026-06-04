@@ -10,6 +10,8 @@
 [![PHP CI](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
+**Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — login `admin`, password `adminadmin`
+
 ---
 
 ## Table of Contents
