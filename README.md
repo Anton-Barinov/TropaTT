@@ -34,6 +34,7 @@ TropaTT is a free self-hosted CRM, open-source CRM, project management system, t
 - [Installation](#installation)
 - [Technology](#technology)
 - [Project Structure](#project-structure)
+- [Developer](#developer)
 
 ---
 
@@ -514,6 +515,27 @@ languages_in_readme:
   - English
   - Chinese
 ```
+
+---
+
+## Developer
+
+TropaTT is developed by **Barinov Anton**, PHP developer and creator of the TropaTT CRM project.
+
+- **Developer:** Barinov Anton
+- **Role:** PHP developer
+- **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
+- **Project:** TropaTT, a self-hosted PHP/MySQL CRM for business operations, projects, tasks, clients, automation, and AI-assisted workflows.
+
+### About The Developer
+
+Barinov Anton develops TropaTT as a practical CRM system for real business operations: client management, task execution, project planning, team communication, automation, analytics, and AI-assisted decision support. The project reflects a PHP-first approach with a focus on self-hosted deployment, MySQL compatibility, transparent installation, and extensible business logic.
+
+### О разработчике
+
+TropaTT разрабатывает **Barinov Anton**, PHP-разработчик и автор проекта TropaTT CRM.
+
+Проект создаётся как практичная CRM-система для управления клиентами, задачами, проектами, командной коммуникацией, автоматизацией, аналитикой и AI-помощниками. Основной фокус разработки — PHP, MySQL, самостоятельное развёртывание, понятная установка через браузер и возможность адаптации CRM под реальные бизнес-процессы.
 
 ---
 
