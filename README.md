@@ -319,6 +319,38 @@ Because TropaTT is self-hosted, the organization controls:
 
 TropaTT includes a web installer for a fresh deployment. The installer is designed for a standard PHP/MySQL hosting or server environment.
 
+### Browser-Based Installer
+
+Installation is intentionally simple for shared hosting, VPS hosting, local hosting, and development environments. You do not need to manually import SQL dumps, edit PHP config files by hand, or prepare a custom deployment script for a normal fresh install.
+
+After the files are uploaded and an empty MySQL database is available, open the site in a browser. If TropaTT is not configured yet, the web application redirects to the installer automatically.
+
+The installer guides you through:
+
+- environment checks for required PHP/MySQL capabilities;
+- MySQL connection settings;
+- site URL and timezone;
+- first administrator account;
+- security key generation;
+- final installation progress.
+
+During installation TropaTT:
+
+- writes the `api/.env` configuration file;
+- stores MySQL connection settings;
+- sets production runtime values;
+- creates application security secrets;
+- creates or updates the MySQL database schema;
+- imports the bundled MySQL schema snapshot when available;
+- runs known database migrations when needed;
+- seeds statuses, priorities, roles, permissions, and reference data;
+- creates the first administrator user;
+- creates demo/startup data for the initial workspace;
+- prepares the runtime storage directory;
+- writes install lock files so the installer cannot be accidentally rerun.
+
+This makes the first launch close to a classic shared-hosting installation flow: upload files, open the browser, enter database credentials, create the administrator, and start using the CRM.
+
 ### Requirements
 
 - PHP 8.1 or newer.
@@ -331,14 +363,33 @@ TropaTT includes a web installer for a fresh deployment. The installer is design
 ### Quick Start
 
 1. Upload the project files to your hosting or server.
-2. Point the web root to the project web entry point according to your hosting layout.
-3. Open the site in a browser.
-4. Follow the installer steps.
-5. Enter MySQL connection settings.
-6. Create the first administrator account.
-7. Complete installation and log in.
+2. Create an empty MySQL database in the hosting control panel or local MySQL server.
+3. Point the web root to the project web entry point according to your hosting layout.
+4. Open the site in a browser.
+5. Follow the installer steps.
+6. Enter MySQL connection settings.
+7. Create the first administrator account.
+8. Complete installation and log in.
 
 The installer creates the required configuration, prepares the MySQL database structure, seeds reference data, and creates the initial administrator account.
+
+### Shared Hosting Scenario
+
+On typical shared hosting, the installation flow is:
+
+1. Upload `api/`, `web/`, `modules/`, `index.php`, `favicon.ico`, and `README.md`.
+2. Create a MySQL database and user in the hosting panel.
+3. Open your domain in the browser.
+4. Let the installer check the environment.
+5. Enter database host, port, database name, username, and password.
+6. Create the admin login and password.
+7. Finish installation and open the login page.
+
+No private local files, runtime storage, screenshots, tests, internal documentation, or development tools are required for a production installation.
+
+### Local Hosting Scenario
+
+For a local host, create a local MySQL database, configure the domain or local virtual host, open the application in the browser, and complete the same installer steps. The installer uses the same MySQL-first path locally and on hosting, so the local setup is close to production behavior.
 
 ### Installation FAQ
 
@@ -353,6 +404,12 @@ No. Paid implementation or customization services are optional.
 
 **Does it support MySQL?**  
 Yes. MySQL is the primary supported database for installation.
+
+**Do I have to import the database manually?**  
+Usually no. The installer prepares the schema and initial data during installation.
+
+**Can it work on shared hosting?**  
+Yes, if the hosting supports PHP 8.1+, MySQL, and write access for configuration and storage paths.
 
 **Does it include AI features?**  
 Yes. AI-related features are configurable and can be connected to provider settings in the admin area.
