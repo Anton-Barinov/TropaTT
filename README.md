@@ -44,19 +44,25 @@ TropaTT is a free self-hosted CRM, open-source CRM, project management system, t
 
 TropaTT is a modern free self-hosted CRM for companies that manage client work, internal execution, projects, tasks, and communication in one operational space. The system is open source and can be deployed on your own server with PHP 8.1+ and MySQL.
 
-It helps teams answer practical daily questions:
+TropaTT is built for real business routines: dashboards, task lists, Kanban boards, Gantt planning, calendars, client and counterparty records, team structures, roles, permissions, notifications, chats, AI plans, idea analysis, approvals, SLA, webhooks, admin controls, and modular business logic.
+
+### Practical Questions It Helps Answer
 
 - What should we do today?
 - Which tasks are late, blocked, risky, or overloaded?
 - Which clients, projects, and counterparties need attention?
 - What should each team member focus on without burning out?
 - What is happening across projects, chats, approvals, notifications, and analytics?
-
-TropaTT is built for real business routines: dashboards, task lists, Kanban boards, Gantt planning, calendars, client and counterparty records, team structures, roles, permissions, notifications, chats, AI plans, idea analysis, approvals, SLA, webhooks, admin controls, and modular business logic.
+- Which workflow rules, SLA signals, approvals, or webhooks require administrator attention?
+- Which AI suggestions can be safely applied to tasks, projects, ideas, or planning?
 
 ### Why TropaTT?
 
 Many CRM systems are either too narrow, too heavy, too sales-only, or too disconnected from daily execution. TropaTT focuses on the operational layer where client work actually happens: tasks, projects, communication, planning, responsibility, risk, and follow-through.
+
+It is designed for teams that need CRM records to stay connected with work execution. A client card, project plan, task hierarchy, chat discussion, notification, calendar event, and AI recommendation should not live in separate worlds. TropaTT brings them into one practical operating space.
+
+### Best-Fit Teams
 
 TropaTT is suitable for:
 
@@ -78,6 +84,7 @@ TropaTT is not only a sales pipeline. It is closer to an operating system for cl
 - AI is embedded into workflows where it can help with summaries, plans, risks, priorities, ideas, and next actions.
 - Administration is practical: users, roles, permissions, statuses, priorities, SLA, workflow rules, webhooks, modules, logs, API clients, and AI settings.
 - The system is self-hosted, so the company keeps control over deployment, data, storage, and integration strategy.
+- Installation is browser-based, so a fresh setup on shared hosting or a local host is close to the familiar upload, configure database, create administrator, and start workflow.
 
 ---
 
@@ -87,17 +94,25 @@ TropaTT is not only a sales pipeline. It is closer to an operating system for cl
 
 TropaTT — это бесплатная self-hosted CRM-система с открытым исходным кодом для компаний, которым важно вести клиентов, проекты, задачи, коммуникации, аналитику, автоматизацию и ежедневное планирование в одном рабочем пространстве. Система разворачивается на вашем сервере и работает с PHP 8.1+ и MySQL.
 
-Система помогает команде каждый день понимать:
+TropaTT построена под реальные рабочие процессы: дашборды, списки задач, Канбан, диаграмму Ганта, календарь, клиентов и контрагентов, команды, роли, права доступа, уведомления, чаты, AI-планы, анализ идей, согласования, SLA, вебхуки, админку и модульную бизнес-логику.
+
+### На какие практические вопросы помогает отвечать
 
 - какие задачи нужно сделать сегодня;
 - что просрочено, заблокировано или находится в зоне риска;
 - какие проекты и контрагенты требуют внимания;
 - как распределить нагрузку между сотрудниками;
-- какие решения, уведомления, чаты и события влияют на работу бизнеса.
+- какие решения, уведомления, чаты и события влияют на работу бизнеса;
+- какие workflow-правила, SLA-сигналы, согласования или вебхуки требуют внимания администратора;
+- какие AI-предложения можно безопасно применить к задачам, проектам, идеям или планированию.
 
-TropaTT подходит для компаний, где CRM должна быть не просто карточкой клиента, а центром управления работой: от идеи и проекта до задач, общения, календаря, аналитики, SLA, согласований, вебхуков, автоматизации и контроля исполнения.
+### Почему TropaTT?
 
-### Для кого эта CRM?
+Многие CRM-системы слишком узкие, слишком тяжёлые, слишком ориентированы только на продажи или слишком слабо связаны с ежедневным исполнением. TropaTT делает акцент на операционном слое, где реально происходит работа с клиентом: задачи, проекты, коммуникация, планирование, ответственность, риски и доведение дел до результата.
+
+Система нужна там, где карточка клиента, план проекта, иерархия задач, чат, уведомление, событие календаря и AI-рекомендация не должны жить в разных инструментах. TropaTT собирает их в одно практичное рабочее пространство.
+
+### Для каких команд подходит
 
 TropaTT хорошо подходит для:
 
@@ -112,13 +127,14 @@ TropaTT хорошо подходит для:
 
 ### Чем TropaTT отличается от обычной CRM?
 
-Обычная CRM часто хранит клиента и сделку, но плохо помогает управлять ежедневным исполнением. TropaTT делает акцент на реальной операционной работе:
+TropaTT — это не только воронка продаж. По смыслу система ближе к операционному центру клиентской работы:
 
-- клиенты, контрагенты и контакты связаны с проектами, задачами, календарем и коммуникациями;
-- задачи можно вести списком, иерархией, через Канбан, диаграмму Ганта, день и неделю;
+- CRM-данные связаны с задачами, проектами, чатами, событиями, уведомлениями и аналитикой;
+- исполнение проектов видно через списки, иерархию, Канбан, Гант, календарь, план дня и план недели;
 - AI помогает не ради красивой кнопки, а в конкретных сценариях: план дня, план недели, резюме задач, риски проекта, идеи и предлагаемые задачи;
 - админка позволяет управлять пользователями, ролями, правами, статусами, приоритетами, SLA, workflow-правилами, вебхуками, модулями и AI-настройками;
-- данные остаются на вашем сервере, а платные услуги по внедрению или доработке являются опциональными.
+- данные остаются на вашем сервере, а компания контролирует развёртывание, хранилище, интеграции и настройки безопасности;
+- установка выполняется через браузер, поэтому свежий запуск на shared-хостинге или локальном хосте близок к привычной схеме: загрузить файлы, указать базу данных, создать администратора и начать работу.
 
 ---
 
@@ -128,34 +144,47 @@ TropaTT хорошо подходит для:
 
 TropaTT 是一套免费、开源、可自行部署的 CRM 与项目运营管理系统，适用于需要统一管理客户、项目、任务、团队沟通、日程安排、通知、分析、自动化和 AI 辅助工作流的企业。它基于 PHP 8.1+ 和 MySQL，可部署在企业自己的服务器上。
 
-TropaTT 帮助团队清楚回答这些日常运营问题：
+TropaTT 面向真实业务流程而设计：仪表盘、任务列表、看板、甘特图、日历、客户与合作方记录、团队结构、角色、权限、通知、聊天、AI 计划、想法分析、审批、SLA、Webhook、管理后台和模块化业务逻辑。
+
+### 它帮助团队回答哪些实际问题
 
 - 今天应该优先完成哪些任务？
 - 哪些任务已经逾期、被阻塞或存在风险？
 - 哪些客户、项目和合作方需要重点关注？
 - 如何平衡员工工作量，既保证业务结果，又避免过度消耗？
 - 团队沟通、审批、提醒和项目进度是否都在可控范围内？
+- 哪些工作流规则、SLA 信号、审批或 Webhook 需要管理员处理？
+- 哪些 AI 建议可以安全地应用到任务、项目、想法或计划中？
 
-TropaTT 适合希望在自己服务器上部署 CRM 系统，并使用 MySQL 数据库进行稳定运行的中小企业、项目团队、服务型公司和 B2B 业务团队。
+### 为什么选择 TropaTT？
 
-### 适用场景
+许多 CRM 系统过于狭窄、过于复杂、只关注销售，或者与日常执行脱节。TropaTT 关注客户工作真正发生的运营层：任务、项目、沟通、计划、责任、风险和持续跟进。
+
+当客户资料、项目计划、任务层级、聊天记录、通知、日历事件和 AI 建议分散在不同工具里时，团队很容易失去上下文。TropaTT 将这些内容放在一个实用的业务工作空间中。
+
+### 适合哪些团队
 
 TropaTT 可用于：
 
-- 客户关系管理；
-- 项目与任务管理；
-- 团队协作与内部沟通；
-- 销售、服务和交付流程管理；
-- 日程、提醒和通知管理；
-- AI 辅助的日计划、周计划和业务分析；
-- 自托管企业管理软件部署；
-- 基于角色和权限的内部管理；
-- 工作流自动化、SLA、审批、Webhook 和模块扩展；
-- 通过 API 与其他业务系统集成。
+- 中小企业；
+- 服务型公司和代理机构；
+- 项目制团队；
+- 实施、安装、咨询和支持团队；
+- 同时需要 CRM 与任务管理的团队；
+- 希望使用 MySQL 并自行部署业务系统的公司；
+- 希望使用开源 CRM、避免强制许可证费用的组织；
+- 需要自动化、Webhook、模块和 API 集成的团队。
 
-### TropaTT 的核心价值
+### TropaTT 有什么不同？
 
-TropaTT 不只是销售线索管理工具。它将 CRM、任务、项目、团队沟通、日程、通知、自动化、分析和 AI 辅助决策放在同一个业务工作空间中，帮助团队更清楚地安排优先级、控制风险、跟进客户、管理项目进度并减少信息分散。
+TropaTT 不只是销售管道工具。它更接近客户工作和项目执行的运营中心：
+
+- CRM 数据与任务、项目、聊天、事件、通知和分析相互连接；
+- 项目执行可以通过列表、层级、看板、甘特图、日历、日计划和周计划查看；
+- AI 被嵌入具体工作流，可帮助生成摘要、计划、风险、优先级、想法分析和下一步行动；
+- 管理后台覆盖用户、角色、权限、状态、优先级、SLA、工作流规则、Webhook、模块、日志、API 客户端和 AI 设置；
+- 系统部署在自己的服务器上，公司可以控制数据、存储、集成策略和安全配置；
+- 安装通过浏览器完成，因此在 shared hosting、VPS 或本地主机上的新部署接近传统流程：上传文件、配置数据库、创建管理员并开始使用。
 
 ---
 
