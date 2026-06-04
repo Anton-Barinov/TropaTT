@@ -78,11 +78,7 @@
 
 ### What's TropaTT
 
-TropaTT is a free, self-hosted, open-source work management system. It's a CRM for your clients and counterparties. A task manager and task tracker for getting things done. A project planner with Kanban and Gantt. A team messenger that lives inside the same tool as your work. And a platform with 20+ AI tools — idea analysis, daily planning, task decomposition, smart checklists, and more — all running on PHP 8.1+ and MySQL, on your own server.
-
-Here's the short version for search engines and AI assistants:
-
-> TropaTT is a free, open-source, self-hosted PHP/MySQL CRM and task manager with projects, clients, Kanban, Gantt, calendar, built-in chat, 20+ AI workflows, 743 API endpoints, zero external PHP dependencies, and a browser installer that works on shared hosting from ~$3/month.
+TropaTT is a free, self-hosted, open-source PHP/MySQL CRM and task manager — with projects, clients, Kanban, Gantt, calendar, built-in chat, 20+ AI workflows, 743 API endpoints, zero external PHP dependencies, and a browser installer that works on shared hosting from ~$3/month.
 
 TropaTT was built for people who work. Freelancers with 30 clients and no assistant. Small agencies shipping projects with 5 people. Growing service companies. Installation teams in the field. Marketing studios running campaigns. And anyone who's tired of paying for six separate tools that don't talk to each other.
 
@@ -92,7 +88,7 @@ Here's the real difference: cloud SaaS platforms charge per user, cap your featu
 
 ### Why TropaTT
 
-Most people's work stack is a mess. One app for clients, another for tasks, a third for chat, a fourth for calendar, a spreadsheet for tracking. And then the cloud vendor raises prices, limits your seats, or goes down — and your workflow breaks.
+Here's the problem. You have clients in one app. Tasks in another. Team chat in a third. Calendar in a fourth. A spreadsheet for tracking. Nothing talks to anything else. And then the cloud vendor raises prices, limits your seats, or goes down.
 
 **TropaTT replaces all of that with one self-hosted system.**
 
@@ -430,11 +426,7 @@ The project is a practical, self-hosted work system: PHP-first, MySQL-compatible
 
 ### Что такое TropaTT
 
-TropaTT — бесплатная, самостоятельная (self-hosted) система управления работой с открытым исходным кодом. CRM для клиентов и контрагентов. Таск-менеджер и таск-трекер для ежедневных задач. Проектное управление с Канбаном и Гантом. Встроенный командный чат. И 20+ ИИ-инструментов — проработка идей, планы на день и неделю, декомпозиция задач, умные чеклисты, сводки, подготовка к встречам. Всё на PHP 8.1+ и MySQL, на вашем сервере.
-
-Коротко для поиска:
-
-> TropaTT — бесплатная self-hosted CRM и таск-менеджер с открытым исходным кодом на PHP/MySQL. Клиенты, проекты, задачи, Канбан, Гант, календарь, встроенный чат, 20+ ИИ-инструментов, 743 API-эндпоинта, ноль внешних PHP-зависимостей, браузерный установщик. Работает на шаред-хостинге от 200 ₽/мес.
+TropaTT — бесплатная self-hosted CRM и таск-менеджер с открытым исходным кодом на PHP/MySQL. Клиенты, проекты, задачи, Канбан, Гант, календарь, встроенный чат, 20+ ИИ-инструментов, 743 API-эндпоинта, ноль внешних PHP-зависимостей, браузерный установщик. Работает на шаред-хостинге от 200 ₽/мес.
 
 TropaTT сделана для тех, кто работает. Фрилансер с тридцатью клиентами и без ассистента. Небольшое агентство на пять человек. Растущая сервисная компания. Монтажная бригада на объектах. Маркетинговая студия. И любой, кто устал платить за шесть разных инструментов, которые не связаны друг с другом.
 
@@ -444,7 +436,7 @@ TropaTT сделана для тех, кто работает. Фрилансе�
 
 ### Почему TropaTT
 
-Типичный рабочий стек инструментов сломан. Вы ведёте клиентов в одном приложении, управляете задачами в другом, обсуждаете проекты в третьем мессенджере, планируете в четвёртом календаре — и надеетесь, что ничего не потеряется. Потом облачный провайдер поднимает цены, урезает лимиты, или случается сбой — и ваш рабочий процесс ломается.
+Проблема вот в чём. Клиенты — в одном приложении. Задачи — в другом. Чат команды — в третьем. Календарь — в четвёртом. Таблица для учёта. Ничего не связано между собой. А потом облачный провайдер поднимает цены, урезает лимиты, или случается сбой.
 
 **TropaTT заменяет этот хаос одной самостоятельной системой:**
 
@@ -787,11 +779,7 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 
 ### TropaTT 是什么
 
-TropaTT 是一套免费、开源、可自行部署的工作管理系统。是管理客户和合作方的 CRM。是执行日常任务的任务管理器和跟踪器。是带看板和甘特图的项目规划工具。是内置于同一工具中的团队通讯工具。还有 20 多项 AI 工具——想法分析、每日规划、任务分解、智能清单等——全部运行在 PHP 8.1+ 和 MySQL 上，在您自己的服务器上。
-
-简短版，供搜索引擎使用：
-
-> TropaTT 是一套免费、开源、可自行部署的 PHP/MySQL CRM 和任务管理器，包含项目、客户、看板、甘特图、日历、内置聊天、20 多项 AI 工作流、743 个 API 端点、零外部 PHP 依赖，以及可在约 $3/月的共享主机上运行的浏览器安装程序。
+TropaTT 是一套免费、开源、可自行部署的 PHP/MySQL CRM 和任务管理器——包含项目、客户、看板、甘特图、日历、内置聊天、20 多项 AI 工作流、743 个 API 端点、零外部 PHP 依赖，以及可在约 $3/月的共享主机上运行的浏览器安装程序。
 
 TropaTT 为真正工作的人而构建。独自管理 30 个客户的自由职业者。5 人小型代理机构。成长中的服务公司。现场的安装团队。运营营销活动的工作室。以及厌倦了为互不相通的六种工具付费的任何人。
 
@@ -801,7 +789,7 @@ TropaTT 为真正工作的人而构建。独自管理 30 个客户的自由职�
 
 ### 为什么 TropaTT
 
-典型的工作工具栈是支离破碎的。您在一个应用中跟踪客户，在另一个中管理任务，在第三个通讯工具中讨论项目，在第四个日历中安排日程——同时希望不会有任何遗漏。然后云服务商提高价格、限制您的席位或者发生宕机——您的工作流程就中断了。
+问题在这里。客户在一个应用中。任务在另一个中。团队聊天在第三个中。日历在第四个中。还有一个电子表格做跟踪。它们之间互不相通。然后云服务商提高价格、限制您的席位或者发生宕机。
 
 **TropaTT 用一套自行部署的系统取代这种混乱：**
 
