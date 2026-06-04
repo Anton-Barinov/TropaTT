@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TropaTT — бесплатная self-hosted CRM с открытым исходным кодом для проектов, клиентов и бизнес-процессов</title>
-    <meta name="description" content="Бесплатная CRM с открытым кодом для самостоятельного развёртывания. Установка через браузер на shared-хостинге или локальном хосте: MySQL, администратор, ключи безопасности и стартовые данные создаются установщиком.">
+    <title>TropaTT — free self-hosted open-source CRM for projects, clients, and business workflows</title>
+    <meta name="description" content="Free open-source self-hosted CRM. Browser-based installer on shared hosting or local machine: MySQL, admin account, security keys, and seed data created automatically.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://tropatt.com">
-    <link rel="alternate" hreflang="ru" href="https://tropatt.com/ru/">
     <link rel="alternate" hreflang="en" href="https://tropatt.com/en/">
+    <link rel="alternate" hreflang="ru" href="https://tropatt.com/ru/">
     <link rel="alternate" hreflang="zh" href="https://tropatt.com/zh/">
     <link rel="alternate" hreflang="x-default" href="https://tropatt.com/en/">
-    <meta property="og:title" content="TropaTT — бесплатная self-hosted CRM с открытым кодом для проектов и клиентов">
-    <meta property="og:description" content="Бесплатная CRM для самостоятельного развёртывания. Установщик через браузер готовит MySQL, .env, администратора, справочники и стартовые данные на вашем сервере.">
+    <meta property="og:title" content="TropaTT — free self-hosted open-source CRM for projects and clients">
+    <meta property="og:description" content="Free self-hosted CRM. Browser-based installer sets up MySQL, .env, admin account, reference data, and seed data on your server.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tropatt.com">
     <meta property="og:image" content="https://tropatt.com/assets/images/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="TropaTT — бесплатная self-hosted CRM с открытым кодом для проектов и клиентов">
-    <meta name="twitter:description" content="Бесплатная CRM для самостоятельного развёртывания. Установщик через браузер готовит MySQL, .env, администратора, справочники и стартовые данные на вашем сервере.">
+    <meta name="twitter:title" content="TropaTT — free self-hosted open-source CRM for projects and clients">
+    <meta name="twitter:description" content="Free self-hosted CRM. Browser-based installer sets up MySQL, .env, admin account, reference data, and seed data on your server.">
     <meta name="twitter:image" content="https://tropatt.com/assets/images/og-image.png">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='44' height='44' x='10' y='10' rx='14' fill='%230f8f72'/%3E%3Cpath d='M22 22h20v8H30v12h-8V22Z' fill='%23fff'/%3E%3C/svg%3E">
     <script type="application/ld+json">
@@ -28,7 +28,7 @@
       "@context":"https://schema.org",
       "@type":"SoftwareApplication",
       "name":"TropaTT",
-      "description":"Бесплатная self-hosted CRM с открытым исходным кодом, установкой через браузер и MySQL-first развёртыванием для управления проектами, задачами, клиентами и бизнес-процессами.",
+      "description":"Free self-hosted open-source CRM with browser-based installer and MySQL-first deployment for managing projects, tasks, clients, and business workflows.",
       "applicationCategory":"BusinessApplication",
       "operatingSystem":"Linux, Windows, macOS",
       "offers":{
@@ -46,13 +46,15 @@
     <link rel="stylesheet" href="assets/css/styles.css?v=20260604-header-width">
 </head>
 <body>
-    <a class="crm-skip-link" href="#landing-content">Перейти к содержанию</a>
+    <a class="crm-skip-link" href="#landing-content" data-ru="Перейти к содержанию" data-en="Skip to content">Skip to content</a>
     <header class="crm-header" id="crmHeader">
         <div class="crm-container">
             <div class="crm-header-inner">
-                <a href="#hero" class="crm-logo" id="crmLogo" aria-label="TropaTT — на главную">TropaTT</a>
-                <nav class="crm-header-right" id="headerNav" aria-label="Навигация по сайту"></nav>
-                <button class="crm-hamburger" id="hamburgerBtn" aria-label="Открыть меню" aria-expanded="false">
+                <a href="#hero" class="crm-logo" id="crmLogo" aria-label="TropaTT — home">TropaTT</a>
+                <nav class="crm-header-right" id="headerNav" aria-label="Site navigation">
+                    <button class="crm-lang-btn" id="langToggle" aria-label="Switch language" title="Русский / English">EN</button>
+                </nav>
+                <button class="crm-hamburger" id="hamburgerBtn" aria-label="Open menu" aria-expanded="false">
                     <span></span><span></span><span></span>
                 </button>
             </div>
@@ -60,61 +62,105 @@
         <div class="crm-mobile-overlay" id="mobileOverlay"></div>
     </header>
 
-    <nav class="crm-section-nav" id="sectionNav" aria-label="Навигация по разделам"></nav>
+    <nav class="crm-section-nav" id="sectionNav" aria-label="Section navigation"></nav>
 
     <main id="landing-content">
         <section class="crm-hero" id="hero">
             <div class="crm-container">
-                <h1>TropaTT — бесплатная self-hosted CRM с открытым исходным кодом</h1>
-                <p>Управление проектами, задачами, клиентами и командой на вашем сервере. Установка через браузер, MySQL, Канбан-доска, диаграмма Ганта, автоматизация процессов, вебхуки, модули и настраиваемый AI-контур.</p>
-                <p><a href="https://github.com/Anton-Barinov/TropaTT">Исходный код</a> · <a href="https://github.com/Anton-Barinov/TropaTT#installation">Документация</a> · <a href="https://demo.tropatt.com/">Демо-доступ</a> <small>(логин: admin, пароль: adminadmin)</small></p>
+                <h1>
+                    <span data-ru="TropaTT — бесплатная self-hosted CRM с открытым исходным кодом">TropaTT — free self-hosted open-source CRM</span>
+                </h1>
+                <p>
+                    <span data-ru="Управление проектами, задачами, клиентами и командой на вашем сервере. Установка через браузер, MySQL, Канбан-доска, диаграмма Ганта, автоматизация процессов, вебхуки, модули и настраиваемый AI-контур.">Manage projects, tasks, clients, and teams on your own server. Browser-based installer, MySQL, Kanban boards, Gantt charts, workflow automation, webhooks, modules, and configurable AI tools.</span>
+                </p>
+                <p>
+                    <a href="https://github.com/Anton-Barinov/TropaTT">
+                        <span data-ru="Исходный код">Source code</span>
+                    </a> ·
+                    <a href="https://github.com/Anton-Barinov/TropaTT#installation">
+                        <span data-ru="Документация">Documentation</span>
+                    </a> ·
+                    <a href="https://demo.tropatt.com/">
+                        <span data-ru="Демо-доступ">Live demo</span>
+                    </a>
+                    <small>
+                        <span data-ru="(логин: admin, пароль: adminadmin)">(login: admin, password: adminadmin)</span>
+                    </small>
+                </p>
             </div>
         </section>
         <section class="crm-section">
             <div class="crm-container">
-                <h2>Ключевые возможности</h2>
+                <h2>
+                    <span data-ru="Ключевые возможности">Key features</span>
+                </h2>
                 <ul>
-                    <li>Проекты и задачи — вехи, риски, загрузка</li>
-                    <li>Канбан-доска и диаграмма Ганта</li>
-                    <li>Клиенты, контрагенты и контакты</li>
-                    <li>Команда, роли и права доступа (RBAC)</li>
-                    <li>Календарь событий и уведомления в реальном времени</li>
-                    <li>REST API из 743 эндпоинтов и модульная система</li>
-                    <li>Автоматизация: workflow-правила, SLA, согласования, вебхуки</li>
-                    <li>AI-инструменты: провайдеры, модели, семантический поиск, фоновые задания</li>
+                    <li><span data-ru="Проекты и задачи — вехи, риски, загрузка">Projects and tasks — milestones, risks, workload tracking</span></li>
+                    <li><span data-ru="Канбан-доска и диаграмма Ганта">Kanban boards and Gantt charts</span></li>
+                    <li><span data-ru="Клиенты, контрагенты и контакты">Clients, counterparties, and contacts</span></li>
+                    <li><span data-ru="Команда, роли и права доступа (RBAC)">Teams, roles, and permissions (RBAC)</span></li>
+                    <li><span data-ru="Календарь событий и уведомления в реальном времени">Calendar events and real-time notifications</span></li>
+                    <li><span data-ru="REST API из 743 эндпоинтов и модульная система">REST API with 743 endpoints and modular extensions</span></li>
+                    <li><span data-ru="Автоматизация: workflow-правила, SLA, согласования, вебхуки">Automation: workflow rules, SLA, approvals, webhooks</span></li>
+                    <li><span data-ru="AI-инструменты: провайдеры, модели, семантический поиск, фоновые задания">AI tools: providers, models, semantic search, background jobs</span></li>
                 </ul>
             </div>
         </section>
         <section class="crm-section">
             <div class="crm-container">
-                <h2>Открытый исходный код</h2>
-                <p>TropaTT — проект с открытым исходным кодом. Разворачивается на вашем сервере, не требует покупки лицензии. Платные услуги по внедрению и доработке — опциональны.</p>
+                <h2>
+                    <span data-ru="Открытый исходный код">Open source</span>
+                </h2>
+                <p>
+                    <span data-ru="TropaTT — проект с открытым исходным кодом. Разворачивается на вашем сервере, не требует покупки лицензии. Платные услуги по внедрению и доработке — опциональны.">TropaTT is an open-source project. Deploy it on your own server — no license purchase required. Paid implementation and customization services are optional.</span>
+                </p>
             </div>
         </section>
         <section class="crm-section">
             <div class="crm-container">
-                <h2>Простая установка через браузер</h2>
-                <p>TropaTT рассчитана на понятную установку на shared-хостинге, VPS или локальном хосте. Достаточно загрузить файлы, создать пустую MySQL-базу, открыть сайт в браузере и пройти мастер установки.</p>
+                <h2>
+                    <span data-ru="Простая установка через браузер">Simple browser-based installation</span>
+                </h2>
+                <p>
+                    <span data-ru="TropaTT рассчитана на понятную установку на shared-хостинге, VPS или локальном хосте. Достаточно загрузить файлы, создать пустую MySQL-базу, открыть сайт в браузере и пройти мастер установки.">TropaTT is designed for straightforward installation on shared hosting, VPS, or local host. Upload the files, create an empty MySQL database, open the site in a browser, and follow the installation wizard.</span>
+                </p>
                 <ul>
-                    <li>Проверка окружения и доступности MySQL</li>
-                    <li>Ввод параметров базы данных, URL сайта и часового пояса</li>
-                    <li>Создание первого администратора</li>
-                    <li>Генерация ключей безопасности</li>
-                    <li>Автоматическое создание .env-конфигурации</li>
-                    <li>Подготовка структуры MySQL, миграций, справочников и стартовых данных</li>
-                    <li>Создание storage-директории и lock-файлов защиты от повторной установки</li>
+                    <li><span data-ru="Проверка окружения и доступности MySQL">Environment check and MySQL availability</span></li>
+                    <li><span data-ru="Ввод параметров базы данных, URL сайта и часового пояса">Database settings, site URL, and timezone configuration</span></li>
+                    <li><span data-ru="Создание первого администратора">First admin account creation</span></li>
+                    <li><span data-ru="Генерация ключей безопасности">Security key generation</span></li>
+                    <li><span data-ru="Автоматическое создание .env-конфигурации">Automatic .env configuration</span></li>
+                    <li><span data-ru="Подготовка структуры MySQL, миграций, справочников и стартовых данных">MySQL schema, migrations, reference data, and seed data setup</span></li>
+                    <li><span data-ru="Создание storage-директории и lock-файлов защиты от повторной установки">Storage directory and install lock files to prevent re-installation</span></li>
                 </ul>
-                <p>Для обычного запуска не нужно вручную импортировать SQL, редактировать конфиги или собирать фронтенд: установщик делает базовую подготовку системы сам.</p>
+                <p>
+                    <span data-ru="Для обычного запуска не нужно вручную импортировать SQL, редактировать конфиги или собирать фронтенд: установщик делает базовую подготовку системы сам.">No manual SQL imports, config file editing, or frontend build steps required — the installer handles system setup automatically.</span>
+                </p>
             </div>
         </section>
         <section class="crm-section">
             <div class="crm-container">
-                <h2>Часто задаваемые вопросы</h2>
-                <p><strong>Бесплатна ли TropaTT?</strong> Да, полностью. Платные услуги — отдельная помощь по внедрению и доработке.</p>
-                <p><strong>Можно ли развернуть у себя?</strong> Да, на сервере с PHP 8.1+ и MySQL.</p>
-                <p><strong>Подойдёт ли shared-хостинг?</strong> Да, если есть PHP 8.1+, MySQL и права на запись конфигурации и storage.</p>
-                <p><strong>Нужно ли вручную импортировать базу?</strong> В обычном сценарии нет: установщик сам подготавливает структуру MySQL и стартовые данные.</p>
-                <p><strong>Нужны ли платные услуги для использования?</strong> Нет. Самостоятельное использование — нормальный сценарий.</p>
+                <h2>FAQ</h2>
+                <p>
+                    <strong><span data-ru="Бесплатна ли TropaTT?">Is TropaTT free?</span></strong>
+                    <span data-ru=" Да, полностью. Платные услуги — отдельная помощь по внедрению и доработке."> Yes, completely. Paid services are separate implementation and customization help.</span>
+                </p>
+                <p>
+                    <strong><span data-ru="Можно ли развернуть у себя?">Can I deploy it on my own server?</span></strong>
+                    <span data-ru=" Да, на сервере с PHP 8.1+ и MySQL."> Yes, on any server with PHP 8.1+ and MySQL.</span>
+                </p>
+                <p>
+                    <strong><span data-ru="Подойдёт ли shared-хостинг?">Does it work on shared hosting?</span></strong>
+                    <span data-ru=" Да, если есть PHP 8.1+, MySQL и права на запись конфигурации и storage."> Yes, if the host supports PHP 8.1+, MySQL, and write access for config and storage paths.</span>
+                </p>
+                <p>
+                    <strong><span data-ru="Нужно ли вручную импортировать базу?">Do I need to manually import the database?</span></strong>
+                    <span data-ru=" В обычном сценарии нет: установщик сам подготавливает структуру MySQL и стартовые данные."> Usually no — the installer prepares the MySQL schema and seed data automatically.</span>
+                </p>
+                <p>
+                    <strong><span data-ru="Нужны ли платные услуги для использования?">Do I need paid services to use it?</span></strong>
+                    <span data-ru=" Нет. Самостоятельное использование — нормальный сценарий."> No. Self-hosted use is the standard scenario.</span>
+                </p>
             </div>
         </section>
     </main>
@@ -122,11 +168,43 @@
         <section class="crm-section">
             <div class="crm-container">
                 <h1>TropaTT</h1>
-                <p>TropaTT — бесплатная CRM с открытым исходным кодом и установкой через браузер. Включите JavaScript, чтобы увидеть полную интерактивную страницу.</p>
+                <p>TropaTT is a free open-source self-hosted CRM with browser-based installer. Enable JavaScript for the full interactive page.</p>
             </div>
         </section>
     </noscript>
 
+    <script>
+    (function() {
+        var lang = 'en';
+        var stored = localStorage.getItem('tropatt_lang');
+        if (stored === 'ru' || stored === 'en') {
+            lang = stored;
+        } else {
+            var browserLang = (navigator.language || navigator.userLanguage || '').split('-')[0];
+            if (browserLang === 'ru') lang = 'ru';
+        }
+        applyLang(lang);
+
+        var btn = document.getElementById('langToggle');
+        if (btn) {
+            btn.textContent = lang === 'ru' ? 'RU' : 'EN';
+            btn.addEventListener('click', function() {
+                lang = lang === 'ru' ? 'en' : 'ru';
+                localStorage.setItem('tropatt_lang', lang);
+                btn.textContent = lang === 'ru' ? 'RU' : 'EN';
+                applyLang(lang);
+            });
+        }
+
+        function applyLang(current) {
+            document.documentElement.lang = current;
+            var els = document.querySelectorAll('[data-ru][data-en]');
+            for (var i = 0; i < els.length; i++) {
+                els[i].textContent = els[i].getAttribute('data-' + current);
+            }
+        }
+    })();
+    </script>
     <script src="assets/js/main.js"></script>
 </body>
 </html>
