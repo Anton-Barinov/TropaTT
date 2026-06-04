@@ -1,4 +1,4 @@
-# TropaTT CRM
+# TropaTT
 
 **The free, self-hosted, open-source CRM, task manager, and work platform — with 20+ AI tools, built-in team chat, automation, REST API, and no artificial SaaS limits. For freelancers, teams, and businesses that want their data on their own server.**
 
@@ -420,7 +420,7 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 TropaTT is developed by **Barinov Anton**, PHP developer.
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
-- **Repo:** [github.com/Anton-Barinov/TropaTT_CRM](https://github.com/Anton-Barinov/TropaTT_CRM)
+- **Repo:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
 
 The project is a practical, self-hosted work system: PHP-first, MySQL-compatible, installable through a browser, zero artificial limits, and built with data privacy as a first principle.
 
@@ -777,7 +777,7 @@ TropaTT поставляется со 100+ структурированными 
 TropaTT разрабатывает **Антон Баринов**, PHP-разработчик и создатель проекта TropaTT CRM.
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
-- **Репозиторий:** [github.com/Anton-Barinov/TropaTT_CRM](https://github.com/Anton-Barinov/TropaTT_CRM)
+- **Репозиторий:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
 
 Проект создаётся как практичная самостоятельная система управления работой с PHP-first подходом, совместимостью с MySQL, прозрачной браузерной установкой, отсутствием искусственных ограничений, фокусом на приватность данных и расширяемой бизнес-логикой.
 
@@ -1131,6 +1131,6 @@ TropaTT 附带 100 多份结构化文档，分布在三个层级：
 TropaTT 由 **Anton Barinov** 开发，PHP 开发者，TropaTT CRM 和任务管理平台的创建者。
 
 - **GitHub：** [Anton-Barinov](https://github.com/Anton-Barinov)
-- **仓库：** [github.com/Anton-Barinov/TropaTT_CRM](https://github.com/Anton-Barinov/TropaTT_CRM)
+- **仓库：** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
 
 该项目构建为一个实用、可自行部署的工作管理系统，采用 PHP 优先的方法，兼容 MySQL，透明的浏览器安装，零人工限制，并专注于数据隐私和可扩展的业务逻辑。
