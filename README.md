@@ -4,465 +4,445 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-4F5B93?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Zero Deps](https://img.shields.io/badge/Dependencies-0%20packages-6f42c1?style=flat-square)](#english-technical-facts)
-[![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#english-open-source--self-hosting)
-[![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#english-ai-capabilities)
-[![Tests](https://img.shields.io/badge/Tests-337%20files-success?style=flat-square)](#english-technical-facts)
-[![License](https://img.shields.io/badge/License-Open%20Source-blue?style=flat-square)](#english-open-source--self-hosting)
+[![Zero Deps](https://img.shields.io/badge/Dependencies-0%20packages-6f42c1?style=flat-square)](#by-the-numbers)
+[![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#self-hosted-your-server-your-rules)
+[![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#ai--what-it-can-do)
+[![Tests](https://img.shields.io/badge/Tests-337%20files-success?style=flat-square)](#by-the-numbers)
+[![License](https://img.shields.io/badge/License-Open%20Source-blue?style=flat-square)](#self-hosted-your-server-your-rules)
 
 ---
 
 ## Table of Contents
 
 - [English](#english)
-  - [Quick Answer](#english-quick-answer)
-  - [What Is TropaTT?](#english-what-is-tropatt)
-  - [Why TropaTT?](#english-why-tropatt)
-  - [Who Is It For?](#english-who-is-it-for)
-  - [Core Features](#english-core-features)
-  - [Feature Matrix](#english-feature-matrix)
-  - [AI Capabilities](#english-ai-capabilities)
-  - [Built-in Team Chat](#english-built-in-team-chat)
-  - [Business Workflows](#english-business-workflows)
-  - [Automation & API](#english-automation--api)
-  - [Open Source & Self-Hosting](#english-open-source--self-hosting)
-  - [Installation](#english-installation)
-  - [FAQ](#english-faq)
-  - [Technical Facts](#english-technical-facts)
-  - [Technology](#english-technology)
-  - [Project Structure](#english-project-structure)
-  - [Architecture & Engineering](#english-architecture--engineering)
-  - [Documentation](#english-documentation)
-  - [Developer](#english-developer)
+  - [What's TropaTT](#whats-tropatt)
+  - [Why TropaTT](#why-tropatt)
+  - [Who it's for](#who-its-for)
+  - [What's inside](#whats-inside)
+  - [Feature overview](#feature-overview)
+  - [AI — what it can do](#ai--what-it-can-do)
+  - [Team chat](#team-chat)
+  - [How people use it](#how-people-use-it)
+  - [Automation & API](#automation--api)
+  - [Self-hosted. Your server, your rules.](#self-hosted-your-server-your-rules)
+  - [Getting started](#getting-started)
+  - [FAQ](#faq)
+  - [By the numbers](#by-the-numbers)
+  - [Tech stack](#tech-stack)
+  - [Project layout](#project-layout)
+  - [Under the hood](#under-the-hood)
+  - [Docs](#docs)
+  - [Who built this](#who-built-this)
 - [Русский](#русский)
-  - [Краткий ответ](#русский-краткий-ответ)
-  - [Что такое TropaTT?](#русский-что-такое-tropatt)
-  - [Почему TropaTT?](#русский-почему-tropatt)
-  - [Для кого это?](#русский-для-кого-это)
-  - [Ключевые возможности](#русский-ключевые-возможности)
-  - [Матрица функций](#русский-матрица-функций)
-  - [Возможности ИИ](#русский-возможности-ии)
-  - [Встроенный командный чат](#русский-встроенный-командный-чат)
-  - [Бизнес-процессы](#русский-бизнес-процессы)
-  - [Автоматизация и API](#русский-автоматизация-и-api)
-  - [Открытый исходный код и свой сервер](#русский-открытый-исходный-код-и-свой-сервер)
-  - [Установка](#русский-установка)
-  - [FAQ](#русский-faq)
-  - [Технические факты](#русский-технические-факты)
-  - [Технологии](#русский-технологии)
-  - [Структура проекта](#русский-структура-проекта)
-  - [Архитектура и инженерия](#русский-архитектура-и-инженерия)
-  - [Документация](#русский-документация)
-  - [Разработчик](#русский-разработчик)
+  - [Что такое TropaTT](#что-такое-tropatt)
+  - [Почему TropaTT](#почему-tropatt)
+  - [Для кого](#для-кого)
+  - [Что внутри](#что-внутри)
+  - [Обзор возможностей](#обзор-возможностей)
+  - [ИИ — что он умеет](#ии--что-он-умеет)
+  - [Командный чат](#командный-чат)
+  - [Как это используют](#как-это-используют)
+  - [Автоматизация и API](#автоматизация-и-api)
+  - [Свой сервер — свои правила](#свой-сервер--свои-правила)
+  - [Установка](#установка)
+  - [FAQ](#faq-1)
+  - [В цифрах](#в-цифрах)
+  - [Технологии](#технологии)
+  - [Структура](#структура)
+  - [Как устроено](#как-устроено)
+  - [Документация](#документация)
+  - [Кто сделал](#кто-сделал)
 - [中文](#中文)
-  - [快速回答](#中文-快速回答)
-  - [TropaTT 是什么？](#中文-tropatt-是什么)
-  - [为什么选择 TropaTT？](#中文-为什么选择-tropatt)
-  - [适合谁使用？](#中文-适合谁使用)
-  - [核心功能](#中文-核心功能)
-  - [功能矩阵](#中文-功能矩阵)
-  - [AI 能力](#中文-ai-能力)
-  - [内置团队聊天](#中文-内置团队聊天)
-  - [业务流程](#中文-业务流程)
-  - [自动化与 API](#中文-自动化与-api)
-  - [开源与自托管](#中文-开源与自托管)
-  - [安装](#中文-安装)
-  - [常见问题](#中文-常见问题)
-  - [技术事实](#中文-技术事实)
-  - [技术栈](#中文-技术栈)
-  - [项目结构](#中文-项目结构)
-  - [架构与工程](#中文-架构与工程)
-  - [文档](#中文-文档)
-  - [开发者](#中文-开发者)
+  - [TropaTT 是什么](#tropatt-是什么)
+  - [为什么 TropaTT](#为什么-tropatt)
+  - [适合谁](#适合谁)
+  - [功能](#功能)
+  - [功能一览](#功能一览)
+  - [AI — 能做什么](#ai--能做什么)
+  - [团队聊天](#团队聊天)
+  - [使用方式](#使用方式)
+  - [自动化与 API](#自动化与-api)
+  - [自托管，你的规则](#自托管你的规则)
+  - [安装](#安装)
+  - [常见问题](#常见问题)
+  - [数字说话](#数字说话)
+  - [技术栈](#技术栈)
+  - [结构](#结构)
+  - [内部原理](#内部原理)
+  - [文档](#文档)
+  - [谁做的](#谁做的)
 
 ---
 
 ## English
 
-### English: Quick Answer
+### What's TropaTT
 
-**TropaTT is a free, open-source, self-hosted CRM, task manager, task tracker, and project operations platform for PHP 8.1+ and MySQL.** It combines client and counterparty management, project and task management, Kanban boards, Gantt charts, calendar, built-in team chat, notifications, analytics, workflow automation, webhooks, modular extensions, role-based access control, SLA, approvals, REST API, and 20+ AI-assisted workflows — including AI idea analysis, daily and weekly plans, task decomposition, smart checklists, summaries, and more.
+TropaTT is a free, self-hosted, open-source work management system. It's a CRM for your clients and counterparties. A task manager and task tracker for getting things done. A project planner with Kanban and Gantt. A team messenger that lives inside the same tool as your work. And a platform with 20+ AI tools — idea analysis, daily planning, task decomposition, smart checklists, and more — all running on PHP 8.1+ and MySQL, on your own server.
 
-If you need a concise description for search engines, AI assistants, LLM indexes, software catalogs, or README previews, use this:
+Here's the short version for search engines and AI assistants:
 
-> TropaTT is a free, open-source, self-hosted PHP/MySQL CRM, task manager, and business operations platform with projects, tasks, clients, Kanban, Gantt, calendar, built-in chat, notifications, analytics, workflow automation, webhooks, modules, REST API, RBAC, SLA, approvals, 20+ AI-assisted workflows, zero external PHP dependencies, 743 API endpoints, and a browser-based installer that works on shared hosting from ~$3/month.
+> TropaTT is a free, open-source, self-hosted PHP/MySQL CRM and task manager with projects, clients, Kanban, Gantt, calendar, built-in chat, 20+ AI workflows, 743 API endpoints, zero external PHP dependencies, and a browser installer that works on shared hosting from ~$3/month.
 
----
+TropaTT was built for people who work. Freelancers with 30 clients and no assistant. Small agencies shipping projects with 5 people. Growing service companies. Installation teams in the field. Marketing studios running campaigns. And anyone who's tired of paying for six separate tools that don't talk to each other.
 
-### English: What Is TropaTT?
-
-TropaTT is a modern, free, self-hosted work management system. It is a CRM for your clients and counterparties. It is a task manager and task tracker for your daily execution. It is a project management platform for your team's delivery. And it is an AI-powered workspace that helps you turn ideas into action plans, prioritize your day, and automate repetitive coordination — all running on your own PHP/MySQL server, with no cloud vendor between you and your data.
-
-TropaTT was built for people who work: freelancers managing multiple clients alone, small agencies coordinating projects with 5–15 people, growing service companies delivering B2B work, installation and consulting teams tracking field operations, marketing studios running campaigns, and any team that's tired of juggling separate tools for CRM, tasks, chat, calendar, and analytics.
-
-Unlike cloud SaaS platforms that charge per user, limit your features by plan tier, and block your access when payments fail — TropaTT gives you everything, unlimited, on your own server. You can run it on a $3/month shared hosting plan. There are no per-seat fees, no task limits, no project caps, and no feature gates. You own your data, your backups, and your infrastructure.
+Here's the real difference: cloud SaaS platforms charge per user, cap your features by plan tier, and can block you when a payment fails. TropaTT runs on your server. No per-seat fees. No limits on users, tasks, projects, or clients. Your data, your backups, your rules. You can run it on a $3/month shared hosting plan.
 
 ---
 
-### English: Why TropaTT?
+### Why TropaTT
 
-The typical work tool stack is broken. You track clients in one app, manage tasks in another, discuss projects in a third messenger, schedule in a fourth calendar, and hope nothing falls through the cracks. Then the cloud vendor raises prices, limits your seats, or has an outage — and your workflow breaks.
+Most people's work stack is a mess. One app for clients, another for tasks, a third for chat, a fourth for calendar, a spreadsheet for tracking. And then the cloud vendor raises prices, limits your seats, or goes down — and your workflow breaks.
 
-**TropaTT replaces this mess with one self-hosted system:**
+**TropaTT replaces all of that with one self-hosted system.**
 
-- **CRM + Task Manager + Project Tracker in one tool.** Client cards, task hierarchies, Kanban boards, Gantt timelines, and built-in team chat share the same data. No copying between apps. No lost context.
-- **20+ AI tools that actually help you work.** AI idea analysis turns a raw thought into a structured, prioritized task plan. AI daily plans tell you what to focus on today. AI generates task summaries, decompositions, checklists, risk assessments, and client meeting briefs — without leaving the workspace.
-- **Built-in team chat.** Discuss projects and tasks in the same system where the work lives. No Slack, no Discord, no separate messenger subscription.
-- **Zero cloud limits.** No user caps. No task caps. No project caps. No storage caps beyond your server. Nobody can throttle you, block you, or hold your data hostage.
-- **Total data privacy.** Your clients, tasks, files, chats, and business data stay on your server. No cloud provider has access. GDPR and data residency compliance is under your control — not a vendor's promise.
-- **Works on cheap hosting.** PHP 8.1+ and MySQL on any shared hosting, VPS, or local machine. A $3–5/month plan is enough to get started.
-- **Zero external PHP dependencies.** No Laravel, no Symfony, no Doctrine, no Composer dependency tree. The entire micro-kernel is hand-written. You deploy one codebase, not a hundred packages.
-- **Browser-based installation.** Upload files, open the installer in a browser, enter MySQL credentials, create an admin account. No terminal, no command line, no DevOps expertise.
-
----
-
-### English: Who Is It For?
-
-TropaTT works for anyone who manages clients and executes work — regardless of team size, industry, or role:
-
-**By team size:**
-- **Freelancers and solo entrepreneurs** managing 5–50 clients, tracking tasks, planning days with AI, and keeping all project context in one place — without paying per seat.
-- **Small teams (2–15 people)** who need CRM, tasks, chat, and project visibility without managing separate tool subscriptions.
-- **Growing companies (15–100+ people)** who need roles, permissions, workflow automation, SLA, approvals, webhooks, and API integrations — without enterprise SaaS pricing.
-
-**By industry:**
-- Marketing and advertising agencies handling client campaigns, deadlines, and deliverables.
-- Software development and IT service teams tracking projects, bugs, and deployments.
-- Design studios and creative agencies managing revisions, assets, and client approvals.
-- Installation, construction, and field service companies coordinating tasks across sites.
-- Consulting, legal, and professional services firms managing client engagements and documents.
-- B2B service companies with counterparties, contracts, and recurring work.
-- Any team that needs both CRM and task management — not one or the other.
-
-**By role:**
-- Founders and managers who need to see what's happening across clients, projects, and teams.
-- Project managers who plan Gantt timelines, track milestones, and manage workloads.
-- Team leads who assign tasks, review execution, and coordinate through built-in chat.
-- Individual contributors who need a clear task list, daily plan, and focused workspace.
+- **CRM + task manager + project tracker in one place.** Client cards, task hierarchies, Kanban boards, Gantt timelines, and team chat — all on the same data. No copying between apps. No "wait, where did we discuss that?"
+- **Actual AI that helps you work.** Not a chatbot sidebar. AI idea analysis turns a sentence like "client wants a booking integration" into a full task hierarchy with subtasks and priorities. AI daily and weekly plans tell you what to focus on — based on your real deadlines and workload. It generates summaries, checklists, risk assessments, meeting briefs. Tools that save time, not gimmicks.
+- **Built-in team chat.** No Slack, no Discord, no extra subscription. Discussions live next to the work.
+- **No cloud limits.** No user caps. No task caps. No project caps. Nobody can throttle you, block you, or hold your data.
+- **Your data, your server.** Every client, task, file, chat message, and business record stays on your infrastructure. GDPR compliance is under your control — not a vendor's promise.
+- **Runs on cheap hosting.** PHP 8.1+ and MySQL. A $3–5/month shared hosting plan is enough to start. No special requirements.
+- **Zero external PHP dependencies.** No Laravel, no Symfony, no Doctrine, no Composer tree of 200 packages. The whole micro-kernel is hand-written. One codebase, not a hundred moving parts.
+- **Install in a browser.** Upload files, open the installer, enter MySQL credentials, create an admin account. No terminal, no command line, no DevOps.
 
 ---
 
-### English: Core Features
+### Who it's for
 
-**CRM and client management.** Client records, counterparties, companies, contacts, organizations, departments, teams. Custom fields for adapting to your industry. Client detail pages with full project, task, and communication history. Counterparty management for B2B relationships with customers, contractors, partners, and suppliers.
+TropaTT works for anyone managing clients and executing work. Here's who uses it:
 
-**Task management and execution.** Full task hierarchy: parent tasks, subtasks, checklists. Statuses, priorities, due dates, assignees, tags. Rich task comments with file attachments and @mentions. Task templates for recurring work. Dependencies between tasks. WIP limits to prevent overload. Mass actions for bulk updates.
+**Freelancers and solo professionals** running 5–50 clients. You get a CRM, task tracker, AI daily planner, and project history — without paying per seat. One person, one tool, zero monthly SaaS bills.
 
-**Project management.** Project pages with milestones, risks, workload context, and timeline views. Kanban boards for flow-based execution. Gantt charts for schedule visibility and dependency planning. Project templates for repeatable delivery patterns.
+**Small teams (2–15 people).** You need client records, task management, team chat, and project visibility. TropaTT gives you this without managing separate subscriptions for each function.
 
-**Personal planning.** My Day and My Week views — designed for both solo prioritization and team coordination. AI-generated daily and weekly plans based on your actual tasks, deadlines, and calendar.
+**Growing companies (15–100+).** You need roles, permissions, workflow automation, SLA, approvals, webhooks, and API access. TropaTT has all of it, without enterprise pricing.
 
-**Calendar.** Events with task and project linking. Agenda and schedule views. Configurable working days, holidays, and business hours for SLA deadline calculation.
+**By industry**: marketing agencies, dev shops, design studios, construction and installation teams, legal and consulting firms, B2B service companies. Basically, anyone who does client work and needs to track it.
 
-**Built-in team chat.** Full CRM-integrated messenger — project chats, direct chats, group chats. Messages, attachments, images, @mentions, replies, URL routing, and real-time polling. No need for Slack, Discord, or Telegram.
-
-**Notifications.** Real-time alerts for task assignments, comments, mentions, deadline changes, approvals, and system events. Push notifications via browser API. Notification center with history.
-
-**Analytics and dashboards.** Business overview dashboard. KPI tracking, workload analysis, risk signals, team capacity reports. All data comes from your actual project and task execution — not manual entry.
-
-**Administration.** User management, roles, granular permissions, statuses, priorities, SLA policies, workflow rules, webhooks, API clients, modules, audit logs, feature flags, rate limits, and AI provider configuration — all from the admin panel.
-
-**Ideas and AI analysis.** Capture raw ideas, client requests, or business problems. Let AI analyze feasibility, risks, and complexity. AI proposes a structured task hierarchy. Review and convert to real tasks with one click. Turns "we should probably do something about X" into an actionable plan in minutes.
+**By role**: founders who need the big picture. Project managers running timelines and workloads. Team leads assigning and reviewing work. Individual contributors who want a clear task list and a plan for the day.
 
 ---
 
-### English: Feature Matrix
+### What's inside
 
-| Area | What TropaTT Provides | Why It Matters |
+**CRM.** Clients, counterparties, companies, contacts, organizations, departments, teams. Custom fields for your industry. Full history: every project, task, and communication tied to each client.
+
+**Task manager.** Full hierarchy: parent tasks, subtasks, checklists. Statuses, priorities, due dates, assignees, tags. Task dependencies. WIP limits. Comments with file attachments and @mentions. Templates for recurring work. Mass actions when you need to update 20 tasks at once.
+
+**Projects.** Milestones, risks, workload context, timeline views. Kanban boards for flow. Gantt charts for deadlines and dependencies. Project templates for repeatable delivery.
+
+**Personal planning.** My Day and My Week views — for both solo prioritization and team coordination. AI-generated plans based on your actual tasks, deadlines, and calendar.
+
+**Calendar.** Events linked to tasks and projects. Configurable working days, holidays, and business hours — used for SLA deadline calculation.
+
+**Team chat.** Built in, not bolted on. Project chats, direct messages, group chats. File attachments, images, @mentions, replies. URL routing so you can link to a conversation. Real-time polling so new messages appear without losing your draft. More details [below](#team-chat).
+
+**Notifications.** Real-time alerts for assignments, comments, mentions, deadlines, approvals. Push via browser API. History in the notification center.
+
+**Analytics.** Dashboards, KPIs, workload analysis, risk signals, team capacity reports. All from real execution data, not manual entry.
+
+**Admin panel.** Users, roles, permissions, statuses, priorities, SLA policies, workflow rules, webhooks, API clients, modules, audit logs, feature flags, rate limits, AI provider settings.
+
+**Ideas + AI analysis.** Capture a raw idea or client request. Let AI assess feasibility and risk. AI proposes a structured task hierarchy. Review and convert to real tasks with a click. "We should probably do something about client retention" → actionable plan in minutes.
+
+---
+
+### Feature overview
+
+| Area | What you get | Why it matters |
 |---|---|---|
-| **CRM** | Clients, counterparties, companies, contacts, organizations, departments | One place for all business relationships and context |
-| **Task Manager** | Hierarchy, subtasks, checklists, WIP limits, dependencies, templates | Replaces separate task tracker subscriptions |
-| **Projects** | Milestones, risks, Gantt, workload context, templates | Delivery control with timeline and responsibility tracking |
-| **Kanban** | Flow-based board with drag-and-drop task movement | Visual status management that reduces bottlenecks |
-| **Gantt** | Timeline planning with dependency-aware scheduling | Deadline visibility and resource planning |
-| **Calendar** | Events, agenda, daily/weekly views, business calendar | Scheduled work connected to task and project context |
-| **Team Chat** | Built-in messenger with project channels, DMs, attachments, mentions | Communication in the same tool as the work |
-| **Notifications** | Real-time alerts, push notifications, notification center | Never miss a deadline, mention, or approval |
-| **Analytics** | Dashboards, KPIs, workload, risks, team capacity | Data-driven decisions from real execution data |
-| **Automation** | Workflow rules, SLA, approvals, webhooks, background jobs | Reduce manual coordination and human error |
-| **AI (20+ tools)** | Idea analysis, daily/weekly plans, task decomposition, summaries, checklists, risk analysis, meeting prep | AI that helps you work smarter, not just a chatbot |
-| **Admin** | Users, roles, permissions, feature flags, modules, logs, settings | Full control over your workspace |
-| **Data Privacy** | 100% local data on your server, no cloud access | Zero vendor lock-in, GDPR under your control |
-| **No Limits** | Unlimited users, tasks, projects, clients, files | Scales with your business, not your subscription tier |
-| **Installation** | Browser-based wizard for any PHP/MySQL hosting | First launch in minutes, no terminal required |
-| **Zero Dependencies** | No external PHP packages, custom micro-kernel | No supply-chain risk, one codebase to deploy |
+| **CRM** | Clients, counterparties, companies, contacts, orgs | All business relationships in one place |
+| **Tasks** | Hierarchy, subtasks, checklists, WIP limits, dependencies, templates | One task tracker instead of a separate subscription |
+| **Projects** | Milestones, risks, Gantt, workload context, templates | Delivery control with timeline and responsibility |
+| **Kanban** | Drag-and-drop board for task flow | Visual status management, fewer bottlenecks |
+| **Gantt** | Timeline with dependency-aware scheduling | Deadline visibility and resource planning |
+| **Calendar** | Events, agenda, day/week views, business calendar | Scheduled work connected to task context |
+| **Chat** | Built-in messenger — channels, DMs, attachments, mentions | Communication in the same tool as the work |
+| **Notifications** | Real-time alerts, push, notification center | No missed deadlines, mentions, or approvals |
+| **Analytics** | Dashboards, KPIs, workload, risks, team capacity | Decisions from real execution data |
+| **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
+| **AI (20+ tools)** | Idea analysis, plans, decomposition, summaries, checklists, risk review, meeting prep | AI that saves time in real workflows |
+| **Admin** | Users, roles, permissions, feature flags, modules, logs | Full control over your workspace |
+| **Privacy** | 100% local data, no cloud access | Zero vendor lock-in, GDPR under your control |
+| **No limits** | Unlimited users, tasks, projects, clients, files | Scales with your business, not your bill |
+| **Install** | Browser wizard for any PHP/MySQL host | First launch in minutes, no terminal |
+| **Zero deps** | No external PHP packages, custom micro-kernel | No supply-chain risk, one codebase |
 
 ---
 
-### English: AI Capabilities
+### AI — what it can do
 
-TropaTT has **more AI depth than most SaaS CRM products** — not because AI is bolted on as a chatbot, but because it's integrated into the workflows where it actually saves time.
+TropaTT has more AI depth than most SaaS CRMs. Not because someone bolted a chatbot onto the sidebar, but because AI is integrated into the workflows where it actually makes you faster.
 
-You connect your own AI provider (OpenAI, Anthropic, DeepSeek, Google, or any compatible OpenAI-format API). All AI processing happens server-side. Your business data never leaves your infrastructure unless you explicitly configure a provider. AI suggestions are always preview-before-apply — nothing is changed automatically without your review.
+You bring your own provider keys (OpenAI, Anthropic, DeepSeek, Google, any compatible API). Everything runs server-side. Your business data never touches an AI service unless you explicitly configure it. Every suggestion is preview-before-apply — nothing changes automatically without your review.
 
-**Standout feature — AI Idea Analysis:**
-1. Write a few sentences describing an idea, client need, or business problem.
-2. AI evaluates scope, feasibility, risks, complexity, and impact.
-3. AI proposes a structured task hierarchy with parent tasks, subtasks, priorities, and reasoning.
-4. You review the proposal and convert it to real tasks with one click.
+**The standout feature: AI idea analysis.**
 
-*Example:* "Client wants a booking system integrated with their website." → AI proposes: research existing APIs (2 subtasks), design integration architecture, implement booking endpoint, build frontend UI, integration tests, deployment checklist. What was a 30-minute manual planning session becomes a 30-second review-and-confirm.
+Here's how it works. You write a few sentences about an idea, client need, or problem. The AI evaluates scope, feasibility, risks, complexity. Then it proposes a concrete task hierarchy: parent tasks, subtasks, priorities, with reasoning. You review the proposal. One click converts it to real tasks.
 
-**Complete AI workflow list:**
+Real example: _"Client wants a booking system integrated with their website."_ → AI proposes: research existing APIs (2 subtasks) → design integration architecture → implement booking endpoint → build frontend UI → integration tests → deployment checklist. What was a 30-minute manual planning session becomes a 30-second review-and-confirm.
+
+**All 22 AI workflows:**
+
 AI Idea Analysis · Task Decomposition · Daily Work Plan · Weekly Work Plan · Task Summary · Next Action Suggestions · Checklist Generation · Task Quality Review · Comment Draft Generation · Task Priority Ordering · Project Summary · Project Risk Summary · Project Client Report · Client Summary · Client Meeting Preparation · Client Data Quality Review · Analytics KPI Explanation · Analytics Risks Explanation · Team Workload Summary · Calendar Event Agenda · Dashboard Daily Digest · Semantic Search
 
-**AI safety model:**
-- Preview-only by default — no automatic writes to business data.
-- All AI requests go through backend API — keys never exposed to browser.
-- Role-based access controls per AI capability.
-- Feature flags (43 total) for granular AI rollout.
-- Rate and cost limits per intent.
-- Raw prompts and sensitive context are not stored by default.
+**How safety works:**
+- Preview-only by default. No automatic writes to your data.
+- All AI calls go through the backend API. Provider keys never reach the browser.
+- Role-based access per AI capability.
+- 43 feature flags for granular rollout.
+- Rate and cost limits per workflow type.
+- Raw prompts and sensitive context are not stored by default. Only sanitized metadata.
 
 ---
 
-### English: Built-in Team Chat
+### Team chat
 
-TropaTT includes a full-featured team messenger inside the workspace — not an integration, not an embed, not a separate subscription. The chat is built into the same system as tasks, projects, and clients:
+TropaTT has a real messenger inside the workspace. Not an integration, not an embed, not a separate subscription. It lives in the same system as your tasks, projects, and clients.
 
-- **Two-panel layout:** conversation list on the left, message thread on the right.
-- **Project and team channels:** each project can have its own chat. General team channels for company-wide communication.
-- **Direct messages:** 1-on-1 and group conversations.
-- **Rich messages:** text, file attachments, images, @mentions with user search, reply chains.
-- **URL-routed conversations:** each chat gets its own URL — link directly to a discussion.
-- **Session memory:** the system restores your last active chat on page reload.
-- **Live polling:** new messages appear automatically, without losing your draft.
-- **Chat creation modal:** search users by name, create conversations instantly.
-- **Participant controls:** chat owners manage members, add, and remove.
-- **Composer UX:** Enter sends, Shift+Enter creates a new line.
+What you get:
+- **Two-panel layout.** Conversations on the left, messages on the right.
+- **Project and team channels.** Each project gets its own chat. General channels for company-wide stuff.
+- **Direct messages.** One-on-one and group conversations.
+- **Messages with attachments.** Text, files, images. @mentions with user search. Reply chains.
+- **URL-routed chats.** Every conversation has its own URL. Link directly to a discussion.
+- **Remembers where you were.** Restores your last active chat on page reload.
+- **Live polling.** New messages appear automatically. Your draft stays intact.
+- **Quick chat creation.** Search users by name, start a conversation instantly.
+- **Participant controls.** Chat owners add and remove members.
+- **Enter sends, Shift+Enter for new line.** Exactly what you expect.
 
-This eliminates the "where did we discuss this?" problem. Task context, project discussion, and team communication share the same space.
-
----
-
-### English: Business Workflows
-
-TropaTT supports the end-to-end cycle of client work for teams of any size:
-
-1. **Capture** — an idea, client request, operational problem, or incoming lead.
-2. **Analyze** — manually or with AI: scope, risks, feasibility, suggested approach.
-3. **Structure** — convert into projects, tasks, subtasks, checklists, assignees, deadlines.
-4. **Coordinate** — discuss through built-in chat, task comments, mentions, notifications.
-5. **Execute** — work through task lists, Kanban, My Day, and My Week views.
-6. **Track** — monitor via Gantt, dashboards, analytics, workload views, and risk signals.
-7. **Automate** — recurring processes through workflow rules, SLA policies, webhooks, and approval chains.
-
-**Real-world workflow examples:**
-- **Freelancer:** client inquiry → AI idea analysis → structured task plan → My Day → execution → chat with client → completion.
-- **Agency:** client brief → AI decomposition → project with milestones → team Kanban → Gantt tracking → client report → analytics review.
-- **Service company:** counterparty setup → project → installation tasks → Gantt → daily plans → SLA monitoring → sign-off.
-- **B2B operations:** company → contacts → tasks with approvals → reminders → webhook → CRM dashboard.
+The point: you stop asking "where did we discuss this?" because the discussion lives next to the task, the project, and the client context.
 
 ---
 
-### English: Automation & API
+### How people use it
 
-TropaTT's automation layer and REST API are production-grade — designed for teams that need the system to work with the rest of their business stack:
+End-to-end cycle for client work, whether you're a team of 1 or 100:
 
-- **Workflow rules** — trigger actions when conditions are met (status change, field update, time-based).
-- **SLA management** — define service-level expectations with deadline tracking and breach alerts.
-- **Approval flows** — multi-step decision chains for controlled business changes.
-- **Webhooks** — send events to external systems when CRM records change.
+1. **Capture** — an idea, client request, problem, or incoming lead.
+2. **Analyze** — yourself or let AI break it down: scope, risks, feasibility, approach.
+3. **Structure** — into projects, tasks, subtasks, checklists, assignees, deadlines.
+4. **Coordinate** — through chat, comments, @mentions, notifications.
+5. **Execute** — task lists, Kanban, My Day, My Week.
+6. **Track** — Gantt, dashboards, analytics, workload, risk signals.
+7. **Automate** — workflow rules, SLA policies, webhooks, approval chains.
+
+**Real examples:**
+
+- **Freelancer:** client inquiry → AI analyzes → structured task plan → My Day → execute → chat with client → done.
+- **Agency:** client brief → AI decomposes → project + milestones → Kanban → Gantt tracking → client report → analytics.
+- **Service company:** counterparty → project → install tasks → Gantt → daily plans → SLA monitoring → sign-off.
+- **B2B ops:** company → contacts → tasks + approvals → reminders → webhook → dashboard.
+
+---
+
+### Automation & API
+
+TropaTT's automation and API are production-grade. Built for teams that need the system to talk to the rest of their stack.
+
+- **Workflow rules** — trigger actions on conditions (status change, field update, time-based).
+- **SLA management** — service level expectations with deadline tracking and breach alerts.
+- **Approval flows** — multi-step decision chains for controlled changes.
+- **Webhooks** — fire events to external systems when CRM records change.
 - **API clients and keys** — programmatic access with scoped permissions.
-- **Background jobs** — scheduled and queued processing for imports, exports, AI workflows.
-- **Module system** — extend business logic without modifying the core. 19 CLI commands for module management.
-- **743 documented REST API endpoints** — every CRM entity, task, project, chat, calendar, analytic, and admin function is accessible via the API.
-- **OpenAPI 3.1 specification** — generated from the actual route configuration, never out of sync with implementation.
+- **Background jobs** — scheduled and queued for imports, exports, AI workflows.
+- **Module system** — extend business logic without touching core. 19 CLI commands.
+- **743 documented REST endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
+- **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
 
 ---
 
-### English: Open Source & Self-Hosting
+### Self-hosted. Your server, your rules.
 
-TropaTT is published as open-source software. You can deploy it on your own server for free. You can inspect, modify, and extend the code.
+TropaTT is open source. Deploy it on your own server. Inspect the code. Modify it. No license fees. No mandatory subscription.
 
-**What open source means here:**
-- Free to use for any purpose — no license fees, no mandatory subscription.
-- Full source code available — customize, audit, contribute.
-- Optional paid services (customization, integration, migration, support) are services, not requirements.
+Paid services (customization, integration, migration, support) exist as optional services. They're not required to use the software.
 
-**Why self-hosting matters:**
-- **No vendor lock-in.** If a SaaS CRM raises prices or shuts down, your data is trapped. With TropaTT, your data is on your server — migrate, back up, or move at any time.
-- **No artificial limits.** Unlimited users, unlimited tasks, unlimited projects, unlimited clients. The only ceiling is your server's hardware.
-- **No blocking or throttling.** Your access cannot be suspended by billing issues, policy changes, or automated vendor flags. The system is yours.
-- **Privacy by design.** Client data, tasks, files, and communications stay on your infrastructure. GDPR and data residency compliance is under your direct control.
-- **Cost control.** A $3–5/month shared hosting plan with PHP 8.1+ and MySQL is all you need for a small team. Scale up by upgrading your server — not your SaaS plan.
+**Why self-hosting matters, practically:**
+
+- **No vendor lock-in.** SaaS raises prices or shuts down, your data goes with it. TropaTT data lives on your server. Migrate, back up, move — anytime.
+- **No artificial limits.** Unlimited users, tasks, projects, clients. The only ceiling is your hardware.
+- **No one can block you.** Your access doesn't get suspended over a billing glitch or policy change. The system is yours.
+- **Privacy by design.** Client data, tasks, files, chats — all on your infrastructure. GDPR compliance is directly under your control.
+- **Cost control.** $3–5/month shared hosting with PHP 8.1+ and MySQL is all a small team needs. Scale by upgrading your server, not your SaaS plan.
 
 ---
 
-### English: Installation
+### Getting started
 
-TropaTT includes a browser-based installer designed for the typical shared hosting workflow. No terminal, no command line, no composer, no npm.
+Browser-based installer. No terminal, no composer, no npm. Designed for shared hosting.
 
-**Requirements:**
-- PHP 8.1 or newer
-- MySQL database (empty database ready to use)
-- Web server (Apache, Nginx, or any PHP-capable host)
-- Write access for `api/` configuration and `storage/` directory
+**What you need:**
+- PHP 8.1+
+- An empty MySQL database
+- Any web server (Apache, Nginx, or PHP-compatible host)
+- Write access for `api/` config and `storage/`
 
-**Quick start:**
-1. Upload the project files to your hosting.
+**Steps:**
+1. Upload the files.
 2. Create an empty MySQL database.
-3. Open your domain in a browser — TropaTT auto-detects it's not configured and launches the installer.
-4. The installer checks the environment, asks for MySQL host/port/database/user/password, your site URL and timezone, and the first admin account credentials.
-5. The installer writes `api/.env`, creates the MySQL schema, seeds reference data (statuses, priorities, roles, permissions), creates the admin user, prepares storage, and sets install lock files.
-6. Log in and start working.
+3. Open your domain in a browser. TropaTT detects it's not configured and launches the installer.
+4. The installer checks your environment, asks for MySQL credentials, site URL, timezone, and the first admin account.
+5. It writes `api/.env`, creates the schema, seeds reference data (statuses, priorities, roles, permissions), creates the admin user, and locks the installer.
+6. Log in. Start working.
 
-**Shared hosting scenario:**
-Upload `api/`, `web/`, `modules/`, `index.php`, `favicon.ico`, and `README.md` → create a MySQL database in your hosting panel → open your domain → follow the installer → done.
+**Shared hosting example:**
+Upload `api/`, `web/`, `modules/`, `index.php`, `favicon.ico`, `README.md` → create a MySQL database in your hosting panel → open your domain → follow the installer → done.
 
 ---
 
-### English: FAQ
+### FAQ
 
-**What is TropaTT?**
-A free, open-source, self-hosted CRM, task manager, and business operations platform built with PHP 8.1+ and MySQL. It combines client management, task management, project management, Kanban, Gantt, calendar, built-in team chat, notifications, analytics, automation, and 20+ AI workflows — all on your own server.
+**What exactly is TropaTT?**
+A free, open-source, self-hosted CRM + task manager + project platform. PHP 8.1+ and MySQL. Runs on your server. Combines clients, tasks, projects, Kanban, Gantt, calendar, built-in chat, analytics, automation, and 20+ AI tools.
 
-**Is TropaTT a CRM or a task manager?**
-Both. It's a CRM for clients, counterparties, contacts, and companies — and a complete task manager and task tracker for execution, planning, Kanban, Gantt, checklists, and daily planning. You don't need separate subscriptions.
+**CRM or task manager?**
+Both. CRM for clients, contacts, companies. Full task manager with hierarchy, Kanban, Gantt, checklists, and daily planning. You don't need separate tools.
 
-**Can freelancers use it?**
-Yes. TropaTT has no minimum team size. A freelancer manages clients, tracks tasks, plans days with AI, analyzes ideas, and keeps all project context in one place — without paying per seat.
+**Can a freelancer use this?**
+Yes. Minimum team size: 1. Manage clients, track tasks, plan your day with AI, analyze ideas — one tool, no per-seat pricing.
 
-**Does it work on shared hosting?**
-Yes. A standard PHP 8.1+ / MySQL shared hosting plan ($3–5/month) is sufficient. The browser installer handles configuration.
+**Works on shared hosting?**
+Yes. Standard PHP 8.1+/MySQL shared hosting ($3–5/month) is enough. The browser installer handles everything.
 
-**What about AI features?**
-20+ AI workflows: idea analysis, daily/weekly plans, task decomposition, summaries, checklists, risk assessment, meeting prep, and more. You connect your own AI provider. All processing is server-side. AI does not modify your data without your review.
+**What can the AI do?**
+22 workflows: idea analysis (turns a paragraph into a task plan), daily/weekly plans, task decomposition, summaries, checklists, risk reviews, meeting prep, and more. You bring your AI provider keys. Processing is server-side. AI never modifies data without your review.
 
 **How does AI idea analysis work?**
-Write a few sentences about an idea → AI evaluates scope, risks, and complexity → AI proposes a structured task hierarchy → you review and convert to real tasks with one click.
+You describe an idea → AI evaluates scope/risks/complexity → AI proposes a structured task hierarchy → you review → one click to convert to real tasks.
 
-**Where is my data stored?**
-100% on your own server. TropaTT never syncs data to any cloud. No third party (including the developer) has access to your installation or data.
+**Where's my data?**
+On your server. 100%. TropaTT never syncs to a cloud. No one — including the developer — has access to your installation.
 
-**Are there user limits? Task limits?**
-No. TropaTT has zero artificial limits. As many users, tasks, projects, and clients as your server can handle.
+**User limits? Task limits?**
+None. Zero artificial caps. As many users, tasks, projects, and clients as your server can handle.
 
-**Is it open source?**
-Yes, published as an open-source project. Free to use, modify, and deploy.
+**Is it really open source?**
+Yes. Free to use, modify, and deploy.
 
-**Does it have API access?**
-Yes, 743 documented REST API endpoints with an OpenAPI 3.1 spec generated from code. Every feature is accessible programmatically.
+**API access?**
+743 documented REST endpoints. OpenAPI 3.1 spec generated from code. Every feature is programmable.
 
 **Can I customize it?**
-Yes. PHP/MySQL stack, modular extensions, REST API, webhooks, workflow rules, custom fields, roles, permissions — all adaptable to your processes.
+Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
 
-**Who develops TropaTT?**
-Developed by **Barinov Anton**, PHP developer and creator of the TropaTT project.
+**Who built this?**
+**Barinov Anton**, PHP developer. Creator of TropaTT.
 
 ---
 
-### English: Technical Facts
+### By the numbers
 
 | Metric | Value |
 |--------|-------|
-| API endpoints | 743 normalized, 695 route records |
-| Web application routes | 68 pages, ~55 templates |
-| Backend PHP services | 100+ |
-| Database repositories | 65+ |
-| Backend domain modules | 35+ |
-| JavaScript modules | 24 (vanilla, no framework, no build step) |
-| Integration test files | 337 (custom runner, no PHPUnit) |
-| AI API endpoints | 65 |
-| AI workflow types | 22 |
+| API endpoints | 743 (695 route records) |
+| Web routes | 68 pages, ~55 templates |
+| Backend services | 100+ |
+| Repositories | 65+ |
+| Domain modules | 35+ |
+| JS modules | 24 (vanilla, no framework, no build) |
+| Integration tests | 337 (custom runner) |
+| AI endpoints | 65 |
+| AI workflows | 22 |
 | Feature flags | 43 |
-| Frontend API coverage | 70.1% (521 of 743 endpoints in UI) |
-| External PHP dependencies | 0 |
-| Frontend vendor packages | 3 (Bootstrap 5, Font Awesome 6, SortableJS) |
-| API documentation lines | 18,551 |
-| Documentation files | 100+ across 3 doc layers |
+| Frontend API coverage | 70.1% (521/743 in UI) |
+| External PHP deps | 0 |
+| Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
+| API doc lines | 18,551 |
+| Documentation files | 100+ across 3 layers |
 | Module CLI commands | 19 |
-| Minimum hosting cost | ~$3/month shared hosting |
+| Min hosting cost | ~$3/month |
 
 ---
 
-### English: Technology
+### Tech stack
 
-- **Backend:** PHP 8.1+ with custom micro-kernel — zero external packages, no Laravel/Symfony/Doctrine.
+- **Backend:** PHP 8.1+, custom micro-kernel. Zero external packages. No Laravel/Symfony/Doctrine.
 - **Database:** MySQL (primary), SQLite (dev/tests).
-- **Frontend:** PHP-rendered MPA with vanilla JavaScript ES5+ modules — no React/Vue/Angular, no build step, no bundler.
-- **Architecture:** API-first — web UI uses REST API for all data, zero direct database access from web layer.
-- **Security:** dual auth (cookie-session + CSRF for web, Bearer for API), RBAC with granular permissions, rate limiting, file quarantine, admin impersonation, sanitized error responses.
-- **Testing:** custom test runner, 337 integration tests, unit tests, Playwright E2E specs.
-- **AI layer:** configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible), intent-based workflows, prompt templates, JSON schema validation, preview-before-apply safety model.
-- **Documentation:** OpenAPI 3.1 generated from code, 100+ structured docs in 3 languages.
+- **Frontend:** PHP-rendered MPA, vanilla JS ES5+. No React/Vue/Angular. No build step. No bundler.
+- **Architecture:** API-first. Web UI uses REST API for all data. Zero direct database access from the web layer.
+- **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
+- **Testing:** Custom test runner, 337 integration tests, unit tests, Playwright E2E.
+- **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
+- **Docs:** OpenAPI 3.1 from code. 100+ structured docs in 3 languages.
 
 ---
 
-### English: Project Structure
+### Project layout
 
 ```text
 TropaTT/
-├── api/           # API core — controllers, services (100+), repositories (65+), config, migrations, tests, docs
-├── web/           # Web interface — installer, 68 pages, ~55 templates, 24 JS modules, assets
-├── modules/       # Optional business modules (boilerplate, hello-world, WIP limit examples)
-├── docs/          # Unified project documentation (architecture, glossary, contracts, dev guides)
+├── api/           # API core — controllers, 100+ services, 65+ repos, config, migrations, tests, docs
+├── web/           # Web UI — installer, 68 pages, ~55 templates, 24 JS modules, assets
+├── modules/       # Pluggable business modules (boilerplate, hello-world, WIP-limit examples)
+├── docs/          # Unified docs (architecture, glossary, contracts, dev guides)
 ├── index.php      # Root entry point
-└── README.md      # This file
+└── README.md      # You're reading it
 ```
 
-Backend domain modules are organized into 9 groups: Auth/Users, CRM (clients, counterparties, contacts), Projects/Tasks, Planning (calendar, recurring, reminders), Communication (chats, notifications, push), Automation (workflows, SLA, webhooks), Analytics (dashboards, reports), AI/LLM (11 modules: providers, intents, suggestions, actions, jobs, prompts, schemas, usage, retention, semantic, context builders), and Admin (settings, logs, audit, feature flags, modules, storage, trash, search).
+Backend modules organized in 9 groups: Auth/Users · CRM (clients, counterparties, contacts) · Projects/Tasks · Planning (calendar, recurring, reminders) · Communication (chats, notifications, push) · Automation (workflows, SLA, webhooks) · Analytics (dashboards, reports) · AI/LLM (11 modules: providers, intents, suggestions, actions, jobs, prompts, schemas, usage, retention, semantic, context builders) · Admin (settings, logs, audit, flags, modules, storage, trash, search).
 
 ---
 
-### English: Architecture & Engineering
+### Under the hood
 
-**Zero external PHP dependencies.** The entire framework — router, DI container, autoloader, query builder (ORM-free), validator, HTTP client, response handler, migration manager, module system, test runner — is hand-written. No Laravel. No Symfony. No Doctrine. A single `composer.json` with `php >=8.1`. This eliminates supply-chain risk, version conflicts, and dependency audit overhead.
+**Zero external PHP dependencies.** Router, DI container, autoloader, query builder (no ORM), validator, HTTP client, response handler, migration manager, module system, test runner — all hand-written. One `composer.json` with `php >=8.1`. No supply-chain risk. No version conflicts. No dependency audit debt.
 
-**Architecture Decision Records.** Key engineering decisions are documented: ADR-001 (custom micro-kernel), ADR-002 (single JSON response envelope), ADR-003 (no ORM — PDO + Repository), ADR-001 Web (custom PHP MVC), ADR-003 Web (vanilla JS, no build step), ADR-006 Web (server-side session verification via cookie + CSRF).
+**Documented architecture decisions:**
+ADR-001 — custom micro-kernel, no framework.
+ADR-002 — single JSON response envelope for all API calls.
+ADR-003 — no ORM, PDO + Repository pattern.
+ADR-001 Web — custom PHP MVC.
+ADR-003 Web — vanilla JS, no build step.
+ADR-006 Web — server-side session verification (cookie + CSRF).
 
-**API-first design.** The web UI has zero direct database access. Every data load, every form submit, every state change goes through `window.CRM.api.request` → `/api/v1/...`. The API is the authoritative layer — the web UI is just one consumer.
+**API-first.** The web UI does not touch the database. Every data load and state change goes through `window.CRM.api.request` → `/api/v1/...`. The API is authoritative. The UI is one consumer.
 
-**Custom test framework.** 337 integration test files run via `php api/scripts/test_runner.php fast` or `full`. No PHPUnit. The framework provides login, request simulation, assertion, and cleanup helpers. Dedicated smoke tests cover AI security contracts, data masking, rate limiting, retention policies, and RBAC.
-
----
-
-### English: Documentation
-
-TropaTT ships with 100+ structured documents across three layers:
-
-| Layer | Location | Contents |
-|-------|----------|----------|
-| Unified | `docs/` | Architecture, quick start, project structure, domain glossary, API-frontend contracts, development guides, operations manual, agent context for AI assistants |
-| API | `api/docs/` | 18,551-line endpoint catalog (`api.md`), OpenAPI 3.1 spec (generated from code via `generate_openapi.php`), security audit, database schema, API integration guide |
-| Web | `web/docs/` | Page reference, UI routing, forms and validation, JS module map, AI implementation checklist, Web-to-API audit |
+**Custom test framework.** 337 integration tests, `php api/scripts/test_runner.php fast` or `full`. No PHPUnit. The runner provides login, request simulation, assertions, and cleanup. Dedicated smoke tests for AI security contracts, data masking, rate limiting, retention, and RBAC.
 
 ---
 
-### English: Developer
+### Docs
 
-TropaTT is developed by **Barinov Anton**, PHP developer and creator of the TropaTT CRM and task management platform.
+100+ structured documents across three layers:
+
+| Layer | Where | What |
+|-------|-------|------|
+| Unified | `docs/` | Architecture, quick start, structure, domain glossary, API ↔ frontend contracts, dev guides, ops manual, AI agent context |
+| API | `api/docs/` | 18,551-line endpoint catalog (`api.md`), OpenAPI 3.1 (generated from code), security audit, DB schema, integration guide |
+| Web | `web/docs/` | Page reference, routing, forms, JS module map, AI implementation checklist, Web-to-API audit |
+
+---
+
+### Who built this
+
+TropaTT is developed by **Barinov Anton**, PHP developer.
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
-- **Repository:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
+- **Repo:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
 
-The project is built as a practical, self-hosted work management system with a PHP-first approach, MySQL compatibility, transparent browser-based installation, zero artificial limits, and a focus on data privacy and extensible business logic.
+The project is a practical, self-hosted work system: PHP-first, MySQL-compatible, installable through a browser, zero artificial limits, and built with data privacy as a first principle.
 
 ---
 
 ## Русский
 
-### Русский: Краткий ответ
+### Что такое TropaTT
 
-**TropaTT — это бесплатная, самостоятельная (self-hosted), с открытым исходным кодом CRM, таск-менеджер, таск-трекер и платформа управления проектами на PHP 8.1+ и MySQL.** Система объединяет управление клиентами и контрагентами, управление проектами и задачами, Канбан-доски, диаграммы Ганта, календарь, встроенный командный чат, уведомления, аналитику, автоматизацию рабочих процессов, вебхуки, модульные расширения, ролевую модель доступа, SLA, согласования, REST API и 20+ ИИ-инструментов — включая AI-проработку идей, планы на день и неделю, декомпозицию задач, умные чеклисты, сводки и многое другое.
+TropaTT — бесплатная, самостоятельная (self-hosted) система управления работой с открытым исходным кодом. CRM для клиентов и контрагентов. Таск-менеджер и таск-трекер для ежедневных задач. Проектное управление с Канбаном и Гантом. Встроенный командный чат. И 20+ ИИ-инструментов — проработка идей, планы на день и неделю, декомпозиция задач, умные чеклисты, сводки, подготовка к встречам. Всё на PHP 8.1+ и MySQL, на вашем сервере.
 
-Краткое описание для поисковых систем, AI-ассистентов и каталогов:
+Коротко для поиска:
 
-> TropaTT — бесплатная, с открытым исходным кодом, самостоятельная CRM, таск-менеджер и платформа управления бизнесом на PHP/MySQL с проектами, задачами, клиентами, Канбаном, Гантом, календарём, встроенным чатом, уведомлениями, аналитикой, автоматизацией, вебхуками, модулями, REST API, ролевой моделью, SLA, согласованиями, 20+ ИИ-инструментами, нулём внешних PHP-зависимостей, 743 API-эндпоинтами и браузерным установщиком, работающим на любом шаред-хостинге от ~3$/мес.
+> TropaTT — бесплатная self-hosted CRM и таск-менеджер с открытым исходным кодом на PHP/MySQL. Клиенты, проекты, задачи, Канбан, Гант, календарь, встроенный чат, 20+ ИИ-инструментов, 743 API-эндпоинта, ноль внешних PHP-зависимостей, браузерный установщик. Работает на шаред-хостинге от 200 ₽/мес.
 
----
+TropaTT сделана для тех, кто работает. Фрилансер с тридцатью клиентами и без ассистента. Небольшое агентство на пять человек. Растущая сервисная компания. Монтажная бригада на объектах. Маркетинговая студия. И любой, кто устал платить за шесть разных инструментов, которые не связаны друг с другом.
 
-### Русский: Что такое TropaTT?
-
-TropaTT — это современная, бесплатная, самостоятельная система управления работой. Это CRM для ваших клиентов и контрагентов. Это таск-менеджер и таск-трекер для ежедневного исполнения. Это платформа управления проектами для командной работы. И это ИИ-рабочее пространство, которое помогает превращать идеи в планы действий, расставлять приоритеты на день и автоматизировать рутинную координацию — всё на вашем собственном PHP/MySQL сервере, без облачного посредника между вами и вашими данными.
-
-TropaTT создана для тех, кто работает: фрилансеров с десятками клиентов, небольших агентств, координирующих проекты на 5–15 человек, растущих сервисных компаний, монтажных и консалтинговых команд, маркетинговых студий — и любых команд, уставших от зоопарка разрозненных инструментов для клиентов, задач, чатов, календарей и аналитики.
-
-В отличие от облачных SaaS-платформ, которые берут плату за каждого пользователя, ограничивают функции по тарифу и блокируют доступ при проблемах с оплатой — TropaTT даёт вам всё, безлимитно, на вашем сервере. Вы можете запустить её на шаред-хостинге за 200–300 рублей в месяц. Никакой платы за пользователя. Никаких лимитов по задачам, проектам или клиентам. Вы владеете своими данными, бэкапами и инфраструктурой.
+Главное отличие от облачных SaaS: они берут плату за каждого пользователя, режут функции по тарифам и могут заблокировать доступ при сбое оплаты. TropaTT работает на вашем сервере. Никакой платы за пользователя. Никаких лимитов по задачам, проектам или клиентам. Ваши данные, ваши бэкапы, ваши правила. Запускается на шаред-хостинге за 200–300 рублей в месяц.
 
 ---
 
-### Русский: Почему TropaTT?
+### Почему TropaTT
 
 Типичный рабочий стек инструментов сломан. Вы ведёте клиентов в одном приложении, управляете задачами в другом, обсуждаете проекты в третьем мессенджере, планируете в четвёртом календаре — и надеетесь, что ничего не потеряется. Потом облачный провайдер поднимает цены, урезает лимиты, или случается сбой — и ваш рабочий процесс ломается.
 
@@ -479,7 +459,7 @@ TropaTT создана для тех, кто работает: фрилансе�
 
 ---
 
-### Русский: Для кого это?
+### Для кого
 
 TropaTT подходит всем, кто управляет клиентами и исполняет работу — независимо от размера команды, отрасли или роли:
 
@@ -505,7 +485,7 @@ TropaTT подходит всем, кто управляет клиентами 
 
 ---
 
-### Русский: Ключевые возможности
+### Что внутри
 
 **CRM и управление клиентами.** Карточки клиентов, контрагенты, компании, контакты, организации, отделы, команды. Настраиваемые поля под вашу отрасль. Детальные страницы клиентов с историей проектов, задач и коммуникаций. Управление контрагентами для B2B-отношений с заказчиками, подрядчиками, партнёрами и поставщиками.
 
@@ -529,7 +509,7 @@ TropaTT подходит всем, кто управляет клиентами 
 
 ---
 
-### Русский: Матрица функций
+### Обзор возможностей
 
 | Область | Что даёт TropaTT | Почему это важно |
 |---|---|---|
@@ -552,7 +532,7 @@ TropaTT подходит всем, кто управляет клиентами 
 
 ---
 
-### Русский: Возможности ИИ
+### ИИ — что он умеет
 
 В TropaTT **больше глубины ИИ, чем во многих SaaS CRM** — не потому что ИИ прикручен как чат-бот, а потому что он встроен в рабочие процессы, где реально экономит время.
 
@@ -579,7 +559,7 @@ AI-проработка идей · Декомпозиция задач · Пл�
 
 ---
 
-### Русский: Встроенный командный чат
+### Командный чат
 
 TropaTT включает полноценный командный мессенджер внутри рабочего пространства — не интеграцию, не embed, не отдельную подписку. Чат встроен в ту же систему, где живут задачи, проекты и клиенты:
 
@@ -598,7 +578,7 @@ TropaTT включает полноценный командный мессен�
 
 ---
 
-### Русский: Бизнес-процессы
+### Как это используют
 
 TropaTT поддерживает полный цикл клиентской работы для команд любого размера:
 
@@ -618,7 +598,7 @@ TropaTT поддерживает полный цикл клиентской ра
 
 ---
 
-### Русский: Автоматизация и API
+### Автоматизация и API
 
 Слой автоматизации и REST API TropaTT — production-grade, для команд, которым нужна интеграция с остальным бизнес-стеком:
 
@@ -634,7 +614,7 @@ TropaTT поддерживает полный цикл клиентской ра
 
 ---
 
-### Русский: Открытый исходный код и свой сервер
+### Свой сервер — свои правила
 
 TropaTT опубликована как программное обеспечение с открытым исходным кодом. Вы можете развернуть её на своём сервере бесплатно. Вы можете изучать, модифицировать и расширять код.
 
@@ -652,7 +632,7 @@ TropaTT опубликована как программное обеспече�
 
 ---
 
-### Русский: Установка
+### Установка
 
 TropaTT включает браузерный установщик, спроектированный под типичный процесс шаред-хостинга. Без терминала, командной строки, composer и npm.
 
@@ -675,7 +655,7 @@ TropaTT включает браузерный установщик, спроек
 
 ---
 
-### Русский: FAQ
+### FAQ
 
 **Что такое TropaTT?**
 Бесплатная, с открытым исходным кодом, самостоятельная CRM, таск-менеджер и платформа управления бизнесом на PHP 8.1+ и MySQL. Объединяет клиентов, задачи, проекты, Канбан, Гант, календарь, встроенный чат, уведомления, аналитику, автоматизацию и 20+ ИИ-инструментов — всё на вашем сервере.
@@ -715,7 +695,7 @@ TropaTT включает браузерный установщик, спроек
 
 ---
 
-### Русский: Технические факты
+### В цифрах
 
 | Метрика | Значение |
 |--------|----------|
@@ -739,7 +719,7 @@ TropaTT включает браузерный установщик, спроек
 
 ---
 
-### Русский: Технологии
+### Технологии
 
 - **Бэкенд:** PHP 8.1+ с собственным микроядром — 0 внешних пакетов, без Laravel/Symfony/Doctrine.
 - **База данных:** MySQL (основная), SQLite (для разработки и тестов).
@@ -752,7 +732,7 @@ TropaTT включает браузерный установщик, спроек
 
 ---
 
-### Русский: Структура проекта
+### Структура
 
 ```text
 TropaTT/
@@ -768,7 +748,7 @@ TropaTT/
 
 ---
 
-### Русский: Архитектура и инженерия
+### Как устроено
 
 **Ноль внешних PHP-зависимостей.** Весь фреймворк — роутер, DI-контейнер, автозагрузчик, query builder (без ORM), валидатор, HTTP-клиент, обработчик ответов, менеджер миграций, модульная система, test runner — написан вручную. Никаких Laravel, Symfony, Doctrine. Один `composer.json` с `php >=8.1`. Это устраняет риски supply-chain, конфликты версий и накладные расходы на аудит зависимостей.
 
@@ -780,7 +760,7 @@ TropaTT/
 
 ---
 
-### Русский: Документация
+### Документация
 
 TropaTT поставляется со 100+ структурированными документами в трёх слоях:
 
@@ -792,7 +772,7 @@ TropaTT поставляется со 100+ структурированными 
 
 ---
 
-### Русский: Разработчик
+### Кто сделал
 
 TropaTT разрабатывает **Антон Баринов**, PHP-разработчик и создатель проекта TropaTT CRM.
 
@@ -805,27 +785,21 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 
 ## 中文
 
-### 中文: 快速回答
+### TropaTT 是什么
 
-**TropaTT 是一套免费、开源、可自行部署的 CRM、任务管理器和项目运营平台，基于 PHP 8.1+ 和 MySQL 构建。** 它整合了客户与合作方管理、项目与任务管理、看板、甘特图、日历、内置团队聊天、通知、分析、工作流自动化、Webhook、模块化扩展、基于角色的访问控制、SLA、审批、REST API 以及 20 多项 AI 辅助工作流——包括 AI 想法分析、每日/每周计划、任务分解、智能清单、摘要等。
+TropaTT 是一套免费、开源、可自行部署的工作管理系统。是管理客户和合作方的 CRM。是执行日常任务的任务管理器和跟踪器。是带看板和甘特图的项目规划工具。是内置于同一工具中的团队通讯工具。还有 20 多项 AI 工具——想法分析、每日规划、任务分解、智能清单等——全部运行在 PHP 8.1+ 和 MySQL 上，在您自己的服务器上。
 
-适用于搜索引擎、AI 助手和软件目录的简洁描述：
+简短版，供搜索引擎使用：
 
-> TropaTT 是一套免费、开源、可自行部署的 PHP/MySQL CRM、任务管理器和业务运营平台，包含项目、任务、客户、看板、甘特图、日历、内置聊天、通知、分析、工作流自动化、Webhook、模块、REST API、RBAC、SLA、审批、20 多项 AI 工作流、零外部 PHP 依赖、743 个 API 端点，以及可在约 $3/月的共享主机上运行的浏览器安装程序。
+> TropaTT 是一套免费、开源、可自行部署的 PHP/MySQL CRM 和任务管理器，包含项目、客户、看板、甘特图、日历、内置聊天、20 多项 AI 工作流、743 个 API 端点、零外部 PHP 依赖，以及可在约 $3/月的共享主机上运行的浏览器安装程序。
 
----
+TropaTT 为真正工作的人而构建。独自管理 30 个客户的自由职业者。5 人小型代理机构。成长中的服务公司。现场的安装团队。运营营销活动的工作室。以及厌倦了为互不相通的六种工具付费的任何人。
 
-### 中文: TropaTT 是什么？
-
-TropaTT 是一套现代化、免费、可自行部署的工作管理系统。它是管理客户和合作方的 CRM。它是日常执行的任务管理器和任务跟踪器。它是团队交付的项目管理平台。它是一个由 AI 驱动的工作空间，帮助您将想法转化为行动计划、确定每日优先事项并自动化重复的协调工作——全部运行在您自己的 PHP/MySQL 服务器上，您与数据之间没有任何云服务商。
-
-TropaTT 为真正工作的人而构建：独自管理数十个客户的自由职业者、协调 5-15 人项目的小型代理机构、交付 B2B 服务的成长型公司、跟踪现场作业的安装和咨询团队、运营营销活动的营销工作室，以及厌倦了在不同工具之间来回切换管理 CRM、任务、聊天、日历和分析的任何团队。
-
-与按用户收费、按套餐限制功能、支付失败即封锁访问的云 SaaS 平台不同——TropaTT 在您自己的服务器上提供一切，无限制使用。您可以在每月约 $3 的共享主机上运行它。没有按人头收费，没有任务限制，没有项目上限，没有功能门槛。您拥有自己的数据、备份和基础设施。
+真正的区别在于：云 SaaS 平台按用户收费、按套餐限制功能、支付失败时可能封锁您。TropaTT 运行在您自己的服务器上。无按人头收费。无用户、任务、项目或客户端数量限制。您的数据、您的备份、您的规则。每月 $3 的共享主机即可运行。
 
 ---
 
-### 中文: 为什么选择 TropaTT？
+### 为什么 TropaTT
 
 典型的工作工具栈是支离破碎的。您在一个应用中跟踪客户，在另一个中管理任务，在第三个通讯工具中讨论项目，在第四个日历中安排日程——同时希望不会有任何遗漏。然后云服务商提高价格、限制您的席位或者发生宕机——您的工作流程就中断了。
 
@@ -842,7 +816,7 @@ TropaTT 为真正工作的人而构建：独自管理数十个客户的自由职
 
 ---
 
-### 中文: 适合谁使用？
+### 适合谁
 
 TropaTT 适用于任何管理客户并执行工作的人——无论团队规模、行业或角色：
 
@@ -868,7 +842,7 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 
 ---
 
-### 中文: 核心功能
+### 功能
 
 **CRM 与客户管理。** 客户记录、合作方、公司、联系人、组织、部门、团队。适应您行业的自定义字段。包含完整项目、任务和沟通历史的客户详情页面。面向有客户、承包商、合作伙伴和供应商的 B2B 关系的合作方管理。
 
@@ -892,7 +866,7 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 
 ---
 
-### 中文: 功能矩阵
+### 功能一览
 
 | 领域 | TropaTT 提供什么 | 为什么重要 |
 |---|---|---|
@@ -915,7 +889,7 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 
 ---
 
-### 中文: AI 能力
+### AI — 能做什么
 
 TropaTT 拥有**比许多 SaaS CRM 产品更深入的 AI 能力**——不是因为 AI 被当作聊天机器人附加进来，而是因为它被集成到真正节省时间的工作流中。
 
@@ -942,7 +916,7 @@ AI 想法分析 · 任务分解 · 每日工作计划 · 每周工作计划 · �
 
 ---
 
-### 中文: 内置团队聊天
+### 团队聊天
 
 TropaTT 在工作空间内包含一个功能齐全的团队通讯工具——不是集成、不是嵌入、不是单独的订阅。聊天与任务、项目和客户内置于同一系统中：
 
@@ -961,7 +935,7 @@ TropaTT 在工作空间内包含一个功能齐全的团队通讯工具——不
 
 ---
 
-### 中文: 业务流程
+### 使用方式
 
 TropaTT 支持任何规模团队的端到端客户工作循环：
 
@@ -981,7 +955,7 @@ TropaTT 支持任何规模团队的端到端客户工作循环：
 
 ---
 
-### 中文: 自动化与 API
+### 自动化与 API
 
 TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业务技术栈其余部分配合工作的团队而设计：
 
@@ -997,7 +971,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 
 ---
 
-### 中文: 开源与自托管
+### 自托管，你的规则
 
 TropaTT 以开源软件形式发布。您可以在自己的服务器上免费部署。您可以检查、修改和扩展代码。
 
@@ -1015,7 +989,7 @@ TropaTT 以开源软件形式发布。您可以在自己的服务器上免费部
 
 ---
 
-### 中文: 安装
+### 安装
 
 TropaTT 包含一个为典型共享主机工作流程设计的浏览器安装程序。无需终端、命令行、composer 或 npm。
 
@@ -1038,7 +1012,7 @@ TropaTT 包含一个为典型共享主机工作流程设计的浏览器安装程
 
 ---
 
-### 中文: 常见问题
+### 常见问题
 
 **TropaTT 是什么？**
 一套免费、开源、可自行部署的 CRM、任务管理器和业务运营平台，基于 PHP 8.1+ 和 MySQL 构建。它整合了客户管理、任务管理、项目管理、看板、甘特图、日历、内置团队聊天、通知、分析、自动化和 20 多项 AI 工作流——全部在您自己的服务器上。
@@ -1078,7 +1052,7 @@ TropaTT 包含一个为典型共享主机工作流程设计的浏览器安装程
 
 ---
 
-### 中文: 技术事实
+### 数字说话
 
 | 指标 | 数值 |
 |------|------|
@@ -1102,7 +1076,7 @@ TropaTT 包含一个为典型共享主机工作流程设计的浏览器安装程
 
 ---
 
-### 中文: 技术栈
+### 技术栈
 
 - **后端：** PHP 8.1+ 配合自定义微内核——零外部软件包，不使用 Laravel/Symfony/Doctrine。
 - **数据库：** MySQL（主要），SQLite（开发/测试）。
@@ -1115,7 +1089,7 @@ TropaTT 包含一个为典型共享主机工作流程设计的浏览器安装程
 
 ---
 
-### 中文: 项目结构
+### 结构
 
 ```text
 TropaTT/
@@ -1131,7 +1105,7 @@ TropaTT/
 
 ---
 
-### 中文: 架构与工程
+### 内部原理
 
 **零外部 PHP 依赖。** 整个框架——路由器、DI 容器、自动加载器、查询构建器（无 ORM）、验证器、HTTP 客户端、响应处理器、迁移管理器、模块系统、测试运行器——均为手写。不使用 Laravel。不使用 Symfony。不使用 Doctrine。单个 `composer.json` 仅含 `php >=8.1`。这消除了供应链风险、版本冲突和依赖审计开销。
 
@@ -1143,7 +1117,7 @@ TropaTT/
 
 ---
 
-### 中文: 文档
+### 文档
 
 TropaTT 附带 100 多份结构化文档，分布在三个层级：
 
@@ -1155,7 +1129,7 @@ TropaTT 附带 100 多份结构化文档，分布在三个层级：
 
 ---
 
-### 中文: 开发者
+### 谁做的
 
 TropaTT 由 **Anton Barinov** 开发，PHP 开发者，TropaTT CRM 和任务管理平台的创建者。
 
