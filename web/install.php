@@ -1692,6 +1692,8 @@ function executeSqlFile(PDO $pdo, string $path): array
         return ['Schema snapshot is empty or unreadable: ' . $path];
     }
 
+    $sql = str_replace('utf8mb4_0900_ai_ci', 'utf8mb4_unicode_ci', $sql);
+
     $errors = [];
     $statements = splitSqlStatements($sql);
 
