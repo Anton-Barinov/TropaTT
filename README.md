@@ -10,8 +10,10 @@ Whether you are a freelancer managing 20 clients alone, a small agency coordinat
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#open-source-and-self-hosting)
 [![AI Ready](https://img.shields.io/badge/AI--powered-20%2B%20Workflows-111827?style=flat-square)](#ai-capabilities)
+[![Zero Deps](https://img.shields.io/badge/Dependencies-0%20PHP%20packages-6f42c1?style=flat-square)](#technical-facts)
 [![License](https://img.shields.io/badge/License-Open%20Source-blue?style=flat-square)](#open-source-and-self-hosting)
 [![Privacy](https://img.shields.io/badge/Data-Locally%20Stored-8B0000?style=flat-square)](#open-source-and-self-hosting)
+[![Tests](https://img.shields.io/badge/Tests-337%20files-success?style=flat-square)](#technical-facts)
 
 ---
 
@@ -46,6 +48,35 @@ If you need a concise description for search engines, AI assistants, LLM indexes
 
 ---
 
+## Technical Facts
+
+TropaTT is a serious engineering project with zero external PHP packages, a custom micro-kernel, and production-style architecture — not a weekend prototype glued together from Composer dependencies.
+
+| Metric | Value |
+|--------|-------|
+| API endpoints | **743** (normalized by HTTP method), 695 route records |
+| Web application routes | **68** pages, ~55 templates |
+| Backend services | **100+** PHP service classes |
+| Database repositories | **65+** PHP repository classes |
+| Backend domain modules | **35+** grouped by business domain |
+| JavaScript modules | **24** (vanilla ES5+, no framework, no build step) |
+| API test files | **337** (custom test runner, no PHPUnit) |
+| AI endpoints | **65** (fully implemented, opted-in via feature flags) |
+| AI workflow types | **20+** (idea analysis, daily/weekly plans, task decomposition, summaries, etc.) |
+| Feature flags | **43** (all AI flags off by default for safe rollout) |
+| Frontend API coverage | **70.1%** (521 of 743 endpoints fully implemented in web UI) |
+| External PHP dependencies | **0** — no Composer packages beyond `php >=8.1` |
+| Frontend vendor packages | **3** (Bootstrap 5, Font Awesome 6, SortableJS) |
+| API documentation | **18,551** lines (`api/docs/api.md`), OpenAPI 3.1 generated from code |
+| Documentation volume | **100+** structured documents across `docs/`, `api/docs/`, `web/docs/` |
+| Languages (UI + docs) | Russian (primary), English, Chinese |
+| Plugin module CLI commands | **19** |
+| Custom test runner | `php api/scripts/test_runner.php fast` / `full` |
+| Playwright E2E specs | 1 spec with 6+ scenarios |
+| Minimum hosting cost | ~$3/month shared hosting with PHP 8.1+ and MySQL |
+
+---
+
 ## SEO And GEO Summary
 
 TropaTT is a free self-hosted CRM, task manager, task tracker, open-source CRM, PHP CRM, MySQL CRM, AI CRM, project management CRM, task management CRM, customer relationship management software, business operations dashboard, team collaboration tool, Gantt CRM, Kanban CRM, webhook CRM, modular CRM, RBAC CRM, SLA CRM, approval workflow CRM, and client management system for small and medium-sized businesses, freelancers, agencies, and service teams. All data stays on your server — no cloud limits, no vendor blocking, unlimited users, unlimited tasks, unlimited projects.
@@ -64,6 +95,7 @@ TropaTT is a free self-hosted CRM, task manager, task tracker, open-source CRM, 
 
 - [Quick Answer](#quick-answer)
 - [Indexable Summary](#indexable-summary)
+- [Technical Facts](#technical-facts)
 - [SEO And GEO Summary](#seo-and-geo-summary)
 - [English](#english)
 - [Русский](#русский)
@@ -71,6 +103,7 @@ TropaTT is a free self-hosted CRM, task manager, task tracker, open-source CRM, 
 - [Core Features](#core-features)
 - [Feature Matrix](#feature-matrix)
 - [Business Workflows](#business-workflows)
+- [Built-in Team Chat](#built-in-team-chat)
 - [AI Capabilities](#ai-capabilities)
 - [Automation And API](#automation-and-api)
 - [Open Source And Self-Hosting](#open-source-and-self-hosting)
@@ -78,6 +111,9 @@ TropaTT is a free self-hosted CRM, task manager, task tracker, open-source CRM, 
 - [FAQ](#faq)
 - [Technology](#technology)
 - [Project Structure](#project-structure)
+- [Architecture & Engineering](#architecture--engineering)
+- [Documentation](#documentation)
+- [SEO Keywords](#seo-keywords)
 - [Machine-Readable Project Facts](#machine-readable-project-facts)
 - [Developer](#developer)
 
@@ -347,6 +383,25 @@ TropaTT supports the full cycle of client and project work — for teams of any 
 - **B2B operations workflow:** company → contacts → tasks → approvals → reminders → webhook integration → dashboard.
 - **Internal management workflow:** department → team → workload → WIP limit → week plan → risk review.
 - **Solo professional workflow:** raw idea → AI decomposition → prioritized task list → calendar scheduling → execution → client follow-up.
+
+---
+
+## Built-in Team Chat
+
+TropaTT includes a full-featured, CRM-integrated team messenger — not a third-party integration, not a widget. The chat system lives inside the same workspace as the work itself:
+
+- **Two-panel layout:** chat list on the left, message thread on the right.
+- **Project and team conversations:** create chats linked to specific projects or for general team communication.
+- **Full message features:** text messages, file attachments, images, @mentions with user search, reply chains.
+- **URL routing:** each chat has its own URL, so you can link directly to a conversation.
+- **Auto-select:** the system remembers and restores your last active chat on page load.
+- **Real-time polling:** new messages appear automatically without page refresh, without losing your draft input.
+- **Direct chat creation modal:** search users by name, create 1-on-1 or group chats on the fly.
+- **Participant management:** chat owners can add and remove members.
+- **Empty, error, and loading states:** every state is handled — no broken UI when chats are empty or loading.
+- **Composer behavior:** Enter sends the message, Shift+Enter creates a new line.
+
+This means fewer tool switches between "where we discuss work" and "where we track work" — the conversation lives next to the task, the project, and the client context.
 
 ---
 
@@ -630,14 +685,17 @@ TropaTT разрабатывает **Barinov Anton**, PHP-разработчик
 ## Technology
 
 - **Backend:** PHP 8.1+
-- **Database:** MySQL
-- **Frontend:** PHP-rendered web interface with JavaScript modules
-- **Architecture:** Web UI plus REST API layer — browser-based, no desktop app required
+- **Database:** MySQL (primary), SQLite (dev/tests)
+- **Framework:** Custom micro-kernel — zero external PHP packages, no Laravel/Symfony/Doctrine
+- **Frontend:** PHP-rendered web interface with Vanilla JavaScript ES5+ modules — no React/Vue/Angular, no build step, no bundler
+- **Architecture:** API-first — web UI uses REST API for all data, zero direct database access from web layer
 - **Deployment:** Self-hosted — works on shared hosting, VPS, dedicated server, or local machine
-- **Extensibility:** Module support for custom business logic
-- **Security model:** sessions, CSRF protection, role and permission checks, protected configuration, controlled local secrets, and sanitized error responses
+- **Extensibility:** Module system with 19 CLI commands for module management
+- **Security model:** dual auth (cookie-session + CSRF for web, Bearer token for API), RBAC, rate limiting, file upload quarantine, admin impersonation, sanitized error responses
 - **Automation:** workflow rules, SLA, approvals, webhooks, background jobs
-- **AI layer:** configurable providers and models (OpenAI, Anthropic, DeepSeek, Google, and others), semantic search, 20+ intent-based AI workflows, preview-before-apply safety model, rate and cost limits, audit logging
+- **AI layer:** configurable providers and models (OpenAI, Anthropic, DeepSeek, Google, and any compatible provider), semantic search, 20+ intent-based AI workflows, preview-before-apply safety model, rate and cost limits, audit logging, prompt template system, JSON schema validation
+- **Testing:** custom test runner with 337 integration test files, unit tests, Playwright E2E specs, syntax checks
+- **Documentation:** 100+ structured documents, OpenAPI 3.1 spec generated from code
 - **Minimum hosting:** any PHP 8.1+ MySQL hosting from ~$3/month — no special server requirements
 
 ---
@@ -653,6 +711,77 @@ TropaTT/
 ├── favicon.ico             # Project favicon
 └── README.md               # Public project overview
 ```
+
+The `api/` directory contains **100+ services** and **65+ repositories** organized in 35+ domain module groups:
+
+| Domain Group | Modules |
+|-------------|---------|
+| Auth & Users | `auth`, `authz`, `users`, `roles`, `permissions`, `sessions`, `invitations` |
+| CRM | `clients`, `companies`, `contacts`, `counterparties`, `organizations`, `departments`, `teams` |
+| Projects & Tasks | `projects`, `tasks`, `subtasks`, `checklists`, `milestones`, `dependencies`, `comments`, `templates`, `files` |
+| Planning | `calendar`, `recurring`, `reminders`, `my_day`, `my_week` |
+| Communication | `chats`, `notifications`, `mentions`, `push` |
+| Automation | `workflows`, `approvals`, `sla`, `webhooks`, `api_clients`, `import_export` |
+| Analytics | `dashboard`, `analytics`, `reports` |
+| AI/LLM | `ai_providers`, `ai_intents`, `ai_suggestions`, `ai_actions`, `ai_jobs`, `ai_prompts`, `ai_schemas`, `ai_usage`, `ai_retention`, `ai_semantic`, `ai_context_builders` |
+| Admin | `settings`, `logs`, `audit`, `feature_flags`, `rate_limits`, `jobs`, `modules`, `storage`, `trash`, `custom_fields`, `saved_views`, `search` |
+
+---
+
+## Architecture & Engineering
+
+### Zero External PHP Dependencies
+
+TropaTT uses **zero Composer packages** beyond `php >=8.1`. The entire framework — router, DI container, autoloader, ORM-free query builder, validator, HTTP client, response handler, migration manager, module system, and test runner — is hand-written in the project's own micro-kernel. There is no Laravel, Symfony, Doctrine, or any other third-party framework involved.
+
+This means:
+- No supply-chain risk from dependency updates.
+- No version conflicts when deploying.
+- Full control over every line of the foundation.
+- Simpler debugging and straightforward code navigation.
+
+### Architecture Decision Records
+
+Key engineering decisions are documented and versioned:
+
+- **ADR-001:** Custom micro-kernel (no framework).
+- **ADR-002:** Single JSON response envelope for all API responses.
+- **ADR-003:** No ORM — PDO + Repository pattern with a hand-written query builder.
+- **ADR-001 (Web):** Custom PHP MVC — no Laravel/Symfony web layer.
+- **ADR-003 (Web):** Vanilla JavaScript ES5+, no build step, no bundler.
+- **ADR-006 (Web):** Server-side session verification through cookie + CSRF.
+
+### API-First Architecture
+
+The web interface has **zero direct database access**. Every page, every form, every data load goes through the REST API (`window.CRM.api.request` → `/api/v1/...`). This means:
+
+- The API is always the authoritative data layer — the web UI is just one consumer.
+- You can build your own integrations, mobile apps, or automations against the same documented API.
+- Frontend and backend are cleanly separated even though they ship in one repo.
+
+### Custom Test Framework
+
+Instead of PHPUnit, TropaTT uses a custom test runner: `php api/scripts/test_runner.php`. The test suite includes:
+
+- **337 integration test files** covering API endpoints, auth flows, RBAC, data models, AI workflows, and edge cases.
+- **Unit tests** for isolated logic.
+- **Playwright E2E specs** for browser-based testing of the web UI.
+- **Syntax checks** (`php -l`) built into the quality pipeline.
+- Dedicated smoke tests for AI security contracts, data masking, rate limiting, and retention policies.
+
+---
+
+## Documentation
+
+TropaTT ships with **100+ structured documents** across three layers, maintained in Russian (primary), English, and Chinese:
+
+| Layer | Location | Contents |
+|-------|----------|----------|
+| **Unified docs** | `docs/` | Architecture, project structure, quick start, domain glossary, API-frontend contracts, development guides, operations manual, agent context for AI assistants |
+| **API docs** | `api/docs/` | 18,551-line endpoint catalog, OpenAPI 3.1 spec (generated from code), security audit, database schema |
+| **Web docs** | `web/docs/` | Page reference, UI routing, forms and validation, JS module map, AI implementation checklist, Web-to-API audit |
+
+The OpenAPI 3.1 specification is not hand-written — it is **generated from the actual route configuration** (`api/scripts/generate_openapi.php`), ensuring documentation never drifts from implementation.
 
 ---
 
@@ -685,6 +814,21 @@ license_model: open-source
 deployment: self-hosted
 backend: PHP 8.1+
 database: MySQL
+framework: custom micro-kernel, zero external PHP packages
+api_endpoints: 743
+web_routes: 68
+backend_services: 100+
+backend_repositories: 65+
+backend_modules: 35+
+js_modules: 24 vanilla, no build step
+test_files: 337 integration tests, custom runner
+ai_endpoints: 65
+ai_workflows: 20+
+feature_flags: 43
+frontend_api_coverage: 70.1%
+documentation_files: 100+
+openapi_spec: generated from code, OpenAPI 3.1
+minimum_hosting_cost: ~3 USD/month shared hosting
 developer: Barinov Anton
 developer_github: https://github.com/Anton-Barinov
 repository: https://github.com/Anton-Barinov/TropaTT
@@ -694,11 +838,14 @@ problem:
   - communication, calendar, analytics, and automation live in separate tools
   - cloud CRM vendors impose per-seat pricing, user limits, and data lock-in
   - freelancers and small teams lack affordable integrated work management
+  - most self-hosted tools are either too simple or require composable dependency stacks
 solution:
   - unified CRM, task management, project management, communication, planning, analytics, automation, and 20+ AI workflows
   - 100% self-hosted — zero cloud dependencies, zero artificial limits
+  - zero external PHP packages — single deploy, no Composer dependency tree
   - works on shared hosting from ~$3/month
   - no per-seat pricing, no user caps, no task limits
+  - 743 documented API endpoints with OpenAPI 3.1 spec
 installation:
   type: browser-based installer
   database: MySQL
@@ -719,6 +866,9 @@ features:
   - counterparties
   - contacts
   - companies
+  - organizations
+  - departments
+  - teams
   - projects
   - tasks
   - subtasks
@@ -727,9 +877,10 @@ features:
   - kanban
   - gantt
   - calendar
-  - built-in team chat
+  - built-in team chat (full messenger)
   - task comments
   - notifications
+  - push notifications
   - analytics
   - roles
   - permissions
@@ -738,7 +889,8 @@ features:
   - webhooks
   - modules
   - REST API
-  - AI providers
+  - API clients and keys
+  - AI providers (OpenAI, Anthropic, DeepSeek, Google, compatible)
   - AI idea analysis and decomposition
   - AI daily plan
   - AI weekly plan
@@ -759,17 +911,25 @@ features:
   - AI calendar event agenda
   - AI dashboard daily digest
   - semantic search
-  - WIP limits
+  - WIP limits (module)
   - milestones
   - dependencies
   - custom fields
   - saved views
+  - favorites
+  - recycle bin
+  - import/export
+  - client cabinet
   - browser installer
+  - 19 module CLI commands
 data_privacy:
   - all data stored locally on user's server
   - no cloud sync, no vendor access
   - user controls backups and security
   - AI data stays server-side unless user configures provider
+  - cookie-session (HttpOnly) + CSRF for web auth
+  - Bearer token for API auth
+  - RBAC with granular permissions
 limits:
   - no user limits
   - no task limits
@@ -817,6 +977,8 @@ canonical_keywords:
   - free task manager
   - unlimited CRM self-hosted
   - private CRM local data
+  - zero dependency CRM
+  - vanilla JS CRM
 ```
 
 ---
