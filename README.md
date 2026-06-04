@@ -8,7 +8,7 @@
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#self-hosted-your-server-your-rules)
 [![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#ai--what-it-can-do)
 [![Tests](https://img.shields.io/badge/Tests-337%20files-success?style=flat-square)](#by-the-numbers)
-[![License](https://img.shields.io/badge/License-Open%20Source-blue?style=flat-square)](#self-hosted-your-server-your-rules)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 ---
 
@@ -32,6 +32,7 @@
   - [Project layout](#project-layout)
   - [Under the hood](#under-the-hood)
   - [Docs](#docs)
+  - [Open-source project files](#open-source-project-files)
   - [Maintenance and contributor workflow](#maintenance-and-contributor-workflow)
   - [Security-sensitive areas](#security-sensitive-areas)
   - [AI-assisted maintenance](#ai-assisted-maintenance)
@@ -54,6 +55,7 @@
   - [Структура](#структура)
   - [Как устроено](#как-устроено)
   - [Документация](#документация)
+  - [Файлы open-source проекта](#файлы-open-source-проекта)
   - [Сопровождение проекта](#сопровождение-проекта)
   - [Области, где важна безопасность](#области-где-важна-безопасность)
   - [Где помогает AI при сопровождении](#где-помогает-ai-при-сопровождении)
@@ -76,6 +78,7 @@
   - [结构](#结构)
   - [内部原理](#内部原理)
   - [文档](#文档)
+  - [开源项目文件](#开源项目文件)
   - [维护和贡献流程](#维护和贡献流程)
   - [安全敏感区域](#安全敏感区域)
   - [AI 辅助维护](#ai-辅助维护)
@@ -421,6 +424,23 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 | Unified | `docs/` | Architecture, quick start, structure, domain glossary, API ↔ frontend contracts, dev guides, ops manual, AI agent context |
 | API | `api/docs/` | 18,551-line endpoint catalog (`api.md`), OpenAPI 3.1 (generated from code), security audit, DB schema, integration guide |
 | Web | `web/docs/` | Page reference, routing, forms, JS module map, AI implementation checklist, Web-to-API audit |
+---
+
+### Open-source project files
+
+The public repository includes standard project files for maintainers, contributors, security reports, and early adopters:
+
+- [LICENSE](LICENSE) — AGPL-3.0 license.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow, checks, PR expectations, security checklist.
+- [SECURITY.md](SECURITY.md) — private vulnerability reporting and security-sensitive areas.
+- [CHANGELOG.md](CHANGELOG.md) — public preview changelog.
+- [ROADMAP.md](ROADMAP.md) — public preview roadmap without promised dates.
+- [SUPPORT.md](SUPPORT.md) — support expectations and issue guidance.
+- [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug, feature, documentation, and installation templates.
+- [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — PR checklist for tests, docs, security, API, and installer impact.
+
+TropaTT is open source, but the public repository intentionally excludes local secrets, runtime data, private business data, internal screenshots, and maintainer-only artifacts.
+
 ---
 
 ### Maintenance and contributor workflow
@@ -838,6 +858,24 @@ TropaTT поставляется со 100+ структурированными 
 | Единая | `docs/` | Архитектура, быстрый старт, структура проекта, глоссарий домена, контракты API-фронтенд, руководства разработки, руководство по эксплуатации, контекст для AI-агентов |
 | API | `api/docs/` | Каталог эндпоинтов на 18 551 строк (`api.md`), спецификация OpenAPI 3.1 (генерируется из кода через `generate_openapi.php`), аудит безопасности, схема БД, руководство по интеграции API |
 | Web | `web/docs/` | Справочник страниц, роутинг UI, формы и валидация, карта JS-модулей, чеклист внедрения AI, аудит Web-to-API |
+
+---
+
+### Файлы open-source проекта
+
+В публичном репозитории есть стандартные файлы для пользователей, участников и сообщений о безопасности:
+
+- [LICENSE](LICENSE) — лицензия AGPL-3.0.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — правила вклада, проверки, ожидания к PR и security checklist.
+- [SECURITY.md](SECURITY.md) — приватная отправка уязвимостей и перечень security-sensitive областей.
+- [CHANGELOG.md](CHANGELOG.md) — changelog публичного preview.
+- [ROADMAP.md](ROADMAP.md) — roadmap без обещания конкретных дат.
+- [SUPPORT.md](SUPPORT.md) — ожидания по поддержке и правила оформления issues.
+- [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — шаблоны для багов, фич, документации и проблем установки.
+- [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — чеклист PR по тестам, документации, безопасности, API и установщику.
+
+Публичный репозиторий не включает локальные секреты, runtime-данные, приватные бизнес-данные, внутренние скриншоты и maintainer-only артефакты.
+
 ---
 
 ### Сопровождение проекта
@@ -1252,6 +1290,24 @@ TropaTT 附带 100 多份结构化文档，分布在三个层级：
 | 统一文档 | `docs/` | 架构、快速入门、项目结构、领域术语表、API-前端契约、开发指南、运维手册、AI 助手上下文 |
 | API 文档 | `api/docs/` | 18,551 行的端点目录（`api.md`）、OpenAPI 3.1 规范（通过 `generate_openapi.php` 从代码生成）、安全审计、数据库模式、API 集成指南 |
 | Web 文档 | `web/docs/` | 页面参考、UI 路由、表单与验证、JS 模块映射、AI 实施清单、Web-API 审计 |
+
+---
+
+### 开源项目文件
+
+公共仓库包含面向用户、贡献者和安全报告的标准文件：
+
+- [LICENSE](LICENSE) — AGPL-3.0 许可证。
+- [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献流程、检查项、PR 期望和安全清单。
+- [SECURITY.md](SECURITY.md) — 私密漏洞报告方式和安全敏感区域。
+- [CHANGELOG.md](CHANGELOG.md) — public preview 更新记录。
+- [ROADMAP.md](ROADMAP.md) — 不承诺具体日期的路线图。
+- [SUPPORT.md](SUPPORT.md) — 支持范围和 issue 提交建议。
+- [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug、功能、文档和安装问题模板。
+- [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — 测试、文档、安全、API 和安装影响的 PR 清单。
+
+公共仓库不会包含本地密钥、运行时数据、私有业务数据、内部截图和仅维护者使用的工作文件。
+
 ---
 
 ### 维护和贡献流程
