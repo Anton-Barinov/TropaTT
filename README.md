@@ -32,6 +32,9 @@
   - [Project layout](#project-layout)
   - [Under the hood](#under-the-hood)
   - [Docs](#docs)
+  - [Maintenance and contributor workflow](#maintenance-and-contributor-workflow)
+  - [Security-sensitive areas](#security-sensitive-areas)
+  - [AI-assisted maintenance](#ai-assisted-maintenance)
   - [Who built this](#who-built-this)
 - [Русский](#русский)
   - [Что такое TropaTT](#что-такое-tropatt)
@@ -51,6 +54,9 @@
   - [Структура](#структура)
   - [Как устроено](#как-устроено)
   - [Документация](#документация)
+  - [Сопровождение проекта](#сопровождение-проекта)
+  - [Области, где важна безопасность](#области-где-важна-безопасность)
+  - [Где помогает AI при сопровождении](#где-помогает-ai-при-сопровождении)
   - [Кто сделал](#кто-сделал)
 - [中文](#中文)
   - [TropaTT 是什么](#tropatt-是什么)
@@ -70,6 +76,9 @@
   - [结构](#结构)
   - [内部原理](#内部原理)
   - [文档](#文档)
+  - [维护和贡献流程](#维护和贡献流程)
+  - [安全敏感区域](#安全敏感区域)
+  - [AI 辅助维护](#ai-辅助维护)
   - [谁做的](#谁做的)
 
 ---
@@ -412,6 +421,66 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 | Unified | `docs/` | Architecture, quick start, structure, domain glossary, API ↔ frontend contracts, dev guides, ops manual, AI agent context |
 | API | `api/docs/` | 18,551-line endpoint catalog (`api.md`), OpenAPI 3.1 (generated from code), security audit, DB schema, integration guide |
 | Web | `web/docs/` | Page reference, routing, forms, JS module map, AI implementation checklist, Web-to-API audit |
+---
+
+### Maintenance and contributor workflow
+
+TropaTT is maintained as a real application, not as a demo repository. A typical change can touch several layers at once: database schema, migrations, API routes, services, repositories, permissions, UI pages, JavaScript modules, tests, generated documentation, and installer behavior.
+
+The maintainer work behind the project includes reviewing code changes, checking security-sensitive paths, triaging bugs, validating API compatibility, keeping OpenAPI documentation in sync with routes, preparing releases, and making sure the installer, migrations, tests, and user-facing docs do not drift apart.
+
+Areas where contributor help is especially useful:
+
+- testing installation on different PHP/MySQL environments;
+- improving documentation, examples, and translations;
+- reviewing API changes and OpenAPI compatibility;
+- adding tests for CRM, tasks, projects, chat, automation, calendar, analytics, and AI workflows;
+- checking authentication, permissions, file handling, webhooks, and AI provider configuration;
+- validating upgrade and migration paths between releases;
+- improving accessibility and UI consistency across Bootstrap-based pages.
+
+The project is intentionally built without a large dependency tree, but that also means core infrastructure is part of the codebase. Contributions should be reviewed with the same care as application features.
+
+---
+
+### Security-sensitive areas
+
+TropaTT handles business data: clients, counterparties, tasks, projects, files, chats, notifications, API keys, webhooks, automation rules, audit logs, and optional AI provider configuration. Security review matters because many features operate on private workspace data and can affect permissions, integrations, or stored files.
+
+Security-sensitive parts of the project include:
+
+- authentication and session handling;
+- CSRF protection in the web interface;
+- Bearer-token access for REST API clients;
+- granular RBAC and permission checks;
+- admin impersonation and auditability;
+- file uploads, storage, quarantine, and download permissions;
+- webhook delivery and external HTTP calls;
+- workflow automation rules and background jobs;
+- installer lock files, environment configuration, and database migrations;
+- AI provider keys, server-side AI requests, prompt context, and preview-before-apply behavior;
+- error responses, logging, data masking, and sensitive-field handling.
+
+Please do not report security issues as public GitHub issues. Use the repository security policy or contact the maintainer privately.
+
+---
+
+### AI-assisted maintenance
+
+TropaTT has many moving parts: 743 REST endpoints, generated OpenAPI documentation, installer flows, permissions, workflow automation, AI workflows, chat, calendar, analytics, and a custom test runner. AI-assisted maintenance is useful when a change needs to stay consistent across several layers of the project.
+
+Useful AI-assisted maintainer workflows include:
+
+- reviewing pull requests for permission, validation, and API compatibility issues;
+- generating or updating tests when routes, services, workflows, or UI behavior change;
+- checking whether documentation matches the current implementation;
+- summarizing large diffs before release preparation;
+- finding missing validation, authorization, error handling, and edge cases;
+- preparing changelog entries and release notes;
+- helping contributors understand project structure before they submit changes;
+- comparing OpenAPI documentation with backend route definitions and frontend API usage.
+
+AI suggestions are treated as review input, not as automatic authority. Human review remains required for code, security-sensitive changes, database migrations, permissions, release decisions, and anything that can affect user data.
 
 ---
 
@@ -769,6 +838,66 @@ TropaTT поставляется со 100+ структурированными 
 | Единая | `docs/` | Архитектура, быстрый старт, структура проекта, глоссарий домена, контракты API-фронтенд, руководства разработки, руководство по эксплуатации, контекст для AI-агентов |
 | API | `api/docs/` | Каталог эндпоинтов на 18 551 строк (`api.md`), спецификация OpenAPI 3.1 (генерируется из кода через `generate_openapi.php`), аудит безопасности, схема БД, руководство по интеграции API |
 | Web | `web/docs/` | Справочник страниц, роутинг UI, формы и валидация, карта JS-модулей, чеклист внедрения AI, аудит Web-to-API |
+---
+
+### Сопровождение проекта
+
+TropaTT сопровождается как реальное приложение, а не как демонстрационный репозиторий. Обычное изменение может затрагивать сразу несколько слоёв: схему базы данных, миграции, API-маршруты, сервисы, репозитории, права доступа, страницы интерфейса, JavaScript-модули, тесты, сгенерированную документацию и поведение установщика.
+
+Работа по сопровождению включает ревью изменений, проверку участков, связанных с безопасностью, разбор ошибок, контроль совместимости API, синхронизацию OpenAPI-документации с маршрутами, подготовку релизов и проверку того, что установщик, миграции, тесты и пользовательская документация не расходятся друг с другом.
+
+Где особенно полезен вклад сообщества:
+
+- тестирование установки в разных PHP/MySQL-окружениях;
+- улучшение документации, примеров и переводов;
+- ревью изменений API и совместимости OpenAPI;
+- добавление тестов для CRM, задач, проектов, чата, автоматизации, календаря, аналитики и AI-процессов;
+- проверка аутентификации, прав доступа, обработки файлов, вебхуков и настроек AI-провайдеров;
+- проверка сценариев обновления и миграций между релизами;
+- улучшение доступности и консистентности интерфейса на страницах с Bootstrap.
+
+Проект сознательно сделан без большого дерева зависимостей, но из-за этого часть инфраструктуры находится прямо в кодовой базе. Такие изменения требуют такого же внимательного ревью, как и бизнес-функции.
+
+---
+
+### Области, где важна безопасность
+
+TropaTT работает с бизнес-данными: клиентами, контрагентами, задачами, проектами, файлами, чатами, уведомлениями, API-ключами, вебхуками, правилами автоматизации, аудит-логами и настройками AI-провайдеров. Проверка безопасности важна, потому что многие функции работают с приватными данными рабочего пространства и могут влиять на права доступа, интеграции или сохранённые файлы.
+
+Особого внимания требуют:
+
+- аутентификация и обработка сессий;
+- CSRF-защита в веб-интерфейсе;
+- Bearer-доступ для REST API клиентов;
+- гранулярные проверки RBAC и прав доступа;
+- имперсонация администратора и аудит таких действий;
+- загрузка файлов, хранение, карантин и права на скачивание;
+- доставка вебхуков и внешние HTTP-запросы;
+- workflow-автоматизация и фоновые задачи;
+- lock-файлы установщика, конфигурация окружения и миграции базы данных;
+- ключи AI-провайдеров, server-side AI-запросы, prompt context и режим preview-before-apply;
+- ответы об ошибках, логирование, маскирование данных и обработка sensitive-полей.
+
+Проблемы безопасности не стоит публиковать как обычные GitHub issues. Для этого лучше использовать security policy репозитория или связаться с сопровождающим приватно.
+
+---
+
+### Где помогает AI при сопровождении
+
+У TropaTT много связанных частей: 743 REST API эндпоинта, сгенерированная OpenAPI-документация, установщик, права доступа, workflow-автоматизация, AI-процессы, чат, календарь, аналитика и собственный test runner. AI-помощь полезна там, где изменение нужно провести согласованно через несколько слоёв проекта.
+
+Практичные сценарии AI-помощи при сопровождении:
+
+- ревью pull request на проблемы с правами, валидацией и совместимостью API;
+- генерация и обновление тестов при изменении маршрутов, сервисов, workflow или поведения интерфейса;
+- проверка соответствия документации текущей реализации;
+- краткое резюмирование больших diff перед подготовкой релиза;
+- поиск пропущенной валидации, авторизации, обработки ошибок и пограничных случаев;
+- подготовка changelog и release notes;
+- помощь новым участникам в понимании структуры проекта перед вкладом;
+- сверка OpenAPI-документации с backend-маршрутами и использованием API на фронтенде.
+
+AI-предложения рассматриваются как материал для ревью, а не как автоматическое решение. Человеческая проверка обязательна для кода, безопасности, миграций базы данных, прав доступа, релизов и всего, что может повлиять на пользовательские данные.
 
 ---
 
@@ -1123,6 +1252,66 @@ TropaTT 附带 100 多份结构化文档，分布在三个层级：
 | 统一文档 | `docs/` | 架构、快速入门、项目结构、领域术语表、API-前端契约、开发指南、运维手册、AI 助手上下文 |
 | API 文档 | `api/docs/` | 18,551 行的端点目录（`api.md`）、OpenAPI 3.1 规范（通过 `generate_openapi.php` 从代码生成）、安全审计、数据库模式、API 集成指南 |
 | Web 文档 | `web/docs/` | 页面参考、UI 路由、表单与验证、JS 模块映射、AI 实施清单、Web-API 审计 |
+---
+
+### 维护和贡献流程
+
+TropaTT 不是一个演示仓库，而是作为真实应用进行维护。一个普通改动可能同时涉及多个层：数据库结构、迁移、API 路由、服务、仓储、权限、界面页面、JavaScript 模块、测试、生成的文档和安装程序行为。
+
+项目维护工作包括代码审查、安全敏感路径检查、问题分类、API 兼容性验证、保持 OpenAPI 文档与路由同步、准备发布，并确保安装程序、迁移、测试和面向用户的文档不会相互偏离。
+
+特别适合社区贡献的方向：
+
+- 在不同 PHP/MySQL 环境中测试安装流程；
+- 改进文档、示例和翻译；
+- 审查 API 变更和 OpenAPI 兼容性；
+- 为 CRM、任务、项目、聊天、自动化、日历、分析和 AI 工作流添加测试；
+- 检查身份认证、权限、文件处理、Webhook 和 AI 提供商配置；
+- 验证版本之间的升级和迁移路径；
+- 改进基于 Bootstrap 页面的一致性和可访问性。
+
+项目有意避免庞大的依赖树，但这也意味着部分基础设施就在代码库中。对这些代码的贡献需要像业务功能一样认真审查。
+
+---
+
+### 安全敏感区域
+
+TropaTT 处理业务数据：客户、合作方、任务、项目、文件、聊天、通知、API 密钥、Webhook、自动化规则、审计日志以及可选的 AI 提供商配置。安全审查很重要，因为许多功能都在处理私有工作空间数据，并可能影响权限、集成或存储文件。
+
+需要重点关注的安全区域包括：
+
+- 身份认证和会话处理；
+- Web 界面的 CSRF 防护；
+- REST API 客户端的 Bearer token 访问；
+- 细粒度 RBAC 和权限检查；
+- 管理员模拟登录及其审计；
+- 文件上传、存储、隔离和下载权限；
+- Webhook 发送和外部 HTTP 请求；
+- 工作流自动化规则和后台任务；
+- 安装程序锁文件、环境配置和数据库迁移；
+- AI 提供商密钥、服务端 AI 请求、提示词上下文和预览后应用机制；
+- 错误响应、日志记录、数据脱敏和敏感字段处理。
+
+请不要把安全问题作为公开 GitHub issue 提交。请使用仓库的安全策略，或通过私密方式联系维护者。
+
+---
+
+### AI 辅助维护
+
+TropaTT 包含许多相互关联的部分：743 个 REST 端点、生成的 OpenAPI 文档、安装流程、权限、工作流自动化、AI 流程、聊天、日历、分析和自定义测试运行器。当一个改动需要在多个层之间保持一致时，AI 辅助维护很有价值。
+
+实用的 AI 辅助维护场景包括：
+
+- 审查 pull request 中的权限、验证和 API 兼容性问题；
+- 当路由、服务、工作流或 UI 行为变化时生成或更新测试；
+- 检查文档是否符合当前实现；
+- 在准备发布前总结较大的 diff；
+- 查找缺失的验证、授权、错误处理和边界情况；
+- 准备 changelog 和 release notes；
+- 帮助贡献者在提交改动前理解项目结构；
+- 对比 OpenAPI 文档、后端路由定义和前端 API 使用情况。
+
+AI 建议只作为审查输入，而不是自动权威。代码、安全敏感更改、数据库迁移、权限、发布决策以及任何可能影响用户数据的内容，都必须经过人工审查。
 
 ---
 
