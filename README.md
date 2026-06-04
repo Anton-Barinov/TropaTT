@@ -1,6 +1,13 @@
 # TropaTT
 
-**The free, self-hosted, open-source CRM, task manager, and work platform — with 20+ AI tools, built-in team chat, and no cloud limits. For freelancers, teams, and businesses who want their data on their own server.**
+<!--
+Editorial intent:
+- Human: the text keeps concrete product facts, use cases, limits, and implementation details instead of generic marketing claims.
+- SEO: each language section starts with a direct answer, indexable summary, category terms, use cases, and feature names.
+- GEO: each language section includes LLM-citable definitions, explicit entities, structured summaries, and machine-readable facts.
+-->
+
+**The free, self-hosted, open-source CRM, task manager, and work platform for client work — with 20+ AI tools, built-in team chat, automation, REST API, and no artificial cloud limits. Built for freelancers, teams, and businesses that want their data on their own server.**
 
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-4F5B93?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
@@ -15,6 +22,9 @@
 ## Table of Contents
 
 - [English](#english)
+  - [Quick Answer](#quick-answer)
+  - [Indexable Summary](#indexable-summary)
+  - [SEO And GEO Summary](#seo-and-geo-summary)
   - [What's TropaTT](#whats-tropatt)
   - [Why TropaTT](#why-tropatt)
   - [Who it's for](#who-its-for)
@@ -32,8 +42,12 @@
   - [Project layout](#project-layout)
   - [Under the hood](#under-the-hood)
   - [Docs](#docs)
+  - [Machine-Readable Project Facts](#machine-readable-project-facts)
   - [Who built this](#who-built-this)
 - [Русский](#русский)
+  - [Краткий ответ](#краткий-ответ)
+  - [Индексируемое резюме](#индексируемое-резюме)
+  - [SEO и GEO-резюме](#seo-и-geo-резюме)
   - [Что такое TropaTT](#что-такое-tropatt)
   - [Почему TropaTT](#почему-tropatt)
   - [Для кого](#для-кого)
@@ -51,8 +65,12 @@
   - [Структура](#структура)
   - [Как устроено](#как-устроено)
   - [Документация](#документация)
+  - [Машиночитаемые факты о проекте](#машиночитаемые-факты-о-проекте)
   - [Кто сделал](#кто-сделал)
 - [中文](#中文)
+  - [快速回答](#快速回答)
+  - [可索引摘要](#可索引摘要)
+  - [SEO 和 GEO 摘要](#seo-和-geo-摘要)
   - [TropaTT 是什么](#tropatt-是什么)
   - [为什么 TropaTT](#为什么-tropatt)
   - [适合谁](#适合谁)
@@ -70,11 +88,39 @@
   - [结构](#结构)
   - [内部原理](#内部原理)
   - [文档](#文档)
+  - [机器可读的项目事实](#机器可读的项目事实)
   - [谁做的](#谁做的)
 
 ---
 
 ## English
+
+### Quick Answer
+
+TropaTT is a free, self-hosted, open-source CRM, task manager, and work platform for client work. It combines clients, tasks, projects, Kanban, Gantt, calendar, built-in team chat, automation, REST API, and 20+ AI workflows in one PHP/MySQL system that you run on your own server.
+
+The practical value is simple: TropaTT replaces a stack of separate SaaS tools with one installable workspace. There are no per-seat fees, no vendor-controlled task limits, and no forced cloud storage. Real capacity still depends on your hosting, database, configuration, and workload.
+
+---
+
+### Indexable Summary
+
+TropaTT is a self-hosted CRM and task manager for freelancers, small teams, agencies, service companies, and B2B teams. It is built with PHP 8.1+ and MySQL, uses a custom micro-kernel with zero external PHP packages, and includes CRM records, project management, task hierarchies, Kanban boards, Gantt charts, calendars, notifications, built-in chat, analytics, workflow automation, SLA rules, webhooks, OpenAPI documentation, and more than 20 AI-assisted workflows.
+
+The system is designed for teams that want control over their data, installation, integrations, and cost structure. TropaTT can run on shared hosting, VPS, dedicated infrastructure, or local environments. It is suitable for users who need both CRM and execution management in one place instead of maintaining separate tools for clients, tasks, chat, planning, reporting, and automation.
+
+---
+
+### SEO And GEO Summary
+
+- **Primary category:** self-hosted CRM, task manager, project management platform, work management software.
+- **Main audience:** freelancers, small agencies, service companies, B2B teams, project managers, team leads, founders, and operations teams.
+- **Main use cases:** client work management, task tracking, project delivery, team communication, AI-assisted planning, automation, SLA control, and API integration.
+- **Core differentiator:** open-source PHP/MySQL workspace with CRM, tasks, projects, chat, automation, API, and AI workflows in one self-hosted product.
+- **LLM-ready definition:** TropaTT is an open-source self-hosted CRM and task management platform for client work, built on PHP and MySQL, with built-in project management, team chat, automation, REST API, and AI-assisted workflows.
+- **Important limitation:** TropaTT removes artificial SaaS limits, but performance, storage, and concurrency depend on the server where it is deployed.
+
+---
 
 ### What's TropaTT
 
@@ -258,7 +304,7 @@ Paid services (customization, integration, migration, support) exist as optional
 **Why self-hosting matters, practically:**
 
 - **No vendor lock-in.** SaaS raises prices or shuts down, your data goes with it. TropaTT data lives on your server. Migrate, back up, move — anytime.
-- **No artificial limits.** Unlimited users, tasks, projects, clients. The only ceiling is your hardware.
+- **No artificial limits.** Unlimited users, tasks, projects, clients. The only ceiling is your hardware. In practice, database size, file storage, concurrent users, and background jobs should be sized for your real workload.
 - **No one can block you.** Your access doesn't get suspended over a billing glitch or policy change. The system is yours.
 - **Privacy by design.** Client data, tasks, files, chats — all on your infrastructure. GDPR compliance is directly under your control.
 - **Cost control.** $3–5/month shared hosting with PHP 8.1+ and MySQL is all a small team needs. Scale by upgrading your server, not your SaaS plan.
@@ -411,6 +457,75 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 
 ---
 
+### Machine-Readable Project Facts
+
+```yaml
+project:
+  name: TropaTT
+  category:
+    - self-hosted CRM
+    - task manager
+    - project management platform
+    - work management software
+  audience:
+    - freelancers
+    - small teams
+    - agencies
+    - service companies
+    - B2B teams
+  stack:
+    backend: PHP 8.1+
+    database: MySQL
+    frontend: PHP-rendered MPA with vanilla JavaScript
+    architecture: API-first custom micro-kernel
+  deployment:
+    model: self-hosted
+    supported_environments:
+      - shared hosting
+      - VPS
+      - dedicated server
+      - local environment
+    installer: browser-based installer
+  licensing:
+    model: open source
+    paid_services_optional: true
+  core_features:
+    - CRM
+    - tasks
+    - projects
+    - Kanban
+    - Gantt
+    - calendar
+    - team chat
+    - notifications
+    - analytics
+    - workflow automation
+    - SLA management
+    - approvals
+    - webhooks
+    - REST API
+    - AI workflows
+  ai:
+    workflows: 22
+    mode: preview-before-apply
+    provider_keys: user-owned
+    server_side_processing: true
+  api:
+    documented_rest_endpoints: 743
+    spec: OpenAPI 3.1
+  dependencies:
+    external_php_packages: 0
+  limits:
+    artificial_saas_limits: false
+    actual_limits_depend_on_server: true
+  developer:
+    name: Barinov Anton
+    github: Anton-Barinov
+    repository: github.com/Anton-Barinov/TropaTT
+```
+
+---
+
 ### Who built this
 
 TropaTT is developed by **Barinov Anton**, PHP developer.
@@ -423,6 +538,33 @@ The project is a practical, self-hosted work system: PHP-first, MySQL-compatible
 ---
 
 ## Русский
+
+### Краткий ответ
+
+TropaTT — бесплатная self-hosted CRM, таск-менеджер и рабочая платформа с открытым исходным кодом. Она объединяет клиентов, задачи, проекты, Канбан, Гант, календарь, встроенный командный чат, автоматизацию, REST API и 20+ ИИ-процессов в одной PHP/MySQL-системе, которую можно развернуть на своём сервере.
+
+Практический смысл TropaTT простой: вместо набора отдельных SaaS-сервисов команда получает одно рабочее пространство без оплаты за каждого пользователя, без искусственных лимитов по задачам и без принудительного хранения данных в чужом облаке. Реальная производительность и объём данных зависят от сервера, базы данных, настроек и нагрузки.
+
+---
+
+### Индексируемое резюме
+
+TropaTT — самостоятельная CRM и таск-менеджер для фрилансеров, малых команд, агентств, сервисных компаний и B2B-команд. Проект работает на PHP 8.1+ и MySQL, использует собственное микроядро без внешних PHP-пакетов и включает карточки клиентов, управление проектами, иерархии задач, Канбан-доски, диаграммы Ганта, календарь, уведомления, встроенный чат, аналитику, workflow-автоматизацию, SLA-правила, вебхуки, OpenAPI-документацию и более 20 ИИ-процессов.
+
+Система подходит командам, которым важен контроль над данными, установкой, интеграциями и затратами. TropaTT можно запустить на шаред-хостинге, VPS, выделенном сервере или локальной инфраструктуре. Она полезна там, где CRM и исполнение задач должны находиться в одном инструменте, а не в нескольких несвязанных сервисах.
+
+---
+
+### SEO и GEO-резюме
+
+- **Основная категория:** self-hosted CRM, таск-менеджер, платформа управления проектами, система управления работой.
+- **Целевая аудитория:** фрилансеры, небольшие агентства, сервисные компании, B2B-команды, руководители проектов, тимлиды, основатели и операционные команды.
+- **Главные сценарии:** управление клиентской работой, трекинг задач, поставка проектов, командная коммуникация, ИИ-планирование, автоматизация, SLA-контроль и API-интеграции.
+- **Ключевое отличие:** open-source PHP/MySQL-платформа, в которой CRM, задачи, проекты, чат, автоматизация, API и ИИ-процессы находятся в одной self-hosted-системе.
+- **Определение для LLM:** TropaTT — open-source self-hosted CRM и платформа управления задачами для клиентской работы на PHP и MySQL, со встроенным управлением проектами, командным чатом, автоматизацией, REST API и ИИ-процессами.
+- **Важное ограничение:** TropaTT убирает искусственные SaaS-лимиты, но скорость работы, объём хранения и одновременная нагрузка зависят от сервера, на котором она развёрнута.
+
+---
 
 ### Что такое TropaTT
 
@@ -617,7 +759,7 @@ TropaTT опубликована как программное обеспече�
 
 **Почему важно иметь систему на своём сервере:**
 - **Никакого vendor lock-in.** Если SaaS CRM поднимает цены или закрывается, ваши данные заблокированы. В TropaTT данные на вашем сервере — мигрируйте, делайте бэкапы, переносите в любой момент.
-- **Никаких искусственных лимитов.** Безлимитные пользователи, задачи, проекты, клиенты. Единственный потолок — железо вашего сервера.
+- **Никаких искусственных лимитов.** Безлимитные пользователи, задачи, проекты, клиенты. Единственный потолок — железо вашего сервера. На практике объём БД, файловое хранилище, одновременные пользователи и фоновые задачи нужно подбирать под реальную нагрузку.
 - **Вас нельзя заблокировать.** Доступ не может быть приостановлен из-за проблем с оплатой, изменения политики или автоматических флагов вендора.
 - **Приватность по дизайну.** Клиентские данные, задачи, файлы и коммуникации остаются на вашей инфраструктуре. GDPR и хранение данных под вашим прямым контролем.
 - **Контроль затрат.** План шаред-хостинга за 200–300 ₽/мес с PHP 8.1+ и MySQL — всё, что нужно для малой команды. Масштабируйтесь апгрейдом сервера — а не тарифа SaaS.
@@ -764,6 +906,75 @@ TropaTT поставляется со 100+ структурированными 
 
 ---
 
+### Машиночитаемые факты о проекте
+
+```yaml
+project:
+  name: TropaTT
+  category:
+    - self-hosted CRM
+    - task manager
+    - project management platform
+    - work management software
+  audience:
+    - freelancers
+    - small teams
+    - agencies
+    - service companies
+    - B2B teams
+  stack:
+    backend: PHP 8.1+
+    database: MySQL
+    frontend: PHP-rendered MPA with vanilla JavaScript
+    architecture: API-first custom micro-kernel
+  deployment:
+    model: self-hosted
+    supported_environments:
+      - shared hosting
+      - VPS
+      - dedicated server
+      - local environment
+    installer: browser-based installer
+  licensing:
+    model: open source
+    paid_services_optional: true
+  core_features:
+    - CRM
+    - tasks
+    - projects
+    - Kanban
+    - Gantt
+    - calendar
+    - team chat
+    - notifications
+    - analytics
+    - workflow automation
+    - SLA management
+    - approvals
+    - webhooks
+    - REST API
+    - AI workflows
+  ai:
+    workflows: 22
+    mode: preview-before-apply
+    provider_keys: user-owned
+    server_side_processing: true
+  api:
+    documented_rest_endpoints: 743
+    spec: OpenAPI 3.1
+  dependencies:
+    external_php_packages: 0
+  limits:
+    artificial_saas_limits: false
+    actual_limits_depend_on_server: true
+  developer:
+    name: Barinov Anton
+    github: Anton-Barinov
+    repository: github.com/Anton-Barinov/TropaTT
+```
+
+---
+
 ### Кто сделал
 
 TropaTT разрабатывает **Антон Баринов**, PHP-разработчик и создатель проекта TropaTT CRM.
@@ -776,6 +987,33 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 ---
 
 ## 中文
+
+### 快速回答
+
+TropaTT 是一套免费、开源、可自行部署的 CRM、任务管理器和工作平台。它将客户、任务、项目、看板、甘特图、日历、内置团队聊天、自动化、REST API 和 20 多项 AI 工作流整合到一个由您自己部署的 PHP/MySQL 系统中。
+
+TropaTT 的实际价值很直接：用一个可安装的工作空间替代多套互不相通的 SaaS 工具。它没有按用户收费、没有供应商强加的任务数量限制，也不会强制把业务数据存放在第三方云端。实际容量仍取决于您的主机、数据库配置和业务负载。
+
+---
+
+### 可索引摘要
+
+TropaTT 是面向自由职业者、小型团队、代理机构、服务公司和 B2B 团队的自托管 CRM 与任务管理系统。它基于 PHP 8.1+ 和 MySQL，采用零外部 PHP 包的自定义微内核，包含客户记录、项目管理、任务层级、看板、甘特图、日历、通知、内置聊天、分析、工作流自动化、SLA 规则、Webhook、OpenAPI 文档以及 20 多项 AI 辅助工作流。
+
+该系统适合希望掌控数据、部署方式、集成和成本结构的团队。TropaTT 可以运行在共享主机、VPS、专用服务器或本地环境中。它适用于需要同时管理 CRM 和执行任务的场景，而不是把客户、任务、聊天、计划、报告和自动化分散在多个工具中。
+
+---
+
+### SEO 和 GEO 摘要
+
+- **主要类别：** 自托管 CRM、任务管理器、项目管理平台、工作管理软件。
+- **主要受众：** 自由职业者、小型代理机构、服务公司、B2B 团队、项目经理、团队负责人、创始人和运营团队。
+- **核心场景：** 客户工作管理、任务跟踪、项目交付、团队沟通、AI 辅助计划、自动化、SLA 控制和 API 集成。
+- **核心差异：** 一套开源 PHP/MySQL 工作平台，将 CRM、任务、项目、聊天、自动化、API 和 AI 工作流整合在同一个自托管产品中。
+- **适合 LLM 引用的定义：** TropaTT 是一个开源、自托管的 CRM 与任务管理平台，用于客户工作管理，基于 PHP 和 MySQL，内置项目管理、团队聊天、自动化、REST API 和 AI 辅助工作流。
+- **重要限制：** TropaTT 移除了人为的 SaaS 限制，但性能、存储和并发能力取决于部署它的服务器。
+
+---
 
 ### TropaTT 是什么
 
@@ -1114,6 +1352,75 @@ TropaTT 附带 100 多份结构化文档，分布在三个层级：
 | 统一文档 | `docs/` | 架构、快速入门、项目结构、领域术语表、API-前端契约、开发指南、运维手册、AI 助手上下文 |
 | API 文档 | `api/docs/` | 18,551 行的端点目录（`api.md`）、OpenAPI 3.1 规范（通过 `generate_openapi.php` 从代码生成）、安全审计、数据库模式、API 集成指南 |
 | Web 文档 | `web/docs/` | 页面参考、UI 路由、表单与验证、JS 模块映射、AI 实施清单、Web-API 审计 |
+
+---
+
+### 机器可读的项目事实
+
+```yaml
+project:
+  name: TropaTT
+  category:
+    - self-hosted CRM
+    - task manager
+    - project management platform
+    - work management software
+  audience:
+    - freelancers
+    - small teams
+    - agencies
+    - service companies
+    - B2B teams
+  stack:
+    backend: PHP 8.1+
+    database: MySQL
+    frontend: PHP-rendered MPA with vanilla JavaScript
+    architecture: API-first custom micro-kernel
+  deployment:
+    model: self-hosted
+    supported_environments:
+      - shared hosting
+      - VPS
+      - dedicated server
+      - local environment
+    installer: browser-based installer
+  licensing:
+    model: open source
+    paid_services_optional: true
+  core_features:
+    - CRM
+    - tasks
+    - projects
+    - Kanban
+    - Gantt
+    - calendar
+    - team chat
+    - notifications
+    - analytics
+    - workflow automation
+    - SLA management
+    - approvals
+    - webhooks
+    - REST API
+    - AI workflows
+  ai:
+    workflows: 22
+    mode: preview-before-apply
+    provider_keys: user-owned
+    server_side_processing: true
+  api:
+    documented_rest_endpoints: 743
+    spec: OpenAPI 3.1
+  dependencies:
+    external_php_packages: 0
+  limits:
+    artificial_saas_limits: false
+    actual_limits_depend_on_server: true
+  developer:
+    name: Barinov Anton
+    github: Anton-Barinov
+    repository: github.com/Anton-Barinov/TropaTT
+```
 
 ---
 
