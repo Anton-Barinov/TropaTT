@@ -50,14 +50,14 @@
 
     var siteUrl = SITE_URL;
     var base = siteUrl.replace(/\/+$/, '');
-    setCanonical(base ? base.replace('/ru/', '/').replace('/en/', '/').replace('/zh/', '/') + '/' + lang + '/' : siteUrl);
+    setCanonical(base);
     setHreflang(base, lang);
   }
 
   function setCanonical(href) {
     var link = document.querySelector('link[rel="canonical"]');
     if (!link) { link = document.createElement('link'); link.setAttribute('rel', 'canonical'); document.head.appendChild(link); }
-    link.setAttribute('href', href);
+    link.setAttribute('href', href + '?lang=' + lang);
   }
 
   function setHreflang(base, currentLang) {
@@ -67,13 +67,13 @@
       var link = document.createElement('link');
       link.setAttribute('rel', 'alternate');
       link.setAttribute('hreflang', langs[code]);
-      link.setAttribute('href', (base || '') + '/' + code + '/');
+      link.setAttribute('href', (base || '') + '/?lang=' + code);
       document.head.appendChild(link);
     });
     var xd = document.createElement('link');
     xd.setAttribute('rel', 'alternate');
     xd.setAttribute('hreflang', 'x-default');
-    xd.setAttribute('href', (base || '') + '/en/');
+    xd.setAttribute('href', (base || '') + '/');
     document.head.appendChild(xd);
   }
 
@@ -675,6 +675,7 @@
 
   function loadLanguage(nextLang) {
     if (SUPPORTED.indexOf(nextLang) === -1) nextLang = 'en';
+    try { window.history.replaceState(null, '', '?lang=' + nextLang); } catch (_) {}
     var request = new XMLHttpRequest();
     request.open('GET', 'content/' + nextLang + '.json?v=20260531', true);
     request.onload = function () {
