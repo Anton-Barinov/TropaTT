@@ -1,0 +1,26 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'board' => 'Доска задач',
+    'invalid_cursor' => 'Неверный формат курсора',
+    'list' => 'Список задач',
+    'max_255' => 'Максимум 255 символов',
+    'max_8000' => 'Максимум 8000 символов',
+    'invalid_status' => 'Недопустимый статус',
+    'invalid_priority' => 'Недопустимый приоритет',
+    'created' => 'Задача успешно создана',
+    'detail' => 'Детали задачи',
+    'row_version_conflict' => 'Конфликт версии записи',
+    'updated' => 'Задача обновлена',
+    'identity_edit_forbidden' => 'Исполнитель не может изменять название и описание задачи',
+    'deleted' => 'Задача удалена',
+    'comment_list' => 'Комментарии по задаче',
+    'comment_created' => 'Комментарий добавлен',
+    'task_ids_required' => 'Список task_public_ids обязателен',
+    'changes_required' => 'Передайте хотя бы одно изменение',
+    'assignee_not_found' => 'Исполнитель не найден или деактивирован',
+    'bulk_updated' => 'Массовое обновление задач выполнено',
+    'to_status_required' => 'Передайте to_status или to_status_public_id',
+    'moved' => 'Карточка задачи перемещена',
+];

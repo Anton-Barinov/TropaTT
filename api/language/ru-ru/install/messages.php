@@ -1,0 +1,20 @@
+<?php
+return [
+    'install_required' => 'Система не установлена',
+    'install_required_setup_hint' => 'Система не установлена. Выполните /install/setup',
+    'install_completed' => 'Установка завершена',
+    'status' => 'Статус установки',
+    'check_ok' => 'Подключение к БД успешно',
+    'check_failed' => 'Не удалось подключиться к БД',
+    'already_installed' => 'Система уже установлена',
+    'install_failed' => 'Ошибка установки',
+    'root_required' => 'Требуются права root',
+    'migration_status' => 'Статус миграций',
+    'migration_status_failed' => 'Не удалось получить статус миграций',
+    'migration_up_done' => 'Миграции применены',
+    'migration_up_failed' => 'Ошибка применения миграций',
+    'migration_dry_run' => 'Пробный запуск миграций',
+    'migration_dry_run_failed' => 'Не удалось выполнить пробный запуск миграций',
+    'migration_rollback_check' => 'Проверка отката миграций',
+    'migration_rollback_check_failed' => 'Не удалось проверить откат миграций',
+];

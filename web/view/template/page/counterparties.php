@@ -1,0 +1,85 @@
+<?php declare(strict_types=1); ?>
+<?php $title = 'TropaTT — Контрагенты'; ?>
+<body data-page="counterparties" data-protected="1"><div class="crm-app">
+<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
+<main class="crm-content crm-counterparties-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard">Главная</a></li></ol><h1 class="crm-page-title">Контрагенты</h1><p class="crm-subtitle">Единый справочник контрагентов: организации, физлица, ИП.</p></div><div class="crm-page-actions"><select id="counterpartiesSavedViewSelect" class="form-select form-select-sm crm-field-w-220" aria-label="Сохраненные виды"><option value="">Вид по умолчанию</option></select><button id="counterpartiesSaveViewBtn" class="btn crm-btn-secondary" type="button">Сохранить вид</button><button id="counterpartiesDeleteViewBtn" class="btn crm-btn-secondary" type="button" disabled>Удалить вид</button><a class="btn crm-btn-secondary" href="index.php?route=clients">Клиенты</a><a class="btn crm-btn-secondary" href="index.php?route=companies">Компании</a><a class="btn crm-btn-secondary" href="index.php?route=contacts">Контакты</a><button class="btn crm-btn-muted" type="button" id="counterpartiesCompactToggle">Компактный вид</button><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#counterpartyCreateModal">Создать контрагента</button></div></div>
+
+<div class="crm-card crm-section-card crm-filters-card mb-3">
+  <div class="row g-2 crm-counterparties-filters">
+    <div class="col-md-5"><label class="form-label" for="counterpartiesFilterSearch">Поиск</label><input id="counterpartiesFilterSearch" class="form-control" aria-label="Поиск по контрагентам" placeholder="Название, ИНН, email, телефон, сайт"></div>
+    <div class="col-md-3"><label class="form-label" for="counterpartiesFilterType">Тип</label><select id="counterpartiesFilterType" class="form-select" aria-label="Тип контрагента"><option value="">Все типы</option><option value="organization">Организация</option><option value="individual">Физлицо</option><option value="sole_proprietor">ИП</option><option value="legal_entity">Юрлицо</option></select></div>
+    <div class="col-md-2"><label class="form-label" for="counterpartiesFilterStatus">Статус</label><input id="counterpartiesFilterStatus" class="form-control" aria-label="Статус контрагента" placeholder="Активен"></div>
+    <div class="col-md-2"><label class="form-label" for="counterpartiesFilterHasWebsite">Сайт</label><select id="counterpartiesFilterHasWebsite" class="form-select" aria-label="Наличие сайта"><option value="">Любой</option><option value="1">Только с сайтом</option><option value="0">Без сайта</option></select></div>
+    <div class="col-md-3"><label class="form-label" for="counterpartiesFilterCreatedFrom">Создан с</label><input id="counterpartiesFilterCreatedFrom" type="date" class="form-control" aria-label="Дата создания с"></div>
+    <div class="col-md-3"><label class="form-label" for="counterpartiesFilterCreatedTo">Создан по</label><input id="counterpartiesFilterCreatedTo" type="date" class="form-control" aria-label="Дата создания по"></div>
+    <div class="col-md-3"><label class="form-label" for="counterpartiesSortBy">Сортировка</label><select id="counterpartiesSortBy" class="form-select" aria-label="Поле сортировки"><option value="created_at">Дата создания</option><option value="updated_at">Дата обновления</option><option value="title">Название</option></select></div>
+    <div class="col-md-3"><label class="form-label" for="counterpartiesSortDir">Направление</label><select id="counterpartiesSortDir" class="form-select" aria-label="Направление сортировки"><option value="DESC">По убыванию</option><option value="ASC">По возрастанию</option></select></div>
+    <div class="col-12 d-flex justify-content-end"><button class="btn crm-btn-muted" type="button" id="counterpartiesFilterReset">Сбросить</button></div>
+  </div>
+</div>
+
+<div id="counterpartiesBulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="Bulk actions counterparties">
+  <div>Выбрано контрагентов: <strong data-counterparties-selected-count>0</strong> <span class="small ms-2" id="counterpartiesBulkResult" aria-live="polite"></span></div>
+  <div class="d-flex gap-2">
+    <select id="counterpartiesBulkStatusSelect" class="form-select form-select-sm crm-field-w-170" aria-label="Изменить статус">
+      <option value="">Статус...</option>
+      <option value="active">Активен</option>
+      <option value="inactive">Неактивен</option>
+      <option value="archived">Архив</option>
+    </select>
+    <button class="btn btn-sm crm-btn-danger-soft" type="button" id="counterpartiesBulkDeleteBtn" data-confirm-delete disabled>Удалить</button>
+  </div>
+</div>
+
+<div class="crm-card crm-section-card p-0 table-responsive crm-counterparties-table-wrap"><table id="counterpartiesTable" class="table crm-table mb-0"><thead><tr><th style="width:40px"><input class="form-check-input" type="checkbox" id="counterpartiesBulkSelectAll" aria-label="Выбрать всех контрагентов"></th><th>Контрагент</th><th>Тип</th><th>ИНН</th><th>Email</th><th>Телефон</th><th>Статус</th><th>Обновлен</th><th style="width:96px">Действия</th></tr></thead><tbody id="counterpartiesTableBody"><tr><td colspan="9" class="text-muted">Загрузка контрагентов...</td></tr></tbody></table></div>
+<div id="counterpartiesMobileList" class="crm-counterparties-mobile-list d-none" aria-live="polite"></div>
+</main></div></div>
+
+<div class="modal fade" id="counterpartyCreateModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Создать контрагента</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div><form id="counterpartiesCreateForm" novalidate><div class="modal-body"><div class="row g-3">
+  <div class="col-12 d-none" data-form-error-summary></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreateType">Тип контрагента</label><select class="form-select" id="counterpartyCreateType" name="counterparty_type" data-counterparty-type-input><option value="organization">Организация</option><option value="individual">Физлицо</option><option value="sole_proprietor">ИП</option><option value="legal_entity">Юрлицо</option></select></div>
+  <div class="col-md-8"><label class="form-label" for="counterpartyCreateTitle">Название</label><input class="form-control" id="counterpartyCreateTitle" name="title" maxlength="255" required></div>
+  <div class="col-md-6" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateLegalName">Юридическое наименование / ФИО ИП</label><input class="form-control" id="counterpartyCreateLegalName" name="legal_name" maxlength="255"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateInn">ИНН</label><input class="form-control" id="counterpartyCreateInn" name="tax_inn" maxlength="12"></div>
+  <div class="col-md-4" data-counterparty-type-group="legal_entity"><label class="form-label" for="counterpartyCreateKpp">КПП</label><input class="form-control" id="counterpartyCreateKpp" name="tax_kpp" maxlength="9"></div>
+  <div class="col-md-4" data-counterparty-type-group="legal_entity"><label class="form-label" for="counterpartyCreateOgrn">ОГРН</label><input class="form-control" id="counterpartyCreateOgrn" name="tax_ogrn" maxlength="13"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor"><label class="form-label" for="counterpartyCreateOgrnip">ОГРНИП</label><input class="form-control" id="counterpartyCreateOgrnip" name="tax_ogrnip" maxlength="15"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreateEmail">Email</label><input class="form-control" id="counterpartyCreateEmail" type="email" name="email" maxlength="190"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreatePhone">Телефон</label><input class="form-control" id="counterpartyCreatePhone" name="phone" maxlength="64"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreateWebsite">Сайт</label><input class="form-control" id="counterpartyCreateWebsite" name="website" maxlength="2048" placeholder="https://example.com"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreateMessenger">Мессенджер</label><input class="form-control" id="counterpartyCreateMessenger" name="messenger" maxlength="190"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateBankAccount">Расчетный счет</label><input class="form-control" id="counterpartyCreateBankAccount" name="bank_account" maxlength="34"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateBik">БИК</label><input class="form-control" id="counterpartyCreateBik" name="bank_bik" maxlength="9"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateCorrAccount">Корр. счет</label><input class="form-control" id="counterpartyCreateCorrAccount" name="bank_corr_account" maxlength="34"></div>
+  <div class="col-md-8" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyCreateBankName">Банк</label><input class="form-control" id="counterpartyCreateBankName" name="bank_name" maxlength="255"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyCreateStatus">Статус</label><input class="form-control" id="counterpartyCreateStatus" name="status" maxlength="64" value="active"></div>
+  <div class="col-md-6"><label class="form-label">Юридический адрес</label><textarea class="form-control" name="address_legal" rows="2"></textarea></div>
+  <div class="col-md-6"><label class="form-label">Почтовый адрес</label><textarea class="form-control" name="address_postal" rows="2"></textarea></div>
+  <div class="col-12"><label class="form-label">Комментарий</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+</div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-primary" type="submit">Создать</button></div></form></div></div></div>
+
+<div class="modal fade" id="counterpartyEditModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Редактировать контрагента</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div><form id="counterpartiesEditForm" novalidate><div class="modal-body"><input type="hidden" name="public_id"><div class="row g-3">
+  <div class="col-12 d-none" data-form-error-summary></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditType">Тип контрагента</label><select class="form-select" id="counterpartyEditType" name="counterparty_type" data-counterparty-type-input><option value="organization">Организация</option><option value="individual">Физлицо</option><option value="sole_proprietor">ИП</option><option value="legal_entity">Юрлицо</option></select></div>
+  <div class="col-md-8"><label class="form-label" for="counterpartyEditTitle">Название</label><input class="form-control" id="counterpartyEditTitle" name="title" maxlength="255" required></div>
+  <div class="col-md-6" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditLegalName">Юридическое наименование / ФИО ИП</label><input class="form-control" id="counterpartyEditLegalName" name="legal_name" maxlength="255"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditInn">ИНН</label><input class="form-control" id="counterpartyEditInn" name="tax_inn" maxlength="12"></div>
+  <div class="col-md-4" data-counterparty-type-group="legal_entity"><label class="form-label" for="counterpartyEditKpp">КПП</label><input class="form-control" id="counterpartyEditKpp" name="tax_kpp" maxlength="9"></div>
+  <div class="col-md-4" data-counterparty-type-group="legal_entity"><label class="form-label" for="counterpartyEditOgrn">ОГРН</label><input class="form-control" id="counterpartyEditOgrn" name="tax_ogrn" maxlength="13"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor"><label class="form-label" for="counterpartyEditOgrnip">ОГРНИП</label><input class="form-control" id="counterpartyEditOgrnip" name="tax_ogrnip" maxlength="15"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditEmail">Email</label><input class="form-control" id="counterpartyEditEmail" type="email" name="email" maxlength="190"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditPhone">Телефон</label><input class="form-control" id="counterpartyEditPhone" name="phone" maxlength="64"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditWebsite">Сайт</label><input class="form-control" id="counterpartyEditWebsite" name="website" maxlength="2048"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditMessenger">Мессенджер</label><input class="form-control" id="counterpartyEditMessenger" name="messenger" maxlength="190"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditBankAccount">Расчетный счет</label><input class="form-control" id="counterpartyEditBankAccount" name="bank_account" maxlength="34"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditBik">БИК</label><input class="form-control" id="counterpartyEditBik" name="bank_bik" maxlength="9"></div>
+  <div class="col-md-4" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditCorrAccount">Корр. счет</label><input class="form-control" id="counterpartyEditCorrAccount" name="bank_corr_account" maxlength="34"></div>
+  <div class="col-md-8" data-counterparty-type-group="sole_proprietor,legal_entity"><label class="form-label" for="counterpartyEditBankName">Банк</label><input class="form-control" id="counterpartyEditBankName" name="bank_name" maxlength="255"></div>
+  <div class="col-md-4"><label class="form-label" for="counterpartyEditStatus">Статус</label><input class="form-control" id="counterpartyEditStatus" name="status" maxlength="64"></div>
+  <div class="col-md-6"><label class="form-label">Юридический адрес</label><textarea class="form-control" name="address_legal" rows="2"></textarea></div>
+  <div class="col-md-6"><label class="form-label">Почтовый адрес</label><textarea class="form-control" name="address_postal" rows="2"></textarea></div>
+  <div class="col-12"><label class="form-label">Комментарий</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+</div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-danger-soft me-auto" type="button" id="counterpartiesDeleteInModalBtn">Удалить контрагента</button><button class="btn crm-btn-primary" type="submit">Сохранить</button></div></form></div></div></div>
+
+<div class="modal fade" id="counterpartiesSaveViewModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Сохранить вид контрагентов</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div><form id="counterpartiesSaveViewForm" novalidate><div class="modal-body"><div class="mb-3"><label class="form-label" for="counterpartiesSaveViewTitle">Название вида</label><input class="form-control" id="counterpartiesSaveViewTitle" name="title" maxlength="120" required placeholder="Например: Активные организации"></div><div class="small text-muted" id="counterpartiesSaveViewHint">Будут сохранены текущие фильтры и сортировка.</div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-primary" type="submit">Сохранить</button></div></form></div></div></div>

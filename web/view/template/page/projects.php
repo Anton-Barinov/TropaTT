@@ -1,0 +1,33 @@
+<?php declare(strict_types=1); ?>
+<?php $title = 'TropaTT — Проекты'; ?>
+<body data-page="projects" data-protected="1"><div class="crm-app">
+<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
+<main class="crm-content crm-projects-page"><div class="crm-page-head"><div class="crm-page-intro"><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard">Главная</a></li><li class="breadcrumb-item active">Проекты</li></ol><h1 class="crm-page-title">Проекты</h1><p class="crm-subtitle">Список проектов со статусами, клиентами, командами и сроками.</p></div><div class="crm-page-actions"><select id="projectsSavedViewSelect" class="form-select form-select-sm crm-field-w-220" aria-label="Сохраненные виды проектов"><option value="">Вид по умолчанию</option></select><button id="projectsSaveViewBtn" class="btn crm-btn-secondary" type="button">Сохранить вид</button><button id="projectsDeleteViewBtn" class="btn crm-btn-secondary" type="button" disabled>Удалить вид</button><div class="btn-group" id="projectsViewToggle" role="group" aria-label="Вид отображения проектов"><button class="btn crm-btn-secondary crm-btn-primary" type="button" data-projects-view="cards" aria-pressed="true">Карточки</button><button class="btn crm-btn-secondary btn-light" type="button" data-projects-view="list" aria-pressed="false">Список</button></div><button class="btn crm-btn-secondary" type="button" data-open-drawer="filterOffcanvas" aria-label="Открыть фильтры проектов">Фильтры</button><button class="btn crm-btn-primary" type="button" data-open-modal="createProjectModal">Создать проект</button></div></div>
+
+<div class="row g-3 mb-3" id="projectsDynamicList">
+  <div class="col-12"><div class="crm-card"><div class="text-muted">Загрузка проектов...</div></div></div>
+</div>
+
+<div id="projectsBulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="Bulk actions projects">
+  <div>Выбрано проектов: <strong data-projects-selected-count>0</strong> <span class="small ms-2" id="projectsBulkResult" aria-live="polite"></span></div>
+  <div class="d-flex gap-2">
+    <select id="projectsBulkStatusSelect" class="form-select form-select-sm crm-field-w-170" aria-label="Изменить статус проектов">
+      <option value="">Статус...</option>
+      <option value="active">Активные</option>
+      <option value="new">К выполнению</option>
+      <option value="in_progress">В работе</option>
+      <option value="blocked">Блокировано</option>
+      <option value="done">Готово</option>
+    </select>
+    <button class="btn btn-sm crm-btn-danger-soft" type="button" id="projectsBulkDeleteBtn" data-confirm-delete>Удалить</button>
+  </div>
+</div>
+
+<div class="crm-card crm-section-card p-0 table-responsive" id="projectsTableWrap"><table class="table crm-table mb-0"><thead><tr><th style="width:40px"><input class="form-check-input" type="checkbox" id="projectsBulkSelectAll" aria-label="Выбрать все проекты"></th><th>Проект</th><th>Статус</th><th>Прогресс</th><th>Клиент</th><th>Команда</th><th>Дедлайн</th></tr></thead><tbody>
+<tr><td colspan="7" class="text-muted">Загрузка таблицы проектов...</td></tr>
+</tbody></table></div>
+
+<div class="modal fade" id="projectsSaveViewModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Сохранить вид проектов</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div><form id="projectsSaveViewForm" novalidate><div class="modal-body"><div class="mb-3"><label class="form-label" for="projectsSaveViewTitle">Название вида</label><input class="form-control" id="projectsSaveViewTitle" name="title" maxlength="120" required placeholder="Например: Активные проекты команды"></div><div class="small text-muted">Будут сохранены текущие фильтры, команда и режим просмотра.</div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-primary" type="submit">Сохранить</button></div></form></div></div></div>
+
+</main></div></div>
