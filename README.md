@@ -7,7 +7,7 @@
 [![Zero Deps](https://img.shields.io/badge/Dependencies-0%20packages-6f42c1?style=flat-square)](#by-the-numbers)
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#self-hosted-your-server-your-rules)
 [![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#ai--what-it-can-do)
-[![Tests](https://img.shields.io/badge/Tests-337%20files-success?style=flat-square)](#by-the-numbers)
+[![PHP CI](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 ---
@@ -353,15 +353,15 @@ Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields
 | Repositories | 65+ |
 | Domain modules | 35+ |
 | JS modules | 24 custom vanilla JS modules, no SPA framework, no build step |
-| Integration tests | 337 (custom runner) |
+| Public CI | PHP lint on 8.1 and 8.2 |
 | AI endpoints | 65 |
 | AI workflows | 22 |
 | Feature flags | 43 |
 | Frontend API coverage | 70.1% (521/743 in UI) |
 | External PHP deps | 0 |
 | Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
-| API doc lines | 18,551 |
-| Documentation files | 100+ across 3 layers |
+| OpenAPI tooling | `api/scripts/generate_openapi.php` |
+| Public maintainer docs | `docs/maintainer/` |
 | Module CLI commands | 19 |
 | Deployment options | Local machine, home/office server, VPS, cloud VM, shared hosting |
 | External hosting starting point | ~$3/month shared hosting |
@@ -371,24 +371,24 @@ Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields
 ### Tech stack
 
 - **Backend:** PHP 8.1+, custom micro-kernel. Zero external packages. No Laravel/Symfony/Doctrine.
-- **Database:** MySQL (primary), SQLite (dev/tests).
+- **Database:** MySQL.
 - **Frontend:** PHP-rendered MPA with Bootstrap 5 for UI/layout and custom vanilla JS ES5+ modules for behavior. No React/Vue/Angular. No build step. No bundler.
 - **Architecture:** API-first. Web UI uses REST API for all data. Zero direct database access from the web layer.
 - **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
-- **Testing:** Custom test runner, 337 integration tests, unit tests, Playwright E2E.
+- **Testing:** Public PHP lint CI is enabled. A fast MySQL-backed integration workflow is tracked in the public hardening backlog.
 - **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
-- **Docs:** OpenAPI 3.1 from code. 100+ structured docs in 3 languages.
+- **Docs:** Public maintainer docs are included in `docs/maintainer/`. OpenAPI generation tooling is included in `api/scripts/generate_openapi.php`.
 
 ---
 
 ### Project layout
 
 ```text
-TropaTT CRM/
-├── api/           # API core — controllers, 100+ services, 65+ repos, config, migrations, tests, docs
+TropaTT/
+├── api/           # API core — controllers, services, repositories, config, migrations, scripts
 ├── web/           # Web UI — installer, 68 pages, ~55 templates, 24 JS modules, assets
 ├── modules/       # Pluggable business modules (boilerplate, hello-world, WIP-limit examples)
-├── docs/          # Unified docs (architecture, glossary, contracts, dev guides)
+├── docs/maintainer/ # Public maintainer checklists and OSS readiness notes
 ├── index.php      # Root entry point
 └── README.md      # You're reading it
 ```
@@ -399,7 +399,7 @@ Backend modules organized in 9 groups: Auth/Users · CRM (clients, counterpartie
 
 ### Under the hood
 
-**Zero external PHP dependencies.** Router, DI container, autoloader, query builder (no ORM), validator, HTTP client, response handler, migration manager, module system, test runner — all hand-written. One `composer.json` with `php >=8.1`. No supply-chain risk. No version conflicts. No dependency audit debt.
+**Zero external PHP dependencies.** Router, DI container, autoloader, query builder (no ORM), validator, HTTP client, response handler, migration manager, and module system are hand-written. One `composer.json` with `php >=8.1`. No supply-chain risk. No version conflicts. No dependency audit debt.
 
 **Documented architecture decisions:**
 ADR-001 — custom micro-kernel, no framework.
@@ -411,19 +411,19 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 
 **API-first.** The web UI does not touch the database. Every data load and state change goes through `window.CRM.api.request` → `/api/v1/...`. The API is authoritative. The UI is one consumer.
 
-**Custom test framework.** 337 integration tests, `php api/scripts/test_runner.php fast` or `full`. No PHPUnit. The runner provides login, request simulation, assertions, and cleanup. Dedicated smoke tests for AI security contracts, data masking, rate limiting, retention, and RBAC.
+**Testing roadmap.** The public repository currently ships a fast PHP syntax CI workflow for PHP 8.1 and 8.2. The next hardening step is a MySQL-backed integration workflow, tracked in the public milestone. Security-sensitive areas such as RBAC, CSRF, file access, AI data handling, and OpenAPI consistency are called out in the maintainer checklists.
 
 ---
 
 ### Docs
 
-100+ structured documents across three layers:
+The public repository currently includes a focused maintainer documentation set:
 
 | Layer | Where | What |
 |-------|-------|------|
-| Unified | `docs/` | Architecture, quick start, structure, domain glossary, API ↔ frontend contracts, dev guides, ops manual, AI agent context |
-| API | `api/docs/` | 18,551-line endpoint catalog (`api.md`), OpenAPI 3.1 (generated from code), security audit, DB schema, integration guide |
-| Web | `web/docs/` | Page reference, routing, forms, JS module map, AI implementation checklist, Web-to-API audit |
+| Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
+| API tooling | `api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
+| Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | Public usage, agent, security, and contribution guidance |
 ---
 
 ### Open-source project files
@@ -487,7 +487,7 @@ Please do not report security issues as public GitHub issues. Use the repository
 
 ### AI-assisted maintenance
 
-TropaTT has many moving parts: 743 REST endpoints, generated OpenAPI documentation, installer flows, permissions, workflow automation, AI workflows, chat, calendar, analytics, and a custom test runner. AI-assisted maintenance is useful when a change needs to stay consistent across several layers of the project.
+TropaTT has many moving parts: REST endpoints, generated OpenAPI tooling, installer flows, permissions, workflow automation, AI workflows, chat, calendar, analytics, and public CI. AI-assisted maintenance is useful when a change needs to stay consistent across several layers of the project.
 
 Useful AI-assisted maintainer workflows include:
 
@@ -793,15 +793,15 @@ TropaTT включает браузерный установщик для про
 | Репозиториев БД | 65+ |
 | Доменных модулей | 35+ |
 | JavaScript-модулей | 24 собственных модуля на ванильном JS, без SPA-фреймворков и сборки |
-| Интеграционных тестов | 337 (собственный test runner, не PHPUnit) |
+| Публичный CI | PHP lint на 8.1 и 8.2 |
 | AI API эндпоинтов | 65 |
 | Типов AI-процессов | 22 |
 | Feature-флагов | 43 |
 | Покрытие API фронтендом | 70.1% (521 из 743 эндпоинтов в UI) |
 | Внешних PHP-зависимостей | 0 |
 | Сторонних frontend-пакетов | 3 (Bootstrap 5, Font Awesome 6, SortableJS) |
-| Строк API-документации | 18 551 |
-| Документов | 100+ в трёх слоях документации |
+| OpenAPI tooling | `api/scripts/generate_openapi.php` |
+| Публичная maintainer-документация | `docs/maintainer/` |
 | CLI-команд для модулей | 19 |
 | Варианты развёртывания | локальный компьютер, домашний/офисный сервер, VPS, облачная VM, шаред-хостинг |
 | Внешний хостинг для старта | ~200–300 ₽/мес, шаред-хостинг |
@@ -811,13 +811,13 @@ TropaTT включает браузерный установщик для про
 ### Технологии
 
 - **Бэкенд:** PHP 8.1+ с собственным микроядром — 0 внешних пакетов, без Laravel/Symfony/Doctrine.
-- **База данных:** MySQL (основная), SQLite (для разработки и тестов).
+- **База данных:** MySQL.
 - **Фронтенд:** PHP-рендеринг MPA, Bootstrap 5 для UI/разметки и собственные модули на ванильном JavaScript ES5+ для поведения интерфейса — без React/Vue/Angular, без сборки, без бандлера.
 - **Архитектура:** API-first — веб-интерфейс использует REST API для всех данных, без прямого доступа к БД.
 - **Безопасность:** двойная аутентификация (cookie-сессия + CSRF для web, Bearer для API), RBAC с гранулярными правами, защита от SSRF, rate limiting, карантин файлов, имперсонация админа, маскирование sensitive-полей в ошибках.
-- **Тестирование:** собственный test runner, 337 интеграционных тестов, модульные тесты, Playwright E2E спецификации.
+- **Тестирование:** публичный PHP lint CI уже включён. Fast integration workflow с MySQL вынесен в публичный hardening backlog.
 - **AI-слой:** настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google, совместимые), intent-based workflows, шаблоны промптов, JSON schema validation, модель preview-before-apply.
-- **Документация:** OpenAPI 3.1 генерируется из кода, 100+ структурированных документов на 3 языках.
+- **Документация:** публичные maintainer-документы находятся в `docs/maintainer/`. Инструмент генерации OpenAPI включён в `api/scripts/generate_openapi.php`.
 
 ---
 
@@ -825,10 +825,10 @@ TropaTT включает браузерный установщик для про
 
 ```text
 TropaTT/
-├── api/           # Ядро API — контроллеры, сервисы (100+), репозитории (65+), конфигурация, миграции, тесты, документация
+├── api/           # Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
 ├── web/           # Веб-интерфейс — установщик, 68 страниц, ~55 шаблонов, 24 JS-модуля, ресурсы
 ├── modules/       # Подключаемые бизнес-модули (boilerplate, hello-world, WIP-limit)
-├── docs/          # Единая проектная документация (архитектура, глоссарий, контракты, руководства)
+├── docs/maintainer/ # Публичные чеклисты сопровождения и OSS readiness notes
 ├── index.php      # Корневая точка входа
 └── README.md      # Этот файл
 ```
@@ -839,25 +839,25 @@ TropaTT/
 
 ### Как устроено
 
-**Ноль внешних PHP-зависимостей.** Весь фреймворк — роутер, DI-контейнер, автозагрузчик, query builder (без ORM), валидатор, HTTP-клиент, обработчик ответов, менеджер миграций, модульная система, test runner — написан вручную. Никаких Laravel, Symfony, Doctrine. Один `composer.json` с `php >=8.1`. Это устраняет риски supply-chain, конфликты версий и накладные расходы на аудит зависимостей.
+**Ноль внешних PHP-зависимостей.** Роутер, DI-контейнер, автозагрузчик, query builder (без ORM), валидатор, HTTP-клиент, обработчик ответов, менеджер миграций и модульная система написаны вручную. Никаких Laravel, Symfony, Doctrine. Один `composer.json` с `php >=8.1`. Это устраняет риски supply-chain, конфликты версий и накладные расходы на аудит зависимостей.
 
 **Архитектурные решения задокументированы:** ADR-001 (собственное микроядро), ADR-002 (единый JSON-envelope ответов), ADR-003 (без ORM — PDO + Repository), ADR-001 Web (собственный PHP MVC), ADR-003 Web (собственный ванильный JS, Bootstrap 5 для UI, без сборки), ADR-006 Web (серверная верификация сессии через cookie + CSRF).
 
 **API-first дизайн.** Веб-интерфейс не имеет прямого доступа к базе данных. Каждая загрузка данных, отправка формы, изменение состояния идёт через `window.CRM.api.request` → `/api/v1/...`. API — авторитетный слой данных, веб-интерфейс — лишь один из потребителей.
 
-**Собственный test framework.** 337 интеграционных тестов запускаются через `php api/scripts/test_runner.php fast` или `full`. Без PHPUnit. Фреймворк предоставляет хелперы для логина, симуляции запросов, утверждений и очистки. Специализированные smoke-тесты покрывают AI-контракты безопасности, data masking, rate limiting, retention policies и RBAC.
+**План тестирования.** В публичном репозитории сейчас есть быстрый PHP syntax CI workflow для PHP 8.1 и 8.2. Следующий hardening-шаг — интеграционный workflow с MySQL, он уже вынесен в публичный milestone. Security-sensitive области вроде RBAC, CSRF, доступа к файлам, AI data handling и OpenAPI consistency отдельно отмечены в maintainer-чеклистах.
 
 ---
 
 ### Документация
 
-TropaTT поставляется со 100+ структурированными документами в трёх слоях:
+В публичном репозитории сейчас есть сфокусированный набор maintainer-документации:
 
 | Слой | Расположение | Содержание |
 |------|-------------|-----------|
-| Единая | `docs/` | Архитектура, быстрый старт, структура проекта, глоссарий домена, контракты API-фронтенд, руководства разработки, руководство по эксплуатации, контекст для AI-агентов |
-| API | `api/docs/` | Каталог эндпоинтов на 18 551 строк (`api.md`), спецификация OpenAPI 3.1 (генерируется из кода через `generate_openapi.php`), аудит безопасности, схема БД, руководство по интеграции API |
-| Web | `web/docs/` | Справочник страниц, роутинг UI, формы и валидация, карта JS-модулей, чеклист внедрения AI, аудит Web-to-API |
+| Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
+| API tooling | `api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
+| Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | Публичные правила использования, работы агентов, безопасности и вклада |
 
 ---
 
@@ -922,7 +922,7 @@ TropaTT работает с бизнес-данными: клиентами, к�
 
 ### Где помогает AI при сопровождении
 
-У TropaTT много связанных частей: 743 REST API эндпоинта, сгенерированная OpenAPI-документация, установщик, права доступа, workflow-автоматизация, AI-процессы, чат, календарь, аналитика и собственный test runner. AI-помощь полезна там, где изменение нужно провести согласованно через несколько слоёв проекта.
+У TropaTT много связанных частей: REST API, OpenAPI tooling, установщик, права доступа, workflow-автоматизация, AI-процессы, чат, календарь, аналитика и публичный CI. AI-помощь полезна там, где изменение нужно провести согласованно через несколько слоёв проекта.
 
 Практичные сценарии AI-помощи при сопровождении:
 
@@ -941,7 +941,7 @@ AI-предложения рассматриваются как материал
 
 ### Кто сделал
 
-TropaTT разрабатывает **Антон Баринов**, PHP-разработчик и создатель проекта TropaTT CRM.
+TropaTT разрабатывает **Антон Баринов**, PHP-разработчик и создатель платформы TropaTT.
 
 - **GitHub:** [Anton-Barinov](https://github.com/Anton-Barinov)
 - **Репозиторий:** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
@@ -1225,15 +1225,15 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | 数据库仓库 | 65+ |
 | 后端域模块 | 35+ |
 | JavaScript 模块 | 24 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
-| 集成测试文件 | 337（自定义运行器，非 PHPUnit） |
+| 公开 CI | PHP 8.1 和 8.2 lint |
 | AI API 端点 | 65 |
 | AI 工作流类型 | 22 |
 | 功能标志 | 43 |
 | 前端 API 覆盖率 | 70.1%（743 个端点中的 521 个已实现 UI） |
 | 外部 PHP 依赖 | 0 |
 | 前端第三方包 | 3（Bootstrap 5、Font Awesome 6、SortableJS） |
-| API 文档行数 | 18,551 |
-| 文档文件数 | 100+，分布在 3 个文档层 |
+| OpenAPI 工具 | `api/scripts/generate_openapi.php` |
+| 公开维护者文档 | `docs/maintainer/` |
 | 模块 CLI 命令 | 19 |
 | 部署选项 | 本地电脑、家庭/办公室服务器、VPS、云虚拟机、共享主机 |
 | 外部主机起点 | ~$3/月，共享主机 |
@@ -1243,13 +1243,13 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 ### 技术栈
 
 - **后端：** PHP 8.1+ 配合自定义微内核——零外部软件包，不使用 Laravel/Symfony/Doctrine。
-- **数据库：** MySQL（主要），SQLite（开发/测试）。
+- **数据库：** MySQL。
 - **前端：** PHP 渲染的 MPA，使用 Bootstrap 5 处理 UI/布局，并用自定义原生 JavaScript ES5+ 模块实现交互——不使用 React/Vue/Angular，无构建步骤，无打包工具。
 - **架构：** API 优先——Web UI 通过 REST API 获取所有数据，Web 层无直接数据库访问。
 - **安全性：** 双重认证（Web 的 Cookie 会话 + CSRF，API 的 Bearer），带细粒度权限的 RBAC，速率限制，文件隔离，管理员模拟，已脱敏的错误响应。
-- **测试：** 自定义测试运行器，337 个集成测试，单元测试，Playwright E2E 规范。
+- **测试：** 已启用公开 PHP lint CI。带 MySQL service 的快速集成测试 workflow 已进入公开 hardening backlog。
 - **AI 层：** 可配置的提供商（OpenAI、Anthropic、DeepSeek、Google、兼容提供商），基于意图的工作流，提示词模板，JSON Schema 验证，预览后应用的安全模型。
-- **文档：** 从代码生成的 OpenAPI 3.1，100+ 份结构化文档，支持 3 种语言。
+- **文档：** 公开维护者文档位于 `docs/maintainer/`。OpenAPI 生成工具位于 `api/scripts/generate_openapi.php`。
 
 ---
 
@@ -1257,10 +1257,10 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 ```text
 TropaTT/
-├── api/           # API 核心——控制器、服务（100+）、仓库（65+）、配置、迁移、测试、文档
+├── api/           # API 核心——控制器、服务、仓库、配置、迁移、脚本
 ├── web/           # Web 界面——安装程序、68 个页面、~55 个模板、24 个 JS 模块、资源
 ├── modules/       # 可选业务模块（boilerplate、hello-world、WIP-limit 示例）
-├── docs/          # 统一项目文档（架构、术语表、契约、开发指南）
+├── docs/maintainer/ # 公开维护者清单和 OSS readiness notes
 ├── index.php      # 根入口点
 └── README.md      # 本文件
 ```
@@ -1271,25 +1271,25 @@ TropaTT/
 
 ### 内部原理
 
-**零外部 PHP 依赖。** 整个框架——路由器、DI 容器、自动加载器、查询构建器（无 ORM）、验证器、HTTP 客户端、响应处理器、迁移管理器、模块系统、测试运行器——均为手写。不使用 Laravel。不使用 Symfony。不使用 Doctrine。单个 `composer.json` 仅含 `php >=8.1`。这消除了供应链风险、版本冲突和依赖审计开销。
+**零外部 PHP 依赖。** 路由器、DI 容器、自动加载器、查询构建器（无 ORM）、验证器、HTTP 客户端、响应处理器、迁移管理器和模块系统均为手写。不使用 Laravel。不使用 Symfony。不使用 Doctrine。单个 `composer.json` 仅含 `php >=8.1`。这消除了供应链风险、版本冲突和依赖审计开销。
 
 **架构决策记录。** 关键工程决策已文档化：ADR-001（自定义微内核），ADR-002（单一 JSON 响应信封），ADR-003（无 ORM——PDO + 仓库模式），ADR-001 Web（自定义 PHP MVC），ADR-003 Web（自定义原生 JS，Bootstrap 5 UI，无构建步骤），ADR-006 Web（通过 Cookie + CSRF 进行服务器端会话验证）。
 
 **API 优先设计。** Web UI 零直接数据库访问。每次数据加载、每次表单提交、每次状态变更都通过 `window.CRM.api.request` → `/api/v1/...` 完成。API 是权威数据层——Web UI 只是其中一个消费者。
 
-**自定义测试框架。** 337 个集成测试文件通过 `php api/scripts/test_runner.php fast` 或 `full` 运行。不使用 PHPUnit。该框架提供登录、请求模拟、断言和清理辅助工具。专用的冒烟测试覆盖 AI 安全契约、数据脱敏、速率限制、保留策略和 RBAC。
+**测试路线图。** 公开仓库当前包含适用于 PHP 8.1 和 8.2 的快速 PHP syntax CI workflow。下一步 hardening 工作是加入带 MySQL 的集成测试 workflow，并已在公开 milestone 中跟踪。RBAC、CSRF、文件访问、AI data handling 和 OpenAPI consistency 等安全敏感领域已在维护者清单中列出。
 
 ---
 
 ### 文档
 
-TropaTT 附带 100 多份结构化文档，分布在三个层级：
+公开仓库当前包含一组聚焦的维护者文档：
 
 | 层级 | 位置 | 内容 |
 |------|------|------|
-| 统一文档 | `docs/` | 架构、快速入门、项目结构、领域术语表、API-前端契约、开发指南、运维手册、AI 助手上下文 |
-| API 文档 | `api/docs/` | 18,551 行的端点目录（`api.md`）、OpenAPI 3.1 规范（通过 `generate_openapi.php` 从代码生成）、安全审计、数据库模式、API 集成指南 |
-| Web 文档 | `web/docs/` | 页面参考、UI 路由、表单与验证、JS 模块映射、AI 实施清单、Web-API 审计 |
+| 维护者文档 | `docs/maintainer/` | Release checklist、security review checklist、Codex for OSS notes、starter issues、GitHub labels |
+| API 工具 | `api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
+| 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | 公开使用、代理、安全和贡献指南 |
 
 ---
 
@@ -1354,7 +1354,7 @@ TropaTT 处理业务数据：客户、合作方、任务、项目、文件、聊
 
 ### AI 辅助维护
 
-TropaTT 包含许多相互关联的部分：743 个 REST 端点、生成的 OpenAPI 文档、安装流程、权限、工作流自动化、AI 流程、聊天、日历、分析和自定义测试运行器。当一个改动需要在多个层之间保持一致时，AI 辅助维护很有价值。
+TropaTT 包含许多相互关联的部分：REST API、OpenAPI tooling、安装流程、权限、工作流自动化、AI 流程、聊天、日历、分析和公开 CI。当一个改动需要在多个层之间保持一致时，AI 辅助维护很有价值。
 
 实用的 AI 辅助维护场景包括：
 
@@ -1373,7 +1373,7 @@ AI 建议只作为审查输入，而不是自动权威。代码、安全敏感�
 
 ### 谁做的
 
-TropaTT 由 **Anton Barinov** 开发，PHP 开发者，TropaTT CRM 和任务管理平台的创建者。
+TropaTT 由 **Anton Barinov** 开发，PHP 开发者，TropaTT 平台的创建者。
 
 - **GitHub：** [Anton-Barinov](https://github.com/Anton-Barinov)
 - **仓库：** [github.com/Anton-Barinov/TropaTT](https://github.com/Anton-Barinov/TropaTT)
