@@ -12,7 +12,7 @@
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — login `admin`, password `adminadmin`
 
-**Deploy:** `bash deploy.sh` — rsync to demo server using `git ls-files` only
+**Deploy:** `git deploy "message"` — commit + push + 10s wait + rsync to demo
 
 ---
 
