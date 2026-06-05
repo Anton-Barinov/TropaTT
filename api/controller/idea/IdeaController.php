@@ -2570,6 +2570,9 @@ PROMPT;
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
             $aiMode = $result['result']['mode'] ?? 'unknown';
             $aiFailed = $aiMode === 'safe_mock' || trim($rawText) === '' || str_contains($rawText, 'AI не смог сформировать ответ');
+            // Reconnect PDO if connection dropped during AI processing
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
+
             // Log iteration for debug — include AI error diagnostics
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $debugRes = ['raw_text' => $rawText, 'questions_count' => 0, 'ai_mode' => $aiMode];
@@ -2648,6 +2651,11 @@ PROMPT;
             }
         }
         } // end retry loop
+
+        // Reconnect PDO if connection dropped during long AI processing
+        try { $pdo->query('SELECT 1'); } catch (\Throwable) {
+            $pdo = $this->container->get('db.pdo');
+        }
 
         // No fallback — all questions MUST be AI-generated
         if (count($genQuestions) === 0 && $interviewQ === 0) {
