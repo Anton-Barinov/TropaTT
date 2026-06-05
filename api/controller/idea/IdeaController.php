@@ -2562,7 +2562,7 @@ PROMPT;
 
             $result = $aiSvc->execute('idea_analyze', [
                 '__usr' => $combinedPrompt . $this->localeInstruction(),
-                'max_tokens' => 6000,
+                'max_tokens' => 128000,
             ], $this->user()['user'] ?? []);
             
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
