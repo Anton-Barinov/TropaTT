@@ -1874,18 +1874,12 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты эксперт по риск-анализу. Анализируй идею ТОЛЬКО с точки зрения рисков. Не пиши бизнес-план, не давай вердикт "стоит/не стоит", не придумывай факты.
+Ты эксперт по риск-анализу. Оцени риски идеи. Каждый риск: category (market|finance|operations|legal|team|product|technology), probability 1-5, impact 1-5.
 
-Оцени каждый риск: probability_score (1-5) × impact_score (1-5) = risk_score (1-25). risk_level: 1-5=low, 6-10=medium, 11-15=high, 16-25=critical.
+СКОРОЧЕННЫЙ JSON (без лишних полей):
+{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","confidence_score":0.7,"risk_distribution":{"critical":0,"high":1,"medium":2,"low":1},"risks":[{"title":"Название риска","category":"finance","description":"Описание","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое что сделать","Второе"]}}
 
-Категории: market|finance|operations|legal|team|product|technology|sales|marketing|logistics|location|reputation|timing|personal|external|other.
-
-CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
-Count your braces: every { must have a matching }. Your entire response must be parseable as one JSON object.
-If you lack data for some risks, return what you have — do not truncate the JSON.
-
-FORMAT:
-{"risk_report":{"summary":"","overall_risk_score":0,"overall_risk_level":"low","confidence_score":0,"risk_distribution":{"critical":0,"high":0,"medium":0,"low":0},"key_risk_drivers":[],"risks":[{"risk_id":"r1","title":"","category":"finance","description":"","based_on":"","probability_score":1,"probability_label":"low","impact_score":1,"impact_label":"low","risk_score":1,"risk_level":"low","possible_consequences":[],"early_warning_signs":[],"mitigation_actions":[],"residual_risk_level":"low","data_needed_to_validate":[]}],"critical_risks":[],"recommended_first_actions":[],"missing_data_for_better_assessment":[],"assumptions":[],"limitations":[]}}
+ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
 PROMPT;
 
         try {
@@ -1971,19 +1965,12 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты анализируешь идею и выявляешь подводные камни — скрытые, неочевидные проблемы, которые пользователь может не учитывать.
+Ты анализируешь идею и выявляешь подводные камни. Для каждого: category (finance|market|team|legal|operations|product|technology), probability 1-5, impact 1-5.
 
-НЕ делай финальный анализ, НЕ давай вердикт, НЕ пиши бизнес-план. Только подводные камни.
+УПРОЩЁННЫЙ JSON:
+{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
 
-Критерии каждого камня: probability_score (1-5), impact_score (1-5), hiddenness_score (1-5), urgency_score (1-5). Приоритет посчитает backend.
-
-Категории: finance|market|sales|marketing|operations|team|legal|location|product|service|suppliers|technology|customer_behavior|seasonality|quality_control|scalability|personal_involvement|uncertainty|other.
-
-CRITICAL: Return ONLY valid JSON. No markdown fences, no comments, no text before/after.
-Count your braces — every { must have a matching }. The entire response must be a single parseable JSON.
-
-FORMAT:
-{"overall_hidden_complexity":"medium","overall_summary":"","data_confidence":0,"pitfalls":[{"pitfall_id":"p1","title":"","category":"finance","description":"","why_hidden":"","consequence":"","probability_score":1,"impact_score":1,"hiddenness_score":1,"urgency_score":1,"suggested_priority_score":0,"detection_signals":[],"validation_steps":[],"mitigation_steps":[],"missing_data":[],"related_facts":[],"assumptions":[]}]}
+ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
 PROMPT;
 
         try {
@@ -2071,15 +2058,12 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты составляешь практический "План реализации" идеи. НЕ делай вердикт "стоит/не стоит", НЕ выдумывай факты.
+Ты составляешь практический "План реализации" идеи. Выдели 3-7 этапов, для каждого 2-4 задачи.
 
-Подготовь этапы реализации (3-7) с задачами, и список на ближайшие 7 дней (3-10 задач). Задачи должны быть конкретными, выполнимыми. Если точное время неизвестно — пиши "неизвестно".
+УПРОЩЁННЫЙ JSON:
+{"implementation_plan":{"summary":"Общее описание плана","confidence_score":0.7,"stages":[{"title":"Название этапа","goal":"Цель","description":"Описание","tasks":[{"title":"Название задачи","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Что делать в ближайшие 7 дней","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"missing_data_to_refine_plan":[],"recommended_next_action":"Что делать в первую очередь"}}
 
-CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
-Count your braces — every { must have a matching }. The entire response must be parseable as one JSON.
-
-FORMAT:
-{"implementation_plan":{"summary":"","planning_horizon":"1 месяц","plan_type":"standard","confidence_score":0,"data_limitations":[],"assumptions":[],"stages":[{"stage_id":"s1","title":"","goal":"","description":"","tasks":[{"task_id":"t1","title":"","description":"","priority":"high","complexity":"medium","expected_result":"","depends_on":[],"required_inputs":[],"risks":[]}],"expected_result":"","dependencies":[],"risks":[]}],"next_7_days":{"summary":"","tasks":[{"day":null,"task_id":"d1","title":"","description":"","why_needed":"","priority":"high","complexity":"medium","expected_result":"","depends_on":[],"estimated_time":"1-2 часа"}]},"milestones":[],"risks":[],"missing_data_to_refine_plan":[],"recommended_next_action":""}}
+ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
 PROMPT;
 
         try {
@@ -2296,52 +2280,12 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'category' => $idea['category'] ?? '', 'current_date' => date('Y-m-d'), 'target_date' => $idea['target_date'] ?? null], 'final_recommendation' => $final, 'implementation_plan' => $plan];
 
         $sp = <<<'PROMPT'
-Based on the final recommendation and implementation plan, create ONE detailed project plan with ALL tasks grouped under a single project. This will be the master action plan.
+Based on the idea, create a detailed project plan with tasks.
 
-THE PROJECT:
-- id: "p1"
-- title: descriptive project name based on the idea
-- description: 2-3 sentence overview of what this plan covers and its goal
+УПРОЩЁННЫЙ JSON (список задач, 8-15 штук):
+{"summary":"Общее описание проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Название задачи","description":"Описание с конкретными шагами","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Что получится","depends_on":[],"subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат","depends_on":[]}]}]}]}
 
-TASKS — must be THOROUGHLY decomposed (deep, detailed, actionable):
-
-Each task must include:
-- id: unique key (t1, t2...)
-- title: clear action-oriented name (e.g. "Register sole proprietorship with tax office" not just "Legal stuff")
-- description: 3-5 DETAILED sentences explaining WHAT exactly to do, HOW to approach it, and WHY it matters. Be specific. Include concrete steps, tools, or methods where possible.
-- priority: high|medium|low — based on dependencies and impact
-- estimated_time: realistic estimate (e.g. "4 hours", "2 days", "1-2 weeks")
-- expected_outcome: specific measurable result — what "done" looks like
-- depends_on: array of task ids that MUST be completed first
-- subtasks: deeper breakdown of this task (same structure, go 3-4 levels deep for complex tasks)
-
-DECOMPOSITION RULES:
-1. Break every task down until each leaf subtask is a single concrete action that takes < 1 day
-2. If a task description says "and" or involves multiple distinct activities — split it into subtasks
-3. Every task must have a clear owner (even if implicit — "you" or "vendor")
-4. Include all preparatory steps, research, procurement, setup, testing, and launch phases
-5. Don't skip "obvious" steps — the user needs a complete map
-
-COVERAGE (minimum per area):
-- Legal/registration: 2-3 tasks (business registration, tax system, bank account, permits/licenses)
-- Resources/equipment: 2-3 tasks (what to buy, from where, budget, setup)
-- Product/service definition: 2-3 tasks (specifications, pricing, packaging, quality standards)
-- Marketing/promotion: 3-4 tasks (channels, content, budget, launch campaign, testing)
-- Operations/processes: 2-3 tasks (workflows, automation, quality control, support)
-- Finance/accounting: 2-3 tasks (budget, pricing model, breakeven calculation, cashflow plan, accounting setup)
-- Team/hiring: 2-3 tasks (roles needed, hiring process, training, contractors)
-- Technology/platform: 2-3 tasks (domain, hosting, development, integrations, testing, security)
-- Risk mitigation: 2-3 tasks (insurance, backup plans, worst-case preparations, legal protection)
-- Launch & validation: 3-4 tasks (soft launch, test orders/pilots, feedback collection, iteration, full launch)
-- Post-launch: 2-3 tasks (monitoring, customer support, optimization, scaling)
-
-TOTAL: minimum 12 top-level tasks, minimum 40 subtasks overall. Focus on the MOST critical and impactful areas for this specific idea. Quality over quantity — every task must be genuinely useful.
-
-CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
-Count your braces — every { must have a matching }. The entire response must be parseable as one JSON.
-
-FORMAT:
-{"summary":"comprehensive overview paragraph","projects":[{"id":"p1","title":"","description":"","tasks":[{"id":"t1","title":"","description":"","priority":"high","estimated_time":"","expected_outcome":"","depends_on":[],"subtasks":[{"id":"t1.1","title":"","description":"","priority":"high","estimated_time":"","expected_outcome":"","depends_on":[],"subtasks":[]}]}]}]}
+ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
 PROMPT;
 
         try {
