@@ -2593,8 +2593,9 @@ PROMPT;
                         $aiDna = is_array($data['idea_diagnostics']['do_not_ask_again_topics']) ? $data['idea_diagnostics']['do_not_ask_again_topics'] : [];
                         $coverage['do_not_ask_again_topics'] = array_values(array_unique(array_merge($coverage['do_not_ask_again_topics'] ?? [], $aiDna)));
                     }
-                    if (!empty($data['questions'])) {
-                    foreach ($data['questions'] as $q) {
+                    $rawQuestions = $data['questions'] ?? $data['gen_questions'] ?? $data['generated_questions'] ?? [];
+                    if (!empty($rawQuestions)) {
+                    foreach ($rawQuestions as $q) {
                         $qt = $q['question'] ?? $q['question_text'] ?? '';
                         if (trim($qt) === '') continue;
                         $genQuestions[] = [
@@ -2613,7 +2614,14 @@ PROMPT;
             // Update iteration with actual questions count after parsing
             $pdo->prepare("UPDATE idea_ai_iterations SET response_payload = :res WHERE id = (SELECT MAX(id) FROM (SELECT id FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY id DESC LIMIT 1) t)")
                 ->execute(['res' => json_encode(array_merge($debugRes, ['questions_count' => count($genQuestions)]), JSON_UNESCAPED_UNICODE), 'iid' => $ideaId]);
+            if (count($genQuestions) === 0 && !$aiFailed && trim($rawText ?? '') !== '') {
+                ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." text_preview=".substr(trim($rawText??''),0,200));
+            }
             if (!$aiFailed && count($genQuestions) >= 5) {
+                break;
+            }
+            if (!$aiFailed && count($genQuestions) > 0) {
+                ai_diag_log("[AI_INTERVIEW_SHORT] idea_id={$ideaId} interview={$interviewQ} questions=" . count($genQuestions) . " (less than 5, using as-is)");
                 break;
             }
             if ($retry < $maxRetries && $aiFailed) {
@@ -2636,6 +2644,7 @@ PROMPT;
 
         // No fallback — all questions MUST be AI-generated
         if (count($genQuestions) === 0 && $interviewQ === 0) {
+            ai_diag_log("[AI_INTERVIEW_EMPTY] idea_id={$ideaId} interview={$interviewQ} aiFailed=".($aiFailed?'1':'0')." aiMode={$aiMode} textLen=".strlen($rawText));
             return $this->error('AI_UNAVAILABLE', 'AI не смог сгенерировать вопросы. Попробуйте позже.', 503);
         }
 
