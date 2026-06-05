@@ -52,6 +52,8 @@ final class CounterpartyController extends BaseController
         }
 
         $input = $this->request()->allInput();
+        if (empty($input['counterparty_type'])) $input['counterparty_type'] = 'organization';
+        if (empty($input['status'])) $input['status'] = 'active';
         $errors = $this->validateCounterpartyPayload($input, true);
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);

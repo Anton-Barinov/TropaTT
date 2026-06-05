@@ -53,6 +53,7 @@ final class ClientController extends BaseController
         }
 
         $input = $this->request()->allInput();
+        if (empty($input['status'])) $input['status'] = 'active';
         $errors = $this->validateClientPayload($input, true);
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
