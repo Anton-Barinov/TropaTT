@@ -3741,23 +3741,11 @@ PROMPT;
         if ($trimmed === '') {
             return ['ok' => false, 'data' => null, 'error' => 'empty'];
         }
-        // Find first { anywhere in text (strip leading text from LLM)
+        // Find first { and last }
         $start = strpos($trimmed, '{');
-        if ($start === false) {
-            return ['ok' => false, 'data' => null, 'error' => 'no_brace_found'];
-        }
-        // Count braces from first { to find matching closing }
-        $depth = 0; $end = -1;
-        for ($i = $start; $i < strlen($trimmed); $i++) {
-            $ch = $trimmed[$i];
-            if ($ch === '{') $depth++;
-            elseif ($ch === '}') {
-                $depth--;
-                if ($depth === 0) { $end = $i; break; }
-            }
-        }
-        if ($end === -1) {
-            return ['ok' => false, 'data' => null, 'error' => 'incomplete_json'];
+        $end = strrpos($trimmed, '}');
+        if ($start === false || $end === false || $end <= $start) {
+            return ['ok' => false, 'data' => null, 'error' => 'no_json_boundaries'];
         }
         $extracted = substr($trimmed, $start, $end - $start + 1);
         $decoded = json_decode($extracted, true);
