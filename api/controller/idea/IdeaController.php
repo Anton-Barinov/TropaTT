@@ -3741,18 +3741,20 @@ PROMPT;
         if ($trimmed === '') {
             return ['ok' => false, 'data' => null, 'error' => 'empty'];
         }
-        // Find first { and last }
         $start = strpos($trimmed, '{');
-        $end = strrpos($trimmed, '}');
-        if ($start === false || $end === false || $end <= $start) {
-            return ['ok' => false, 'data' => null, 'error' => 'no_json_boundaries'];
+        if ($start === false) {
+            return ['ok' => false, 'data' => null, 'error' => 'no_brace'];
         }
-        $extracted = substr($trimmed, $start, $end - $start + 1);
-        $decoded = json_decode($extracted, true);
-        if (!is_array($decoded)) {
-            return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
+        // Try from first { to last } — if fails, try earlier } positions
+        for ($end = strrpos($trimmed, '}'); $end !== false && $end > $start; $end = strrpos($trimmed, '}', $end - strlen($trimmed) - 1)) {
+            $extracted = substr($trimmed, $start, $end - $start + 1);
+            $decoded = json_decode($extracted, true);
+            if (is_array($decoded)) {
+                return ['ok' => true, 'data' => $decoded];
+            }
+            if ($end === $start + 1) break; // single brace {}
         }
-        return ['ok' => true, 'data' => $decoded];
+        return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
     }
 
     public function listComments(array $params = []): JsonResponse
