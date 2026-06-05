@@ -1880,24 +1880,35 @@ PROMPT;
 
 Категории: market|finance|operations|legal|team|product|technology|sales|marketing|logistics|location|reputation|timing|personal|external|other.
 
-Верни ТОЛЬКО JSON:
+CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
+Count your braces: every { must have a matching }. Your entire response must be parseable as one JSON object.
+If you lack data for some risks, return what you have — do not truncate the JSON.
+
+FORMAT:
 {"risk_report":{"summary":"","overall_risk_score":0,"overall_risk_level":"low","confidence_score":0,"risk_distribution":{"critical":0,"high":0,"medium":0,"low":0},"key_risk_drivers":[],"risks":[{"risk_id":"r1","title":"","category":"finance","description":"","based_on":"","probability_score":1,"probability_label":"low","impact_score":1,"impact_label":"low","risk_score":1,"risk_level":"low","possible_consequences":[],"early_warning_signs":[],"mitigation_actions":[],"residual_risk_level":"low","data_needed_to_validate":[]}],"critical_risks":[],"recommended_first_actions":[],"missing_data_for_better_assessment":[],"assumptions":[],"limitations":[]}}
 PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $maxRetries = 1; $rawText = '';
-            for ($retry = 0; $retry <= $maxRetries; $retry++) { $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []); $rawText = $result['result']['preview']['summary'] ?? ''; if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break; if ($retry < $maxRetries) usleep(500000); }
+            $maxRetries = 2; $rawText = '';
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $rawText = $result['result']['preview']['summary'] ?? '';
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['risk_report'])) break;
+                ai_diag_log("[RISK_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($retry < $maxRetries) usleep(1000000);
+            }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'risk_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['risk_report'])) {
-                ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." json_valid=".(is_array($data??null)?'1':'0')." has_risk_key=".(isset($data['risk_report'])?'1':'0')." preview=".substr($rawText,0,300));
+            if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
+                ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
                 return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
             }
+            $data = $parsed['data'];
 
             $rr = $data['risk_report'] ?? []; $risks = $rr['risks'] ?? [];
             // Validate and fix risk scores
@@ -1968,20 +1979,33 @@ PROMPT;
 
 Категории: finance|market|sales|marketing|operations|team|legal|location|product|service|suppliers|technology|customer_behavior|seasonality|quality_control|scalability|personal_involvement|uncertainty|other.
 
-Верни ТОЛЬКО JSON:
+CRITICAL: Return ONLY valid JSON. No markdown fences, no comments, no text before/after.
+Count your braces — every { must have a matching }. The entire response must be a single parseable JSON.
+
+FORMAT:
 {"overall_hidden_complexity":"medium","overall_summary":"","data_confidence":0,"pitfalls":[{"pitfall_id":"p1","title":"","category":"finance","description":"","why_hidden":"","consequence":"","probability_score":1,"impact_score":1,"hiddenness_score":1,"urgency_score":1,"suggested_priority_score":0,"detection_signals":[],"validation_steps":[],"mitigation_steps":[],"missing_data":[],"related_facts":[],"assumptions":[]}]}
 PROMPT;
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 1; $rawText = '';
-            for ($retry = 0; $retry <= $maxRetries; $retry++) { $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []); $rawText = $result['result']['preview']['summary'] ?? ''; if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break; if ($retry < $maxRetries) usleep(500000); }
+            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $rawText = $result['result']['preview']['summary'] ?? '';
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['pitfalls'])) break;
+                ai_diag_log("[PITFALLS_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                if ($retry < $maxRetries) usleep(1000000);
+            }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'pitfalls_report', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['pitfalls'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
+                ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
+                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            }
+            $data = $parsed['data'];
 
             $pitfalls = $data['pitfalls'] ?? [];
             // Backend-calculated priority: prob*impact*4 + hidden*2 + urgency*2
@@ -2051,20 +2075,33 @@ PROMPT;
 
 Подготовь этапы реализации (3-7) с задачами, и список на ближайшие 7 дней (3-10 задач). Задачи должны быть конкретными, выполнимыми. Если точное время неизвестно — пиши "неизвестно".
 
-Верни ТОЛЬКО JSON:
+CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
+Count your braces — every { must have a matching }. The entire response must be parseable as one JSON.
+
+FORMAT:
 {"implementation_plan":{"summary":"","planning_horizon":"1 месяц","plan_type":"standard","confidence_score":0,"data_limitations":[],"assumptions":[],"stages":[{"stage_id":"s1","title":"","goal":"","description":"","tasks":[{"task_id":"t1","title":"","description":"","priority":"high","complexity":"medium","expected_result":"","depends_on":[],"required_inputs":[],"risks":[]}],"expected_result":"","dependencies":[],"risks":[]}],"next_7_days":{"summary":"","tasks":[{"day":null,"task_id":"d1","title":"","description":"","why_needed":"","priority":"high","complexity":"medium","expected_result":"","depends_on":[],"estimated_time":"1-2 часа"}]},"milestones":[],"risks":[],"missing_data_to_refine_plan":[],"recommended_next_action":""}}
 PROMPT;
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 1; $rawText = '';
-            for ($retry = 0; $retry <= $maxRetries; $retry++) { $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []); $rawText = $result['result']['preview']['summary'] ?? ''; if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break; if ($retry < $maxRetries) usleep(500000); }
+            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $rawText = $result['result']['preview']['summary'] ?? '';
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['implementation_plan'])) break;
+                ai_diag_log("[PLAN_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                if ($retry < $maxRetries) usleep(1000000);
+            }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'implementation_plan', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['implementation_plan'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
+                ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
+                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            }
+            $data = $parsed['data'];
 
             $ip = $data['implementation_plan'] ?? [];
             if (!isset($ip['stages']) || !is_array($ip['stages'])) $ip['stages'] = [];
@@ -2300,20 +2337,33 @@ COVERAGE (minimum per area):
 
 TOTAL: minimum 12 top-level tasks, minimum 40 subtasks overall. Focus on the MOST critical and impactful areas for this specific idea. Quality over quantity — every task must be genuinely useful.
 
-Return ONLY this JSON structure:
+CRITICAL: Return ONLY valid JSON. No markdown fences ```json, no comments, no text before or after.
+Count your braces — every { must have a matching }. The entire response must be parseable as one JSON.
+
+FORMAT:
 {"summary":"comprehensive overview paragraph","projects":[{"id":"p1","title":"","description":"","tasks":[{"id":"t1","title":"","description":"","priority":"high","estimated_time":"","expected_outcome":"","depends_on":[],"subtasks":[{"id":"t1.1","title":"","description":"","priority":"high","estimated_time":"","expected_outcome":"","depends_on":[],"subtasks":[]}]}]}]}
 PROMPT;
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 1; $rawText = '';
-            for ($retry = 0; $retry <= $maxRetries; $retry++) { $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []); $rawText = $result['result']['preview']['summary'] ?? ''; if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break; if ($retry < $maxRetries) usleep(1000000); }
+            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $rawText = $result['result']['preview']['summary'] ?? '';
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && (!empty($parsed['data']['projects']) || !empty($parsed['data']['tasks']))) break;
+                ai_diag_log("[TASKS_RETRY] attempt=" . ($retry+1) . " error=" . ($parsed['error'] ?? 'invalid_resp'));
+                if ($retry < $maxRetries) usleep(1000000);
+            }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'suggested_tasks', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || (empty($data['projects']) && empty($data['tasks']))) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
+                ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
+                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            }
+            $data = $parsed['data'];
 
             // Normalize: if AI returned flat tasks, wrap in a single default project
             if (empty($data['projects']) && !empty($data['tasks'])) {
@@ -3735,6 +3785,44 @@ PROMPT;
         if (!$this->isFeatureEnabled()) {
             throw new \RuntimeException('AI ideas feature is disabled');
         }
+    }
+
+    /**
+     * Clean AI response: strip markdown fences, extract first {…} block, decode.
+     * @return array{ok:bool,data:?array,error?:string}
+     */
+    private function extractAiJson(string $rawText): array
+    {
+        $text = preg_replace('/^```(?:json)?\s*\n?/i', '', $rawText);
+        $text = preg_replace('/\n?```\s*$/i', '', $text);
+        $trimmed = trim($text);
+        if ($trimmed === '') {
+            return ['ok' => false, 'data' => null, 'error' => 'empty'];
+        }
+        if ($trimmed[0] !== '{') {
+            return ['ok' => false, 'data' => null, 'error' => 'not_json'];
+        }
+        // Extract from first { to matching } (count braces)
+        $depth = 0; $start = null; $end = -1;
+        for ($i = 0; $i < strlen($trimmed); $i++) {
+            $ch = $trimmed[$i];
+            if ($ch === '{') {
+                if ($depth === 0) $start = $i;
+                $depth++;
+            } elseif ($ch === '}') {
+                $depth--;
+                if ($depth === 0 && $start !== null) { $end = $i; break; }
+            }
+        }
+        if ($end === -1) {
+            return ['ok' => false, 'data' => null, 'error' => 'incomplete_json'];
+        }
+        $extracted = substr($trimmed, $start, $end - $start + 1);
+        $decoded = json_decode($extracted, true);
+        if (!is_array($decoded)) {
+            return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
+        }
+        return ['ok' => true, 'data' => $decoded];
     }
 
     public function listComments(array $params = []): JsonResponse
