@@ -101,6 +101,7 @@ final class TaskService
         $this->tasks->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
+            'parent_task_public_id' => !empty($input['parent_task_public_id']) ? (string)$input['parent_task_public_id'] : null,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
             'status_code' => (string)($input['status'] ?? 'new'),
@@ -203,6 +204,9 @@ final class TaskService
         }
         if (array_key_exists('archived', $input)) {
             $set['archived_at'] = (bool)$input['archived'] ? gmdate('Y-m-d H:i:s') : null;
+        }
+        if (array_key_exists('parent_task_public_id', $input)) {
+            $set['parent_task_public_id'] = $input['parent_task_public_id'] !== '' ? (string)$input['parent_task_public_id'] : null;
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
