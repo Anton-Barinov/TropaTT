@@ -12,8 +12,6 @@
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — login `admin`, password `adminadmin`
 
-**Deploy:** `git deploy "message"` — commit + push + 10s wait + rsync to demo
-
 ---
 
 ## Table of Contents
