@@ -343,7 +343,7 @@ final class IdeaController extends BaseController
                 'created_at' => $createdAt, 'current_date' => $currentDate,
             ], $user);
             $data = $this->extractStructuredResult($result);
-            error_log("[AI_ANALYZE_DEBUG] result_ok=".($result['ok']?'1':'0')." code=".($result['code']??'null')." data_keys=".(is_array($data)?implode(',',array_keys($data)):'NULL'));
+            ai_diag_log("[AI_ANALYZE_DEBUG] result_ok=".($result['ok']?'1':'0')." code=".($result['code']??'null')." data_keys=".(is_array($data)?implode(',',array_keys($data)):'NULL'));
 
             // Fallback: if AI response parsing failed, try parsing raw text
             if ($data === null) {
@@ -405,7 +405,7 @@ final class IdeaController extends BaseController
             ]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
-            error_log("[AI_ANALYZE_FAILED][{$reqId}] {$e->getMessage()}");
+            ai_diag_log("[AI_ANALYZE_FAILED][{$reqId}] {$e->getMessage()}");
             return $this->error('AI_ANALYSIS_FAILED', 'AI-провайдер не отвечает. Попробуйте позже.', 503);
         }
     }
@@ -846,7 +846,7 @@ final class IdeaController extends BaseController
             ]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
-            error_log("[AI_REFINE_FAILED][{$reqId}] {$e->getMessage()}");
+            ai_diag_log("[AI_REFINE_FAILED][{$reqId}] {$e->getMessage()}");
             return $this->error('AI_REFINE_FAILED', 'Не удалось обработать ответы. Попробуйте ещё раз.', 503);
         }
     }
@@ -1198,7 +1198,7 @@ PROMPT;
 
             return $this->success('CLARIFICATIONS_GENERATED', 'OK', $clarifications);
         } catch (\Throwable $e) {
-            error_log("[ADDITIONAL_QUESTIONS_ERROR] " . $e->getMessage());
+            ai_diag_log("[ADDITIONAL_QUESTIONS_ERROR] " . $e->getMessage());
             return $this->error('AI_UNAVAILABLE', 'AI не смог провести анализ', 503);
         }
     }
@@ -1389,7 +1389,7 @@ PROMPT;
             $row = $fresh->fetch(\PDO::FETCH_ASSOC) ?: [];
             return $this->success('CARD_BUILT', 'OK', $row ?: $card);
         } catch (\Throwable $e) {
-            error_log("[UNDERSTANDING_CARD_ERROR] " . $e->getMessage());
+            ai_diag_log("[UNDERSTANDING_CARD_ERROR] " . $e->getMessage());
             return $this->error('AI_UNAVAILABLE', 'AI не смог собрать карточку. Попробуйте позже.', 503);
         }
     }
@@ -1543,7 +1543,7 @@ PROMPT;
 
             return $this->success('GAP_QUESTIONS_GENERATED', 'OK', $gapData);
         } catch (\Throwable $e) {
-            error_log("[GAP_QUESTIONS_ERROR] " . $e->getMessage());
+            ai_diag_log("[GAP_QUESTIONS_ERROR] " . $e->getMessage());
             return $this->error('AI_UNAVAILABLE', 'AI не смог найти пробелы', 503);
         }
     }
@@ -1705,7 +1705,7 @@ PROMPT;
             $fresh->execute(['iid' => $ideaId]);
             return $this->success('REFINED_CARD_BUILT', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $card);
         } catch (\Throwable $e) {
-            error_log("[REFINED_CARD_ERROR] " . $e->getMessage());
+            ai_diag_log("[REFINED_CARD_ERROR] " . $e->getMessage());
             return $this->error('AI_UNAVAILABLE', 'AI не смог уточнить карточку.', 503);
         }
     }
@@ -1831,7 +1831,7 @@ PROMPT;
             $fresh->execute(['iid' => $ideaId]);
             return $this->success('POTENTIAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) {
-            error_log("[POTENTIAL_ERROR] " . $e->getMessage());
+            ai_diag_log("[POTENTIAL_ERROR] " . $e->getMessage());
             return $this->error('AI_UNAVAILABLE', 'AI не смог рассчитать потенциал.', 503);
         }
     }
@@ -1917,7 +1917,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('RISK_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { error_log("[RISK_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог рассчитать риски.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[RISK_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог рассчитать риски.', 503); }
     }
 
     /**
@@ -2004,7 +2004,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,overall_hidden_complexity,overall_summary,pitfalls_json,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:overall_hidden_complexity,:overall_summary,:pitfalls_json,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_pitfalls_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PITFALLS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { error_log("[PITFALLS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог найти подводные камни.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[PITFALLS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог найти подводные камни.', 503); }
     }
 
     /**
@@ -2079,7 +2079,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_implementation_plans WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PLAN_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { error_log("[PLAN_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог собрать план.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[PLAN_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог собрать план.', 503); }
     }
 
     /**
@@ -2199,7 +2199,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_final_recommendations (idea_id,status,status_label,recommendation_score,ai_recommendation_score,calculated_recommendation_score,potential_score,feasibility_score,risk_score,data_completeness_score,plan_quality_score,blocker_score,confidence_score,recommendation_json,ai_request_json,ai_response_json) VALUES (:idea_id,:status,:status_label,:recommendation_score,:ai_recommendation_score,:calculated_recommendation_score,:potential_score,:feasibility_score,:risk_score,:data_completeness_score,:plan_quality_score,:blocker_score,:confidence_score,:recommendation_json,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_final_recommendations WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('FINAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { error_log("[FINAL_RECOMMENDATION_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог сформировать рекомендацию.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[FINAL_RECOMMENDATION_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог сформировать рекомендацию.', 503); }
     }
 
     /**
@@ -2324,7 +2324,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('TASKS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { error_log("[SUGGESTED_TASKS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог предложить задачи.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[SUGGESTED_TASKS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог предложить задачи.', 503); }
     }
 
     /**
@@ -2619,14 +2619,14 @@ PROMPT;
             if ($retry < $maxRetries && $aiFailed) {
                 $errType = $debugRes['ai_error'] ?? '';
                 $retryable = in_array($errType, ['AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_RATE_LIMITED', 'AI_PROVIDER_HTTP_ERROR'], true);
-                if ($retryable) error_log("[AI_INTERVIEW_RETRY] attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
+                if ($retryable) ai_diag_log("[AI_INTERVIEW_RETRY] attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
                 usleep(2000000);
                 continue;
             }
             if (!$aiFailed) break;
         } catch (\Throwable $e) {
             $aiFailed = true;
-            error_log("[AI_INTERVIEW_WARN] " . $e->getMessage());
+            ai_diag_log("[AI_INTERVIEW_WARN] " . $e->getMessage());
             if ($retry < $maxRetries) {
                 usleep(2000000);
                 continue;
@@ -3277,7 +3277,7 @@ PROMPT;
             } catch (\Throwable $e) {
                 $pdo->prepare("UPDATE idea_analysis_steps SET status = 'failed', error_message = :err, updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
                     ->execute(['iid' => $ideaId, 'k' => $stepKey, 'err' => $e->getMessage()]);
-                error_log("[ANALYSIS_STEP_FAILED][{$stepKey}] {$e->getMessage()}");
+                ai_diag_log("[ANALYSIS_STEP_FAILED][{$stepKey}] {$e->getMessage()}");
                 break; // Stop on error
             }
         }

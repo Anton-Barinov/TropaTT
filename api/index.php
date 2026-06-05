@@ -13,6 +13,7 @@ use Api\System\Library\Support\EnvLoader;
 header('X-Powered-By: Tropa-CRM-API');
 
 require_once __DIR__ . '/system/library/support/Autoloader.php';
+require_once __DIR__ . '/system/library/ai_diag.php';
 
 $autoloader = new Api\System\Library\Support\Autoloader(__DIR__);
 $autoloader->register();

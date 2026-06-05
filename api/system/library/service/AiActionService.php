@@ -109,7 +109,7 @@ final class AiActionService
         $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
         $completionOk = (bool)($completion['ok'] ?? false) && trim((string)($completion['text'] ?? '')) !== '';
         $rawText = $completionOk ? trim((string)$completion['text']) : '';
-        error_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?"));
+        ai_diag_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?"));
         $mode = $completionOk ? 'llm' : 'safe_mock';
         $errorCode = $completionOk ? null : (string)($completion['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
         $summary = $rawText !== '' ? $rawText : 'AI не смог сформировать ответ у провайдера. Показан безопасный fallback.';
