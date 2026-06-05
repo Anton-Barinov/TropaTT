@@ -38,6 +38,15 @@ final class EventsController extends BaseController
 
         return [
             'stream' => function () use ($notifications, $userId, $streamAfterId, $request, $actor): void {
+                while (ob_get_level() > 0) {
+                    @ob_end_clean();
+                }
+
+                header('Content-Type: text/event-stream; charset=utf-8');
+                header('Cache-Control: no-cache, no-store, must-revalidate');
+                header('Connection: keep-alive');
+                header('X-Accel-Buffering: no');
+
                 @set_time_limit(0);
                 @ignore_user_abort(false);
 

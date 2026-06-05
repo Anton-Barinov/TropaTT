@@ -501,7 +501,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         }
 
         $code = (string)($response['error_code'] ?? '');
-        return in_array($code, ['AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_CLIENT_UNAVAILABLE'], true);
+        return in_array($code, ['AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_CLIENT_UNAVAILABLE', 'AI_PROVIDER_INVALID_RESPONSE'], true);
     }
 
     /**
