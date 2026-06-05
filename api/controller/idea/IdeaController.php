@@ -95,7 +95,7 @@ final class IdeaController extends BaseController
         $description = trim((string)($input['description'] ?? ''));
         $category = trim((string)($input['category'] ?? ''));
         $region = trim((string)($input['region'] ?? ''));
-        $visibility = in_array((string)($input['visibility'] ?? 'public'), ['public', 'private']) ? $input['visibility'] : 'public';
+        $visibility = in_array((string)($input['visibility'] ?? 'public'), ['public', 'private']) ? ($input['visibility'] ?? 'public') : 'public';
         $targetDate = trim((string)($input['target_date'] ?? '')) ?: null;
 
         if ($title === '') return $this->error('VALIDATION', $this->t('idea/messages.title_required'), 400);
