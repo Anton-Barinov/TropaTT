@@ -12,6 +12,8 @@
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — login `admin`, password `adminadmin`
 
+**Deploy:** `bash deploy.sh` — rsync to demo server using `git ls-files` only
+
 ---
 
 ## Table of Contents
