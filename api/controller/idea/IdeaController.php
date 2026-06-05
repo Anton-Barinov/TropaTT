@@ -3793,25 +3793,23 @@ PROMPT;
      */
     private function extractAiJson(string $rawText): array
     {
-        $text = preg_replace('/^```(?:json)?\s*\n?/i', '', $rawText);
-        $text = preg_replace('/\n?```\s*$/i', '', $text);
-        $trimmed = trim($text);
+        $trimmed = trim($rawText);
         if ($trimmed === '') {
             return ['ok' => false, 'data' => null, 'error' => 'empty'];
         }
-        if ($trimmed[0] !== '{') {
-            return ['ok' => false, 'data' => null, 'error' => 'not_json'];
+        // Find first { anywhere in text (strip leading text from LLM)
+        $start = strpos($trimmed, '{');
+        if ($start === false) {
+            return ['ok' => false, 'data' => null, 'error' => 'no_brace_found'];
         }
-        // Extract from first { to matching } (count braces)
-        $depth = 0; $start = null; $end = -1;
-        for ($i = 0; $i < strlen($trimmed); $i++) {
+        // Count braces from first { to find matching closing }
+        $depth = 0; $end = -1;
+        for ($i = $start; $i < strlen($trimmed); $i++) {
             $ch = $trimmed[$i];
-            if ($ch === '{') {
-                if ($depth === 0) $start = $i;
-                $depth++;
-            } elseif ($ch === '}') {
+            if ($ch === '{') $depth++;
+            elseif ($ch === '}') {
                 $depth--;
-                if ($depth === 0 && $start !== null) { $end = $i; break; }
+                if ($depth === 0) { $end = $i; break; }
             }
         }
         if ($end === -1) {
