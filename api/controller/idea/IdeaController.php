@@ -148,7 +148,7 @@ final class IdeaController extends BaseController
         $description = trim((string)($input['description'] ?? $idea['description']));
         $category = trim((string)($input['category'] ?? $idea['category']));
         $region = array_key_exists('region', $input) ? trim((string)($input['region'])) : $idea['region'];
-        $visibility = in_array((string)($input['visibility'] ?? $idea['visibility']), ['public', 'private']) ? $input['visibility'] : ($idea['visibility'] ?? 'public');
+        $visibility = in_array((string)($input['visibility'] ?? $idea['visibility']), ['public', 'private']) ? ($input['visibility'] ?? $idea['visibility'] ?? 'public') : ($idea['visibility'] ?? 'public');
         $targetDate = array_key_exists('target_date', $input) ? (trim((string)($input['target_date'])) ?: null) : ($idea['target_date'] ?? null);
 
         $stmt = $pdo->prepare("UPDATE ideas SET title = :title, description = :desc, category = :cat, region = :region, visibility = :vis, target_date = :td WHERE public_id = :pid");
