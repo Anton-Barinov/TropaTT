@@ -245,11 +245,11 @@ final class CustomHttpProviderClient implements AiProviderClientInterface
             }
         }
 
-        $attempts = (int)($provider['retry_attempts'] ?? ($payload['retry_attempts'] ?? 1));
+        $attempts = (int)($provider['retry_attempts'] ?? ($payload['retry_attempts'] ?? 2));
         $attempts = max(1, min(5, $attempts));
 
-        $backoffMs = (int)($provider['retry_backoff_ms'] ?? ($payload['retry_backoff_ms'] ?? 150));
-        $backoffMs = max(0, min(2000, $backoffMs));
+        $backoffMs = (int)($provider['retry_backoff_ms'] ?? ($payload['retry_backoff_ms'] ?? 500));
+        $backoffMs = max(0, min(3000, $backoffMs));
 
         return [
             'timeout_ms' => $timeoutMs,

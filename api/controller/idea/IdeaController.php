@@ -2552,7 +2552,7 @@ PROMPT;
 
         $genQuestions = [];
         $aiFailed = false;
-        $maxRetries = 2; // 3 total attempts
+        $maxRetries = 4; // 5 total attempts
         for ($retry = 0; $retry <= $maxRetries; $retry++) {
         try {
             $aiSvc = $this->container->get('service.ai_action');
@@ -2628,7 +2628,7 @@ PROMPT;
                 $errType = $debugRes['ai_error'] ?? '';
                 $retryable = in_array($errType, ['AI_PROVIDER_INVALID_RESPONSE', 'AI_PROVIDER_TIMEOUT', 'AI_PROVIDER_SERVER_ERROR', 'AI_PROVIDER_CONNECTION_FAILED', 'AI_PROVIDER_RATE_LIMITED', 'AI_PROVIDER_HTTP_ERROR'], true);
                 if ($retryable) ai_diag_log("[AI_INTERVIEW_RETRY] attempt " . ($retry+2) . " for idea_id={$ideaId} error={$errType}");
-                usleep(2000000);
+                usleep(($retry + 1) * 1500000);
                 continue;
             }
             if (!$aiFailed) break;
@@ -2636,7 +2636,7 @@ PROMPT;
             $aiFailed = true;
             ai_diag_log("[AI_INTERVIEW_WARN] " . $e->getMessage());
             if ($retry < $maxRetries) {
-                usleep(2000000);
+                usleep(($retry + 1) * 1500000);
                 continue;
             }
         }
