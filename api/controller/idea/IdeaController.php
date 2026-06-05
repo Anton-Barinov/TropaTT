@@ -1894,7 +1894,10 @@ PROMPT;
 
             $data = json_decode($rawText, true);
             if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['risk_report'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            if (!is_array($data) || empty($data['risk_report'])) {
+                ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." json_valid=".(is_array($data??null)?'1':'0')." has_risk_key=".(isset($data['risk_report'])?'1':'0')." preview=".substr($rawText,0,300));
+                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            }
 
             $rr = $data['risk_report'] ?? []; $risks = $rr['risks'] ?? [];
             // Validate and fix risk scores
