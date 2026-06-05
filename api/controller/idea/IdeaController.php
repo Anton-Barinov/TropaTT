@@ -2552,6 +2552,8 @@ PROMPT;
 
         $genQuestions = [];
         $aiFailed = false;
+        $rawText = '';
+        $aiMode = 'unknown';
         $maxRetries = 4; // 5 total attempts
         for ($retry = 0; $retry <= $maxRetries; $retry++) {
         try {
