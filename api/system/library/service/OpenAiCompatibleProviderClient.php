@@ -37,7 +37,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
             unset($request['model']);
         }
 
-        $timeout = max(3000, (int)($provider['timeout_ms'] ?? 120000));
+        $timeout = max(3000, (int)($provider['timeout_ms'] ?? 240000));
         $timeout = min($timeout, 300000);
         $response = $this->postJson($url, $headers, $request, $timeout, $provider);
         $latencyMs = (int)round((microtime(true) - $startedAt) * 1000);
@@ -454,7 +454,7 @@ final class OpenAiCompatibleProviderClient implements AiProviderClientInterface
         $payload = $this->providerPayload($provider);
 
         $timeoutMs = (int)($provider['timeout_ms'] ?? ($payload['timeout_ms'] ?? $fallbackTimeoutMs));
-        $timeoutMs = max(1000, min(120000, $timeoutMs));
+        $timeoutMs = max(1000, min(300000, $timeoutMs));
 
         $phpMaxExecutionSeconds = (int)ini_get('max_execution_time');
         if ($phpMaxExecutionSeconds > 0) {
