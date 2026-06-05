@@ -2562,7 +2562,7 @@ PROMPT;
 
             $result = $aiSvc->execute('idea_analyze', [
                 '__usr' => $combinedPrompt . $this->localeInstruction(),
-                
+                'max_tokens' => 6000,
             ], $this->user()['user'] ?? []);
             
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
@@ -2618,7 +2618,9 @@ PROMPT;
             $pdo->prepare("UPDATE idea_ai_iterations SET response_payload = :res WHERE id = (SELECT MAX(id) FROM (SELECT id FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY id DESC LIMIT 1) t)")
                 ->execute(['res' => json_encode(array_merge($debugRes, ['questions_count' => count($genQuestions)]), JSON_UNESCAPED_UNICODE), 'iid' => $ideaId]);
             if (count($genQuestions) === 0 && !$aiFailed && trim($rawText ?? '') !== '') {
-                ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." json_error=".json_last_error_msg()." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." text_preview=".substr(trim($rawText??''),0,200));
+                $lastChar = mb_substr(trim($rawText ?? ''), -1);
+                $truncated = !in_array($lastChar, ['}', ']'], true) ? '1' : '0';
+                ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." json_error=".json_last_error_msg()." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." truncated={$truncated} last_char={$lastChar} text_len=".strlen($rawText??'')." text_preview=".substr(trim($rawText??''),0,200));
             }
             if (!$aiFailed && count($genQuestions) >= 5) {
                 break;
