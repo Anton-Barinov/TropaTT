@@ -2562,9 +2562,11 @@ PROMPT;
             // Merge system + user prompts into single user_prompt (no separate __sys)
             $combinedPrompt = "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $userPrompt . "\n[/USER]";
 
+            @set_time_limit(0);
             $result = $aiSvc->execute('idea_analyze', [
                 '__usr' => $combinedPrompt . $this->localeInstruction(),
                 'max_tokens' => 128000,
+                'timeout_ms' => 240000,
             ], $this->user()['user'] ?? []);
             
             $rawText = $result['result']['preview']['summary'] ?? ($result['result']['text'] ?? '');
