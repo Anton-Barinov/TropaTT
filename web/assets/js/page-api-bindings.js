@@ -21900,6 +21900,11 @@ window.CRM.pageApiBindings = (function () {
       fillSelect(document.getElementById('workflowTestTask'), workflowTasks, 'public_id', function (task) {
         return task.title || task.public_id || 'Задача';
       }, 'Выберите задачу');
+      ['workflowFromStatus', 'workflowToStatus'].forEach(function (sfId) {
+        fillSelect(document.getElementById(sfId), workflowStatuses, 'code', function (status) {
+          return status.title || status.code;
+        }, 'Любой статус');
+      });
     }
     function setMultiSelectValues(select, values) {
       if (!select) return;
@@ -21911,6 +21916,11 @@ window.CRM.pageApiBindings = (function () {
     function showActionPanel(actionCode) {
       document.querySelectorAll('[data-action-panel]').forEach(function (panel) {
         panel.classList.toggle('d-none', String(panel.getAttribute('data-action-panel')) !== String(actionCode || ''));
+      });
+    }
+    function showFilterPanel(triggerCode) {
+      document.querySelectorAll('[data-filter-panel]').forEach(function (panel) {
+        panel.classList.toggle('d-none', String(panel.getAttribute('data-filter-panel')) !== String(triggerCode || ''));
       });
     }
     function collectWorkflowPayload(form) {
@@ -21982,7 +21992,10 @@ window.CRM.pageApiBindings = (function () {
       form.querySelector('[name="reminder_user_public_id"]').value = String(payload.user_public_id || payload.assignee_user_public_id || '');
       form.querySelector('[name="remind_at"]').value = String(payload.remind_at || '+1 hour');
       form.querySelector('[name="webhook_url"]').value = String(payload.url || '');
+      form.querySelector('[name="from_status_code"]').value = String(payload.from_status_code || '');
+      form.querySelector('[name="to_status_code"]').value = String(payload.to_status_code || '');
       showActionPanel(form.querySelector('[name="action_code"]').value);
+      showFilterPanel(form.querySelector('[name="trigger_code"]').value);
       var title = document.getElementById('adminWorkflowModalTitle');
       var submit = document.getElementById('adminWorkflowSubmitBtn');
       if (title) title.textContent = rule ? 'Изменить правило автоматизации' : 'Создать правило автоматизации';
@@ -22021,6 +22034,8 @@ window.CRM.pageApiBindings = (function () {
             + '</td>'
             + '</tr>';
         }).join('');
+        var countEl = document.getElementById('adminWorkflowRulesCount');
+        if (countEl) countEl.textContent = items.length + ' правил';
       } catch (error) {
         body.innerHTML = automationEmptyRow(6, 'Не удалось загрузить правила', 'Проверьте доступ к API и повторите обновление страницы.');
       }
@@ -22040,11 +22055,17 @@ window.CRM.pageApiBindings = (function () {
           var resultLabel = String(item.status || item.result || '—');
           var resultClass = resultLabel === 'success' ? 'crm-badge-active' : (resultLabel === 'error' || resultLabel === 'failed' ? 'crm-badge-error' : 'crm-badge-archived');
           var resultText = resultLabel === 'success' ? 'Успешно' : (resultLabel === 'error' || resultLabel === 'failed' ? 'Ошибка' : resultLabel);
+          var detail = String(item.error_message || item.detail || item.message || '');
+          if (!detail && resultLabel === 'success') detail = 'Действие выполнено без ошибок';
+          if (!detail && item.output) {
+            try { var out = typeof item.output === 'string' ? JSON.parse(item.output) : item.output; detail = JSON.stringify(out, null, 2); } catch (_) { detail = String(item.output || ''); }
+          }
           return '<tr>'
             + '<td data-label="Правило">' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
             + '<td data-label="Событие">' + safeText(labelFrom(workflowTriggerLabels, item.trigger_code)) + '</td>'
             + '<td data-label="Действие">' + safeText(labelFrom(workflowActionLabels, item.action_code)) + '</td>'
             + '<td data-label="Результат"><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
+            + '<td data-label="Подробности" class="crm-muted-cell" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + safeText(detail) + '</td>'
             + '<td data-label="Дата">' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
             + '</tr>';
         }).join('');
@@ -22080,16 +22101,27 @@ window.CRM.pageApiBindings = (function () {
       workflowForm.querySelector('[name="action_code"]').addEventListener('change', function (event) {
         showActionPanel(event.target.value);
       });
+      workflowForm.querySelector('[name="trigger_code"]').addEventListener('change', function (event) {
+        showFilterPanel(event.target.value);
+      });
       workflowForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         var ruleId = String(workflowForm.querySelector('[name="public_id"]').value || '').trim();
+        var triggerCode = String(workflowForm.querySelector('[name="trigger_code"]').value || '').trim();
         var data = {
           title: String(workflowForm.querySelector('[name="title"]').value || '').trim(),
-          trigger_code: String(workflowForm.querySelector('[name="trigger_code"]').value || '').trim(),
+          trigger_code: triggerCode,
           action_code: String(workflowForm.querySelector('[name="action_code"]').value || '').trim(),
           is_enabled: workflowForm.querySelector('[name="is_enabled"]').checked ? 1 : 0
         };
         data.payload = collectWorkflowPayload(workflowForm);
+        // Include filter conditions for status trigger
+        if (triggerCode === 'task_status_changed') {
+          var fromStatus = String((workflowForm.querySelector('[name="from_status_code"]') || {}).value || '').trim();
+          var toStatus = String((workflowForm.querySelector('[name="to_status_code"]') || {}).value || '').trim();
+          if (fromStatus) data.payload.from_status_code = fromStatus;
+          if (toStatus) data.payload.to_status_code = toStatus;
+        }
         var validationError = validateWorkflowForm(data);
         if (validationError) {
           notify(validationError, 'warning');
@@ -22153,14 +22185,14 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var ruleId = String(deleteBtn.getAttribute('data-rule-delete') || '').trim();
           if (!ruleId) return;
-          if (!window.confirm('Удалить правило?')) return;
-          try {
-            await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'DELETE' });
-            notify('Правило удалено');
-            await loadRules();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить правило');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          var rule = workflowRules.find(function (item) { return String(item.public_id || '') === ruleId; });
+          var titleEl = document.getElementById('adminWorkflowDeleteRuleTitle');
+          if (titleEl) titleEl.textContent = rule ? String(rule.title || '') : ruleId;
+          var confirmBtn = document.getElementById('adminWorkflowDeleteConfirmBtn');
+          if (confirmBtn) confirmBtn.dataset.ruleId = ruleId;
+          var delModal = document.getElementById('adminWorkflowDeleteModal');
+          if (delModal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(delModal).show();
           }
           return;
         }
@@ -22180,6 +22212,50 @@ window.CRM.pageApiBindings = (function () {
           }
         }
       });
+    }
+
+    // Delete confirmation modal handler
+    var deleteConfirmBtn = document.getElementById('adminWorkflowDeleteConfirmBtn');
+    if (deleteConfirmBtn && deleteConfirmBtn.dataset.bound !== '1') {
+      deleteConfirmBtn.dataset.bound = '1';
+      deleteConfirmBtn.addEventListener('click', async function () {
+        var ruleId = String(deleteConfirmBtn.dataset.ruleId || '').trim();
+        if (!ruleId) return;
+        try {
+          await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'DELETE' });
+          var delModal = document.getElementById('adminWorkflowDeleteModal');
+          if (delModal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(delModal).hide();
+          }
+          notify('Правило удалено');
+          await loadRules();
+        } catch (error) {
+          var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить правило');
+          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+    }
+
+    // Search filter for rules table
+    var searchInput = document.getElementById('adminWorkflowSearchInput');
+    var searchClear = document.getElementById('adminWorkflowSearchClear');
+    if (searchInput && searchInput.dataset.bound !== '1') {
+      searchInput.dataset.bound = '1';
+      searchInput.addEventListener('input', function () {
+        var query = String(searchInput.value || '').toLowerCase().trim();
+        var rows = document.querySelectorAll('#adminWorkflowRulesBody tr[data-rule-id]');
+        rows.forEach(function (row) {
+          var text = String(row.textContent || '').toLowerCase();
+          row.classList.toggle('d-none', query !== '' && text.indexOf(query) === -1);
+        });
+        if (searchClear) searchClear.classList.toggle('d-none', query === '');
+      });
+      if (searchClear) {
+        searchClear.addEventListener('click', function () {
+          searchInput.value = '';
+          searchInput.dispatchEvent(new Event('input'));
+        });
+      }
     }
 
     var testForm = document.getElementById('adminWorkflowTestForm');
