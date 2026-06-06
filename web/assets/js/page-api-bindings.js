@@ -22489,7 +22489,7 @@ window.CRM.pageApiBindings = (function () {
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
           + '<td><a href="#" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</a></td>'
           + '<td>' + safeText(approvalEntityLabel(item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
-          + '<td>' + safeText(item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
+          + '<td>' + safeText((item.requester && item.requester.full_name) || item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
           + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
           + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
           + '<td class="crm-table-actions">'
@@ -22562,8 +22562,18 @@ window.CRM.pageApiBindings = (function () {
           var bodyEl = document.getElementById('approvalsDetailBody');
           if (titleEl) titleEl.textContent = item.title || item.subject || approvalId;
           if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает решения');
-          if (bodyEl) {
-            bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(item.requester_name || item.requester_login || '—') + '</dd>'
+            if (bodyEl) {
+            var reqName = (item.requester && item.requester.full_name) || item.requester_name || (item.requester && item.requester.login) || item.requester_login || '—';
+            var revNames = '';
+            if (Array.isArray(item.reviewers)) {
+              revNames = item.reviewers.map(function (r) { return r.full_name || r.login || r.public_id || '—'; }).join(', ');
+            } else if (Array.isArray(item.steps)) {
+              revNames = item.steps.map(function (s) { return (s.reviewer && s.reviewer.full_name) || (s.reviewer && s.reviewer.login) || '—'; }).join(', ');
+            } else {
+              revNames = String(item.reviewer_public_ids || '—');
+            }
+            bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Название</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
+              + '<dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(reqName) + '</dd>'
               + '<dt class="col-sm-3">Сущность</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
               + '<dt class="col-sm-3">Согласующие</dt><dd class="col-sm-9">' + safeText(Array.isArray(item.reviewers) ? item.reviewers.map(function (r) { return r.full_name || r.login || r.public_id || '—'; }).join(', ') : (item.reviewer_public_ids ? String(item.reviewer_public_ids) : '—')) + '</dd>'
               + '<dt class="col-sm-3">Комментарий</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
@@ -22701,6 +22711,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         var data = {
+          title: String(approvalsForm.querySelector('[name="title"]')?.value || '').trim(),
           entity_type: entityType,
           entity_public_id: entityPublicId,
           reviewer_public_ids: selectedReviewers,

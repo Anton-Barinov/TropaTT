@@ -60,17 +60,21 @@ final class ApprovalService
 
         $now = gmdate('Y-m-d H:i:s');
         $requestPublicId = Ulid::generate('apr');
+        $requestComment = trim((string)($input['comment'] ?? ''));
+        $requestTitle = trim((string)($input['title'] ?? ''));
         $requestId = $this->approvals->createRequest([
             'public_id' => $requestPublicId,
             'entity_type' => trim((string)$input['entity_type']),
             'entity_public_id' => trim((string)$input['entity_public_id']),
+            'title' => $requestTitle,
             'requester_user_id' => (int)$actor['id'],
             'status' => 'pending',
+            'comment' => $requestComment,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        $comment = trim((string)($input['comment'] ?? ''));
+        $comment = $requestComment;
         foreach ($reviewers as $reviewer) {
             $this->approvals->createStep([
                 'public_id' => Ulid::generate('aps'),
@@ -269,6 +273,8 @@ final class ApprovalService
     {
         return [
             'public_id' => (string)($request['public_id'] ?? ''),
+            'title' => (string)($request['title'] ?? ''),
+            'comment' => (string)($request['comment'] ?? ''),
             'entity_type' => (string)($request['entity_type'] ?? ''),
             'entity_public_id' => (string)($request['entity_public_id'] ?? ''),
             'status' => (string)($request['status'] ?? ''),
@@ -291,6 +297,8 @@ final class ApprovalService
     {
         return [
             'public_id' => (string)($request['public_id'] ?? ''),
+            'title' => (string)($request['title'] ?? ''),
+            'comment' => (string)($request['comment'] ?? ''),
             'entity_type' => (string)($request['entity_type'] ?? ''),
             'entity_public_id' => (string)($request['entity_public_id'] ?? ''),
             'status' => (string)($request['status'] ?? ''),

@@ -55,6 +55,7 @@
           <div class="modal-header"><div><h5 class="modal-title">Создать запрос на согласование</h5><div class="crm-modal-subtitle">Выберите задачу или проект и назначьте согласующих.</div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
           <form id="approvalsCreateForm">
             <div class="modal-body">
+              <div class="mb-3"><label class="form-label">Название запроса</label><input class="form-control" name="title" maxlength="255" required placeholder="Например: Согласование бюджета проекта 1С:ERP"></div>
               <div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Тип сущности</label><select class="form-select" name="entity_type" id="approvalsEntityType" required><option value="task">Задача</option><option value="project">Проект</option></select></div>
                 <div class="col-md-8"><label class="form-label" for="approvalsEntitySearch">Поиск задачи или проекта</label><input id="approvalsEntitySearch" class="form-control" placeholder="Введите название или public_id..." autocomplete="off"><div id="approvalsEntityResults" class="crm-autocomplete-list d-none"></div><input type="hidden" name="entity_public_id"></div>
