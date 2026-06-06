@@ -129,12 +129,13 @@ window.CRM.navigation = (function () {
   function getDefaultNavItems() {
     return [
       { key: 'dashboard', i18n: 'nav.dashboard', label: 'Главная', href: 'index.php?route=dashboard' },
+      { key: 'ideas', i18n: 'nav.ideas', label: 'Идеи', href: 'index.php?route=ideas' },
+      { key: 'tasks', i18n: 'nav.tasks', label: 'Задачи', href: 'index.php?route=tasks' },
       { key: 'day', i18n: 'nav.day', label: 'Мой день', href: 'index.php?route=my-day' },
       { key: 'week', i18n: 'nav.week', label: 'Моя неделя', href: 'index.php?route=my-week' },
-      { key: 'tasks', i18n: 'nav.tasks', label: 'Задачи', href: 'index.php?route=tasks' },
       { key: 'kanban', i18n: 'nav.kanban', label: 'Канбан', href: 'index.php?route=kanban' },
-      { key: 'projects', i18n: 'nav.projects', label: 'Проекты', href: 'index.php?route=projects' },
       { key: 'gantt', i18n: 'nav.gantt', label: 'Гант', href: 'index.php?route=gantt' },
+      { key: 'projects', i18n: 'nav.projects', label: 'Проекты', href: 'index.php?route=projects' },
       { key: 'calendar', i18n: 'nav.calendar', label: 'Календарь', href: 'index.php?route=calendar' },
       { key: 'counterparties', i18n: 'nav.counterparties', label: 'Контрагенты', href: 'index.php?route=counterparties' },
       { key: 'teams', i18n: 'nav.teams', label: 'Команды и отделы', href: 'index.php?route=teams' },
