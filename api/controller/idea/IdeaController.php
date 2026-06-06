@@ -1876,10 +1876,11 @@ PROMPT;
         $sp = <<<'PROMPT'
 Ты эксперт по риск-анализу. Оцени риски идеи. Каждый риск: category (market|finance|operations|legal|team|product|technology), probability 1-5, impact 1-5.
 
-СКОРОЧЕННЫЙ JSON (без лишних полей):
-{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","confidence_score":0.7,"risk_distribution":{"critical":0,"high":1,"medium":2,"low":1},"risks":[{"title":"Название риска","category":"finance","description":"Описание","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое что сделать","Второе"]}}
+СТРОГО: Запрещено использовать символы { } в тексте описаний. Если нужно — используй ( ) или скобки [ ].
+Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
 
-ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
+ФОРМАТ:
+{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","confidence_score":0.7,"risk_distribution":{"critical":0,"high":1,"medium":2,"low":1},"risks":[{"title":"Название риска","category":"finance","description":"Описание без фигурных скобок","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое что сделать","Второе"]}}
 PROMPT;
 
         try {
@@ -1967,10 +1968,11 @@ PROMPT;
         $sp = <<<'PROMPT'
 Ты анализируешь идею и выявляешь подводные камни. Для каждого: category (finance|market|team|legal|operations|product|technology), probability 1-5, impact 1-5.
 
-УПРОЩЁННЫЙ JSON:
-{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
+СТРОГО: Запрещено использовать символы { } в тексте описаний. Заменяй на ( ) или [ ].
+Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
 
-ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
+УПРОЩЁННЫЙ JSON:
+{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание без фигурных скобок","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
 PROMPT;
 
         try {
@@ -2060,10 +2062,11 @@ PROMPT;
         $sp = <<<'PROMPT'
 Ты составляешь практический "План реализации" идеи. Выдели 3-7 этапов, для каждого 2-4 задачи.
 
-УПРОЩЁННЫЙ JSON:
-{"implementation_plan":{"summary":"Общее описание плана","confidence_score":0.7,"stages":[{"title":"Название этапа","goal":"Цель","description":"Описание","tasks":[{"title":"Название задачи","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Что делать в ближайшие 7 дней","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"missing_data_to_refine_plan":[],"recommended_next_action":"Что делать в первую очередь"}}
+СТРОГО: Запрещено использовать символы { } в тексте описаний. Используй ( ) или [ ].
+Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
 
-ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
+УПРОЩЁННЫЙ JSON:
+{"implementation_plan":{"summary":"Общее описание плана","confidence_score":0.7,"stages":[{"title":"Название этапа","goal":"Цель","description":"Описание без фигурных скобок","tasks":[{"title":"Название задачи","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Что делать в ближайшие 7 дней","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"missing_data_to_refine_plan":[],"recommended_next_action":"Что делать в первую очередь"}}
 PROMPT;
 
         try {
@@ -2279,13 +2282,14 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'category' => $idea['category'] ?? '', 'current_date' => date('Y-m-d'), 'target_date' => $idea['target_date'] ?? null], 'final_recommendation' => $final, 'implementation_plan' => $plan];
 
-        $sp = <<<'PROMPT'
+         $sp = <<<'PROMPT'
 Based on the idea, create a detailed project plan with tasks.
 
 УПРОЩЁННЫЙ JSON (список задач, 8-15 штук):
-{"summary":"Общее описание проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Название задачи","description":"Описание с конкретными шагами","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Что получится","depends_on":[],"subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат","depends_on":[]}]}]}]}
+{"summary":"Общее описание проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Название задачи","description":"Описание с конкретными шагами","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Что получится","depends_on":[],"subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат"}]}]}]}
 
-ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным.
+СТРОГО: Запрещено использовать символы { } в тексте описаний. Используй ( ) или [ ].
+Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
 PROMPT;
 
         try {
@@ -3732,6 +3736,45 @@ PROMPT;
     }
 
     /**
+     * Walk through text and replace { } inside JSON strings with safe alternatives
+     * so that brace counting works correctly for extracting the JSON block.
+     */
+    private function sanitizeJsonBraces(string $text, int $start): array
+    {
+        $len = strlen($text);
+        // First pass: replace { } inside strings with safe placeholders
+        $inString = false;
+        $prevBackslash = false;
+        $sanitized = '';
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $text[$i];
+            if ($inString) {
+                if ($ch === '\\' && !$prevBackslash) { $sanitized .= $ch; $prevBackslash = true; continue; }
+                if ($ch === '"' && !$prevBackslash) { $inString = false; $sanitized .= $ch; $prevBackslash = false; continue; }
+                if ($ch === '{') { $sanitized .= "\xE2\x80\xA2"; $prevBackslash = false; continue; }
+                if ($ch === '}') { $sanitized .= "\xE2\x80\xA2"; $prevBackslash = false; continue; }
+                $sanitized .= $ch; $prevBackslash = false;
+            } else {
+                if ($ch === '"') { $inString = true; $sanitized .= $ch; continue; }
+                $sanitized .= $ch;
+            }
+        }
+        // Now find proper brace matching using sanitized text
+        $depth = 0; $foundEnd = -1;
+        for ($i = $start; $i < strlen($sanitized); $i++) {
+            $ch = $sanitized[$i];
+            if ($ch === '{') $depth++;
+            elseif ($ch === '}') { $depth--; if ($depth === 0) { $foundEnd = $i; break; } }
+        }
+        if ($foundEnd === -1) {
+            return ['ok' => false, 'error' => 'no_matching_brace', 'text' => $text];
+        }
+        // Extract from original text using matched positions
+        $extracted = substr($text, $start, $foundEnd - $start + 1);
+        return ['ok' => true, 'text' => $extracted];
+    }
+
+    /**
      * Clean AI response: strip markdown fences, extract first {…} block, decode.
      * @return array{ok:bool,data:?array,error?:string}
      */
@@ -3745,62 +3788,25 @@ PROMPT;
         if ($start === false) {
             return ['ok' => false, 'data' => null, 'error' => 'no_brace'];
         }
-        // Proper brace matching: count { } but skip them inside quoted strings
-        // This handles the case where DeepSeek puts { or } inside Russian text
-        $depth = 0;
-        $inString = false;
-        $end = -1;
-        for ($i = $start; $i < strlen($trimmed); $i++) {
-            $ch = $trimmed[$i];
-            if ($inString) {
-                if ($ch === '\\') { $i++; continue; } // skip escaped char
-                if ($ch === '"') $inString = false;
-            } else {
-                if ($ch === '"') { $inString = true; continue; }
-                if ($ch === '{') $depth++;
-                if ($ch === '}') {
-                    $depth--;
-                    if ($depth === 0) { $end = $i; break; }
-                }
-            }
-        }
-        if ($end === -1) {
-            // Log which extra { characters are unclosed for debugging
-            $openPositions = [];
-            $depth = 0;
-            for ($i = $start; $i < strlen($trimmed); $i++) {
-                $ch = $trimmed[$i];
-                if ($ch === '"') continue; // simplified — just log rough positions
-                if ($ch === '{') { $depth++; $openPositions[] = $i; }
-                if ($ch === '}') { $depth--; if ($openPositions) array_pop($openPositions); }
-            }
-            $unclosed = $openPositions ? 'unclosed_at=' . implode(',', array_slice($openPositions, -5)) : '';
-            ai_diag_log("[AI_JSON_UNCLOSED] text_len=" . strlen($trimmed) . " depth=$depth " . $unclosed . " preview=" . substr(preg_replace('/\s+/', ' ', $trimmed), 0, 300));
-
-            // Final fallback: use first-{ to last-} range even if braces are unbalanced
+        // Sanitize braces inside strings, then find the real JSON boundaries
+        $result = $this->sanitizeJsonBraces($trimmed, $start);
+        if (!$result['ok']) {
+            // Fallback: use first-{ to last-}
             $last = strrpos($trimmed, '}');
             if ($last !== false && $last > $start) {
                 $extracted = substr($trimmed, $start, $last - $start + 1);
                 $decoded = @json_decode($extracted, true);
-                if (is_array($decoded)) {
-                    return ['ok' => true, 'data' => $decoded];
-                }
-                // Try progressive truncation
-                $repaired = $this->repairJsonString(substr($trimmed, $start));
-                $decoded = @json_decode($repaired, true);
-                if (is_array($decoded)) {
-                    return ['ok' => true, 'data' => $decoded];
-                }
+                if (is_array($decoded)) return ['ok' => true, 'data' => $decoded];
             }
-            return ['ok' => false, 'data' => null, 'error' => 'no_matching_brace'];
+            return ['ok' => false, 'data' => null, 'error' => $result['error']];
         }
-        $extracted = substr($trimmed, $start, $end - $start + 1);
+        $extracted = $result['text'];
         $decoded = @json_decode($extracted, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
-        // Fallback: progressive } truncation for repeated/concat JSON
-        $repaired = $this->repairJsonString(substr($trimmed, $start));
+        // Repair fallback: progressive } truncation
+        $repaired = $this->repairJsonString($extracted);
         $decoded = @json_decode($repaired, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
