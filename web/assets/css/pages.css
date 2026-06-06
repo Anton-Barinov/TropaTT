@@ -96,6 +96,32 @@
   background: transparent;
 }
 
+/* Autocomplete dropdown for entity search */
+.crm-autocomplete-list {
+  position: absolute;
+  z-index: 1060;
+  background: var(--crm-bg);
+  border: 1px solid var(--crm-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  max-height: 240px;
+  overflow-y: auto;
+  width: 100%;
+}
+.crm-autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--crm-border-light, rgba(0,0,0,.04));
+  font-size: var(--text-sm);
+}
+.crm-autocomplete-item:last-child { border-bottom: 0; }
+.crm-autocomplete-item:hover,
+.crm-autocomplete-item:focus {
+  background: var(--crm-accent-bg, rgba(20,184,166,.08));
+  color: var(--crm-accent-strong);
+}
+.crm-autocomplete-item strong { color: var(--crm-text); }
+
 .crm-automation-empty-row td {
   padding: 0 !important;
 }

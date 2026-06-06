@@ -22438,117 +22438,283 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderApprovalsPage() {
-    var approvalEntityLabels = {
-      task: 'Задача',
-      project: 'Проект'
-    };
+    var approvalEntityLabels = { task: 'Задача', project: 'Проект' };
+    var approvalData = []; // cached items
+    var activeFilter = 'all';
+    var approvalUsers = [];
+
     function approvalsEmptyRow(colspan, title, text) {
       return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
-        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
-        + '</td></tr>';
+        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div></td></tr>';
     }
-    function approvalEntityLabel(value) {
-      var key = String(value || '').trim();
-      return approvalEntityLabels[key] || key || '—';
+    function approvalEntityLabel(value) { return approvalEntityLabels[String(value || '').trim()] || value || '—'; }
+
+    async function loadUsers() {
+      try {
+        var envelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, silent: true });
+        approvalUsers = mapItems(envelope);
+        var select = document.getElementById('approvalsReviewersSelect');
+        if (select) {
+          select.innerHTML = '<option value="" disabled>Выберите согласующих</option>'
+            + approvalUsers.map(function (u) {
+              return '<option value="' + safeText(u.public_id || '') + '">' + safeText(u.full_name || u.login || u.public_id || '') + '</option>';
+            }).join('');
+        }
+      } catch (_) {}
     }
-    async function loadApprovals() {
+
+    function renderApprovalsTable(items) {
       var body = document.getElementById('approvalsListBody');
       if (!body) return;
+      if (!items.length) {
+        var msg = activeFilter === 'all' ? 'Запросов пока нет' : 'Нет запросов с таким статусом';
+        var detail = activeFilter === 'all' ? 'Создайте согласование для задачи или проекта.' : 'Измените фильтр или создайте новый запрос.';
+        body.innerHTML = approvalsEmptyRow(6, msg, detail);
+        var countEl = document.getElementById('approvalsCountBadge');
+        if (countEl) countEl.textContent = '0 запросов';
+        return;
+      }
+      var countEl = document.getElementById('approvalsCountBadge');
+      if (countEl) {
+        var pend = items.filter(function (i) { return String(i.status) === 'pending'; }).length;
+        var appr = items.filter(function (i) { return String(i.status) === 'approved'; }).length;
+        var rej = items.filter(function (i) { return String(i.status) === 'rejected'; }).length;
+        countEl.textContent = items.length + ' запросов (ожидают: ' + pend + ', одобрено: ' + appr + ', отклонено: ' + rej + ')';
+      }
+      body.innerHTML = items.map(function (item) {
+        var id = item.public_id || '';
+        var status = String(item.status || 'pending');
+        var statusClass = status === 'approved' ? 'crm-badge-active' : (status === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
+        var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
+        return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
+          + '<td><a href="#" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</a></td>'
+          + '<td>' + safeText(approvalEntityLabel(item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
+          + '<td>' + safeText(item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
+          + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
+          + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
+          + '<td class="crm-table-actions">'
+          + (status === 'pending'
+            ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
+              + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
+            : '<span class="text-muted small">—</span>')
+          + '</td></tr>';
+      }).join('');
+    }
+
+    async function loadApprovals() {
       try {
         var envelope = await request('api/v1/approvals', { query: { limit: 100 } });
-        var items = mapItems(envelope);
-        if (!items.length) {
-          body.innerHTML = approvalsEmptyRow(6, 'Запросов пока нет', 'Создайте согласование для задачи или проекта, чтобы зафиксировать решение внутри CRM.');
-          return;
-        }
-        body.innerHTML = items.map(function (item) {
-          var id = item.public_id || '';
-          var status = String(item.status || 'pending');
-          var statusClass = status === 'approved' ? 'crm-badge-active' : (status === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
-          var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
-          return '<tr data-approval-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.subject || id) + '</td>'
-            + '<td>' + safeText(approvalEntityLabel(item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
-            + '<td>' + safeText(item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
-            + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td class="crm-table-actions">';
-        }).join('');
-
-        // Add action buttons for pending items
-        items.forEach(function (item) {
-          var id = item.public_id || '';
-          var status = String(item.status || 'pending');
-          if (status === 'pending') {
-            var row = body.querySelector('tr[data-approval-id="' + id + '"]');
-            if (row) {
-              var actionsCell = row.querySelector('td:last-child');
-              if (actionsCell) {
-                actionsCell.innerHTML = '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
-                  + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>';
-              }
-            }
-          } else {
-            var row = body.querySelector('tr[data-approval-id="' + id + '"]');
-            if (row) {
-              var actionsCell = row.querySelector('td:last-child');
-              if (actionsCell) {
-                actionsCell.innerHTML = '<span class="text-muted small">—</span>';
-              }
-            }
-          }
-        });
+        approvalData = mapItems(envelope);
+        applyFiltersAndRender();
       } catch (error) {
-        body.innerHTML = approvalsEmptyRow(6, 'Не удалось загрузить согласования', 'Проверьте доступ к API и обновите страницу.');
+        var body = document.getElementById('approvalsListBody');
+        if (body) body.innerHTML = approvalsEmptyRow(6, 'Не удалось загрузить', 'Проверьте доступ к API.');
       }
     }
 
-    var refreshBtn = document.getElementById('approvalsRefreshBtn');
-    if (refreshBtn && refreshBtn.dataset.bound !== '1') {
-      refreshBtn.dataset.bound = '1';
-      refreshBtn.addEventListener('click', function () {
-        loadApprovals();
+    function applyFiltersAndRender() {
+      var items = approvalData;
+      if (activeFilter !== 'all') items = items.filter(function (i) { return String(i.status) === activeFilter; });
+      var searchVal = String((document.getElementById('approvalsSearchInput') || {}).value || '').toLowerCase().trim();
+      if (searchVal) {
+        items = items.filter(function (i) {
+          var text = (i.title || i.subject || i.entity_public_id || '').toLowerCase();
+          return text.indexOf(searchVal) !== -1;
+        });
+      }
+      renderApprovalsTable(items);
+    }
+
+    // Search handler
+    var searchInput = document.getElementById('approvalsSearchInput');
+    if (searchInput && searchInput.dataset.bound !== '1') {
+      searchInput.dataset.bound = '1';
+      searchInput.addEventListener('input', applyFiltersAndRender);
+    }
+
+    // Status filter handler
+    var filterGroup = document.getElementById('approvalsStatusFilter');
+    if (filterGroup && filterGroup.dataset.bound !== '1') {
+      filterGroup.dataset.bound = '1';
+      filterGroup.addEventListener('click', function (event) {
+        var btn = event.target.closest('button');
+        if (!btn) return;
+        activeFilter = String(btn.getAttribute('data-approval-filter') || 'all');
+        filterGroup.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        applyFiltersAndRender();
       });
     }
 
+    // Detail modal
+    var listBody = document.getElementById('approvalsListBody');
+    if (listBody && listBody.dataset.bound !== '1') {
+      listBody.dataset.bound = '1';
+      listBody.addEventListener('click', async function (event) {
+        // Detail link
+        var detailLink = event.target.closest('[data-approval-detail]');
+        if (detailLink) {
+          event.preventDefault();
+          var approvalId = String(detailLink.getAttribute('data-approval-detail') || '').trim();
+          var item = approvalData.find(function (i) { return String(i.public_id) === approvalId; });
+          if (!item) return;
+          var titleEl = document.getElementById('approvalsDetailTitle');
+          var subEl = document.getElementById('approvalsDetailSubtitle');
+          var bodyEl = document.getElementById('approvalsDetailBody');
+          if (titleEl) titleEl.textContent = item.title || item.subject || approvalId;
+          if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает решения');
+          if (bodyEl) {
+            bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(item.requester_name || item.requester_login || '—') + '</dd>'
+              + '<dt class="col-sm-3">Сущность</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
+              + '<dt class="col-sm-3">Согласующие</dt><dd class="col-sm-9">' + safeText(Array.isArray(item.reviewers) ? item.reviewers.map(function (r) { return r.full_name || r.login || r.public_id || '—'; }).join(', ') : (item.reviewer_public_ids ? String(item.reviewer_public_ids) : '—')) + '</dd>'
+              + '<dt class="col-sm-3">Комментарий</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
+              + '<dt class="col-sm-3">Дата</dt><dd class="col-sm-9">' + safeText(formatDate(item.created_at || '')) + '</dd>'
+              + '<dt class="col-sm-3">Статус</dt><dd class="col-sm-9">' + safeText(String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает') + '</dd>'
+              + '</dl>';
+          }
+          var modal = document.getElementById('approvalsDetailModal');
+          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+          return;
+        }
+        // Approve/Reject buttons
+        var approveBtn = event.target.closest('[data-approval-approve]');
+        var rejectBtn = event.target.closest('[data-approval-reject]');
+        if (approveBtn || rejectBtn) {
+          event.preventDefault();
+          var approvalId = approveBtn ? String(approveBtn.getAttribute('data-approval-approve') || '') : String(rejectBtn.getAttribute('data-approval-reject') || '');
+          var action = approveBtn ? 'approve' : 'reject';
+          var form = document.getElementById('approvalsDecisionForm');
+          if (!form) return;
+          form.querySelector('[name="approval_id"]').value = approvalId;
+          form.querySelector('[name="action"]').value = action;
+          var titleEl = document.getElementById('approvalsDecisionTitle');
+          var submitEl = document.getElementById('approvalsDecisionSubmitBtn');
+          if (titleEl) titleEl.textContent = action === 'approve' ? 'Одобрить запрос?' : 'Отклонить запрос?';
+          if (submitEl) { submitEl.textContent = action === 'approve' ? 'Одобрить' : 'Отклонить'; submitEl.className = 'btn ' + (action === 'approve' ? 'crm-btn-success' : 'crm-btn-danger'); }
+          document.getElementById('approvalsDecisionComment').value = '';
+          var modal2 = document.getElementById('approvalsDecisionModal');
+          if (modal2 && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal2).show(); }
+          return;
+        }
+      });
+    }
+
+    // Decision form submission
+    var decisionForm = document.getElementById('approvalsDecisionForm');
+    if (decisionForm && decisionForm.dataset.bound !== '1') {
+      decisionForm.dataset.bound = '1';
+      decisionForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var approvalId = String(decisionForm.querySelector('[name="approval_id"]').value || '').trim();
+        var action = String(decisionForm.querySelector('[name="action"]').value || '').trim();
+        var comment = String((document.getElementById('approvalsDecisionComment') || {}).value || '').trim();
+        if (!approvalId || !action) return;
+        try {
+          var endpoint = 'api/v1/approvals/' + encodeURIComponent(approvalId) + '/' + (action === 'approve' ? 'approve' : 'reject');
+          await request(endpoint, { method: 'POST', body: { comment: comment } });
+          notify(action === 'approve' ? 'Запрос одобрен' : 'Запрос отклонен');
+          var modal3 = document.getElementById('approvalsDecisionModal');
+          if (modal3 && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal3).hide(); }
+          await loadApprovals();
+        } catch (error) {
+          var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
+          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+    }
+
+    // Refresh button
+    var refreshBtn = document.getElementById('approvalsRefreshBtn');
+    if (refreshBtn && refreshBtn.dataset.bound !== '1') { refreshBtn.dataset.bound = '1'; refreshBtn.addEventListener('click', loadApprovals); }
+
+    // Create button
     var createBtn = document.getElementById('approvalsCreateBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', function () {
         var modal = document.getElementById('approvalsCreateModal');
-        if (modal && window.bootstrap) {
-          window.bootstrap.Modal.getOrCreateInstance(modal).show();
-        }
+        if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
       });
     }
 
+    // Entity autocomplete
+    var entitySearch = document.getElementById('approvalsEntitySearch');
+    var entityDropdown = document.getElementById('approvalsEntityResults');
+    var entityHidden = document.querySelector('#approvalsCreateForm [name="entity_public_id"]');
+    if (entitySearch && entitySearch.dataset.bound !== '1') {
+      entitySearch.dataset.bound = '1';
+      entitySearch.addEventListener('input', async function () {
+        var query = String(entitySearch.value || '').trim();
+        if (query.length < 2) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
+        try {
+          var entityType = String((document.getElementById('approvalsEntityType') || {}).value || 'task').trim();
+          var endpoint = entityType === 'project' ? 'api/v1/projects' : 'api/v1/tasks';
+          var envelope = await request(endpoint, { query: { limit: 20, search: query }, silent: true });
+          var items = mapItems(envelope);
+          if (!items.length) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
+          entityDropdown.innerHTML = items.map(function (item) {
+            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(item.title || '') + '">'
+              + '<strong>' + safeText(item.title || item.public_id || '') + '</strong>'
+              + '<span class="text-muted ms-2">' + (item.project_title ? safeText(item.project_title) : (item.public_id || '')) + '</span>'
+              + '</div>';
+          }).join('');
+          entityDropdown.classList.remove('d-none');
+        } catch (_) {}
+      });
+      if (entityDropdown) {
+        entityDropdown.addEventListener('click', function (event) {
+          var item = event.target.closest('[data-entity-id]');
+          if (!item) return;
+          var id = String(item.getAttribute('data-entity-id') || '').trim();
+          var title = String(item.getAttribute('data-entity-title') || '').trim();
+          entitySearch.value = title;
+          if (entityHidden) entityHidden.value = id;
+          entityDropdown.classList.add('d-none');
+        });
+      }
+    }
+
+    // Entity type change resets search
+    var entityTypeSelect = document.getElementById('approvalsEntityType');
+    if (entityTypeSelect) {
+      entityTypeSelect.addEventListener('change', function () {
+        if (entitySearch) entitySearch.value = '';
+        if (entityHidden) entityHidden.value = '';
+        if (entityDropdown) entityDropdown.classList.add('d-none');
+      });
+    }
+
+    // Create form submission
     var approvalsForm = document.getElementById('approvalsCreateForm');
     if (approvalsForm && approvalsForm.dataset.bound !== '1') {
       approvalsForm.dataset.bound = '1';
       approvalsForm.addEventListener('submit', async function (event) {
         event.preventDefault();
-        var data = {
-          entity_type: String(approvalsForm.querySelector('[name="entity_type"]').value || '').trim(),
-          entity_public_id: String(approvalsForm.querySelector('[name="entity_public_id"]').value || '').trim(),
-          reviewer_public_ids: [],
-          comment: String(approvalsForm.querySelector('[name="comment"]').value || '').trim()
-        };
-        var reviewersVal = String(approvalsForm.querySelector('[name="reviewer_public_ids"]').value || '').trim();
-        if (reviewersVal) {
-          data.reviewer_public_ids = reviewersVal.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var entityPublicId = String((entityHidden || {}).value || approvalsForm.querySelector('[name="entity_public_id"]')?.value || '').trim();
+        var entityType = String(approvalsForm.querySelector('[name="entity_type"]').value || '').trim();
+        var reviewerSelect = document.getElementById('approvalsReviewersSelect');
+        var selectedReviewers = [];
+        if (reviewerSelect) {
+          Array.prototype.forEach.call(reviewerSelect.selectedOptions, function (opt) { if (opt.value) selectedReviewers.push(opt.value); });
         }
-        if (!data.entity_type || !data.entity_public_id || !data.reviewer_public_ids.length) {
-          notify('Заполните обязательные поля', 'warning');
+        if (!entityType || !entityPublicId || !selectedReviewers.length) {
+          notify('Заполните все обязательные поля', 'warning');
           return;
         }
+        var data = {
+          entity_type: entityType,
+          entity_public_id: entityPublicId,
+          reviewer_public_ids: selectedReviewers,
+          comment: String(approvalsForm.querySelector('[name="comment"]').value || '').trim()
+        };
         try {
           await request('api/v1/approvals', { method: 'POST', body: data });
           notify('Запрос на согласование создан');
           var modal = document.getElementById('approvalsCreateModal');
-          if (modal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
-          }
+          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).hide(); }
           approvalsForm.reset();
+          if (entitySearch) entitySearch.value = '';
+          if (entityHidden) entityHidden.value = '';
+          if (entityDropdown) entityDropdown.classList.add('d-none');
           await loadApprovals();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
@@ -22557,48 +22723,7 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    var listBody = document.getElementById('approvalsListBody');
-    if (listBody && listBody.dataset.bound !== '1') {
-      listBody.dataset.bound = '1';
-      listBody.addEventListener('click', async function (event) {
-        var approveBtn = event.target.closest('[data-approval-approve]');
-        if (approveBtn) {
-          var approvalId = String(approveBtn.getAttribute('data-approval-approve') || '').trim();
-          if (!approvalId) return;
-          if (!window.confirm('Одобрить запрос?')) return;
-          try {
-            await request('api/v1/approvals/' + encodeURIComponent(approvalId) + '/approve', { method: 'POST' });
-            notify('Запрос одобрен');
-            await loadApprovals();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось одобрить запрос');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
-          }
-          return;
-        }
-
-        var rejectBtn = event.target.closest('[data-approval-reject]');
-        if (rejectBtn) {
-          var approvalId = String(rejectBtn.getAttribute('data-approval-reject') || '').trim();
-          if (!approvalId) return;
-          var reason = window.prompt('Причина отклонения (необязательно)', '');
-          if (reason === null) return;
-          try {
-            await request('api/v1/approvals/' + encodeURIComponent(approvalId) + '/reject', {
-              method: 'POST',
-              body: { reason: String(reason || '').trim() }
-            });
-            notify('Запрос отклонен');
-            await loadApprovals();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось отклонить запрос');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
-          }
-          return;
-        }
-      });
-    }
-
+    await loadUsers();
     await loadApprovals();
   }
 
