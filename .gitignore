@@ -3,6 +3,7 @@
 
 # Allow only these root directories
 !/api/
+!/docs/
 !/modules/
 !/web/
 
@@ -19,6 +20,11 @@
 !/SUPPORT.md
 
 !/.gitignore
+
+# Public documentation
+/docs/*
+!/docs/maintainer/
+!/docs/maintainer/**
 
 
 # Secrets, credentials, private keys — never upload
