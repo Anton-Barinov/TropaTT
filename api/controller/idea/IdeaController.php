@@ -3778,7 +3778,7 @@ PROMPT;
      * Clean AI response: strip markdown fences, extract first {…} block, decode.
      * @return array{ok:bool,data:?array,error?:string}
      */
-    private function extractAiJson(string $rawText): array
+     private function extractAiJson(string $rawText): array
     {
         $trimmed = trim($rawText);
         if ($trimmed === '') {
@@ -3791,10 +3791,8 @@ PROMPT;
 
         // First pass: sanitize { } inside JSON strings to avoid brace-count pollution
         $sanitized = '';
-        $inString = false;
-        $prevBackslash = false;
-        $len = strlen($trimmed);
-        for ($i = 0; $i < $len; $i++) {
+        $inString = false; $prevBackslash = false;
+        for ($i = 0; $i < strlen($trimmed); $i++) {
             $ch = $trimmed[$i];
             if ($inString) {
                 if ($ch === '\\' && !$prevBackslash) { $sanitized .= $ch; $prevBackslash = true; continue; }
@@ -3808,7 +3806,7 @@ PROMPT;
             }
         }
 
-        // Second pass: count braces on sanitized text from first { to find match or determine imbalance
+        // Second pass: count braces on sanitized text from first { to find match or imbalanc
         $depth = 0; $foundEnd = -1;
         for ($i = $start; $i < strlen($sanitized); $i++) {
             $ch = $sanitized[$i];
@@ -3820,44 +3818,45 @@ PROMPT;
         if ($foundEnd !== -1) {
             $jsonBlock = substr($trimmed, $start, $foundEnd - $start + 1);
         } else {
-            // Unbalanced — extract from first { to last }, then balance
             $lastBrace = strrpos($trimmed, '}');
             if ($lastBrace !== false && $lastBrace > $start) {
                 $jsonBlock = substr($trimmed, $start, $lastBrace - $start + 1);
             } else {
                 $jsonBlock = substr($trimmed, $start);
             }
-            // Append missing closing braces to balance if needed
             if ($depth > 0) {
                 $jsonBlock .= str_repeat('}', $depth);
             }
         }
 
-        // Try to parse
+        // Try direct parse
         $decoded = @json_decode($jsonBlock, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
 
-        // Sanitize invalid escape sequences inside strings before retry
+        // Full sanitization: control chars + invalid escape sequences
+        $validEscapes = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'];
         $cleanJson = '';
         $inString = false;
-        $prevBackslash = false;
-        $validEscapes = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'];
         for ($i = 0; $i < strlen($jsonBlock); $i++) {
             $ch = $jsonBlock[$i];
             if ($inString) {
-                if ($prevBackslash) {
-                    if (!in_array($ch, $validEscapes, true)) {
-                        $cleanJson .= '\\' . $ch; // Fix invalid escape: \x → \\x
+                if ($ch === '\\') {
+                    // Peek at next character
+                    $next = $i + 1 < strlen($jsonBlock) ? $jsonBlock[$i + 1] : null;
+                    if ($next !== null && !in_array($next, $validEscapes, true)) {
+                        // Invalid escape \x → produce \\x (escaped backslash + literal x)
+                        $cleanJson .= '\\\\' . $next;
+                        $i++; // skip next char
                     } else {
-                        $cleanJson .= $ch; // Valid escape: keep as-is
+                        $cleanJson .= '\\';
                     }
-                    $prevBackslash = false;
                     continue;
                 }
-                if ($ch === '\\') { $cleanJson .= $ch; $prevBackslash = true; continue; }
                 if ($ch === '"') { $inString = false; $cleanJson .= $ch; continue; }
+                $o = ord($ch);
+                if ($o < 32 && $o !== 9 && $o !== 10 && $o !== 13) continue;
                 $cleanJson .= $ch;
             } else {
                 if ($ch === '"') { $inString = true; $cleanJson .= $ch; continue; }
@@ -3869,8 +3868,8 @@ PROMPT;
             return ['ok' => true, 'data' => $decoded];
         }
 
-        // Try progressive } truncation (for concatenated objects)
-        $repaired = $this->repairJsonString($jsonBlock);
+        // Final fallback: progressive } truncation
+        $repaired = $this->repairJsonString($cleanJson);
         $decoded = @json_decode($repaired, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
