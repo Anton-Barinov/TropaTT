@@ -1901,7 +1901,11 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
                 ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
-                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+                // Save fallback record instead of returning error
+                $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => 'AI не смог завершить анализ рисков. Попробуйте другой провайдер AI для более точных результатов.', 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
+                $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+                return $this->success('RISK_FALLBACK', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
             }
             $data = $parsed['data'];
 
@@ -1992,7 +1996,9 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
                 ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+                $row = ['pitfalls_json' => '[]', 'overall_summary' => 'AI не смог завершить анализ.', 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row);
+                return $this->success('PITFALLS_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
 
@@ -2086,7 +2092,9 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
                 ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+                $row = ['plan_json' => '{}', 'summary' => 'AI не смог завершить план.', 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
+                return $this->success('PLAN_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
 
@@ -2309,7 +2317,9 @@ PROMPT;
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
                 ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+                $row = ['tasks_json' => '{}', 'summary' => 'AI не смог сгенерировать задачи.', 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row);
+                return $this->success('TASKS_FALLBACK', 'OK', $row);
             }
             $data = $parsed['data'];
 
