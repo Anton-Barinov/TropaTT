@@ -3758,6 +3758,9 @@ PROMPT;
             return ['ok' => true, 'data' => $decoded];
         }
 
+        // Log the raw text failure for debugging
+        ai_diag_log("[AI_JSON_PARSE_ERR] start=$start end=$end extracted_len=" . strlen($extracted) . " json_err=" . json_last_error_msg() . " last_500=" . substr($extracted, -500));
+
         // Repair common DeepSeek JSON issues: escape unescaped { } inside strings,
         // remove trailing commas, replace smart quotes, etc.
         $repaired = $this->repairJsonString($extracted);
