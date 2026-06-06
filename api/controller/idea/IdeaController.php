@@ -3839,6 +3839,36 @@ PROMPT;
             return ['ok' => true, 'data' => $decoded];
         }
 
+        // Sanitize invalid escape sequences inside strings before retry
+        $cleanJson = '';
+        $inString = false;
+        $prevBackslash = false;
+        $validEscapes = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'];
+        for ($i = 0; $i < strlen($jsonBlock); $i++) {
+            $ch = $jsonBlock[$i];
+            if ($inString) {
+                if ($prevBackslash) {
+                    if (!in_array($ch, $validEscapes, true)) {
+                        $cleanJson .= '\\' . $ch; // Fix invalid escape: \x → \\x
+                    } else {
+                        $cleanJson .= $ch; // Valid escape: keep as-is
+                    }
+                    $prevBackslash = false;
+                    continue;
+                }
+                if ($ch === '\\') { $cleanJson .= $ch; $prevBackslash = true; continue; }
+                if ($ch === '"') { $inString = false; $cleanJson .= $ch; continue; }
+                $cleanJson .= $ch;
+            } else {
+                if ($ch === '"') { $inString = true; $cleanJson .= $ch; continue; }
+                $cleanJson .= $ch;
+            }
+        }
+        $decoded = @json_decode($cleanJson, true);
+        if (is_array($decoded)) {
+            return ['ok' => true, 'data' => $decoded];
+        }
+
         // Try progressive } truncation (for concatenated objects)
         $repaired = $this->repairJsonString($jsonBlock);
         $decoded = @json_decode($repaired, true);
