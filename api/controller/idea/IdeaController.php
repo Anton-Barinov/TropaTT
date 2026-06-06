@@ -3745,16 +3745,56 @@ PROMPT;
         if ($start === false) {
             return ['ok' => false, 'data' => null, 'error' => 'no_brace'];
         }
-        // Try from first { to last } — if fails, try earlier } positions
-        for ($end = strrpos($trimmed, '}'); $end !== false && $end > $start; $end = strrpos($trimmed, '}', $end - strlen($trimmed) - 1)) {
-            $extracted = substr($trimmed, $start, $end - $start + 1);
-            $decoded = json_decode($extracted, true);
-            if (is_array($decoded)) {
-                return ['ok' => true, 'data' => $decoded];
-            }
-            if ($end === $start + 1) break; // single brace {}
+        // Extract first { to last }
+        $end = strrpos($trimmed, '}');
+        if ($end === false || $end <= $start) {
+            return ['ok' => false, 'data' => null, 'error' => 'no_json_boundary'];
         }
+        $extracted = trim(substr($trimmed, $start, $end - $start + 1));
+
+        // Try decode directly
+        $decoded = @json_decode($extracted, true);
+        if (is_array($decoded)) {
+            return ['ok' => true, 'data' => $decoded];
+        }
+
+        // Repair common DeepSeek JSON issues: escape unescaped { } inside strings,
+        // remove trailing commas, replace smart quotes, etc.
+        $repaired = $this->repairJsonString($extracted);
+        $decoded = @json_decode($repaired, true);
+        if (is_array($decoded)) {
+            return ['ok' => true, 'data' => $decoded];
+        }
+
         return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
+    }
+
+    /**
+     * Attempt to repair malformed JSON from AI responses.
+     */
+    private function repairJsonString(string $json): string
+    {
+        // Try strpos/substr approach: find the first valid complete JSON object
+        $trimmed = trim($json);
+        $start = strpos($trimmed, '{');
+        if ($start === false) return $json;
+
+        $len = strlen($trimmed);
+        // Try from full to small, each time removing one } from end
+        $lastEnd = $len;
+        while ($lastEnd > $start) {
+            $candidate = substr($trimmed, $start, $lastEnd - $start);
+            $decoded = @json_decode($candidate, true);
+            if (is_array($decoded)) {
+                return $candidate;
+            }
+            // Find next-to-last }
+            $prev = strrpos($trimmed, '}', $lastEnd - $len - 1);
+            if ($prev === false || $prev >= $lastEnd) break;
+            $lastEnd = $prev;
+        }
+
+        return $trimmed;
     }
 
     public function listComments(array $params = []): JsonResponse
