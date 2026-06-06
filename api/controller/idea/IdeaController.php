@@ -3875,7 +3875,86 @@ PROMPT;
             return ['ok' => true, 'data' => $decoded];
         }
 
+        // Final fallback: regex-based minimum viable data extraction
+        $broken = $this->extractBrokenJson($cleanJson);
+        if ($broken !== null) {
+            return ['ok' => true, 'data' => $broken];
+        }
+
         return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
+    }
+
+    /**
+     * Regex-based extraction of minimum viable data from broken JSON.
+     * Used as LAST RESORT when json_decode fails on all repair attempts.
+     */
+    private function extractBrokenJson(string $text): ?array
+    {
+        $data = [];
+        // Try to extract simple key-value pairs: "key":"value" or "key":"some value"
+        if (preg_match('/"risk_report"\s*:\s*\{/i', $text)) {
+            $data['risk_report'] = [];
+            if (preg_match('/"summary"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $m))
+                $data['risk_report']['summary'] = $m[1];
+            if (preg_match('/"overall_risk_score"\s*:\s*(\d+)/i', $text, $m))
+                $data['risk_report']['overall_risk_score'] = (int)$m[1];
+            if (preg_match('/"overall_risk_level"\s*:\s*"(\w+)"/i', $text, $m))
+                $data['risk_report']['overall_risk_level'] = $m[1];
+            if (preg_match('/"confidence_score"\s*:\s*([\d.]+)/i', $text, $m))
+                $data['risk_report']['confidence_score'] = (float)$m[1];
+            // Try to extract individual risks via simpler patterns
+            $riskBlocks = [];
+            preg_match_all('/"risks"\s*:\s*\[(.*?)\]/s', $text, $riskMatches);
+            if (!empty($riskMatches[1][0])) {
+                $chunks = explode('"title"', $riskMatches[1][0]);
+                foreach (array_slice($chunks, 1) as $chunk) {
+                    $risk = [];
+                    if (preg_match('/"((?:[^"\\\\]|\\\\.)*)"/s', $chunk, $tm)) $risk['title'] = $tm[1];
+                    if (preg_match('/"category"\s*:\s*"(\w+)"/i', $chunk, $cm)) $risk['category'] = $cm[1];
+                    $riskBlocks[] = $risk;
+                }
+                $data['risk_report']['risks'] = $riskBlocks;
+            }
+            return $data;
+        }
+        if (preg_match('/"pitfalls"\s*:\s*\[/i', $text)) {
+            $data['pitfalls'] = [];
+            $pitfallChunks = explode('"title"', $text);
+            foreach (array_slice($pitfallChunks, 1) as $chunk) {
+                $p = [];
+                if (preg_match('/"((?:[^"\\\\]|\\\\.)*)"/s', $chunk, $tm)) $p['title'] = $tm[1];
+                if (preg_match('/"description"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $chunk, $dm)) $p['description'] = $dm[1];
+                if (preg_match('/"category"\s*:\s*"(\w+)"/i', $chunk, $cm)) $p['category'] = $cm[1];
+                $data['pitfalls'][] = $p;
+            }
+            if (preg_match('/"overall_summary"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $sm)) $data['overall_summary'] = $sm[1];
+            if (preg_match('/"overall_hidden_complexity"\s*:\s*"(\w+)"/i', $text, $cm)) $data['overall_hidden_complexity'] = $cm[1];
+            return $data;
+        }
+        if (preg_match('/"implementation_plan"\s*:\s*\{/i', $text)) {
+            $plan = [];
+            if (preg_match('/"summary"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $m)) $plan['summary'] = $m[1];
+            if (preg_match('/"recommended_next_action"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $m)) $plan['recommended_next_action'] = $m[1];
+            $data['implementation_plan'] = $plan;
+            return $data;
+        }
+        if (preg_match('/"projects"\s*:\s*\[/i', $text) || preg_match('/"tasks"\s*:\s*\[/i', $text)) {
+            if (preg_match('/"summary"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $m)) $data['summary'] = $m[1];
+            $taskChunks = explode('"title"', $text);
+            $tasks = [];
+            foreach (array_slice($taskChunks, 1) as $chunk) {
+                $t = [];
+                if (preg_match('/"((?:[^"\\\\]|\\\\.)*)"/s', $chunk, $tm)) $t['title'] = $tm[1];
+                if (preg_match('/"description"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $chunk, $dm)) $t['description'] = $dm[1];
+                if (preg_match('/"priority"\s*:\s*"(\w+)"/i', $chunk, $pm)) $t['priority'] = $pm[1];
+                $tasks[] = $t;
+            }
+            if ($tasks) {
+                $data['projects'] = [['id' => 'p1', 'title' => 'План', 'description' => '', 'tasks' => $tasks]];
+            }
+            return $data;
+        }
+        return null;
     }
 
     /**
