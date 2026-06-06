@@ -1626,38 +1626,66 @@ PROMPT;
 - Пересмотри early_risks, constraints, assumptions.
 - Определи новый next_step.
 
-Правила те же: не делай финальный анализ, не советуй.
+Правила:
+1. Не делай финальный анализ, не советуй.
+2. Используй только предоставленные данные.
+3. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
+4. Если нужны скобки в тексте — используй только ( ) или [ ].
+5. Верни только JSON, без markdown и без текста до или после JSON.
 
-Верни ТОЛЬКО валидный JSON в том же формате что и исходная карточка.
+JSON:
+{"idea_profile":{"summary":"краткое резюме","idea_type":"business","specificity_level":"medium","known_facts":[],"user_unknowns":[],"missing_facts":[],"assumptions":[],"constraints":[],"early_risks":[],"key_decision_factors":[],"completeness":{"overall":0.5,"goal":0.5,"product_or_service":0.5,"audience":0.5,"region":0.5,"finance":0.5,"timeline":0.5,"operations":0.5,"team":0.5,"market":0.5,"legal":0.5,"risks":0.5},"confidence_score":0.5},"next_step":{"action":"start_analysis","reason":"почему","recommended_missing_topics":[],"can_continue_without_more_questions":true}}
 PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2;
             $rawText = '';
-            $data = null;
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
                     '__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]",
                 ], $this->user()['user'] ?? []);
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
-                if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break;
-                if ($retry < $maxRetries) usleep(500000);
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['idea_profile'])) break;
+                if ($parsed['ok'] && empty($parsed['data']['idea_profile']) && !empty($parsed['data']['summary'])) {
+                    $parsed['data'] = ['idea_profile' => $parsed['data']];
+                    break;
+                }
+                ai_diag_log("[REFINED_CARD_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($retry < $maxRetries) usleep(1000000);
             }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'refined_card', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data)) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
             // Accept unwrapped JSON (AI may return flat profile without idea_profile wrapper)
-            if (empty($data['idea_profile']) && !empty($data['summary'])) {
+            if (is_array($data) && empty($data['idea_profile']) && !empty($data['summary'])) {
                 $data = ['idea_profile' => $data];
             }
-            if (empty($data['idea_profile'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            if (!is_array($data) || empty($data['idea_profile'])) {
+                ai_diag_log("[REFINED_CARD_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
+                $data = $this->buildFallbackUnderstandingCardData($idea, $plainDesc, $qaList, (string)($parsed['error'] ?? 'invalid_ai_json'));
+                if (is_array($origProfile) && !empty($origProfile)) {
+                    $fallbackProfile = $data['idea_profile'];
+                    foreach (['known_facts', 'user_unknowns', 'missing_facts', 'assumptions', 'constraints', 'early_risks', 'key_decision_factors'] as $field) {
+                        $fallbackProfile[$field] = array_values(array_unique(array_filter(array_merge(
+                            is_array($origProfile[$field] ?? null) ? (array)$origProfile[$field] : [],
+                            is_array($fallbackProfile[$field] ?? null) ? (array)$fallbackProfile[$field] : []
+                        ))));
+                    }
+                    $fallbackProfile['summary'] = (string)($fallbackProfile['summary'] ?: ($origProfile['summary'] ?? ''));
+                    $fallbackProfile['idea_type'] = (string)($fallbackProfile['idea_type'] ?: ($origProfile['idea_type'] ?? 'other'));
+                    $fallbackProfile['specificity_level'] = (string)($fallbackProfile['specificity_level'] ?: ($origProfile['specificity_level'] ?? 'low'));
+                    $fallbackProfile['_fallback_source'] = 'refined_card';
+                    $data['idea_profile'] = $fallbackProfile;
+                }
+            }
 
             $profile = $data['idea_profile'] ?? [];
             $nextStep = $data['next_step'] ?? [];
@@ -1752,32 +1780,38 @@ Rate idea potential (0-100). No business plans, no invented facts. Separate fact
 
 Select 5-8 criteria adapted to the idea type (category/idea_type). Assign each a weight (sum=100) and score (0-10). Final potential = sum(weight × score / 10).
 
-Return ONLY this JSON structure:
-{
-"potential":{"potential_score":0,"potential_level":"<very_low|low|medium|high|very_high>","calculation_type":"<preliminary|normal>","verdict":"","summary":"","confidence_score":0,"completeness_score":0},
-"criteria":[{"criterion_id":"key","title":"","weight":0,"score":0,"weighted_score":0,"reason":"","positive_factors":[],"negative_factors":[],"missing_data":[]}],
-"strengths":[],"weaknesses":[],"growth_factors":[],"risk_factors":[],"missing_data":[],"assumptions":[],"what_can_improve_score":[],"what_can_reduce_score":[],
-"recommended_next_step":{"action":"<ask_more_questions|finalize>","reason":""}
-}
+Rules:
+1. Do not use { or } inside string values.
+2. Use ( ) or [ ] when brackets are needed in text.
+3. Return only JSON, no markdown and no text before or after JSON.
+
+JSON:
+{"potential":{"potential_score":0,"potential_level":"medium","calculation_type":"preliminary","verdict":"","summary":"","confidence_score":0.5,"completeness_score":0.5},"criteria":[{"criterion_id":"key","title":"","weight":100,"score":5,"weighted_score":50,"reason":"","positive_factors":[],"negative_factors":[],"missing_data":[]}],"strengths":[],"weaknesses":[],"growth_factors":[],"risk_factors":[],"missing_data":[],"assumptions":[],"what_can_improve_score":[],"what_can_reduce_score":[],"recommended_next_step":{"action":"finalize","reason":""}}
 PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $maxRetries = 1;
+            $maxRetries = 2;
             $rawText = '';
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
-                if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break;
-                if ($retry < $maxRetries) usleep(500000);
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['potential'])) break;
+                ai_diag_log("[POTENTIAL_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($retry < $maxRetries) usleep(1000000);
             }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'potential_score', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['potential'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
+            if (!is_array($data) || empty($data['potential'])) {
+                ai_diag_log("[POTENTIAL_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
+                $data = $this->buildFallbackPotentialData($idea, $ucData, $qaList, (string)($parsed['error'] ?? 'invalid_ai_json'));
+            }
 
             $pot = $data['potential'] ?? [];
             $criteria = $data['criteria'] ?? [];
@@ -2183,20 +2217,35 @@ PROMPT;
 
 Статус: proceed / proceed_with_validation / refine_first / collect_more_data / postpone / reject_current_form.
 
-Верни ТОЛЬКО JSON:
+Правила:
+1. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
+2. Если нужны скобки в тексте — используй только ( ) или [ ].
+3. Верни только JSON, без markdown и без текста до или после JSON.
+
+JSON:
 {"final_recommendation":{"status":"refine_first","status_label":"","recommendation_score":0,"potential_score":0,"feasibility_score":0,"risk_score":0,"data_completeness_score":0,"plan_quality_score":0,"blocker_score":0,"confidence_score":0,"short_verdict":"","detailed_verdict":"","main_reasons":[],"positive_arguments":[],"negative_arguments":[],"critical_blockers":[],"conditions_to_proceed":[],"what_to_validate_first":[],"next_best_actions":[],"what_can_go_wrong":[],"missing_data_that_affects_recommendation":[],"assumptions_used":[],"user_friendly_summary":""}}
 PROMPT;
 
         try {
-            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 1; $rawText = '';
-            for ($retry = 0; $retry <= $maxRetries; $retry++) { $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []); $rawText = $result['result']['preview']['summary'] ?? ''; if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break; if ($retry < $maxRetries) usleep(500000); }
+            $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
+            for ($retry = 0; $retry <= $maxRetries; $retry++) {
+                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $rawText = $result['result']['preview']['summary'] ?? '';
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['final_recommendation'])) break;
+                ai_diag_log("[FINAL_RECOMMENDATION_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($retry < $maxRetries) usleep(1000000);
+            }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'final_recommendation', :req, :res, NOW())")->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) $data = json_decode($m[0], true);
-            if (!is_array($data) || empty($data['final_recommendation'])) return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ.', 502);
+            $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
+            if (!is_array($data) || empty($data['final_recommendation'])) {
+                ai_diag_log("[FINAL_RECOMMENDATION_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
+                $data = $this->buildFallbackFinalRecommendationData($blocks, (string)($parsed['error'] ?? 'invalid_ai_json'));
+            }
 
             $fr = $data['final_recommendation'] ?? [];
             $scores = fn($k) => max(0, min(100, (float)($fr[$k] ?? 0)));
@@ -3760,19 +3809,20 @@ PROMPT;
         $missingFacts = [];
         foreach ($qaList as $item) {
             $question = trim((string)($item['question'] ?? ''));
-            $answer = is_array($item['answer'] ?? null) ? (array)$item['answer'] : null;
+            $answerValue = $item['answer'] ?? null;
+            $answer = is_array($answerValue) ? (array)$answerValue : null;
             if ($question === '') continue;
-            if (!$answer) {
+            if (!$answer && trim((string)$answerValue) === '') {
                 $missingFacts[] = $question;
                 continue;
             }
-            $selected = trim((string)($answer['selected_option'] ?? ''));
-            $custom = trim((string)($answer['custom_answer'] ?? ''));
-            if (!empty($answer['is_unknown'])) {
+            $selected = $answer ? trim((string)($answer['selected_option'] ?? '')) : '';
+            $custom = $answer ? trim((string)($answer['custom_answer'] ?? '')) : '';
+            if ($answer && !empty($answer['is_unknown'])) {
                 $userUnknowns[] = $question;
                 continue;
             }
-            $answerText = $custom !== '' ? $custom : $selected;
+            $answerText = $custom !== '' ? $custom : ($selected !== '' ? $selected : trim((string)$answerValue));
             if ($answerText !== '') {
                 $knownFacts[] = $question . ': ' . $answerText;
             } else {
@@ -3872,6 +3922,102 @@ PROMPT;
         if (str_contains($text, 'мероприят') || str_contains($text, 'ивент')) return 'event';
         if (str_contains($text, 'бизнес') || str_contains($text, 'внедрение') || str_contains($text, 'crm') || str_contains($text, '1с')) return 'business';
         return 'other';
+    }
+
+    /**
+     * @param array<string,mixed> $idea
+     * @param array<string,mixed> $understandingCard
+     * @param array<int,array<string,mixed>> $qaList
+     * @return array<string,mixed>
+     */
+    private function buildFallbackPotentialData(array $idea, array $understandingCard, array $qaList, string $reason): array
+    {
+        $completeness = max(0.0, min(1.0, (float)($understandingCard['completeness'] ?? 0)));
+        $confidence = max(0.15, min(0.55, (float)($understandingCard['confidence'] ?? 0.25)));
+        $answeredCount = count(array_filter($qaList, static fn($item) => trim((string)($item['answer'] ?? '')) !== ''));
+        $baseScore = 35 + (int)round($completeness * 25) + min(15, $answeredCount * 3);
+        $score = max(20, min(70, $baseScore));
+        $level = $score <= 20 ? 'very_low' : ($score <= 40 ? 'low' : ($score <= 60 ? 'medium' : 'high'));
+        $title = trim((string)($idea['title'] ?? 'идея'));
+
+        return [
+            'potential' => [
+                'potential_score' => $score,
+                'potential_level' => $level,
+                'calculation_type' => 'preliminary',
+                'verdict' => 'Предварительная оценка: идею можно анализировать дальше, но результат требует проверки из-за неполного ответа AI-провайдера.',
+                'summary' => 'Потенциал рассчитан по доступной карточке понимания идеи и ответам пользователя. AI-провайдер вернул некорректный JSON, поэтому оценка не является финальной.',
+                'confidence_score' => $confidence,
+                'completeness_score' => $completeness,
+                '_fallback' => true,
+                '_fallback_reason' => $reason,
+            ],
+            'criteria' => [
+                ['criterion_id' => 'clarity', 'title' => 'Понятность идеи', 'weight' => 25, 'score' => max(2, min(8, (int)round($completeness * 10))), 'weighted_score' => (int)round(25 * $completeness), 'reason' => 'Оценено по полноте карточки понимания.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'business_relevance', 'title' => 'Бизнес-значимость', 'weight' => 25, 'score' => $title !== '' ? 6 : 4, 'weighted_score' => $title !== '' ? 15 : 10, 'reason' => 'Оценено по описанию идеи.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'data_quality', 'title' => 'Качество исходных данных', 'weight' => 25, 'score' => min(8, 3 + $answeredCount), 'weighted_score' => min(20, (int)round((3 + $answeredCount) * 2.5)), 'reason' => 'Оценено по количеству ответов.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'implementation_readiness', 'title' => 'Готовность к реализации', 'weight' => 25, 'score' => 5, 'weighted_score' => 13, 'reason' => 'Требуется дальнейшая проверка рисков и плана.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => ['Риски', 'План реализации', 'Ограничения']],
+            ],
+            'strengths' => ['Есть исходное описание и карточка понимания идеи.'],
+            'weaknesses' => ['Оценка предварительная, потому что AI-провайдер не вернул корректный структурированный ответ.'],
+            'growth_factors' => ['Уточнение целей, бюджета, сроков и ответственных повысит качество оценки.'],
+            'risk_factors' => ['Недостаточная структурированность данных может исказить оценку потенциала.'],
+            'missing_data' => ['Финансовые ограничения', 'Критерии успеха', 'Основные риски', 'План внедрения'],
+            'assumptions' => [],
+            'what_can_improve_score' => ['Ответить на недостающие вопросы и повторить расчет.'],
+            'what_can_reduce_score' => ['Критичные риски, неясный бюджет или отсутствие ответственных.'],
+            'recommended_next_step' => ['action' => 'finalize', 'reason' => 'Не блокировать конвейер анализа, но считать оценку предварительной.'],
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $blocks
+     * @return array<string,mixed>
+     */
+    private function buildFallbackFinalRecommendationData(array $blocks, string $reason): array
+    {
+        $potential = is_array($blocks['potential'] ?? null) ? (array)$blocks['potential'] : [];
+        $risks = is_array($blocks['risks'] ?? null) ? (array)$blocks['risks'] : [];
+        $plan = is_array($blocks['implementation_plan'] ?? null) ? (array)$blocks['implementation_plan'] : [];
+        $card = is_array($blocks['understanding_card'] ?? null) ? (array)$blocks['understanding_card'] : [];
+
+        $potentialScore = (float)($potential['score'] ?? 45);
+        $riskScore = (float)($risks['overall_score'] ?? 45);
+        $dataScore = (float)($card['completeness'] ?? 35);
+        $planScore = !empty($plan['exists']) ? 50 : 30;
+        $feasibility = max(20, min(75, 55 - ($riskScore * 0.2) + ($planScore * 0.25)));
+        $blocker = $riskScore >= 75 ? 70 : 35;
+        $confidence = 35;
+
+        return [
+            'final_recommendation' => [
+                'status' => 'refine_first',
+                'status_label' => 'Сначала доработать идею',
+                'recommendation_score' => 45,
+                'potential_score' => max(0, min(100, $potentialScore)),
+                'feasibility_score' => round($feasibility),
+                'risk_score' => max(0, min(100, $riskScore)),
+                'data_completeness_score' => max(0, min(100, $dataScore)),
+                'plan_quality_score' => $planScore,
+                'blocker_score' => $blocker,
+                'confidence_score' => $confidence,
+                'short_verdict' => 'Предварительно: идею стоит доработать и перепроверить анализ.',
+                'detailed_verdict' => 'AI-провайдер вернул некорректный JSON на этапе итоговой рекомендации. CRM сохранила безопасную предварительную рекомендацию по уже рассчитанным блокам, чтобы не блокировать работу пользователя.',
+                'main_reasons' => ['Итог сформирован по доступным блокам анализа.', 'Нужна повторная генерация для полноценной AI-рекомендации.'],
+                'positive_arguments' => [],
+                'negative_arguments' => ['Часть AI-ответа не удалось разобрать как валидный JSON.'],
+                'critical_blockers' => [],
+                'conditions_to_proceed' => ['Проверить недостающие данные', 'Повторить AI-анализ при стабильном ответе провайдера'],
+                'what_to_validate_first' => ['Цель', 'Бюджет', 'Сроки', 'Риски', 'Ответственные'],
+                'next_best_actions' => ['Проверить карточку понимания', 'Уточнить недостающие данные', 'Запустить повторную генерацию итоговой рекомендации'],
+                'what_can_go_wrong' => ['Решение будет принято на неполных данных.'],
+                'missing_data_that_affects_recommendation' => ['Полностью корректный структурированный ответ AI-провайдера'],
+                'assumptions_used' => [],
+                'user_friendly_summary' => 'Система сохранила предварительную рекомендацию, но для финального решения лучше повторить генерацию после проверки данных.',
+                '_fallback' => true,
+                '_fallback_reason' => $reason,
+            ],
+        ];
     }
 
     /**
