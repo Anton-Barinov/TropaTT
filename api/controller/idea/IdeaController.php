@@ -3765,6 +3765,21 @@ PROMPT;
             }
         }
         if ($end === -1) {
+            // Final fallback: use first-{ to last-} range even if braces are unbalanced
+            $last = strrpos($trimmed, '}');
+            if ($last !== false && $last > $start) {
+                $extracted = substr($trimmed, $start, $last - $start + 1);
+                $decoded = @json_decode($extracted, true);
+                if (is_array($decoded)) {
+                    return ['ok' => true, 'data' => $decoded];
+                }
+                // Try progressive truncation
+                $repaired = $this->repairJsonString(substr($trimmed, $start));
+                $decoded = @json_decode($repaired, true);
+                if (is_array($decoded)) {
+                    return ['ok' => true, 'data' => $decoded];
+                }
+            }
             return ['ok' => false, 'data' => null, 'error' => 'no_matching_brace'];
         }
         $extracted = substr($trimmed, $start, $end - $start + 1);
