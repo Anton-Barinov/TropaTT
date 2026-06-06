@@ -3835,6 +3835,12 @@ PROMPT;
             return ['ok' => true, 'data' => $decoded];
         }
 
+        // Regex extraction on original block before escape sanitization
+        $broken = $this->extractBrokenJson($jsonBlock);
+        if ($broken !== null) {
+            return ['ok' => true, 'data' => $broken];
+        }
+
         // Full sanitization: control chars + invalid escape sequences
         $validEscapes = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'];
         $cleanJson = '';
