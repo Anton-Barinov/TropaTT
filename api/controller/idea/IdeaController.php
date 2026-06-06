@@ -3788,29 +3788,64 @@ PROMPT;
         if ($start === false) {
             return ['ok' => false, 'data' => null, 'error' => 'no_brace'];
         }
-        // Sanitize braces inside strings, then find the real JSON boundaries
-        $result = $this->sanitizeJsonBraces($trimmed, $start);
-        if (!$result['ok']) {
-            // Fallback: use first-{ to last-}
-            $last = strrpos($trimmed, '}');
-            if ($last !== false && $last > $start) {
-                $extracted = substr($trimmed, $start, $last - $start + 1);
-                $decoded = @json_decode($extracted, true);
-                if (is_array($decoded)) return ['ok' => true, 'data' => $decoded];
+
+        // First pass: sanitize { } inside JSON strings to avoid brace-count pollution
+        $sanitized = '';
+        $inString = false;
+        $prevBackslash = false;
+        $len = strlen($trimmed);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $trimmed[$i];
+            if ($inString) {
+                if ($ch === '\\' && !$prevBackslash) { $sanitized .= $ch; $prevBackslash = true; continue; }
+                if ($ch === '"' && !$prevBackslash) { $inString = false; $sanitized .= $ch; $prevBackslash = false; continue; }
+                if ($ch === '{') { $sanitized .= "\xE2\x80\xA2"; $prevBackslash = false; continue; }
+                if ($ch === '}') { $sanitized .= "\xE2\x80\xA2"; $prevBackslash = false; continue; }
+                $sanitized .= $ch; $prevBackslash = false;
+            } else {
+                if ($ch === '"') { $inString = true; $sanitized .= $ch; continue; }
+                $sanitized .= $ch;
             }
-            return ['ok' => false, 'data' => null, 'error' => $result['error']];
         }
-        $extracted = $result['text'];
-        $decoded = @json_decode($extracted, true);
+
+        // Second pass: count braces on sanitized text from first { to find match or determine imbalance
+        $depth = 0; $foundEnd = -1;
+        for ($i = $start; $i < strlen($sanitized); $i++) {
+            $ch = $sanitized[$i];
+            if ($ch === '{') $depth++;
+            elseif ($ch === '}') { $depth--; if ($depth === 0) { $foundEnd = $i; break; } }
+        }
+
+        // Extract JSON block
+        if ($foundEnd !== -1) {
+            $jsonBlock = substr($trimmed, $start, $foundEnd - $start + 1);
+        } else {
+            // Unbalanced — extract from first { to last }, then balance
+            $lastBrace = strrpos($trimmed, '}');
+            if ($lastBrace !== false && $lastBrace > $start) {
+                $jsonBlock = substr($trimmed, $start, $lastBrace - $start + 1);
+            } else {
+                $jsonBlock = substr($trimmed, $start);
+            }
+            // Append missing closing braces to balance if needed
+            if ($depth > 0) {
+                $jsonBlock .= str_repeat('}', $depth);
+            }
+        }
+
+        // Try to parse
+        $decoded = @json_decode($jsonBlock, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
-        // Repair fallback: progressive } truncation
-        $repaired = $this->repairJsonString($extracted);
+
+        // Try progressive } truncation (for concatenated objects)
+        $repaired = $this->repairJsonString($jsonBlock);
         $decoded = @json_decode($repaired, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
+
         return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
     }
 
@@ -3819,26 +3854,41 @@ PROMPT;
      */
     private function repairJsonString(string $json): string
     {
-        // Try strpos/substr approach: find the first valid complete JSON object
         $trimmed = trim($json);
         $start = strpos($trimmed, '{');
         if ($start === false) return $json;
 
+        // Count braces outside strings
+        $openCnt = 0; $closeCnt = 0; $inString = false; $prevBackslash = false;
+        for ($i = 0; $i < strlen($trimmed); $i++) {
+            $ch = $trimmed[$i];
+            if ($inString) {
+                if ($ch === '\\' && !$prevBackslash) { $prevBackslash = true; continue; }
+                if ($ch === '"' && !$prevBackslash) { $inString = false; }
+                $prevBackslash = false; continue;
+            }
+            if ($ch === '"') { $inString = true; continue; }
+            if ($ch === '{') $openCnt++;
+            elseif ($ch === '}') $closeCnt++;
+        }
+        // Balance missing braces
+        $diff = $openCnt - $closeCnt;
+        if ($diff > 0) {
+            $balanced = $trimmed . str_repeat('}', $diff);
+            $decoded = @json_decode($balanced, true);
+            if (is_array($decoded)) return $balanced;
+        }
+        // Fallback: progressive } truncation
         $len = strlen($trimmed);
-        // Try from full to small, each time removing one } from end
         $lastEnd = $len;
         while ($lastEnd > $start) {
             $candidate = substr($trimmed, $start, $lastEnd - $start);
             $decoded = @json_decode($candidate, true);
-            if (is_array($decoded)) {
-                return $candidate;
-            }
-            // Find next-to-last }
+            if (is_array($decoded)) return $candidate;
             $prev = strrpos($trimmed, '}', $lastEnd - $len - 1);
             if ($prev === false || $prev >= $lastEnd) break;
             $lastEnd = $prev;
         }
-
         return $trimmed;
     }
 
