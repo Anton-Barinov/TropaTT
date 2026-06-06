@@ -39,6 +39,7 @@ final class MigrationManager
             new NotificationPushQueueRuntimeMigration(),
             new WebhookDeliveriesQueueRuntimeMigration(),
             new CrmEntityConsolidationMigration(),
+            new RecurringProcessorMigration(),
         ];
     }
 

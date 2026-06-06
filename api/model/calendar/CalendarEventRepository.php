@@ -84,6 +84,8 @@ final class CalendarEventRepository
                 'e.description',
                 'e.starts_at',
                 'e.ends_at',
+                'e.project_id',
+                'e.task_id',
                 'e.created_at',
                 'e.updated_at',
                 'p.public_id AS project_public_id',

@@ -69,6 +69,15 @@ final class ReminderRepository
             ->insert($payload);
     }
 
+    public function findByPublicId(string $publicId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('reminders')
+            ->select(['public_id', 'user_id', 'task_id', 'remind_at', 'status', 'created_at'])
+            ->where('public_id', '=', $publicId)
+            ->first();
+    }
+
     public function findByPublicIdForUser(string $publicId, int $userId): ?array
     {
         return (new QueryBuilder($this->pdo))
