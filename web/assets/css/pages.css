@@ -145,6 +145,29 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
+.crm-workflow-action-panel {
+  padding: 14px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.78);
+}
+
+.crm-workflow-action-panel .form-label {
+  margin-bottom: 6px;
+  color: var(--crm-text);
+  font-weight: 650;
+}
+
+.crm-workflow-note {
+  margin: 0;
+}
+
+.crm-muted-cell {
+  color: var(--crm-text-muted);
+  max-width: 320px;
+  white-space: normal;
+}
+
 .crm-rrule-label {
   display: block;
   color: var(--crm-text);
@@ -173,6 +196,59 @@
 @media (max-width: 575.98px) {
   .crm-automation-page .crm-page-head {
     gap: 12px;
+  }
+
+  .crm-automation-page .table-responsive {
+    overflow: visible;
+  }
+
+  .crm-automation-page .crm-automation-table,
+  .crm-automation-page .crm-automation-table tbody,
+  .crm-automation-page .crm-automation-table tr,
+  .crm-automation-page .crm-automation-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .crm-automation-page .crm-automation-table thead {
+    display: none;
+  }
+
+  .crm-automation-page .crm-automation-table tr {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.85);
+  }
+
+  .crm-automation-page .crm-automation-table tr:last-child {
+    border-bottom: 0;
+  }
+
+  .crm-automation-page .crm-automation-table td {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    padding: 6px 0 !important;
+    border: 0;
+    white-space: normal !important;
+  }
+
+  .crm-automation-page .crm-automation-table td::before {
+    content: attr(data-label);
+    color: var(--crm-text-muted);
+    font-size: var(--text-xs);
+    font-weight: 650;
+  }
+
+  .crm-automation-page .crm-automation-table td.crm-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .crm-automation-page .crm-automation-table td.crm-table-actions::before {
+    flex: 0 0 100%;
   }
 
   .crm-table-actions .btn,

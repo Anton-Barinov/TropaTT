@@ -807,6 +807,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             description {$text},
             status_code VARCHAR(64),
             priority_code VARCHAR(64),
+            sla_breached {$bool} DEFAULT 0,
             due_at {$dt} NULL,
             start_at {$dt} NULL,
             end_at {$dt} NULL,

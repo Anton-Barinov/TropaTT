@@ -180,12 +180,49 @@ final class WorkflowRepository
             ->get();
     }
 
+    public function taskIdByPublicId(string $taskPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['id'])
+            ->where('public_id', '=', $taskPublicId)
+            ->whereNull('deleted_at')
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
+    public function userIdByPublicId(string $userPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select(['id'])
+            ->where('public_id', '=', $userPublicId)
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
+    public function projectIdByPublicId(string $projectPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['id'])
+            ->where('public_id', '=', $projectPublicId)
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
     public function updateTaskField(string $taskPublicId, string $field, mixed $value): void
     {
         (new QueryBuilder($this->pdo))
             ->from('tasks')
             ->where('public_id', '=', $taskPublicId)
-            ->update([$field => $value]);
+            ->update([$field => $value, 'updated_at' => gmdate('Y-m-d H:i:s')]);
     }
 
     /** @param array<int,int> $userIds */
@@ -211,30 +248,66 @@ final class WorkflowRepository
     public function createTaskComment(string $taskPublicId, string $text, string $source): void
     {
         $pid = 'cmt_' . bin2hex(random_bytes(8));
+        $taskId = $this->taskIdByPublicId($taskPublicId);
         (new QueryBuilder($this->pdo))->from('comments')->insert([
             'public_id' => $pid,
-            'entity_type' => 'task',
-            'entity_public_id' => $taskPublicId,
+            'task_id' => $taskId,
+            'project_id' => null,
+            'author_user_id' => null,
             'body' => '[' . $source . '] ' . $text,
             'visibility' => 'internal',
             'created_at' => gmdate('Y-m-d H:i:s'),
+            'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
     }
 
-    public function createFollowUpTask(string $title, ?int $assigneeId, ?int $projectId, string $sourceTaskPublicId): void
+    public function createFollowUpTask(string $title, ?int $assigneeId, ?int $projectId, string $sourceTaskPublicId, ?int $creatorUserId): void
     {
-        $pid = 'task_' . bin2hex(random_bytes(8));
+        $pid = 'tsk_' . bin2hex(random_bytes(8));
         $now = gmdate('Y-m-d H:i:s');
         (new QueryBuilder($this->pdo))->from('tasks')->insert([
             'public_id' => $pid,
             'title' => $title,
+            'description' => $sourceTaskPublicId !== '' ? 'Создано правилом автоматизации из задачи ' . $sourceTaskPublicId : '',
             'status_code' => 'new',
             'priority_code' => 'normal',
             'assignee_user_id' => $assigneeId,
             'project_id' => $projectId,
-            'created_by_user_id' => 1,
+            'creator_user_id' => $creatorUserId,
             'created_at' => $now,
             'updated_at' => $now,
+            'row_version' => 1,
+        ]);
+
+        $parentTaskId = $this->taskIdByPublicId($sourceTaskPublicId);
+        $childTaskId = $this->taskIdByPublicId($pid);
+        if ($parentTaskId !== null && $childTaskId !== null) {
+            (new QueryBuilder($this->pdo))->from('task_relations')->insert([
+                'public_id' => 'trl_' . bin2hex(random_bytes(8)),
+                'parent_task_id' => $parentTaskId,
+                'child_task_id' => $childTaskId,
+                'relation_type' => 'subtask',
+                'sort_order' => 10,
+                'legacy_subtask_public_id' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    public function createReminder(?int $userId, ?int $taskId, string $remindAt): void
+    {
+        if ($userId === null || $userId <= 0) {
+            return;
+        }
+
+        (new QueryBuilder($this->pdo))->from('reminders')->insert([
+            'public_id' => 'rmd_' . bin2hex(random_bytes(8)),
+            'user_id' => $userId,
+            'task_id' => $taskId,
+            'remind_at' => $remindAt,
+            'status' => 'pending',
+            'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
     }
 

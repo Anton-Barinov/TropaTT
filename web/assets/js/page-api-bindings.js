@@ -21795,33 +21795,31 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminWorkflowPage() {
-    var workflowEntityLabels = {
-      task: 'Задача',
-      project: 'Проект',
-      reminder: 'Напоминание',
-      calendar_event: 'Событие календаря',
-      user: 'Пользователь'
-    };
     var workflowTriggerLabels = {
       task_created: 'Задача создана',
       task_updated: 'Задача изменена',
-      task_status_changed: 'Статус задачи изменён',
-      comment_added: 'Добавлен комментарий',
-      file_uploaded: 'Загружен файл',
-      deadline_reached: 'Наступил дедлайн',
-      project_archived: 'Проект архивирован',
-      user_created: 'Создан пользователь'
+      task_status_changed: 'Статус задачи изменен'
     };
     var workflowActionLabels = {
-      change_status: 'Изменить статус',
+      change_status: 'Изменить статус задачи',
       assign_user: 'Назначить исполнителя',
       create_comment: 'Добавить комментарий',
       send_notification: 'Отправить уведомление',
-      create_follow_up_task: 'Создать подзадачу',
+      create_follow_up_task: 'Создать follow-up подзадачу',
       call_webhook: 'Вызвать вебхук',
       escalate_sla: 'Эскалировать SLA',
       create_reminder: 'Создать напоминание'
     };
+    var workflowRules = [];
+    var workflowUsers = [];
+    var workflowStatuses = [
+      { code: 'new', title: 'Новая' },
+      { code: 'in_progress', title: 'В работе' },
+      { code: 'blocked', title: 'Заблокирована' },
+      { code: 'done', title: 'Готово' }
+    ];
+    var workflowTasks = [];
+
     function automationEmptyRow(colspan, title, text) {
       return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
         + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
@@ -21831,12 +21829,172 @@ window.CRM.pageApiBindings = (function () {
       var key = String(value || '').trim();
       return map[key] || key || '—';
     }
+    function userLabel(publicId) {
+      var id = String(publicId || '').trim();
+      var found = workflowUsers.find(function (user) { return String(user.public_id || '') === id; });
+      return found ? String(found.full_name || found.login || found.public_id || 'Пользователь') : id;
+    }
+    function statusLabel(code) {
+      var key = String(code || '').trim();
+      var found = workflowStatuses.find(function (status) { return String(status.code || '') === key; });
+      return found ? String(found.title || found.code || key) : key;
+    }
+    function summarizePayload(actionCode, payload) {
+      payload = payload && typeof payload === 'object' ? payload : {};
+      if (actionCode === 'change_status') return payload.status_code ? ('Статус: ' + statusLabel(payload.status_code)) : 'Статус не выбран';
+      if (actionCode === 'assign_user') return payload.assignee_user_public_id ? ('Исполнитель: ' + userLabel(payload.assignee_user_public_id)) : 'Исполнитель не выбран';
+      if (actionCode === 'create_comment') {
+        var commentText = payload.comment_text || payload.comment || payload.message || '';
+        return commentText ? ('Комментарий: ' + String(commentText).slice(0, 60)) : 'Комментарий не задан';
+      }
+      if (actionCode === 'send_notification') {
+        var users = Array.isArray(payload.recipient_user_public_ids) ? payload.recipient_user_public_ids : [];
+        return users.length ? ('Получателей: ' + users.length) : 'Получатели не выбраны';
+      }
+      if (actionCode === 'create_follow_up_task') return payload.task_title ? ('Подзадача: ' + payload.task_title) : 'Название не задано';
+      if (actionCode === 'create_reminder') return payload.remind_at ? ('Напомнить: ' + payload.remind_at) : 'Через 1 час';
+      if (actionCode === 'call_webhook') return payload.url ? String(payload.url) : 'URL не указан';
+      if (actionCode === 'escalate_sla') return 'Отметить нарушение SLA';
+      return '—';
+    }
+    function optionHtml(value, label, selected) {
+      return '<option value="' + safeText(value) + '"' + (selected ? ' selected' : '') + '>' + safeText(label) + '</option>';
+    }
+    function fillSelect(select, items, valueKey, labelFactory, emptyLabel) {
+      if (!select) return;
+      var html = emptyLabel ? optionHtml('', emptyLabel, false) : '';
+      html += items.map(function (item) {
+        var value = String(item[valueKey] || '');
+        var label = typeof labelFactory === 'function' ? labelFactory(item) : String(item[labelFactory] || value);
+        return optionHtml(value, label, false);
+      }).join('');
+      select.innerHTML = html;
+    }
+    async function loadDictionaries() {
+      var results = await Promise.all([
+        tryRequest('api/v1/users', { query: { limit: 500, is_active: 1 }, silent: true }),
+        tryRequest('api/v1/statuses', { query: { limit: 200, scope: 'task' }, silent: true }),
+        tryRequest('api/v1/tasks', { query: { limit: 100 }, silent: true })
+      ]);
+      workflowUsers = results[0] && results[0].success !== false ? mapItems(results[0]) : [];
+      var statuses = results[1] && results[1].success !== false ? mapItems(results[1]) : [];
+      if (statuses.length) {
+        workflowStatuses = statuses
+          .filter(function (status) { return !status.scope || String(status.scope) === 'task'; })
+          .map(function (status) { return { code: String(status.code || ''), title: String(status.title || status.code || '') }; })
+          .filter(function (status) { return status.code; });
+      }
+      workflowTasks = results[2] && results[2].success !== false ? mapItems(results[2]) : [];
+
+      ['workflowAssigneeUser', 'workflowFollowupAssignee', 'workflowReminderUser'].forEach(function (id) {
+        fillSelect(document.getElementById(id), workflowUsers, 'public_id', function (user) {
+          return user.full_name || user.login || user.public_id || 'Пользователь';
+        }, id === 'workflowAssigneeUser' ? 'Выберите исполнителя' : 'Текущий пользователь');
+      });
+      fillSelect(document.getElementById('workflowNotificationUsers'), workflowUsers, 'public_id', function (user) {
+        return user.full_name || user.login || user.public_id || 'Пользователь';
+      }, '');
+      fillSelect(document.getElementById('workflowStatusCode'), workflowStatuses, 'code', function (status) {
+        return status.title || status.code;
+      }, 'Выберите статус');
+      fillSelect(document.getElementById('workflowTestTask'), workflowTasks, 'public_id', function (task) {
+        return task.title || task.public_id || 'Задача';
+      }, 'Выберите задачу');
+    }
+    function setMultiSelectValues(select, values) {
+      if (!select) return;
+      var list = Array.isArray(values) ? values.map(String) : [];
+      Array.prototype.forEach.call(select.options, function (option) {
+        option.selected = list.indexOf(String(option.value)) >= 0;
+      });
+    }
+    function showActionPanel(actionCode) {
+      document.querySelectorAll('[data-action-panel]').forEach(function (panel) {
+        panel.classList.toggle('d-none', String(panel.getAttribute('data-action-panel')) !== String(actionCode || ''));
+      });
+    }
+    function collectWorkflowPayload(form) {
+      var actionCode = String((form.querySelector('[name="action_code"]') || {}).value || '').trim();
+      if (actionCode === 'change_status') {
+        return { status_code: String((form.querySelector('[name="status_code"]') || {}).value || '').trim() };
+      }
+      if (actionCode === 'assign_user') {
+        return { assignee_user_public_id: String((form.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim() };
+      }
+      if (actionCode === 'create_comment') {
+        return { comment_text: String((form.querySelector('[name="comment_text"]') || {}).value || '').trim() };
+      }
+      if (actionCode === 'send_notification') {
+        var selected = Array.prototype.slice.call((form.querySelector('[name="recipient_user_public_ids"]') || {}).selectedOptions || []).map(function (option) { return option.value; }).filter(Boolean);
+        return {
+          recipient_user_public_ids: selected,
+          title: String((form.querySelector('[name="notification_title"]') || {}).value || '').trim() || 'Уведомление автоматизации',
+          body: String((form.querySelector('[name="notification_body"]') || {}).value || '').trim()
+        };
+      }
+      if (actionCode === 'create_follow_up_task') {
+        return {
+          task_title: String((form.querySelector('[name="task_title"]') || {}).value || '').trim(),
+          assignee_user_public_id: String((form.querySelector('[name="followup_assignee_user_public_id"]') || {}).value || '').trim()
+        };
+      }
+      if (actionCode === 'create_reminder') {
+        return {
+          user_public_id: String((form.querySelector('[name="reminder_user_public_id"]') || {}).value || '').trim(),
+          remind_at: String((form.querySelector('[name="remind_at"]') || {}).value || '').trim() || '+1 hour'
+        };
+      }
+      if (actionCode === 'call_webhook') {
+        return { url: String((form.querySelector('[name="webhook_url"]') || {}).value || '').trim() };
+      }
+      return {};
+    }
+    function validateWorkflowForm(data) {
+      if (!data.title || !data.trigger_code || !data.action_code) return 'Заполните обязательные поля';
+      var payload = data.payload || {};
+      if (data.action_code === 'change_status' && !payload.status_code) return 'Выберите новый статус';
+      if (data.action_code === 'assign_user' && !payload.assignee_user_public_id) return 'Выберите исполнителя';
+      if (data.action_code === 'create_comment' && !payload.comment_text) return 'Введите текст комментария';
+      if (data.action_code === 'send_notification' && (!Array.isArray(payload.recipient_user_public_ids) || !payload.recipient_user_public_ids.length)) return 'Выберите получателя уведомления';
+      if (data.action_code === 'create_follow_up_task' && !payload.task_title) return 'Введите название follow-up подзадачи';
+      if (data.action_code === 'call_webhook' && !/^https?:\/\//i.test(String(payload.url || ''))) return 'Укажите корректный http/https URL вебхука';
+      return '';
+    }
+    function resetWorkflowForm(rule) {
+      var form = document.getElementById('adminWorkflowCreateForm');
+      if (!form) return;
+      form.reset();
+      rule = rule || null;
+      form.querySelector('[name="public_id"]').value = rule ? String(rule.public_id || '') : '';
+      form.querySelector('[name="title"]').value = rule ? String(rule.title || '') : '';
+      form.querySelector('[name="trigger_code"]').value = rule ? String(rule.trigger_code || 'task_created') : 'task_created';
+      form.querySelector('[name="action_code"]').value = rule ? String(rule.action_code || 'change_status') : 'change_status';
+      form.querySelector('[name="is_enabled"]').checked = rule ? Boolean(rule.is_enabled) : true;
+      var payload = rule && rule.payload && typeof rule.payload === 'object' ? rule.payload : {};
+      form.querySelector('[name="status_code"]').value = String(payload.status_code || payload.status || '');
+      form.querySelector('[name="assignee_user_public_id"]').value = String(payload.assignee_user_public_id || '');
+      form.querySelector('[name="comment_text"]').value = String(payload.comment_text || payload.comment || payload.message || '');
+      setMultiSelectValues(form.querySelector('[name="recipient_user_public_ids"]'), payload.recipient_user_public_ids || payload.user_public_ids || []);
+      form.querySelector('[name="notification_title"]').value = String(payload.title || '');
+      form.querySelector('[name="notification_body"]').value = String(payload.body || payload.message || '');
+      form.querySelector('[name="task_title"]').value = String(payload.task_title || payload.title || '');
+      form.querySelector('[name="followup_assignee_user_public_id"]').value = String(payload.assignee_user_public_id || '');
+      form.querySelector('[name="reminder_user_public_id"]').value = String(payload.user_public_id || payload.assignee_user_public_id || '');
+      form.querySelector('[name="remind_at"]').value = String(payload.remind_at || '+1 hour');
+      form.querySelector('[name="webhook_url"]').value = String(payload.url || '');
+      showActionPanel(form.querySelector('[name="action_code"]').value);
+      var title = document.getElementById('adminWorkflowModalTitle');
+      var submit = document.getElementById('adminWorkflowSubmitBtn');
+      if (title) title.textContent = rule ? 'Изменить правило автоматизации' : 'Создать правило автоматизации';
+      if (submit) submit.textContent = rule ? 'Сохранить изменения' : 'Создать правило';
+    }
     async function loadRules() {
       var body = document.getElementById('adminWorkflowRulesBody');
       if (!body) return;
       try {
         var envelope = await request('api/v1/workflow/rules', { query: { limit: 100 } });
         var items = mapItems(envelope);
+        workflowRules = items;
         if (!items.length) {
           body.innerHTML = automationEmptyRow(6, 'Правил пока нет', 'Создайте первое правило, чтобы CRM сама реагировала на события в задачах и проектах.');
           return;
@@ -21850,14 +22008,15 @@ window.CRM.pageApiBindings = (function () {
           var triggerCode = item.trigger_code || item.event_type || item.event || '';
           var actionCode = item.action_code || item.action_type || item.action || '';
           return '<tr data-rule-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.name || id) + '</td>'
-            + '<td>' + safeText(labelFrom(workflowEntityLabels, item.entity_type || 'task')) + '</td>'
-            + '<td>' + safeText(labelFrom(workflowTriggerLabels, triggerCode)) + '</td>'
-            + '<td>' + safeText(labelFrom(workflowActionLabels, actionCode)) + '</td>'
-            + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td class="crm-table-actions">'
+            + '<td data-label="Название">' + safeText(item.title || item.name || id) + '</td>'
+            + '<td data-label="Когда">' + safeText(labelFrom(workflowTriggerLabels, triggerCode)) + '</td>'
+            + '<td data-label="Что сделать">' + safeText(labelFrom(workflowActionLabels, actionCode)) + '</td>'
+            + '<td data-label="Параметры" class="crm-muted-cell">' + safeText(summarizePayload(actionCode, item.payload)) + '</td>'
+            + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
+            + '<td data-label="Действия" class="crm-table-actions">'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-test="' + safeText(id) + '">Тест</button>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-workflow&edit=' + encodeURIComponent(id) + '">Изменить</a>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-edit="' + safeText(id) + '">Изменить</button>'
+            + '<button class="btn btn-sm ' + (isEnabled ? 'crm-btn-warning' : 'crm-btn-success') + ' crm-btn-compact" data-rule-toggle="' + safeText(id) + '" data-rule-enabled="' + (isEnabled ? '1' : '0') + '">' + (isEnabled ? 'Отключить' : 'Включить') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-rule-delete="' + safeText(id) + '">Удалить</button>'
             + '</td>'
             + '</tr>';
@@ -21874,7 +22033,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/workflow/runs', { query: { limit: 20 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = automationEmptyRow(4, 'Запусков пока нет', 'После теста или реального события здесь появится история выполнения правил.');
+          body.innerHTML = automationEmptyRow(5, 'Запусков пока нет', 'После теста или реального события здесь появится история выполнения правил.');
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -21882,14 +22041,15 @@ window.CRM.pageApiBindings = (function () {
           var resultClass = resultLabel === 'success' ? 'crm-badge-active' : (resultLabel === 'error' || resultLabel === 'failed' ? 'crm-badge-error' : 'crm-badge-archived');
           var resultText = resultLabel === 'success' ? 'Успешно' : (resultLabel === 'error' || resultLabel === 'failed' ? 'Ошибка' : resultLabel);
           return '<tr>'
-            + '<td>' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
-            + '<td>' + safeText(labelFrom(workflowEntityLabels, item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
-            + '<td><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
-            + '<td>' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
+            + '<td data-label="Правило">' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
+            + '<td data-label="Событие">' + safeText(labelFrom(workflowTriggerLabels, item.trigger_code)) + '</td>'
+            + '<td data-label="Действие">' + safeText(labelFrom(workflowActionLabels, item.action_code)) + '</td>'
+            + '<td data-label="Результат"><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
+            + '<td data-label="Дата">' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = automationEmptyRow(4, 'Не удалось загрузить логи', 'Попробуйте обновить список позднее.');
+        body.innerHTML = automationEmptyRow(5, 'Не удалось загрузить логи', 'Попробуйте обновить список позднее.');
       }
     }
 
@@ -21906,6 +22066,7 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', function () {
+        resetWorkflowForm(null);
         var modal = document.getElementById('adminWorkflowCreateModal');
         if (modal && window.bootstrap) {
           window.bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -21916,46 +22077,32 @@ window.CRM.pageApiBindings = (function () {
     var workflowForm = document.getElementById('adminWorkflowCreateForm');
     if (workflowForm && workflowForm.dataset.bound !== '1') {
       workflowForm.dataset.bound = '1';
-      workflowForm.addEventListener('click', function (event) {
-        var presetBtn = event.target.closest('[data-workflow-payload]');
-        if (!presetBtn) return;
-        var target = workflowForm.querySelector('[name="payload"]');
-        if (!target) return;
-        var raw = String(presetBtn.getAttribute('data-workflow-payload') || '').trim();
-        try {
-          target.value = JSON.stringify(JSON.parse(raw), null, 2);
-        } catch (e) {
-          target.value = raw;
-        }
-        target.focus();
+      workflowForm.querySelector('[name="action_code"]').addEventListener('change', function (event) {
+        showActionPanel(event.target.value);
       });
       workflowForm.addEventListener('submit', async function (event) {
         event.preventDefault();
-        var payloadRaw = String(workflowForm.querySelector('[name="payload"]').value || '').trim();
-        var payload = null;
-        if (payloadRaw) {
-          try {
-            payload = JSON.parse(payloadRaw);
-          } catch (e) {
-            notify('Параметры должны быть валидным JSON', 'warning');
-            return;
-          }
-        }
+        var ruleId = String(workflowForm.querySelector('[name="public_id"]').value || '').trim();
         var data = {
           title: String(workflowForm.querySelector('[name="title"]').value || '').trim(),
           trigger_code: String(workflowForm.querySelector('[name="trigger_code"]').value || '').trim(),
-          action_code: String(workflowForm.querySelector('[name="action_code"]').value || '').trim()
+          action_code: String(workflowForm.querySelector('[name="action_code"]').value || '').trim(),
+          is_enabled: workflowForm.querySelector('[name="is_enabled"]').checked ? 1 : 0
         };
-        if (payload !== null) {
-          data.payload = payload;
-        }
-        if (!data.title || !data.trigger_code || !data.action_code) {
-          notify('Заполните обязательные поля', 'warning');
+        data.payload = collectWorkflowPayload(workflowForm);
+        var validationError = validateWorkflowForm(data);
+        if (validationError) {
+          notify(validationError, 'warning');
           return;
         }
         try {
-          await request('api/v1/workflow/rules', { method: 'POST', body: data });
-          notify('Правило создано');
+          if (ruleId) {
+            await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'PATCH', body: data });
+            notify('Правило обновлено');
+          } else {
+            await request('api/v1/workflow/rules', { method: 'POST', body: data });
+            notify('Правило создано');
+          }
           var modal = document.getElementById('adminWorkflowCreateModal');
           if (modal && window.bootstrap) {
             window.bootstrap.Modal.getOrCreateInstance(modal).hide();
@@ -21977,13 +22124,27 @@ window.CRM.pageApiBindings = (function () {
         if (testBtn) {
           var ruleId = String(testBtn.getAttribute('data-rule-test') || '').trim();
           if (!ruleId) return;
-          try {
-            await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId) + '/run-test', { method: 'POST' });
-            notify('Тест правила запущен');
-            await loadLogs();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось запустить тест');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          var form = document.getElementById('adminWorkflowTestForm');
+          if (!form) return;
+          form.querySelector('[name="rule_public_id"]').value = ruleId;
+          var modal = document.getElementById('adminWorkflowTestModal');
+          if (modal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).show();
+          }
+          return;
+        }
+
+        var editBtn = event.target.closest('[data-rule-edit]');
+        if (editBtn) {
+          var editRuleId = String(editBtn.getAttribute('data-rule-edit') || '').trim();
+          var rule = workflowRules.find(function (item) { return String(item.public_id || '') === editRuleId; });
+          if (!rule) return;
+          resetWorkflowForm(rule);
+          var editModal = document.getElementById('adminWorkflowCreateModal');
+          if (editModal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(editModal).show();
           }
           return;
         }
@@ -22003,9 +22164,61 @@ window.CRM.pageApiBindings = (function () {
           }
           return;
         }
+
+        var toggleBtn = event.target.closest('[data-rule-toggle]');
+        if (toggleBtn) {
+          var toggleRuleId = String(toggleBtn.getAttribute('data-rule-toggle') || '').trim();
+          var enabled = String(toggleBtn.getAttribute('data-rule-enabled') || '0') === '1';
+          if (!toggleRuleId) return;
+          try {
+            await request('api/v1/workflow/rules/' + encodeURIComponent(toggleRuleId), { method: 'PATCH', body: { is_enabled: enabled ? 0 : 1 } });
+            notify(enabled ? 'Правило отключено' : 'Правило включено');
+            await loadRules();
+          } catch (error) {
+            var toggleError = window.CRM.api.normalizeError(error, 'Не удалось изменить статус правила');
+            notify(window.CRM.api.formatErrorMessage(toggleError, { withRequestId: true }), 'error');
+          }
+        }
       });
     }
 
+    var testForm = document.getElementById('adminWorkflowTestForm');
+    if (testForm && testForm.dataset.bound !== '1') {
+      testForm.dataset.bound = '1';
+      testForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var ruleId = String(testForm.querySelector('[name="rule_public_id"]').value || '').trim();
+        var taskPublicId = String(testForm.querySelector('[name="task_public_id"]').value || '').trim();
+        if (!ruleId || !taskPublicId) {
+          notify('Выберите задачу для проверки', 'warning');
+          return;
+        }
+        var task = workflowTasks.find(function (item) { return String(item.public_id || '') === taskPublicId; }) || {};
+        try {
+          await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId) + '/run-test', {
+            method: 'POST',
+            body: {
+              task_public_id: taskPublicId,
+              task_title: String(task.title || ''),
+              task_status: String(task.status_code || ''),
+              project_public_id: String(task.project_public_id || '')
+            }
+          });
+          notify('Тест правила выполнен');
+          var modal = document.getElementById('adminWorkflowTestModal');
+          if (modal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+          await loadLogs();
+          await loadRules();
+        } catch (error) {
+          var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить тест');
+          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+    }
+
+    await loadDictionaries();
     await loadRules();
     await loadLogs();
   }

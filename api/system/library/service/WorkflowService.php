@@ -116,14 +116,16 @@ final class WorkflowService
             return 'RULE_NOT_FOUND';
         }
 
-        $status = (!empty($input['simulate_error']) && (int)$input['simulate_error'] === 1) ? 'failed' : 'success';
-        $error = null;
-        if ($status === 'failed') {
-            $error = trim((string)($input['error_message'] ?? 'Simulated workflow failure'));
-            if ($error === '') {
-                $error = 'Simulated workflow failure';
-            }
-        }
+        $context = $this->testContext($input, $actor);
+        $result = $this->executeAction(
+            (string)$rule['action_code'],
+            (string)$rule['public_id'],
+            $this->decodePayload($rule['payload'] ?? []),
+            $context
+        );
+
+        $status = $result['success'] ? 'success' : 'failed';
+        $error = $result['error'] ?? null;
 
         $runPublicId = Ulid::generate('wfrun');
         $this->workflow->createRun([
@@ -139,6 +141,7 @@ final class WorkflowService
             'status' => $status,
             'error' => $error,
             'rule_public_id' => (string)$rule['public_id'],
+            'context' => $context,
         ];
     }
 
@@ -245,7 +248,12 @@ final class WorkflowService
 
         foreach ($rules as $rule) {
             try {
-                $runResult = $this->executeAction((string)$rule['action_code'], (string)$rule['public_id'], (array)($rule['payload'] ?? []), $context);
+                $runResult = $this->executeAction(
+                    (string)$rule['action_code'],
+                    (string)$rule['public_id'],
+                    $this->decodePayload($rule['payload'] ?? []),
+                    $context
+                );
                 $status = $runResult['success'] ? 'success' : 'failed';
 
                 $runPublicId = Ulid::generate('wfrun');
@@ -278,63 +286,77 @@ final class WorkflowService
         try {
             switch ($actionCode) {
                 case 'assign_user':
-                    $assigneeId = (int)($payload['assignee_user_id'] ?? 0);
+                    $assigneeId = $this->resolveUserId($payload['assignee_user_id'] ?? $payload['assignee_user_public_id'] ?? 0);
                     $taskPublicId = (string)($context['task_public_id'] ?? '');
                     if ($assigneeId > 0 && $taskPublicId !== '') {
                         $this->workflow->updateTaskField($taskPublicId, 'assignee_user_id', $assigneeId);
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не выбрана задача или исполнитель'];
 
                 case 'change_status':
-                    $newStatus = trim((string)($payload['status_code'] ?? ''));
+                    $newStatus = trim((string)($payload['status_code'] ?? $payload['status'] ?? ''));
                     $taskPublicId = (string)($context['task_public_id'] ?? '');
                     if ($newStatus !== '' && $taskPublicId !== '') {
                         $this->workflow->updateTaskField($taskPublicId, 'status_code', $newStatus);
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не выбрана задача или новый статус'];
 
                 case 'send_notification':
-                    $userIds = isset($payload['user_ids']) && is_array($payload['user_ids']) ? $payload['user_ids'] : [];
-                    $title = (string)($payload['title'] ?? 'Workflow notification');
-                    $body = (string)($payload['body'] ?? '');
+                    $userIds = $this->resolveUserIds($payload['user_ids'] ?? $payload['user_public_ids'] ?? $payload['recipient_user_public_ids'] ?? []);
+                    $title = trim((string)($payload['title'] ?? 'Уведомление автоматизации'));
+                    $body = trim((string)($payload['body'] ?? $payload['message'] ?? ''));
                     if ($userIds !== []) {
                         $this->workflow->createNotifications($userIds, $title, $body, (string)($context['task_public_id'] ?? ''));
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не выбран получатель уведомления'];
 
                 case 'create_comment':
-                    $commentText = trim((string)($payload['comment_text'] ?? ''));
+                    $commentText = trim((string)($payload['comment_text'] ?? $payload['comment'] ?? $payload['message'] ?? ''));
                     $taskPublicId = (string)($context['task_public_id'] ?? '');
                     if ($commentText !== '' && $taskPublicId !== '') {
                         $this->workflow->createTaskComment($taskPublicId, $commentText, 'workflow');
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не выбрана задача или текст комментария'];
 
                 case 'create_reminder':
-                    return ['success' => true, 'error' => null];
+                    $userId = $this->resolveUserId($payload['user_id'] ?? $payload['user_public_id'] ?? $payload['assignee_user_public_id'] ?? ($context['actor_id'] ?? 0));
+                    $taskPublicId = (string)($context['task_public_id'] ?? '');
+                    $taskId = $taskPublicId !== '' ? $this->workflow->taskIdByPublicId($taskPublicId) : null;
+                    $remindAt = $this->normalizeReminderTime((string)($payload['remind_at'] ?? '+1 hour'));
+                    $this->workflow->createReminder($userId ?: null, $taskId, $remindAt);
+                    return $userId > 0
+                        ? ['success' => true, 'error' => null]
+                        : ['success' => false, 'error' => 'Не выбран пользователь для напоминания'];
 
                 case 'create_follow_up_task':
-                    $followUpTitle = trim((string)($payload['task_title'] ?? 'Follow-up: ' . ($context['task_title'] ?? '')));
-                    $followUpAssignee = (int)($payload['assignee_user_id'] ?? $context['actor_id'] ?? 0);
-                    $followUpProject = (int)($payload['project_id'] ?? $context['project_id'] ?? 0);
+                    $followUpTitle = trim((string)($payload['task_title'] ?? $payload['title'] ?? 'Follow-up: ' . ($context['task_title'] ?? '')));
+                    $followUpAssignee = $this->resolveUserId($payload['assignee_user_id'] ?? $payload['assignee_user_public_id'] ?? $context['actor_id'] ?? 0);
+                    $followUpProject = $this->resolveProjectId($payload['project_id'] ?? $payload['project_public_id'] ?? $context['project_id'] ?? 0);
                     if ($followUpTitle !== '') {
-                        $this->workflow->createFollowUpTask($followUpTitle, $followUpAssignee ?: null, $followUpProject ?: null, (string)($context['task_public_id'] ?? ''));
+                        $this->workflow->createFollowUpTask($followUpTitle, $followUpAssignee ?: null, $followUpProject ?: null, (string)($context['task_public_id'] ?? ''), (int)($context['actor_id'] ?? 0) ?: null);
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не указано название follow-up задачи'];
 
                 case 'call_webhook':
                     $webhookUrl = trim((string)($payload['url'] ?? ''));
-                    if ($webhookUrl !== '') {
+                    if ($webhookUrl !== '' && preg_match('/^https?:\/\//i', $webhookUrl)) {
                         $this->workflow->callWebhookAsync($webhookUrl, $context);
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Укажите корректный http/https URL вебхука'];
 
                 case 'escalate_sla':
                     $taskPublicId = (string)($context['task_public_id'] ?? '');
                     if ($taskPublicId !== '') {
                         $this->workflow->escalateSla($taskPublicId);
+                        return ['success' => true, 'error' => null];
                     }
-                    return ['success' => true, 'error' => null];
+                    return ['success' => false, 'error' => 'Не выбрана задача для SLA'];
 
                 default:
                     return ['success' => false, 'error' => 'Unknown action: ' . $actionCode];
@@ -342,5 +364,92 @@ final class WorkflowService
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /** @return array<string,mixed> */
+    private function decodePayload(mixed $payload): array
+    {
+        if (is_array($payload)) {
+            return $payload;
+        }
+
+        if (is_string($payload) && trim($payload) !== '') {
+            $decoded = json_decode($payload, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+    private function resolveUserId(mixed $value): int
+    {
+        if (is_int($value) || ctype_digit((string)$value)) {
+            return max(0, (int)$value);
+        }
+
+        $publicId = trim((string)$value);
+        if ($publicId === '') {
+            return 0;
+        }
+
+        return $this->workflow->userIdByPublicId($publicId) ?? 0;
+    }
+
+    /** @return int[] */
+    private function resolveUserIds(mixed $values): array
+    {
+        $items = is_array($values) ? $values : [$values];
+        $ids = [];
+        foreach ($items as $value) {
+            $id = $this->resolveUserId($value);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function resolveProjectId(mixed $value): int
+    {
+        if (is_int($value) || ctype_digit((string)$value)) {
+            return max(0, (int)$value);
+        }
+
+        $publicId = trim((string)$value);
+        if ($publicId === '') {
+            return 0;
+        }
+
+        return $this->workflow->projectIdByPublicId($publicId) ?? 0;
+    }
+
+    private function normalizeReminderTime(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            $value = '+1 hour';
+        }
+
+        try {
+            return (new \DateTimeImmutable($value))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return gmdate('Y-m-d H:i:s', time() + 3600);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function testContext(array $input, array $actor): array
+    {
+        return [
+            'task_public_id' => trim((string)($input['task_public_id'] ?? '')),
+            'task_title' => trim((string)($input['task_title'] ?? 'Тестовая задача')),
+            'task_status' => trim((string)($input['task_status'] ?? 'new')),
+            'task_assignee_id' => $this->resolveUserId($input['task_assignee_user_public_id'] ?? 0),
+            'project_id' => $this->resolveProjectId($input['project_public_id'] ?? 0),
+            'actor_id' => (int)($actor['id'] ?? 0),
+            'actor_public_id' => (string)($actor['public_id'] ?? ''),
+            'is_test' => true,
+        ];
     }
 }
