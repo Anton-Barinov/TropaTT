@@ -3745,30 +3745,39 @@ PROMPT;
         if ($start === false) {
             return ['ok' => false, 'data' => null, 'error' => 'no_brace'];
         }
-        // Extract first { to last }
-        $end = strrpos($trimmed, '}');
-        if ($end === false || $end <= $start) {
-            return ['ok' => false, 'data' => null, 'error' => 'no_json_boundary'];
+        // Proper brace matching: count { } but skip them inside quoted strings
+        // This handles the case where DeepSeek puts { or } inside Russian text
+        $depth = 0;
+        $inString = false;
+        $end = -1;
+        for ($i = $start; $i < strlen($trimmed); $i++) {
+            $ch = $trimmed[$i];
+            if ($inString) {
+                if ($ch === '\\') { $i++; continue; } // skip escaped char
+                if ($ch === '"') $inString = false;
+            } else {
+                if ($ch === '"') { $inString = true; continue; }
+                if ($ch === '{') $depth++;
+                if ($ch === '}') {
+                    $depth--;
+                    if ($depth === 0) { $end = $i; break; }
+                }
+            }
         }
-        $extracted = trim(substr($trimmed, $start, $end - $start + 1));
-
-        // Try decode directly
+        if ($end === -1) {
+            return ['ok' => false, 'data' => null, 'error' => 'no_matching_brace'];
+        }
+        $extracted = substr($trimmed, $start, $end - $start + 1);
         $decoded = @json_decode($extracted, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
-
-        // Log the raw text failure for debugging
-        ai_diag_log("[AI_JSON_PARSE_ERR] start=$start end=$end extracted_len=" . strlen($extracted) . " json_err=" . json_last_error_msg() . " last_500=" . substr($extracted, -500));
-
-        // Repair common DeepSeek JSON issues: escape unescaped { } inside strings,
-        // remove trailing commas, replace smart quotes, etc.
-        $repaired = $this->repairJsonString($extracted);
+        // Fallback: progressive } truncation for repeated/concat JSON
+        $repaired = $this->repairJsonString(substr($trimmed, $start));
         $decoded = @json_decode($repaired, true);
         if (is_array($decoded)) {
             return ['ok' => true, 'data' => $decoded];
         }
-
         return ['ok' => false, 'data' => null, 'error' => 'json_decode_failed:' . json_last_error_msg()];
     }
 
