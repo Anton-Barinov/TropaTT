@@ -21843,8 +21843,10 @@ window.CRM.pageApiBindings = (function () {
         }
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
-          var statusClass = String(item.is_active || item.status) === '1' || item.is_active === true ? 'crm-badge-active' : 'crm-badge-archived';
-          var statusLabel = (String(item.is_active || item.status) === '1' || item.is_active === true) ? 'Активно' : 'Неактивно';
+          var isEnabled = item.is_enabled === true || String(item.is_enabled) === '1'
+            || (typeof item.is_enabled === 'undefined' && (String(item.is_active || item.status) === '1' || item.is_active === true));
+          var statusClass = isEnabled ? 'crm-badge-active' : 'crm-badge-archived';
+          var statusLabel = isEnabled ? 'Активно' : 'Неактивно';
           var triggerCode = item.trigger_code || item.event_type || item.event || '';
           var actionCode = item.action_code || item.action_type || item.action || '';
           return '<tr data-rule-id="' + safeText(id) + '">'
