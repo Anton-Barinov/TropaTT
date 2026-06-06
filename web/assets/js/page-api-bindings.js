@@ -21795,6 +21795,42 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminWorkflowPage() {
+    var workflowEntityLabels = {
+      task: 'Задача',
+      project: 'Проект',
+      reminder: 'Напоминание',
+      calendar_event: 'Событие календаря',
+      user: 'Пользователь'
+    };
+    var workflowTriggerLabels = {
+      task_created: 'Задача создана',
+      task_updated: 'Задача изменена',
+      task_status_changed: 'Статус задачи изменён',
+      comment_added: 'Добавлен комментарий',
+      file_uploaded: 'Загружен файл',
+      deadline_reached: 'Наступил дедлайн',
+      project_archived: 'Проект архивирован',
+      user_created: 'Создан пользователь'
+    };
+    var workflowActionLabels = {
+      change_status: 'Изменить статус',
+      assign_user: 'Назначить исполнителя',
+      create_comment: 'Добавить комментарий',
+      send_notification: 'Отправить уведомление',
+      create_follow_up_task: 'Создать подзадачу',
+      call_webhook: 'Вызвать вебхук',
+      escalate_sla: 'Эскалировать SLA',
+      create_reminder: 'Создать напоминание'
+    };
+    function automationEmptyRow(colspan, title, text) {
+      return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
+        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
+        + '</td></tr>';
+    }
+    function labelFrom(map, value) {
+      var key = String(value || '').trim();
+      return map[key] || key || '—';
+    }
     async function loadRules() {
       var body = document.getElementById('adminWorkflowRulesBody');
       if (!body) return;
@@ -21802,20 +21838,22 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/workflow/rules', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="6" class="text-muted">Нет правил</td></tr>';
+          body.innerHTML = automationEmptyRow(6, 'Правил пока нет', 'Создайте первое правило, чтобы CRM сама реагировала на события в задачах и проектах.');
           return;
         }
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
           var statusClass = String(item.is_active || item.status) === '1' || item.is_active === true ? 'crm-badge-active' : 'crm-badge-archived';
           var statusLabel = (String(item.is_active || item.status) === '1' || item.is_active === true) ? 'Активно' : 'Неактивно';
+          var triggerCode = item.trigger_code || item.event_type || item.event || '';
+          var actionCode = item.action_code || item.action_type || item.action || '';
           return '<tr data-rule-id="' + safeText(id) + '">'
             + '<td>' + safeText(item.title || item.name || id) + '</td>'
-            + '<td>' + safeText(item.entity_type || '—') + '</td>'
-            + '<td>' + safeText(item.event_type || item.event || '—') + '</td>'
-            + '<td>' + safeText(item.action_type || item.action || '—') + '</td>'
+            + '<td>' + safeText(labelFrom(workflowEntityLabels, item.entity_type || 'task')) + '</td>'
+            + '<td>' + safeText(labelFrom(workflowTriggerLabels, triggerCode)) + '</td>'
+            + '<td>' + safeText(labelFrom(workflowActionLabels, actionCode)) + '</td>'
             + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td>'
+            + '<td class="crm-table-actions">'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-test="' + safeText(id) + '">Тест</button>'
             + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-workflow&edit=' + encodeURIComponent(id) + '">Изменить</a>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-rule-delete="' + safeText(id) + '">Удалить</button>'
@@ -21823,7 +21861,7 @@ window.CRM.pageApiBindings = (function () {
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="6" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = automationEmptyRow(6, 'Не удалось загрузить правила', 'Проверьте доступ к API и повторите обновление страницы.');
       }
     }
 
@@ -21834,21 +21872,22 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/workflow/runs', { query: { limit: 20 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="4" class="text-muted">Нет логов</td></tr>';
+          body.innerHTML = automationEmptyRow(4, 'Запусков пока нет', 'После теста или реального события здесь появится история выполнения правил.');
           return;
         }
         body.innerHTML = items.map(function (item) {
           var resultLabel = String(item.status || item.result || '—');
           var resultClass = resultLabel === 'success' ? 'crm-badge-active' : (resultLabel === 'error' || resultLabel === 'failed' ? 'crm-badge-error' : 'crm-badge-archived');
+          var resultText = resultLabel === 'success' ? 'Успешно' : (resultLabel === 'error' || resultLabel === 'failed' ? 'Ошибка' : resultLabel);
           return '<tr>'
             + '<td>' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
-            + '<td>' + safeText(item.entity_type || '—') + ' #' + safeText(item.entity_public_id || '—') + '</td>'
-            + '<td><span class="crm-badge ' + resultClass + '">' + safeText(resultLabel) + '</span></td>'
+            + '<td>' + safeText(labelFrom(workflowEntityLabels, item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
+            + '<td><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
             + '<td>' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="4" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = automationEmptyRow(4, 'Не удалось загрузить логи', 'Попробуйте обновить список позднее.');
       }
     }
 
@@ -21875,6 +21914,19 @@ window.CRM.pageApiBindings = (function () {
     var workflowForm = document.getElementById('adminWorkflowCreateForm');
     if (workflowForm && workflowForm.dataset.bound !== '1') {
       workflowForm.dataset.bound = '1';
+      workflowForm.addEventListener('click', function (event) {
+        var presetBtn = event.target.closest('[data-workflow-payload]');
+        if (!presetBtn) return;
+        var target = workflowForm.querySelector('[name="payload"]');
+        if (!target) return;
+        var raw = String(presetBtn.getAttribute('data-workflow-payload') || '').trim();
+        try {
+          target.value = JSON.stringify(JSON.parse(raw), null, 2);
+        } catch (e) {
+          target.value = raw;
+        }
+        target.focus();
+      });
       workflowForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         var payloadRaw = String(workflowForm.querySelector('[name="payload"]').value || '').trim();
@@ -22095,6 +22147,19 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderApprovalsPage() {
+    var approvalEntityLabels = {
+      task: 'Задача',
+      project: 'Проект'
+    };
+    function approvalsEmptyRow(colspan, title, text) {
+      return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
+        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
+        + '</td></tr>';
+    }
+    function approvalEntityLabel(value) {
+      var key = String(value || '').trim();
+      return approvalEntityLabels[key] || key || '—';
+    }
     async function loadApprovals() {
       var body = document.getElementById('approvalsListBody');
       if (!body) return;
@@ -22102,7 +22167,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/approvals', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="6" class="text-muted">Нет запросов</td></tr>';
+          body.innerHTML = approvalsEmptyRow(6, 'Запросов пока нет', 'Создайте согласование для задачи или проекта, чтобы зафиксировать решение внутри CRM.');
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -22112,11 +22177,11 @@ window.CRM.pageApiBindings = (function () {
           var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
           return '<tr data-approval-id="' + safeText(id) + '">'
             + '<td>' + safeText(item.title || item.subject || id) + '</td>'
-            + '<td>' + safeText(item.entity_type || '—') + ' #' + safeText(item.entity_public_id || '—') + '</td>'
+            + '<td>' + safeText(approvalEntityLabel(item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
             + '<td>' + safeText(item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
             + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td>';
+            + '<td class="crm-table-actions">';
         }).join('');
 
         // Add action buttons for pending items
@@ -22143,7 +22208,7 @@ window.CRM.pageApiBindings = (function () {
           }
         });
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="6" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = approvalsEmptyRow(6, 'Не удалось загрузить согласования', 'Проверьте доступ к API и обновите страницу.');
       }
     }
 
@@ -22424,6 +22489,21 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderRecurringPage() {
+    function recurringEmptyRow(colspan, title, text) {
+      return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
+        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
+        + '</td></tr>';
+    }
+    function formatRruleLabel(value) {
+      var rrule = String(value || '').trim();
+      var labels = {
+        'FREQ=DAILY': 'Каждый день',
+        'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': 'По будням',
+        'FREQ=WEEKLY;BYDAY=MO,WE,FR': 'Пн, ср, пт',
+        'FREQ=MONTHLY;BYMONTHDAY=1': '1-го числа каждого месяца'
+      };
+      return labels[rrule] || rrule || '—';
+    }
     async function loadRecurring() {
       var body = document.getElementById('recurringBody');
       if (!body) return;
@@ -22431,7 +22511,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/recurring', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="5" class="text-muted">Нет шаблонов</td></tr>';
+          body.innerHTML = recurringEmptyRow(5, 'Шаблонов пока нет', 'Создайте первый шаблон, чтобы CRM автоматически повторяла регулярные задачи или события.');
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -22439,12 +22519,13 @@ window.CRM.pageApiBindings = (function () {
           var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
           var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
           var statusLabel = isActive ? 'Активен' : 'Приостановлен';
+          var rrule = item.rrule || item.schedule || item.cron || item.recurrence || '';
           return '<tr data-recurring-id="' + safeText(id) + '">'
             + '<td>' + safeText(item.title || item.name || id) + '</td>'
-            + '<td>' + safeText(item.schedule || item.cron || item.recurrence || '—') + '</td>'
+            + '<td><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule || '—') + '</span></td>'
             + '<td>' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
             + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td>';
+            + '<td class="crm-table-actions">';
         }).join('');
 
         // Add action buttons
@@ -22465,7 +22546,7 @@ window.CRM.pageApiBindings = (function () {
           }
         });
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="5" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = recurringEmptyRow(5, 'Не удалось загрузить шаблоны', 'Проверьте доступ к API и повторите обновление.');
       }
     }
 
@@ -22491,6 +22572,14 @@ window.CRM.pageApiBindings = (function () {
     var recurringForm = document.getElementById('recurringCreateForm');
     if (recurringForm && recurringForm.dataset.bound !== '1') {
       recurringForm.dataset.bound = '1';
+      recurringForm.addEventListener('click', function (event) {
+        var presetBtn = event.target.closest('[data-rrule-preset]');
+        if (!presetBtn) return;
+        var rruleInput = recurringForm.querySelector('[name="rrule"]');
+        if (!rruleInput) return;
+        rruleInput.value = String(presetBtn.getAttribute('data-rrule-preset') || '').trim();
+        rruleInput.focus();
+      });
       recurringForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         var data = {
