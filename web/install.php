@@ -802,6 +802,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             id {$id},
             public_id VARCHAR(64) UNIQUE,
             project_id INTEGER NULL,
+            parent_task_id INTEGER NULL,
             title VARCHAR(255),
             description {$text},
             status_code VARCHAR(64),
@@ -816,6 +817,18 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             created_at {$dt},
             updated_at {$dt},
             row_version INTEGER DEFAULT 1
+        )",
+
+        "CREATE TABLE IF NOT EXISTS task_relations (
+            id {$id},
+            public_id VARCHAR(64) UNIQUE,
+            parent_task_id INTEGER NULL,
+            child_task_id INTEGER NULL,
+            relation_type VARCHAR(32) DEFAULT 'subtask',
+            sort_order INTEGER DEFAULT 0,
+            legacy_subtask_public_id VARCHAR(64) NULL,
+            created_at {$dt},
+            updated_at {$dt}
         )",
 
         "CREATE TABLE IF NOT EXISTS task_assignees (

@@ -87,6 +87,8 @@ final class TaskService
         $publicId = Ulid::generate('tsk');
         $projectId = null;
         $creatorUserId = (int)($actor['id'] ?? 0);
+        $parentTask = null;
+        $parentTaskPublicId = trim((string)($input['parent_task_public_id'] ?? ''));
 
         if (!empty($input['project_public_id'])) {
             if (!$this->projects->get((string)$input['project_public_id'], $actor)) {
@@ -95,13 +97,20 @@ final class TaskService
             $projectId = $this->tasks->projectIdByPublicId((string)$input['project_public_id']);
         }
 
+        if ($parentTaskPublicId !== '') {
+            $parentTask = $this->get($parentTaskPublicId, $actor);
+            if (!$parentTask) {
+                return 'PARENT_TASK_NOT_FOUND';
+            }
+            $projectId ??= isset($parentTask['project_id']) ? (int)$parentTask['project_id'] : null;
+        }
+
         $createdAt = !empty($input['created_at']) ? (string)$input['created_at'] : gmdate('Y-m-d H:i:s');
         $updatedAt = !empty($input['updated_at']) ? (string)$input['updated_at'] : $createdAt;
 
         $this->tasks->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
-            'parent_task_public_id' => !empty($input['parent_task_public_id']) ? (string)$input['parent_task_public_id'] : null,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
             'status_code' => (string)($input['status'] ?? 'new'),
@@ -115,6 +124,26 @@ final class TaskService
             'updated_at' => $updatedAt,
             'row_version' => 1,
         ]);
+
+        if ($parentTask) {
+            $createdTaskId = $this->tasks->taskIdByPublicId($publicId);
+            if ($createdTaskId !== null) {
+                $sortOrder = isset($input['sort_order'])
+                    ? max(0, (int)$input['sort_order'])
+                    : $this->tasks->nextSortOrderForParentTaskId((int)$parentTask['id']);
+
+                $this->tasks->createRelation([
+                    'public_id' => Ulid::generate('trl'),
+                    'parent_task_id' => (int)$parentTask['id'],
+                    'child_task_id' => $createdTaskId,
+                    'relation_type' => 'subtask',
+                    'sort_order' => $sortOrder,
+                    'legacy_subtask_public_id' => null,
+                    'created_at' => $createdAt,
+                    'updated_at' => $updatedAt,
+                ]);
+            }
+        }
 
         $createdTask = $this->tasks->findByPublicId($publicId) ?: ['public_id' => $publicId];
         if (is_array($createdTask)) {
@@ -141,7 +170,7 @@ final class TaskService
         return $task;
     }
 
-    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'FORBIDDEN_TASK_IDENTITY_EDIT' */
+    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT' */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
     {
         $task = $this->tasks->findByPublicId($publicId);
@@ -205,8 +234,26 @@ final class TaskService
         if (array_key_exists('archived', $input)) {
             $set['archived_at'] = (bool)$input['archived'] ? gmdate('Y-m-d H:i:s') : null;
         }
+
+        $parentRelationChange = null;
         if (array_key_exists('parent_task_public_id', $input)) {
-            $set['parent_task_public_id'] = $input['parent_task_public_id'] !== '' ? (string)$input['parent_task_public_id'] : null;
+            $parentTaskPublicId = trim((string)$input['parent_task_public_id']);
+            if ($parentTaskPublicId === '') {
+                $parentRelationChange = ['mode' => 'delete'];
+            } else {
+                if ($parentTaskPublicId === $publicId) {
+                    return 'INVALID_PARENT_TASK';
+                }
+                $parentTask = $this->get($parentTaskPublicId, $actor);
+                if (!$parentTask) {
+                    return 'PARENT_TASK_NOT_FOUND';
+                }
+                $parentRelationChange = [
+                    'mode' => 'upsert',
+                    'parent_task' => $parentTask,
+                    'sort_order' => array_key_exists('sort_order', $input) ? max(0, (int)$input['sort_order']) : null,
+                ];
+            }
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
@@ -215,6 +262,39 @@ final class TaskService
         $updated = $this->tasks->updateByPublicId($publicId, $set);
         if (!$updated) {
             return $task;
+        }
+
+        if ($parentRelationChange !== null) {
+            $childTaskId = (int)($task['id'] ?? 0);
+            if (($parentRelationChange['mode'] ?? '') === 'delete') {
+                $this->tasks->deleteSubtaskRelationByChildTaskId($childTaskId);
+            } else {
+                $parentTask = (array)$parentRelationChange['parent_task'];
+
+                $relationSet = [
+                    'parent_task_id' => (int)$parentTask['id'],
+                    'updated_at' => gmdate('Y-m-d H:i:s'),
+                ];
+                if ($parentRelationChange['sort_order'] !== null) {
+                    $relationSet['sort_order'] = (int)$parentRelationChange['sort_order'];
+                }
+
+                $relationUpdated = $this->tasks->updateSubtaskRelationByChildTaskId($childTaskId, $relationSet);
+                if (!$relationUpdated) {
+                    $this->tasks->createRelation([
+                        'public_id' => Ulid::generate('trl'),
+                        'parent_task_id' => (int)$parentTask['id'],
+                        'child_task_id' => $childTaskId,
+                        'relation_type' => 'subtask',
+                        'sort_order' => $parentRelationChange['sort_order'] !== null
+                            ? (int)$parentRelationChange['sort_order']
+                            : $this->tasks->nextSortOrderForParentTaskId((int)$parentTask['id']),
+                        'legacy_subtask_public_id' => null,
+                        'created_at' => gmdate('Y-m-d H:i:s'),
+                        'updated_at' => gmdate('Y-m-d H:i:s'),
+                    ]);
+                }
+            }
         }
         $this->semanticIndex?->removeEntityDocument('task', $publicId);
 

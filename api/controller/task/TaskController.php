@@ -92,6 +92,11 @@ final class TaskController extends BaseController
                     'project' => [$this->t('common/messages.project_not_found')],
                 ]);
             }
+            if ($item === 'PARENT_TASK_NOT_FOUND') {
+                return $this->error('PARENT_TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
+                    'parent_task_public_id' => [$this->t('common/messages.task_not_found')],
+                ]);
+            }
 
             $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
 
@@ -162,6 +167,16 @@ final class TaskController extends BaseController
         if ($item === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                 'project' => [$this->t('common/messages.project_not_found')],
+            ]);
+        }
+        if ($item === 'PARENT_TASK_NOT_FOUND') {
+            return $this->error('PARENT_TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
+                'parent_task_public_id' => [$this->t('common/messages.task_not_found')],
+            ]);
+        }
+        if ($item === 'INVALID_PARENT_TASK') {
+            return $this->error('INVALID_PARENT_TASK', $this->t('common/messages.validation_error'), 422, [
+                'parent_task_public_id' => [$this->t('common/messages.validation_error')],
             ]);
         }
         if ($item === 'FORBIDDEN_TASK_IDENTITY_EDIT') {

@@ -174,6 +174,60 @@ final class TaskRepository
             ->insert($payload);
     }
 
+    public function taskIdByPublicId(string $taskPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['id'])
+            ->where('public_id', '=', $taskPublicId)
+            ->whereNull('deleted_at')
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
+    public function createRelation(array $payload): void
+    {
+        (new QueryBuilder($this->pdo))
+            ->from('task_relations')
+            ->insert($payload);
+    }
+
+    public function updateSubtaskRelationByChildTaskId(int $childTaskId, array $set): bool
+    {
+        if ($set === []) {
+            return false;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('task_relations')
+            ->where('child_task_id', '=', $childTaskId)
+            ->where('relation_type', '=', 'subtask')
+            ->update($set) > 0;
+    }
+
+    public function deleteSubtaskRelationByChildTaskId(int $childTaskId): bool
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('task_relations')
+            ->where('child_task_id', '=', $childTaskId)
+            ->where('relation_type', '=', 'subtask')
+            ->delete() > 0;
+    }
+
+    public function nextSortOrderForParentTaskId(int $parentTaskId): int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('task_relations')
+            ->select(['MAX(sort_order) AS max_sort_order'])
+            ->where('parent_task_id', '=', $parentTaskId)
+            ->where('relation_type', '=', 'subtask')
+            ->first();
+
+        return max(0, (int)($row['max_sort_order'] ?? 0)) + 10;
+    }
+
     public function updateByPublicId(string $publicId, array $set): bool
     {
         if ($set === []) {
