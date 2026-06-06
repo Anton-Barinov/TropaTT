@@ -1295,60 +1295,45 @@ PROMPT;
 9. Определи ключевые факторы для последующего анализа.
 10. completeness.overall и confidence_score — числа от 0 до 1.
 11. next_step.action: ask_more_questions / start_analysis / preliminary_analysis.
+12. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
+13. Если нужны скобки в тексте — используй только ( ) или [ ].
 
-Верни ТОЛЬКО валидный JSON. Без markdown, без комментариев.
+Верни ТОЛЬКО валидный JSON. Без markdown, без комментариев, без текста до или после JSON.
 
-{
-"idea_profile": {
-"summary": "краткое резюме",
-"idea_type": "business|product|service|travel|personal|investment|event|other",
-"specificity_level": "low|medium|high",
-"known_facts": [],
-"user_unknowns": [],
-"missing_facts": [],
-"assumptions": [],
-"constraints": [],
-"early_risks": [],
-"key_decision_factors": [],
-"completeness": {"overall":0,"goal":0,"product_or_service":0,"audience":0,"region":0,"finance":0,"timeline":0,"operations":0,"team":0,"market":0,"legal":0,"risks":0},
-"confidence_score": 0
-},
-"next_step": {
-"action": "ask_more_questions|start_analysis|preliminary_analysis",
-"reason": "почему",
-"recommended_missing_topics": [],
-"can_continue_without_more_questions": true
-}
-}
+JSON:
+{"idea_profile":{"summary":"краткое резюме","idea_type":"business","specificity_level":"medium","known_facts":[],"user_unknowns":[],"missing_facts":[],"assumptions":[],"constraints":[],"early_risks":[],"key_decision_factors":[],"completeness":{"overall":0.5,"goal":0.5,"product_or_service":0.5,"audience":0.5,"region":0.5,"finance":0.5,"timeline":0.5,"operations":0.5,"team":0.5,"market":0.5,"legal":0.5,"risks":0.5},"confidence_score":0.5},"next_step":{"action":"start_analysis","reason":"почему","recommended_missing_topics":[],"can_continue_without_more_questions":true}}
 PROMPT;
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
-            $maxRetries = 1;
+            $maxRetries = 2;
             $rawText = '';
+            $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
                     '__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]",
                 ], $this->user()['user'] ?? []);
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
-                if (!str_contains($rawText, 'AI не смог сформировать') && trim($rawText) !== '') break;
-                if ($retry < $maxRetries) usleep(500000);
+                $parsed = $this->extractAiJson($rawText);
+                if ($parsed['ok'] && !empty($parsed['data']['idea_profile'])) break;
+                if ($parsed['ok'] && empty($parsed['data']['idea_profile']) && !empty($parsed['data']['summary'])) {
+                    $parsed['data'] = ['idea_profile' => $parsed['data']];
+                    break;
+                }
+                ai_diag_log("[UNDERSTANDING_CARD_RETRY] attempt=" . ($retry + 1) . " error=" . ($parsed['error'] ?? 'invalid_resp') . " text_len=" . strlen($rawText));
+                if ($retry < $maxRetries) usleep(1000000);
             }
 
+            try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
             $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'understanding_card', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
-            $data = json_decode($rawText, true);
-            if (!is_array($data) && preg_match('/\{.*\}/s', $rawText, $m)) {
-                $data = json_decode($m[0], true);
-            }
-            if (is_array($data) && empty($data['idea_profile']) && !empty($data['summary'])) {
-                $data = ['idea_profile' => $data];
-            }
+            $data = $parsed['ok'] && is_array($parsed['data']) ? $parsed['data'] : null;
             if (!is_array($data) || empty($data['idea_profile'])) {
-                return $this->error('AI_INVALID_RESPONSE', 'AI вернул некорректный ответ. Попробуйте позже.', 502);
+                ai_diag_log("[UNDERSTANDING_CARD_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error'] ?? 'unknown')." preview=".substr($rawText, 0, 300));
+                $data = $this->buildFallbackUnderstandingCardData($idea, $plainDesc, $qaList, (string)($parsed['error'] ?? 'invalid_ai_json'));
             }
 
             $profile = $data['idea_profile'] ?? [];
@@ -3745,6 +3730,148 @@ PROMPT;
         if (!$this->isFeatureEnabled()) {
             throw new \RuntimeException('AI ideas feature is disabled');
         }
+    }
+
+    /**
+     * Build a minimum viable understanding card when the provider returns
+     * malformed JSON. It uses only facts already available in the CRM.
+     *
+     * @param array<string,mixed> $idea
+     * @param array<int,array<string,mixed>> $qaList
+     * @return array<string,mixed>
+     */
+    private function buildFallbackUnderstandingCardData(array $idea, string $plainDesc, array $qaList, string $reason): array
+    {
+        $title = trim((string)($idea['title'] ?? ''));
+        $summarySource = $plainDesc !== '' ? $plainDesc : $title;
+        $summary = $summarySource !== ''
+            ? mb_substr($summarySource, 0, 420)
+            : 'Идея пока описана недостаточно подробно. Карточка собрана из доступных данных CRM.';
+
+        $knownFacts = [];
+        if ($title !== '') $knownFacts[] = 'Название идеи: ' . $title;
+        if ($plainDesc !== '') $knownFacts[] = 'Описание идеи: ' . mb_substr($plainDesc, 0, 700);
+        foreach (['category' => 'Категория', 'product' => 'Продукт', 'region' => 'Регион', 'target_date' => 'Целевая дата'] as $key => $label) {
+            $value = trim((string)($idea[$key] ?? ''));
+            if ($value !== '') $knownFacts[] = $label . ': ' . $value;
+        }
+
+        $userUnknowns = [];
+        $missingFacts = [];
+        foreach ($qaList as $item) {
+            $question = trim((string)($item['question'] ?? ''));
+            $answer = is_array($item['answer'] ?? null) ? (array)$item['answer'] : null;
+            if ($question === '') continue;
+            if (!$answer) {
+                $missingFacts[] = $question;
+                continue;
+            }
+            $selected = trim((string)($answer['selected_option'] ?? ''));
+            $custom = trim((string)($answer['custom_answer'] ?? ''));
+            if (!empty($answer['is_unknown'])) {
+                $userUnknowns[] = $question;
+                continue;
+            }
+            $answerText = $custom !== '' ? $custom : $selected;
+            if ($answerText !== '') {
+                $knownFacts[] = $question . ': ' . $answerText;
+            } else {
+                $missingFacts[] = $question;
+            }
+        }
+
+        $defaultMissing = [
+            'Цель внедрения и критерии успеха',
+            'Целевая аудитория или пользователи',
+            'Бюджет и финансовые ограничения',
+            'Сроки и критичные даты',
+            'Команда и ответственные',
+            'Юридические или операционные ограничения',
+            'Основные риски и зависимости',
+        ];
+        $missingFacts = array_values(array_unique(array_filter(array_merge($missingFacts, $defaultMissing))));
+        $knownFacts = array_values(array_unique(array_filter($knownFacts)));
+        $userUnknowns = array_values(array_unique(array_filter($userUnknowns)));
+
+        $knownCount = count($knownFacts);
+        $answeredCount = count(array_filter($qaList, static fn($item) => !empty($item['answer'])));
+        $overall = min(0.75, max(0.2, ($knownCount * 0.08) + ($answeredCount * 0.05)));
+        $specificity = $overall >= 0.58 ? 'medium' : 'low';
+
+        $completeness = [
+            'overall' => round($overall, 2),
+            'goal' => $this->hasAnyText($knownFacts, ['цель', 'результат', 'успех']) ? 0.6 : 0.25,
+            'product_or_service' => $this->hasAnyText($knownFacts, ['продукт', 'услуг', 'сервис', 'внедрение']) ? 0.6 : 0.3,
+            'audience' => $this->hasAnyText($knownFacts, ['клиент', 'пользователь', 'аудитор', 'сотрудник']) ? 0.55 : 0.25,
+            'region' => trim((string)($idea['region'] ?? '')) !== '' ? 0.7 : 0.25,
+            'finance' => $this->hasAnyText($knownFacts, ['бюджет', 'стоим', 'цена', 'финанс']) ? 0.55 : 0.2,
+            'timeline' => trim((string)($idea['target_date'] ?? '')) !== '' || $this->hasAnyText($knownFacts, ['срок', 'дата', 'месяц', 'недел']) ? 0.55 : 0.25,
+            'operations' => $this->hasAnyText($knownFacts, ['процесс', 'операц', 'внедрение', 'производ']) ? 0.55 : 0.25,
+            'team' => $this->hasAnyText($knownFacts, ['команда', 'ответствен', 'исполнитель']) ? 0.5 : 0.2,
+            'market' => $this->hasAnyText($knownFacts, ['рынок', 'конкур', 'спрос', 'клиент']) ? 0.45 : 0.2,
+            'legal' => $this->hasAnyText($knownFacts, ['закон', 'договор', 'персональн', '152', 'gdpr']) ? 0.45 : 0.2,
+            'risks' => count($userUnknowns) > 0 ? 0.45 : 0.25,
+        ];
+
+        return [
+            'idea_profile' => [
+                'summary' => $summary,
+                'idea_type' => $this->guessIdeaType($idea, $plainDesc),
+                'specificity_level' => $specificity,
+                'known_facts' => array_slice($knownFacts, 0, 12),
+                'user_unknowns' => array_slice($userUnknowns, 0, 10),
+                'missing_facts' => array_slice($missingFacts, 0, 10),
+                'assumptions' => [],
+                'constraints' => [],
+                'early_risks' => ['AI-провайдер вернул некорректный JSON, поэтому карточка собрана по фактам из CRM и требует проверки на следующих шагах.'],
+                'key_decision_factors' => ['Цель', 'Сроки', 'Бюджет', 'Ответственные', 'Риски внедрения', 'Ожидаемый бизнес-эффект'],
+                'completeness' => $completeness,
+                'confidence_score' => round(max(0.15, min(0.55, $overall - 0.1)), 2),
+                '_fallback' => true,
+                '_fallback_reason' => $reason,
+            ],
+            'next_step' => [
+                'action' => 'start_analysis',
+                'reason' => 'Доступных данных достаточно, чтобы не блокировать дальнейшие этапы анализа; уточнения можно собрать позже.',
+                'recommended_missing_topics' => array_slice($missingFacts, 0, 6),
+                'can_continue_without_more_questions' => true,
+            ],
+        ];
+    }
+
+    /**
+     * @param array<int,string> $items
+     * @param array<int,string> $needles
+     */
+    private function hasAnyText(array $items, array $needles): bool
+    {
+        $text = mb_strtolower(implode(' ', $items));
+        foreach ($needles as $needle) {
+            if ($needle !== '' && mb_strpos($text, mb_strtolower($needle)) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param array<string,mixed> $idea
+     */
+    private function guessIdeaType(array $idea, string $plainDesc): string
+    {
+        $text = mb_strtolower(implode(' ', [
+            (string)($idea['category'] ?? ''),
+            (string)($idea['product'] ?? ''),
+            (string)($idea['title'] ?? ''),
+            $plainDesc,
+        ]));
+        if (str_contains($text, 'услуг') || str_contains($text, 'сервис')) return 'service';
+        if (str_contains($text, 'продукт') || str_contains($text, 'товар')) return 'product';
+        if (str_contains($text, 'путеше') || str_contains($text, 'тур')) return 'travel';
+        if (str_contains($text, 'инвест')) return 'investment';
+        if (str_contains($text, 'мероприят') || str_contains($text, 'ивент')) return 'event';
+        if (str_contains($text, 'бизнес') || str_contains($text, 'внедрение') || str_contains($text, 'crm') || str_contains($text, '1с')) return 'business';
+        return 'other';
     }
 
     /**
