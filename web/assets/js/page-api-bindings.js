@@ -21864,32 +21864,49 @@ window.CRM.pageApiBindings = (function () {
     var createBtn = document.getElementById('adminWorkflowCreateBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
-      createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название правила', '');
-        if (title === null) return;
-        var trimmedTitle = String(title || '').trim();
-        if (!trimmedTitle) {
-          notify('Название правила не может быть пустым', 'warning');
+      createBtn.addEventListener('click', function () {
+        var modal = document.getElementById('adminWorkflowCreateModal');
+        if (modal && window.bootstrap) {
+          window.bootstrap.Modal.getOrCreateInstance(modal).show();
+        }
+      });
+    }
+
+    var workflowForm = document.getElementById('adminWorkflowCreateForm');
+    if (workflowForm && workflowForm.dataset.bound !== '1') {
+      workflowForm.dataset.bound = '1';
+      workflowForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var payloadRaw = String(workflowForm.querySelector('[name="payload"]').value || '').trim();
+        var payload = null;
+        if (payloadRaw) {
+          try {
+            payload = JSON.parse(payloadRaw);
+          } catch (e) {
+            notify('Параметры должны быть валидным JSON', 'warning');
+            return;
+          }
+        }
+        var data = {
+          title: String(workflowForm.querySelector('[name="title"]').value || '').trim(),
+          trigger_code: String(workflowForm.querySelector('[name="trigger_code"]').value || '').trim(),
+          action_code: String(workflowForm.querySelector('[name="action_code"]').value || '').trim()
+        };
+        if (payload !== null) {
+          data.payload = payload;
+        }
+        if (!data.title || !data.trigger_code || !data.action_code) {
+          notify('Заполните обязательные поля', 'warning');
           return;
         }
-        var entityType = window.prompt('Тип сущности (task, project, ticket)', 'task');
-        if (entityType === null) return;
-        var eventType = window.prompt('Тип события (created, updated, status_changed)', 'created');
-        if (eventType === null) return;
-        var actionType = window.prompt('Тип действия (change_status, assign_user, send_notification)', 'change_status');
-        if (actionType === null) return;
         try {
-          await request('api/v1/workflow/rules', {
-            method: 'POST',
-            body: {
-              title: trimmedTitle,
-              entity_type: String(entityType || '').trim(),
-              event_type: String(eventType || '').trim(),
-              action_type: String(actionType || '').trim(),
-              is_active: true
-            }
-          });
+          await request('api/v1/workflow/rules', { method: 'POST', body: data });
           notify('Правило создано');
+          var modal = document.getElementById('adminWorkflowCreateModal');
+          if (modal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+          workflowForm.reset();
           await loadRules();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать правило');
@@ -22141,28 +22158,41 @@ window.CRM.pageApiBindings = (function () {
     var createBtn = document.getElementById('approvalsCreateBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
-      createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название запроса на согласование', '');
-        if (title === null) return;
-        var trimmedTitle = String(title || '').trim();
-        if (!trimmedTitle) {
-          notify('Название запроса не может быть пустым', 'warning');
+      createBtn.addEventListener('click', function () {
+        var modal = document.getElementById('approvalsCreateModal');
+        if (modal && window.bootstrap) {
+          window.bootstrap.Modal.getOrCreateInstance(modal).show();
+        }
+      });
+    }
+
+    var approvalsForm = document.getElementById('approvalsCreateForm');
+    if (approvalsForm && approvalsForm.dataset.bound !== '1') {
+      approvalsForm.dataset.bound = '1';
+      approvalsForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var data = {
+          entity_type: String(approvalsForm.querySelector('[name="entity_type"]').value || '').trim(),
+          entity_public_id: String(approvalsForm.querySelector('[name="entity_public_id"]').value || '').trim(),
+          reviewer_public_ids: [],
+          comment: String(approvalsForm.querySelector('[name="comment"]').value || '').trim()
+        };
+        var reviewersVal = String(approvalsForm.querySelector('[name="reviewer_public_ids"]').value || '').trim();
+        if (reviewersVal) {
+          data.reviewer_public_ids = reviewersVal.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        }
+        if (!data.entity_type || !data.entity_public_id || !data.reviewer_public_ids.length) {
+          notify('Заполните обязательные поля', 'warning');
           return;
         }
-        var entityType = window.prompt('Тип сущности (task, project, ticket)', 'task');
-        if (entityType === null) return;
-        var entityPublicId = window.prompt('ID сущности', '');
-        if (entityPublicId === null) return;
         try {
-          await request('api/v1/approvals', {
-            method: 'POST',
-            body: {
-              title: trimmedTitle,
-              entity_type: String(entityType || '').trim(),
-              entity_public_id: String(entityPublicId || '').trim()
-            }
-          });
+          await request('api/v1/approvals', { method: 'POST', body: data });
           notify('Запрос на согласование создан');
+          var modal = document.getElementById('approvalsCreateModal');
+          if (modal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+          approvalsForm.reset();
           await loadApprovals();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
@@ -22450,26 +22480,36 @@ window.CRM.pageApiBindings = (function () {
     var createBtn = document.getElementById('recurringCreateBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
-      createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название шаблона', '');
-        if (title === null) return;
-        var trimmedTitle = String(title || '').trim();
-        if (!trimmedTitle) {
-          notify('Название шаблона не может быть пустым', 'warning');
+      createBtn.addEventListener('click', function () {
+        var modal = document.getElementById('recurringCreateModal');
+        if (modal && window.bootstrap) {
+          window.bootstrap.Modal.getOrCreateInstance(modal).show();
+        }
+      });
+    }
+
+    var recurringForm = document.getElementById('recurringCreateForm');
+    if (recurringForm && recurringForm.dataset.bound !== '1') {
+      recurringForm.dataset.bound = '1';
+      recurringForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var data = {
+          entity_type: String(recurringForm.querySelector('[name="entity_type"]').value || '').trim(),
+          entity_public_id: String(recurringForm.querySelector('[name="entity_public_id"]').value || '').trim(),
+          rrule: String(recurringForm.querySelector('[name="rrule"]').value || '').trim()
+        };
+        if (!data.entity_type || !data.entity_public_id || !data.rrule) {
+          notify('Заполните обязательные поля', 'warning');
           return;
         }
-        var schedule = window.prompt('Расписание (например: daily, weekly, 0 9 * * 1)', 'daily');
-        if (schedule === null) return;
         try {
-          await request('api/v1/recurring', {
-            method: 'POST',
-            body: {
-              title: trimmedTitle,
-              schedule: String(schedule || '').trim(),
-              is_active: true
-            }
-          });
+          await request('api/v1/recurring', { method: 'POST', body: data });
           notify('Шаблон создан');
+          var modal = document.getElementById('recurringCreateModal');
+          if (modal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+          recurringForm.reset();
           await loadRecurring();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать шаблон');
