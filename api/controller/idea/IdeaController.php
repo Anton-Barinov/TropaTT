@@ -3141,22 +3141,63 @@ PROMPT;
 
         $ideaId = (int)$idea['id'];
         $pdo = $this->container->get('db.pdo');
+        $this->ensureIdeaWorkflowTables($pdo);
 
-        // Archive wrapper/empty analysis records
-        $pdo->prepare("UPDATE idea_analyses SET status = 'failed_validation', error_message = 'Reset by user' WHERE idea_id = :iid AND result_json LIKE '%\"ok\":%'")
-            ->execute(['iid' => $ideaId]);
+        $deleted = [];
+        $deleteFrom = function (string $table) use ($pdo, $ideaId, &$deleted): void {
+            try {
+                $stmt = $pdo->prepare("DELETE FROM {$table} WHERE idea_id = :iid");
+                $stmt->execute(['iid' => $ideaId]);
+                $deleted[$table] = $stmt->rowCount();
+            } catch (\Throwable $e) {
+                $deleted[$table] = 'skipped';
+            }
+        };
 
-        // Delete old questions and answers
-        $pdo->prepare("DELETE FROM idea_answers WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
-        $pdo->prepare("DELETE FROM idea_questions WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
+        try {
+            $pdo->beginTransaction();
+            // Archive legacy wrapper/empty analysis records when the legacy table exists.
+            try {
+                $stmt = $pdo->prepare("UPDATE idea_analyses SET status = 'failed_validation', error_message = 'Reset by user' WHERE idea_id = :iid");
+                $stmt->execute(['iid' => $ideaId]);
+                $deleted['idea_analyses_archived'] = $stmt->rowCount();
+            } catch (\Throwable) {
+                $deleted['idea_analyses_archived'] = 'skipped';
+            }
 
-        // Clear stale AI data
-        $pdo->prepare("UPDATE ideas SET status = 'draft', coverage_json = NULL, assumptions_json = NULL, known_facts_json = NULL, unknowns_json = NULL, ai_analysis = NULL, ai_analysis_at = NULL WHERE id = :id")
-            ->execute(['id' => $ideaId]);
+            foreach ([
+                'idea_answers',
+                'idea_questions',
+                'idea_question_cycles',
+                'idea_analysis_steps',
+                'idea_ai_iterations',
+                'idea_understanding_cards',
+                'idea_refined_cards',
+                'idea_potential_scores',
+                'idea_risk_reports',
+                'idea_pitfalls_reports',
+                'idea_implementation_plans',
+                'idea_final_recommendations',
+                'idea_suggested_tasks',
+            ] as $table) {
+                $deleteFrom($table);
+            }
+
+            // Clear stale AI data on the idea itself without changing the user-facing workflow status.
+            $pdo->prepare("UPDATE ideas SET coverage_json = NULL, assumptions_json = NULL, known_facts_json = NULL, unknowns_json = NULL, ai_analysis = NULL, ai_analysis_at = NULL WHERE id = :id")
+                ->execute(['id' => $ideaId]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            ai_diag_log("[IDEA_RESET_ANALYSIS_ERROR] " . $e->getMessage());
+            return $this->error('RESET_FAILED', 'Не удалось сбросить AI-анализ.', 500);
+        }
 
         return $this->success('ANALYSIS_RESET', 'AI-анализ сброшен. Можно запустить заново.', [
-            'status' => 'draft',
-            'message' => 'Старые данные очищены. Нажмите «Анализировать» для нового запуска.',
+            'status' => (string)($idea['status'] ?? 'new'),
+            'message' => 'Старые данные AI-анализа очищены. Нажмите «Запустить» для нового анализа.',
+            'deleted' => $deleted,
         ]);
     }
 

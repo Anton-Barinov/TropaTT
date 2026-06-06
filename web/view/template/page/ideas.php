@@ -417,18 +417,57 @@
   }
 
   document.getElementById('startPipelineBtn').addEventListener('click',runPipeline);
-  document.getElementById('showDebugBtn').addEventListener('click',function(){
-    var dbg=document.getElementById('debugCard');if(!dbg)return;
-    dbg.classList.toggle('pipeline-visible');
-    if(dbg.classList.contains('pipeline-visible')) setTimeout(function(){dbg.scrollIntoView({behavior:'smooth',block:'center'});},100);
-  });
-  document.getElementById('resetPipelineBtn').addEventListener('click',function(){
-    if(!confirm('Сбросить прогресс AI-анализа?'))return;
-    localStorage.removeItem(storageKey);
-    state.steps=steps.map(function(s){return{id:s.id,status:'pending'};});
-    saveState();renderSteps();
-    document.getElementById('pipelineStatus').textContent='';
-  });
+	  document.getElementById('showDebugBtn').addEventListener('click',function(){
+	    var dbg=document.getElementById('debugCard');if(!dbg)return;
+	    dbg.classList.toggle('pipeline-visible');
+	    if(dbg.classList.contains('pipeline-visible')) setTimeout(function(){dbg.scrollIntoView({behavior:'smooth',block:'center'});},100);
+	  });
+	  function resetPipelineUi(){
+	    localStorage.removeItem(storageKey);
+	    visibleResults.final=false;visibleResults.tasks=false;
+	    state.steps=steps.map(function(s){return{id:s.id,status:'pending'};});
+	    state.awaitingQuestionIndex=null;
+	    saveState();renderSteps();
+	    var status=document.getElementById('pipelineStatus');if(status)status.textContent='';
+	    var st=document.getElementById('interviewStatus');if(st){st.textContent='Нажмите «Задать вопросы AI» для уточнения деталей идеи.';st.style.color='';}
+	    var replacements={
+	      interviewQuestions:'',interviewHistory:'',clarificationsBody:'',gapBody:'',debugLog:'Логи очищены («Обновить» чтобы загрузить заново)'
+	    };
+	    Object.keys(replacements).forEach(function(id){var el=document.getElementById(id);if(el){el.innerHTML=replacements[id];if(id!=='debugLog')el.style.display='none';}});
+	    var textBlocks={
+	      understandingCardBody:'Карточка понимания идеи еще не собрана.',
+	      refinedCardBody:'Уточненная карточка еще не собрана.',
+	      potentialCardBody:'Потенциал идеи еще не рассчитан.',
+	      riskCardBody:'Риски идеи еще не рассчитаны.',
+	      pitfallsCardBody:'Подводные камни еще не рассчитаны.',
+	      planCardBody:'План реализации еще не собран.',
+	      finalCardBody:'Итоговая рекомендация еще не сформирована.',
+	      tasksCardBody:'Предлагаемые задачи еще не сформированы.'
+	    };
+	    Object.keys(textBlocks).forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='<p class="text-muted mb-0">'+textBlocks[id]+'</p>';});
+	    ['cardUpdated','refinedUpdated','potentialUpdated','riskUpdated','pitfallsUpdated','planUpdated','finalUpdated','tasksUpdated','clarificationsStatus','gapStatus','debugRefreshed'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
+	    ['interviewCard','clarificationsCard','understandingCard','gapQuestionsCard','refinedCard','potentialCard','riskCard','pitfallsCard','planCard','finalCard','tasksCard','debugCard'].forEach(hideBlock);
+	    showBlock('aiPipelineCard');
+	    setStartButtonIdle();
+	  }
+	  document.getElementById('resetPipelineBtn').addEventListener('click',async function(){
+	    if(!confirm('Сбросить прогресс AI-анализа и удалить все уже сгенерированные AI-блоки по этой идее?'))return;
+	    var btn=this;var start=document.getElementById('startPipelineBtn');
+	    try{
+	      running=false;pipelineRunToken++;
+	      btn.disabled=true;if(start)start.disabled=true;
+	      var status=document.getElementById('pipelineStatus');if(status)status.textContent='Сбрасываю AI-анализ...';
+	      if(window.CRM&&window.CRM.api){
+	        await window.CRM.api.request('api/v1/ideas/<?=$publicId?>/reset-analysis',{method:'POST',timeoutMs:30000});
+	      }
+	      resetPipelineUi();
+	    }catch(err){
+	      var status=document.getElementById('pipelineStatus');if(status)status.textContent='Ошибка сброса';
+	      alert('Не удалось сбросить AI-анализ. Попробуйте еще раз.');
+	    }finally{
+	      btn.disabled=false;if(start)start.disabled=false;setStartButtonIdle();
+	    }
+	  });
 
   loadState();renderSteps();
 })();

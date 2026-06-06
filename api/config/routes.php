@@ -705,6 +705,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/ideas/{public_id}', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'delete', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/vote', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'vote', 'auth' => true],
     ['methods' => ['PATCH'], 'pattern' => '/api/v1/ideas/{public_id}/status', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'updateStatus', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/ideas/{public_id}/reset-analysis', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'resetAnalysis', 'auth' => true],
     ['methods' => ['GET','DELETE'], 'pattern' => '/api/v1/ideas/{public_id}/debug-log', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'debugLog', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas/{public_id}/questions', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'questions', 'auth' => true],
     ['methods' => ['GET','POST','DELETE'], 'pattern' => '/api/v1/ideas/{public_id}/additional-questions', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'additionalQuestions', 'auth' => true],
