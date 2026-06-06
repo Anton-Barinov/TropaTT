@@ -3765,6 +3765,18 @@ PROMPT;
             }
         }
         if ($end === -1) {
+            // Log which extra { characters are unclosed for debugging
+            $openPositions = [];
+            $depth = 0;
+            for ($i = $start; $i < strlen($trimmed); $i++) {
+                $ch = $trimmed[$i];
+                if ($ch === '"') continue; // simplified — just log rough positions
+                if ($ch === '{') { $depth++; $openPositions[] = $i; }
+                if ($ch === '}') { $depth--; if ($openPositions) array_pop($openPositions); }
+            }
+            $unclosed = $openPositions ? 'unclosed_at=' . implode(',', array_slice($openPositions, -5)) : '';
+            ai_diag_log("[AI_JSON_UNCLOSED] text_len=" . strlen($trimmed) . " depth=$depth " . $unclosed . " preview=" . substr(preg_replace('/\s+/', ' ', $trimmed), 0, 300));
+
             // Final fallback: use first-{ to last-} range even if braces are unbalanced
             $last = strrpos($trimmed, '}');
             if ($last !== false && $last > $start) {
