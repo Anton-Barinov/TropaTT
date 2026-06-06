@@ -1874,13 +1874,15 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты эксперт по риск-анализу. Оцени риски идеи. Каждый риск: category (market|finance|operations|legal|team|product|technology), probability 1-5, impact 1-5.
+Ты эксперт по риск-анализу. Оцени риски идеи. Каждый риск: category, probability 1-5, impact 1-5.
 
-СТРОГО: Запрещено использовать символы { } в тексте описаний. Если нужно — используй ( ) или скобки [ ].
-Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
+ВАЖНЕЙШЕЕ ПРАВИЛО: ЗАПРЕЩЕНО использовать символы { и } в тексте описаний. 
+Если в тексте нужны скобки — используй ТОЛЬКО ( ) или [ ].
+Любой символ { или } внутри строки "description" или "title" сделает JSON невалидным.
+Твой ответ должен быть ТОЛЬКО JSON. Никакого текста до или после. Никаких markdown-ограждений.
 
-ФОРМАТ:
-{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","confidence_score":0.7,"risk_distribution":{"critical":0,"high":1,"medium":2,"low":1},"risks":[{"title":"Название риска","category":"finance","description":"Описание без фигурных скобок","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое что сделать","Второе"]}}
+JSON:
+{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","risks":[{"title":"Название риска","category":"finance","description":"Описание без символов { или }","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое","Второе"]}}
 PROMPT;
 
         try {
@@ -1970,13 +1972,13 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты анализируешь идею и выявляешь подводные камни. Для каждого: category (finance|market|team|legal|operations|product|technology), probability 1-5, impact 1-5.
+Ты анализируешь идею и выявляешь подводные камни. Для каждого: category, probability 1-5, impact 1-5.
 
-СТРОГО: Запрещено использовать символы { } в тексте описаний. Заменяй на ( ) или [ ].
-Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
+ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
+Твой ответ — ТОЛЬКО JSON, без текста до или после.
 
-УПРОЩЁННЫЙ JSON:
-{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание без фигурных скобок","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
+JSON:
+{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание без { }","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
 PROMPT;
 
         try {
@@ -2066,13 +2068,13 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
         $sp = <<<'PROMPT'
-Ты составляешь практический "План реализации" идеи. Выдели 3-7 этапов, для каждого 2-4 задачи.
+Ты составляешь план реализации идеи. Выдели 3-7 этапов, для каждого 2-4 задачи.
 
-СТРОГО: Запрещено использовать символы { } в тексте описаний. Используй ( ) или [ ].
-Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
+ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
+Твой ответ — ТОЛЬКО JSON, без текста до или после.
 
-УПРОЩЁННЫЙ JSON:
-{"implementation_plan":{"summary":"Общее описание плана","confidence_score":0.7,"stages":[{"title":"Название этапа","goal":"Цель","description":"Описание без фигурных скобок","tasks":[{"title":"Название задачи","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Что делать в ближайшие 7 дней","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"missing_data_to_refine_plan":[],"recommended_next_action":"Что делать в первую очередь"}}
+JSON:
+{"implementation_plan":{"summary":"Общее описание","stages":[{"title":"Название этапа","goal":"Цель","description":"Описание","tasks":[{"title":"Задача","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Ближайшие шаги","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"recommended_next_action":"Первое действие"}}
 PROMPT;
 
         try {
@@ -2291,13 +2293,13 @@ PROMPT;
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'category' => $idea['category'] ?? '', 'current_date' => date('Y-m-d'), 'target_date' => $idea['target_date'] ?? null], 'final_recommendation' => $final, 'implementation_plan' => $plan];
 
          $sp = <<<'PROMPT'
-Based on the idea, create a detailed project plan with tasks.
+Создай детальный план проекта с задачами (8-15 штук).
 
-УПРОЩЁННЫЙ JSON (список задач, 8-15 штук):
-{"summary":"Общее описание проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Название задачи","description":"Описание с конкретными шагами","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Что получится","depends_on":[],"subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат"}]}]}]}
+ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
+Твой ответ — ТОЛЬКО JSON, без текста до или после.
 
-СТРОГО: Запрещено использовать символы { } в тексте описаний. Используй ( ) или [ ].
-Верни ТОЛЬКО JSON. Никакого текста до или после. JSON должен быть полным и валидным.
+JSON:
+{"summary":"Обзор проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Задача","description":"Описание без фигурных скобок","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Результат","subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат"}]}]}]}
 PROMPT;
 
         try {
