@@ -22090,10 +22090,12 @@ window.CRM.pageApiBindings = (function () {
             + '<td data-label="Параметры" class="crm-muted-cell">' + safeText(summarizePayload(actionCode, item.payload)) + '</td>'
             + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
             + '<td data-label="Действия" class="crm-table-actions">'
+            + '<div class="crm-action-list">'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-test="' + safeText(id) + '">Тест</button>'
             + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-edit="' + safeText(id) + '">Изменить</button>'
             + '<button class="btn btn-sm ' + (isEnabled ? 'crm-btn-warning' : 'crm-btn-success') + ' crm-btn-compact" data-rule-toggle="' + safeText(id) + '" data-rule-enabled="' + (isEnabled ? '1' : '0') + '">' + (isEnabled ? 'Отключить' : 'Включить') + '</button>'
             + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-rule-delete="' + safeText(id) + '">Удалить</button>'
+            + '</div>'
             + '</td>'
             + '</tr>';
         }).join('');
@@ -22123,12 +22125,15 @@ window.CRM.pageApiBindings = (function () {
           if (!detail && item.output) {
             try { var out = typeof item.output === 'string' ? JSON.parse(item.output) : item.output; detail = JSON.stringify(out, null, 2); } catch (_) { detail = String(item.output || ''); }
           }
+          var detailHtml = detail
+            ? '<details class="crm-automation-detail"><summary>Показать</summary><p>' + safeText(detail) + '</p></details>'
+            : '<span class="text-muted small">Нет подробностей</span>';
           return '<tr>'
             + '<td data-label="Правило">' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
             + '<td data-label="Событие">' + safeText(labelFrom(workflowTriggerLabels, item.trigger_code)) + '</td>'
             + '<td data-label="Действие">' + safeText(labelFrom(workflowActionLabels, item.action_code)) + '</td>'
             + '<td data-label="Результат"><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
-            + '<td data-label="Подробности" class="crm-muted-cell" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + safeText(detail) + '</td>'
+            + '<td data-label="Подробности" class="crm-muted-cell">' + detailHtml + '</td>'
             + '<td data-label="Дата">' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
             + '</tr>';
         }).join('');
@@ -22647,7 +22652,7 @@ window.CRM.pageApiBindings = (function () {
         var statusClass = status === 'approved' ? 'crm-badge-active' : (status === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
         var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
         var progress = Number(item.reviewers_total || 0) > 0
-          ? '<span class="crm-approval-progress">' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</span>'
+          ? '<span class="crm-approval-progress"><strong>' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</strong> согласовано</span>'
           : '';
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
           + '<td data-label="Запрос"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
@@ -22656,10 +22661,12 @@ window.CRM.pageApiBindings = (function () {
           + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
           + '<td data-label="Дата">' + safeText(formatDate(item.created_at || '')) + '</td>'
           + '<td data-label="Действия" class="crm-table-actions">'
+          + '<div class="crm-action-list">'
           + (status === 'pending'
             ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
               + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
             : '<span class="text-muted small">—</span>')
+          + '</div>'
           + '</td></tr>';
       }).join('');
       body.querySelectorAll('[data-approval-detail]').forEach(function (link) {
@@ -23216,9 +23223,11 @@ window.CRM.pageApiBindings = (function () {
           + '<td data-label="След. запуск">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
           + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
           + '<td data-label="Действия" class="crm-table-actions">'
+          + '<div class="crm-action-list">'
           + (isActive ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">Приостановить</button>' : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">Возобновить</button>')
           + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-recurring-edit="' + safeText(id) + '">Изменить</button>'
           + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">Удалить</button>'
+          + '</div>'
           + '</td></tr>';
       }).join('');
     }
