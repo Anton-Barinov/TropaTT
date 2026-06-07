@@ -24994,6 +24994,7 @@ window.CRM.pageApiBindings = (function () {
       tbody.innerHTML = htmlContent;
       console.log('AFTERSET', tbody.querySelector('tr') ? tbody.querySelector('tr').cells[2].querySelector('span')?.textContent : 'empty');
       bindTimeCells(tbody);
+      console.log('AFTERBIND', tbody.querySelector('tr') ? tbody.querySelector('tr').cells[2].querySelector('span')?.textContent : 'empty');
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
     }
@@ -25036,6 +25037,7 @@ window.CRM.pageApiBindings = (function () {
       });
       tbody.innerHTML = html;
       bindTimeCells(tbody);
+      console.log('EARN_AFTERBIND', document.getElementById('timeAnalyticsTimeBody')?.querySelector('tr')?.cells[2]?.querySelector('span')?.textContent || 'no time tab');
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
     }
@@ -25148,6 +25150,7 @@ window.CRM.pageApiBindings = (function () {
 
       wrap.innerHTML = html;
       bindTimeCells(wrap);
+      console.log('MATRIX_AFTERBIND', document.getElementById('timeAnalyticsTimeBody')?.querySelector('tr')?.cells[2]?.querySelector('span')?.textContent || 'no time tab');
     } catch (e) {
       wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
     }
