@@ -24920,6 +24920,30 @@ window.CRM.pageApiBindings = (function () {
       // Load matrix data
       await loadMatrixSummary();
 
+      // Bind dynamic filter updates (interdependent selects)
+      var filterGroups = [
+        { prefix: '', fromId: 'timeAnalyticsFrom', toId: 'timeAnalyticsTo', teamId: 'timeAnalyticsTeamFilter', projectId: 'timeAnalyticsProjectFilter', userId: 'timeAnalyticsUserFilter' },
+        { prefix: 'Earnings', fromId: 'timeAnalyticsEarningsFrom', toId: 'timeAnalyticsEarningsTo', teamId: 'timeAnalyticsEarningsTeamFilter', projectId: 'timeAnalyticsEarningsProjectFilter', userId: 'timeAnalyticsEarningsUserFilter' },
+        { prefix: 'Matrix', fromId: 'timeAnalyticsMatrixFrom', toId: 'timeAnalyticsMatrixTo', teamId: 'timeAnalyticsMatrixTeamFilter', projectId: 'timeAnalyticsMatrixProjectFilter', userId: 'timeAnalyticsMatrixUserFilter' },
+      ];
+      
+      filterGroups.forEach(function (group) {
+        var teamSel = document.getElementById(group.teamId);
+        var projectSel = document.getElementById(group.projectId);
+        var userSel = document.getElementById(group.userId);
+        
+        function onFilterChange() {
+          if (!teamSel || !projectSel || !userSel) return;
+          var from = document.getElementById(group.fromId)?.value || '';
+          var to = document.getElementById(group.toId)?.value || '';
+          updateFilterOptions(teamSel, projectSel, userSel, from, to);
+        }
+        
+        if (teamSel) teamSel.addEventListener('change', onFilterChange);
+        if (projectSel) projectSel.addEventListener('change', onFilterChange);
+        if (userSel) userSel.addEventListener('change', onFilterChange);
+      });
+
       // Bind apply buttons
       var timeApplyBtn = document.getElementById('timeAnalyticsApplyBtn');
       if (timeApplyBtn) {
@@ -25146,6 +25170,47 @@ window.CRM.pageApiBindings = (function () {
     } catch (e) {
       wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
     }
+  }
+
+  async function updateFilterOptions(teamSel, projectSel, userSel, from, to) {
+    if (!from || !to) return;
+    var teamVal = teamSel ? teamSel.value : '';
+    var projectVal = projectSel ? projectSel.value : '';
+    var userVal = userSel ? userSel.value : '';
+    
+    try {
+      var q = { from: from, to: to };
+      if (teamVal) q.team_public_id = teamVal;
+      if (projectVal) q.project_public_id = projectVal;
+      if (userVal) q.user_public_id = userVal;
+      var env = await window.CRM.api.request('api/v1/worklogs/matrix', { query: q });
+      var data = env && env.data ? env.data : {};
+      
+      // Update team options
+      if (teamSel && !teamVal) {
+        var teams = data.teams || [];
+        teamSel.innerHTML = '<option value="">Все команды</option>';
+        teams.forEach(function(t) {
+          teamSel.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
+        });
+      }
+      // Update project options
+      if (projectSel && !projectVal) {
+        var projects = data.projects || [];
+        projectSel.innerHTML = '<option value="">Все проекты</option>';
+        projects.forEach(function(p) {
+          projectSel.innerHTML += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
+        });
+      }
+      // Update user options
+      if (userSel && !userVal) {
+        var users = data.users || [];
+        userSel.innerHTML = '<option value="">Все пользователи</option>';
+        users.forEach(function(u) {
+          userSel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
+        });
+      }
+    } catch(e) {}
   }
 
   async function openTimeDetailModal(day, userPublicId, userName, projectPublicId) {
