@@ -247,8 +247,10 @@ final class WorklogService
         $from = (string)($filters['from'] ?? '');
         $to = (string)($filters['to'] ?? '');
         $userPublicId = (string)($filters['user_public_id'] ?? '');
+        $teamPublicId = (string)($filters['team_public_id'] ?? '');
+        $projectPublicId = (string)($filters['project_public_id'] ?? '');
 
-        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $actorId, $actorIsRoot);
+        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $teamPublicId ?: null, $projectPublicId ?: null, $actorId, $actorIsRoot);
 
         // Build matrix: [day][user_public_id] = total_minutes
         $matrix = [];
@@ -263,6 +265,7 @@ final class WorklogService
             $userSet[$uid] = true;
             $dayTotals[$day] = ($dayTotals[$day] ?? 0) + $mins;
         }
+        $userSetKeys = array_keys($userSet);
 
         // Generate date range
         $dates = [];
@@ -274,9 +277,10 @@ final class WorklogService
             foreach ($period as $dt) {
                 $dates[] = $dt->format('Y-m-d');
             }
+            $end->modify('-1 day');
         }
 
-        // Get user list
+        // Determine user list
         $users = [];
         if ($userPublicId) {
             $user = $this->worklogs->findUserByPublicId($userPublicId);
@@ -288,11 +292,20 @@ final class WorklogService
                 ];
             }
         } else {
-            // Get all users that have worklogs in period or are active
             $allUsers = $this->worklogs->activeUsers();
             foreach ($allUsers as $u) {
+                $pid = $u['public_id'];
+                // Filter by team if needed
+                if ($teamPublicId && !$this->worklogs->userInTeam($pid, $teamPublicId)) {
+                    continue;
+                }
+                // If project is selected, only include users with time in that project in the period
+                if ($projectPublicId && !in_array($pid, $userSetKeys)) {
+                    continue;
+                }
+                // For no filters, show all active users; if team filter only, team filter already applied
                 $users[] = [
-                    'public_id' => $u['public_id'],
+                    'public_id' => $pid,
                     'login' => $u['login'],
                     'full_name' => $u['full_name'],
                 ];
@@ -311,20 +324,26 @@ final class WorklogService
             }
         }
 
+        // Load filter lists
+        $teams = $this->worklogs->listTeams();
+        $projects = $this->worklogs->listProjects();
+
         return [
             'dates' => $dates,
             'users' => $users,
             'matrix' => $matrix,
             'day_totals' => $dayTotals,
             'user_totals' => $userTotals,
+            'teams' => $teams,
+            'projects' => $projects,
         ];
     }
 
-    public function detail(string $day, string $userPublicId, array $actor): array
+    public function detail(string $day, string $userPublicId, ?string $projectPublicId, array $actor): array
     {
         $actorId = (int)$actor['id'];
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
-        $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $actorId, $actorIsRoot);
+        $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $actorId, $actorIsRoot);
 
         $totalMinutes = 0;
         foreach ($rows as $row) {

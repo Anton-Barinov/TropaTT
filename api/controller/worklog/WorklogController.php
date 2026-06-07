@@ -218,6 +218,7 @@ final class WorklogController extends BaseController
         $input = $this->request()->allInput();
         $day = (string)($input['day'] ?? '');
         $userPublicId = (string)($input['user_public_id'] ?? '');
+        $projectPublicId = (string)($input['project_public_id'] ?? '');
 
         if ($day === '' || $userPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
@@ -225,7 +226,7 @@ final class WorklogController extends BaseController
 
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
-        $result = $service->detail($day, $userPublicId, $authUser['user']);
+        $result = $service->detail($day, $userPublicId, $projectPublicId ?: null, $authUser['user']);
 
         return $this->success('WORKLOG_DETAIL', $this->t('worklog/messages.detail'), $result);
     }

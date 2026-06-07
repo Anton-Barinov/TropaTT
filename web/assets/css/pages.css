@@ -11044,6 +11044,11 @@ font-size: 0.72rem;
 .crm-matrix-table th {
     font-weight: 600;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--crm-surface);
+    z-index: 3;
+    box-shadow: inset 0 -1px 0 var(--crm-border);
 }
 
 .crm-matrix-date-col {
@@ -11051,27 +11056,41 @@ font-size: 0.72rem;
     left: 0;
     background: var(--crm-surface);
     z-index: 2;
-    min-width: 110px;
+    min-width: 130px;
     font-weight: 600;
     border-right: 1px solid var(--crm-border);
 }
 
+.crm-matrix-table thead th.crm-matrix-date-col {
+    z-index: 4;
+}
+
 .crm-matrix-user-col {
-    min-width: 100px;
+    min-width: 150px;
     text-align: center;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .crm-matrix-total-col {
     font-weight: 600;
     text-align: center;
-    min-width: 80px;
+    min-width: 100px;
     background: var(--color-neutral-50);
+}
+
+.crm-matrix-table tfoot .crm-matrix-total-col {
+    position: sticky;
+    bottom: 0;
 }
 
 .crm-matrix-cell {
     text-align: center;
     min-width: 100px;
     cursor: default;
+    padding: 0.4rem 0.5rem !important;
 }
 
 .crm-matrix-cell-has {
@@ -11081,7 +11100,7 @@ font-size: 0.72rem;
 }
 
 .crm-matrix-cell-has:hover {
-    background: var(--color-primary-50);
+    background: var(--color-primary-50) !important;
     text-decoration: underline;
 }
 
@@ -11090,9 +11109,21 @@ font-size: 0.72rem;
 }
 
 .crm-matrix-footer-row td {
-    border-top: 2px solid var(--crm-border);
+    border-top: 2px solid var(--crm-border) !important;
     font-weight: 700;
     background: var(--color-neutral-50);
+}
+
+.crm-matrix-weekend-row td {
+    background: var(--color-neutral-100);
+}
+
+.crm-matrix-weekend-row .crm-matrix-date-col {
+    background: var(--color-neutral-100);
+}
+
+.crm-matrix-weekend-row .crm-matrix-total-col {
+    background: var(--color-neutral-100);
 }
 
 .crm-detail-note-cell {

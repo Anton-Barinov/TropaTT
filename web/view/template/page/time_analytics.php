@@ -35,6 +35,8 @@
     <div class="crm-toolbar-surface d-flex flex-wrap gap-2 align-items-center mb-3">
       <input id="timeAnalyticsMatrixFrom" class="form-control crm-field-w-200" type="date" placeholder="От">
       <input id="timeAnalyticsMatrixTo" class="form-control crm-field-w-200" type="date" placeholder="До">
+      <select id="timeAnalyticsMatrixTeamFilter" class="form-select crm-field-w-220" aria-label="Команда"><option value="">Все команды</option></select>
+      <select id="timeAnalyticsMatrixProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsMatrixUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsMatrixApplyBtn">Применить</button>
     </div>

@@ -24869,14 +24869,40 @@ window.CRM.pageApiBindings = (function () {
       var users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
 
       var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter', 'timeAnalyticsMatrixUserFilter'];
+      var allUsersHtml = '<option value="">Все пользователи</option>';
+      users.forEach(function (u) {
+        allUsersHtml += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
+      });
       userSelects.forEach(function (selId) {
         var sel = document.getElementById(selId);
         if (!sel) return;
-        sel.innerHTML = '<option value="">Все пользователи</option>';
-        users.forEach(function (u) {
-          sel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
-        });
+        sel.innerHTML = allUsersHtml;
       });
+
+      // Load teams and projects for matrix filter
+      var teamSel = document.getElementById('timeAnalyticsMatrixTeamFilter');
+      var projectSel = document.getElementById('timeAnalyticsMatrixProjectFilter');
+      
+      if (teamSel) {
+        try {
+          var teamsEnv = await window.CRM.api.request('api/v1/teams', { query: { limit: 100 } });
+          var teams = (teamsEnv.data?.items || []);
+          teamSel.innerHTML = '<option value="">Все команды</option>';
+          teams.forEach(function(t) {
+            teamSel.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
+          });
+        } catch(e) {}
+      }
+      if (projectSel) {
+        try {
+          var projEnv = await window.CRM.api.request('api/v1/projects', { query: { limit: 200 } });
+          var projects = (projEnv.data?.items || []);
+          projectSel.innerHTML = '<option value="">Все проекты</option>';
+          projects.forEach(function(p) {
+            projectSel.innerHTML += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
+          });
+        } catch(e) {}
+      }
 
       // Load time data
       await loadTimeSummary(timeFrom.value, timeTo.value, '');
@@ -24991,6 +25017,8 @@ window.CRM.pageApiBindings = (function () {
   async function loadMatrixSummary() {
     var from = document.getElementById('timeAnalyticsMatrixFrom').value;
     var to = document.getElementById('timeAnalyticsMatrixTo').value;
+    var teamFilter = document.getElementById('timeAnalyticsMatrixTeamFilter').value;
+    var projectFilter = document.getElementById('timeAnalyticsMatrixProjectFilter').value;
     var userFilter = document.getElementById('timeAnalyticsMatrixUserFilter').value;
     var wrap = document.getElementById('timeAnalyticsMatrixWrap');
     if (!wrap) return;
@@ -24998,6 +25026,8 @@ window.CRM.pageApiBindings = (function () {
     try {
       var q = { from: from, to: to };
       if (userFilter) q.user_public_id = userFilter;
+      if (teamFilter) q.team_public_id = teamFilter;
+      if (projectFilter) q.project_public_id = projectFilter;
       var env = await window.CRM.api.request('api/v1/worklogs/matrix', { query: q });
       var data = env && env.data ? env.data : {};
       var dates = data.dates || [];
@@ -25023,8 +25053,15 @@ window.CRM.pageApiBindings = (function () {
       // Rows
       var grandTotal = 0;
       dates.forEach(function (day) {
+        var d = new Date(day + 'T00:00:00');
+        var dayOfWeek = d.getDay();
+        var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
-        html += '<tr><td class="crm-matrix-date-col">' + formattedDay + '</td>';
+        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        formattedDay += ', ' + dayNames[dayOfWeek];
+
+        html += '<tr' + rowClass + '><td class="crm-matrix-date-col">' + formattedDay + '</td>';
         users.forEach(function (u) {
           var mins = (matrix[day] && matrix[day][u.public_id]) || 0;
           if (mins > 0) {
@@ -25054,7 +25091,8 @@ window.CRM.pageApiBindings = (function () {
           var day = cell.getAttribute('data-day');
           var userId = cell.getAttribute('data-user');
           var userName = cell.getAttribute('data-user-name');
-          openTimeDetailModal(day, userId, userName);
+          var projectId = document.getElementById('timeAnalyticsMatrixProjectFilter').value;
+          openTimeDetailModal(day, userId, userName, projectId);
         });
       });
     } catch (e) {
@@ -25062,7 +25100,7 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  async function openTimeDetailModal(day, userPublicId, userName) {
+  async function openTimeDetailModal(day, userPublicId, userName, projectPublicId) {
     var modal = document.getElementById('timeDetailModal');
     var body = document.getElementById('timeDetailModalBody');
     if (!modal || !body) return;
@@ -25071,7 +25109,9 @@ window.CRM.pageApiBindings = (function () {
     bsModal.show();
 
     try {
-      var env = await window.CRM.api.request('api/v1/worklogs/detail', { query: { day: day, user_public_id: userPublicId } });
+      var q = { day: day, user_public_id: userPublicId };
+      if (projectPublicId) q.project_public_id = projectPublicId;
+      var env = await window.CRM.api.request('api/v1/worklogs/detail', { query: q });
       var data = env && env.data ? env.data : {};
       var items = data.items || [];
       var totalMinutes = data.total_minutes || 0;
