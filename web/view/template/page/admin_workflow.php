@@ -74,6 +74,7 @@
                 <div class="mb-3">
                   <label class="form-label" for="workflowRuleTitle">Название правила</label>
                   <input id="workflowRuleTitle" class="form-control" name="title" maxlength="255" required placeholder="Например: поставить задачу в работу после создания">
+                  <div class="form-text">Дайте понятное название. По нему вы сможете быстро найти правило в списке.</div>
                 </div>
                 <div class="row g-3">
                   <div class="col-md-6">
@@ -102,7 +103,7 @@
                 <!-- Filter conditions for status trigger -->
                 <div class="crm-workflow-action-panel mt-3 d-none" data-filter-panel="task_status_changed">
                   <label class="form-label fw-bold">Условия срабатывания</label>
-                  <div class="crm-inline-help mb-2"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Правило запустится только при переходе из указанного статуса в указанный. Оставьте пустым для срабатывания при любом изменении.</span></div>
+                  <div class="crm-inline-help mb-2"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Правило сработает только при переходе задачи из одного статуса в другой. Можно не указывать «из» или «в» — тогда правило сработает при любом изменении.</span></div>
                   <div class="row g-3">
                     <div class="col-md-6"><label class="form-label" for="workflowFromStatus">Из статуса</label><select id="workflowFromStatus" class="form-select" name="from_status_code"><option value="">Любой статус</option></select></div>
                     <div class="col-md-6"><label class="form-label" for="workflowToStatus">В статус</label><select id="workflowToStatus" class="form-select" name="to_status_code"><option value="">Любой статус</option></select></div>

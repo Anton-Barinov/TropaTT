@@ -68,7 +68,7 @@
               </div>
               <div class="mt-3"><label class="form-label">Комментарий к запросу</label><textarea class="form-control" name="comment" maxlength="1000" rows="3" placeholder="Например: проверьте бюджет, сроки и готовность к запуску"></textarea></div>
             </div>
-            <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-primary" type="submit">Отправить на согласование</button></div>
+            <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal">Отмена</button><button class="btn crm-btn-primary" type="submit" id="approvalsCreateSubmitBtn">Отправить на согласование</button></div>
           </form>
         </div>
       </div>

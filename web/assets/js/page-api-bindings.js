@@ -22188,6 +22188,8 @@ window.CRM.pageApiBindings = (function () {
           notify(validationError, 'warning');
           return;
         }
+        var submitBtn = document.getElementById('adminWorkflowSubmitBtn');
+        if (submitBtn) submitBtn.disabled = true;
         try {
           if (ruleId) {
             await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'PATCH', body: data });
@@ -22203,6 +22205,8 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать правило');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
     }
@@ -22755,6 +22759,8 @@ window.CRM.pageApiBindings = (function () {
         var action = String(decisionForm.querySelector('[name="action"]').value || '').trim();
         var comment = String((document.getElementById('approvalsDecisionComment') || {}).value || '').trim();
         if (!approvalId || !action) return;
+        var decSubmit = document.getElementById('approvalsDecisionSubmitBtn');
+        if (decSubmit) decSubmit.disabled = true;
         try {
           var endpoint = 'api/v1/approvals/' + encodeURIComponent(approvalId) + '/' + (action === 'approve' ? 'approve' : 'reject');
           await request(endpoint, { method: 'POST', body: { comment: comment } });
@@ -22765,6 +22771,8 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        } finally {
+          if (decSubmit) decSubmit.disabled = false;
         }
       });
     }
@@ -22880,13 +22888,8 @@ window.CRM.pageApiBindings = (function () {
           notify('Укажите название запроса', 'warning');
           return;
         }
-        var data = {
-          title: String(approvalsForm.querySelector('[name="title"]')?.value || '').trim(),
-          entity_type: entityType,
-          entity_public_id: entityPublicId,
-          reviewer_public_ids: selectedReviewers,
-          comment: String(approvalsForm.querySelector('[name="comment"]').value || '').trim()
-        };
+        var submitCreate = document.getElementById('approvalsCreateSubmitBtn');
+        if (submitCreate) submitCreate.disabled = true;
         try {
           await request('api/v1/approvals', { method: 'POST', body: data });
           notify('Запрос на согласование создан');
@@ -22900,6 +22903,8 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        } finally {
+          if (submitCreate) submitCreate.disabled = false;
         }
       });
     }
@@ -23321,6 +23326,8 @@ window.CRM.pageApiBindings = (function () {
         if (!/^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;|$)/i.test(data.rrule)) {
           notify('Расписание должно начинаться с FREQ=DAILY, WEEKLY, MONTHLY или YEARLY', 'warning'); return;
         }
+        var recurringSubmit = document.getElementById('recurringSubmitBtn');
+        if (recurringSubmit) recurringSubmit.disabled = true;
         try {
           if (editId) {
             await request('api/v1/recurring/' + encodeURIComponent(editId), { method: 'PATCH', body: data });
@@ -23336,6 +23343,8 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось сохранить');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        } finally {
+          if (recurringSubmit) recurringSubmit.disabled = false;
         }
       });
     }
