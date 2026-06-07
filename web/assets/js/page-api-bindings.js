@@ -15990,7 +15990,7 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanReadFiltersFromQuery() {
     var query = pageQuery();
-    return {
+    var filters = {
       q: String(query.get('q') || query.get('search') || '').trim(),
       assignees: kanbanParamList(query, 'assignee'),
       managers: kanbanParamList(query, 'manager'),
@@ -15999,6 +15999,19 @@ window.CRM.pageApiBindings = (function () {
       dueFrom: String(query.get('due_from') || '').trim(),
       dueTo: String(query.get('due_to') || '').trim()
     };
+    // If no URL params, try reading from cookie
+    var hasParams = query.toString().indexOf('=') >= 0;
+    if (!hasParams) {
+      try {
+        var cookie = JSON.parse(decodeURIComponent(document.cookie.replace(/(?:(?:^|.*;\s*)kanbanFilters\s*\=\s*([^;]*).*$)|^.*$/, '$1')) || '{}');
+        if (cookie.q) filters.q = cookie.q;
+        if (cookie.assignees && cookie.assignees.length) filters.assignees = cookie.assignees;
+        if (cookie.managers && cookie.managers.length) filters.managers = cookie.managers;
+        if (cookie.projects && cookie.projects.length) filters.projects = cookie.projects;
+        if (cookie.due) filters.due = cookie.due;
+      } catch (_) {}
+    }
+    return filters;
   }
 
   function kanbanIsDone(task) {
@@ -16174,18 +16187,21 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanPopulateSelect(select, map, selected, kind) {
     if (!select) return;
-    var current = Array.isArray(selected) ? selected : [];
-    var entries = Object.keys(map || {}).map(function (key) {
+    // Build drop-down: first option is "All", then specific values, then __none
+    var current = Array.isArray(selected) ? (selected.length ? selected[0] : '') : (String(selected || ''));
+    var entries = [{ value: '', label: kanbanT('kanban.filters.all', 'Все') }];
+    var others = Object.keys(map || {}).map(function (key) {
       return { value: key, label: kanbanOptionLabel(kind, key, map[key]) };
     }).sort(function (a, b) {
-      if (a.value === '__none') return -1;
-      if (b.value === '__none') return 1;
+      if (a.value === '__none') return 1;
+      if (b.value === '__none') return -1;
       return a.label.localeCompare(b.label, 'ru');
     });
+    entries = entries.concat(others);
     select.innerHTML = entries.map(function (item) {
       return '<option value="' + safeText(item.value) + '">' + safeText(item.label) + '</option>';
     }).join('');
-    kanbanSetMultiValue(select, current);
+    select.value = entries.some(function (e) { return e.value === current; }) ? current : '';
   }
 
   function kanbanUpdateUrl(filters) {
@@ -16201,6 +16217,29 @@ window.CRM.pageApiBindings = (function () {
     if (filters.dueFrom) query.due_from = filters.dueFrom;
     if (filters.dueTo) query.due_to = filters.dueTo;
     window.history.replaceState({}, '', window.CRM.api.buildWebUrl('kanban', query));
+    // Save filters to cookie for persistence across page reloads
+    try {
+      var cookieData = {
+        q: filters.q || '',
+        assignees: filters.assignees || [],
+        managers: filters.managers || [],
+        projects: filters.projects || [],
+        due: filters.due || ''
+      };
+      document.cookie = 'kanbanFilters=' + encodeURIComponent(JSON.stringify(cookieData)) + ';path=/;max-age=604800;SameSite=Lax';
+    } catch (_) {}
+  }
+
+  function kanbanCurrentFiltersFromControls() {
+    return {
+      q: String((document.getElementById('kanbanSearchInput') || {}).value || '').trim(),
+      assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
+      managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
+      projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
+      due: String((document.querySelector('[data-kanban-due].is-active') || {}).getAttribute('data-kanban-due') || '').trim(),
+      dueFrom: '',
+      dueTo: ''
+    };
   }
 
   function kanbanCurrentFiltersFromControls() {

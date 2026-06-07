@@ -11,15 +11,15 @@
   </div>
   <div>
     <label class="crm-filter-label" for="kanbanAssigneeFilter" data-i18n="kanban.filters.assignee"><?= htmlspecialchars($t('kanban.filters.assignee', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></label>
-    <select class="form-select" id="kanbanAssigneeFilter" multiple size="2" aria-label="<?= htmlspecialchars($t('kanban.filters.assignee_aria', 'Фильтр по исполнителям'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.assignee_aria"></select>
+    <select class="form-select" id="kanbanAssigneeFilter" aria-label="<?= htmlspecialchars($t('kanban.filters.assignee_aria', 'Фильтр по исполнителям'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.assignee_aria"></select>
   </div>
   <div>
     <label class="crm-filter-label" for="kanbanManagerFilter" data-i18n="kanban.filters.manager"><?= htmlspecialchars($t('kanban.filters.manager', 'Менеджер'), ENT_QUOTES, 'UTF-8') ?></label>
-    <select class="form-select" id="kanbanManagerFilter" multiple size="2" aria-label="<?= htmlspecialchars($t('kanban.filters.manager_aria', 'Фильтр по менеджерам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.manager_aria"></select>
+    <select class="form-select" id="kanbanManagerFilter" aria-label="<?= htmlspecialchars($t('kanban.filters.manager_aria', 'Фильтр по менеджерам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.manager_aria"></select>
   </div>
   <div>
     <label class="crm-filter-label" for="kanbanProjectFilter" data-i18n="kanban.filters.project"><?= htmlspecialchars($t('kanban.filters.project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></label>
-    <select class="form-select" id="kanbanProjectFilter" multiple size="2" aria-label="<?= htmlspecialchars($t('kanban.filters.project_aria', 'Фильтр по проектам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.project_aria"></select>
+    <select class="form-select" id="kanbanProjectFilter" aria-label="<?= htmlspecialchars($t('kanban.filters.project_aria', 'Фильтр по проектам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.project_aria"></select>
   </div>
   <div class="crm-kanban-due-filters" role="group" aria-label="<?= htmlspecialchars($t('kanban.filters.due_aria', 'Фильтры по срокам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.due_aria">
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue" data-i18n="kanban.filters.overdue"><?= htmlspecialchars($t('kanban.filters.overdue', 'Просроченные'), ENT_QUOTES, 'UTF-8') ?></button>
