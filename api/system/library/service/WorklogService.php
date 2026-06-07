@@ -217,7 +217,8 @@ final class WorklogService
     {
         $actorId = (int)$actor['id'];
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
-        $rows = $this->worklogs->summaryByDay($filters, $actorId, $actorIsRoot);
+        $teamPublicId = (string)($filters['team_public_id'] ?? '');
+        $rows = $this->worklogs->summaryByDay($filters, $actorId, $actorIsRoot, $teamPublicId ?: null);
         return ['items' => $rows];
     }
 
@@ -225,7 +226,8 @@ final class WorklogService
     {
         $actorId = (int)$actor['id'];
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
-        $rows = $this->worklogs->earningsByDay($filters, $actorId, $actorIsRoot);
+        $teamPublicId = (string)($filters['team_public_id'] ?? '');
+        $rows = $this->worklogs->earningsByDay($filters, $actorId, $actorIsRoot, $teamPublicId ?: null);
         return ['items' => $rows];
     }
 

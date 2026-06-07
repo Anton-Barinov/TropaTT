@@ -24917,6 +24917,9 @@ window.CRM.pageApiBindings = (function () {
       // Load earnings data
       await loadEarningsSummary(earnFrom.value, earnTo.value, '', '', '');
 
+      // Load matrix data
+      await loadMatrixSummary();
+
       // Bind apply buttons
       var timeApplyBtn = document.getElementById('timeAnalyticsApplyBtn');
       if (timeApplyBtn) {
@@ -24973,20 +24976,17 @@ window.CRM.pageApiBindings = (function () {
         tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Нет данных за выбранный период</td></tr>';
         return;
       }
-      var html = '';
+      var rows = [];
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
-        var formatted = formatMinutesShort(mins);
-        console.log('WLTIME', row.day, row.user_full_name, mins, formatted);
-        var timeHtml = mins > 0
-          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatted + '</span>'
-          : '0';
-        html += '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="crm-matrix-cell">' + timeHtml + '</td></tr>';
+        var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
+        var cls = (mins > 0) ? ' class="crm-matrix-cell-has"' : '';
+        rows.push('<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="crm-matrix-cell">' + (cls ? '<span' + cls + clickAttr + '>' + timeStr + '</span>' : timeStr) + '</td></tr>');
       });
-      tbody.innerHTML = html;
+      tbody.innerHTML = rows.join('');
       bindTimeCells(tbody);
     } catch (e) {
-      console.error('WLTIME err', e);
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
     }
   }
@@ -25009,15 +25009,13 @@ window.CRM.pageApiBindings = (function () {
       var html = '';
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
-        var formatted = formatMinutesShort(mins);
-        console.log('WLEARN', row.day, row.user_full_name, mins, formatted);
-        var timeHtml = mins > 0
-          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatted + '</span>'
-          : '0';
+        var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
+        var cls = (mins > 0) ? ' class="crm-matrix-cell-has"' : '';
         html += '<tr>'
           + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
           + '<td>' + safeText(row.user_full_name || row.user_login) + '</td>'
-          + '<td class="crm-matrix-cell">' + timeHtml + '</td>'
+          + '<td class="crm-matrix-cell">' + (cls ? '<span' + cls + clickAttr + '>' + timeStr + '</span>' : timeStr) + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'

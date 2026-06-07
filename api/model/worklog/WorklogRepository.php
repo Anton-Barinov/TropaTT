@@ -142,7 +142,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, day: string}>
      */
-    public function summaryByDay(array $filters, int $actorUserId, bool $actorIsRoot): array
+    public function summaryByDay(array $filters, int $actorUserId, bool $actorIsRoot, ?string $teamPublicId = null): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -171,6 +171,46 @@ final class WorklogRepository
         if (!empty($filters['user_public_id'])) {
             $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
         }
+        if (!empty($filters['project_public_id'])) {
+            $qb->join('tasks t', 't.id', '=', 'w.task_id');
+            $project = (new QueryBuilder($this->pdo))
+                ->from('projects')
+                ->select(['id'])
+                ->where('public_id', '=', (string)$filters['project_public_id'])
+                ->first();
+            if ($project) {
+                $qb->where('t.project_id', '=', (int)$project['id']);
+            }
+        }
+        if (!empty($teamPublicId)) {
+            $team = (new QueryBuilder($this->pdo))
+                ->from('teams')
+                ->select(['member_user_ids'])
+                ->where('public_id', '=', $teamPublicId)
+                ->first();
+            if ($team && isset($team['member_user_ids'])) {
+                $raw = $team['member_user_ids'];
+                $memberIds = [];
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $v) {
+                            $iv = (int)$v;
+                            if ($iv > 0) $memberIds[] = $iv;
+                        }
+                    }
+                } elseif (is_array($raw)) {
+                    foreach ($raw as $v) {
+                        $iv = (int)$v;
+                        if ($iv > 0) $memberIds[] = $iv;
+                    }
+                }
+                if ($memberIds !== []) {
+                    $memberIds = array_values(array_unique($memberIds));
+                    $qb->whereIn('u.id', $memberIds);
+                }
+            }
+        }
 
         return $qb->get();
     }
@@ -178,7 +218,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float, cost_amount: float, bill_amount: float, day: string}>
      */
-    public function earningsByDay(array $filters, int $actorUserId, bool $actorIsRoot): array
+    public function earningsByDay(array $filters, int $actorUserId, bool $actorIsRoot, ?string $teamPublicId = null): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -210,6 +250,46 @@ final class WorklogRepository
         }
         if (!empty($filters['user_public_id'])) {
             $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
+        }
+        if (!empty($filters['project_public_id'])) {
+            $qb->join('tasks t', 't.id', '=', 'w.task_id');
+            $project = (new QueryBuilder($this->pdo))
+                ->from('projects')
+                ->select(['id'])
+                ->where('public_id', '=', (string)$filters['project_public_id'])
+                ->first();
+            if ($project) {
+                $qb->where('t.project_id', '=', (int)$project['id']);
+            }
+        }
+        if (!empty($teamPublicId)) {
+            $team = (new QueryBuilder($this->pdo))
+                ->from('teams')
+                ->select(['member_user_ids'])
+                ->where('public_id', '=', $teamPublicId)
+                ->first();
+            if ($team && isset($team['member_user_ids'])) {
+                $raw = $team['member_user_ids'];
+                $memberIds = [];
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $v) {
+                            $iv = (int)$v;
+                            if ($iv > 0) $memberIds[] = $iv;
+                        }
+                    }
+                } elseif (is_array($raw)) {
+                    foreach ($raw as $v) {
+                        $iv = (int)$v;
+                        if ($iv > 0) $memberIds[] = $iv;
+                    }
+                }
+                if ($memberIds !== []) {
+                    $memberIds = array_values(array_unique($memberIds));
+                    $qb->whereIn('u.id', $memberIds);
+                }
+            }
         }
 
         return $qb->get();
