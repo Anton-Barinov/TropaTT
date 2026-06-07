@@ -22958,173 +22958,235 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderRecurringPage() {
+    var recurringData = [];
+    var activeFilter = 'all';
+
     function recurringEmptyRow(colspan, title, text) {
       return '<tr class="crm-automation-empty-row"><td colspan="' + Number(colspan || 1) + '">'
-        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div>'
-        + '</td></tr>';
+        + '<div class="crm-empty-state crm-automation-empty"><strong>' + safeText(title) + '</strong><p class="mb-0">' + safeText(text) + '</p></div></td></tr>';
     }
     function formatRruleLabel(value) {
       var rrule = String(value || '').trim();
       var labels = {
-        'FREQ=DAILY': 'Каждый день',
-        'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': 'По будням',
-        'FREQ=WEEKLY;BYDAY=MO,WE,FR': 'Пн, ср, пт',
-        'FREQ=MONTHLY;BYMONTHDAY=1': '1-го числа каждого месяца'
+        'FREQ=DAILY': 'Каждый день', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': 'По будням',
+        'FREQ=WEEKLY;BYDAY=MO,WE,FR': 'Пн, ср, пт', 'FREQ=WEEKLY;INTERVAL=2': 'Раз в 2 недели',
+        'FREQ=MONTHLY;BYMONTHDAY=1': '1-го числа', 'FREQ=MONTHLY;BYMONTHDAY=15': '15-го числа'
       };
       return labels[rrule] || rrule || '—';
     }
-    async function loadRecurring() {
+    var entityLabels = { task: 'Задача', project: 'Проект', reminder: 'Напоминание', calendar_event: 'Событие' };
+    function entityLabel(v) { return entityLabels[String(v || '').trim()] || v || '—'; }
+
+    function renderRecurringTable(items) {
       var body = document.getElementById('recurringBody');
       if (!body) return;
+      var active = recurringData.filter(function (i) { return String(i.is_active || i.status) === '1' || i.is_active === true; }).length;
+      var paused = recurringData.length - active;
+      var buttons = document.querySelectorAll('#recurringStatusFilter button');
+      if (buttons.length >= 3) { buttons[0].textContent = 'Все (' + recurringData.length + ')'; buttons[1].textContent = 'Активные (' + active + ')'; buttons[2].textContent = 'Приостановлены (' + paused + ')'; }
+      var countEl = document.getElementById('recurringCountBadge');
+      if (countEl) countEl.textContent = recurringData.length + ' шаблонов (активных: ' + active + ', приостановлено: ' + paused + ')';
+      if (!items.length) {
+        var msg = activeFilter === 'all' ? 'Шаблонов пока нет' : 'Нет шаблонов с таким статусом';
+        body.innerHTML = recurringEmptyRow(6, msg, activeFilter === 'all' ? 'Создайте первый шаблон для автосоздания задач.' : 'Измените фильтр.');
+        return;
+      }
+      body.innerHTML = items.map(function (item) {
+        var id = item.public_id || '';
+        var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
+        var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
+        var rrule = item.rrule || item.schedule || '';
+        return '<tr data-recurring-id="' + safeText(id) + '">'
+          + '<td>' + safeText(item.title || item.name || id) + '</td>'
+          + '<td>' + safeText(entityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
+          + '<td>' + safeText(formatRruleLabel(rrule)) + '</td>'
+          + '<td>' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
+          + '<td><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
+          + '<td class="crm-table-actions">'
+          + (isActive ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">Приостановить</button>' : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">Возобновить</button>')
+          + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-recurring-edit="' + safeText(id) + '">Изменить</button>'
+          + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">Удалить</button>'
+          + '</td></tr>';
+      }).join('');
+    }
+
+    async function loadRecurring() {
       try {
         var envelope = await request('api/v1/recurring', { query: { limit: 100 } });
-        var items = mapItems(envelope);
-        if (!items.length) {
-          body.innerHTML = recurringEmptyRow(5, 'Шаблонов пока нет', 'Создайте первый шаблон, чтобы CRM автоматически повторяла регулярные задачи или события.');
-          return;
-        }
-        body.innerHTML = items.map(function (item) {
-          var id = item.public_id || '';
-          var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
-          var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
-          var statusLabel = isActive ? 'Активен' : 'Приостановлен';
-          var rrule = item.rrule || item.schedule || item.cron || item.recurrence || '';
-          return '<tr data-recurring-id="' + safeText(id) + '">'
-            + '<td>' + safeText(item.title || item.name || id) + '</td>'
-            + '<td><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule || '—') + '</span></td>'
-            + '<td>' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
-            + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td class="crm-table-actions">';
-        }).join('');
-
-        // Add action buttons
-        items.forEach(function (item) {
-          var id = item.public_id || '';
-          var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
-          var row = body.querySelector('tr[data-recurring-id="' + id + '"]');
-          if (row) {
-            var actionsCell = row.querySelector('td:last-child');
-            if (actionsCell) {
-              var toggleBtn = isActive
-                ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">Приостановить</button>'
-                : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">Возобновить</button>';
-              actionsCell.innerHTML = toggleBtn
-                + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=recurring&edit=' + encodeURIComponent(id) + '">Изменить</a>'
-                + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">Удалить</button>';
-            }
-          }
-        });
+        recurringData = mapItems(envelope);
+        applyRecurringFilters();
       } catch (error) {
-        body.innerHTML = recurringEmptyRow(5, 'Не удалось загрузить шаблоны', 'Проверьте доступ к API и повторите обновление.');
+        var body = document.getElementById('recurringBody');
+        if (body) body.innerHTML = recurringEmptyRow(6, 'Не удалось загрузить', 'Проверьте доступ к API.');
       }
     }
 
+    function applyRecurringFilters() {
+      var items = recurringData;
+      if (activeFilter !== 'all') {
+        items = items.filter(function (i) { return activeFilter === 'active' ? (String(i.is_active || i.status) === '1' || i.is_active === true) : !(String(i.is_active || i.status) === '1' || i.is_active === true); });
+      }
+      var searchVal = String((document.getElementById('recurringSearchInput') || {}).value || '').toLowerCase().trim();
+      if (searchVal) { items = items.filter(function (i) { return (i.title || i.name || '').toLowerCase().indexOf(searchVal) !== -1; }); }
+      renderRecurringTable(items);
+    }
+
+    // Search
+    var searchInput = document.getElementById('recurringSearchInput');
+    if (searchInput && searchInput.dataset.bound !== '1') { searchInput.dataset.bound = '1'; searchInput.addEventListener('input', applyRecurringFilters); }
+
+    // Status filter
+    var filterGroup = document.getElementById('recurringStatusFilter');
+    if (filterGroup && filterGroup.dataset.bound !== '1') { filterGroup.dataset.bound = '1';
+      filterGroup.addEventListener('click', function (event) {
+        var btn = event.target.closest('button'); if (!btn) return;
+        activeFilter = String(btn.getAttribute('data-recurring-filter') || 'all');
+        filterGroup.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        applyRecurringFilters();
+      });
+    }
+
+    // Refresh
     var refreshBtn = document.getElementById('recurringRefreshBtn');
-    if (refreshBtn && refreshBtn.dataset.bound !== '1') {
-      refreshBtn.dataset.bound = '1';
-      refreshBtn.addEventListener('click', function () {
-        loadRecurring();
-      });
-    }
+    if (refreshBtn && refreshBtn.dataset.bound !== '1') { refreshBtn.dataset.bound = '1'; refreshBtn.addEventListener('click', loadRecurring); }
 
+    // Create button
     var createBtn = document.getElementById('recurringCreateBtn');
-    if (createBtn && createBtn.dataset.bound !== '1') {
-      createBtn.dataset.bound = '1';
+    var modalTitle = document.getElementById('recurringModalTitle');
+    var submitBtn2 = document.getElementById('recurringSubmitBtn');
+    if (createBtn && createBtn.dataset.bound !== '1') { createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', function () {
+        var form = document.getElementById('recurringCreateForm'); if (form) form.reset();
+        form.querySelector('[name="public_id"]').value = '';
+        if (modalTitle) modalTitle.textContent = 'Создать шаблон';
+        if (submitBtn2) submitBtn2.textContent = 'Создать шаблон';
+        resetRecurringSearch();
         var modal = document.getElementById('recurringCreateModal');
-        if (modal && window.bootstrap) {
-          window.bootstrap.Modal.getOrCreateInstance(modal).show();
-        }
+        if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
       });
     }
 
+    function resetRecurringSearch() {
+      var es = document.getElementById('recurringEntitySearch'); if (es) es.value = '';
+      var eh = document.querySelector('#recurringCreateForm [name="entity_public_id"]'); if (eh) eh.value = '';
+      var ed = document.getElementById('recurringEntityResults'); if (ed) ed.classList.add('d-none');
+    }
+
+    // Entity autocomplete
+    var entitySearch = document.getElementById('recurringEntitySearch');
+    var entityDropdown = document.getElementById('recurringEntityResults');
+    var entityHidden = document.querySelector('#recurringCreateForm [name="entity_public_id"]');
+    if (entitySearch && entitySearch.dataset.bound !== '1') { entitySearch.dataset.bound = '1';
+      entitySearch.addEventListener('input', async function () {
+        var query = String(entitySearch.value || '').trim();
+        if (query.length < 2) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
+        if (entityDropdown) { entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Поиск...</div>'; entityDropdown.classList.remove('d-none'); }
+        try {
+          var entityType = String((document.getElementById('recurringEntityType') || {}).value || 'task').trim();
+          var endpoint = entityType === 'project' ? 'api/v1/projects' : 'api/v1/tasks';
+          var envelope = await request(endpoint, { query: { limit: 20, search: query }, silent: true });
+          var items = mapItems(envelope);
+          if (!items.length) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ничего не найдено</div>'; return; }
+          entityDropdown.innerHTML = items.map(function (item) {
+            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(item.title || '') + '"><strong>' + safeText(item.title || item.public_id || '') + '</strong><span class="text-muted ms-2">' + (item.project_title ? safeText(item.project_title) : '') + '</span></div>';
+          }).join('');
+        } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка</div>'; }
+      });
+      document.addEventListener('click', function (event) { if (entityDropdown && entitySearch && !entityDropdown.classList.contains('d-none') && !entitySearch.contains(event.target) && !entityDropdown.contains(event.target)) entityDropdown.classList.add('d-none'); });
+      if (entityDropdown) { entityDropdown.addEventListener('click', function (event) {
+        var item = event.target.closest('[data-entity-id]'); if (!item) return;
+        entitySearch.value = String(item.getAttribute('data-entity-title') || '').trim();
+        if (entityHidden) entityHidden.value = String(item.getAttribute('data-entity-id') || '').trim();
+        entityDropdown.classList.add('d-none');
+      });}
+    }
+    var entityTypeSelect2 = document.getElementById('recurringEntityType');
+    if (entityTypeSelect2) { entityTypeSelect2.addEventListener('change', resetRecurringSearch); }
+
+    // Form submit
     var recurringForm = document.getElementById('recurringCreateForm');
-    if (recurringForm && recurringForm.dataset.bound !== '1') {
-      recurringForm.dataset.bound = '1';
+    if (recurringForm && recurringForm.dataset.bound !== '1') { recurringForm.dataset.bound = '1';
       recurringForm.addEventListener('click', function (event) {
-        var presetBtn = event.target.closest('[data-rrule-preset]');
-        if (!presetBtn) return;
-        var rruleInput = recurringForm.querySelector('[name="rrule"]');
-        if (!rruleInput) return;
+        var presetBtn = event.target.closest('[data-rrule-preset]'); if (!presetBtn) return;
+        var rruleInput = recurringForm.querySelector('[name="rrule"]'); if (!rruleInput) return;
         rruleInput.value = String(presetBtn.getAttribute('data-rrule-preset') || '').trim();
-        rruleInput.focus();
       });
       recurringForm.addEventListener('submit', async function (event) {
         event.preventDefault();
+        var editId = String(recurringForm.querySelector('[name="public_id"]').value || '').trim();
+        var titleVal = String(recurringForm.querySelector('[name="title"]')?.value || '').trim();
+        var entityPublicId = String((entityHidden || {}).value || recurringForm.querySelector('[name="entity_public_id"]')?.value || '').trim();
         var data = {
+          title: titleVal,
           entity_type: String(recurringForm.querySelector('[name="entity_type"]').value || '').trim(),
-          entity_public_id: String(recurringForm.querySelector('[name="entity_public_id"]').value || '').trim(),
+          entity_public_id: entityPublicId,
           rrule: String(recurringForm.querySelector('[name="rrule"]').value || '').trim()
         };
-        if (!data.entity_type || !data.entity_public_id || !data.rrule) {
-          notify('Заполните обязательные поля', 'warning');
-          return;
+        if (!data.title || !data.entity_type || !data.entity_public_id || !data.rrule) {
+          var errMsg = !data.title ? 'Укажите название' : !data.entity_public_id ? 'Выберите задачу или проект' : !data.rrule ? 'Укажите расписание' : 'Заполните все поля';
+          notify(errMsg, 'warning'); return;
         }
         try {
-          await request('api/v1/recurring', { method: 'POST', body: data });
-          notify('Шаблон создан');
-          var modal = document.getElementById('recurringCreateModal');
-          if (modal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          if (editId) {
+            await request('api/v1/recurring/' + encodeURIComponent(editId), { method: 'PATCH', body: data });
+            notify('Шаблон обновлён');
+          } else {
+            await request('api/v1/recurring', { method: 'POST', body: data });
+            notify('Шаблон создан');
           }
-          recurringForm.reset();
+          var modal = document.getElementById('recurringCreateModal');
+          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).hide(); }
+          recurringForm.reset(); resetRecurringSearch();
           await loadRecurring();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать шаблон');
+          var normalized = window.CRM.api.normalizeError(error, 'Не удалось сохранить');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
     }
 
+    // Table actions + edit
     var recurringBody = document.getElementById('recurringBody');
-    if (recurringBody && recurringBody.dataset.bound !== '1') {
-      recurringBody.dataset.bound = '1';
+    if (recurringBody && recurringBody.dataset.bound !== '1') { recurringBody.dataset.bound = '1';
       recurringBody.addEventListener('click', async function (event) {
         var pauseBtn = event.target.closest('[data-recurring-pause]');
-        if (pauseBtn) {
-          var itemId = String(pauseBtn.getAttribute('data-recurring-pause') || '').trim();
-          if (!itemId) return;
-          try {
-            await request('api/v1/recurring/' + encodeURIComponent(itemId) + '/pause', { method: 'POST' });
-            notify('Шаблон приостановлен');
-            await loadRecurring();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось приостановить шаблон');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
-          }
-          return;
-        }
-
+        if (pauseBtn) { var pid = String(pauseBtn.getAttribute('data-recurring-pause')||'').trim(); if (!pid) return;
+          try { await request('api/v1/recurring/'+encodeURIComponent(pid)+'/pause',{method:'POST'}); notify('Приостановлен'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); } return; }
         var resumeBtn = event.target.closest('[data-recurring-resume]');
-        if (resumeBtn) {
-          var itemId = String(resumeBtn.getAttribute('data-recurring-resume') || '').trim();
-          if (!itemId) return;
-          try {
-            await request('api/v1/recurring/' + encodeURIComponent(itemId) + '/resume', { method: 'POST' });
-            notify('Шаблон возобновлен');
-            await loadRecurring();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось возобновить шаблон');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
-          }
-          return;
-        }
-
+        if (resumeBtn) { var rid = String(resumeBtn.getAttribute('data-recurring-resume')||'').trim(); if (!rid) return;
+          try { await request('api/v1/recurring/'+encodeURIComponent(rid)+'/resume',{method:'POST'}); notify('Возобновлён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); } return; }
+        // Edit
+        var editBtn = event.target.closest('[data-recurring-edit]'); if (editBtn) {
+          var eid = String(editBtn.getAttribute('data-recurring-edit')||'').trim(); if (!eid) return;
+          var item = recurringData.find(function(i){return String(i.public_id||'')===eid;}); if (!item) return;
+          var form = document.getElementById('recurringCreateForm'); if (!form) return;
+          form.reset(); form.querySelector('[name="public_id"]').value = String(item.public_id||'');
+          form.querySelector('[name="title"]').value = String(item.title||'');
+          form.querySelector('[name="entity_type"]').value = String(item.entity_type||'task');
+          form.querySelector('[name="entity_public_id"]').value = String(item.entity_public_id||'');
+          form.querySelector('[name="rrule"]').value = String(item.rrule||'');
+          if (entitySearch) entitySearch.value = String(item.entity_public_id||'');
+          if (modalTitle) modalTitle.textContent = 'Изменить шаблон';
+          if (submitBtn2) submitBtn2.textContent = 'Сохранить';
+          var modal = document.getElementById('recurringCreateModal'); if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+          return; }
+        // Delete
         var deleteBtn = event.target.closest('[data-recurring-delete]');
-        if (deleteBtn) {
-          var itemId = String(deleteBtn.getAttribute('data-recurring-delete') || '').trim();
-          if (!itemId) return;
-          if (!window.confirm('Удалить шаблон?')) return;
-          try {
-            await request('api/v1/recurring/' + encodeURIComponent(itemId), { method: 'DELETE' });
-            notify('Шаблон удален');
-            await loadRecurring();
-          } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить шаблон');
-            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
-          }
-          return;
-        }
+        if (deleteBtn) { var did = String(deleteBtn.getAttribute('data-recurring-delete')||'').trim(); if (!did) return;
+          var ditem = recurringData.find(function(i){return String(i.public_id||'')===did;});
+          var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? String(ditem.title||'') : did;
+          var confirmBtn = document.getElementById('recurringDeleteConfirmBtn'); if (confirmBtn) confirmBtn.dataset.templateId = did;
+          var delModal = document.getElementById('recurringDeleteModal'); if (delModal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(delModal).show(); }
+          return; }
+      });
+    }
+
+    // Delete confirm
+    var deleteConfirm = document.getElementById('recurringDeleteConfirmBtn');
+    if (deleteConfirm && deleteConfirm.dataset.bound !== '1') { deleteConfirm.dataset.bound = '1';
+      deleteConfirm.addEventListener('click', async function () {
+        var tid = String(deleteConfirm.dataset.templateId||'').trim(); if (!tid) return;
+        try { await request('api/v1/recurring/'+encodeURIComponent(tid),{method:'DELETE'}); var dm=document.getElementById('recurringDeleteModal'); if(dm&&window.bootstrap)window.bootstrap.Modal.getOrCreateInstance(dm).hide(); notify('Шаблон удалён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); }
       });
     }
 
