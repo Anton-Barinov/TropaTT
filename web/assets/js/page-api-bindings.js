@@ -25071,6 +25071,10 @@ window.CRM.pageApiBindings = (function () {
       });
       var htmlContent = rows.join('');
       tbody.innerHTML = htmlContent;
+      // Apply weekend row styling via inline style to ensure visibility
+      tbody.querySelectorAll('.crm-matrix-weekend-row td').forEach(function(td) {
+        td.style.setProperty('background-color', 'var(--color-neutral-100)', 'important');
+      });
       bindTimeCells(tbody);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
@@ -25117,6 +25121,10 @@ window.CRM.pageApiBindings = (function () {
           + '</tr>';
       });
       tbody.innerHTML = html;
+      // Apply weekend row styling via inline style
+      tbody.querySelectorAll('.crm-matrix-weekend-row td').forEach(function(td) {
+        td.style.setProperty('background-color', 'var(--color-neutral-100)', 'important');
+      });
       bindTimeCells(tbody);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
@@ -25162,9 +25170,12 @@ window.CRM.pageApiBindings = (function () {
         openTimeDetailModal(day, userId, userName, projectId);
       });
     });
-    // Column hover: find the parent table and add column highlight
+    // Column hover: use inline styles to avoid CSS specificity issues
     var table = container.closest('table') || container.querySelector('table') || container;
     if (table && table.tagName === 'TABLE') {
+      var isWeekendRow = function(row) {
+        return row.classList.contains('crm-matrix-weekend-row');
+      };
       var cells = table.querySelectorAll('td, th');
       cells.forEach(function (cell) {
         cell.addEventListener('mouseenter', function () {
@@ -25174,7 +25185,11 @@ window.CRM.pageApiBindings = (function () {
           if (!tbl) return;
           tbl.querySelectorAll('tr').forEach(function (r) {
             var c = r.cells[ci];
-            if (c) c.classList.add('crm-col-hover');
+            if (c) {
+              var bg = isWeekendRow(r) ? 'var(--color-primary-50)' : 'var(--color-primary-50)';
+              c.dataset.colHover = '1';
+              c.style.setProperty('background-color', bg, 'important');
+            }
           });
         });
         cell.addEventListener('mouseleave', function () {
@@ -25184,7 +25199,10 @@ window.CRM.pageApiBindings = (function () {
           if (!tbl) return;
           tbl.querySelectorAll('tr').forEach(function (r) {
             var c = r.cells[ci];
-            if (c) c.classList.remove('crm-col-hover');
+            if (c && c.dataset.colHover === '1') {
+              delete c.dataset.colHover;
+              c.style.removeProperty('background-color');
+            }
           });
         });
       });
@@ -25261,6 +25279,10 @@ window.CRM.pageApiBindings = (function () {
       html += '<td class="crm-matrix-total-col">' + formatMinutesShort(grandTotal) + '</td></tr></tfoot></table>';
 
       wrap.innerHTML = html;
+      // Apply weekend row styling via inline style for the matrix tab
+      wrap.querySelectorAll('.crm-matrix-weekend-row td').forEach(function(td) {
+        td.style.setProperty('background-color', 'var(--color-neutral-100)', 'important');
+      });
       bindTimeCells(wrap);
     } catch (e) {
       wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
