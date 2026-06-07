@@ -24976,14 +24976,17 @@ window.CRM.pageApiBindings = (function () {
       var html = '';
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
+        var formatted = formatMinutesShort(mins);
+        console.log('WLTIME', row.day, row.user_full_name, mins, formatted);
         var timeHtml = mins > 0
-          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>'
+          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatted + '</span>'
           : '0';
         html += '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="crm-matrix-cell">' + timeHtml + '</td></tr>';
       });
       tbody.innerHTML = html;
       bindTimeCells(tbody);
     } catch (e) {
+      console.error('WLTIME err', e);
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
     }
   }
@@ -25006,8 +25009,10 @@ window.CRM.pageApiBindings = (function () {
       var html = '';
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
+        var formatted = formatMinutesShort(mins);
+        console.log('WLEARN', row.day, row.user_full_name, mins, formatted);
         var timeHtml = mins > 0
-          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>'
+          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatted + '</span>'
           : '0';
         html += '<tr>'
           + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
