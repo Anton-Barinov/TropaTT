@@ -2945,8 +2945,16 @@ font-size: 0.72rem;
 }
 
 .crm-kanban-page .crm-kanban-col {
-  padding: 0.9rem;
+  padding: 0;
+  border: none !important;
+  background: none !important;
   min-height: 500px;
+}
+
+.crm-kanban-page .crm-kanban-col-header {
+  background: #fff !important;
+  padding: 6px;
+  border-radius: 0;
 }
 
 .crm-kanban-page .crm-kanban-card {
