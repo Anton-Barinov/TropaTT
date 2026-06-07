@@ -24868,7 +24868,7 @@ window.CRM.pageApiBindings = (function () {
         if (!sel) return;
         sel.innerHTML = '<option value="">Все пользователи</option>';
         users.forEach(function (u) {
-          sel.innerHTML += '<option value="' + escapeHtml(u.public_id) + '">' + escapeHtml(u.full_name || u.login) + '</option>';
+          sel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
         });
       });
 
@@ -24923,7 +24923,7 @@ window.CRM.pageApiBindings = (function () {
       var html = '';
       items.forEach(function (row) {
         var hours = (row.total_minutes / 60).toFixed(1);
-        html += '<tr><td>' + escapeHtml(row.day) + '</td><td>' + escapeHtml(row.user_full_name || row.user_login) + '</td><td>' + hours + '</td></tr>';
+        html += '<tr><td>' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td>' + hours + '</td></tr>';
       });
       tbody.innerHTML = html;
     } catch (e) {
@@ -24948,8 +24948,8 @@ window.CRM.pageApiBindings = (function () {
       items.forEach(function (row) {
         var hours = (row.total_minutes / 60).toFixed(1);
         html += '<tr>'
-          + '<td>' + escapeHtml(row.day) + '</td>'
-          + '<td>' + escapeHtml(row.user_full_name || row.user_login) + '</td>'
+          + '<td>' + safeText(row.day) + '</td>'
+          + '<td>' + safeText(row.user_full_name || row.user_login) + '</td>'
           + '<td>' + hours + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
