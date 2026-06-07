@@ -108,6 +108,17 @@ final class WorklogRepository
             ->first();
     }
 
+    /** @return array<int, array{public_id: string, login: string, full_name: string}> */
+    public function activeUsers(): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select(['public_id', 'login', 'full_name'])
+            ->where('is_active', '=', 1)
+            ->orderBy('full_name', 'ASC')
+            ->get();
+    }
+
     public function updateByPublicId(string $publicId, array $set): bool
     {
         if ($set === []) {
@@ -235,5 +246,62 @@ final class WorklogRepository
             'total_minutes' => $total,
             'user_breakdown' => $breakdown,
         ];
+    }
+
+    /**
+     * @return array<int, array{day: string, user_public_id: string, total_minutes: int}>
+     */
+    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, int $actorUserId, bool $actorIsRoot): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'DATE(w.logged_at) AS day',
+                'u.public_id AS user_public_id',
+                'SUM(w.minutes_spent) AS total_minutes',
+            ])
+            ->where('w.logged_at', '>=', $dateFrom)
+            ->where('w.logged_at', '<', date('Y-m-d', strtotime($dateTo . ' +1 day')))
+            ->groupBy('DATE(w.logged_at)', 'u.id')
+            ->orderBy('day', 'ASC')
+            ->orderBy('u.full_name', 'ASC');
+
+        if (!$actorIsRoot) {
+            $qb->where('w.user_id', '=', $actorUserId);
+        }
+        if (!empty($userPublicId)) {
+            $qb->where('u.public_id', '=', $userPublicId);
+        }
+
+        return $qb->get();
+    }
+
+    /**
+     * @return array<int, array{task_public_id: string, task_title: string, minutes_spent: int, note: ?string}>
+     */
+    public function detailByDayUser(string $day, string $userPublicId, int $actorUserId, bool $actorIsRoot): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->join('tasks t', 't.id', '=', 'w.task_id')
+            ->select([
+                't.public_id AS task_public_id',
+                't.title AS task_title',
+                'w.minutes_spent',
+                'w.note',
+                'w.logged_at',
+            ])
+            ->where('DATE(w.logged_at)', '=', $day)
+            ->where('u.public_id', '=', $userPublicId)
+            ->orderBy('t.title', 'ASC')
+            ->orderBy('w.logged_at', 'ASC');
+
+        if (!$actorIsRoot) {
+            $qb->where('w.user_id', '=', $actorUserId);
+        }
+
+        return $qb->get();
     }
 }

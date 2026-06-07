@@ -11034,3 +11034,69 @@ font-size: 0.72rem;
 .crm-admin-kpi-card .crm-badge {
     margin-top: var(--space-2);
 }
+
+/* ── Time analytics matrix table ── */
+.crm-matrix-table {
+    font-size: var(--text-sm);
+    min-width: 600px;
+}
+
+.crm-matrix-table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.crm-matrix-date-col {
+    position: sticky;
+    left: 0;
+    background: var(--crm-surface);
+    z-index: 2;
+    min-width: 110px;
+    font-weight: 600;
+    border-right: 1px solid var(--crm-border);
+}
+
+.crm-matrix-user-col {
+    min-width: 100px;
+    text-align: center;
+}
+
+.crm-matrix-total-col {
+    font-weight: 600;
+    text-align: center;
+    min-width: 80px;
+    background: var(--color-neutral-50);
+}
+
+.crm-matrix-cell {
+    text-align: center;
+    min-width: 100px;
+    cursor: default;
+}
+
+.crm-matrix-cell-has {
+    cursor: pointer;
+    color: var(--color-primary-700);
+    font-weight: 500;
+}
+
+.crm-matrix-cell-has:hover {
+    background: var(--color-primary-50);
+    text-decoration: underline;
+}
+
+.crm-matrix-cell-zero {
+    color: var(--crm-text-muted);
+}
+
+.crm-matrix-footer-row td {
+    border-top: 2px solid var(--crm-border);
+    font-weight: 700;
+    background: var(--color-neutral-50);
+}
+
+.crm-detail-note-cell {
+    max-width: 250px;
+    white-space: normal;
+    word-break: break-word;
+}

@@ -24858,11 +24858,17 @@ window.CRM.pageApiBindings = (function () {
       if (earnFrom && !earnFrom.value) earnFrom.value = fromDefault;
       if (earnTo && !earnTo.value) earnTo.value = toDefault;
 
+      // Matrix tab
+      var matrixFrom = document.getElementById('timeAnalyticsMatrixFrom');
+      var matrixTo = document.getElementById('timeAnalyticsMatrixTo');
+      if (matrixFrom && !matrixFrom.value) matrixFrom.value = fromDefault;
+      if (matrixTo && !matrixTo.value) matrixTo.value = toDefault;
+
       // Load users for filter
       var usersEnv = await window.CRM.api.request('api/v1/users', { query: { limit: 500, is_active: 1 } });
       var users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
 
-      var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter'];
+      var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter', 'timeAnalyticsMatrixUserFilter'];
       userSelects.forEach(function (selId) {
         var sel = document.getElementById(selId);
         if (!sel) return;
@@ -24898,6 +24904,14 @@ window.CRM.pageApiBindings = (function () {
             document.getElementById('timeAnalyticsEarningsTo').value,
             document.getElementById('timeAnalyticsEarningsUserFilter').value
           );
+        });
+      }
+
+      // Matrix apply button
+      var matrixApplyBtn = document.getElementById('timeAnalyticsMatrixApplyBtn');
+      if (matrixApplyBtn) {
+        matrixApplyBtn.addEventListener('click', function () {
+          loadMatrixSummary();
         });
       }
     } catch (e) {
@@ -24960,6 +24974,130 @@ window.CRM.pageApiBindings = (function () {
       tbody.innerHTML = html;
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
+    }
+  }
+
+  // ── Time analytics: matrix (summary table) ──
+
+  function formatMinutesShort(mins) {
+    if (!mins || mins <= 0) return '0';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h > 0 && m > 0) return h + 'ч ' + m + 'м';
+    if (h > 0) return h + 'ч';
+    return m + 'м';
+  }
+
+  async function loadMatrixSummary() {
+    var from = document.getElementById('timeAnalyticsMatrixFrom').value;
+    var to = document.getElementById('timeAnalyticsMatrixTo').value;
+    var userFilter = document.getElementById('timeAnalyticsMatrixUserFilter').value;
+    var wrap = document.getElementById('timeAnalyticsMatrixWrap');
+    if (!wrap) return;
+    wrap.innerHTML = '<p class="text-muted p-3 mb-0">Загрузка...</p>';
+    try {
+      var q = { from: from, to: to };
+      if (userFilter) q.user_public_id = userFilter;
+      var env = await window.CRM.api.request('api/v1/worklogs/matrix', { query: q });
+      var data = env && env.data ? env.data : {};
+      var dates = data.dates || [];
+      var users = data.users || [];
+      var matrix = data.matrix || {};
+      var dayTotals = data.day_totals || {};
+      var userTotals = data.user_totals || {};
+
+      if (dates.length === 0) {
+        wrap.innerHTML = '<p class="text-muted p-3 mb-0">Нет данных за выбранный период.</p>';
+        return;
+      }
+
+      // Build table
+      var html = '<table class="table table-hover align-middle mb-0 crm-table crm-matrix-table">';
+      // Header
+      html += '<thead><tr><th class="crm-matrix-date-col">Дата</th>';
+      users.forEach(function (u) {
+        html += '<th class="crm-matrix-user-col">' + safeText(u.full_name || u.login) + '</th>';
+      });
+      html += '<th class="crm-matrix-total-col">Итого</th></tr></thead><tbody>';
+
+      // Rows
+      var grandTotal = 0;
+      dates.forEach(function (day) {
+        var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
+        html += '<tr><td class="crm-matrix-date-col">' + formattedDay + '</td>';
+        users.forEach(function (u) {
+          var mins = (matrix[day] && matrix[day][u.public_id]) || 0;
+          if (mins > 0) {
+            html += '<td class="crm-matrix-cell crm-matrix-cell-has" data-day="' + day + '" data-user="' + safeText(u.public_id) + '" data-user-name="' + safeText(u.full_name || u.login) + '">' + formatMinutesShort(mins) + '</td>';
+          } else {
+            html += '<td class="crm-matrix-cell crm-matrix-cell-zero">0</td>';
+          }
+        });
+        var dTotal = dayTotals[day] || 0;
+        grandTotal += dTotal;
+        html += '<td class="crm-matrix-total-col">' + formatMinutesShort(dTotal) + '</td></tr>';
+      });
+
+      // Footer row
+      html += '</tbody><tfoot><tr class="crm-matrix-footer-row"><td class="crm-matrix-date-col">Итого</td>';
+      users.forEach(function (u) {
+        var uTotal = userTotals[u.public_id] || 0;
+        html += '<td class="crm-matrix-total-col">' + formatMinutesShort(uTotal) + '</td>';
+      });
+      html += '<td class="crm-matrix-total-col">' + formatMinutesShort(grandTotal) + '</td></tr></tfoot></table>';
+
+      wrap.innerHTML = html;
+
+      // Bind click on cells with data
+      wrap.querySelectorAll('.crm-matrix-cell-has').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          var day = cell.getAttribute('data-day');
+          var userId = cell.getAttribute('data-user');
+          var userName = cell.getAttribute('data-user-name');
+          openTimeDetailModal(day, userId, userName);
+        });
+      });
+    } catch (e) {
+      wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
+    }
+  }
+
+  async function openTimeDetailModal(day, userPublicId, userName) {
+    var modal = document.getElementById('timeDetailModal');
+    var body = document.getElementById('timeDetailModalBody');
+    if (!modal || !body) return;
+    body.innerHTML = '<p class="text-muted">Загрузка...</p>';
+    var bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    try {
+      var env = await window.CRM.api.request('api/v1/worklogs/detail', { query: { day: day, user_public_id: userPublicId } });
+      var data = env && env.data ? env.data : {};
+      var items = data.items || [];
+      var totalMinutes = data.total_minutes || 0;
+      var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
+
+      var html = '<p class="mb-2"><strong>' + safeText(userName) + '</strong> · <span class="text-muted">' + formattedDay + '</span></p>'
+        + '<p class="mb-3"><strong>Всего: ' + formatMinutesShort(totalMinutes) + '</strong></p>';
+
+      if (items.length === 0) {
+        html += '<p class="text-muted">Нет записей.</p>';
+      } else {
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0 crm-table"><thead><tr><th>Задача</th><th>Время</th><th>Комментарий</th></tr></thead><tbody>';
+        items.forEach(function (item) {
+          var taskTitle = item.task_title ? safeText(item.task_title) : 'Задача недоступна';
+          var taskLink = item.task_public_id
+            ? '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.task_public_id) + '" target="_blank" rel="noopener noreferrer">' + safeText(taskTitle) + '</a>'
+            : safeText(taskTitle);
+          var note = item.note ? safeText(item.note) : '—';
+          html += '<tr><td>' + taskLink + '</td><td class="text-nowrap">' + formatMinutesShort(Number(item.minutes_spent || 0)) + '</td><td class="crm-detail-note-cell">' + note + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = '<p class="text-danger">Ошибка загрузки детализации.</p>';
     }
   }
 

@@ -193,4 +193,40 @@ final class WorklogController extends BaseController
 
         return $this->success('WORKLOG_TASK_SUMMARY', $this->t('worklog/messages.task_summary'), $result);
     }
+
+    public function matrix(): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->matrix($this->request()->allInput(), $authUser['user']);
+
+        return $this->success('WORKLOG_MATRIX', $this->t('worklog/messages.matrix'), $result);
+    }
+
+    public function detail(): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $input = $this->request()->allInput();
+        $day = (string)($input['day'] ?? '');
+        $userPublicId = (string)($input['user_public_id'] ?? '');
+
+        if ($day === '' || $userPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->detail($day, $userPublicId, $authUser['user']);
+
+        return $this->success('WORKLOG_DETAIL', $this->t('worklog/messages.detail'), $result);
+    }
 }

@@ -239,4 +239,103 @@ final class WorklogService
         }
         return $this->worklogs->taskSummary($taskPublicId);
     }
+
+    public function matrix(array $filters, array $actor): array
+    {
+        $actorId = (int)$actor['id'];
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $from = (string)($filters['from'] ?? '');
+        $to = (string)($filters['to'] ?? '');
+        $userPublicId = (string)($filters['user_public_id'] ?? '');
+
+        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $actorId, $actorIsRoot);
+
+        // Build matrix: [day][user_public_id] = total_minutes
+        $matrix = [];
+        $userSet = [];
+        $dayTotals = [];
+        foreach ($rows as $row) {
+            $day = $row['day'];
+            $uid = $row['user_public_id'];
+            $mins = (int)$row['total_minutes'];
+            if (!isset($matrix[$day])) $matrix[$day] = [];
+            $matrix[$day][$uid] = $mins;
+            $userSet[$uid] = true;
+            $dayTotals[$day] = ($dayTotals[$day] ?? 0) + $mins;
+        }
+
+        // Generate date range
+        $dates = [];
+        if ($from && $to) {
+            $start = new \DateTime($from);
+            $end = new \DateTime($to);
+            $interval = new \DateInterval('P1D');
+            $period = new \DatePeriod($start, $interval, $end->modify('+1 day'));
+            foreach ($period as $dt) {
+                $dates[] = $dt->format('Y-m-d');
+            }
+        }
+
+        // Get user list
+        $users = [];
+        if ($userPublicId) {
+            $user = $this->worklogs->findUserByPublicId($userPublicId);
+            if ($user) {
+                $users[] = [
+                    'public_id' => $user['public_id'],
+                    'login' => $user['login'],
+                    'full_name' => $user['full_name'],
+                ];
+            }
+        } else {
+            // Get all users that have worklogs in period or are active
+            $allUsers = $this->worklogs->activeUsers();
+            foreach ($allUsers as $u) {
+                $users[] = [
+                    'public_id' => $u['public_id'],
+                    'login' => $u['login'],
+                    'full_name' => $u['full_name'],
+                ];
+            }
+        }
+
+        $userTotals = [];
+        foreach ($users as $u) {
+            $userTotals[$u['public_id']] = 0;
+        }
+        foreach ($matrix as $day => $dayData) {
+            foreach ($dayData as $uid => $mins) {
+                if (isset($userTotals[$uid])) {
+                    $userTotals[$uid] += $mins;
+                }
+            }
+        }
+
+        return [
+            'dates' => $dates,
+            'users' => $users,
+            'matrix' => $matrix,
+            'day_totals' => $dayTotals,
+            'user_totals' => $userTotals,
+        ];
+    }
+
+    public function detail(string $day, string $userPublicId, array $actor): array
+    {
+        $actorId = (int)$actor['id'];
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $actorId, $actorIsRoot);
+
+        $totalMinutes = 0;
+        foreach ($rows as $row) {
+            $totalMinutes += (int)$row['minutes_spent'];
+        }
+
+        return [
+            'items' => $rows,
+            'total_minutes' => $totalMinutes,
+            'day' => $day,
+            'user_public_id' => $userPublicId,
+        ];
+    }
 }

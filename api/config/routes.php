@@ -244,6 +244,8 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/summary', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/earnings', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'earnings', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/matrix', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'matrix', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/detail', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'detail', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
