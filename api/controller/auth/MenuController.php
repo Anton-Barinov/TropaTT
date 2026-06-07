@@ -21,7 +21,6 @@ final class MenuController extends BaseController
         ['key' => 'counterparties', 'i18n' => 'nav.counterparties', 'label' => 'Контрагенты', 'href' => 'index.php?route=counterparties', 'permissions' => ['counterparty.manage']],
         ['key' => 'teams', 'i18n' => 'nav.teams', 'label' => 'Команды', 'href' => 'index.php?route=teams', 'permissions' => []],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label' => 'Аналитика', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
-        ['key' => 'time-analytics', 'i18n' => 'nav.time_analytics', 'label' => 'Учет времени', 'href' => 'index.php?route=time-analytics', 'permissions' => ['task.manage']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label' => 'Уведомления', 'href' => 'index.php?route=notifications', 'permissions' => []],
         ['key' => 'profile', 'i18n' => 'nav.profile', 'label' => 'Профиль', 'href' => 'index.php?route=profile', 'permissions' => []],
         ['key' => 'admin', 'i18n' => 'nav.admin', 'label' => 'Администрирование', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],
