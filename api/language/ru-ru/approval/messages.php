@@ -11,4 +11,8 @@ return [
     'max_64' => 'Максимум 64 символа',
     'max_1000' => 'Максимум 1000 символов',
     'reviewers_required' => 'Передайте непустой массив reviewer_public_ids',
+    'APPROVAL_REVIEWER_FORBIDDEN' => 'Вы не являетесь согласующим этого запроса',
+    'APPROVAL_FINALIZED' => 'Запрос уже обработан',
+    'APPROVAL_STEP_ALREADY_PROCESSED' => 'Ваше решение по этому запросу уже зафиксировано',
+    'APPROVAL_NOT_FOUND' => 'Запрос на согласование не найден',
 ];

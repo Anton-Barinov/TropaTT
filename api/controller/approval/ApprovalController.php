@@ -140,7 +140,7 @@ final class ApprovalController extends BaseController
                 default => 400,
             };
 
-            return $this->error((string)$result['code'], $this->t('approval/messages.review_failed'), $status, [
+            return $this->error((string)$result['code'], $this->t('approval/messages.'.(string)($result['code'] ?? ''), $this->t('approval/messages.review_failed')), $status, [
                 'approval' => [(string)$result['code']],
             ]);
         }
