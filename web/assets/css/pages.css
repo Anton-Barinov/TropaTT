@@ -2295,9 +2295,27 @@ font-size: 0.72rem;
 }
 
 .crm-kanban-page .crm-kanban-local-actions .btn {
-  min-height: 34px;
-  white-space: nowrap;
-      border: 1px solid var(--crm-border);
+  min-height: 38px;
+  padding-inline: 0.9rem;
+  font-size: 0.82rem;
+}
+
+/* Full-width layout for Kanban page */
+.crm-kanban-page.crm-content,
+.crm-content.crm-kanban-page {
+  max-width: none;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.crm-kanban-page .crm-kanban {
+  width: 100%;
+}
+
+.crm-kanban-page .crm-kanban-col {
+  flex: 1 1 320px;
+  min-width: 280px;
+  max-width: 400px;
 }
 
 .crm-tasks-page .crm-tasks-view-surface {
