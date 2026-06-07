@@ -19,6 +19,7 @@
       <select id="timeAnalyticsProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsApplyBtn">Применить</button>
+      <button class="btn crm-btn-ghost crm-btn-icon" type="button" id="timeAnalyticsResetBtn" title="Сбросить фильтры"><i class="fa-solid fa-rotate-left"></i></button>
     </div>
     <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table crm-matrix-table"><thead><tr><th class="crm-matrix-date-col">Дата</th><th>Пользователь</th><th>Время</th></tr></thead><tbody id="timeAnalyticsTimeBody"><tr><td colspan="3" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
   </div>
@@ -31,6 +32,7 @@
       <select id="timeAnalyticsEarningsProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsEarningsUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsEarningsApplyBtn">Применить</button>
+      <button class="btn crm-btn-ghost crm-btn-icon" type="button" id="timeAnalyticsEarningsResetBtn" title="Сбросить фильтры"><i class="fa-solid fa-rotate-left"></i></button>
     </div>
     <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table crm-matrix-table"><thead><tr><th class="crm-matrix-date-col">Дата</th><th>Пользователь</th><th>Время</th><th>Ставка (себестоимость)</th><th>Ставка (продажа)</th><th>Себестоимость</th><th>Продажа</th></tr></thead><tbody id="timeAnalyticsEarningsBody"><tr><td colspan="7" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
   </div>
@@ -43,6 +45,7 @@
       <select id="timeAnalyticsMatrixProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsMatrixUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsMatrixApplyBtn">Применить</button>
+      <button class="btn crm-btn-ghost crm-btn-icon" type="button" id="timeAnalyticsMatrixResetBtn" title="Сбросить фильтры"><i class="fa-solid fa-rotate-left"></i></button>
     </div>
     <div class="crm-card crm-section-card p-0 table-responsive"><div id="timeAnalyticsMatrixWrap"><p class="text-muted p-3 mb-0">Выберите период и нажмите «Применить».</p></div></div>
   </div>

@@ -24978,6 +24978,60 @@ window.CRM.pageApiBindings = (function () {
           loadMatrixSummary();
         });
       }
+
+      // Reset buttons
+      function resetFilterGroup(fromId, toId, teamId, projectId, userId, loadFn) {
+        var from = document.getElementById(fromId);
+        var to = document.getElementById(toId);
+        var team = document.getElementById(teamId);
+        var project = document.getElementById(projectId);
+        var user = document.getElementById(userId);
+        if (from) from.value = from.defaultValue || '';
+        if (to) to.value = to.defaultValue || '';
+        if (team) team.value = '';
+        if (project) project.value = '';
+        if (user) user.value = '';
+        // Trigger cascade update
+        if (team && project && user && from && to) {
+          updateFilterOptions(team, project, user, from.value || '2026-05-31', to.value || '2026-06-07');
+        }
+        if (typeof loadFn === 'function') loadFn();
+      }
+
+      var timeResetBtn = document.getElementById('timeAnalyticsResetBtn');
+      if (timeResetBtn) {
+        timeResetBtn.addEventListener('click', function () {
+          resetFilterGroup('timeAnalyticsFrom', 'timeAnalyticsTo', 'timeAnalyticsTeamFilter', 'timeAnalyticsProjectFilter', 'timeAnalyticsUserFilter', function() {
+            loadTimeSummary(
+              document.getElementById('timeAnalyticsFrom').value,
+              document.getElementById('timeAnalyticsTo').value,
+              '', '', ''
+            );
+          });
+        });
+      }
+
+      var earnResetBtn = document.getElementById('timeAnalyticsEarningsResetBtn');
+      if (earnResetBtn) {
+        earnResetBtn.addEventListener('click', function () {
+          resetFilterGroup('timeAnalyticsEarningsFrom', 'timeAnalyticsEarningsTo', 'timeAnalyticsEarningsTeamFilter', 'timeAnalyticsEarningsProjectFilter', 'timeAnalyticsEarningsUserFilter', function() {
+            loadEarningsSummary(
+              document.getElementById('timeAnalyticsEarningsFrom').value,
+              document.getElementById('timeAnalyticsEarningsTo').value,
+              '', '', ''
+            );
+          });
+        });
+      }
+
+      var matrixResetBtn = document.getElementById('timeAnalyticsMatrixResetBtn');
+      if (matrixResetBtn) {
+        matrixResetBtn.addEventListener('click', function () {
+          resetFilterGroup('timeAnalyticsMatrixFrom', 'timeAnalyticsMatrixTo', 'timeAnalyticsMatrixTeamFilter', 'timeAnalyticsMatrixProjectFilter', 'timeAnalyticsMatrixUserFilter', function() {
+            loadMatrixSummary();
+          });
+        });
+      }
     } catch (e) {
       setErrorState('Ошибка загрузки аналитики времени');
     } finally {
