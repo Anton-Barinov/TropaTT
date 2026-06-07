@@ -40,6 +40,7 @@ final class MigrationManager
             new WebhookDeliveriesQueueRuntimeMigration(),
             new CrmEntityConsolidationMigration(),
             new RecurringProcessorMigration(),
+            new RecurringRuleTitleMigration(),
         ];
     }
 

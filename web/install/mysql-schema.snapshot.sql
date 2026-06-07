@@ -1701,6 +1701,7 @@ DROP TABLE IF EXISTS `recurring_rules`;
 CREATE TABLE `recurring_rules` (
   `id` int NOT NULL AUTO_INCREMENT,
   `public_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `entity_type` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `entity_public_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `rrule` text COLLATE utf8mb4_unicode_ci,
@@ -2243,4 +2244,3 @@ CREATE TABLE `working_hours` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-

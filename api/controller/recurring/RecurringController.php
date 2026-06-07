@@ -37,6 +37,7 @@ final class RecurringController extends BaseController
         $v->require($input, 'entity_type', $this->t('common/messages.field_required'))
             ->require($input, 'entity_public_id', $this->t('common/messages.field_required'))
             ->require($input, 'rrule', $this->t('common/messages.field_required'))
+            ->maxLen($input, 'title', 255, $this->t('recurring/messages.max_255'))
             ->enum($input, 'entity_type', ['task', 'project', 'reminder', 'calendar_event'], $this->t('recurring/messages.invalid_entity_type'))
             ->maxLen($input, 'entity_public_id', 64, $this->t('recurring/messages.max_64'))
             ->maxLen($input, 'rrule', 1000, $this->t('recurring/messages.max_1000'));
@@ -47,6 +48,11 @@ final class RecurringController extends BaseController
 
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
+        if (!$service->isValidRrule((string)($input['rrule'] ?? ''))) {
+            return $this->error('INVALID_RRULE', $this->t('common/messages.validation_error'), 422, [
+                'rrule' => [$this->t('common/messages.invalid_value')],
+            ]);
+        }
         $item = $service->create($input);
 
         return $this->success('RECURRING_CREATED', $this->t('recurring/messages.created'), [
@@ -82,7 +88,8 @@ final class RecurringController extends BaseController
 
         $input = $this->request()->allInput();
         $v = new Validator();
-        $v->enum($input, 'entity_type', ['task', 'project', 'reminder', 'calendar_event'], $this->t('recurring/messages.invalid_entity_type'))
+        $v->maxLen($input, 'title', 255, $this->t('recurring/messages.max_255'))
+            ->enum($input, 'entity_type', ['task', 'project', 'reminder', 'calendar_event'], $this->t('recurring/messages.invalid_entity_type'))
             ->maxLen($input, 'entity_public_id', 64, $this->t('recurring/messages.max_64'))
             ->maxLen($input, 'rrule', 1000, $this->t('recurring/messages.max_1000'));
         if ($v->fails()) {
@@ -91,6 +98,11 @@ final class RecurringController extends BaseController
 
         /** @var RecurringService $service */
         $service = $this->container->get('service.recurring');
+        if (array_key_exists('rrule', $input) && !$service->isValidRrule((string)($input['rrule'] ?? ''))) {
+            return $this->error('INVALID_RRULE', $this->t('common/messages.validation_error'), 422, [
+                'rrule' => [$this->t('common/messages.invalid_value')],
+            ]);
+        }
         $item = $service->update((string)$params['public_id'], $input);
         if (!$item) {
             return $this->error('RECURRING_NOT_FOUND', $this->t('recurring/messages.not_found'), 404);

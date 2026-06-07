@@ -21794,6 +21794,69 @@ window.CRM.pageApiBindings = (function () {
     await loadDepartments();
   }
 
+  function bindCrmPageModalDismiss(modal) {
+    if (!modal || modal.dataset.crmDismissBound === '1') return;
+    modal.dataset.crmDismissBound = '1';
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) hideCrmPageModal(modal);
+    });
+    modal.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(function (control) {
+      control.addEventListener('click', function (event) {
+        event.preventDefault();
+        hideCrmPageModal(modal);
+      });
+    });
+  }
+
+  function ensureCrmPageModalEscape() {
+    if (document.body.dataset.crmModalEscapeBound === '1') return;
+    document.body.dataset.crmModalEscapeBound = '1';
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' && event.key !== 'Esc' && event.keyCode !== 27) return;
+      var openModals = document.querySelectorAll('.modal.show');
+      var modal = openModals[openModals.length - 1];
+      if (modal) hideCrmPageModal(modal);
+    });
+  }
+
+  function showCrmPageModal(modal) {
+    if (!modal) return;
+    bindCrmPageModalDismiss(modal);
+    ensureCrmPageModalEscape();
+    if (window.bootstrap && window.bootstrap.Modal) {
+      window.bootstrap.Modal.getOrCreateInstance(modal).show();
+      return;
+    }
+    var existingBackdrop = document.querySelector('.modal-backdrop[data-crm-page-modal="1"]');
+    if (!existingBackdrop) {
+      existingBackdrop = document.createElement('div');
+      existingBackdrop.className = 'modal-backdrop fade show';
+      existingBackdrop.setAttribute('data-crm-page-modal', '1');
+      document.body.appendChild(existingBackdrop);
+    }
+    modal.removeAttribute('aria-hidden');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+  }
+
+  function hideCrmPageModal(modal) {
+    if (!modal) return;
+    if (window.bootstrap && window.bootstrap.Modal) {
+      window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+      return;
+    }
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.querySelectorAll('.modal-backdrop[data-crm-page-modal="1"]').forEach(function (backdrop) {
+      if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+    });
+    if (!document.querySelector('.modal.show')) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
   async function renderAdminWorkflowPage() {
     var workflowTriggerLabels = {
       task_created: 'Задача создана',
@@ -22089,9 +22152,7 @@ window.CRM.pageApiBindings = (function () {
       createBtn.addEventListener('click', function () {
         resetWorkflowForm(null);
         var modal = document.getElementById('adminWorkflowCreateModal');
-        if (modal && window.bootstrap) {
-          window.bootstrap.Modal.getOrCreateInstance(modal).show();
-        }
+        showCrmPageModal(modal);
       });
     }
 
@@ -22136,9 +22197,7 @@ window.CRM.pageApiBindings = (function () {
             notify('Правило создано');
           }
           var modal = document.getElementById('adminWorkflowCreateModal');
-          if (modal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
-          }
+          hideCrmPageModal(modal);
           workflowForm.reset();
           await loadRules();
         } catch (error) {
@@ -22162,9 +22221,7 @@ window.CRM.pageApiBindings = (function () {
           if (!form) return;
           form.querySelector('[name="rule_public_id"]').value = ruleId;
           var modal = document.getElementById('adminWorkflowTestModal');
-          if (modal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(modal).show();
-          }
+          showCrmPageModal(modal);
           return;
         }
 
@@ -22175,9 +22232,7 @@ window.CRM.pageApiBindings = (function () {
           if (!rule) return;
           resetWorkflowForm(rule);
           var editModal = document.getElementById('adminWorkflowCreateModal');
-          if (editModal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(editModal).show();
-          }
+          showCrmPageModal(editModal);
           return;
         }
 
@@ -22191,9 +22246,7 @@ window.CRM.pageApiBindings = (function () {
           var confirmBtn = document.getElementById('adminWorkflowDeleteConfirmBtn');
           if (confirmBtn) confirmBtn.dataset.ruleId = ruleId;
           var delModal = document.getElementById('adminWorkflowDeleteModal');
-          if (delModal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(delModal).show();
-          }
+          showCrmPageModal(delModal);
           return;
         }
 
@@ -22224,9 +22277,7 @@ window.CRM.pageApiBindings = (function () {
         try {
           await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'DELETE' });
           var delModal = document.getElementById('adminWorkflowDeleteModal');
-          if (delModal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(delModal).hide();
-          }
+          hideCrmPageModal(delModal);
           notify('Правило удалено');
           await loadRules();
         } catch (error) {
@@ -22282,9 +22333,7 @@ window.CRM.pageApiBindings = (function () {
           });
           notify('Тест правила выполнен');
           var modal = document.getElementById('adminWorkflowTestModal');
-          if (modal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
-          }
+          hideCrmPageModal(modal);
           await loadLogs();
           await loadRules();
         } catch (error) {
@@ -22449,6 +22498,50 @@ window.CRM.pageApiBindings = (function () {
     }
     function approvalEntityLabel(value) { return approvalEntityLabels[String(value || '').trim()] || value || '—'; }
 
+    async function openApprovalDetail(approvalId) {
+      approvalId = String(approvalId || '').trim();
+      var item = approvalData.find(function (i) { return String(i.public_id) === approvalId; });
+      if (!item) return;
+      try {
+        var detailEnvelope = await request('api/v1/approvals/' + encodeURIComponent(approvalId), { silent: true });
+        if (detailEnvelope && detailEnvelope.data && detailEnvelope.data.approval) item = detailEnvelope.data.approval;
+      } catch (_) {}
+
+      var titleEl = document.getElementById('approvalsDetailTitle');
+      var subEl = document.getElementById('approvalsDetailSubtitle');
+      var bodyEl = document.getElementById('approvalsDetailBody');
+      if (titleEl) titleEl.textContent = item.title || item.subject || approvalId;
+      if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает решения');
+      if (bodyEl) {
+        var reqName = (item.requester && item.requester.full_name) || item.requester_name || (item.requester && item.requester.login) || item.requester_login || '—';
+        var steps = Array.isArray(item.steps) ? item.steps : [];
+        var stepRows = steps.length ? '<div class="crm-approval-steps">'
+          + steps.map(function (step) {
+            var stepStatus = String(step.status || 'pending');
+            var stepClass = stepStatus === 'approved' ? 'crm-badge-active' : (stepStatus === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
+            var stepLabel = stepStatus === 'approved' ? 'Одобрено' : (stepStatus === 'rejected' ? 'Отклонено' : 'Ожидает');
+            var reviewer = step.reviewer || {};
+            return '<div class="crm-approval-step">'
+              + '<div><strong>' + safeText(reviewer.full_name || reviewer.login || reviewer.public_id || 'Согласующий') + '</strong>'
+              + '<small>' + safeText(step.comment || 'Комментарий не указан') + '</small></div>'
+              + '<span class="crm-badge ' + stepClass + '">' + safeText(stepLabel) + '</span>'
+              + '</div>';
+          }).join('')
+          + '</div>' : '<div class="crm-empty-state crm-empty-state-compact">Шаги согласования пока не найдены.</div>';
+        bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Название</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
+          + '<dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(reqName) + '</dd>'
+          + '<dt class="col-sm-3">Сущность</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
+          + '<dt class="col-sm-3">Комментарий</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
+          + '<dt class="col-sm-3">Дата</dt><dd class="col-sm-9">' + safeText(formatDate(item.created_at || '')) + '</dd>'
+          + '<dt class="col-sm-3">Статус</dt><dd class="col-sm-9">' + safeText(String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает') + '</dd>'
+          + '</dl><h6 class="mt-3 mb-2">Ход согласования</h6>' + stepRows;
+      }
+
+      var modal = document.getElementById('approvalsDetailModal');
+      showCrmPageModal(modal);
+    }
+    window.CRM_OPEN_APPROVAL_DETAIL = openApprovalDetail;
+
     async function loadUsers() {
       try {
         var envelope = await request('api/v1/users', { query: { limit: 500, is_active: 1 }, silent: true });
@@ -22460,7 +22553,57 @@ window.CRM.pageApiBindings = (function () {
               return '<option value="' + safeText(u.public_id || '') + '">' + safeText(u.full_name || u.login || u.public_id || '') + '</option>';
             }).join('');
         }
+        renderReviewerPicker();
       } catch (_) {}
+    }
+
+    function renderReviewerPicker() {
+      var picker = document.getElementById('approvalsReviewersPicker');
+      if (!picker) return;
+      if (!approvalUsers.length) {
+        picker.innerHTML = '<div class="crm-empty-state crm-empty-state-compact">Нет активных пользователей для согласования.</div>';
+        return;
+      }
+      picker.innerHTML = approvalUsers.map(function (u) {
+        var id = String(u.public_id || '');
+        var label = String(u.full_name || u.login || u.public_id || 'Пользователь');
+        var meta = String(u.login || u.email || '');
+        return '<label class="crm-check-picker-item">'
+          + '<input type="checkbox" value="' + safeText(id) + '" data-approval-reviewer-check>'
+          + '<span><strong>' + safeText(label) + '</strong>' + (meta && meta !== label ? '<small>' + safeText(meta) + '</small>' : '') + '</span>'
+          + '</label>';
+      }).join('');
+      updateReviewerSummary();
+    }
+
+    function syncReviewerSelectFromChecks() {
+      var select = document.getElementById('approvalsReviewersSelect');
+      var checked = Array.prototype.slice.call(document.querySelectorAll('[data-approval-reviewer-check]:checked')).map(function (input) {
+        return String(input.value || '');
+      }).filter(Boolean);
+      if (select) {
+        Array.prototype.forEach.call(select.options, function (option) {
+          option.selected = checked.indexOf(String(option.value || '')) >= 0;
+        });
+      }
+      updateReviewerSummary();
+      return checked;
+    }
+
+    function resetReviewerPicker() {
+      document.querySelectorAll('[data-approval-reviewer-check]').forEach(function (input) {
+        input.checked = false;
+      });
+      syncReviewerSelectFromChecks();
+    }
+
+    function updateReviewerSummary() {
+      var summary = document.getElementById('approvalsReviewersSummary');
+      if (!summary) return;
+      var checked = Array.prototype.slice.call(document.querySelectorAll('[data-approval-reviewer-check]:checked'));
+      var count = checked.length;
+      var text = count ? ('Выбрано согласующих: ' + count) : 'Выберите одного или нескольких пользователей.';
+      summary.innerHTML = '<i class="fa-solid fa-users" aria-hidden="true"></i><span>' + safeText(text) + '</span>';
     }
 
     function renderApprovalsTable(items) {
@@ -22498,19 +22641,28 @@ window.CRM.pageApiBindings = (function () {
         var status = String(item.status || 'pending');
         var statusClass = status === 'approved' ? 'crm-badge-active' : (status === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
         var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
+        var progress = Number(item.reviewers_total || 0) > 0
+          ? '<span class="crm-approval-progress">' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</span>'
+          : '';
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
-          + '<td><a href="#" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</a></td>'
-          + '<td>' + safeText(approvalEntityLabel(item.entity_type)) + ' #' + safeText(item.entity_public_id || '—') + '</td>'
-          + '<td>' + safeText((item.requester && item.requester.full_name) || item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
-          + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-          + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-          + '<td class="crm-table-actions">'
+          + '<td data-label="Запрос"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
+          + '<td data-label="Сущность">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
+          + '<td data-label="Запросил">' + safeText((item.requester && item.requester.full_name) || item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
+          + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
+          + '<td data-label="Дата">' + safeText(formatDate(item.created_at || '')) + '</td>'
+          + '<td data-label="Действия" class="crm-table-actions">'
           + (status === 'pending'
             ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
               + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
             : '<span class="text-muted small">—</span>')
           + '</td></tr>';
       }).join('');
+      body.querySelectorAll('[data-approval-detail]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+          event.preventDefault();
+          openApprovalDetail(link.getAttribute('data-approval-detail') || '');
+        });
+      });
     }
 
     async function loadApprovals() {
@@ -22567,34 +22719,7 @@ window.CRM.pageApiBindings = (function () {
         if (detailLink) {
           event.preventDefault();
           var approvalId = String(detailLink.getAttribute('data-approval-detail') || '').trim();
-          var item = approvalData.find(function (i) { return String(i.public_id) === approvalId; });
-          if (!item) return;
-          var titleEl = document.getElementById('approvalsDetailTitle');
-          var subEl = document.getElementById('approvalsDetailSubtitle');
-          var bodyEl = document.getElementById('approvalsDetailBody');
-          if (titleEl) titleEl.textContent = item.title || item.subject || approvalId;
-          if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает решения');
-            if (bodyEl) {
-            var reqName = (item.requester && item.requester.full_name) || item.requester_name || (item.requester && item.requester.login) || item.requester_login || '—';
-            var revNames = '';
-            if (Array.isArray(item.reviewers)) {
-              revNames = item.reviewers.map(function (r) { return r.full_name || r.login || r.public_id || '—'; }).join(', ');
-            } else if (Array.isArray(item.steps)) {
-              revNames = item.steps.map(function (s) { return (s.reviewer && s.reviewer.full_name) || (s.reviewer && s.reviewer.login) || '—'; }).join(', ');
-            } else {
-              revNames = String(item.reviewer_public_ids || '—');
-            }
-            bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Название</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
-              + '<dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(reqName) + '</dd>'
-              + '<dt class="col-sm-3">Сущность</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
-              + '<dt class="col-sm-3">Согласующие</dt><dd class="col-sm-9">' + safeText(Array.isArray(item.reviewers) ? item.reviewers.map(function (r) { return r.full_name || r.login || r.public_id || '—'; }).join(', ') : (item.reviewer_public_ids ? String(item.reviewer_public_ids) : '—')) + '</dd>'
-              + '<dt class="col-sm-3">Комментарий</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
-              + '<dt class="col-sm-3">Дата</dt><dd class="col-sm-9">' + safeText(formatDate(item.created_at || '')) + '</dd>'
-              + '<dt class="col-sm-3">Статус</dt><dd class="col-sm-9">' + safeText(String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает') + '</dd>'
-              + '</dl>';
-          }
-          var modal = document.getElementById('approvalsDetailModal');
-          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+          await openApprovalDetail(approvalId);
           return;
         }
         // Approve/Reject buttons
@@ -22614,7 +22739,7 @@ window.CRM.pageApiBindings = (function () {
           if (submitEl) { submitEl.textContent = action === 'approve' ? 'Одобрить' : 'Отклонить'; submitEl.className = 'btn ' + (action === 'approve' ? 'crm-btn-success' : 'crm-btn-danger'); }
           document.getElementById('approvalsDecisionComment').value = '';
           var modal2 = document.getElementById('approvalsDecisionModal');
-          if (modal2 && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal2).show(); }
+          showCrmPageModal(modal2);
           return;
         }
       });
@@ -22635,7 +22760,7 @@ window.CRM.pageApiBindings = (function () {
           await request(endpoint, { method: 'POST', body: { comment: comment } });
           notify(action === 'approve' ? 'Запрос одобрен' : 'Запрос отклонен');
           var modal3 = document.getElementById('approvalsDecisionModal');
-          if (modal3 && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal3).hide(); }
+          hideCrmPageModal(modal3);
           await loadApprovals();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
@@ -22658,8 +22783,9 @@ window.CRM.pageApiBindings = (function () {
         if (entitySearch) entitySearch.value = '';
         if (entityHidden) entityHidden.value = '';
         if (entityDropdown) entityDropdown.classList.add('d-none');
+        resetReviewerPicker();
         var modal = document.getElementById('approvalsCreateModal');
-        if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+        showCrmPageModal(modal);
       });
     }
 
@@ -22721,7 +22847,8 @@ window.CRM.pageApiBindings = (function () {
 
     // Entity type change resets search
     var entityTypeSelect = document.getElementById('approvalsEntityType');
-    if (entityTypeSelect) {
+    if (entityTypeSelect && entityTypeSelect.dataset.bound !== '1') {
+      entityTypeSelect.dataset.bound = '1';
       entityTypeSelect.addEventListener('change', function () {
         if (entitySearch) entitySearch.value = '';
         if (entityHidden) entityHidden.value = '';
@@ -22739,7 +22866,8 @@ window.CRM.pageApiBindings = (function () {
         var entityType = String(approvalsForm.querySelector('[name="entity_type"]').value || '').trim();
         var reviewerSelect = document.getElementById('approvalsReviewersSelect');
         var selectedReviewers = [];
-        if (reviewerSelect) {
+        selectedReviewers = syncReviewerSelectFromChecks();
+        if (!selectedReviewers.length && reviewerSelect) {
           Array.prototype.forEach.call(reviewerSelect.selectedOptions, function (opt) { if (opt.value) selectedReviewers.push(opt.value); });
         }
         if (!entityType || !entityPublicId || !selectedReviewers.length) {
@@ -22763,7 +22891,7 @@ window.CRM.pageApiBindings = (function () {
           await request('api/v1/approvals', { method: 'POST', body: data });
           notify('Запрос на согласование создан');
           var modal = document.getElementById('approvalsCreateModal');
-          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).hide(); }
+          hideCrmPageModal(modal);
           approvalsForm.reset();
           if (entitySearch) entitySearch.value = '';
           if (entityHidden) entityHidden.value = '';
@@ -22772,6 +22900,16 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        }
+      });
+    }
+
+    var reviewerPicker = document.getElementById('approvalsReviewersPicker');
+    if (reviewerPicker && reviewerPicker.dataset.bound !== '1') {
+      reviewerPicker.dataset.bound = '1';
+      reviewerPicker.addEventListener('change', function (event) {
+        if (event.target && event.target.matches('[data-approval-reviewer-check]')) {
+          syncReviewerSelectFromChecks();
         }
       });
     }
@@ -22976,6 +23114,42 @@ window.CRM.pageApiBindings = (function () {
     }
     var entityLabels = { task: 'Задача', project: 'Проект', reminder: 'Напоминание', calendar_event: 'Событие' };
     function entityLabel(v) { return entityLabels[String(v || '').trim()] || v || '—'; }
+    function entitySearchMeta(entityType) {
+      var type = String(entityType || 'task');
+      if (type === 'project') return { endpoint: 'api/v1/projects', label: 'Поиск проекта', empty: 'Проекты не найдены' };
+      if (type === 'reminder') return { endpoint: 'api/v1/reminders', label: 'Поиск напоминания', empty: 'Напоминания не найдены' };
+      if (type === 'calendar_event') return { endpoint: 'api/v1/calendar/events', label: 'Поиск события календаря', empty: 'События не найдены' };
+      return { endpoint: 'api/v1/tasks', label: 'Поиск задачи', empty: 'Задачи не найдены' };
+    }
+    function recurringItemTitle(item, entityType) {
+      if (!item) return '';
+      if (item.title) return String(item.title);
+      if (entityType === 'reminder') return 'Напоминание на ' + formatDate(item.remind_at || '');
+      if (entityType === 'calendar_event') return String(item.title || item.name || item.public_id || '');
+      return String(item.name || item.public_id || '');
+    }
+    function recurringRuleDisplayTitle(item) {
+      var title = String((item && (item.title || item.name)) || '').trim();
+      if (title && !/^Повтор:\s*(task|project|reminder|calendar_event)\s+/i.test(title)) {
+        return title;
+      }
+      var type = String((item && item.entity_type) || '').trim();
+      if (type === 'task') return 'Повторяющаяся задача';
+      if (type === 'project') return 'Повторяющийся проект';
+      if (type === 'reminder') return 'Повторяющееся напоминание';
+      if (type === 'calendar_event') return 'Повторяющееся событие';
+      return title || 'Повторяющийся шаблон';
+    }
+    function updateRecurringEntityLabel() {
+      var type = String((document.getElementById('recurringEntityType') || {}).value || 'task');
+      var label = document.getElementById('recurringEntitySearchLabel');
+      var input = document.getElementById('recurringEntitySearch');
+      var meta = entitySearchMeta(type);
+      if (label) label.textContent = meta.label;
+      if (input) input.placeholder = type === 'reminder'
+        ? 'Введите дату, задачу или public_id...'
+        : 'Введите название или public_id...';
+    }
 
     function renderRecurringTable(items) {
       var body = document.getElementById('recurringBody');
@@ -22996,13 +23170,14 @@ window.CRM.pageApiBindings = (function () {
         var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
         var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
         var rrule = item.rrule || item.schedule || '';
+        var displayTitle = recurringRuleDisplayTitle(item);
         return '<tr data-recurring-id="' + safeText(id) + '">'
-          + '<td>' + safeText(item.title || item.name || id) + '</td>'
-          + '<td>' + safeText(entityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
-          + '<td>' + safeText(formatRruleLabel(rrule)) + '</td>'
-          + '<td>' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
-          + '<td><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
-          + '<td class="crm-table-actions">'
+          + '<td data-label="Шаблон"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(id) + '</span></td>'
+          + '<td data-label="Сущность"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span> <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
+          + '<td data-label="Расписание"><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule) + '</span></td>'
+          + '<td data-label="След. запуск">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
+          + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
+          + '<td data-label="Действия" class="crm-table-actions">'
           + (isActive ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">Приостановить</button>' : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">Возобновить</button>')
           + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-recurring-edit="' + safeText(id) + '">Изменить</button>'
           + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">Удалить</button>'
@@ -23056,13 +23231,16 @@ window.CRM.pageApiBindings = (function () {
     var submitBtn2 = document.getElementById('recurringSubmitBtn');
     if (createBtn && createBtn.dataset.bound !== '1') { createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', function () {
-        var form = document.getElementById('recurringCreateForm'); if (form) form.reset();
+        var form = document.getElementById('recurringCreateForm'); if (!form) return;
+        form.reset();
         form.querySelector('[name="public_id"]').value = '';
+        form.querySelector('[name="rrule"]').value = 'FREQ=DAILY';
+        form.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', String(btn.getAttribute('data-rrule-preset') || '') === 'FREQ=DAILY'); });
         if (modalTitle) modalTitle.textContent = 'Создать шаблон';
         if (submitBtn2) submitBtn2.textContent = 'Создать шаблон';
         resetRecurringSearch();
         var modal = document.getElementById('recurringCreateModal');
-        if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+        showCrmPageModal(modal);
       });
     }
 
@@ -23070,6 +23248,7 @@ window.CRM.pageApiBindings = (function () {
       var es = document.getElementById('recurringEntitySearch'); if (es) es.value = '';
       var eh = document.querySelector('#recurringCreateForm [name="entity_public_id"]'); if (eh) eh.value = '';
       var ed = document.getElementById('recurringEntityResults'); if (ed) ed.classList.add('d-none');
+      updateRecurringEntityLabel();
     }
 
     // Entity autocomplete
@@ -23083,12 +23262,20 @@ window.CRM.pageApiBindings = (function () {
         if (entityDropdown) { entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Поиск...</div>'; entityDropdown.classList.remove('d-none'); }
         try {
           var entityType = String((document.getElementById('recurringEntityType') || {}).value || 'task').trim();
-          var endpoint = entityType === 'project' ? 'api/v1/projects' : 'api/v1/tasks';
-          var envelope = await request(endpoint, { query: { limit: 20, search: query }, silent: true });
+          var meta = entitySearchMeta(entityType);
+          var searchQuery = { limit: 20, search: query };
+          if (entityType === 'calendar_event') searchQuery = { limit: 20, q: query };
+          var envelope = await request(meta.endpoint, { query: searchQuery, silent: true });
           var items = mapItems(envelope);
-          if (!items.length) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ничего не найдено</div>'; return; }
+          if (!items.length) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + safeText(meta.empty) + '</div>'; return; }
           entityDropdown.innerHTML = items.map(function (item) {
-            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(item.title || '') + '"><strong>' + safeText(item.title || item.public_id || '') + '</strong><span class="text-muted ms-2">' + (item.project_title ? safeText(item.project_title) : '') + '</span></div>';
+            var title = recurringItemTitle(item, entityType);
+            var sub = entityType === 'reminder'
+              ? formatDate(item.remind_at || '')
+              : entityType === 'calendar_event'
+                ? formatDate(item.starts_at || '')
+                : (item.project_title || item.public_id || '');
+            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="text-muted ms-2">' + safeText(sub || '') + '</span></div>';
           }).join('');
         } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка</div>'; }
       });
@@ -23101,7 +23288,11 @@ window.CRM.pageApiBindings = (function () {
       });}
     }
     var entityTypeSelect2 = document.getElementById('recurringEntityType');
-    if (entityTypeSelect2) { entityTypeSelect2.addEventListener('change', resetRecurringSearch); }
+    if (entityTypeSelect2 && entityTypeSelect2.dataset.bound !== '1') {
+      entityTypeSelect2.dataset.bound = '1';
+      entityTypeSelect2.addEventListener('change', resetRecurringSearch);
+      updateRecurringEntityLabel();
+    }
 
     // Form submit
     var recurringForm = document.getElementById('recurringCreateForm');
@@ -23110,6 +23301,7 @@ window.CRM.pageApiBindings = (function () {
         var presetBtn = event.target.closest('[data-rrule-preset]'); if (!presetBtn) return;
         var rruleInput = recurringForm.querySelector('[name="rrule"]'); if (!rruleInput) return;
         rruleInput.value = String(presetBtn.getAttribute('data-rrule-preset') || '').trim();
+        recurringForm.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', btn === presetBtn); });
       });
       recurringForm.addEventListener('submit', async function (event) {
         event.preventDefault();
@@ -23123,8 +23315,11 @@ window.CRM.pageApiBindings = (function () {
           rrule: String(recurringForm.querySelector('[name="rrule"]').value || '').trim()
         };
         if (!data.title || !data.entity_type || !data.entity_public_id || !data.rrule) {
-          var errMsg = !data.title ? 'Укажите название' : !data.entity_public_id ? 'Выберите задачу или проект' : !data.rrule ? 'Укажите расписание' : 'Заполните все поля';
+          var errMsg = !data.title ? 'Укажите название' : !data.entity_public_id ? 'Выберите исходную сущность' : !data.rrule ? 'Укажите расписание' : 'Заполните все поля';
           notify(errMsg, 'warning'); return;
+        }
+        if (!/^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;|$)/i.test(data.rrule)) {
+          notify('Расписание должно начинаться с FREQ=DAILY, WEEKLY, MONTHLY или YEARLY', 'warning'); return;
         }
         try {
           if (editId) {
@@ -23135,7 +23330,7 @@ window.CRM.pageApiBindings = (function () {
             notify('Шаблон создан');
           }
           var modal = document.getElementById('recurringCreateModal');
-          if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).hide(); }
+          hideCrmPageModal(modal);
           recurringForm.reset(); resetRecurringSearch();
           await loadRecurring();
         } catch (error) {
@@ -23165,10 +23360,12 @@ window.CRM.pageApiBindings = (function () {
           form.querySelector('[name="entity_type"]').value = String(item.entity_type||'task');
           form.querySelector('[name="entity_public_id"]').value = String(item.entity_public_id||'');
           form.querySelector('[name="rrule"]').value = String(item.rrule||'');
+          updateRecurringEntityLabel();
+          form.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', String(btn.getAttribute('data-rrule-preset') || '') === String(item.rrule || '')); });
           if (entitySearch) entitySearch.value = String(item.entity_public_id||'');
           if (modalTitle) modalTitle.textContent = 'Изменить шаблон';
           if (submitBtn2) submitBtn2.textContent = 'Сохранить';
-          var modal = document.getElementById('recurringCreateModal'); if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+          var modal = document.getElementById('recurringCreateModal'); showCrmPageModal(modal);
           return; }
         // Delete
         var deleteBtn = event.target.closest('[data-recurring-delete]');
@@ -23176,7 +23373,7 @@ window.CRM.pageApiBindings = (function () {
           var ditem = recurringData.find(function(i){return String(i.public_id||'')===did;});
           var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? String(ditem.title||'') : did;
           var confirmBtn = document.getElementById('recurringDeleteConfirmBtn'); if (confirmBtn) confirmBtn.dataset.templateId = did;
-          var delModal = document.getElementById('recurringDeleteModal'); if (delModal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(delModal).show(); }
+          var delModal = document.getElementById('recurringDeleteModal'); showCrmPageModal(delModal);
           return; }
       });
     }
@@ -23186,7 +23383,7 @@ window.CRM.pageApiBindings = (function () {
     if (deleteConfirm && deleteConfirm.dataset.bound !== '1') { deleteConfirm.dataset.bound = '1';
       deleteConfirm.addEventListener('click', async function () {
         var tid = String(deleteConfirm.dataset.templateId||'').trim(); if (!tid) return;
-        try { await request('api/v1/recurring/'+encodeURIComponent(tid),{method:'DELETE'}); var dm=document.getElementById('recurringDeleteModal'); if(dm&&window.bootstrap)window.bootstrap.Modal.getOrCreateInstance(dm).hide(); notify('Шаблон удалён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); }
+        try { await request('api/v1/recurring/'+encodeURIComponent(tid),{method:'DELETE'}); var dm=document.getElementById('recurringDeleteModal'); hideCrmPageModal(dm); notify('Шаблон удалён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); }
       });
     }
 

@@ -15,10 +15,7 @@ final class RecurringService
     public function list(array $filters): array
     {
         [$items, $total, $page, $limit] = $this->recurring->list($filters);
-        $items = array_map(static function (array $item): array {
-            $item['is_active'] = (int)($item['is_active'] ?? 1) === 1;
-            return $item;
-        }, $items);
+        $items = array_map([$this, 'normalizeRule'], $items);
 
         return [
             'items' => $items,
@@ -39,6 +36,7 @@ final class RecurringService
         $now = gmdate('Y-m-d H:i:s');
         $this->recurring->create([
             'public_id' => $publicId,
+            'title' => $this->normalizeTitle($input),
             'entity_type' => (string)$input['entity_type'],
             'entity_public_id' => trim((string)$input['entity_public_id']),
             'rrule' => trim((string)$input['rrule']),
@@ -57,8 +55,7 @@ final class RecurringService
             return null;
         }
 
-        $item['is_active'] = (int)($item['is_active'] ?? 1) === 1;
-        return $item;
+        return $this->normalizeRule($item);
     }
 
     public function update(string $publicId, array $input): ?array
@@ -71,6 +68,9 @@ final class RecurringService
         $set = ['updated_at' => gmdate('Y-m-d H:i:s')];
         if (array_key_exists('entity_type', $input)) {
             $set['entity_type'] = (string)$input['entity_type'];
+        }
+        if (array_key_exists('title', $input)) {
+            $set['title'] = $this->normalizeTitle($input);
         }
         if (array_key_exists('entity_public_id', $input)) {
             $set['entity_public_id'] = trim((string)$input['entity_public_id']);
@@ -115,5 +115,73 @@ final class RecurringService
     public function delete(string $publicId): bool
     {
         return $this->recurring->deleteByPublicId($publicId);
+    }
+
+    public function isValidRrule(string $rrule): bool
+    {
+        $rrule = trim($rrule);
+        if (!preg_match('/(^|;)FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;|$)/i', $rrule)) {
+            return false;
+        }
+
+        try {
+            $parser = new RruleParser($rrule);
+            return in_array($parser->getFrequency(), ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], true);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function normalizeRule(array $item): array
+    {
+        $item['is_active'] = (int)($item['is_active'] ?? 1) === 1;
+        $item['title'] = trim((string)($item['title'] ?? ''));
+        if ($item['title'] === '') {
+            $item['title'] = $this->normalizeTitle($item);
+        }
+        $item['next_run_at'] = $this->nextRunAt($item);
+
+        return $item;
+    }
+
+    private function normalizeTitle(array $input): string
+    {
+        $title = trim((string)($input['title'] ?? ''));
+        if ($title !== '') {
+            return mb_substr($title, 0, 255);
+        }
+
+        $entityType = trim((string)($input['entity_type'] ?? 'сущность'));
+        $entityPublicId = trim((string)($input['entity_public_id'] ?? ''));
+        return mb_substr('Повтор: ' . $entityType . ($entityPublicId !== '' ? ' ' . $entityPublicId : ''), 0, 255);
+    }
+
+    private function nextRunAt(array $item): ?string
+    {
+        $rrule = trim((string)($item['rrule'] ?? ''));
+        if ($rrule === '') {
+            return null;
+        }
+
+        try {
+            $from = $this->parseDate((string)($item['last_processed_at'] ?? ''))
+                ?? $this->parseDate((string)($item['created_at'] ?? ''))
+                ?? new \DateTimeImmutable('now');
+            $next = (new RruleParser($rrule))->getNextDueDate($from);
+            return $next ? $next->format('Y-m-d H:i:s') : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function parseDate(string $value): ?\DateTimeImmutable
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+        return $timestamp === false ? null : new \DateTimeImmutable('@' . $timestamp);
     }
 }

@@ -1256,6 +1256,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
         "CREATE TABLE IF NOT EXISTS recurring_rules (
             id {$id},
             public_id VARCHAR(64) UNIQUE,
+            title VARCHAR(255) NULL,
             entity_type VARCHAR(64),
             entity_public_id VARCHAR(64),
             rrule {$text},

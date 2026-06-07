@@ -12,5 +12,6 @@ return [
     'not_found' => 'Recurring rule not found',
     'invalid_entity_type' => 'Invalid entity type',
     'max_64' => 'Maximum 64 characters',
+    'max_255' => 'Maximum 255 characters',
     'max_1000' => 'Maximum 1000 characters',
 ];

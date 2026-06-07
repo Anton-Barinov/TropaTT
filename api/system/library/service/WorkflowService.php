@@ -248,10 +248,15 @@ final class WorkflowService
 
         foreach ($rules as $rule) {
             try {
+                $payload = $this->decodePayload($rule['payload'] ?? []);
+                if (!$this->matchesTriggerConditions($triggerCode, $payload, $context)) {
+                    continue;
+                }
+
                 $runResult = $this->executeAction(
                     (string)$rule['action_code'],
                     (string)$rule['public_id'],
-                    $this->decodePayload($rule['payload'] ?? []),
+                    $payload,
                     $context
                 );
                 $status = $runResult['success'] ? 'success' : 'failed';
@@ -273,6 +278,28 @@ final class WorkflowService
         }
 
         return $results;
+    }
+
+    private function matchesTriggerConditions(string $triggerCode, array $payload, array $context): bool
+    {
+        if ($triggerCode !== 'task_status_changed') {
+            return true;
+        }
+
+        $from = trim((string)($payload['from_status_code'] ?? ''));
+        $to = trim((string)($payload['to_status_code'] ?? ''));
+        $previous = trim((string)($context['previous_status'] ?? ''));
+        $next = trim((string)($context['new_status'] ?? $context['task_status'] ?? ''));
+
+        if ($from !== '' && $from !== $previous) {
+            return false;
+        }
+
+        if ($to !== '' && $to !== $next) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
