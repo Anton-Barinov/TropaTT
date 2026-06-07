@@ -15,20 +15,24 @@
     <div class="crm-toolbar-surface d-flex flex-wrap gap-2 align-items-center mb-3">
       <input id="timeAnalyticsFrom" class="form-control crm-field-w-200" type="date" placeholder="От">
       <input id="timeAnalyticsTo" class="form-control crm-field-w-200" type="date" placeholder="До">
+      <select id="timeAnalyticsTeamFilter" class="form-select crm-field-w-220" aria-label="Команда"><option value="">Все команды</option></select>
+      <select id="timeAnalyticsProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsApplyBtn">Применить</button>
     </div>
-    <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table"><thead><tr><th>Дата</th><th>Пользователь</th><th>Часов</th></tr></thead><tbody id="timeAnalyticsTimeBody"><tr><td colspan="3" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
+    <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table crm-matrix-table"><thead><tr><th class="crm-matrix-date-col">Дата</th><th>Пользователь</th><th>Время</th></tr></thead><tbody id="timeAnalyticsTimeBody"><tr><td colspan="3" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
   </div>
 
   <div id="timeAnalyticsEarnings" class="tab-pane fade">
     <div class="crm-toolbar-surface d-flex flex-wrap gap-2 align-items-center mb-3">
       <input id="timeAnalyticsEarningsFrom" class="form-control crm-field-w-200" type="date" placeholder="От">
       <input id="timeAnalyticsEarningsTo" class="form-control crm-field-w-200" type="date" placeholder="До">
+      <select id="timeAnalyticsEarningsTeamFilter" class="form-select crm-field-w-220" aria-label="Команда"><option value="">Все команды</option></select>
+      <select id="timeAnalyticsEarningsProjectFilter" class="form-select crm-field-w-220" aria-label="Проект"><option value="">Все проекты</option></select>
       <select id="timeAnalyticsEarningsUserFilter" class="form-select crm-field-w-220" aria-label="Пользователь"><option value="">Все пользователи</option></select>
       <button class="btn crm-btn-primary crm-btn-compact" type="button" id="timeAnalyticsEarningsApplyBtn">Применить</button>
     </div>
-    <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table"><thead><tr><th>Дата</th><th>Пользователь</th><th>Часов</th><th>Ставка (себестоимость)</th><th>Ставка (продажа)</th><th>Себестоимость</th><th>Продажа</th></tr></thead><tbody id="timeAnalyticsEarningsBody"><tr><td colspan="7" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
+    <div class="crm-card crm-section-card p-0 table-responsive"><table class="table table-hover align-middle mb-0 crm-table crm-matrix-table"><thead><tr><th class="crm-matrix-date-col">Дата</th><th>Пользователь</th><th>Время</th><th>Ставка (себестоимость)</th><th>Ставка (продажа)</th><th>Себестоимость</th><th>Продажа</th></tr></thead><tbody id="timeAnalyticsEarningsBody"><tr><td colspan="7" class="text-muted">Загрузка данных...</td></tr></tbody></table></div>
   </div>
 
   <div id="timeAnalyticsMatrix" class="tab-pane fade">

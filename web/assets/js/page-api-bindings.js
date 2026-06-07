@@ -24879,36 +24879,43 @@ window.CRM.pageApiBindings = (function () {
         sel.innerHTML = allUsersHtml;
       });
 
-      // Load teams and projects for matrix filter
-      var teamSel = document.getElementById('timeAnalyticsMatrixTeamFilter');
-      var projectSel = document.getElementById('timeAnalyticsMatrixProjectFilter');
+      // Load teams and projects for all filter selects
+      var allTeamSelects = ['timeAnalyticsTeamFilter', 'timeAnalyticsEarningsTeamFilter', 'timeAnalyticsMatrixTeamFilter'];
+      var allProjectSelects = ['timeAnalyticsProjectFilter', 'timeAnalyticsEarningsProjectFilter', 'timeAnalyticsMatrixProjectFilter'];
       
-      if (teamSel) {
-        try {
-          var teamsEnv = await window.CRM.api.request('api/v1/teams', { query: { limit: 100 } });
-          var teams = (teamsEnv.data?.items || []);
-          teamSel.innerHTML = '<option value="">Все команды</option>';
-          teams.forEach(function(t) {
-            teamSel.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
-          });
-        } catch(e) {}
-      }
-      if (projectSel) {
-        try {
-          var projEnv = await window.CRM.api.request('api/v1/projects', { query: { limit: 200 } });
-          var projects = (projEnv.data?.items || []);
-          projectSel.innerHTML = '<option value="">Все проекты</option>';
-          projects.forEach(function(p) {
-            projectSel.innerHTML += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
-          });
-        } catch(e) {}
-      }
+      try {
+        var teamsEnv = await window.CRM.api.request('api/v1/teams', { query: { limit: 100 } });
+        var teams = (teamsEnv.data?.items || []);
+        var allTeamsHtml = '<option value="">Все команды</option>';
+        teams.forEach(function(t) {
+          allTeamsHtml += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
+        });
+        allTeamSelects.forEach(function (selId) {
+          var sel = document.getElementById(selId);
+          if (!sel) return;
+          sel.innerHTML = allTeamsHtml;
+        });
+      } catch(e) {}
+      
+      try {
+        var projEnv = await window.CRM.api.request('api/v1/projects', { query: { limit: 200 } });
+        var projects = (projEnv.data?.items || []);
+        var allProjectsHtml = '<option value="">Все проекты</option>';
+        projects.forEach(function(p) {
+          allProjectsHtml += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
+        });
+        allProjectSelects.forEach(function (selId) {
+          var sel = document.getElementById(selId);
+          if (!sel) return;
+          sel.innerHTML = allProjectsHtml;
+        });
+      } catch(e) {}
 
       // Load time data
-      await loadTimeSummary(timeFrom.value, timeTo.value, '');
+      await loadTimeSummary(timeFrom.value, timeTo.value, '', '', '');
 
       // Load earnings data
-      await loadEarningsSummary(earnFrom.value, earnTo.value, '');
+      await loadEarningsSummary(earnFrom.value, earnTo.value, '', '', '');
 
       // Bind apply buttons
       var timeApplyBtn = document.getElementById('timeAnalyticsApplyBtn');
@@ -24917,6 +24924,8 @@ window.CRM.pageApiBindings = (function () {
           loadTimeSummary(
             document.getElementById('timeAnalyticsFrom').value,
             document.getElementById('timeAnalyticsTo').value,
+            document.getElementById('timeAnalyticsTeamFilter').value,
+            document.getElementById('timeAnalyticsProjectFilter').value,
             document.getElementById('timeAnalyticsUserFilter').value
           );
         });
@@ -24928,6 +24937,8 @@ window.CRM.pageApiBindings = (function () {
           loadEarningsSummary(
             document.getElementById('timeAnalyticsEarningsFrom').value,
             document.getElementById('timeAnalyticsEarningsTo').value,
+            document.getElementById('timeAnalyticsEarningsTeamFilter').value,
+            document.getElementById('timeAnalyticsEarningsProjectFilter').value,
             document.getElementById('timeAnalyticsEarningsUserFilter').value
           );
         });
@@ -24947,13 +24958,15 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  async function loadTimeSummary(from, to, userPublicId) {
+  async function loadTimeSummary(from, to, teamId, projectId, userPublicId) {
     var tbody = document.getElementById('timeAnalyticsTimeBody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Загрузка...</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
+      if (teamId) q.team_public_id = teamId;
+      if (projectId) q.project_public_id = projectId;
       var env = await window.CRM.api.request('api/v1/worklogs/summary', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
@@ -24962,22 +24975,28 @@ window.CRM.pageApiBindings = (function () {
       }
       var html = '';
       items.forEach(function (row) {
-        var hours = (row.total_minutes / 60).toFixed(1);
-        html += '<tr><td>' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td>' + hours + '</td></tr>';
+        var mins = Number(row.total_minutes || 0);
+        var timeHtml = mins > 0
+          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>'
+          : '0';
+        html += '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="crm-matrix-cell">' + timeHtml + '</td></tr>';
       });
       tbody.innerHTML = html;
+      bindTimeCells(tbody);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
     }
   }
 
-  async function loadEarningsSummary(from, to, userPublicId) {
+  async function loadEarningsSummary(from, to, teamId, projectId, userPublicId) {
     var tbody = document.getElementById('timeAnalyticsEarningsBody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Загрузка...</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
+      if (teamId) q.team_public_id = teamId;
+      if (projectId) q.project_public_id = projectId;
       var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
@@ -24986,11 +25005,14 @@ window.CRM.pageApiBindings = (function () {
       }
       var html = '';
       items.forEach(function (row) {
-        var hours = (row.total_minutes / 60).toFixed(1);
+        var mins = Number(row.total_minutes || 0);
+        var timeHtml = mins > 0
+          ? '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>'
+          : '0';
         html += '<tr>'
-          + '<td>' + safeText(row.day) + '</td>'
+          + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
           + '<td>' + safeText(row.user_full_name || row.user_login) + '</td>'
-          + '<td>' + hours + '</td>'
+          + '<td class="crm-matrix-cell">' + timeHtml + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'
@@ -24998,6 +25020,7 @@ window.CRM.pageApiBindings = (function () {
           + '</tr>';
       });
       tbody.innerHTML = html;
+      bindTimeCells(tbody);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
     }
@@ -25012,6 +25035,31 @@ window.CRM.pageApiBindings = (function () {
     if (h > 0 && m > 0) return h + 'ч ' + m + 'м';
     if (h > 0) return h + 'ч';
     return m + 'м';
+  }
+
+  function bindTimeCells(container) {
+    if (!container) return;
+    container.querySelectorAll('.crm-matrix-cell-has').forEach(function (cell) {
+      cell.addEventListener('click', function (e) {
+        var day = cell.getAttribute('data-day');
+        var userId = cell.getAttribute('data-user');
+        var userName = cell.getAttribute('data-user-name');
+        // Detect which tab is active and get the project filter from that tab's filter
+        var activeTab = document.querySelector('#timeAnalyticsTabs .nav-link.active');
+        var projectId = '';
+        if (activeTab) {
+          var tabId = activeTab.getAttribute('data-bs-target');
+          if (tabId === '#timeAnalyticsTime') {
+            projectId = document.getElementById('timeAnalyticsProjectFilter').value;
+          } else if (tabId === '#timeAnalyticsEarnings') {
+            projectId = document.getElementById('timeAnalyticsEarningsProjectFilter').value;
+          } else if (tabId === '#timeAnalyticsMatrix') {
+            projectId = document.getElementById('timeAnalyticsMatrixProjectFilter').value;
+          }
+        }
+        openTimeDetailModal(day, userId, userName, projectId);
+      });
+    });
   }
 
   async function loadMatrixSummary() {
@@ -25084,17 +25132,7 @@ window.CRM.pageApiBindings = (function () {
       html += '<td class="crm-matrix-total-col">' + formatMinutesShort(grandTotal) + '</td></tr></tfoot></table>';
 
       wrap.innerHTML = html;
-
-      // Bind click on cells with data
-      wrap.querySelectorAll('.crm-matrix-cell-has').forEach(function (cell) {
-        cell.addEventListener('click', function () {
-          var day = cell.getAttribute('data-day');
-          var userId = cell.getAttribute('data-user');
-          var userName = cell.getAttribute('data-user-name');
-          var projectId = document.getElementById('timeAnalyticsMatrixProjectFilter').value;
-          openTimeDetailModal(day, userId, userName, projectId);
-        });
-      });
+      bindTimeCells(wrap);
     } catch (e) {
       wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
     }
