@@ -735,9 +735,11 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             created_by_user_id INTEGER NULL,
             created_at {$dt},
             updated_at {$dt},
-            deleted_at {$dt} NULL
+            deleted_at {$dt} NULL,
+            cost_rate DECIMAL(12,2) DEFAULT NULL,
+            bill_rate DECIMAL(12,2) DEFAULT NULL
         )",
-
+ 
         "CREATE TABLE IF NOT EXISTS user_roles (
             id {$id},
             user_id INTEGER,
