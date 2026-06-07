@@ -1216,7 +1216,23 @@ textarea:focus-visible,
 }
 
 @media (min-width: 1200px) {
+  .crm-sidebar-collapsed .crm-brand {
+    height: 56px;
+    min-height: 56px;
+    margin-bottom: 0.5rem;
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .crm-sidebar-collapsed .crm-brand-mark {
+    display: none;
+  }
+
   .crm-sidebar-collapsed .crm-sidebar-toggle {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    margin: 0 auto;
     transform: none;
   }
 
