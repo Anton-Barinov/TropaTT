@@ -148,4 +148,49 @@ final class WorklogController extends BaseController
 
         return $this->success('WORKLOG_DELETED', $this->t('worklog/messages.deleted'));
     }
+
+    public function summary(): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->summary($this->request()->allInput(), $authUser['user']);
+
+        return $this->success('WORKLOG_SUMMARY', $this->t('worklog/messages.summary'), $result);
+    }
+
+    public function earnings(): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->earnings($this->request()->allInput(), $authUser['user']);
+
+        return $this->success('WORKLOG_EARNINGS', $this->t('worklog/messages.earnings'), $result);
+    }
+
+    public function taskSummary(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->taskSummaryByUser((string)$params['public_id'], $authUser['user']);
+        if ($result === null) {
+            return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
+        }
+
+        return $this->success('WORKLOG_TASK_SUMMARY', $this->t('worklog/messages.task_summary'), $result);
+    }
 }

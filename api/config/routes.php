@@ -242,9 +242,12 @@ return [
     // worklogs/dashboard
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/worklogs', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/summary', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/earnings', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'earnings', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/worklogs/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/worklogs/task/{public_id}', 'controller' => Api\Controller\Worklog\WorklogController::class, 'action' => 'taskSummary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/dashboard/summary', 'controller' => Api\Controller\Dashboard\DashboardController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/analytics/summary', 'controller' => Api\Controller\Analytics\AnalyticsController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/analytics/projects', 'controller' => Api\Controller\Analytics\AnalyticsController::class, 'action' => 'projects', 'auth' => true, 'required_permissions' => ['task.manage']],

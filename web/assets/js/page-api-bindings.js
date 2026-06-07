@@ -12902,10 +12902,22 @@ window.CRM.pageApiBindings = (function () {
         form.querySelector('[name="is_active"]').value = user.is_active ? '1' : '0';
         form.querySelector('[name="role_public_ids"]').value = (user.role_public_ids || [])[0] || '';
         form.querySelector('[name="team_public_id"]').value = user.team_public_id || '';
+        var costInput = form.querySelector('[name="cost_rate"]');
+        var billInput = form.querySelector('[name="bill_rate"]');
+        if (costInput) costInput.value = user.cost_rate != null ? user.cost_rate : '';
+        if (billInput) billInput.value = user.bill_rate != null ? user.bill_rate : '';
         var modal = new bootstrap.Modal(document.getElementById('userEditModal'));
         modal.show();
       });
     });
+
+    // Inject rate fields into edit form if not already present
+    var editFormRow = document.querySelector('#adminUserEditForm .row.g-3');
+    if (editFormRow && !editFormRow.querySelector('[name="cost_rate"]')) {
+      var rateHtml = '<div class="col-md-6"><label class="form-label">Ставка себестоимости (в час)</label><input class="form-control" name="cost_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+        + '<div class="col-md-6"><label class="form-label">Ставка продажи (в час)</label><input class="form-control" name="bill_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>';
+      editFormRow.insertAdjacentHTML('beforeend', rateHtml);
+    }
 
     // Bind edit form
     var editForm = document.getElementById('adminUserEditForm');
@@ -12920,7 +12932,9 @@ window.CRM.pageApiBindings = (function () {
           locale: formData.get('locale'),
           is_active: formData.get('is_active') === '1',
           role_public_ids: formData.get('role_public_ids') ? [formData.get('role_public_ids')] : [],
-          team_public_id: formData.get('team_public_id') || null
+          team_public_id: formData.get('team_public_id') || null,
+          cost_rate: formData.get('cost_rate') || null,
+          bill_rate: formData.get('bill_rate') || null
         };
         if (formData.get('password')) {
           data.password = formData.get('password');
@@ -24823,6 +24837,132 @@ window.CRM.pageApiBindings = (function () {
     return null;
   }
 
+  async function renderTimeAnalyticsPage() {
+    setLoadingState(true);
+    try {
+      var now = new Date();
+      var sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      var fromDefault = sevenDaysAgo.toISOString().slice(0, 10);
+      var toDefault = now.toISOString().slice(0, 10);
+
+      // Time tab
+      var timeFrom = document.getElementById('timeAnalyticsFrom');
+      var timeTo = document.getElementById('timeAnalyticsTo');
+      if (timeFrom && !timeFrom.value) timeFrom.value = fromDefault;
+      if (timeTo && !timeTo.value) timeTo.value = toDefault;
+
+      // Earnings tab
+      var earnFrom = document.getElementById('timeAnalyticsEarningsFrom');
+      var earnTo = document.getElementById('timeAnalyticsEarningsTo');
+      if (earnFrom && !earnFrom.value) earnFrom.value = fromDefault;
+      if (earnTo && !earnTo.value) earnTo.value = toDefault;
+
+      // Load users for filter
+      var usersEnv = await window.CRM.api.request('api/v1/users', { query: { limit: 500, is_active: 1 } });
+      var users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
+
+      var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter'];
+      userSelects.forEach(function (selId) {
+        var sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Все пользователи</option>';
+        users.forEach(function (u) {
+          sel.innerHTML += '<option value="' + escapeHtml(u.public_id) + '">' + escapeHtml(u.full_name || u.login) + '</option>';
+        });
+      });
+
+      // Load time data
+      await loadTimeSummary(timeFrom.value, timeTo.value, '');
+
+      // Load earnings data
+      await loadEarningsSummary(earnFrom.value, earnTo.value, '');
+
+      // Bind apply buttons
+      var timeApplyBtn = document.getElementById('timeAnalyticsApplyBtn');
+      if (timeApplyBtn) {
+        timeApplyBtn.addEventListener('click', function () {
+          loadTimeSummary(
+            document.getElementById('timeAnalyticsFrom').value,
+            document.getElementById('timeAnalyticsTo').value,
+            document.getElementById('timeAnalyticsUserFilter').value
+          );
+        });
+      }
+
+      var earnApplyBtn = document.getElementById('timeAnalyticsEarningsApplyBtn');
+      if (earnApplyBtn) {
+        earnApplyBtn.addEventListener('click', function () {
+          loadEarningsSummary(
+            document.getElementById('timeAnalyticsEarningsFrom').value,
+            document.getElementById('timeAnalyticsEarningsTo').value,
+            document.getElementById('timeAnalyticsEarningsUserFilter').value
+          );
+        });
+      }
+    } catch (e) {
+      setErrorState('Ошибка загрузки аналитики времени');
+    } finally {
+      setLoadingState(false);
+    }
+  }
+
+  async function loadTimeSummary(from, to, userPublicId) {
+    var tbody = document.getElementById('timeAnalyticsTimeBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Загрузка...</td></tr>';
+    try {
+      var q = { from: from, to: to };
+      if (userPublicId) q.user_public_id = userPublicId;
+      var env = await window.CRM.api.request('api/v1/worklogs/summary', { query: q });
+      var items = (env && env.data && env.data.items) || [];
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Нет данных за выбранный период</td></tr>';
+        return;
+      }
+      var html = '';
+      items.forEach(function (row) {
+        var hours = (row.total_minutes / 60).toFixed(1);
+        html += '<tr><td>' + escapeHtml(row.day) + '</td><td>' + escapeHtml(row.user_full_name || row.user_login) + '</td><td>' + hours + '</td></tr>';
+      });
+      tbody.innerHTML = html;
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
+    }
+  }
+
+  async function loadEarningsSummary(from, to, userPublicId) {
+    var tbody = document.getElementById('timeAnalyticsEarningsBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Загрузка...</td></tr>';
+    try {
+      var q = { from: from, to: to };
+      if (userPublicId) q.user_public_id = userPublicId;
+      var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
+      var items = (env && env.data && env.data.items) || [];
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Нет данных за выбранный период</td></tr>';
+        return;
+      }
+      var html = '';
+      items.forEach(function (row) {
+        var hours = (row.total_minutes / 60).toFixed(1);
+        html += '<tr>'
+          + '<td>' + escapeHtml(row.day) + '</td>'
+          + '<td>' + escapeHtml(row.user_full_name || row.user_login) + '</td>'
+          + '<td>' + hours + '</td>'
+          + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
+          + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
+          + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'
+          + '<td>' + Number(row.bill_amount).toFixed(2) + '</td>'
+          + '</tr>';
+      });
+      tbody.innerHTML = html;
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
+    }
+  }
+
   async function refreshCurrentPage() {
     if (!window.CRM.api || !isProtectedPage()) return;
 
@@ -24897,6 +25037,7 @@ window.CRM.pageApiBindings = (function () {
       if (route === 'admin-templates') return await renderAdminTemplatesPage();
       if (route === 'admin-tags') return await renderAdminTagsPage();
       if (route === 'admin-webhooks') return await renderAdminWebhooksPage();
+      if (route === 'time-analytics') return await renderTimeAnalyticsPage();
     } finally {
       void notificationsPromise;
       humanizeUserPublicIds(document.body);

@@ -2154,6 +2154,8 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
+  `cost_rate` decimal(12,2) DEFAULT NULL COMMENT 'Стоимость часа для компании',
+  `bill_rate` decimal(12,2) DEFAULT NULL COMMENT 'Выставляемая ставка за час',
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`),
   UNIQUE KEY `login` (`login`),

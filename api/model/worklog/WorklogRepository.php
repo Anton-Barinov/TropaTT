@@ -119,4 +119,113 @@ final class WorklogRepository
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
     }
+
+    /**
+     * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, day: string}>
+     */
+    public function summaryByDay(array $filters, int $actorUserId, bool $actorIsRoot): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'u.login AS user_login',
+                'u.full_name AS user_full_name',
+                'DATE(w.logged_at) AS day',
+                'SUM(w.minutes_spent) AS total_minutes',
+            ])
+            ->groupBy('u.id', 'DATE(w.logged_at)')
+            ->orderBy('day', 'DESC')
+            ->orderBy('u.full_name', 'ASC');
+
+        if (!$actorIsRoot) {
+            $qb->where('w.user_id', '=', $actorUserId);
+        }
+
+        if (!empty($filters['from'])) {
+            $qb->where('w.logged_at', '>=', (string)$filters['from']);
+        }
+        if (!empty($filters['to'])) {
+            $qb->where('w.logged_at', '<=', (string)$filters['to']);
+        }
+        if (!empty($filters['user_public_id'])) {
+            $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
+        }
+
+        return $qb->get();
+    }
+
+    /**
+     * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float, cost_amount: float, bill_amount: float, day: string}>
+     */
+    public function earningsByDay(array $filters, int $actorUserId, bool $actorIsRoot): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'u.login AS user_login',
+                'u.full_name AS user_full_name',
+                'DATE(w.logged_at) AS day',
+                'SUM(w.minutes_spent) AS total_minutes',
+                'u.cost_rate',
+                'u.bill_rate',
+                'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.cost_rate, 0), 2) AS cost_amount',
+                'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.bill_rate, 0), 2) AS bill_amount',
+            ])
+            ->groupBy('u.id', 'DATE(w.logged_at)')
+            ->orderBy('day', 'DESC')
+            ->orderBy('u.full_name', 'ASC');
+
+        if (!$actorIsRoot) {
+            $qb->where('w.user_id', '=', $actorUserId);
+        }
+
+        if (!empty($filters['from'])) {
+            $qb->where('w.logged_at', '>=', (string)$filters['from']);
+        }
+        if (!empty($filters['to'])) {
+            $qb->where('w.logged_at', '<=', (string)$filters['to']);
+        }
+        if (!empty($filters['user_public_id'])) {
+            $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
+        }
+
+        return $qb->get();
+    }
+
+    /**
+     * @return array{total_minutes: int, user_breakdown: array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float}>}
+     */
+    public function taskSummary(string $taskPublicId): array
+    {
+        $breakdown = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->join('tasks t', 't.id', '=', 'w.task_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'u.login AS user_login',
+                'u.full_name AS user_full_name',
+                'SUM(w.minutes_spent) AS total_minutes',
+                'u.cost_rate',
+                'u.bill_rate',
+            ])
+            ->where('t.public_id', '=', $taskPublicId)
+            ->groupBy('u.id')
+            ->orderBy('total_minutes', 'DESC')
+            ->get();
+
+        $total = 0;
+        foreach ($breakdown as $row) {
+            $total += (int)$row['total_minutes'];
+        }
+
+        return [
+            'total_minutes' => $total,
+            'user_breakdown' => $breakdown,
+        ];
+    }
 }

@@ -204,4 +204,32 @@ final class WorklogService
 
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
     }
+
+    public function summary(array $filters, array $actor): array
+    {
+        $actorId = (int)$actor['id'];
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $rows = $this->worklogs->summaryByDay($filters, $actorId, $actorIsRoot);
+        return ['items' => $rows];
+    }
+
+    public function earnings(array $filters, array $actor): array
+    {
+        $actorId = (int)$actor['id'];
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $rows = $this->worklogs->earningsByDay($filters, $actorId, $actorIsRoot);
+        return ['items' => $rows];
+    }
+
+    public function taskSummaryByUser(string $taskPublicId, array $actor): ?array
+    {
+        $task = $this->tasks->findByPublicId($taskPublicId);
+        if (!$task) {
+            return null;
+        }
+        if (!$this->canAccessTask($task, $actor)) {
+            return null;
+        }
+        return $this->worklogs->taskSummary($taskPublicId);
+    }
 }

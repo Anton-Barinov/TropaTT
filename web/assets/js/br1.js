@@ -5974,6 +5974,26 @@ window.CRM.br1 = (function () {
       return acc + Number(item.minutes_spent || 0);
     }, 0);
     if (summary) {
+      // Per-user breakdown
+      var userTotals = {};
+      items.forEach(function (item) {
+        var uid = item.user_public_id || 'unknown';
+        if (!userTotals[uid]) userTotals[uid] = { name: item.user_full_name || item.user_login || '—', minutes: 0 };
+        userTotals[uid].minutes += Number(item.minutes_spent || 0);
+      });
+      var userBreakdownHtml = '';
+      var sortedUsers = Object.keys(userTotals).sort(function (a, b) { return userTotals[b].minutes - userTotals[a].minutes; });
+      sortedUsers.forEach(function (uid) {
+        var u = userTotals[uid];
+        var pct = totalMinutes > 0 ? (u.minutes / totalMinutes * 100).toFixed(0) : 0;
+        userBreakdownHtml += '<div class="crm-worklog-user-row"><span class="crm-worklog-user-name">' + escapeHtml(u.name) + '</span>'
+          + '<span class="crm-worklog-user-minutes">' + escapeHtml(formatMinutes(u.minutes)) + '</span>'
+          + '<span class="crm-worklog-user-pct">(' + pct + '%)</span></div>';
+      });
+      var userBreakdownBlock = sortedUsers.length > 1
+        ? '<article class="crm-worklog-summary-card crm-worklog-summary-users"><div class="crm-worklog-summary-label">По пользователям</div>' + userBreakdownHtml + '</article>'
+        : '';
+
       summary.innerHTML = '<article class="crm-worklog-summary-card">'
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>'
         + '<div class="crm-worklog-summary-value">' + escapeHtml(formatMinutes(totalMinutes)) + '</div>'
@@ -5983,7 +6003,8 @@ window.CRM.br1 = (function () {
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>'
         + '<div class="crm-worklog-summary-value">' + escapeHtml(formatWorklogEntriesLabel(items.length)) + '</div>'
         + '<div class="crm-worklog-summary-label">В журнале</div>'
-        + '</article>';
+        + '</article>'
+        + userBreakdownBlock;
     }
 
     if (createForm) {

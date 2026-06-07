@@ -36,6 +36,7 @@ return [
     'client-cabinet' => [Web\Controller\Page\ClientCabinetController::class, 'index'],
 
     'analytics' => [Web\Controller\Page\AnalyticsController::class, 'index'],
+    'time-analytics' => [Web\Controller\Page\TimeAnalyticsController::class, 'index'],
     'docs' => [Web\Controller\Page\DocsController::class, 'index'],
 
     'admin' => [Web\Controller\Page\AdminController::class, 'index'],

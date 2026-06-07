@@ -135,6 +135,13 @@ final class UserService
             }
         }
 
+        foreach (['cost_rate', 'bill_rate'] as $field) {
+            if (array_key_exists($field, $input)) {
+                $val = $input[$field];
+                $set[$field] = ($val === null || $val === '' || $val === false) ? null : ((float)$val);
+            }
+        }
+
         if (array_key_exists('is_active', $input)) {
             $set['is_active'] = (int)((string)$input['is_active'] === '1');
         }
