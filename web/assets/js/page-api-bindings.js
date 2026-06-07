@@ -25151,6 +25151,10 @@ window.CRM.pageApiBindings = (function () {
       wrap.innerHTML = html;
       bindTimeCells(wrap);
       console.log('MATRIX_AFTERBIND', document.getElementById('timeAnalyticsTimeBody')?.querySelector('tr')?.cells[2]?.querySelector('span')?.textContent || 'no time tab');
+      var _tb = document.getElementById('timeAnalyticsTimeBody');
+      setTimeout(function() {
+        console.log('TAB_DELAYED', _tb?.querySelector('tr')?.cells[2]?.querySelector('span')?.textContent || 'no tab');
+      }, 100);
     } catch (e) {
       wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
     }
