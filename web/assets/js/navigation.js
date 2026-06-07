@@ -286,7 +286,11 @@ window.CRM.navigation = (function () {
       var label = t(item.i18n, item.label || item.key);
       var safeLabel = escapeHtml(label);
       var iconHtml = item.icon || navIcon(item.key);
-      var badge = item.key === 'chat' ? '<span class="crm-nav-badge d-none" data-chat-unread-badge aria-label=""></span>' : '';
+      var badge = item.key === 'chat'
+        ? '<span class="crm-nav-badge d-none" data-chat-unread-badge aria-label=""></span>'
+        : (item.key === 'notifications'
+          ? '<span class="crm-nav-badge d-none" data-nav-notification-badge aria-label=""></span>'
+          : '');
       var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + item.href + '" title="' + safeLabel + '">'
         + '<span class="crm-nav-icon" aria-hidden="true">' + iconHtml + '</span>'
         + '<span class="crm-nav-label">' + safeLabel + '</span>'
@@ -326,9 +330,15 @@ window.CRM.navigation = (function () {
       var label = t(item.i18n, item.label || item.key);
       var safeLabel = escapeHtml(label);
       var iconHtml = item.icon || navIcon(item.key);
+      var badge = item.key === 'chat'
+        ? '<span class="crm-nav-badge d-none" data-chat-unread-badge aria-label=""></span>'
+        : (item.key === 'notifications'
+          ? '<span class="crm-nav-badge d-none" data-nav-notification-badge aria-label=""></span>'
+          : '');
       var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + item.href + '" title="' + safeLabel + '">'
         + '<span class="crm-nav-icon" aria-hidden="true">' + iconHtml + '</span>'
         + '<span class="crm-nav-label">' + safeLabel + '</span>'
+        + badge
         + '</a>';
 
       if (parented[item.key]) {
@@ -745,6 +755,7 @@ window.CRM.navigation = (function () {
 
   var _navInitDone = false;
   var _chatUnreadTimer = null;
+  var _notifTimer = null;
 
   async function init() {
     if (_navInitDone) return;
@@ -760,7 +771,9 @@ window.CRM.navigation = (function () {
     bindGlobalSearch();
     bindLogoutButtons();
     updateChatUnreadBadges();
+    updateNotificationBadges();
     _chatUnreadTimer = window.setInterval(updateChatUnreadBadges, 120000);
+    _notifTimer = window.setInterval(updateNotificationBadges, 120000);
   }
 
   async function updateChatUnreadBadges() {
@@ -773,6 +786,21 @@ window.CRM.navigation = (function () {
         badge.classList.toggle('d-none', count <= 0);
         badge.textContent = count > 99 ? '99+' : String(count);
         badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных чатов: ' + count) : '');
+      });
+    } catch (e) {}
+  }
+
+  async function updateNotificationBadges() {
+    if (!window.CRM || !window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+    if (!document.body || document.body.dataset.protected !== '1') return;
+    try {
+      var envelope = await window.CRM.api.request('api/v1/notifications/counters', { method: 'GET' });
+      var counters = envelope && envelope.data && envelope.data.counters;
+      var count = Number(counters && counters.unread || 0) || 0;
+      document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
+        badge.classList.toggle('d-none', count <= 0);
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных уведомлений: ' + count) : '');
       });
     } catch (e) {}
   }

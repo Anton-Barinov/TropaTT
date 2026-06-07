@@ -227,12 +227,19 @@ a:focus-visible {
 }
 
 .crm-sidebar-collapsed .crm-nav .nav-link {
+  position: relative;
   width: 42px;
   height: 42px;
   margin: 0 auto 0.4rem;
   padding: 0;
   justify-content: center;
   border-radius: var(--radius-md);
+}
+
+[data-nav-notification-badge] {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .crm-sidebar-collapsed .crm-nav .crm-nav-label {
