@@ -236,7 +236,13 @@ a:focus-visible {
   border-radius: var(--radius-md);
 }
 
-[data-nav-notification-badge] {
+.crm-sidebar-collapsed [data-nav-notification-badge] {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.crm-sidebar-collapsed [data-chat-unread-badge] {
   position: absolute;
   right: 0;
   top: 0;
