@@ -1215,41 +1215,21 @@ textarea:focus-visible,
   transform: none;
 }
 
-.crm-sidebar-collapsed .crm-brand {
-  height: 56px;
-  min-height: 56px;
-  margin-bottom: 14px;
-  padding-inline: 0;
-  justify-content: center;
-}
+@media (min-width: 1200px) {
+  .crm-sidebar-collapsed .crm-sidebar-toggle {
+    transform: none;
+  }
 
-.crm-sidebar-collapsed .crm-brand-mark {
-  display: none;
-}
+  .crm-sidebar-collapsed .crm-sidebar-toggle .crm-icon,
+  .crm-sidebar-collapsed .crm-sidebar-toggle .crm-icon i {
+    font-size: 14px;
+    line-height: 1;
+  }
 
-.crm-sidebar-collapsed .crm-sidebar-toggle {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  margin: 0 auto;
-  border-color: rgba(17, 26, 25, 0.1);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--crm-text-muted);
-  transform: none;
-}
-
-.crm-sidebar-collapsed .crm-sidebar-toggle .crm-icon,
-.crm-sidebar-collapsed .crm-sidebar-toggle .crm-icon i {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.crm-sidebar-collapsed .crm-sidebar-toggle:hover,
-.crm-sidebar-collapsed .crm-sidebar-toggle:focus-visible {
-  border-color: rgba(17, 26, 25, 0.1);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--crm-text-muted);
-  transform: none;
+  .crm-sidebar-collapsed .crm-sidebar-toggle:hover,
+  .crm-sidebar-collapsed .crm-sidebar-toggle:focus-visible {
+    transform: none;
+  }
 }
 
 .crm-main-wrap {
