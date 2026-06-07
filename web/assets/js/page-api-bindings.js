@@ -13374,7 +13374,7 @@ window.CRM.pageApiBindings = (function () {
       var pBadge = '<span class="crm-chip crm-priority-' + pCode + '">' + (pLabels[pCode] || pCode) + '</span>';
       var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
         + '<div class="crm-task-row-meta">' + taskChipLabel(task) + '</div>';
-      var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t(mode === 'day' ? 'my_day.done_btn' : 'my_week.done_btn', '✓ Выполнить') + '</button>';
+      var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t(mode === 'day' ? 'my_day.done_btn' : 'my_week.done_btn', 'Выполнить') + '</button>';
       var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + _t('my_day.open_link', 'Открыть') + '</a>';
       var rowCls = mode === 'overdue' ? ' class="crm-task-row-overdue"' : '';
       var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
@@ -13748,7 +13748,7 @@ window.CRM.pageApiBindings = (function () {
         var assignee = task.assignee_name ? safeText(task.assignee_name) : _t('my_week.assignee_none', 'Не назначен');
         var taskTitle = '<div class="crm-task-row-main"><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></div>'
           + '<div class="crm-task-row-meta">' + weekChipLabel(task) + '</div>';
-        var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t('my_week.done_btn', '✓ Выполнить') + '</button>';
+        var doneBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-task-done="' + safeText(task.public_id) + '" data-row-version="' + (task.row_version || 1) + '">' + _t('my_week.done_btn', 'Выполнить') + '</button>';
         var openLink = '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(task.public_id) + '">' + _t('my_week.open_link', 'Открыть') + '</a>';
         var cls = rowClass ? ' class="' + rowClass + '"' : '';
         var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
