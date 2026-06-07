@@ -275,10 +275,10 @@ final class WorklogRepository
             $qb->where('u.public_id', '=', $userPublicId);
         }
         if (!empty($teamPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM team_members tm JOIN teams te ON te.id = tm.team_id WHERE tm.user_id = u.id AND te.public_id = :team_pub)', ['team_pub' => $teamPublicId]);
+            $qb->whereRaw('EXISTS (SELECT 1 FROM team_members tm JOIN teams te ON te.id = tm.team_id WHERE tm.user_id = u.id AND te.public_id = ?)', [$teamPublicId]);
         }
         if (!empty($projectPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = :project_pub)', ['project_pub' => $projectPublicId]);
+            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = ?)', [$projectPublicId]);
         }
 
         return $qb->get();
@@ -309,7 +309,7 @@ final class WorklogRepository
             $qb->where('w.user_id', '=', $actorUserId);
         }
         if (!empty($projectPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = :project_pub)', ['project_pub' => $projectPublicId]);
+            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = ?)', [$projectPublicId]);
         }
 
         return $qb->get();
