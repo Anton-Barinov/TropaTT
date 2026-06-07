@@ -275,10 +275,29 @@ final class WorklogRepository
             $qb->where('u.public_id', '=', $userPublicId);
         }
         if (!empty($teamPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM teams te WHERE te.public_id = ? AND JSON_CONTAINS(te.member_user_ids, CAST(u.id AS JSON)))', [$teamPublicId]);
+            // Get user IDs that are members of this team
+            $team = (new QueryBuilder($this->pdo))
+                ->from('teams')
+                ->select(['member_user_ids'])
+                ->where('public_id', '=', $teamPublicId)
+                ->first();
+            if ($team && !empty($team['member_user_ids'])) {
+                $memberIds = json_decode($team['member_user_ids'], true);
+                if (is_array($memberIds) && $memberIds !== []) {
+                    $memberIds = array_map('intval', $memberIds);
+                    $qb->whereIn('u.id', $memberIds);
+                }
+            }
         }
         if (!empty($projectPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = ?)', [$projectPublicId]);
+            $project = (new QueryBuilder($this->pdo))
+                ->from('projects')
+                ->select(['id'])
+                ->where('public_id', '=', $projectPublicId)
+                ->first();
+            if ($project) {
+                $qb->where('t.project_id', '=', (int)$project['id']);
+            }
         }
 
         return $qb->get();
@@ -309,7 +328,14 @@ final class WorklogRepository
             $qb->where('w.user_id', '=', $actorUserId);
         }
         if (!empty($projectPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = ?)', [$projectPublicId]);
+            $project = (new QueryBuilder($this->pdo))
+                ->from('projects')
+                ->select(['id'])
+                ->where('public_id', '=', $projectPublicId)
+                ->first();
+            if ($project) {
+                $qb->where('t.project_id', '=', (int)$project['id']);
+            }
         }
 
         return $qb->get();
