@@ -24980,13 +24980,9 @@ window.CRM.pageApiBindings = (function () {
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
-        var tr = '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="crm-matrix-cell">';
-        if (mins > 0) {
-          tr += '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>';
-        } else {
-          tr += '0';
-        }
-        tr += '</td></tr>';
+        var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
+        var tr = '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
         rows.push(tr);
       });
       var htmlContent = rows.join('');
@@ -25019,16 +25015,12 @@ window.CRM.pageApiBindings = (function () {
       items.forEach(function (row) {
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
+        var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
         html += '<tr>'
           + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
           + '<td>' + safeText(row.user_full_name || row.user_login) + '</td>'
-          + '<td class="crm-matrix-cell">';
-        if (mins > 0) {
-          html += '<span class="crm-matrix-cell-has" data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '">' + formatMinutesShort(mins) + '</span>';
-        } else {
-          html += '0';
-        }
-        html += '</td>'
+          + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'
