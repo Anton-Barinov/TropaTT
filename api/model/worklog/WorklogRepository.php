@@ -251,7 +251,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{day: string, user_public_id: string, total_minutes: int}>
      */
-    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $teamPublicId, ?string $projectPublicId, int $actorUserId, bool $actorIsRoot): array
+    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, int $actorUserId, bool $actorIsRoot): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -274,41 +274,6 @@ final class WorklogRepository
         if (!empty($userPublicId)) {
             $qb->where('u.public_id', '=', $userPublicId);
         }
-        // Team filter
-        if (!empty($teamPublicId)) {
-            try {
-                $team = (new QueryBuilder($this->pdo))
-                    ->from('teams')
-                    ->select(['member_user_ids'])
-                    ->where('public_id', '=', $teamPublicId)
-                    ->first();
-            } catch (\Throwable $e) {
-                $team = null;
-            }
-            if ($team && isset($team['member_user_ids'])) {
-                $raw = $team['member_user_ids'];
-                $memberIds = [];
-                if (is_string($raw) && $raw !== '') {
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        foreach ($decoded as $v) {
-                            $iv = (int)$v;
-                            if ($iv > 0) $memberIds[] = $iv;
-                        }
-                    }
-                } elseif (is_array($raw)) {
-                    foreach ($raw as $v) {
-                        $iv = (int)$v;
-                        if ($iv > 0) $memberIds[] = $iv;
-                    }
-                }
-                if ($memberIds !== []) {
-                    $memberIds = array_values(array_unique($memberIds));
-                    $qb->whereIn('u.id', $memberIds);
-                }
-            }
-        }
-        // Project filter
         if (!empty($projectPublicId)) {
             $project = (new QueryBuilder($this->pdo))
                 ->from('projects')
@@ -317,41 +282,6 @@ final class WorklogRepository
                 ->first();
             if ($project) {
                 $qb->where('t.project_id', '=', (int)$project['id']);
-            }
-        }
-        // Team filter: use whereIn with decoded member IDs
-        if (!empty($teamPublicId)) {
-            try {
-                $team = (new QueryBuilder($this->pdo))
-                    ->from('teams')
-                    ->select(['member_user_ids'])
-                    ->where('public_id', '=', $teamPublicId)
-                    ->first();
-            } catch (\Throwable $e) {
-                // If team query fails, ignore filter
-                $team = null;
-            }
-            if ($team && isset($team['member_user_ids'])) {
-                $raw = $team['member_user_ids'];
-                $memberIds = [];
-                if (is_string($raw) && $raw !== '') {
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        foreach ($decoded as $v) {
-                            $iv = (int)$v;
-                            if ($iv > 0) $memberIds[] = $iv;
-                        }
-                    }
-                } elseif (is_array($raw)) {
-                    foreach ($raw as $v) {
-                        $iv = (int)$v;
-                        if ($iv > 0) $memberIds[] = $iv;
-                    }
-                }
-                if ($memberIds !== []) {
-                    $memberIds = array_values(array_unique($memberIds));
-                    $qb->whereIn('u.id', $memberIds);
-                }
             }
         }
 
@@ -434,5 +364,10 @@ final class WorklogRepository
             ->whereRaw('JSON_CONTAINS(member_user_ids, CAST(? AS JSON))', [(string)$userId])
             ->first();
         return $row !== null;
+    }
+
+    public function getPdo(): \PDO
+    {
+        return $this->pdo;
     }
 }

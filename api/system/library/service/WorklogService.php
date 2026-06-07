@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Task\TaskRepository;
 use Api\Model\Worklog\WorklogRepository;
+use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\Ulid;
 
@@ -250,7 +251,7 @@ final class WorklogService
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $projectPublicId = (string)($filters['project_public_id'] ?? '');
 
-        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $teamPublicId ?: null, $projectPublicId ?: null, $actorId, $actorIsRoot);
+        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $projectPublicId ?: null, $actorId, $actorIsRoot);
 
         // Build matrix: [day][user_public_id] = total_minutes
         $matrix = [];
@@ -280,6 +281,35 @@ final class WorklogService
             $end->modify('-1 day');
         }
 
+        // Get team member IDs if team filter is active
+        $teamMemberIds = null;
+        if (!empty($teamPublicId)) {
+            $team = (new QueryBuilder($this->worklogs->getPdo()))
+                ->from('teams')
+                ->select(['member_user_ids'])
+                ->where('public_id', '=', $teamPublicId)
+                ->first();
+            if ($team && isset($team['member_user_ids'])) {
+                $raw = $team['member_user_ids'];
+                $ids = [];
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $v) {
+                            $iv = (int)$v;
+                            if ($iv > 0) $ids[] = $iv;
+                        }
+                    }
+                } elseif (is_array($raw)) {
+                    foreach ($raw as $v) {
+                        $iv = (int)$v;
+                        if ($iv > 0) $ids[] = $iv;
+                    }
+                }
+                $teamMemberIds = $ids ? array_values(array_unique($ids)) : null;
+            }
+        }
+
         // Determine user list
         $users = [];
         if ($userPublicId) {
@@ -296,14 +326,19 @@ final class WorklogService
             foreach ($allUsers as $u) {
                 $pid = $u['public_id'];
                 // Filter by team if needed
-                if ($teamPublicId && !$this->worklogs->userInTeam($pid, $teamPublicId)) {
-                    continue;
+                if ($teamMemberIds !== null) {
+                    // We need to check if this user is in the team by user_id
+                    // But activeUsers only returns public_id/login/full_name
+                    // We'll rely on the fact that matrix rows for non-team users will be empty
+                    // and skip users NOT in the matrix when team filter is active
+                    if (!in_array($pid, $userSetKeys)) {
+                        continue;
+                    }
                 }
-                // If project is selected, only include users with time in that project in the period
+                // If project is selected, only include users with time in that project
                 if ($projectPublicId && !in_array($pid, $userSetKeys)) {
                     continue;
                 }
-                // For no filters, show all active users; if team filter only, team filter already applied
                 $users[] = [
                     'public_id' => $pid,
                     'login' => $u['login'],
@@ -324,7 +359,6 @@ final class WorklogService
             }
         }
 
-        // Load filter lists
         $teams = $this->worklogs->listTeams();
         $projects = $this->worklogs->listProjects();
 
