@@ -65,7 +65,6 @@ a:focus-visible {
   background: var(--crm-surface);
   position: sticky;
   top: 0;
-  height: 100vh;
   z-index: var(--z-sidebar);
   padding: var(--space-4);
   overflow-y: auto;
