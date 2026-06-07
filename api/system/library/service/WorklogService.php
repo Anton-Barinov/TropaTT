@@ -54,9 +54,16 @@ final class WorklogService
 
         $publicId = Ulid::generate('wlg');
         $now = gmdate('Y-m-d H:i:s');
+        $userId = (int)$actor['id'];
+        if (!empty($input['user_public_id']) && (bool)($actor['is_root'] ?? false)) {
+            $targetUser = $this->worklogs->findUserByPublicId((string)$input['user_public_id']);
+            if ($targetUser) {
+                $userId = (int)$targetUser['id'];
+            }
+        }
         $this->worklogs->create([
             'public_id' => $publicId,
-            'user_id' => (int)$actor['id'],
+            'user_id' => $userId,
             'task_id' => $taskId,
             'minutes_spent' => (int)$input['minutes_spent'],
             'note' => trim((string)($input['note'] ?? '')),

@@ -100,6 +100,14 @@ final class WorklogRepository
             ->first();
     }
 
+    public function findUserByPublicId(string $publicId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->where('public_id', '=', $publicId)
+            ->first();
+    }
+
     public function updateByPublicId(string $publicId, array $set): bool
     {
         if ($set === []) {
