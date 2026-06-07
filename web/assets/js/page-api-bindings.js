@@ -22626,11 +22626,12 @@ window.CRM.pageApiBindings = (function () {
         buttons[3].textContent = 'Отклонено (' + rej + ')';
       }
       if (!items.length) {
-        var msg = activeFilter === 'all' ? 'Запросов пока нет' : 'Нет запросов с таким статусом';
-        var detail = activeFilter === 'all' ? 'Создайте согласование для задачи или проекта.' : 'Измените фильтр или создайте новый запрос.';
+        var currentSearch = String((document.getElementById('approvalsSearchInput') || {}).value || '').trim();
+        var msg = currentSearch ? 'Ничего не найдено' : (activeFilter === 'all' ? 'Запросов пока нет' : 'Нет запросов с таким статусом');
+        var detail = currentSearch ? 'Измените поисковый запрос или очистите фильтр.' : (activeFilter === 'all' ? 'Создайте согласование для задачи или проекта.' : 'Измените фильтр или создайте новый запрос.');
         body.innerHTML = approvalsEmptyRow(6, msg, detail);
         var countEl = document.getElementById('approvalsCountBadge');
-        if (countEl) countEl.textContent = '0 запросов';
+        if (countEl) countEl.textContent = total > 0 ? '0 запросов по текущему фильтру' : '0 запросов';
         return;
       }
       var countEl = document.getElementById('approvalsCountBadge');
@@ -22823,9 +22824,10 @@ window.CRM.pageApiBindings = (function () {
             return;
           }
           entityDropdown.innerHTML = items.map(function (item) {
+            var meta = item.project_title ? item.project_title : (item.public_id || '');
             return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(item.title || '') + '">'
               + '<strong>' + safeText(item.title || item.public_id || '') + '</strong>'
-              + '<span class="text-muted ms-2">' + (item.project_title ? safeText(item.project_title) : (item.public_id || '')) + '</span>'
+              + '<span class="crm-autocomplete-meta">' + safeText(meta) + '</span>'
               + '</div>';
           }).join('');
         } catch (_) {
@@ -22890,6 +22892,13 @@ window.CRM.pageApiBindings = (function () {
         }
         var submitCreate = document.getElementById('approvalsCreateSubmitBtn');
         if (submitCreate) submitCreate.disabled = true;
+        var data = {
+          title: titleVal,
+          entity_type: entityType,
+          entity_public_id: entityPublicId,
+          reviewer_public_ids: selectedReviewers,
+          comment: String(approvalsForm.querySelector('[name="comment"]')?.value || '').trim()
+        };
         try {
           await request('api/v1/approvals', { method: 'POST', body: data });
           notify('Запрос на согласование создан');
@@ -22899,6 +22908,15 @@ window.CRM.pageApiBindings = (function () {
           if (entitySearch) entitySearch.value = '';
           if (entityHidden) entityHidden.value = '';
           if (entityDropdown) entityDropdown.classList.add('d-none');
+          var listSearch = document.getElementById('approvalsSearchInput');
+          if (listSearch) listSearch.value = '';
+          activeFilter = 'all';
+          var statusFilter = document.getElementById('approvalsStatusFilter');
+          if (statusFilter) {
+            statusFilter.querySelectorAll('button').forEach(function (btn) {
+              btn.classList.toggle('active', String(btn.getAttribute('data-approval-filter') || '') === 'all');
+            });
+          }
           await loadApprovals();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
@@ -23112,6 +23130,11 @@ window.CRM.pageApiBindings = (function () {
       var rrule = String(value || '').trim();
       var labels = {
         'FREQ=DAILY': 'Каждый день', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': 'По будням',
+        'FREQ=WEEKLY;BYDAY=MO': 'Каждый понедельник',
+        'FREQ=WEEKLY;BYDAY=TU': 'Каждый вторник',
+        'FREQ=WEEKLY;BYDAY=WE': 'Каждую среду',
+        'FREQ=WEEKLY;BYDAY=TH': 'Каждый четверг',
+        'FREQ=WEEKLY;BYDAY=FR': 'Каждую пятницу',
         'FREQ=WEEKLY;BYDAY=MO,WE,FR': 'Пн, ср, пт', 'FREQ=WEEKLY;INTERVAL=2': 'Раз в 2 недели',
         'FREQ=MONTHLY;BYMONTHDAY=1': '1-го числа', 'FREQ=MONTHLY;BYMONTHDAY=15': '15-го числа'
       };
@@ -23166,8 +23189,10 @@ window.CRM.pageApiBindings = (function () {
       var countEl = document.getElementById('recurringCountBadge');
       if (countEl) countEl.textContent = recurringData.length + ' шаблонов (активных: ' + active + ', приостановлено: ' + paused + ')';
       if (!items.length) {
-        var msg = activeFilter === 'all' ? 'Шаблонов пока нет' : 'Нет шаблонов с таким статусом';
-        body.innerHTML = recurringEmptyRow(6, msg, activeFilter === 'all' ? 'Создайте первый шаблон для автосоздания задач.' : 'Измените фильтр.');
+        var currentSearch = String((document.getElementById('recurringSearchInput') || {}).value || '').trim();
+        var msg = currentSearch ? 'Ничего не найдено' : (activeFilter === 'all' ? 'Шаблонов пока нет' : 'Нет шаблонов с таким статусом');
+        var detail = currentSearch ? 'Измените поисковый запрос или очистите фильтр.' : (activeFilter === 'all' ? 'Создайте первый шаблон для автосоздания задач.' : 'Измените фильтр.');
+        body.innerHTML = recurringEmptyRow(6, msg, detail);
         return;
       }
       body.innerHTML = items.map(function (item) {
@@ -23207,7 +23232,20 @@ window.CRM.pageApiBindings = (function () {
         items = items.filter(function (i) { return activeFilter === 'active' ? (String(i.is_active || i.status) === '1' || i.is_active === true) : !(String(i.is_active || i.status) === '1' || i.is_active === true); });
       }
       var searchVal = String((document.getElementById('recurringSearchInput') || {}).value || '').toLowerCase().trim();
-      if (searchVal) { items = items.filter(function (i) { return (i.title || i.name || '').toLowerCase().indexOf(searchVal) !== -1; }); }
+      if (searchVal) {
+        items = items.filter(function (i) {
+          var rrule = i.rrule || i.schedule || '';
+          var text = [
+            i.title || '',
+            i.name || '',
+            recurringRuleDisplayTitle(i),
+            entityLabel(i.entity_type),
+            formatRruleLabel(rrule),
+            i.entity_public_id || ''
+          ].join(' ').toLowerCase();
+          return text.indexOf(searchVal) !== -1;
+        });
+      }
       renderRecurringTable(items);
     }
 
@@ -23280,7 +23318,7 @@ window.CRM.pageApiBindings = (function () {
               : entityType === 'calendar_event'
                 ? formatDate(item.starts_at || '')
                 : (item.project_title || item.public_id || '');
-            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="text-muted ms-2">' + safeText(sub || '') + '</span></div>';
+            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="crm-autocomplete-meta">' + safeText(sub || '') + '</span></div>';
           }).join('');
         } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка</div>'; }
       });

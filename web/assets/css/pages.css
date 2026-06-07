@@ -112,6 +112,12 @@
   color: var(--crm-accent-strong);
 }
 
+.crm-automation-table .crm-muted-block,
+.crm-automation-table td[data-label="Сущность"] code,
+.crm-automation-table .crm-rrule-code {
+  display: none;
+}
+
 .crm-table-actions {
   display: table-cell;
 }
@@ -151,6 +157,15 @@
   color: var(--crm-accent-strong);
 }
 .crm-autocomplete-item strong { color: var(--crm-text); }
+
+.crm-autocomplete-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--crm-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
 
 .crm-automation-empty-row td {
   padding: 0 !important;
