@@ -22466,6 +22466,18 @@ window.CRM.pageApiBindings = (function () {
     function renderApprovalsTable(items) {
       var body = document.getElementById('approvalsListBody');
       if (!body) return;
+      // Update filter button counts
+      var pend = approvalData.filter(function (i) { return String(i.status) === 'pending'; }).length;
+      var appr = approvalData.filter(function (i) { return String(i.status) === 'approved'; }).length;
+      var rej = approvalData.filter(function (i) { return String(i.status) === 'rejected'; }).length;
+      var total = approvalData.length;
+      var buttons = document.querySelectorAll('#approvalsStatusFilter button');
+      if (buttons.length >= 4) {
+        buttons[0].textContent = 'Все (' + total + ')';
+        buttons[1].textContent = 'Ожидают (' + pend + ')';
+        buttons[2].textContent = 'Одобрено (' + appr + ')';
+        buttons[3].textContent = 'Отклонено (' + rej + ')';
+      }
       if (!items.length) {
         var msg = activeFilter === 'all' ? 'Запросов пока нет' : 'Нет запросов с таким статусом';
         var detail = activeFilter === 'all' ? 'Создайте согласование для задачи или проекта.' : 'Измените фильтр или создайте новый запрос.';
@@ -22641,6 +22653,11 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', function () {
+        var form = document.getElementById('approvalsCreateForm');
+        if (form) { form.reset(); }
+        if (entitySearch) entitySearch.value = '';
+        if (entityHidden) entityHidden.value = '';
+        if (entityDropdown) entityDropdown.classList.add('d-none');
         var modal = document.getElementById('approvalsCreateModal');
         if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
       });
@@ -22654,21 +22671,40 @@ window.CRM.pageApiBindings = (function () {
       entitySearch.dataset.bound = '1';
       entitySearch.addEventListener('input', async function () {
         var query = String(entitySearch.value || '').trim();
-        if (query.length < 2) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
+        if (query.length < 2) {
+          if (entityDropdown) entityDropdown.classList.add('d-none');
+          return;
+        }
+        if (entityDropdown) {
+          entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Поиск...</div>';
+          entityDropdown.classList.remove('d-none');
+        }
         try {
           var entityType = String((document.getElementById('approvalsEntityType') || {}).value || 'task').trim();
           var endpoint = entityType === 'project' ? 'api/v1/projects' : 'api/v1/tasks';
           var envelope = await request(endpoint, { query: { limit: 20, search: query }, silent: true });
           var items = mapItems(envelope);
-          if (!items.length) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
+          if (!items.length) {
+            if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ничего не найдено</div>';
+            return;
+          }
           entityDropdown.innerHTML = items.map(function (item) {
             return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(item.title || '') + '">'
               + '<strong>' + safeText(item.title || item.public_id || '') + '</strong>'
               + '<span class="text-muted ms-2">' + (item.project_title ? safeText(item.project_title) : (item.public_id || '')) + '</span>'
               + '</div>';
           }).join('');
-          entityDropdown.classList.remove('d-none');
-        } catch (_) {}
+        } catch (_) {
+          if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка поиска</div>';
+        }
+      });
+      // Click outside closes dropdown
+      document.addEventListener('click', function (event) {
+        if (entityDropdown && entitySearch && !entityDropdown.classList.contains('d-none')) {
+          if (!entitySearch.contains(event.target) && !entityDropdown.contains(event.target)) {
+            entityDropdown.classList.add('d-none');
+          }
+        }
       });
       if (entityDropdown) {
         entityDropdown.addEventListener('click', function (event) {
@@ -22707,7 +22743,13 @@ window.CRM.pageApiBindings = (function () {
           Array.prototype.forEach.call(reviewerSelect.selectedOptions, function (opt) { if (opt.value) selectedReviewers.push(opt.value); });
         }
         if (!entityType || !entityPublicId || !selectedReviewers.length) {
-          notify('Заполните все обязательные поля', 'warning');
+          var errMsg = !entityPublicId ? 'Выберите задачу или проект' : !selectedReviewers.length ? 'Выберите хотя бы одного согласующего' : 'Заполните все обязательные поля';
+          notify(errMsg, 'warning');
+          return;
+        }
+        var titleVal = String(approvalsForm.querySelector('[name="title"]')?.value || '').trim();
+        if (!titleVal) {
+          notify('Укажите название запроса', 'warning');
           return;
         }
         var data = {
