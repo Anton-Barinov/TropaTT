@@ -24981,8 +24981,8 @@ window.CRM.pageApiBindings = (function () {
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
         var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
-        var tr = '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td>' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        var tr = '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
         rows.push(tr);
       });
       var htmlContent = rows.join('');
@@ -25016,10 +25016,10 @@ window.CRM.pageApiBindings = (function () {
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
         var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-user="' + safeText(row.user_public_id) + '" data-user-name="' + safeText(row.user_full_name || row.user_login) + '"') : '';
+        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
         html += '<tr>'
           + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
-          + '<td>' + safeText(row.user_full_name || row.user_login) + '</td>'
+          + '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>'
           + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
@@ -25051,8 +25051,13 @@ window.CRM.pageApiBindings = (function () {
     container.querySelectorAll('.crm-matrix-cell-has').forEach(function (cell) {
       cell.addEventListener('click', function (e) {
         var day = cell.getAttribute('data-day');
-        var userId = cell.getAttribute('data-user');
-        var userName = cell.getAttribute('data-user-name');
+        var userId = cell.getAttribute('data-uid');
+        var userName = '';
+        var tr = cell.closest('tr');
+        if (tr) {
+          var nameCell = tr.cells[1];
+          if (nameCell) userName = nameCell.getAttribute('data-uname') || nameCell.textContent.trim();
+        }
         // Detect which tab is active and get the project filter from that tab's filter
         var activeTab = document.querySelector('#timeAnalyticsTabs .nav-link.active');
         var projectId = '';
@@ -25122,7 +25127,7 @@ window.CRM.pageApiBindings = (function () {
         users.forEach(function (u) {
           var mins = (matrix[day] && matrix[day][u.public_id]) || 0;
           if (mins > 0) {
-            html += '<td class="crm-matrix-cell crm-matrix-cell-has" data-day="' + day + '" data-user="' + safeText(u.public_id) + '" data-user-name="' + safeText(u.full_name || u.login) + '">' + formatMinutesShort(mins) + '</td>';
+            html += '<td class="crm-matrix-cell crm-matrix-cell-has" data-day="' + day + '" data-uid="' + safeText(u.public_id) + '">' + formatMinutesShort(mins) + '</td>';
           } else {
             html += '<td class="crm-matrix-cell crm-matrix-cell-zero">0</td>';
           }
