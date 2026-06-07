@@ -148,7 +148,7 @@ window.CRM.pageApiBindings = (function () {
     statusNode.style.display = 'none';
     statusNode.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)';
     statusNode.style.color = '#fff';
-    statusNode.style.background = '#2563eb';
+    statusNode.style.background = '#0f8f72';
     statusNode.textContent = 'Загрузка данных...';
 
     document.body.appendChild(statusNode);
@@ -162,7 +162,7 @@ window.CRM.pageApiBindings = (function () {
     if (isLoading) {
       node.dataset.error = '0';
       node.style.display = 'block';
-      node.style.background = '#2563eb';
+      node.style.background = '#0f8f72';
       node.textContent = 'Загрузка данных...';
       return;
     }
