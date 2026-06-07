@@ -368,6 +368,82 @@ final class WorklogService
         $teams = $this->worklogs->listTeams();
         $projects = $this->worklogs->listProjects();
 
+        // Filter teams based on active context (user/project selections)
+        if (!empty($userPublicId) || !empty($projectPublicId) || $userSetKeys !== []) {
+            $filteredTeams = [];
+            $userIdsForTeams = $userSetKeys;
+            if (!empty($userPublicId)) {
+                $userIdsForTeams = [$userPublicId];
+            }
+            // Get teams that contain at least one active user
+            foreach ($teams as $team) {
+                $teamRow = (new QueryBuilder($this->worklogs->getPdo()))
+                    ->from('teams')
+                    ->select(['member_user_ids'])
+                    ->where('public_id', '=', $team['public_id'])
+                    ->first();
+                if ($teamRow && !empty($teamRow['member_user_ids'])) {
+                    $raw = $teamRow['member_user_ids'];
+                    $memberIds = [];
+                    if (is_string($raw) && $raw !== '') {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            $memberIds = $decoded;
+                        }
+                    } elseif (is_array($raw)) {
+                        $memberIds = $raw;
+                    }
+                    $memberPubIds = [];
+                    if ($memberIds !== []) {
+                        $idList = array_values(array_unique(array_filter(array_map('intval', $memberIds), static fn(int $v): bool => $v > 0)));
+                        if ($idList !== []) {
+                            $pubRows = (new QueryBuilder($this->worklogs->getPdo()))
+                                ->from('users')
+                                ->select(['public_id'])
+                                ->whereIn('id', $idList)
+                                ->get();
+                            $memberPubIds = array_map(static fn(array $r): string => (string)$r['public_id'], $pubRows);
+                        }
+                    }
+                    $found = false;
+                    foreach ($userIdsForTeams as $uid) {
+                        if (in_array($uid, $memberPubIds, true)) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                    if ($found) $filteredTeams[] = $team;
+                }
+            }
+            $teams = $filteredTeams;
+        }
+
+        // Filter projects based on active context
+        if (!empty($userPublicId) || !empty($teamPublicId) || $userSetKeys !== []) {
+            $projectIdsInMatrix = [];
+            if ($rows !== []) {
+                // Get unique projects from the worklog data
+                $projectQb = (new QueryBuilder($this->worklogs->getPdo()))
+                    ->from('work_logs w')
+                    ->join('tasks t', 't.id', '=', 'w.task_id')
+                    ->select(['DISTINCT p.public_id', 'p.title'])
+                    ->join('projects p', 'p.id', '=', 't.project_id');
+                if (!empty($filters['from'])) $projectQb->where('w.logged_at', '>=', (string)$filters['from']);
+                if (!empty($filters['to'])) $projectQb->where('w.logged_at', '<=', (string)$filters['to']);
+                if (!empty($userPublicId)) {
+                    $projectQb->join('users u', 'u.id', '=', 'w.user_id')->where('u.public_id', '=', $userPublicId);
+                }
+                if (!empty($teamPublicId)) {
+                    $memberPubIds = $teamUserPublicIds ?? [];
+                    if ($memberPubIds) $projectQb->join('users u2', 'u2.id', '=', 'w.user_id')->whereIn('u2.public_id', $memberPubIds);
+                }
+                $projectQb->orderBy('p.title', 'ASC');
+                $projects = $projectQb->get();
+            } else {
+                $projects = [];
+            }
+        }
+
         return [
             'dates' => $dates,
             'users' => $users,
