@@ -23168,6 +23168,12 @@ window.CRM.pageApiBindings = (function () {
       if (type === 'calendar_event') return 'Повторяющееся событие';
       return title || 'Повторяющийся шаблон';
     }
+    function recurringSelectedEntityLabel(item) {
+      if (!item) return '';
+      var explicit = String(item.entity_title || item.source_title || item.task_title || item.project_title || item.reminder_title || item.event_title || '').trim();
+      if (explicit) return explicit;
+      return entityLabel(item.entity_type) + ': ' + recurringRuleDisplayTitle(item);
+    }
     function updateRecurringEntityLabel() {
       var type = String((document.getElementById('recurringEntityType') || {}).value || 'task');
       var label = document.getElementById('recurringEntitySearchLabel');
@@ -23403,13 +23409,13 @@ window.CRM.pageApiBindings = (function () {
           var item = recurringData.find(function(i){return String(i.public_id||'')===eid;}); if (!item) return;
           var form = document.getElementById('recurringCreateForm'); if (!form) return;
           form.reset(); form.querySelector('[name="public_id"]').value = String(item.public_id||'');
-          form.querySelector('[name="title"]').value = String(item.title||'');
+          form.querySelector('[name="title"]').value = recurringRuleDisplayTitle(item);
           form.querySelector('[name="entity_type"]').value = String(item.entity_type||'task');
           form.querySelector('[name="entity_public_id"]').value = String(item.entity_public_id||'');
           form.querySelector('[name="rrule"]').value = String(item.rrule||'');
           updateRecurringEntityLabel();
           form.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', String(btn.getAttribute('data-rrule-preset') || '') === String(item.rrule || '')); });
-          if (entitySearch) entitySearch.value = String(item.entity_public_id||'');
+          if (entitySearch) entitySearch.value = recurringSelectedEntityLabel(item);
           if (modalTitle) modalTitle.textContent = 'Изменить шаблон';
           if (submitBtn2) submitBtn2.textContent = 'Сохранить';
           var modal = document.getElementById('recurringCreateModal'); showCrmPageModal(modal);
@@ -23418,7 +23424,7 @@ window.CRM.pageApiBindings = (function () {
         var deleteBtn = event.target.closest('[data-recurring-delete]');
         if (deleteBtn) { var did = String(deleteBtn.getAttribute('data-recurring-delete')||'').trim(); if (!did) return;
           var ditem = recurringData.find(function(i){return String(i.public_id||'')===did;});
-          var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? String(ditem.title||'') : did;
+          var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? recurringRuleDisplayTitle(ditem) : 'Выбранный шаблон';
           var confirmBtn = document.getElementById('recurringDeleteConfirmBtn'); if (confirmBtn) confirmBtn.dataset.templateId = did;
           var delModal = document.getElementById('recurringDeleteModal'); showCrmPageModal(delModal);
           return; }
