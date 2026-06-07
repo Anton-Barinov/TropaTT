@@ -275,17 +275,25 @@ final class WorklogRepository
             $qb->where('u.public_id', '=', $userPublicId);
         }
         if (!empty($teamPublicId)) {
-            // Get user IDs that are members of this team
             $team = (new QueryBuilder($this->pdo))
                 ->from('teams')
                 ->select(['member_user_ids'])
                 ->where('public_id', '=', $teamPublicId)
                 ->first();
-            if ($team && !empty($team['member_user_ids'])) {
-                $memberIds = json_decode($team['member_user_ids'], true);
-                if (is_array($memberIds) && $memberIds !== []) {
-                    $memberIds = array_map('intval', $memberIds);
-                    $qb->whereIn('u.id', $memberIds);
+            if ($team && isset($team['member_user_ids'])) {
+                $raw = $team['member_user_ids'];
+                $memberIds = [];
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) $memberIds = $decoded;
+                } elseif (is_array($raw)) {
+                    $memberIds = $raw;
+                }
+                if ($memberIds !== []) {
+                    $memberIds = array_values(array_unique(array_filter(array_map('intval', $memberIds), static fn(int $v): bool => $v > 0)));
+                    if ($memberIds !== []) {
+                        $qb->whereIn('u.id', $memberIds);
+                    }
                 }
             }
         }
