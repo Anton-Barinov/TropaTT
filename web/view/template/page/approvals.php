@@ -39,7 +39,7 @@
             </div>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm crm-table crm-automation-table mb-0">
+            <table class="table table-hover align-middle crm-table crm-automation-table mb-0">
               <thead><tr><th>Запрос</th><th>Сущность</th><th>Запросил</th><th>Статус</th><th>Дата</th><th class="text-end">Действия</th></tr></thead>
               <tbody id="approvalsListBody"><tr><td colspan="6" class="text-muted">Загрузка...</td></tr></tbody>
             </table>
