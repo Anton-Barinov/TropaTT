@@ -24989,7 +24989,10 @@ window.CRM.pageApiBindings = (function () {
         tr += '</td></tr>';
         rows.push(tr);
       });
-      tbody.innerHTML = rows.join('');
+      var htmlContent = rows.join('');
+      console.log('TIMEHTML', htmlContent.slice(0, 400));
+      tbody.innerHTML = htmlContent;
+      console.log('AFTERSET', tbody.querySelector('tr') ? tbody.querySelector('tr').cells[2].querySelector('span')?.textContent : 'empty');
       bindTimeCells(tbody);
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
