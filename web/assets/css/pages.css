@@ -142,6 +142,17 @@
   margin: 0;
 }
 
+.crm-action-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--crm-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: right;
+}
+
 .crm-automation-detail {
   max-width: 320px;
 }
@@ -618,6 +629,10 @@
 
   .crm-action-list {
     justify-content: flex-start;
+  }
+
+  .crm-action-note {
+    text-align: left;
   }
 
   .crm-action-list .btn {

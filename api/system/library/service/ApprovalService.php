@@ -27,7 +27,7 @@ final class ApprovalService
         [$items, $total, $page, $limit] = $this->approvals->listRequests($filters);
 
         return [
-            'items' => array_map([$this, 'normalizeListItem'], $items),
+            'items' => array_map(fn(array $item): array => $this->normalizeListItem($item, $actor), $items),
             'meta' => [
                 'pagination' => [
                     'page' => $page,
@@ -127,7 +127,7 @@ final class ApprovalService
 
         return [
             'ok' => true,
-            'approval' => $this->normalizeRequest($request, $steps, $stats),
+            'approval' => $this->normalizeRequest($request, $steps, $stats, $actor),
         ];
     }
 
@@ -269,7 +269,34 @@ final class ApprovalService
     }
 
     /** @param array<string,mixed> $request */
-    private function normalizeListItem(array $request): array
+    private function viewerStep(array $request, array $actor): ?array
+    {
+        $requestId = (int)($request['id'] ?? 0);
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($requestId <= 0 || $actorId <= 0) {
+            return null;
+        }
+
+        return $this->approvals->findStepByRequestIdAndReviewerId($requestId, $actorId);
+    }
+
+    /** @param array<string,mixed> $request */
+    private function viewerMeta(array $request, array $actor): array
+    {
+        $step = $this->viewerStep($request, $actor);
+        $status = $step ? (string)($step['status'] ?? '') : '';
+        $requestStatus = (string)($request['status'] ?? '');
+
+        return [
+            'viewer_is_requester' => (string)($request['requester_public_id'] ?? '') === (string)($actor['public_id'] ?? ''),
+            'viewer_is_reviewer' => $step !== null,
+            'viewer_review_status' => $status,
+            'viewer_can_review' => $step !== null && $requestStatus === 'pending' && $status === 'pending',
+        ];
+    }
+
+    /** @param array<string,mixed> $request */
+    private function normalizeListItem(array $request, array $actor): array
     {
         return [
             'public_id' => (string)($request['public_id'] ?? ''),
@@ -289,11 +316,11 @@ final class ApprovalService
             'rejected_steps' => (int)($request['rejected_steps'] ?? 0),
             'created_at' => (string)($request['created_at'] ?? ''),
             'updated_at' => (string)($request['updated_at'] ?? ''),
-        ];
+        ] + $this->viewerMeta($request, $actor);
     }
 
     /** @param array<string,mixed> $request */
-    private function normalizeRequest(array $request, array $steps, array $stats): array
+    private function normalizeRequest(array $request, array $steps, array $stats, array $actor): array
     {
         return [
             'public_id' => (string)($request['public_id'] ?? ''),
@@ -324,6 +351,6 @@ final class ApprovalService
             }, $steps),
             'created_at' => (string)($request['created_at'] ?? ''),
             'updated_at' => (string)($request['updated_at'] ?? ''),
-        ];
+        ] + $this->viewerMeta($request, $actor);
     }
 }

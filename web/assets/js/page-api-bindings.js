@@ -22615,6 +22615,24 @@ window.CRM.pageApiBindings = (function () {
       summary.innerHTML = '<i class="fa-solid fa-users" aria-hidden="true"></i><span>' + safeText(text) + '</span>';
     }
 
+    function approvalActionHint(item, status) {
+      if (status !== 'pending') return 'Решение уже принято';
+      if (item.viewer_review_status === 'approved') return 'Вы уже одобрили';
+      if (item.viewer_review_status === 'rejected') return 'Вы уже отклонили';
+      if (item.viewer_is_requester) return 'Вы автор запроса';
+      if (item.viewer_is_reviewer === false || item.viewer_is_reviewer === 0) return 'Вы не согласующий';
+      return 'Нет доступных действий';
+    }
+
+    function approvalErrorMessage(error) {
+      var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
+      var code = String(normalized.code || normalized.error || '').trim();
+      if (code === 'APPROVAL_REVIEWER_FORBIDDEN') return 'Вы не являетесь согласующим этого запроса';
+      if (code === 'APPROVAL_FINALIZED') return 'Запрос уже обработан';
+      if (code === 'APPROVAL_STEP_ALREADY_PROCESSED') return 'Ваше решение по этому запросу уже зафиксировано';
+      return window.CRM.api.formatErrorMessage(normalized, { withRequestId: true });
+    }
+
     function renderApprovalsTable(items) {
       var body = document.getElementById('approvalsListBody');
       if (!body) return;
@@ -22654,6 +22672,11 @@ window.CRM.pageApiBindings = (function () {
         var progress = Number(item.reviewers_total || 0) > 0
           ? '<span class="crm-approval-progress"><strong>' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</strong> согласовано</span>'
           : '';
+        var canReview = item.viewer_can_review === true || item.viewer_can_review === 1 || String(item.viewer_can_review) === '1';
+        var actionsHtml = status === 'pending' && canReview
+          ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
+              + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
+          : '<span class="crm-action-note">' + safeText(approvalActionHint(item, status)) + '</span>';
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
           + '<td data-label="Запрос"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
           + '<td data-label="Сущность">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
@@ -22662,10 +22685,7 @@ window.CRM.pageApiBindings = (function () {
           + '<td data-label="Дата">' + safeText(formatDate(item.created_at || '')) + '</td>'
           + '<td data-label="Действия" class="crm-table-actions">'
           + '<div class="crm-action-list">'
-          + (status === 'pending'
-            ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
-              + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
-            : '<span class="text-muted small">—</span>')
+          + actionsHtml
           + '</div>'
           + '</td></tr>';
       }).join('');
@@ -22777,8 +22797,7 @@ window.CRM.pageApiBindings = (function () {
           hideCrmPageModal(modal3);
           await loadApprovals();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
-          notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          notify(approvalErrorMessage(error), 'error');
         } finally {
           if (decSubmit) decSubmit.disabled = false;
         }
