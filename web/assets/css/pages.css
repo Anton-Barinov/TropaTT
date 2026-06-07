@@ -11131,3 +11131,21 @@ font-size: 0.72rem;
     white-space: normal;
     word-break: break-word;
 }
+
+/* ── Column + row hover for tables ── */
+.crm-matrix-table .crm-col-hover {
+    background: var(--color-primary-50) !important;
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-cell-has {
+    background: var(--color-primary-100) !important;
+    text-decoration: underline;
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-date-col {
+    background: var(--color-primary-50) !important;
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-total-col {
+    background: var(--color-primary-50) !important;
+}

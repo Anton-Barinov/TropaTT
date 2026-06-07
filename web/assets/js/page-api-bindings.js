@@ -24981,17 +24981,15 @@ window.CRM.pageApiBindings = (function () {
 
       // Reset buttons
       function resetFilterGroup(fromId, toId, teamId, projectId, userId, loadFn) {
-        var from = document.getElementById(fromId);
-        var to = document.getElementById(toId);
         var team = document.getElementById(teamId);
         var project = document.getElementById(projectId);
         var user = document.getElementById(userId);
-        if (from) from.value = from.defaultValue || '';
-        if (to) to.value = to.defaultValue || '';
         if (team) team.value = '';
         if (project) project.value = '';
         if (user) user.value = '';
-        // Trigger cascade update
+        // Trigger cascade update on reset
+        var from = document.getElementById(fromId);
+        var to = document.getElementById(toId);
         if (team && project && user && from && to) {
           updateFilterOptions(team, project, user, from.value || '2026-05-31', to.value || '2026-06-07');
         }
@@ -25056,11 +25054,19 @@ window.CRM.pageApiBindings = (function () {
       }
       var rows = [];
       items.forEach(function (row) {
+        var day = String(row.day || '');
+        var d = new Date(day + 'T00:00:00');
+        var dayOfWeek = d.getDay();
+        var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
+        var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
+        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        formattedDay += ', ' + dayNames[dayOfWeek];
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
         var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
-        var tr = '<tr><td class="crm-matrix-date-col">' + safeText(row.day) + '</td><td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
+        var clickAttr = (mins > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        var tr = '<tr' + rowClass + '><td class="crm-matrix-date-col">' + formattedDay + '</td><td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
         rows.push(tr);
       });
       var htmlContent = rows.join('');
@@ -25088,12 +25094,20 @@ window.CRM.pageApiBindings = (function () {
       }
       var html = '';
       items.forEach(function (row) {
+        var day = String(row.day || '');
+        var d = new Date(day + 'T00:00:00');
+        var dayOfWeek = d.getDay();
+        var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
+        var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
+        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        formattedDay += ', ' + dayNames[dayOfWeek];
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
         var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + row.day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
-        html += '<tr>'
-          + '<td class="crm-matrix-date-col">' + safeText(row.day) + '</td>'
+        var clickAttr = (mins > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        html += '<tr' + rowClass + '>'
+          + '<td class="crm-matrix-date-col">' + formattedDay + '</td>'
           + '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>'
           + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
@@ -25148,6 +25162,33 @@ window.CRM.pageApiBindings = (function () {
         openTimeDetailModal(day, userId, userName, projectId);
       });
     });
+    // Column hover: find the parent table and add column highlight
+    var table = container.closest('table') || container.querySelector('table') || container;
+    if (table && table.tagName === 'TABLE') {
+      var cells = table.querySelectorAll('td, th');
+      cells.forEach(function (cell) {
+        cell.addEventListener('mouseenter', function () {
+          var ci = cell.cellIndex;
+          if (ci < 0) return;
+          var tbl = cell.closest('table');
+          if (!tbl) return;
+          tbl.querySelectorAll('tr').forEach(function (r) {
+            var c = r.cells[ci];
+            if (c) c.classList.add('crm-col-hover');
+          });
+        });
+        cell.addEventListener('mouseleave', function () {
+          var ci = cell.cellIndex;
+          if (ci < 0) return;
+          var tbl = cell.closest('table');
+          if (!tbl) return;
+          tbl.querySelectorAll('tr').forEach(function (r) {
+            var c = r.cells[ci];
+            if (c) c.classList.remove('crm-col-hover');
+          });
+        });
+      });
+    }
   }
 
   async function loadMatrixSummary() {
