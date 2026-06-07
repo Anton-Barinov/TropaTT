@@ -23151,6 +23151,7 @@ window.CRM.pageApiBindings = (function () {
     }
     function recurringItemTitle(item, entityType) {
       if (!item) return '';
+      if (entityType === 'reminder' && item.task_title) return 'Напоминание по задаче: ' + String(item.task_title);
       if (item.title) return String(item.title);
       if (entityType === 'reminder') return 'Напоминание на ' + formatDate(item.remind_at || '');
       if (entityType === 'calendar_event') return String(item.title || item.name || item.public_id || '');
@@ -23207,9 +23208,10 @@ window.CRM.pageApiBindings = (function () {
         var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
         var rrule = item.rrule || item.schedule || '';
         var displayTitle = recurringRuleDisplayTitle(item);
+        var entityTitle = recurringSelectedEntityLabel(item);
         return '<tr data-recurring-id="' + safeText(id) + '">'
           + '<td data-label="Шаблон"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(id) + '</span></td>'
-          + '<td data-label="Сущность"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span> <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
+          + '<td data-label="Сущность"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span><strong class="crm-muted-title">' + safeText(entityTitle || '—') + '</strong></td>'
           + '<td data-label="Расписание"><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule) + '</span></td>'
           + '<td data-label="След. запуск">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
           + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
@@ -23245,6 +23247,7 @@ window.CRM.pageApiBindings = (function () {
             i.title || '',
             i.name || '',
             recurringRuleDisplayTitle(i),
+            i.entity_title || '',
             entityLabel(i.entity_type),
             formatRruleLabel(rrule),
             i.entity_public_id || ''
@@ -23300,6 +23303,12 @@ window.CRM.pageApiBindings = (function () {
       updateRecurringEntityLabel();
     }
 
+    function recurringEntityOptionId(item, entityType) {
+      if (!item) return '';
+      if (entityType === 'reminder' && item.task_public_id) return String(item.task_public_id);
+      return String(item.public_id || '');
+    }
+
     // Entity autocomplete
     var entitySearch = document.getElementById('recurringEntitySearch');
     var entityDropdown = document.getElementById('recurringEntityResults');
@@ -23324,7 +23333,8 @@ window.CRM.pageApiBindings = (function () {
               : entityType === 'calendar_event'
                 ? formatDate(item.starts_at || '')
                 : (item.project_title || item.public_id || '');
-            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(item.public_id || '') + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="crm-autocomplete-meta">' + safeText(sub || '') + '</span></div>';
+            var optionId = recurringEntityOptionId(item, entityType);
+            return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(optionId) + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="crm-autocomplete-meta">' + safeText(sub || '') + '</span></div>';
           }).join('');
         } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка</div>'; }
       });

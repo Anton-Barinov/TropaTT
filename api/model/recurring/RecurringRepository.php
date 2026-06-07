@@ -92,4 +92,57 @@ final class RecurringRepository
             ->where('public_id', '=', $publicId)
             ->delete() > 0;
     }
+
+    public function resolveEntityTitle(string $entityType, string $entityPublicId): ?string
+    {
+        $entityType = trim($entityType);
+        $entityPublicId = trim($entityPublicId);
+        if ($entityType === '' || $entityPublicId === '') {
+            return null;
+        }
+
+        if ($entityType === 'task') {
+            return $this->fetchSingleTitle('SELECT title FROM tasks WHERE public_id = ? LIMIT 1', [$entityPublicId]);
+        }
+
+        if ($entityType === 'project') {
+            return $this->fetchSingleTitle('SELECT title FROM projects WHERE public_id = ? LIMIT 1', [$entityPublicId]);
+        }
+
+        if ($entityType === 'calendar_event') {
+            return $this->fetchSingleTitle('SELECT title FROM calendar_events WHERE public_id = ? LIMIT 1', [$entityPublicId]);
+        }
+
+        if ($entityType === 'reminder') {
+            $title = $this->fetchSingleTitle(
+                'SELECT CONCAT(\'Напоминание: \', COALESCE(t.title, r.public_id)) AS title
+                 FROM reminders r
+                 LEFT JOIN tasks t ON t.id = r.task_id
+                 WHERE r.public_id = ?
+                 LIMIT 1',
+                [$entityPublicId]
+            );
+            if ($title !== null) {
+                return $title;
+            }
+
+            $taskTitle = $this->fetchSingleTitle('SELECT title FROM tasks WHERE public_id = ? LIMIT 1', [$entityPublicId]);
+            return $taskTitle !== null ? 'Напоминание по задаче: ' . $taskTitle : null;
+        }
+
+        return null;
+    }
+
+    private function fetchSingleTitle(string $sql, array $params): ?string
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $value = $stmt->fetchColumn();
+        if ($value === false) {
+            return null;
+        }
+
+        $value = trim((string)$value);
+        return $value !== '' ? $value : null;
+    }
 }

@@ -135,8 +135,12 @@ final class RecurringService
     private function normalizeRule(array $item): array
     {
         $item['is_active'] = (int)($item['is_active'] ?? 1) === 1;
+        $item['entity_title'] = $this->recurring->resolveEntityTitle(
+            (string)($item['entity_type'] ?? ''),
+            (string)($item['entity_public_id'] ?? '')
+        );
         $item['title'] = trim((string)($item['title'] ?? ''));
-        if ($item['title'] === '') {
+        if ($item['title'] === '' || preg_match('/^Повтор:\s*(task|project|reminder|calendar_event)\s+/i', $item['title'])) {
             $item['title'] = $this->normalizeTitle($item);
         }
         $item['next_run_at'] = $this->nextRunAt($item);
@@ -153,7 +157,30 @@ final class RecurringService
 
         $entityType = trim((string)($input['entity_type'] ?? 'сущность'));
         $entityPublicId = trim((string)($input['entity_public_id'] ?? ''));
-        return mb_substr('Повтор: ' . $entityType . ($entityPublicId !== '' ? ' ' . $entityPublicId : ''), 0, 255);
+        $entityTitle = trim((string)($input['entity_title'] ?? ''));
+        if ($entityTitle === '' && $entityPublicId !== '') {
+            $entityTitle = (string)($this->recurring->resolveEntityTitle($entityType, $entityPublicId) ?? '');
+        }
+        if ($entityTitle !== '') {
+            $entityLabel = $this->entityTypeLabel($entityType);
+            if (mb_stripos($entityTitle, $entityLabel) === 0) {
+                return mb_substr($entityTitle, 0, 255);
+            }
+            return mb_substr($entityLabel . ': ' . $entityTitle, 0, 255);
+        }
+
+        return mb_substr('Повторяющийся шаблон', 0, 255);
+    }
+
+    private function entityTypeLabel(string $entityType): string
+    {
+        return match (trim($entityType)) {
+            'task' => 'Задача',
+            'project' => 'Проект',
+            'reminder' => 'Напоминание',
+            'calendar_event' => 'Событие',
+            default => 'Шаблон',
+        };
     }
 
     private function nextRunAt(array $item): ?string

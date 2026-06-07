@@ -59,6 +59,14 @@ final class ReminderRepository
             $query->where('r.remind_at', '<=', (string)$filters['to']);
         }
 
+        if (!empty($filters['search'])) {
+            $search = '%' . trim((string)$filters['search']) . '%';
+            $query->whereRaw(
+                '(r.public_id LIKE ? OR t.public_id LIKE ? OR t.title LIKE ? OR r.remind_at LIKE ?)',
+                [$search, $search, $search, $search]
+            );
+        }
+
         return $query;
     }
 

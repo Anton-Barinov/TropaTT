@@ -118,6 +118,15 @@
   display: none;
 }
 
+.crm-automation-table .crm-muted-title {
+  display: block;
+  margin-top: 4px;
+  color: var(--crm-text);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .crm-table-actions {
   display: table-cell;
 }
