@@ -596,6 +596,7 @@ textarea.form-control::placeholder {
 .crm-table tr:last-child td,
 .table.crm-table tr:last-child td {
   border-bottom: 0;
+  text-align: left;
 }
 
 .crm-table tbody tr:hover,
@@ -3500,7 +3501,8 @@ body {
   font-weight: 650 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
-  vertical-align: middle !important;
+  vertical-align: middle !important;    min-width: 200px !important;
+    text-align: left !important;
 }
 
 .crm-content table.crm-table tbody tr,
@@ -4477,6 +4479,7 @@ body {
 .crm-content .table.crm-table tbody td {
   padding: 10px 12px !important;
   color: #17211f;
+  text-align: left;
 }
 
 .crm-content table.crm-table tbody tr,
