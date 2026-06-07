@@ -15970,6 +15970,13 @@ window.CRM.pageApiBindings = (function () {
     return String(value || '').trim().toLowerCase();
   }
 
+  function kanbanT(key, fallback) {
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      return window.CRM.i18n.t(key, fallback);
+    }
+    return fallback || key;
+  }
+
   function kanbanParamList(query, key) {
     var values = [];
     query.getAll(key).forEach(function (raw) {
@@ -16026,13 +16033,13 @@ window.CRM.pageApiBindings = (function () {
     var label = kanbanFormatShortDate(raw);
     var tone = 'neutral';
     if (!done && diff < 0) {
-      label = 'Просрочено';
+      label = kanbanT('kanban.due.overdue', 'Просрочено');
       tone = 'danger';
     } else if (diff === 0) {
-      label = 'Сегодня';
+      label = kanbanT('kanban.due.today', 'Сегодня');
       tone = done ? 'neutral' : 'warning';
     } else if (diff === 1) {
-      label = 'Завтра';
+      label = kanbanT('kanban.due.tomorrow', 'Завтра');
       tone = 'soft';
     } else if (!done && diff > 0 && diff <= 3) {
       tone = 'warning';
@@ -16051,12 +16058,12 @@ window.CRM.pageApiBindings = (function () {
   function kanbanPriorityLabel(value) {
     var code = String(value || '').trim();
     var labels = {
-      low: 'Низкий',
-      normal: 'Обычный',
-      medium: 'Средний',
-      high: 'Высокий',
-      urgent: 'Срочный',
-      critical: 'Критичный'
+      low: kanbanT('kanban.priority.low', 'Низкий'),
+      normal: kanbanT('kanban.priority.normal', 'Обычный'),
+      medium: kanbanT('kanban.priority.medium', 'Средний'),
+      high: kanbanT('kanban.priority.high', 'Высокий'),
+      urgent: kanbanT('kanban.priority.urgent', 'Срочный'),
+      critical: kanbanT('kanban.priority.critical', 'Критичный')
     };
     return labels[code] || code;
   }
@@ -16090,13 +16097,13 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanInitials(name) {
     var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return '—';
+    if (!parts.length) return kanbanT('kanban.avatar.empty_initials', '—');
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
   }
 
   function kanbanAvatarHtml(user, extraClass) {
-    var name = String(user && user.name || user && user.id || 'Не назначен').trim();
+    var name = String(user && user.name || user && user.id || kanbanT('kanban.avatar.unassigned', 'Не назначен')).trim();
     var cls = 'crm-kanban-avatar' + (extraClass ? ' ' + extraClass : '');
     var avatar = String(user && user.avatar || '').trim();
     if (avatar) {
@@ -16107,9 +16114,9 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanOptionLabel(kind, value, fallback) {
     if (value === '__none') {
-      if (kind === 'assignee') return 'Без исполнителя';
-      if (kind === 'manager') return 'Без менеджера';
-      if (kind === 'project') return 'Без проекта';
+      if (kind === 'assignee') return kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
+      if (kind === 'manager') return kanbanT('kanban.filters.no_manager', 'Без менеджера');
+      if (kind === 'project') return kanbanT('kanban.filters.no_project', 'Без проекта');
     }
     return String(fallback || value || '').trim();
   }
@@ -16144,9 +16151,9 @@ window.CRM.pageApiBindings = (function () {
         hasNoProject = true;
       }
     });
-    if (hasNoAssignee) buckets.assignee.__none = 'Без исполнителя';
-    if (hasNoManager) buckets.manager.__none = 'Без менеджера';
-    if (hasNoProject) buckets.project.__none = 'Без проекта';
+    if (hasNoAssignee) buckets.assignee.__none = kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
+    if (hasNoManager) buckets.manager.__none = kanbanT('kanban.filters.no_manager', 'Без менеджера');
+    if (hasNoProject) buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
     return buckets;
   }
 
@@ -16265,12 +16272,12 @@ window.CRM.pageApiBindings = (function () {
     var shownAssignees = assignees.slice(0, 3);
     var extraAssignees = Math.max(0, assignees.length - shownAssignees.length);
     var avatarStack = shownAssignees.length
-      ? '<div class="crm-kanban-avatar-stack" aria-label="Исполнители">' + shownAssignees.map(function (user) { return kanbanAvatarHtml(user, 'crm-kanban-avatar-assignee'); }).join('') + (extraAssignees > 0 ? '<span class="crm-kanban-avatar crm-kanban-avatar-more" title="Еще исполнители">+' + safeText(String(extraAssignees)) + '</span>' : '') + '</div>'
-      : '<span class="crm-kanban-no-assignee">Без исполнителя</span>';
-    var managerHtml = manager ? '<div class="crm-kanban-manager"><span>Менеджер</span>' + kanbanAvatarHtml(manager, 'crm-kanban-avatar-manager') + '<strong title="' + safeText(manager.name) + '">' + safeText(manager.name) + '</strong></div>' : '';
+      ? '<div class="crm-kanban-avatar-stack" aria-label="' + safeText(kanbanT('kanban.avatar.assignees', 'Исполнители')) + '">' + shownAssignees.map(function (user) { return kanbanAvatarHtml(user, 'crm-kanban-avatar-assignee'); }).join('') + (extraAssignees > 0 ? '<span class="crm-kanban-avatar crm-kanban-avatar-more" title="' + safeText(kanbanT('kanban.avatar.more_assignees', 'Еще исполнители')) + '">+' + safeText(String(extraAssignees)) + '</span>' : '') + '</div>'
+      : '<span class="crm-kanban-no-assignee">' + safeText(kanbanT('kanban.filters.no_assignee', 'Без исполнителя')) + '</span>';
+    var managerHtml = manager ? '<div class="crm-kanban-manager"><span>' + safeText(kanbanT('kanban.manager', 'Менеджер')) + '</span>' + kanbanAvatarHtml(manager, 'crm-kanban-avatar-manager') + '<strong title="' + safeText(manager.name) + '">' + safeText(manager.name) + '</strong></div>' : '';
     return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + '</div>'
-      + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || 'Без названия') + '</a></h6>'
+      + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
       + '<p>' + safeText(task.description || '') + '</p>'
       + '<div class="crm-kanban-card-bottom"><div>' + dueBadge + '</div>' + avatarStack + '</div>'
       + managerHtml
@@ -16435,7 +16442,7 @@ window.CRM.pageApiBindings = (function () {
                   body: { status: toStatus, row_version: rowVersion }
                 }).then(function (response) {
                     if (response && response.success) {
-                      notify('Статус задачи обновлен');
+                      notify(kanbanT('kanban.notify.status_updated', 'Статус задачи обновлен'));
                       // Update task status locally and row_version if provided
                       var task = window.CRM.kanbanTasks.find(function (t) { return t.public_id === publicId; });
                       var newRowVersion = '';
@@ -16462,13 +16469,13 @@ window.CRM.pageApiBindings = (function () {
                     if (response.errors && response.errors.status && response.errors.status[0]) {
                       console.log('Status error:', response.errors.status[0]);
                     }
-                    notify('Ошибка обновления статуса', 'error');
+                    notify(kanbanT('kanban.notify.status_update_error', 'Ошибка обновления статуса'), 'error');
                     // Revert
                     evt.from.appendChild(item);
                   }
                 }).catch(function (error) {
                   console.log('Update status network error:', error);
-                  notify('Ошибка обновления статуса', 'error');
+                  notify(kanbanT('kanban.notify.status_update_error', 'Ошибка обновления статуса'), 'error');
                   // Revert
                   evt.from.appendChild(item);
                 });
@@ -16494,7 +16501,7 @@ window.CRM.pageApiBindings = (function () {
     bindKanbanFilters();
     var summary = document.getElementById('kanbanResultSummary');
     if (summary) {
-      summary.textContent = 'Показано ' + String(tasks.length) + ' из ' + String(allTasks.length) + ' задач';
+      summary.textContent = kanbanT('kanban.summary.shown_prefix', 'Показано') + ' ' + String(tasks.length) + ' ' + kanbanT('kanban.summary.of', 'из') + ' ' + String(allTasks.length) + ' ' + kanbanT('kanban.summary.tasks', 'задач');
     }
     var resetBtn = document.getElementById('kanbanFiltersResetBtn');
     if (resetBtn) {
@@ -16540,14 +16547,14 @@ window.CRM.pageApiBindings = (function () {
 
     // Hardcoded fallbacks for titles
     var hardcodedTitles = {
-      'new': 'Новая',
-      'todo': 'К выполнению',
-      'in_progress': 'В работе',
-      'done': 'Завершена',
-      'blocked': 'Заблокирована',
-      'review': 'Ревью',
-      'qa_testing': 'QA тестирование',
-      'ready_release': 'Готова к релизу'
+      'new': kanbanT('kanban.status.new', 'Новая'),
+      'todo': kanbanT('kanban.status.todo', 'К выполнению'),
+      'in_progress': kanbanT('kanban.status.in_progress', 'В работе'),
+      'done': kanbanT('kanban.status.done', 'Завершена'),
+      'blocked': kanbanT('kanban.status.blocked', 'Заблокирована'),
+      'review': kanbanT('kanban.status.review', 'Ревью'),
+      'qa_testing': kanbanT('kanban.status.qa_testing', 'QA тестирование'),
+      'ready_release': kanbanT('kanban.status.ready_release', 'Готова к релизу')
     };
 
     // Rebuild columns to avoid duplicates and support dynamic statuses
@@ -16572,7 +16579,7 @@ window.CRM.pageApiBindings = (function () {
 
       var article = document.createElement('article');
       article.className = 'text-muted';
-      article.textContent = 'Загрузка задач...';
+      article.textContent = kanbanT('kanban.loading_tasks', 'Загрузка задач...');
 
       section.appendChild(header);
       section.appendChild(article);
@@ -16633,7 +16640,7 @@ window.CRM.pageApiBindings = (function () {
             return renderKanbanCard(task);
           }).join('');
         } else {
-          article.innerHTML = '<div class="crm-kanban-col-empty">Нет задач</div>';
+          article.innerHTML = '<div class="crm-kanban-col-empty">' + safeText(kanbanT('kanban.empty_column', 'Нет задач')) + '</div>';
         }
       }
     });
