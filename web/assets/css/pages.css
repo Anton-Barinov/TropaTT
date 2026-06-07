@@ -11134,18 +11134,52 @@ font-size: 0.72rem;
 
 /* ── Column + row hover for tables ── */
 .crm-matrix-table .crm-col-hover {
-    background: var(--color-primary-50) !important;
+    background-color: var(--color-primary-50) !important;
+    box-shadow: none !important;
 }
 
 .crm-matrix-table .crm-col-hover.crm-matrix-cell-has {
-    background: var(--color-primary-100) !important;
-    text-decoration: underline;
+    background-color: var(--color-primary-100) !important;
 }
 
 .crm-matrix-table .crm-col-hover.crm-matrix-date-col {
-    background: var(--color-primary-50) !important;
+    background-color: var(--color-primary-50) !important;
 }
 
 .crm-matrix-table .crm-col-hover.crm-matrix-total-col {
-    background: var(--color-primary-50) !important;
+    background-color: var(--color-primary-50) !important;
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-footer-row td,
+.crm-matrix-table .crm-col-hover.crm-matrix-footer-row td.crm-matrix-total-col {
+    background-color: var(--color-primary-50) !important;
+}
+
+/* Only the actually hovered cell gets underline, not the whole column */
+.crm-matrix-cell-has:hover {
+    text-decoration: underline;
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-cell-has:hover {
+    text-decoration: underline;
+}
+
+/* Weekend rows: override Bootstrap table styles */
+.crm-matrix-table .crm-matrix-weekend-row td {
+    background-color: var(--color-neutral-100) !important;
+    box-shadow: none !important;
+}
+
+.crm-matrix-table .crm-matrix-weekend-row .crm-matrix-date-col {
+    background-color: var(--color-neutral-100) !important;
+}
+
+.crm-matrix-table .crm-matrix-weekend-row .crm-matrix-total-col {
+    background-color: var(--color-neutral-100) !important;
+}
+
+.crm-matrix-table .crm-matrix-weekend-row td.crm-col-hover,
+.crm-matrix-table .crm-matrix-weekend-row td.crm-col-hover.crm-matrix-date-col,
+.crm-matrix-table .crm-matrix-weekend-row td.crm-col-hover.crm-matrix-total-col {
+    background-color: var(--color-primary-50) !important;
 }
