@@ -251,7 +251,44 @@ final class WorklogService
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $projectPublicId = (string)($filters['project_public_id'] ?? '');
 
-        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $projectPublicId ?: null, $actorId, $actorIsRoot);
+        // Resolve team members to public IDs before the matrix query
+        $teamUserPublicIds = null;
+        if (!empty($teamPublicId)) {
+            $team = (new QueryBuilder($this->worklogs->getPdo()))
+                ->from('teams')
+                ->select(['member_user_ids'])
+                ->where('public_id', '=', $teamPublicId)
+                ->first();
+            if ($team && isset($team['member_user_ids'])) {
+                $raw = $team['member_user_ids'];
+                $ids = [];
+                if (is_string($raw) && $raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $v) {
+                            $iv = (int)$v;
+                            if ($iv > 0) $ids[] = $iv;
+                        }
+                    }
+                } elseif (is_array($raw)) {
+                    foreach ($raw as $v) {
+                        $iv = (int)$v;
+                        if ($iv > 0) $ids[] = $iv;
+                    }
+                }
+                if ($ids !== []) {
+                    $ids = array_values(array_unique($ids));
+                    $pubRows = (new QueryBuilder($this->worklogs->getPdo()))
+                        ->from('users')
+                        ->select(['public_id'])
+                        ->whereIn('id', $ids)
+                        ->get();
+                    $teamUserPublicIds = array_map(static fn(array $row): string => (string)$row['public_id'], $pubRows);
+                }
+            }
+        }
+
+        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $projectPublicId ?: null, $teamUserPublicIds, $actorId, $actorIsRoot);
 
         // Build matrix: [day][user_public_id] = total_minutes
         $matrix = [];
@@ -281,35 +318,6 @@ final class WorklogService
             $end->modify('-1 day');
         }
 
-        // Get team member IDs if team filter is active
-        $teamMemberIds = null;
-        if (!empty($teamPublicId)) {
-            $team = (new QueryBuilder($this->worklogs->getPdo()))
-                ->from('teams')
-                ->select(['member_user_ids'])
-                ->where('public_id', '=', $teamPublicId)
-                ->first();
-            if ($team && isset($team['member_user_ids'])) {
-                $raw = $team['member_user_ids'];
-                $ids = [];
-                if (is_string($raw) && $raw !== '') {
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        foreach ($decoded as $v) {
-                            $iv = (int)$v;
-                            if ($iv > 0) $ids[] = $iv;
-                        }
-                    }
-                } elseif (is_array($raw)) {
-                    foreach ($raw as $v) {
-                        $iv = (int)$v;
-                        if ($iv > 0) $ids[] = $iv;
-                    }
-                }
-                $teamMemberIds = $ids ? array_values(array_unique($ids)) : null;
-            }
-        }
-
         // Determine user list
         $users = [];
         if ($userPublicId) {
@@ -326,12 +334,8 @@ final class WorklogService
             foreach ($allUsers as $u) {
                 $pid = $u['public_id'];
                 // Filter by team if needed
-                if ($teamMemberIds !== null) {
-                    // We need to check if this user is in the team by user_id
-                    // But activeUsers only returns public_id/login/full_name
-                    // We'll rely on the fact that matrix rows for non-team users will be empty
-                    // and skip users NOT in the matrix when team filter is active
-                    if (!in_array($pid, $userSetKeys)) {
+                if ($teamUserPublicIds !== null) {
+                    if (!in_array($pid, $teamUserPublicIds)) {
                         continue;
                     }
                 }

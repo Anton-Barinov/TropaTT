@@ -251,7 +251,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{day: string, user_public_id: string, total_minutes: int}>
      */
-    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, int $actorUserId, bool $actorIsRoot): array
+    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, ?array $teamUserPublicIds, int $actorUserId, bool $actorIsRoot): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -283,6 +283,9 @@ final class WorklogRepository
             if ($project) {
                 $qb->where('t.project_id', '=', (int)$project['id']);
             }
+        }
+        if (!empty($teamUserPublicIds)) {
+            $qb->whereIn('u.public_id', $teamUserPublicIds);
         }
 
         return $qb->get();
