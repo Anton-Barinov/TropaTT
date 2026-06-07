@@ -275,7 +275,7 @@ final class WorklogRepository
             $qb->where('u.public_id', '=', $userPublicId);
         }
         if (!empty($teamPublicId)) {
-            $qb->whereRaw('EXISTS (SELECT 1 FROM team_members tm JOIN teams te ON te.id = tm.team_id WHERE tm.user_id = u.id AND te.public_id = ?)', [$teamPublicId]);
+            $qb->whereRaw('EXISTS (SELECT 1 FROM teams te WHERE te.public_id = ? AND JSON_CONTAINS(te.member_user_ids, CAST(u.id AS JSON)))', [$teamPublicId]);
         }
         if (!empty($projectPublicId)) {
             $qb->whereRaw('EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id AND p.public_id = ?)', [$projectPublicId]);
@@ -338,13 +338,19 @@ final class WorklogRepository
 
     public function userInTeam(string $userPublicId, string $teamPublicId): bool
     {
+        $user = (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select(['id'])
+            ->where('public_id', '=', $userPublicId)
+            ->first();
+        if (!$user) return false;
+        $userId = (int)$user['id'];
+
         $row = (new QueryBuilder($this->pdo))
-            ->from('team_members tm')
-            ->join('teams te', 'te.id', '=', 'tm.team_id')
-            ->join('users u', 'u.id', '=', 'tm.user_id')
-            ->select(['tm.id'])
-            ->where('u.public_id', '=', $userPublicId)
-            ->where('te.public_id', '=', $teamPublicId)
+            ->from('teams')
+            ->select(['id'])
+            ->where('public_id', '=', $teamPublicId)
+            ->whereRaw('JSON_CONTAINS(member_user_ids, CAST(? AS JSON))', [(string)$userId])
             ->first();
         return $row !== null;
     }
