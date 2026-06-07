@@ -9730,6 +9730,251 @@ font-size: 0.72rem;
     color: var(--crm-text-muted);
 }
 
+.crm-kanban-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(160px, 0.85fr));
+    gap: 12px;
+    align-items: end;
+    margin: 14px 0 16px;
+    padding: 14px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-lg);
+    background: var(--crm-surface);
+}
+
+.crm-kanban-search {
+    min-width: 0;
+}
+
+.crm-kanban-filters .form-control,
+.crm-kanban-filters .form-select {
+    min-height: 38px;
+    border-radius: 10px;
+}
+
+.crm-kanban-filters select[multiple] {
+    height: 64px;
+    padding-block: 6px;
+}
+
+.crm-kanban-filters select[multiple] option {
+    padding: 4px 8px;
+}
+
+.crm-kanban-due-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    grid-column: 1 / span 3;
+}
+
+.crm-kanban-due-filters .btn,
+.crm-kanban-filter-summary .btn {
+    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+}
+
+.crm-kanban-due-filters .btn.is-active,
+.crm-kanban-filter-summary .btn.is-active {
+    border-color: rgba(15, 143, 114, 0.28);
+    background: var(--crm-primary-soft);
+    color: var(--crm-primary-hover);
+}
+
+.crm-kanban-filter-summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    color: var(--crm-text-muted);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+}
+
+.crm-kanban-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.crm-kanban-card-top,
+.crm-kanban-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.crm-kanban-card-top {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+.crm-kanban-card h6 {
+    margin: 0;
+    line-height: 1.22;
+}
+
+.crm-kanban-card h6 a {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--crm-primary-hover);
+    text-decoration: none;
+}
+
+.crm-kanban-card p {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+    color: var(--crm-text-muted);
+    line-height: 1.45;
+}
+
+.crm-kanban-badge,
+.crm-kanban-date {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.crm-kanban-project {
+    max-width: 188px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #eef7f4;
+    color: #25715f;
+}
+
+.crm-kanban-priority {
+    background: #f6f2e8;
+    color: #7a5a16;
+}
+
+.crm-kanban-date {
+    background: #f3f6f5;
+    color: var(--crm-text-muted);
+}
+
+.crm-kanban-date-soft {
+    background: #edf7f4;
+    color: #25715f;
+}
+
+.crm-kanban-date-warning {
+    background: #fff7e6;
+    color: #8a5b00;
+}
+
+.crm-kanban-date-danger {
+    background: #fff0ed;
+    color: #a43d2f;
+}
+
+.crm-kanban-avatar-stack {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.crm-kanban-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -7px;
+    border: 2px solid #fff;
+    background: #e7f3ef;
+    color: #236c5c;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.crm-kanban-avatar:first-child {
+    margin-left: 0;
+}
+
+.crm-kanban-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+
+.crm-kanban-avatar-more {
+    background: #f1f5f4;
+    color: var(--crm-text-muted);
+}
+
+.crm-kanban-no-assignee {
+    color: var(--crm-text-muted);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+}
+
+.crm-kanban-manager {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding-top: 2px;
+    color: var(--crm-text-muted);
+    font-size: var(--text-xs);
+}
+
+.crm-kanban-manager strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--crm-text);
+    font-weight: 700;
+}
+
+.crm-kanban-avatar-manager {
+    width: 22px;
+    height: 22px;
+    margin-left: 0;
+    background: #f4f1e8;
+    color: #765d1e;
+    font-size: 0.62rem;
+}
+
+@media (max-width: 767px) {
+    .crm-kanban-filters {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+
+    .crm-kanban-due-filters,
+    .crm-kanban-filter-summary {
+        grid-column: auto;
+    }
+
+    .crm-kanban-filter-summary {
+        justify-content: space-between;
+        white-space: normal;
+    }
+
+    .crm-kanban-filters select[multiple] {
+        height: 72px;
+    }
+}
+
 .crm-projects-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

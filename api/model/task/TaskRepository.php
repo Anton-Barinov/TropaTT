@@ -25,6 +25,9 @@ final class TaskRepository
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
 
         $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)
+            ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
+            ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
+            ->leftJoin('users tm', 'tm.id', '=', 'pt.manager_user_id')
             ->select([
                 't.public_id',
                 't.title',
@@ -32,6 +35,8 @@ final class TaskRepository
                 't.status_code',
                 't.priority_code',
                 't.due_at',
+                't.start_at',
+                't.end_at',
                 't.created_at',
                 't.updated_at',
                 't.row_version',
@@ -40,6 +45,15 @@ final class TaskRepository
                 'p.client_public_id AS client_public_id',
                 'p.team_public_id AS project_team_public_id',
                 'pt.title AS project_team_title',
+                'au.public_id AS assignee_user_public_id',
+                'au.full_name AS assignee_name',
+                'au.login AS assignee_login',
+                'pm.public_id AS project_manager_user_public_id',
+                'pm.full_name AS project_manager_name',
+                'pm.login AS project_manager_login',
+                'tm.public_id AS project_team_manager_user_public_id',
+                'tm.full_name AS project_team_manager_name',
+                'tm.login AS project_team_manager_login',
                 "(SELECT parent_task.public_id
                     FROM task_relations trp
                     INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id

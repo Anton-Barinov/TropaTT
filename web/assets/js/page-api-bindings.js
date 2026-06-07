@@ -15966,6 +15966,378 @@ window.CRM.pageApiBindings = (function () {
     });
   }
 
+  function kanbanNormalizeText(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function kanbanParamList(query, key) {
+    var values = [];
+    query.getAll(key).forEach(function (raw) {
+      String(raw || '').split(',').forEach(function (part) {
+        var value = String(part || '').trim();
+        if (value && values.indexOf(value) === -1) values.push(value);
+      });
+    });
+    return values;
+  }
+
+  function kanbanReadFiltersFromQuery() {
+    var query = pageQuery();
+    return {
+      q: String(query.get('q') || query.get('search') || '').trim(),
+      assignees: kanbanParamList(query, 'assignee'),
+      managers: kanbanParamList(query, 'manager'),
+      projects: kanbanParamList(query, 'project'),
+      due: String(query.get('due') || '').trim(),
+      dueFrom: String(query.get('due_from') || '').trim(),
+      dueTo: String(query.get('due_to') || '').trim()
+    };
+  }
+
+  function kanbanIsDone(task) {
+    var status = String(task && task.status_code || '').toLowerCase();
+    return ['done', 'completed', 'closed', 'archived'].indexOf(status) >= 0;
+  }
+
+  function kanbanDateOnly(value) {
+    var raw = String(value || '').trim();
+    return raw ? raw.slice(0, 10) : '';
+  }
+
+  function kanbanParseDay(value) {
+    var day = kanbanDateOnly(value);
+    if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+    var parsed = new Date(day + 'T00:00:00');
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
+  function kanbanToday() {
+    var now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+
+  function kanbanDueState(task) {
+    var day = kanbanParseDay(task && (task.due_at || task.deadline || task.due_date));
+    if (!day) return null;
+    var today = kanbanToday();
+    var diff = Math.round((day.getTime() - today.getTime()) / 86400000);
+    var done = kanbanIsDone(task);
+    var raw = kanbanDateOnly(task.due_at || task.deadline || task.due_date);
+    var label = kanbanFormatShortDate(raw);
+    var tone = 'neutral';
+    if (!done && diff < 0) {
+      label = 'Просрочено';
+      tone = 'danger';
+    } else if (diff === 0) {
+      label = 'Сегодня';
+      tone = done ? 'neutral' : 'warning';
+    } else if (diff === 1) {
+      label = 'Завтра';
+      tone = 'soft';
+    } else if (!done && diff > 0 && diff <= 3) {
+      tone = 'warning';
+    }
+    return { day: raw, label: label, tone: tone, timestamp: day.getTime() };
+  }
+
+  function kanbanFormatShortDate(value) {
+    var day = kanbanDateOnly(value);
+    if (!day) return '';
+    var parts = day.split('-');
+    if (parts.length !== 3) return formatDate(day);
+    return parts[2] + '.' + parts[1] + '.' + parts[0];
+  }
+
+  function kanbanPriorityLabel(value) {
+    var code = String(value || '').trim();
+    var labels = {
+      low: 'Низкий',
+      normal: 'Обычный',
+      medium: 'Средний',
+      high: 'Высокий',
+      urgent: 'Срочный',
+      critical: 'Критичный'
+    };
+    return labels[code] || code;
+  }
+
+  function kanbanTaskAssignees(task) {
+    var raw = task && (task.assignees || task.assignee_users || task.assignee_list);
+    var users = Array.isArray(raw) ? raw.map(function (item) {
+      return {
+        id: String(item.public_id || item.user_public_id || item.id || '').trim(),
+        name: String(item.full_name || item.name || item.login || item.label || '').trim(),
+        avatar: String(item.avatar_url || item.avatar || '').trim()
+      };
+    }) : [];
+    var singleId = String(task && (task.assignee_user_public_id || task.assignee_public_id || '') || '').trim();
+    var singleName = String(task && (task.assignee_name || task.assignee_full_name || task.assignee_login || '') || '').trim();
+    if (!users.length && (singleId || singleName)) {
+      users.push({ id: singleId, name: singleName || singleId, avatar: '' });
+    }
+    return users.filter(function (item, index, list) {
+      var key = item.id || item.name;
+      return key && list.findIndex(function (candidate) { return (candidate.id || candidate.name) === key; }) === index;
+    });
+  }
+
+  function kanbanTaskManager(task) {
+    var id = String(task && (task.project_manager_user_public_id || task.manager_user_public_id || task.project_team_manager_user_public_id || '') || '').trim();
+    var name = String(task && (task.project_manager_name || task.manager_name || task.project_manager_login || task.project_team_manager_name || task.project_team_manager_login || '') || '').trim();
+    if (!id && !name) return null;
+    return { id: id, name: name || id, avatar: '' };
+  }
+
+  function kanbanInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '—';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
+  }
+
+  function kanbanAvatarHtml(user, extraClass) {
+    var name = String(user && user.name || user && user.id || 'Не назначен').trim();
+    var cls = 'crm-kanban-avatar' + (extraClass ? ' ' + extraClass : '');
+    var avatar = String(user && user.avatar || '').trim();
+    if (avatar) {
+      return '<span class="' + cls + '" title="' + safeText(name) + '"><img src="' + safeText(avatar) + '" alt=""></span>';
+    }
+    return '<span class="' + cls + '" title="' + safeText(name) + '">' + safeText(kanbanInitials(name)) + '</span>';
+  }
+
+  function kanbanOptionLabel(kind, value, fallback) {
+    if (value === '__none') {
+      if (kind === 'assignee') return 'Без исполнителя';
+      if (kind === 'manager') return 'Без менеджера';
+      if (kind === 'project') return 'Без проекта';
+    }
+    return String(fallback || value || '').trim();
+  }
+
+  function kanbanBuildFilterOptions(tasks) {
+    var buckets = { assignee: {}, manager: {}, project: {} };
+    var hasNoAssignee = false;
+    var hasNoManager = false;
+    var hasNoProject = false;
+    tasks.forEach(function (task) {
+      var assignees = kanbanTaskAssignees(task);
+      if (assignees.length) {
+        assignees.forEach(function (user) {
+          var key = user.id || user.name;
+          if (key) buckets.assignee[key] = user.name || key;
+        });
+      } else {
+        hasNoAssignee = true;
+      }
+      var manager = kanbanTaskManager(task);
+      if (manager) {
+        var managerKey = manager.id || manager.name;
+        if (managerKey) buckets.manager[managerKey] = manager.name || managerKey;
+      } else {
+        hasNoManager = true;
+      }
+      var projectId = String(task.project_public_id || '').trim();
+      var projectTitle = String(task.project_title || '').trim();
+      if (projectId || projectTitle) {
+        buckets.project[projectId || projectTitle] = projectTitle || projectId;
+      } else {
+        hasNoProject = true;
+      }
+    });
+    if (hasNoAssignee) buckets.assignee.__none = 'Без исполнителя';
+    if (hasNoManager) buckets.manager.__none = 'Без менеджера';
+    if (hasNoProject) buckets.project.__none = 'Без проекта';
+    return buckets;
+  }
+
+  function kanbanSetMultiValue(select, values) {
+    if (!select) return;
+    var selected = Array.isArray(values) ? values : [];
+    Array.prototype.slice.call(select.options).forEach(function (option) {
+      option.selected = selected.indexOf(option.value) >= 0;
+    });
+  }
+
+  function kanbanSelectedValues(select) {
+    if (!select) return [];
+    return Array.prototype.slice.call(select.selectedOptions || []).map(function (option) {
+      return String(option.value || '').trim();
+    }).filter(Boolean);
+  }
+
+  function kanbanPopulateSelect(select, map, selected, kind) {
+    if (!select) return;
+    var current = Array.isArray(selected) ? selected : [];
+    var entries = Object.keys(map || {}).map(function (key) {
+      return { value: key, label: kanbanOptionLabel(kind, key, map[key]) };
+    }).sort(function (a, b) {
+      if (a.value === '__none') return -1;
+      if (b.value === '__none') return 1;
+      return a.label.localeCompare(b.label, 'ru');
+    });
+    select.innerHTML = entries.map(function (item) {
+      return '<option value="' + safeText(item.value) + '">' + safeText(item.label) + '</option>';
+    }).join('');
+    kanbanSetMultiValue(select, current);
+  }
+
+  function kanbanUpdateUrl(filters) {
+    var query = getCurrentQueryObject();
+    ['q', 'search', 'assignee', 'manager', 'project', 'due', 'due_from', 'due_to'].forEach(function (key) {
+      delete query[key];
+    });
+    if (filters.q) query.q = filters.q;
+    if (filters.assignees && filters.assignees.length) query.assignee = filters.assignees.join(',');
+    if (filters.managers && filters.managers.length) query.manager = filters.managers.join(',');
+    if (filters.projects && filters.projects.length) query.project = filters.projects.join(',');
+    if (filters.due) query.due = filters.due;
+    if (filters.dueFrom) query.due_from = filters.dueFrom;
+    if (filters.dueTo) query.due_to = filters.dueTo;
+    window.history.replaceState({}, '', window.CRM.api.buildWebUrl('kanban', query));
+  }
+
+  function kanbanCurrentFiltersFromControls() {
+    return {
+      q: String((document.getElementById('kanbanSearchInput') || {}).value || '').trim(),
+      assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
+      managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
+      projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
+      due: String(window.CRM.kanbanFilters && window.CRM.kanbanFilters.due || '').trim(),
+      dueFrom: '',
+      dueTo: ''
+    };
+  }
+
+  function kanbanFilterActive(filters) {
+    return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || filters.due || filters.dueFrom || filters.dueTo);
+  }
+
+  function kanbanTaskMatches(task, filters) {
+    var q = kanbanNormalizeText(filters.q);
+    if (q) {
+      var haystack = kanbanNormalizeText([task.title || '', task.description || '', task.project_title || '', task.public_id || ''].join(' '));
+      if (haystack.indexOf(q) === -1) return false;
+    }
+    if (filters.assignees && filters.assignees.length) {
+      var assignees = kanbanTaskAssignees(task);
+      if (!(filters.assignees.indexOf('__none') >= 0 && assignees.length === 0)) {
+        var assigneeKeys = assignees.map(function (user) { return user.id || user.name; });
+        if (!assigneeKeys.some(function (key) { return filters.assignees.indexOf(key) >= 0; })) return false;
+      }
+    }
+    if (filters.managers && filters.managers.length) {
+      var manager = kanbanTaskManager(task);
+      if (!(filters.managers.indexOf('__none') >= 0 && !manager)) {
+        var managerKey = manager ? (manager.id || manager.name) : '';
+        if (!managerKey || filters.managers.indexOf(managerKey) === -1) return false;
+      }
+    }
+    if (filters.projects && filters.projects.length) {
+      var projectKey = String(task.project_public_id || task.project_title || '').trim();
+      if (!(filters.projects.indexOf('__none') >= 0 && !projectKey) && (!projectKey || filters.projects.indexOf(projectKey) === -1)) return false;
+    }
+    if (filters.due) {
+      var state = kanbanDueState(task);
+      var today = kanbanToday();
+      var weekEnd = new Date(today.getTime() + 6 * 86400000);
+      if (filters.due === 'overdue' && (!state || state.tone !== 'danger')) return false;
+      if (filters.due === 'today' && (!state || state.timestamp !== today.getTime())) return false;
+      if (filters.due === 'week' && (!state || state.timestamp < today.getTime() || state.timestamp > weekEnd.getTime())) return false;
+    }
+    return true;
+  }
+
+  function kanbanFilteredTasks() {
+    var allTasks = window.CRM.kanbanTasks || [];
+    var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
+    return allTasks.filter(function (task) { return kanbanTaskMatches(task, filters); });
+  }
+
+  function renderKanbanCard(task) {
+    var assignees = kanbanTaskAssignees(task);
+    var manager = kanbanTaskManager(task);
+    var due = kanbanDueState(task);
+    var priority = String(task.priority_code || '').trim();
+    var projectTitle = String(task.project_title || '').trim();
+    var projectBadge = projectTitle ? '<span class="crm-kanban-badge crm-kanban-project" title="' + safeText(projectTitle) + '">' + safeText(projectTitle) + '</span>' : '';
+    var priorityBadge = priority && priority !== 'normal' ? '<span class="crm-kanban-badge crm-kanban-priority">' + safeText(kanbanPriorityLabel(priority)) + '</span>' : '';
+    var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '">' + safeText(due.label) + '</span>' : '';
+    var shownAssignees = assignees.slice(0, 3);
+    var extraAssignees = Math.max(0, assignees.length - shownAssignees.length);
+    var avatarStack = shownAssignees.length
+      ? '<div class="crm-kanban-avatar-stack" aria-label="Исполнители">' + shownAssignees.map(function (user) { return kanbanAvatarHtml(user, 'crm-kanban-avatar-assignee'); }).join('') + (extraAssignees > 0 ? '<span class="crm-kanban-avatar crm-kanban-avatar-more" title="Еще исполнители">+' + safeText(String(extraAssignees)) + '</span>' : '') + '</div>'
+      : '<span class="crm-kanban-no-assignee">Без исполнителя</span>';
+    var managerHtml = manager ? '<div class="crm-kanban-manager"><span>Менеджер</span>' + kanbanAvatarHtml(manager, 'crm-kanban-avatar-manager') + '<strong title="' + safeText(manager.name) + '">' + safeText(manager.name) + '</strong></div>' : '';
+    return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
+      + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + '</div>'
+      + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || 'Без названия') + '</a></h6>'
+      + '<p>' + safeText(task.description || '') + '</p>'
+      + '<div class="crm-kanban-card-bottom"><div>' + dueBadge + '</div>' + avatarStack + '</div>'
+      + managerHtml
+      + '</div>';
+  }
+
+  function bindKanbanFilters() {
+    var search = document.getElementById('kanbanSearchInput');
+    var assignee = document.getElementById('kanbanAssigneeFilter');
+    var manager = document.getElementById('kanbanManagerFilter');
+    var project = document.getElementById('kanbanProjectFilter');
+    var reset = document.getElementById('kanbanFiltersResetBtn');
+    var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
+    var options = kanbanBuildFilterOptions(window.CRM.kanbanTasks || []);
+    if (search) search.value = filters.q || '';
+    kanbanPopulateSelect(assignee, options.assignee, filters.assignees, 'assignee');
+    kanbanPopulateSelect(manager, options.manager, filters.managers, 'manager');
+    kanbanPopulateSelect(project, options.project, filters.projects, 'project');
+
+    function apply(nextFilters, writeUrl) {
+      window.CRM.kanbanFilters = nextFilters || kanbanCurrentFiltersFromControls();
+      if (writeUrl) kanbanUpdateUrl(window.CRM.kanbanFilters);
+      updateKanbanColumns();
+      initKanbanSortable();
+    }
+
+    if (search && search.dataset.bound !== '1') {
+      var timer = null;
+      search.addEventListener('input', function () {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(function () { apply(kanbanCurrentFiltersFromControls(), true); }, 300);
+      });
+      search.dataset.bound = '1';
+    }
+    [assignee, manager, project].forEach(function (select) {
+      if (!select || select.dataset.bound === '1') return;
+      select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
+      select.dataset.bound = '1';
+    });
+    document.querySelectorAll('[data-kanban-due]').forEach(function (btn) {
+      var due = String(btn.getAttribute('data-kanban-due') || '').trim();
+      btn.classList.toggle('is-active', due !== '' && due === String(filters.due || ''));
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var current = window.CRM.kanbanFilters || kanbanCurrentFiltersFromControls();
+        current.due = current.due === due ? '' : due;
+        apply(current, true);
+      });
+      btn.dataset.bound = '1';
+    });
+    if (reset) {
+      reset.disabled = !kanbanFilterActive(filters);
+      reset.classList.toggle('is-active', kanbanFilterActive(filters));
+      if (reset.dataset.bound !== '1') {
+        reset.addEventListener('click', function () {
+          var empty = { q: '', assignees: [], managers: [], projects: [], due: '', dueFrom: '', dueTo: '' };
+          if (search) search.value = '';
+          kanbanSetMultiValue(assignee, []);
+          kanbanSetMultiValue(manager, []);
+          kanbanSetMultiValue(project, []);
+          apply(empty, true);
+        });
+        reset.dataset.bound = '1';
+      }
+    }
+  }
+
 
   async function renderKanbanPage() {
     var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 100 } });
@@ -15973,6 +16345,7 @@ window.CRM.pageApiBindings = (function () {
       var tasks = mapItems(tasksEnvelope);
       window.CRM.kanbanTasks = tasks;
     }
+    window.CRM.kanbanFilters = kanbanReadFiltersFromQuery();
     // Try to load configured statuses (order) from API; fall back to sensible defaults
     var statusOrder = ['new', 'in_progress', 'done'];
     try {
@@ -15996,6 +16369,7 @@ window.CRM.pageApiBindings = (function () {
     if (!window.CRM.kanbanMobileStatus || statusOrder.indexOf(window.CRM.kanbanMobileStatus) === -1) {
       window.CRM.kanbanMobileStatus = statusOrder[0] || 'new';
     }
+    bindKanbanFilters();
     updateKanbanColumns();
     initKanbanSortable();
   }
@@ -16113,8 +16487,20 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function updateKanbanColumns() {
-    var tasks = window.CRM.kanbanTasks || [];
+    var allTasks = window.CRM.kanbanTasks || [];
+    var tasks = kanbanFilteredTasks();
+    var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     console.log('updateKanbanColumns, tasks length:', tasks.length);
+    bindKanbanFilters();
+    var summary = document.getElementById('kanbanResultSummary');
+    if (summary) {
+      summary.textContent = 'Показано ' + String(tasks.length) + ' из ' + String(allTasks.length) + ' задач';
+    }
+    var resetBtn = document.getElementById('kanbanFiltersResetBtn');
+    if (resetBtn) {
+      resetBtn.disabled = !kanbanFilterActive(filters);
+      resetBtn.classList.toggle('is-active', kanbanFilterActive(filters));
+    }
     var byStatus = {};
     tasks.forEach(function (task) {
       var status = task.status_code || 'new';
@@ -16175,7 +16561,7 @@ window.CRM.pageApiBindings = (function () {
       section.setAttribute('data-status-code', statusCode);
 
       var header = document.createElement('div');
-      header.className = 'd-flex justify-content-between mb-2';
+      header.className = 'crm-kanban-col-header';
       var strong = document.createElement('strong');
       strong.textContent = title;
       var chip = document.createElement('span');
@@ -16219,8 +16605,8 @@ window.CRM.pageApiBindings = (function () {
 
     // Populate columns
     var columns = container.querySelectorAll('.crm-kanban-col');
-    columns.forEach(function (col, index) {
-      var statusCode = finalOrder[index] || 'new';
+    columns.forEach(function (col) {
+      var statusCode = col.getAttribute('data-status-code') || 'new';
       var statusTasks = byStatus[statusCode] || [];
 
       // Sort by cookie
@@ -16244,10 +16630,10 @@ window.CRM.pageApiBindings = (function () {
       if (article) {
           if (statusTasks.length > 0) {
           article.innerHTML = statusTasks.map(function (task) {
-            return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '"><h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title) + '</a></h6><p>' + safeText(task.description || '') + '</p></div>';
+            return renderKanbanCard(task);
           }).join('');
         } else {
-          article.innerHTML = '<div class="crm-kanban-card text-muted">Нет задач</div>';
+          article.innerHTML = '<div class="crm-kanban-col-empty">Нет задач</div>';
         }
       }
     });
