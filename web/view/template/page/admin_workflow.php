@@ -29,33 +29,33 @@
 
       <div class="row g-3">
         <div class="col-12">
-          <div class="crm-card crm-section-card">
+          <div class="crm-card crm-section-card crm-automation-list-toolbar">
             <div class="crm-section-head">
               <div><h2 class="h6 mb-0">Правила</h2><div class="crm-section-note" id="adminWorkflowRulesCount"></div></div>
               <div class="d-flex gap-2"><input type="search" id="adminWorkflowSearchInput" class="form-control form-control-sm" placeholder="Поиск правил..." style="max-width:240px"><button id="adminWorkflowSearchClear" class="btn btn-sm btn-light d-none" type="button">Сбросить</button></div>
             </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle crm-table crm-automation-table mb-0">
-                <thead><tr><th>Название</th><th>Когда</th><th>Что сделать</th><th>Параметры</th><th>Статус</th><th class="text-end">Действия</th></tr></thead>
-                <tbody id="adminWorkflowRulesBody"><tr><td colspan="6" class="text-muted">Загрузка...</td></tr></tbody>
-              </table>
-            </div>
+          </div>
+          <div class="crm-card crm-section-card p-0 table-responsive crm-automation-table-card">
+            <table class="table table-hover align-middle crm-table crm-automation-table mb-0">
+              <thead><tr><th>Название</th><th>Когда</th><th>Что сделать</th><th>Параметры</th><th>Статус</th><th class="text-end">Действия</th></tr></thead>
+              <tbody id="adminWorkflowRulesBody"><tr><td colspan="6" class="text-muted">Загрузка...</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>
 
       <div class="row g-3 mt-1">
         <div class="col-12">
-          <div class="crm-card crm-section-card">
+          <div class="crm-card crm-section-card crm-automation-list-toolbar">
             <div class="crm-section-head">
               <div><h2 class="h6 mb-0">Журнал выполнения</h2><div class="crm-section-note">Последние тестовые и реальные запуски правил.</div></div>
             </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle crm-table crm-automation-table mb-0">
-                <thead><tr><th>Правило</th><th>Событие</th><th>Действие</th><th>Результат</th><th>Подробности</th><th>Дата</th></tr></thead>
-                <tbody id="adminWorkflowLogsBody"><tr><td colspan="6" class="text-muted">Загрузка...</td></tr></tbody>
-              </table>
-            </div>
+          </div>
+          <div class="crm-card crm-section-card p-0 table-responsive crm-automation-table-card">
+            <table class="table table-hover align-middle crm-table crm-automation-table mb-0">
+              <thead><tr><th>Правило</th><th>Событие</th><th>Действие</th><th>Результат</th><th>Подробности</th><th>Дата</th></tr></thead>
+              <tbody id="adminWorkflowLogsBody"><tr><td colspan="6" class="text-muted">Загрузка...</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>

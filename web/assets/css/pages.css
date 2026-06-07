@@ -82,6 +82,36 @@
   white-space: nowrap;
 }
 
+.crm-automation-list-toolbar {
+  margin-bottom: 12px;
+}
+
+.crm-automation-list-toolbar .crm-section-head {
+  min-height: 44px;
+}
+
+.crm-automation-table-card {
+  overflow: hidden;
+}
+
+.crm-automation-table th {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.crm-automation-table td {
+  padding-top: 0.74rem;
+  padding-bottom: 0.74rem;
+}
+
+.crm-automation-table tbody td:first-child {
+  min-width: 220px;
+}
+
+.crm-automation-table tbody tr:hover .crm-approval-detail-link {
+  color: var(--crm-accent-strong);
+}
+
 .crm-table-actions {
   display: table-cell;
 }
