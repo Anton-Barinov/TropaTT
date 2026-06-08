@@ -1137,6 +1137,8 @@
   color: #b71c1c;
 }
 
+}
+
 .crm-calendar-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
