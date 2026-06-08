@@ -20,7 +20,7 @@ final class TagRepository
 
         $total = $this->buildListQuery($filters)->count();
         $items = $this->buildListQuery($filters)
-            ->select(['public_id', 'code', 'title', 'color', 'description', 'created_at'])
+            ->select(['public_id', 'code', 'title', 'color', 'created_at'])
             ->orderBy('created_at', 'ASC')
             ->limit($limit)
             ->offset($offset)
@@ -124,7 +124,7 @@ final class TagRepository
         return (new QueryBuilder($this->pdo))
             ->from('tags t')
             ->join('entity_tags et', 'et.tag_id', '=', 't.id')
-            ->select(['t.public_id', 't.code', 't.title', 't.color', 't.description', 't.created_at'])
+            ->select(['t.public_id', 't.code', 't.title', 't.color', 't.created_at'])
             ->where('et.entity_type', '=', $entityType)
             ->where('et.entity_public_id', '=', $entityPublicId)
             ->orderBy('t.created_at', 'ASC')
