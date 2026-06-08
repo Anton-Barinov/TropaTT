@@ -16221,7 +16221,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function kanbanCurrentFiltersFromControls() {
-    return {
+    var result = {
       q: String((document.getElementById('kanbanSearchInput') || {}).value || '').trim(),
       assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
       managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
@@ -16229,18 +16229,13 @@ window.CRM.pageApiBindings = (function () {
       tags: kanbanSelectedValues(document.getElementById('kanbanTagFilter')),
       due: String((document.querySelector('[data-kanban-due].is-active') || {}).getAttribute('data-kanban-due') || '').trim()
     };
-  }
-
-  function kanbanCurrentFiltersFromControls() {
-    return {
-      q: String((document.getElementById('kanbanSearchInput') || {}).value || '').trim(),
-      assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
-      managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
-      projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
-      due: String(window.CRM.kanbanFilters && window.CRM.kanbanFilters.due || '').trim(),
-      dueFrom: '',
-      dueTo: ''
-    };
+    // Preserve dueFrom/dueTo from URL if not currently active (they come from URL only)
+    if (!result.due) {
+      var q = pageQuery();
+      result.dueFrom = String(q.get('due_from') || '').trim();
+      result.dueTo = String(q.get('due_to') || '').trim();
+    }
+    return result;
   }
 
   function kanbanFilterActive(filters) {
@@ -16352,9 +16347,7 @@ window.CRM.pageApiBindings = (function () {
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
     if (tag && filters.tags && filters.tags.length) {
-      console.log('TAGFILTER: restoring tag value to', filters.tags[0]);
       tag.value = filters.tags[0];
-      console.log('TAGFILTER: after set, value=', tag.value, 'selectedOptions=', Array.from(tag.selectedOptions).map(function(o){return o.value;}));
     }
     [assignee, manager, project].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
