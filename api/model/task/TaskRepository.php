@@ -77,6 +77,11 @@ final class TaskRepository
                     WHERE trc.parent_task_id = t.id
                       AND trc.relation_type = 'subtask'
                 ) AS has_subtasks",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color))
+                  FROM entity_tags et
+                  INNER JOIN tags tg ON tg.id = et.tag_id
+                  WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
+                ) AS tags",
             ])
             ->orderBy('t.' . $sort, $order)
             ->orderBy('t.public_id', $order);
@@ -176,6 +181,11 @@ final class TaskRepository
                     WHERE trp.child_task_id = t.id
                       AND trp.relation_type = 'subtask'
                     LIMIT 1) AS parent_relation_sort_order",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color))
+                  FROM entity_tags et
+                  INNER JOIN tags tg ON tg.id = et.tag_id
+                  WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
+                ) AS tags",
             ])
             ->where('t.public_id', '=', $publicId)
             ->first();
@@ -311,6 +321,11 @@ final class TaskRepository
                 'p.title AS project_title',
                 'u.public_id AS assignee_user_public_id',
                 'u.full_name AS assignee_name',
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color))
+                  FROM entity_tags et
+                  INNER JOIN tags tg ON tg.id = et.tag_id
+                  WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
+                ) AS tags",
             ]);
 
         if (!empty($filters['assignee_user_public_id'])) {

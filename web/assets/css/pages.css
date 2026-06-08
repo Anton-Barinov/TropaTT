@@ -9753,6 +9753,28 @@ font-size: 0.72rem;
     color: var(--crm-text-muted);
 }
 
+.crm-kanban-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 4px 0;
+}
+
+.crm-kanban-tag-chip {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 600;
+    border-radius: 999px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: opacity 0.12s;
+}
+
+.crm-kanban-tag-chip:hover {
+    opacity: 0.8;
+}
+
 .crm-kanban-col-empty {
     border: 1px dashed var(--crm-border);
     border-radius: var(--radius-md);
