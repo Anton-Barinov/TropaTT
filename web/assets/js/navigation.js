@@ -591,30 +591,80 @@ window.CRM.navigation = (function () {
     var toggle = bar.querySelector('[data-search-toggle]');
     var searchGroup = bar.querySelector('[data-global-search]');
     var input = searchGroup ? searchGroup.querySelector('input') : null;
-    if (!toggle || !searchGroup) return;
+    if (!toggle) return;
     if (toggle.dataset.searchToggleBound === '1') return;
     toggle.dataset.searchToggleBound = '1';
 
-    toggle.addEventListener('click', function () {
-      var open = searchGroup.classList.contains('is-open');
-      if (open) {
-        searchGroup.classList.remove('is-open');
-        searchGroup.classList.add('is-collapsed');
-        bar.classList.add('crm-search-collapsed');
-      } else {
-        searchGroup.classList.remove('is-collapsed');
-        searchGroup.classList.add('is-open');
-        bar.classList.remove('crm-search-collapsed');
-        if (input) input.focus();
-      }
-    });
-
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      if (!searchGroup.classList.contains('is-open')) return;
-      searchGroup.classList.remove('is-open');
+    // Hide inline search group (always collapsed now)
+    if (searchGroup) {
       searchGroup.classList.add('is-collapsed');
       bar.classList.add('crm-search-collapsed');
+    }
+
+    var modal = null;
+
+    toggle.addEventListener('click', function () {
+      if (modal && modal.parentNode) {
+        // Already in DOM, show it
+        var bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+        bsModal.show();
+        var mi = modal.querySelector('input');
+        if (mi) setTimeout(function () { mi.focus(); }, 200);
+        return;
+      }
+
+      // Create modal
+      modal = document.createElement('div');
+      modal.className = 'modal fade';
+      modal.setAttribute('tabindex', '-1');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Поиск по TropaTT') + '" autocomplete="off" autofocus></div></div></div></div>';
+      document.body.appendChild(modal);
+
+      var modalInput = modal.querySelector('input');
+      if (modalInput) {
+        // Bind Enter key to search
+        modalInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            var query = this.value.trim();
+            if (query) {
+              var bsModal = bootstrap.Modal.getInstance(modal);
+              if (bsModal) bsModal.hide();
+              // Navigate to tasks page with search query
+              window.location.href = 'index.php?route=tasks&search=' + encodeURIComponent(query);
+            }
+          }
+        });
+        // Bind Escape to close
+        modalInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            var bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) bsModal.hide();
+          }
+        });
+      }
+
+      // Connect existing global search logic to modal input
+      if (modalInput && window.CRM.api) {
+        // Copy the data-search-bound logic from the original input
+        var originalInput = searchGroup ? searchGroup.querySelector('input') : null;
+        if (originalInput && originalInput.dataset.searchBound === '1') {
+          // The global search is already bound; copy the keydown handler
+          modalInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+              var val = this.value.trim();
+              if (val) {
+                // Same logic as bindGlobalSearch
+                window.location.href = 'index.php?route=task-search&q=' + encodeURIComponent(val);
+              }
+            }
+          });
+        }
+      }
+
+      var bsModal = new bootstrap.Modal(modal);
+      bsModal.show();
+      if (modalInput) setTimeout(function () { modalInput.focus(); }, 300);
     });
   }
 
