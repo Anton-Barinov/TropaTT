@@ -1461,16 +1461,15 @@ window._saveGaps=function(){
     body.innerHTML=h||'<p class="text-muted">Нет задач.</p>';
     // Add "Create project in CRM" button if tasks exist
     if(projects.length||flatTasks.length){
-      var btnHtml='<button class="btn btn-sm btn-success mt-2" id="createProjectBtn"><i class="fa-solid fa-diagram-project me-1"></i> Создать проект и задачи в CRM</button>';
+      var btnHtml='<button class="btn btn-sm crm-btn-primary crm-idea-create-project-btn mt-2" id="createProjectBtn"><i class="fa-solid fa-diagram-project me-1" aria-hidden="true"></i><span>Создать проект и задачи в CRM</span></button>';
       body.innerHTML+=btnHtml;
       document.getElementById('createProjectBtn').addEventListener('click',function(){
-        var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> Создаю...';
+        var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span><span>Создаю...</span>';
         window.CRM.api.request('api/v1/ideas/'+pid+'/create-project-tasks',{method:'POST',timeoutMs:30000}).then(function(env){
-          b.disabled=false;b.innerHTML='<i class="fa-solid fa-check me-1"></i> Проект создан';
-          b.classList.remove('btn-success');b.classList.add('btn-outline-success');
+          b.disabled=false;b.innerHTML='<i class="fa-solid fa-check me-1" aria-hidden="true"></i><span>Проект создан</span>';
           if(window.CRM.br1)window.CRM.br1.notify('success','Проект создан: '+(env.data.project_public_id||'')+', задач: '+(env.data.tasks_created||0));
         }).catch(function(err){
-          b.disabled=false;b.innerHTML='<i class="fa-solid fa-diagram-project me-1"></i> Создать проект и задачи в CRM';
+          b.disabled=false;b.innerHTML='<i class="fa-solid fa-diagram-project me-1" aria-hidden="true"></i><span>Создать проект и задачи в CRM</span>';
           var msg=err&&err.envelope&&err.envelope.message?err.envelope.message:'Ошибка создания проекта';
           if(window.CRM.br1)window.CRM.br1.notify('error',msg);
         });

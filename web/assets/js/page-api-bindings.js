@@ -16004,6 +16004,9 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanReadFiltersFromQuery() {
     var query = pageQuery();
+    var hasFilterParams = ['q', 'search', 'assignee', 'manager', 'project', 'due', 'due_from', 'due_to'].some(function (key) {
+      return query.has(key);
+    });
     var filters = {
       q: String(query.get('q') || query.get('search') || '').trim(),
       assignees: kanbanParamList(query, 'assignee'),
@@ -16013,9 +16016,7 @@ window.CRM.pageApiBindings = (function () {
       dueFrom: String(query.get('due_from') || '').trim(),
       dueTo: String(query.get('due_to') || '').trim()
     };
-    // If no URL params, try reading from cookie
-    var hasParams = query.toString().indexOf('=') >= 0;
-    if (!hasParams) {
+    if (!hasFilterParams) {
       try {
         var cookie = JSON.parse(decodeURIComponent(document.cookie.replace(/(?:(?:^|.*;\s*)kanbanFilters\s*\=\s*([^;]*).*$)|^.*$/, '$1')) || '{}');
         if (cookie.q) filters.q = cookie.q;
@@ -16201,9 +16202,13 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanPopulateSelect(select, map, selected, kind) {
     if (!select) return;
-    // Build drop-down: first option is "All", then specific values, then __none
     var current = Array.isArray(selected) ? (selected.length ? selected[0] : '') : (String(selected || ''));
-    var entries = [{ value: '', label: kanbanT('kanban.filters.all', 'Все') }];
+    var allLabels = {
+      assignee: kanbanT('kanban.filters.all_assignees', 'Все исполнители'),
+      manager: kanbanT('kanban.filters.all_managers', 'Все менеджеры'),
+      project: kanbanT('kanban.filters.all_projects', 'Все проекты')
+    };
+    var entries = [{ value: '', label: allLabels[kind] || kanbanT('kanban.filters.all', 'Все') }];
     var others = Object.keys(map || {}).map(function (key) {
       return { value: key, label: kanbanOptionLabel(kind, key, map[key]) };
     }).sort(function (a, b) {
@@ -16242,18 +16247,6 @@ window.CRM.pageApiBindings = (function () {
       };
       document.cookie = 'kanbanFilters=' + encodeURIComponent(JSON.stringify(cookieData)) + ';path=/;max-age=604800;SameSite=Lax';
     } catch (_) {}
-  }
-
-  function kanbanCurrentFiltersFromControls() {
-    return {
-      q: String((document.getElementById('kanbanSearchInput') || {}).value || '').trim(),
-      assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
-      managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
-      projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
-      due: String((document.querySelector('[data-kanban-due].is-active') || {}).getAttribute('data-kanban-due') || '').trim(),
-      dueFrom: '',
-      dueTo: ''
-    };
   }
 
   function kanbanCurrentFiltersFromControls() {
@@ -16388,9 +16381,9 @@ window.CRM.pageApiBindings = (function () {
         reset.addEventListener('click', function () {
           var empty = { q: '', assignees: [], managers: [], projects: [], due: '', dueFrom: '', dueTo: '' };
           if (search) search.value = '';
-          kanbanSetMultiValue(assignee, []);
-          kanbanSetMultiValue(manager, []);
-          kanbanSetMultiValue(project, []);
+          if (assignee) assignee.value = '';
+          if (manager) manager.value = '';
+          if (project) project.value = '';
           apply(empty, true);
         });
         reset.dataset.bound = '1';

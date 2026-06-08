@@ -4200,6 +4200,25 @@ body {
   padding-bottom: 32px !important;
 }
 
+.crm-idea-detail-page .crm-idea-create-project-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 6px !important;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: normal;
+}
+
+.crm-idea-detail-page .crm-idea-create-project-btn .spinner-border {
+  width: 1rem;
+  height: 1rem;
+}
+
 .crm-idea-detail-page #finalCardBody::-webkit-scrollbar,
 .crm-idea-detail-page #tasksCardBody::-webkit-scrollbar {
   width: 10px;
