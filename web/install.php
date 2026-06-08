@@ -926,6 +926,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             code VARCHAR(64),
             title VARCHAR(255),
             color VARCHAR(32),
+            description TEXT,
             created_at {$dt}
         )",
 
