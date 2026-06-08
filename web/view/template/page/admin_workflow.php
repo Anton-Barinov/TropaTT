@@ -107,6 +107,7 @@
                   <div class="row g-3">
                     <div class="col-md-6"><label class="form-label" for="workflowFromStatus">Из статуса</label><select id="workflowFromStatus" class="form-select" name="from_status_code"><option value="">Любой статус</option></select></div>
                     <div class="col-md-6"><label class="form-label" for="workflowToStatus">В статус</label><select id="workflowToStatus" class="form-select" name="to_status_code"><option value="">Любой статус</option></select></div>
+                    <div class="col-md-6"><label class="form-label" for="workflowConditionTag">Тег задачи</label><select id="workflowConditionTag" class="form-select" name="condition_tag_public_id"><option value="">Любой тег</option></select></div>
                   </div>
                 </div>
 

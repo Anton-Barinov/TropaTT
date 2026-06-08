@@ -22365,6 +22365,15 @@ window.CRM.pageApiBindings = (function () {
       }
       workflowTasks = results[2] && results[2].success !== false ? mapItems(results[2]) : [];
 
+      // Load tags for workflow condition filter
+      try {
+        var tagsResponse = await tryRequest('api/v1/tags', { query: { limit: 200 }, silent: true });
+        var workflowTags = tagsResponse && tagsResponse.success !== false ? mapItems(tagsResponse) : [];
+        fillSelect(document.getElementById('workflowConditionTag'), workflowTags, 'public_id', function (tag) {
+          return (tag.title || tag.code || tag.public_id || 'Тег');
+        }, 'Любой тег');
+      } catch(e) {}
+
       ['workflowAssigneeUser', 'workflowFollowupAssignee', 'workflowReminderUser'].forEach(function (id) {
         fillSelect(document.getElementById(id), workflowUsers, 'public_id', function (user) {
           return user.full_name || user.login || user.public_id || 'Пользователь';
@@ -22473,6 +22482,7 @@ window.CRM.pageApiBindings = (function () {
       form.querySelector('[name="webhook_url"]').value = String(payload.url || '');
       form.querySelector('[name="from_status_code"]').value = String(payload.from_status_code || '');
       form.querySelector('[name="to_status_code"]').value = String(payload.to_status_code || '');
+      form.querySelector('[name="condition_tag_public_id"]').value = String(payload.condition_tag_public_id || '');
       showActionPanel(form.querySelector('[name="action_code"]').value);
       showFilterPanel(form.querySelector('[name="trigger_code"]').value);
       var title = document.getElementById('adminWorkflowModalTitle');
@@ -22601,8 +22611,10 @@ window.CRM.pageApiBindings = (function () {
         if (triggerCode === 'task_status_changed') {
           var fromStatus = String((workflowForm.querySelector('[name="from_status_code"]') || {}).value || '').trim();
           var toStatus = String((workflowForm.querySelector('[name="to_status_code"]') || {}).value || '').trim();
+          var condTag = String((workflowForm.querySelector('[name="condition_tag_public_id"]') || {}).value || '').trim();
           if (fromStatus) data.payload.from_status_code = fromStatus;
           if (toStatus) data.payload.to_status_code = toStatus;
+          if (condTag) data.payload.condition_tag_public_id = condTag;
         }
         var validationError = validateWorkflowForm(data);
         if (validationError) {
@@ -25490,7 +25502,21 @@ window.CRM.pageApiBindings = (function () {
   }
 
   // Auto-apply to all user selects on mutation
-  document.addEventListener('DOMContentLoaded', function () { applySearchableSelects(); });
+  document.addEventListener('DOMContentLoaded', function () {
+    applySearchableSelects();
+    // Delegate click on tag chips to navigate to tasks page with filter
+    document.body.addEventListener('click', function (e) {
+      var tagEl = e.target.closest('[data-tag-id]');
+      if (tagEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        var tagId = tagEl.getAttribute('data-tag-id');
+        if (tagId) {
+          window.location.href = 'index.php?route=tasks&tag=' + encodeURIComponent(tagId);
+        }
+      }
+    });
+  });
   var searchableObserver = new MutationObserver(function () { applySearchableSelects(); });
   searchableObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
 

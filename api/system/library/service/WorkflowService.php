@@ -299,6 +299,14 @@ final class WorkflowService
             return false;
         }
 
+        $conditionTag = trim((string)($payload['condition_tag_public_id'] ?? ''));
+        if ($conditionTag !== '') {
+            $taskTags = $context['task_tags'] ?? [];
+            if (!is_array($taskTags) || !in_array($conditionTag, $taskTags, true)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -476,6 +484,7 @@ final class WorkflowService
             'project_id' => $this->resolveProjectId($input['project_public_id'] ?? 0),
             'actor_id' => (int)($actor['id'] ?? 0),
             'actor_public_id' => (string)($actor['public_id'] ?? ''),
+            'task_tags' => array_map('trim', explode(',', (string)($input['task_tags'] ?? ''))),
             'is_test' => true,
         ];
     }

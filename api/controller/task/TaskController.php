@@ -399,6 +399,17 @@ final class TaskController extends BaseController
     private function fireWorkflowTrigger(string $trigger, array $task, array $actor, array $extra = []): void
     {
         try {
+            // Load task tags
+            $taskTagIds = [];
+            try {
+                $tagService = $this->container->get('service.tag');
+                $tags = $tagService->listTaskTags((string)($task['public_id'] ?? ''), $actor);
+                if (is_array($tags)) {
+                    $taskTagIds = array_map(static fn(array $t): string => (string)($t['public_id'] ?? ''), $tags);
+                }
+            } catch (\Throwable) {
+                $taskTagIds = [];
+            }
             $wf = $this->container->get('service.workflow');
             $context = array_merge([
                 'task_id' => (int)($task['id'] ?? 0),
@@ -409,6 +420,7 @@ final class TaskController extends BaseController
                 'project_id' => (int)($task['project_id'] ?? 0),
                 'actor_id' => (int)($actor['id'] ?? 0),
                 'actor_public_id' => (string)($actor['public_id'] ?? ''),
+                'task_tags' => $taskTagIds,
             ], $extra);
             $wf->fireTrigger($trigger, $context);
         } catch (\Throwable) {}
