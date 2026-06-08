@@ -5,6 +5,7 @@
 <main class="crm-content crm-admin-page crm-admin-overview-page"><div class="crm-page-head"><div><h1 class="crm-page-title">Админка</h1><p class="crm-subtitle">Пользователи, роли, статусы, автоматизация, логи и интеграции.</p></div></div>
 <div class="row g-3 mb-3 crm-admin-overview-nav">
   <div class="col-md-3"><a class="crm-card crm-card-hover crm-section-card d-block text-decoration-none" href="index.php?route=admin-statuses"><h2 class="h6">Статусы задач</h2><p class="text-muted mb-0">Справочник статусов: добавить, редактировать, удалить.</p></a></div>
+  <div class="col-md-3"><a class="crm-card crm-card-hover crm-section-card d-block text-decoration-none" href="index.php?route=admin-tags"><h2 class="h6">Теги</h2><p class="text-muted mb-0">Управление тегами для задач и проектов.</p></a></div>
   <div class="col-md-3"><a class="crm-card crm-card-hover crm-section-card d-block text-decoration-none" href="index.php?route=admin-users"><h2 class="h6">Пользователи</h2><p class="text-muted mb-0">Управление учетными записями сотрудников.</p></a></div>
   <div class="col-md-3"><a class="crm-card crm-card-hover crm-section-card d-block text-decoration-none" href="index.php?route=admin-roles"><h2 class="h6">Роли</h2><p class="text-muted mb-0">Настройка прав доступа по ролям.</p></a></div>
   <div class="col-md-3"><a class="crm-card crm-card-hover crm-section-card d-block text-decoration-none" href="index.php?route=admin-logs"><h2 class="h6">Логи пользователей</h2><p class="text-muted mb-0">История действий по каждому пользователю.</p></a></div>
