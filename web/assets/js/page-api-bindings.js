@@ -16688,6 +16688,7 @@ window.CRM.pageApiBindings = (function () {
       var statusTasks = byStatus[statusCode] || [];
 
       // Sort by cookie
+      var cookieName = 'crm_kanban_order_' + statusCode;
       var savedOrder = (document.cookie.split('; ').find(function (row) { return row.startsWith(cookieName + '='); }) || '').split('=')[1];
       if (savedOrder) {
         var order = savedOrder.split('%2C').filter(Boolean);
