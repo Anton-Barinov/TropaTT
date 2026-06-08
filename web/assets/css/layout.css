@@ -318,6 +318,12 @@ a:focus-visible {
   }
 }
 
+@media (max-width: 991.98px) {
+  #sidebarToggle {
+    display: inline-flex !important;
+  }
+}
+
 .crm-topbar [data-global-actions] {
   flex-wrap: nowrap;
   min-width: 0;
@@ -501,11 +507,4 @@ a:focus-visible {
   width: 100%;
   background: linear-gradient(150deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
   color: #fff;
-}
-
-/* Mobile sidebar toggle: force visibility below lg breakpoint */
-@media (max-width: 991.98px) {
-  .crm-topbar #sidebarToggle {
-    display: inline-flex !important;
-  }
 }
