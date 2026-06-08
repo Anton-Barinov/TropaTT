@@ -25389,6 +25389,13 @@ window.CRM.pageApiBindings = (function () {
 
     renderOptions('');
     if (isMultiple) renderChips();
+
+    // Observe the select for option changes (e.g. innerHTML replacement)
+    var tagObserver = new MutationObserver(function () {
+      renderOptions(input.value || '');
+      if (isMultiple) renderChips();
+    });
+    tagObserver.observe(select, { childList: true, subtree: true });
   }
 
   function applySearchableSelects(root) {
