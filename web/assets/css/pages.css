@@ -1121,22 +1121,6 @@
   background: var(--color-primary-50);
 }
 
-/* Priority badges */
-.kanban-priority-high {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.kanban-priority-low {
-  background: #ecfdf5;
-  color: #065f46;
-}
-
-.kanban-priority-urgent {
-  background: #fce4ec;
-  color: #b71c1c;
-}
-
 }
 
 .crm-calendar-shell {
@@ -3246,8 +3230,8 @@ font-size: 0.72rem;
 
 .crm-kanban-page .crm-kanban-card strong {
   display: block;
-  margin-bottom: 0.3rem;
-  font-size: 0.95rem;
+  margin-bottom: 0rem;
+  font-size: 0.65rem;
 }
 
 .crm-kanban-page .crm-kanban-card p{max-height: 70px;
@@ -11662,7 +11646,9 @@ a.task-tag:hover {
     opacity: 1;
 }
 
-/* ── Kanban visual refresh (desktop overrides) ── */
+@media (min-width: 576px) {
+
+/* ── Kanban visual refresh ── */
 .kanban-page .crm-kanban-page {
   /* scoped */
 }
