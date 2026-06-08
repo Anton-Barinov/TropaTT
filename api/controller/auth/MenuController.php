@@ -22,7 +22,6 @@ final class MenuController extends BaseController
         ['key' => 'teams', 'i18n' => 'nav.teams', 'label' => 'Команды', 'href' => 'index.php?route=teams', 'permissions' => []],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label' => 'Аналитика', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label' => 'Уведомления', 'href' => 'index.php?route=notifications', 'permissions' => []],
-        ['key' => 'profile', 'i18n' => 'nav.profile', 'label' => 'Профиль', 'href' => 'index.php?route=profile', 'permissions' => []],
         ['key' => 'admin', 'i18n' => 'nav.admin', 'label' => 'Администрирование', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],
         ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label' => 'Модули', 'href' => 'index.php?route=admin-modules', 'permissions' => ['role.view']],
         ['key' => 'chat', 'i18n' => 'nav.chat', 'label' => 'Чаты', 'href' => 'index.php?route=chat', 'permissions' => []],

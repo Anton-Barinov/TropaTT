@@ -142,7 +142,6 @@ window.CRM.navigation = (function () {
       { key: 'analytics', i18n: 'nav.analytics', label: 'Аналитика', href: 'index.php?route=analytics' },
       { key: 'notifications', i18n: 'nav.notifications', label: 'Уведомления', href: 'index.php?route=notifications' },
       { key: 'chat', i18n: 'nav.chat', label: 'Чаты', href: 'index.php?route=chat' },
-      { key: 'profile', i18n: 'nav.profile', label: 'Профиль', href: 'index.php?route=profile' },
       { key: 'admin', i18n: 'nav.admin', label: 'Администрирование', href: 'index.php?route=admin' },
       { key: 'admin-modules', i18n: 'nav.admin_modules', label: 'Модули', href: 'index.php?route=admin-modules' },
       { key: 'docs', i18n: 'nav.docs', label: 'Документация', href: 'index.php?route=docs' }
