@@ -20,10 +20,7 @@ final class TagRepository
 
         $total = $this->buildListQuery($filters)->count();
         $items = $this->buildListQuery($filters)
-            ->select([
-                'public_id', 'code', 'title', 'color', 'description', 'created_at',
-                '(SELECT COUNT(*) FROM entity_tags et2 WHERE et2.tag_id = id) AS usage_count',
-            ])
+            ->select(['public_id', 'code', 'title', 'color', 'description', 'created_at'])
             ->orderBy('created_at', 'ASC')
             ->limit($limit)
             ->offset($offset)
