@@ -9,6 +9,21 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 ### Added
 
 - Public repository maintenance files: security policy, contribution guide, roadmap, support guide, issue templates, and pull request template.
+- Time tracking analytics dashboard with per-user time and earnings reports.
+- Worklog summary API (`GET /api/v1/worklogs/summary`, `earnings`, `matrix`, `detail` endpoints).
+- Per-user hourly rates (`cost_rate`, `bill_rate`) set by admin in user profile.
+- Admin tags page with CRUD, description, and usage count.
+- Tags in task list/board API response (via `JSON_ARRAYAGG` subquery).
+- Kanban tag filter and tag chips on cards.
+- Clickable tag chips → filtered task list.
+- Workflow trigger conditions by task tag.
+- Searchable selects (`makeSelectSearchable()`) for all user, project, client, and tag selects.
+- Reset button on time analytics filter toolbars.
+- Day-of-week labels on analytics date columns.
+- Weekend row highlighting on all analytics tables.
+- Column hover with intersection cell emphasis.
+- Editable team names → open edit modal.
+- Notification badge in sidebar nav (collapsed mode).
 
 ### Changed
 

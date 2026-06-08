@@ -150,3 +150,53 @@ Do not reference private local documentation in public files unless the referenc
 6. Report what changed, what was verified, and any remaining risks.
 
 When unsure, prefer a smaller change with a clear follow-up issue over a broad rewrite.
+
+## Tags System
+
+Tags are managed at `/web/index.php?route=admin-tags` and are stored in the `tags` table with columns: `id`, `public_id`, `code`, `title`, `color`, `description`, `created_at`.
+
+Task-tag associations are stored in `entity_tags` (`entity_type`, `entity_public_id`, `tag_id`).
+
+API endpoints:
+- `GET /api/v1/tags` — list all tags (returns `usage_count` subquery)
+- `POST /api/v1/tags` — create (`code`, `title`, `color`, `description`); if `code` is omitted it is auto-generated from `title`
+- `PATCH /api/v1/tags/{public_id}` — update
+- `DELETE /api/v1/tags/{public_id}` — delete
+- `GET /api/v1/tasks/{task_public_id}/tags` — tags for a task
+- `POST /api/v1/tasks/{task_public_id}/tags/{tag_public_id}` — attach tag to task
+- `DELETE /api/v1/tasks/{task_public_id}/tags/{tag_public_id}` — detach tag from task
+- `GET /api/v1/tasks?tag_public_id=x` — filter tasks by tag
+
+The task list/board/detail API responses now include a `tags` field — a JSON array of `{public_id, code, title, color}` objects via `JSON_ARRAYAGG` subquery.
+
+## Searchable Select
+
+Replace plain `<select>` (especially with many options) with a searchable select using `makeSelectSearchable()` in `page-api-bindings.js`. The function:
+- Hides the original `<select>` (`display: none`)
+- Creates an `<input>` with a `.crm-searchable-dropdown` for filtering
+- For single selects: clicking an option sets the value and hides the dropdown
+- For multi-selects (`multiple`): selected items display as `.crm-searchable-tag` chips with remove buttons
+- Changes are synced to the hidden select via `dispatchEvent(new Event('change', {bubbles: true}))`
+- A MutationObserver on the select tracks `childList` changes (for dynamic option population)
+
+Auto-apply via `applySearchableSelects()` which runs on `DOMContentLoaded` and on every DOM mutation. Add new selectors to this function's arrays.
+
+CSS classes: `.crm-searchable-select`, `.crm-searchable-input`, `.crm-searchable-dropdown`, `.crm-searchable-item`, `.crm-searchable-tag`, `.crm-searchable-tags`.
+
+## Workflow Tag Conditions
+
+Workflow rules for `task_status_changed` trigger can now be filtered by `condition_tag_public_id`. The condition is stored in `payload.condition_tag_public_id` in the rule's payload.
+
+The `WorkflowService::matchesTriggerConditions()` checks `$context['task_tags']` (array of tag public_id strings). The TaskController passes tags via `$tagService->listTaskTags()` in `fireWorkflowTrigger()`.
+
+## Known CSS Caveats
+
+- Bootstrap 5.3 uses `box-shadow: inset 0 0 0 9999px var(--bs-table-accent-bg)` for table cell backgrounds, not `background-color`. Inline styles via `element.style.setProperty('background-color', ..., 'important')` must be used to override Bootstrap table hover.
+- CSS variables defined on `:root` (in `tokens.css`) are available in all stylesheets loaded after it.
+- The `data-user-name` attribute on elements causes the browser to replace the element's `textContent` with the attribute value. Never use `data-user-name` — use `data-uname` on a sibling element instead.
+
+## Known PHP Caveats
+
+- `QueryBuilder::groupBy()` accepts a single string or array. Passing multiple string arguments (e.g. `->groupBy('u.id', 'DATE(w.logged_at)')`) silently ignores all but the first. Always pass an array: `->groupBy(['u.id', 'DATE(w.logged_at)'])`.
+- `QueryBuilder::whereRaw()` replaces `?` placeholders with `:pN` named bindings. Named placeholders like `:team_pub` are NOT supported — use `?` only.
+- `QueryBuilder::count()` generates separate SQL from `toSql()` and does not use the `columns` property. Subqueries in the SELECT are not executed for count queries.
