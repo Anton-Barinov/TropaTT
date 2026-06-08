@@ -24,6 +24,7 @@
   }
 
   .crm-topbar #sidebarToggle {
+    display: inline-flex !important;
     width: 36px;
     height: 36px;
     margin: 0;
