@@ -10602,7 +10602,7 @@ window.CRM.pageApiBindings = (function () {
         titleHtml += '<span class="crm-tree-type-icon ' + (isDepartment ? 'crm-icon-department' : 'crm-icon-team') + '" aria-hidden="true">';
         titleHtml += '<i class="fa-solid ' + (isDepartment ? 'fa-building' : 'fa-users') + '"></i>';
         titleHtml += '</span>';
-        titleHtml += '<span class="crm-tree-title-text' + (isRoot ? ' crm-tree-root' : '') + (isMatch ? ' crm-tree-highlight' : '') + '">' + safeText(team.title || '—');
+        titleHtml += '<span class="crm-tree-title-text' + (isRoot ? ' crm-tree-root' : '') + (isMatch ? ' crm-tree-highlight' : '') + '" data-team-edit="' + safeText(id) + '" style="cursor:pointer">' + safeText(team.title || '—');
         if (team.code) {
           titleHtml += ' <small class="crm-tree-code">(' + safeText(team.code) + ')</small>';
         }
