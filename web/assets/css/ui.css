@@ -3686,7 +3686,6 @@ body {
 .crm-content [data-calendar-view-toggle],
 .crm-content #projectsViewToggle,
 .crm-content .crm-gantt-controls .btn-group,
-.crm-content .crm-gantt-mobile-mode,
 .crm-content .team-segmented,
 .modal .team-segmented {
   display: inline-flex !important;
@@ -3707,17 +3706,12 @@ body {
   width: 100% !important;
 }
 
-.crm-content .crm-gantt-mobile-mode {
-  grid-template-columns: none !important;
-}
-
 .crm-content #votesPeriodBtns > .btn,
 .crm-content #commentsPeriodBtns > .btn,
 .crm-content [data-tasks-view-toggle] > .btn,
 .crm-content [data-calendar-view-toggle] > .btn,
 .crm-content #projectsViewToggle > .btn,
 .crm-content .crm-gantt-controls .btn-group > .btn,
-.crm-content .crm-gantt-mobile-mode > .btn,
 .crm-content .crm-segmented > .crm-segmented-item,
 .crm-content .team-segmented > .team-segmented-btn,
 .modal .team-segmented > .team-segmented-btn {
@@ -3756,7 +3750,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:not(:last-child),
 .crm-content #projectsViewToggle > .btn:not(:last-child),
 .crm-content .crm-gantt-controls .btn-group > .btn:not(:last-child),
-.crm-content .crm-gantt-mobile-mode > .btn:not(:last-child),
 .crm-content .crm-segmented > .crm-segmented-item:not(:last-child),
 .crm-content .team-segmented > .team-segmented-btn:not(:last-child),
 .modal .team-segmented > .team-segmented-btn:not(:last-child) {
@@ -3769,7 +3762,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:first-child,
 .crm-content #projectsViewToggle > .btn:first-child,
 .crm-content .crm-gantt-controls .btn-group > .btn:first-child,
-.crm-content .crm-gantt-mobile-mode > .btn:first-child,
 .crm-content .crm-segmented > .crm-segmented-item:first-child,
 .crm-content .team-segmented > .team-segmented-btn:first-child,
 .modal .team-segmented > .team-segmented-btn:first-child {
@@ -3782,7 +3774,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:last-child,
 .crm-content #projectsViewToggle > .btn:last-child,
 .crm-content .crm-gantt-controls .btn-group > .btn:last-child,
-.crm-content .crm-gantt-mobile-mode > .btn:last-child,
 .crm-content .crm-segmented > .crm-segmented-item:last-child,
 .crm-content .team-segmented > .team-segmented-btn:last-child,
 .modal .team-segmented > .team-segmented-btn:last-child {
@@ -3795,7 +3786,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:only-child,
 .crm-content #projectsViewToggle > .btn:only-child,
 .crm-content .crm-gantt-controls .btn-group > .btn:only-child,
-.crm-content .crm-gantt-mobile-mode > .btn:only-child,
 .crm-content .crm-segmented > .crm-segmented-item:only-child,
 .crm-content .team-segmented > .team-segmented-btn:only-child,
 .modal .team-segmented > .team-segmented-btn:only-child {
@@ -3808,7 +3798,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:hover,
 .crm-content #projectsViewToggle > .btn:hover,
 .crm-content .crm-gantt-controls .btn-group > .btn:hover,
-.crm-content .crm-gantt-mobile-mode > .btn:hover,
 .crm-content .crm-segmented > .crm-segmented-item:hover,
 .crm-content .team-segmented > .team-segmented-btn:hover,
 .modal .team-segmented > .team-segmented-btn:hover {
@@ -3825,9 +3814,6 @@ body {
 .crm-content #projectsViewToggle > .btn.crm-btn-primary,
 .crm-content .crm-gantt-controls .btn-group > .btn.active,
 .crm-content .crm-gantt-controls .btn-group > .btn[aria-pressed="true"],
-.crm-content .crm-gantt-mobile-mode > .btn.active,
-.crm-content .crm-gantt-mobile-mode > .btn[aria-pressed="true"],
-.crm-content .crm-gantt-mobile-mode > .btn.is-active,
 .crm-content [data-tasks-view-toggle] > .btn[aria-pressed="true"],
 .crm-content [data-tasks-view-toggle] > .btn.crm-btn-primary,
 .crm-content [data-calendar-view-toggle] > .btn[aria-pressed="true"],
@@ -3847,7 +3833,6 @@ body {
 .crm-content [data-calendar-view-toggle] > .btn:focus-visible,
 .crm-content #projectsViewToggle > .btn:focus-visible,
 .crm-content .crm-gantt-controls .btn-group > .btn:focus-visible,
-.crm-content .crm-gantt-mobile-mode > .btn:focus-visible,
 .crm-content .crm-segmented > .crm-segmented-item:focus-visible,
 .crm-content .team-segmented > .team-segmented-btn:focus-visible,
 .modal .team-segmented > .team-segmented-btn:focus-visible {

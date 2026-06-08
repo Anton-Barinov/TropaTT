@@ -36,12 +36,7 @@
   </div>
   <div class="crm-gantt-legend" id="ganttLegend"><span class="crm-chip">Загрузка статусов...</span></div>
   <div class="crm-gantt-kpis" id="ganttSummaryTiles"><div class="crm-gantt-kpi-card"><small>Активные задачи</small><strong>...</strong><span>Подготовка данных</span></div></div>
-  <div class="crm-mobile-work-mode-hint d-md-none">На телефоне сначала используйте «Ближайшие сроки» ниже, а таймлайн можно прокручивать по горизонтали.</div>
-  <div class="crm-gantt-mobile-mode d-md-none">
-    <button type="button" class="btn crm-btn-secondary is-active" data-gantt-mobile-mode="list">Список</button>
-    <button type="button" class="btn crm-btn-secondary" data-gantt-mobile-mode="timeline">Таймлайн</button>
-  </div>
-  <div id="ganttMobileListMode" class="crm-gantt-mobile-list d-md-none"></div>
+  <div class="crm-mobile-work-mode-hint d-md-none">Таймлайн можно прокручивать по горизонтали.</div>
   <div class="crm-gantt-board">
     <div class="crm-gantt-scale"><div class="crm-gantt-scale-label">Проект / задача</div><div class="crm-gantt-scale-track" id="ganttScaleTrack"><span>Загрузка шкалы...</span></div>
       <div class="crm-gantt"><div class="crm-gantt-rows"></div><div class="crm-gantt-lanes">

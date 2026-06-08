@@ -15278,12 +15278,6 @@ window.CRM.pageApiBindings = (function () {
     var lanesContainer = document.querySelector('.crm-gantt .crm-gantt-lanes');
     var scaleTrack  = document.getElementById('ganttScaleTrack');
     var board       = document.querySelector('.crm-gantt-board');
-    var ganttPage   = document.querySelector('.crm-gantt-page');
-    var mobileModeButtons = document.querySelectorAll('[data-gantt-mobile-mode]');
-    var mobileListMode = document.getElementById('ganttMobileListMode');
-    var isMobile = window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
-    if (!state.mobileMode) state.mobileMode = 'list';
-    if (!isMobile) state.mobileMode = 'timeline';
 
     if (!tasksEnvelope || tasksEnvelope.success === false) {
       if (legendEl) legendEl.innerHTML = '<span class="crm-chip text-danger">Ошибка загрузки</span>';
@@ -15354,62 +15348,7 @@ window.CRM.pageApiBindings = (function () {
     crmGanttRenderMilestones(items, milestonesEl);
     crmGanttRenderStatusSummary(items, summaryEl);
 
-    if (mobileListMode) {
-      function toDueTs(value) {
-        if (value instanceof Date) return value.getTime();
-        if (typeof value === 'number' && Number.isFinite(value)) return value;
-        if (typeof value === 'string' && value.trim()) {
-          var parsed = Date.parse(value);
-          return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
-        }
-        return Number.MAX_SAFE_INTEGER;
-      }
-
-      var listItems = items.slice().sort(function (a, b) {
-        var aDue = toDueTs(a && a.end);
-        var bDue = toDueTs(b && b.end);
-        return aDue - bDue;
-      }).slice(0, 12);
-      if (!listItems.length) {
-        mobileListMode.innerHTML = '<div class="crm-empty-state"><strong>Нет задач с датами</strong><p class="mb-0">Добавьте старт и дедлайн, чтобы видеть список ближайших сроков.</p></div>';
-      } else {
-        mobileListMode.innerHTML = listItems.map(function (item) {
-          var due = item.end ? crmGanttFormatShortDateValue(item.end) : 'без даты';
-          var status = statusLabel(item.statusCode || 'new');
-          return '<a class="crm-gantt-deadline-card crm-gantt-deadline-card--' + safeText(item.statusKind || 'new') + '" href="' + taskLink(item.id) + '">'
-            + '<span class="crm-gantt-deadline-date">' + safeText(due) + '</span>'
-            + '<span class="crm-gantt-deadline-main"><strong>' + safeText(item.title || 'Без названия') + '</strong><small>' + safeText(status) + '</small></span>'
-            + '</a>';
-        }).join('');
-      }
-    }
-
-    Array.prototype.slice.call(mobileModeButtons || []).forEach(function (btn) {
-      if (btn.dataset.bound !== '1') {
-        btn.dataset.bound = '1';
-        btn.addEventListener('click', function () {
-          var next = String(btn.getAttribute('data-gantt-mobile-mode') || 'list');
-          if (state.mobileMode === next) return;
-          state.mobileMode = next;
-          renderGanttPage().catch(function (err) {
-            console.error('[GANTT] mobile mode rerender', err);
-          });
-        });
-      }
-      btn.classList.toggle('is-active', String(btn.getAttribute('data-gantt-mobile-mode') || '') === state.mobileMode);
-    });
-
-    if (ganttPage) {
-      ganttPage.setAttribute('data-gantt-mobile-mode', isMobile ? state.mobileMode : 'timeline');
-    }
-
-    if (isMobile) {
-      if (board) board.classList.toggle('d-none', state.mobileMode !== 'timeline');
-      if (mobileListMode) mobileListMode.classList.toggle('d-none', state.mobileMode !== 'list');
-    } else {
-      if (board) board.classList.remove('d-none');
-      if (mobileListMode) mobileListMode.classList.add('d-none');
-    }
+    if (board) board.classList.remove('d-none');
 
     if (!rowsContainer || !lanesContainer || !scaleTrack || !board) return;
 

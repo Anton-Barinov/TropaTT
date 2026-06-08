@@ -2777,37 +2777,6 @@ font-size: 0.72rem;
   border-color: var(--crm-accent);
 }
 
-.crm-gantt-mobile-mode {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
-}
-
-.crm-gantt-mobile-mode .btn.is-active {
-  background: var(--crm-accent);
-  color: #fff;
-  border-color: var(--crm-accent);
-}
-
-.crm-gantt-mobile-list {
-  margin-bottom: 0.75rem;
-}
-
-.crm-gantt-mobile-list .crm-gantt-deadline-card {
-  margin-bottom: 0.5rem;
-}
-
-@media (max-width: 767.98px) {
-  .crm-gantt-page[data-gantt-mobile-mode="list"] .crm-gantt-board {
-    display: none !important;
-  }
-
-  .crm-gantt-page[data-gantt-mobile-mode="timeline"] #ganttMobileListMode {
-    display: none !important;
-  }
-}
-
 .crm-notifications-disclosure {
   border: 0;
 }
