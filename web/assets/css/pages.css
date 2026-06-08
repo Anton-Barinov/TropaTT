@@ -11150,4 +11150,89 @@ font-size: 0.72rem;
 .crm-matrix-table .crm-matrix-weekend-row td.crm-col-hover.crm-matrix-total-col {
     background-color: var(--color-primary-50) !important;
 }
-    grid-column: 3 / span 2;
+
+/* ── Searchable select ── */
+.crm-searchable-select {
+    position: relative;
+    width: 100%;
+}
+
+.crm-searchable-input {
+    width: 100%;
+}
+
+.crm-searchable-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1060;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--crm-shadow-lg);
+    display: none;
+}
+
+.crm-searchable-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    transition: background 0.12s;
+}
+
+.crm-searchable-item:hover,
+.crm-searchable-item.is-highlighted {
+    background: var(--color-primary-50);
+}
+
+.crm-searchable-item.is-selected {
+    font-weight: 600;
+    color: var(--color-primary-700);
+    background: var(--color-primary-50);
+}
+
+.crm-searchable-empty {
+    padding: 12px;
+    color: var(--crm-text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.crm-searchable-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    min-height: 38px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-md);
+    background: #fff;
+    cursor: text;
+}
+
+.crm-searchable-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    background: var(--color-primary-50);
+    color: var(--color-primary-700);
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.crm-searchable-tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.6;
+}
+
+.crm-searchable-tag-remove:hover {
+    opacity: 1;
+}

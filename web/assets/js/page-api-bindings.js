@@ -25267,6 +25267,116 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  function makeSelectSearchable(select) {
+    if (!select || select.dataset.searchable) return;
+    select.dataset.searchable = '1';
+    select.style.display = 'none';
+
+    var isMultiple = select.multiple;
+    var wrapper = document.createElement('div');
+    wrapper.className = 'crm-searchable-select';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control crm-searchable-input';
+    input.placeholder = 'Поиск...';
+    input.autocomplete = 'off';
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'crm-searchable-dropdown';
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(dropdown);
+    select.parentNode.insertBefore(wrapper, select);
+
+    function renderOptions(filter) {
+      dropdown.innerHTML = '';
+      var hasVisible = false;
+      for (var i = 0; i < select.options.length; i++) {
+        var opt = select.options[i];
+        var text = opt.textContent || opt.text;
+        var val = opt.value;
+        if (filter && text.toLowerCase().indexOf(filter.toLowerCase()) === -1) continue;
+
+        var item = document.createElement('div');
+        item.className = 'crm-searchable-item';
+        item.textContent = text;
+        item.dataset.value = val;
+
+        if (isMultiple) {
+          if (opt.selected) item.classList.add('is-selected');
+          item.addEventListener('click', function () {
+            var v = this.dataset.value;
+            var o = select.querySelector('option[value="' + v.replace(/"/g, '&quot;') + '"]');
+            if (o) {
+              o.selected = !o.selected;
+              this.classList.toggle('is-selected');
+            }
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            renderOptions(input.value);
+          });
+        } else {
+          if (val === select.value) item.classList.add('is-selected');
+          item.addEventListener('click', function () {
+            select.value = this.dataset.value;
+            input.value = this.textContent;
+            dropdown.style.display = 'none';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+        }
+
+        dropdown.appendChild(item);
+        hasVisible = true;
+      }
+      if (!hasVisible) {
+        var empty = document.createElement('div');
+        empty.className = 'crm-searchable-empty';
+        empty.textContent = 'Ничего не найдено';
+        dropdown.appendChild(empty);
+      }
+    }
+
+    input.addEventListener('focus', function () { renderOptions(input.value); dropdown.style.display = 'block'; });
+    input.addEventListener('input', function () { renderOptions(this.value); dropdown.style.display = 'block'; });
+    input.addEventListener('blur', function () { setTimeout(function () { dropdown.style.display = 'none'; }, 200); });
+
+    renderOptions('');
+  }
+
+  function applySearchableSelects(root) {
+    if (!root) root = document;
+    var selectors = [
+      '[name="assignee_user_public_id"]',
+      '[name="manager_user_public_id"]',
+      '#kanbanAssigneeFilter',
+      '#kanbanManagerFilter',
+      '#timeAnalyticsUserFilter',
+      '#timeAnalyticsEarningsUserFilter',
+      '#timeAnalyticsMatrixUserFilter',
+      '#analyticsTeamFilter',
+      '#workflowAssigneeUser',
+      '#workflowFollowupAssignee',
+      '#workflowReminderUser',
+      '#teamCreateManager',
+      '#teamEditManager',
+      '#taskAssigneeInlineSelect',
+      '#taskManagerInlineSelect',
+      '#commentMentionUserSelect',
+      '#approvalsReviewersSelect'
+    ];
+    selectors.forEach(function (sel) {
+      try {
+        var el = root.querySelector(sel);
+        if (el) makeSelectSearchable(el);
+      } catch (e) {}
+    });
+  }
+
+  // Auto-apply to all user selects on mutation
+  document.addEventListener('DOMContentLoaded', function () { applySearchableSelects(); });
+  var searchableObserver = new MutationObserver(function () { applySearchableSelects(); });
+  searchableObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
+
   async function refreshCurrentPage() {
     if (!window.CRM.api || !isProtectedPage()) return;
 
