@@ -566,11 +566,13 @@ window.CRM.pageApiBindings = (function () {
     }
     hierarchyMeta += taskAiPriorityBadge(taskId, false);
 
+    var tagChipsHtml = taskTagChips(item.tags);
+
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="Выбрать задачу ' + safeText(item.title || taskId || '') + '"></td>'
       + '<td>'
       + '<div class="crm-task-row-main"><a href="' + taskLink + '">' + safeText(item.title || 'Без названия') + '</a></div>'
-      + '<div class="crm-task-row-meta">' + hierarchyMeta + '</div>'
+      + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
       + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
       + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
@@ -583,6 +585,18 @@ window.CRM.pageApiBindings = (function () {
       + '</div>'
       + '</td>'
       + '</tr>';
+  }
+
+  function taskChipLink(tag) {
+    return '<a class="crm-chip crm-task-tag-chip" href="index.php?route=tasks&tag=' + encodeURIComponent(tag.public_id || '') + '" style="background-color:' + safeText(tag.color || '#6b7280') + ';color:#fff">' + safeText(tag.title || tag.code || tag.public_id || '') + '</a>';
+  }
+
+  function taskTagChips(tags) {
+    if (!tags) return '';
+    var parsed;
+    try { parsed = typeof tags === 'string' ? JSON.parse(tags) : tags; } catch(e) { return ''; }
+    if (!Array.isArray(parsed) || !parsed.length) return '';
+    return parsed.map(taskChipLink).join('');
   }
 
   function taskLink(publicId) {
@@ -628,11 +642,13 @@ window.CRM.pageApiBindings = (function () {
       var aiReason = String(aiMeta.reason || '').trim();
       aiRow = '<div class="crm-task-card-ai-meta"><span>AI</span><strong>#' + safeText(String(aiMeta.order)) + (aiReason ? (': ' + safeText(aiReason)) : '') + '</strong></div>';
     }
+    var tagChips = taskTagChips(item.tags);
     return '<div class="crm-task-card-meta">'
       + '<div><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></div>'
       + '<div><span>Срок</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></div>'
       + '<div><span>Приоритет</span><strong>' + safeText(priorityLabel(item.priority_code || 'normal')) + '</strong></div>'
       + aiRow
+      + (tagChips ? '<div class="crm-task-card-tags">' + tagChips + '</div>' : '')
       + '</div>';
   }
 
@@ -651,11 +667,13 @@ window.CRM.pageApiBindings = (function () {
   function taskTreeMetaHtml(item, options) {
     var config = options || {};
     var metaClass = 'crm-task-tree-meta' + (config.showProject === false ? ' is-compact' : ' has-project');
+    var tagChips = taskTagChips(item.tags);
     return '<div class="' + metaClass + '">'
       + (config.showProject === false ? '' : '<span class="crm-task-tree-meta-item"><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></span>')
       + '<span class="crm-task-tree-meta-item"><span>Срок задачи</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></span>'
       + '<span class="crm-task-tree-meta-item"><span>Статус</span><b class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</b></span>'
       + '<span class="crm-task-tree-meta-item"><span>Приоритет</span><b class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</b></span>'
+      + (tagChips ? '<span class="crm-task-tree-meta-item crm-task-tree-tags">' + tagChips + '</span>' : '')
       + '</div>';
   }
 
@@ -16329,6 +16347,11 @@ window.CRM.pageApiBindings = (function () {
     [assignee, manager, project, tag].forEach(function (select) {
       if (select) kanbanPopulateSelect(select, options.select || options[select.id.replace('kanban', '').replace('Filter', '').toLowerCase()] || {}, filters, select.id);
     });
+    // Restore filter values after populate (kanbanPopulateSelect clears selections)
+    if (assignee && filters.assignees && filters.assignees.length) kanbanSetMultiValue(assignee, filters.assignees);
+    if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
+    if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
+    if (tag && filters.tags && filters.tags.length) kanbanSetMultiValue(tag, filters.tags);
     [assignee, manager, project].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });

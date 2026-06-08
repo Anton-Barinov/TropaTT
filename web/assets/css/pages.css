@@ -9775,6 +9775,41 @@ font-size: 0.72rem;
     opacity: 0.8;
 }
 
+/* ── Task list tag chips ── */
+.crm-task-tag-chip {
+    display: inline-block;
+    padding: 0 5px;
+    font-size: 9px;
+    font-weight: 600;
+    border-radius: 999px;
+    line-height: 1.6;
+    text-decoration: none !important;
+    margin-right: 2px;
+    margin-bottom: 1px;
+}
+
+.crm-task-tag-chip:hover {
+    opacity: 0.85;
+}
+
+.crm-task-row-meta .crm-task-tag-chip {
+    margin-top: 2px;
+}
+
+.crm-task-card-tags {
+    margin-top: 4px;
+}
+
+.crm-task-tree-tags {
+    display: inline-flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.crm-task-tree-tags .crm-task-tag-chip {
+    font-size: 8px;
+}
+
 .crm-kanban-col-empty {
     border: 1px dashed var(--crm-border);
     border-radius: var(--radius-md);
