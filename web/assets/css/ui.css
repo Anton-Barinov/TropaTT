@@ -3501,10 +3501,14 @@ body {
   font-weight: 650 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
-  vertical-align: middle !important;    min-width: 200px !important;
+  vertical-align: middle !important;    
+  min-width: 200px !important;
     text-align: left !important;
 }
-
+.crm-content table.crm-table thead th:first-child,
+.crm-content .table.crm-table thead th:first-child {
+  min-width: 0 !important;
+}
 .crm-content table.crm-table tbody tr,
 .crm-content .table.crm-table tbody tr {
   background: #fff !important;
