@@ -599,6 +599,17 @@ window.CRM.pageApiBindings = (function () {
     return parsed.map(taskChipLink).join('');
   }
 
+  function taskTagChipsCompact(tags, maxVisible) {
+    if (!tags) return '';
+    maxVisible = maxVisible || 5;
+    var parsed;
+    try { parsed = typeof tags === 'string' ? JSON.parse(tags) : tags; } catch(e) { return ''; }
+    if (!Array.isArray(parsed) || !parsed.length) return '';
+    var shown = parsed.slice(0, maxVisible);
+    var remaining = parsed.length - shown.length;
+    return shown.map(taskChipLink).join('') + (remaining > 0 ? '<span class="crm-chip crm-task-tag-chip crm-task-tag-more">+' + remaining + '</span>' : '');
+  }
+
   function taskLink(publicId) {
     return 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(publicId || ''));
   }
@@ -667,13 +678,11 @@ window.CRM.pageApiBindings = (function () {
   function taskTreeMetaHtml(item, options) {
     var config = options || {};
     var metaClass = 'crm-task-tree-meta' + (config.showProject === false ? ' is-compact' : ' has-project');
-    var tagChips = taskTagChips(item.tags);
     return '<div class="' + metaClass + '">'
       + (config.showProject === false ? '' : '<span class="crm-task-tree-meta-item"><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></span>')
       + '<span class="crm-task-tree-meta-item"><span>Срок задачи</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></span>'
       + '<span class="crm-task-tree-meta-item"><span>Статус</span><b class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</b></span>'
       + '<span class="crm-task-tree-meta-item"><span>Приоритет</span><b class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</b></span>'
-      + (tagChips ? '<span class="crm-task-tree-meta-item crm-task-tree-tags">' + tagChips + '</span>' : '')
       + '</div>';
   }
 
@@ -697,6 +706,10 @@ window.CRM.pageApiBindings = (function () {
     var aiBadge = taskAiPriorityBadge(taskId, true);
     if (aiBadge) {
       badges.push(aiBadge);
+    }
+    var compactTags = taskTagChipsCompact(item.tags, 4);
+    if (compactTags) {
+      badges.push('<span class="crm-tree-tag-list">' + compactTags + '</span>');
     }
     return badges.join('');
   }
