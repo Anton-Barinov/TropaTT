@@ -1933,7 +1933,8 @@ CREATE TABLE `tags` (
   `public_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `color` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `color` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `public_id` (`public_id`)

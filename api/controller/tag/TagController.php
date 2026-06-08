@@ -35,6 +35,10 @@ final class TagController extends BaseController
     public function create(): \Api\System\Library\Http\JsonResponse
     {
         $input = $this->request()->allInput();
+        // Accept 'name' as alias for 'title'
+        if (empty($input['title']) && !empty($input['name'])) {
+            $input['title'] = $input['name'];
+        }
         $v = new Validator();
         $v->require($input, 'code', $this->t('common/messages.field_required'))
             ->require($input, 'title', $this->t('common/messages.field_required'))
@@ -60,6 +64,10 @@ final class TagController extends BaseController
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
         $input = $this->request()->allInput();
+        // Accept 'name' as alias for 'title'
+        if (empty($input['title']) && !empty($input['name'])) {
+            $input['title'] = $input['name'];
+        }
         $v = new Validator();
         $v->maxLen($input, 'code', 64, $this->t('tag/messages.max_64'))
             ->maxLen($input, 'title', 255, $this->t('tag/messages.max_255'));

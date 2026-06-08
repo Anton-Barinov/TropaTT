@@ -45,11 +45,14 @@ final class TagService
 
         $publicId = Ulid::generate('tag');
 
+        $title = trim((string)($input['title'] ?? $input['name'] ?? ''));
+
         $this->tags->create([
             'public_id' => $publicId,
             'code' => $code,
-            'title' => trim((string)$input['title']),
+            'title' => $title,
             'color' => (string)($input['color'] ?? '#64748b'),
+            'description' => (string)($input['description'] ?? ''),
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
 
@@ -74,10 +77,16 @@ final class TagService
 
         if (array_key_exists('title', $input)) {
             $set['title'] = trim((string)$input['title']);
+        } elseif (array_key_exists('name', $input)) {
+            $set['title'] = trim((string)$input['name']);
         }
 
         if (array_key_exists('color', $input)) {
             $set['color'] = (string)$input['color'];
+        }
+
+        if (array_key_exists('description', $input)) {
+            $set['description'] = (string)$input['description'];
         }
 
         $this->tags->updateByPublicId($publicId, $set);
