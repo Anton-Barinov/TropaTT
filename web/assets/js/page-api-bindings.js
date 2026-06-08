@@ -16352,7 +16352,9 @@ window.CRM.pageApiBindings = (function () {
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
     if (tag && filters.tags && filters.tags.length) {
+      console.log('TAGFILTER: restoring tag value to', filters.tags[0]);
       tag.value = filters.tags[0];
+      console.log('TAGFILTER: after set, value=', tag.value, 'selectedOptions=', Array.from(tag.selectedOptions).map(function(o){return o.value;}));
     }
     [assignee, manager, project].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
