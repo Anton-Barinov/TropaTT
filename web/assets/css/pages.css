@@ -11172,7 +11172,6 @@ font-size: 0.72rem;
     background: #fff;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-md);
-    box-shadow: var(--crm-shadow-lg);
     display: none;
 }
 

@@ -25279,7 +25279,7 @@ window.CRM.pageApiBindings = (function () {
     var input = document.createElement('input');
     input.type = 'text';
     input.className = 'form-control crm-searchable-input';
-    input.placeholder = 'Поиск...';
+    input.placeholder = 'Выбрать';
     input.autocomplete = 'off';
 
     var dropdown = document.createElement('div');
