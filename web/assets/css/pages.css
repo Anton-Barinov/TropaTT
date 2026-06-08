@@ -9775,47 +9775,94 @@ font-size: 0.72rem;
     opacity: 0.8;
 }
 
-/* ── Task list tag chips ── */
-.crm-task-tag-chip {
+/* ── Unified task tags ── */
+.task-tags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+    vertical-align: middle;
+    max-width: 100%;
+}
+
+.task-tag {
     display: inline-flex;
     align-items: center;
-    padding: 1px 7px;
+    padding: 3px 8px;
     font-size: 11px;
     font-weight: 600;
-    line-height: 1.5;
+    line-height: 1.2;
     border-radius: 999px;
-    text-decoration: none !important;
     white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none !important;
+    cursor: default;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 
-.crm-task-tag-chip:hover {
-    opacity: 0.85;
+a.task-tag {
+    cursor: pointer;
+    transition: opacity 0.12s;
 }
 
-.crm-task-tag-more {
+a.task-tag:hover {
+    opacity: 0.8;
+}
+
+.task-tag--more {
     background: var(--color-neutral-100) !important;
     color: var(--crm-text-muted) !important;
     font-weight: 700;
     cursor: default;
 }
 
-.crm-tree-tag-list {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    align-items: center;
-    max-height: 48px;
-    overflow: hidden;
+.task-tag--active {
+    box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+/* Tag placements */
+.crm-task-row-meta .task-tags {
+    margin-left: 4px;
     vertical-align: middle;
 }
 
-.crm-task-row-meta .crm-tree-tag-list {
-    margin-left: 4px;
+.crm-task-card-tags-wrap {
+    margin-top: 4px;
 }
 
-.crm-task-card-tags {
-    margin-top: 4px;
+.crm-kanban-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 4px 0;
+}
+
+/* Active tag chip filter in kanban bar */
+.crm-kanban-tag-chip-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: var(--color-primary-50);
+    color: var(--color-primary-700);
+    vertical-align: middle;
+}
+
+.crm-kanban-tag-chip-filter .task-tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.6;
+}
+
+.crm-kanban-tag-chip-filter .task-tag-remove:hover {
+    opacity: 1;
 }
 
 .crm-kanban-col-empty {

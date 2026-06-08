@@ -566,7 +566,7 @@ window.CRM.pageApiBindings = (function () {
     }
     hierarchyMeta += taskAiPriorityBadge(taskId, false);
 
-    var tagChipsHtml = taskTagChips(item.tags);
+    var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="Выбрать задачу ' + safeText(item.title || taskId || '') + '"></td>'
@@ -587,27 +587,30 @@ window.CRM.pageApiBindings = (function () {
       + '</tr>';
   }
 
-  function taskChipLink(tag) {
-    return '<a class="crm-chip crm-task-tag-chip" href="index.php?route=tasks&tag=' + encodeURIComponent(tag.public_id || '') + '" style="background-color:' + safeText(tag.color || '#6b7280') + ';color:#fff">' + safeText(tag.title || tag.code || tag.public_id || '') + '</a>';
+  function taskTagHtml(tag, active) {
+    var tagId = tag.public_id || '';
+    var color = tag.color || '#6b7280';
+    var cls = 'task-tag' + (active ? ' task-tag--active' : '');
+    var style = 'background-color:' + safeText(color) + ';color:#fff';
+    var text = safeText(tag.title || tag.code || tag.public_id || '');
+    return '<span class="' + cls + '" style="' + style + '" data-tag-id="' + safeText(tagId) + '">' + text + '</span>';
   }
 
-  function taskTagChips(tags) {
+  function taskTagsHtml(tags, maxVisible, kanbanFilter) {
     if (!tags) return '';
     var parsed;
     try { parsed = typeof tags === 'string' ? JSON.parse(tags) : tags; } catch(e) { return ''; }
     if (!Array.isArray(parsed) || !parsed.length) return '';
-    return parsed.map(taskChipLink).join('');
-  }
-
-  function taskTagChipsCompact(tags, maxVisible) {
-    if (!tags) return '';
     maxVisible = maxVisible || 5;
-    var parsed;
-    try { parsed = typeof tags === 'string' ? JSON.parse(tags) : tags; } catch(e) { return ''; }
-    if (!Array.isArray(parsed) || !parsed.length) return '';
     var shown = parsed.slice(0, maxVisible);
     var remaining = parsed.length - shown.length;
-    return shown.map(taskChipLink).join('') + (remaining > 0 ? '<span class="crm-chip crm-task-tag-chip crm-task-tag-more">+' + remaining + '</span>' : '');
+    return '<span class="task-tags">'
+      + shown.map(function (t) {
+          var active = kanbanFilter && window.CRM.kanbanFilters && window.CRM.kanbanFilters.tags && window.CRM.kanbanFilters.tags.indexOf(t.public_id) >= 0;
+          return taskTagHtml(t, active);
+        }).join('')
+      + (remaining > 0 ? '<span class="task-tag task-tag--more">+' + remaining + '</span>' : '')
+      + '</span>';
   }
 
   function taskLink(publicId) {
@@ -653,13 +656,13 @@ window.CRM.pageApiBindings = (function () {
       var aiReason = String(aiMeta.reason || '').trim();
       aiRow = '<div class="crm-task-card-ai-meta"><span>AI</span><strong>#' + safeText(String(aiMeta.order)) + (aiReason ? (': ' + safeText(aiReason)) : '') + '</strong></div>';
     }
-    var tagChips = taskTagChips(item.tags);
+    var tagChips = taskTagsHtml(item.tags, 5);
     return '<div class="crm-task-card-meta">'
       + '<div><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></div>'
       + '<div><span>Срок</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></div>'
       + '<div><span>Приоритет</span><strong>' + safeText(priorityLabel(item.priority_code || 'normal')) + '</strong></div>'
       + aiRow
-      + (tagChips ? '<div class="crm-task-card-tags">' + tagChips + '</div>' : '')
+      + (tagChips ? '<div class="crm-task-card-tags-wrap">' + tagChips + '</div>' : '')
       + '</div>';
   }
 
@@ -707,9 +710,9 @@ window.CRM.pageApiBindings = (function () {
     if (aiBadge) {
       badges.push(aiBadge);
     }
-    var compactTags = taskTagChipsCompact(item.tags, 4);
+    var compactTags = taskTagsHtml(item.tags, 4);
     if (compactTags) {
-      badges.push('<span class="crm-tree-tag-list">' + compactTags + '</span>');
+      badges.push(compactTags);
     }
     return badges.join('');
   }
@@ -15974,7 +15977,7 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanReadFiltersFromQuery() {
     var query = pageQuery();
-    var hasFilterParams = ['q', 'search', 'assignee', 'manager', 'project', 'tag', 'due', 'due_from', 'due_to'].some(function (key) {
+    var hasFilterParams = ['q', 'search', 'assignee', 'manager', 'project', 'tag_id', 'due', 'due_from', 'due_to'].some(function (key) {
       return query.has(key);
     });
     var filters = {
@@ -15982,7 +15985,7 @@ window.CRM.pageApiBindings = (function () {
       assignees: kanbanParamList(query, 'assignee'),
       managers: kanbanParamList(query, 'manager'),
       projects: kanbanParamList(query, 'project'),
-      tags: kanbanParamList(query, 'tag'),
+      tags: kanbanParamList(query, 'tag_id'),
       due: String(query.get('due') || '').trim(),
       dueFrom: String(query.get('due_from') || '').trim(),
       dueTo: String(query.get('due_to') || '').trim()
@@ -16207,14 +16210,14 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanUpdateUrl(filters) {
     var query = getCurrentQueryObject();
-    ['q', 'search', 'assignee', 'manager', 'project', 'tag', 'due', 'due_from', 'due_to'].forEach(function (key) {
+    ['q', 'search', 'assignee', 'manager', 'project', 'tag_id', 'due', 'due_from', 'due_to'].forEach(function (key) {
       delete query[key];
     });
     if (filters.q) query.q = filters.q;
     if (filters.assignees && filters.assignees.length) query.assignee = filters.assignees.join(',');
     if (filters.managers && filters.managers.length) query.manager = filters.managers.join(',');
     if (filters.projects && filters.projects.length) query.project = filters.projects.join(',');
-    if (filters.tags && filters.tags.length) query.tag = filters.tags.join(',');
+    if (filters.tags && filters.tags.length) query.tag_id = filters.tags[0];
     if (filters.due) query.due = filters.due;
     if (filters.dueFrom) query.due_from = filters.dueFrom;
     if (filters.dueTo) query.due_to = filters.dueTo;
@@ -16252,7 +16255,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function kanbanFilterActive(filters) {
-    return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || filters.due || filters.dueFrom || filters.dueTo);
+    return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || (filters.tags && filters.tags.length) || filters.due || filters.dueFrom || filters.dueTo);
   }
 
   function kanbanTaskMatches(task, filters) {
@@ -16326,8 +16329,8 @@ window.CRM.pageApiBindings = (function () {
       catch(e) { var parsedTags = []; }
       if (Array.isArray(parsedTags) && parsedTags.length) {
         tagChips = '<div class="crm-kanban-card-tags">' + parsedTags.map(function (tag) {
-          var tagColor = tag.color || '#6b7280';
-          return '<span class="crm-kanban-tag-chip" style="background:' + safeText(tagColor) + ';color:#fff" data-tag-id="' + safeText(tag.public_id) + '">' + safeText(tag.title || tag.code || '') + '</span>';
+          var active = window.CRM.kanbanFilters && window.CRM.kanbanFilters.tags && window.CRM.kanbanFilters.tags.indexOf(tag.public_id) >= 0;
+          return taskTagHtml(tag, active);
         }).join('') + '</div>';
       }
     }
@@ -16346,32 +16349,39 @@ window.CRM.pageApiBindings = (function () {
     var assignee = document.getElementById('kanbanAssigneeFilter');
     var manager = document.getElementById('kanbanManagerFilter');
     var project = document.getElementById('kanbanProjectFilter');
-    var tag = document.getElementById('kanbanTagFilter');
     var reset = document.getElementById('kanbanFiltersResetBtn');
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     var options = kanbanBuildFilterOptions(window.CRM.kanbanTasks || []);
     var apply = window.CRM.kanbanApplyFilters || function (f, u) { window.CRM.kanbanFilters = f; if (u) kanbanUpdateUrl(f); updateKanbanColumns(); };
     window.CRM.kanbanApplyFilters = apply;
-    [assignee, manager, project, tag].forEach(function (select) {
-      if (select) kanbanPopulateSelect(select, options.select || options[select.id.replace('kanban', '').replace('Filter', '').toLowerCase()] || {}, filters, select.id);
+    [assignee, manager, project].forEach(function (select) {
+      if (select) kanbanPopulateSelect(select, options[select.id.replace('kanban', '').replace('Filter', '').toLowerCase()] || {}, filters, select.id);
     });
-    // Restore filter values after populate (kanbanPopulateSelect clears selections)
+    // Restore filter values after populate
     if (assignee && filters.assignees && filters.assignees.length) kanbanSetMultiValue(assignee, filters.assignees);
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
-    if (tag && filters.tags && filters.tags.length) {
-      tag.value = filters.tags[0];
+    // Active tag chip display in filter area
+    var tagChipContainer = document.getElementById('kanbanTagChipFilter');
+    if (tagChipContainer) {
+      if (filters.tags && filters.tags.length) {
+        var activeTagId = filters.tags[0];
+        // Find tag name from options
+        var tagName = '';
+        if (options && options.tag) {
+          tagName = options.tag[activeTagId] || activeTagId;
+        }
+        tagChipContainer.innerHTML = '<span class="crm-kanban-tag-chip-filter">Тег: ' + safeText(tagName)
+          + '<span class="task-tag-remove" data-clear-tag-filter>×</span></span>';
+      } else {
+        tagChipContainer.innerHTML = '';
+      }
     }
     [assignee, manager, project].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
       select.dataset.bound = '1';
     });
-    // Tag filter change handler
-    if (tag && tag.dataset.bound !== '1') {
-      tag.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
-      tag.dataset.bound = '1';
-    }
     document.querySelectorAll('[data-kanban-due]').forEach(function (btn) {
       var due = String(btn.getAttribute('data-kanban-due') || '').trim();
       btn.classList.toggle('is-active', due !== '' && due === String(filters.due || ''));
@@ -16393,7 +16403,6 @@ window.CRM.pageApiBindings = (function () {
           if (assignee) assignee.value = '';
           if (manager) manager.value = '';
           if (project) project.value = '';
-          if (tag) tag.value = '';
           apply(empty, true);
         });
         reset.dataset.bound = '1';
@@ -25512,6 +25521,7 @@ window.CRM.pageApiBindings = (function () {
       '#kanbanProjectFilter',
       '#taskProjectInlineSelect'
     ];
+    // Remove kanbanTagFilter from selectors
     selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     // Dynamic project selects in modals (create/edit task)
@@ -25541,11 +25551,37 @@ window.CRM.pageApiBindings = (function () {
     document.body.addEventListener('click', function (e) {
       var tagEl = e.target.closest('[data-tag-id]');
       if (tagEl) {
+        var tagId = tagEl.getAttribute('data-tag-id');
+        if (!tagId) return;
+        // On kanban page: filter instead of navigate
+        if (window.location.href.indexOf('route=kanban') !== -1 || document.querySelector('.crm-kanban')) {
+          e.preventDefault();
+          e.stopPropagation();
+          var filters = window.CRM.kanbanFilters || {};
+          var currentTags = filters.tags || [];
+          // Toggle: if already active, remove; else set
+          filters.tags = (currentTags.indexOf(tagId) >= 0) ? [] : [tagId];
+          window.CRM.kanbanFilters = filters;
+          if (window.CRM.kanbanApplyFilters) {
+            window.CRM.kanbanApplyFilters(filters, true);
+          } else {
+            kanbanUpdateUrl(filters);
+            updateKanbanColumns();
+          }
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
-        var tagId = tagEl.getAttribute('data-tag-id');
-        if (tagId) {
-          window.location.href = 'index.php?route=tasks&tag=' + encodeURIComponent(tagId);
+        window.location.href = 'index.php?route=tasks&tag=' + encodeURIComponent(tagId);
+      }
+      // Clear tag filter chip
+      var clearTag = e.target.closest('[data-clear-tag-filter]');
+      if (clearTag) {
+        var f = window.CRM.kanbanFilters || {};
+        f.tags = [];
+        window.CRM.kanbanFilters = f;
+        if (window.CRM.kanbanApplyFilters) {
+          window.CRM.kanbanApplyFilters(f, true);
         }
       }
     });
