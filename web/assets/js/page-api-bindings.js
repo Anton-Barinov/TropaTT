@@ -25364,11 +25364,21 @@ window.CRM.pageApiBindings = (function () {
       '#commentMentionUserSelect',
       '#approvalsReviewersSelect'
     ];
-    selectors.forEach(function (sel) {
-      try {
-        var el = root.querySelector(sel);
-        if (el) makeSelectSearchable(el);
-      } catch (e) {}
+    // Project selects
+    var projectSelectors = [
+      '#analyticsProjectFilter',
+      '#ganttProjectFilter',
+      '#timeAnalyticsProjectFilter',
+      '#timeAnalyticsEarningsProjectFilter',
+      '#timeAnalyticsMatrixProjectFilter',
+      '#kanbanProjectFilter',
+      '#taskProjectInlineSelect'
+    ];
+    selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    // Dynamic project selects in modals (create/edit task)
+    root.querySelectorAll('select[name="project_public_id"]').forEach(function (el) {
+      if (!el.disabled && !el.dataset.searchable) makeSelectSearchable(el);
     });
   }
 
