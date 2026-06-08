@@ -502,3 +502,10 @@ a:focus-visible {
   background: linear-gradient(150deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
   color: #fff;
 }
+
+/* Mobile sidebar toggle: force visibility below lg breakpoint */
+@media (max-width: 991.98px) {
+  .crm-topbar #sidebarToggle {
+    display: inline-flex !important;
+  }
+}
