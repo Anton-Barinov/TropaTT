@@ -25380,6 +25380,14 @@ window.CRM.pageApiBindings = (function () {
     root.querySelectorAll('select[name="project_public_id"]').forEach(function (el) {
       if (!el.disabled && !el.dataset.searchable) makeSelectSearchable(el);
     });
+    // Client/counterparty selects
+    var clientSelectors = [
+      '[name="client_public_id"]',
+      '#contactsFilterCounterparty',
+      '#contactCreateCounterpartySelect',
+      '#contactEditCounterpartySelect'
+    ];
+    clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
   }
 
   // Auto-apply to all user selects on mutation
