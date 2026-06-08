@@ -25210,6 +25210,7 @@ window.CRM.pageApiBindings = (function () {
 
       // Rows
       var grandTotal = 0;
+      dates = dates.slice().reverse();
       dates.forEach(function (day) {
         var d = new Date(day + 'T00:00:00');
         var dayOfWeek = d.getDay();
