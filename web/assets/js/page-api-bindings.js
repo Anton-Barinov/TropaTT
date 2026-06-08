@@ -25170,43 +25170,6 @@ window.CRM.pageApiBindings = (function () {
         openTimeDetailModal(day, userId, userName, projectId);
       });
     });
-    // Column hover: use inline styles to avoid CSS specificity issues
-    var table = container.closest('table') || container.querySelector('table') || container;
-    if (table && table.tagName === 'TABLE') {
-      var isWeekendRow = function(row) {
-        return row.classList.contains('crm-matrix-weekend-row');
-      };
-      var cells = table.querySelectorAll('td, th');
-      cells.forEach(function (cell) {
-        cell.addEventListener('mouseenter', function () {
-          var ci = cell.cellIndex;
-          if (ci < 0) return;
-          var tbl = cell.closest('table');
-          if (!tbl) return;
-          tbl.querySelectorAll('tr').forEach(function (r) {
-            var c = r.cells[ci];
-            if (c) {
-              var bg = isWeekendRow(r) ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.005)';
-              c.dataset.colHover = '1';
-              c.style.setProperty('background-color', bg, 'important');
-            }
-          });
-        });
-        cell.addEventListener('mouseleave', function () {
-          var ci = cell.cellIndex;
-          if (ci < 0) return;
-          var tbl = cell.closest('table');
-          if (!tbl) return;
-          tbl.querySelectorAll('tr').forEach(function (r) {
-            var c = r.cells[ci];
-            if (c && c.dataset.colHover === '1') {
-              delete c.dataset.colHover;
-              c.style.removeProperty('background-color');
-            }
-          });
-        });
-      });
-    }
   }
 
   async function loadMatrixSummary() {
