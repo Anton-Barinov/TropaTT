@@ -25,7 +25,6 @@
     </div>
   </div>
 </div>
-<div class="row g-3"><div class="col-lg-4"><div class="crm-card crm-section-card"><div class="crm-section-head"><div><h2 class="h6 mb-0">Команды</h2><div class="crm-section-note">Команды считаются по привязке проектов и суммарной загрузке задач.</div></div></div><div data-analytics-teams><div class="crm-metric-tile mb-2 text-muted">Загрузка командных метрик...</div></div></div></div></div>
 <div class="row g-3 mt-1"><div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><div><h2 class="h6 mb-0">Проекты под риском</h2><div class="crm-section-note">Приоритет по просрочкам, блокировкам и текущему статусу проекта.</div></div></div><div data-analytics-projects><div class="text-muted">Загрузка проектных метрик...</div></div></div></div><div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><div><h2 class="h6 mb-0">Исполнители</h2><div class="crm-section-note">Фактическая активность и доля завершения по пользователям.</div></div></div><div data-analytics-users><div class="text-muted">Загрузка пользовательских метрик...</div></div></div></div></div>
 <div class="row g-3 mt-1"><div class="col-lg-12"><div class="crm-card crm-section-card"><div class="crm-section-head"><div><h2 class="h6 mb-0">Команды</h2><div class="crm-section-note">Команды считаются по привязке проектов и суммарной загрузке задач.</div></div></div><div data-analytics-teams><div class="crm-metric-tile mb-2 text-muted">Загрузка командных метрик...</div></div></div></div></div>
 </main></div></div>
