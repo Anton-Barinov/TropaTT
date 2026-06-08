@@ -16351,7 +16351,9 @@ window.CRM.pageApiBindings = (function () {
     if (assignee && filters.assignees && filters.assignees.length) kanbanSetMultiValue(assignee, filters.assignees);
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
-    if (tag && filters.tags && filters.tags.length) kanbanSetMultiValue(tag, filters.tags);
+    if (tag && filters.tags && filters.tags.length) {
+      tag.value = filters.tags[0];
+    }
     [assignee, manager, project].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
