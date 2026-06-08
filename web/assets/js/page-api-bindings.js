@@ -25276,18 +25276,64 @@ window.CRM.pageApiBindings = (function () {
     var wrapper = document.createElement('div');
     wrapper.className = 'crm-searchable-select';
 
+    // Chips container for multi-select
+    var chipsRow = null;
+    if (isMultiple) {
+      chipsRow = document.createElement('div');
+      chipsRow.className = 'crm-searchable-tags';
+    }
+
     var input = document.createElement('input');
     input.type = 'text';
-    input.className = 'form-control crm-searchable-input';
+    input.className = 'form-control crm-searchable-input' + (isMultiple ? ' crm-searchable-input-multi' : '');
     input.placeholder = 'Выбрать';
     input.autocomplete = 'off';
 
     var dropdown = document.createElement('div');
     dropdown.className = 'crm-searchable-dropdown';
 
-    wrapper.appendChild(input);
+    if (isMultiple) {
+      chipsRow.appendChild(input);
+      wrapper.appendChild(chipsRow);
+    } else {
+      wrapper.appendChild(input);
+    }
     wrapper.appendChild(dropdown);
     select.parentNode.insertBefore(wrapper, select);
+
+    function renderChips() {
+      if (!chipsRow) return;
+      // Remove all non-input children from chipsRow
+      var children = [];
+      for (var ci = 0; ci < chipsRow.children.length; ci++) {
+        if (chipsRow.children[ci] !== input) children.push(chipsRow.children[ci]);
+      }
+      children.forEach(function (c) { c.remove(); });
+
+      var hasSelected = false;
+      for (var si = 0; si < select.options.length; si++) {
+        var so = select.options[si];
+        if (so.selected && so.value !== '') {
+          hasSelected = true;
+          var tag = document.createElement('span');
+          tag.className = 'crm-searchable-tag';
+          tag.textContent = so.textContent || so.text;
+          var removeBtn = document.createElement('span');
+          removeBtn.className = 'crm-searchable-tag-remove';
+          removeBtn.innerHTML = '&times;';
+          removeBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            so.selected = false;
+            renderChips();
+            renderOptions(input.value);
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          tag.appendChild(removeBtn);
+          chipsRow.insertBefore(tag, input);
+        }
+      }
+      input.placeholder = hasSelected ? '' : 'Выбрать';
+    }
 
     function renderOptions(filter) {
       dropdown.innerHTML = '';
@@ -25312,6 +25358,7 @@ window.CRM.pageApiBindings = (function () {
               o.selected = !o.selected;
               this.classList.toggle('is-selected');
             }
+            renderChips();
             select.dispatchEvent(new Event('change', { bubbles: true }));
             renderOptions(input.value);
           });
@@ -25341,6 +25388,7 @@ window.CRM.pageApiBindings = (function () {
     input.addEventListener('blur', function () { setTimeout(function () { dropdown.style.display = 'none'; }, 200); });
 
     renderOptions('');
+    if (isMultiple) renderChips();
   }
 
   function applySearchableSelects(root) {
@@ -25388,6 +25436,12 @@ window.CRM.pageApiBindings = (function () {
       '#contactEditCounterpartySelect'
     ];
     clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    // Tag multi-selects
+    root.querySelectorAll('select[name="tag_public_ids"]').forEach(function (el) {
+      if (!el.dataset.searchable) makeSelectSearchable(el);
+    });
+    var tagSelectId = document.getElementById('taskTagsInlineSelect');
+    if (tagSelectId && !tagSelectId.dataset.searchable) makeSelectSearchable(tagSelectId);
   }
 
   // Auto-apply to all user selects on mutation
