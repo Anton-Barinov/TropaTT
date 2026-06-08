@@ -5,6 +5,7 @@
 
   .crm-topbar {
     height: 56px;
+    min-height: 56px;
     padding: 0 12px !important;
     position: sticky;
     top: 0;

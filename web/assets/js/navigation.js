@@ -546,9 +546,17 @@ window.CRM.navigation = (function () {
     };
     window.addEventListener('resize', mobileResizeHandler);
 
-    // Close on Escape
+    // Close on Escape and on nav link click
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+        closeMobileMenu();
+      }
+    });
+
+    // Close on nav link click on mobile
+    document.addEventListener('click', function (e) {
+      var navLink = e.target.closest('.crm-nav .nav-link');
+      if (navLink && window.innerWidth <= 991.98 && document.body.classList.contains('sidebar-open')) {
         closeMobileMenu();
       }
     });
