@@ -425,10 +425,7 @@ window.CRM.navigation = (function () {
       toggleBtn.innerHTML = icon('menu');
       toggleBtn.style.display = 'inline-flex';
       bar.insertAdjacentElement('afterbegin', toggleBtn);
-      // Force visibility via style attribute after DOM insertion
-      requestAnimationFrame(function() {
-        toggleBtn.style.setProperty('display', 'inline-flex', 'important');
-      });
+      // Let CSS handle visibility via media queries (desktop: none, mobile: inline-flex)
     } else {
       var sidebarToggle = bar.querySelector('#sidebarToggle');
       if (sidebarToggle && !sidebarToggle.querySelector('i')) sidebarToggle.innerHTML = icon('menu');
