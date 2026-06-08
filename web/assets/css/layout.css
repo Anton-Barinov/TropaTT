@@ -312,10 +312,6 @@ a:focus-visible {
 }
 
 /* Hide mobile sidebar toggle on desktop */
-#sidebarToggle {
-  display: none;
-}
-
 @media (min-width: 992px) {
   #sidebarToggle {
     display: none !important;
