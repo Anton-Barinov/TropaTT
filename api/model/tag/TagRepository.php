@@ -21,10 +21,10 @@ final class TagRepository
         $total = $this->buildListQuery($filters)->count();
         $items = $this->buildListQuery($filters)
             ->select([
-                't.public_id', 't.code', 't.title', 't.color', 't.description', 't.created_at',
-                '(SELECT COUNT(*) FROM entity_tags et2 WHERE et2.tag_id = t.id) AS usage_count',
+                'public_id', 'code', 'title', 'color', 'description', 'created_at',
+                '(SELECT COUNT(*) FROM entity_tags et2 WHERE et2.tag_id = id) AS usage_count',
             ])
-            ->orderBy('t.created_at', 'ASC')
+            ->orderBy('created_at', 'ASC')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -35,11 +35,11 @@ final class TagRepository
     private function buildListQuery(array $filters): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
-            ->from('tags t');
+            ->from('tags');
 
         if (!empty($filters['search'])) {
             $search = '%' . (string)$filters['search'] . '%';
-            $query->whereRaw('(t.code LIKE ? OR t.title LIKE ?)', [$search, $search]);
+            $query->whereRaw('(code LIKE ? OR title LIKE ?)', [$search, $search]);
         }
 
         return $query;
