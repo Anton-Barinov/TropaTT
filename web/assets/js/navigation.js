@@ -418,7 +418,7 @@ window.CRM.navigation = (function () {
     if (!bar) return;
 
     if (!bar.querySelector('#sidebarToggle')) {
-      bar.insertAdjacentHTML('afterbegin', '<button class="btn btn-light d-xl-none" id="sidebarToggle" aria-label="' + t('topbar.open_menu', 'Open menu') + '">' + icon('menu') + '</button>');
+      bar.insertAdjacentHTML('afterbegin', '<button class="crm-sidebar-toggle d-lg-none" id="sidebarToggle" aria-label="' + t('topbar.open_menu', 'Open menu') + '">' + icon('menu') + '</button>');
     } else {
       var sidebarToggle = bar.querySelector('#sidebarToggle');
       if (sidebarToggle && !sidebarToggle.querySelector('i')) sidebarToggle.innerHTML = icon('menu');
@@ -501,9 +501,43 @@ window.CRM.navigation = (function () {
     if (toggle && toggle.dataset.sidebarToggleBound !== '1') {
       toggle.dataset.sidebarToggleBound = '1';
       toggle.addEventListener('click', function () {
-        document.body.classList.toggle('sidebar-open');
+        // Mobile offcanvas behavior
+        if (window.innerWidth <= 991.98) {
+          var sidebar = document.querySelector('.crm-sidebar');
+          if (sidebar) {
+            sidebar.classList.toggle('crm-sidebar-mobile-open');
+            var backdrop = document.querySelector('.crm-mobile-backdrop');
+            if (!backdrop) {
+              backdrop = document.createElement('div');
+              backdrop.className = 'crm-mobile-backdrop';
+              document.body.appendChild(backdrop);
+              backdrop.addEventListener('click', function () {
+                sidebar.classList.remove('crm-sidebar-mobile-open');
+                backdrop.classList.remove('is-visible');
+                document.body.classList.remove('crm-mobile-menu-open');
+              });
+            }
+            backdrop.classList.toggle('is-visible', sidebar.classList.contains('crm-sidebar-mobile-open'));
+            document.body.classList.toggle('crm-mobile-menu-open', sidebar.classList.contains('crm-sidebar-mobile-open'));
+          }
+        } else {
+          // Desktop: use existing body.sidebar-open behavior
+          document.body.classList.toggle('sidebar-open');
+        }
       });
     }
+
+    // Close mobile menu on orientation change to desktop
+    var mobileResizeHandler = function () {
+      if (window.innerWidth > 991.98) {
+        var sidebar = document.querySelector('.crm-sidebar');
+        var backdrop = document.querySelector('.crm-mobile-backdrop');
+        if (sidebar) sidebar.classList.remove('crm-sidebar-mobile-open');
+        if (backdrop) backdrop.classList.remove('is-visible');
+        document.body.classList.remove('crm-mobile-menu-open');
+      }
+    };
+    window.addEventListener('resize', mobileResizeHandler);
 
     if (!sidebarDocumentClickBound) {
       sidebarDocumentClickBound = true;
