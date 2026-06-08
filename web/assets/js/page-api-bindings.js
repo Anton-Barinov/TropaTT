@@ -16313,31 +16313,37 @@ window.CRM.pageApiBindings = (function () {
     var due = kanbanDueState(task);
     var priority = String(task.priority_code || '').trim();
     var projectTitle = String(task.project_title || '').trim();
-    var projectBadge = projectTitle ? '<span class="crm-kanban-badge crm-kanban-project" title="' + safeText(projectTitle) + '">' + safeText(projectTitle) + '</span>' : '';
-    var priorityBadge = priority && priority !== 'normal' ? '<span class="crm-kanban-badge crm-kanban-priority">' + safeText(kanbanPriorityLabel(priority)) + '</span>' : '';
-    var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '">' + safeText(due.label) + '</span>' : '';
+    var projectBadge = projectTitle ? '<span class="crm-kanban-project" title="' + safeText(projectTitle) + '">' + safeText(projectTitle) + '</span>' : '';
+    var priorityBadge = '';
+    if (priority && priority !== 'normal') {
+      var cls = 'kanban-priority-' + priority;
+      var label = kanbanPriorityLabel(priority);
+      priorityBadge = '<span class="crm-kanban-priority ' + cls + '">' + safeText(label) + '</span>';
+    }
+    var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '"><i class="fa-regular fa-calendar"></i> ' + safeText(due.label) + '</span>' : '';
     var shownAssignees = assignees.slice(0, 3);
     var extraAssignees = Math.max(0, assignees.length - shownAssignees.length);
     var avatarStack = shownAssignees.length
-      ? '<div class="crm-kanban-avatar-stack" aria-label="' + safeText(kanbanT('kanban.avatar.assignees', 'Исполнители')) + '">' + shownAssignees.map(function (user) { return kanbanAvatarHtml(user, 'crm-kanban-avatar-assignee'); }).join('') + (extraAssignees > 0 ? '<span class="crm-kanban-avatar crm-kanban-avatar-more" title="' + safeText(kanbanT('kanban.avatar.more_assignees', 'Еще исполнители')) + '">+' + safeText(String(extraAssignees)) + '</span>' : '') + '</div>'
+      ? '<div class="crm-kanban-avatar-stack" aria-label="' + safeText(kanbanT('kanban.avatar.assignees', 'Исполнители')) + '">' + shownAssignees.map(function (user) { return kanbanAvatarHtml(user, 'crm-kanban-avatar'); }).join('') + (extraAssignees > 0 ? '<span class="crm-kanban-avatar crm-kanban-avatar-more" title="' + safeText(kanbanT('kanban.avatar.more_assignees', 'Еще исполнители')) + '">+' + safeText(String(extraAssignees)) + '</span>' : '') + '</div>'
       : '<span class="crm-kanban-no-assignee">' + safeText(kanbanT('kanban.filters.no_assignee', 'Без исполнителя')) + '</span>';
-    var managerHtml = manager ? '<div class="crm-kanban-manager"><span>' + safeText(kanbanT('kanban.manager', 'Менеджер')) + '</span>' + kanbanAvatarHtml(manager, 'crm-kanban-avatar-manager') + '<strong title="' + safeText(manager.name) + '">' + safeText(manager.name) + '</strong></div>' : '';
+    var managerHtml = manager ? '<div class="crm-kanban-manager"><span>' + safeText(kanbanT('kanban.manager', 'Менеджер')) + '</span><strong title="' + safeText(manager.name) + '">' + safeText(manager.name) + '</strong></div>' : '';
     // Tag chips
     var tagChips = '';
     if (task.tags) {
       try { var parsedTags = typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags; }
       catch(e) { var parsedTags = []; }
       if (Array.isArray(parsedTags) && parsedTags.length) {
-        tagChips = '<div class="crm-kanban-card-tags">' + parsedTags.map(function (tag) {
+        tagChips = '<span class="task-tags">' + parsedTags.slice(0, 4).map(function (tag) {
           var active = window.CRM.kanbanFilters && window.CRM.kanbanFilters.tags && window.CRM.kanbanFilters.tags.indexOf(tag.public_id) >= 0;
           return taskTagHtml(tag, active);
-        }).join('') + '</div>';
+        }).join('') + (parsedTags.length > 4 ? '<span class="task-tag task-tag--more">+' + (parsedTags.length - 4) + '</span>' : '') + '</span>';
       }
     }
+    var desc = task.description ? safeText(task.description).slice(0, 120) : '';
     return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + '</div>'
       + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
-      + '<p>' + safeText(task.description || '') + '</p>'
+      + (desc ? '<p>' + desc + '</p>' : '')
       + tagChips
       + '<div class="crm-kanban-card-bottom"><div>' + dueBadge + '</div>' + avatarStack + '</div>'
       + managerHtml
@@ -16629,7 +16635,6 @@ window.CRM.pageApiBindings = (function () {
       var title = statusMap[statusCode] || hardcodedTitles[statusCode] || statusCode;
       var section = document.createElement('section');
       section.className = 'crm-kanban-col';
-      // expose status code for each column so Sortable handlers can read exact code
       section.setAttribute('data-status-code', statusCode);
 
       var header = document.createElement('div');
