@@ -39,6 +39,10 @@ final class TagController extends BaseController
         if (empty($input['title']) && !empty($input['name'])) {
             $input['title'] = $input['name'];
         }
+        // Auto-generate code from title if not provided
+        if (empty($input['code']) && !empty($input['title'])) {
+            $input['code'] = strtolower(preg_replace('/[^a-zA-Z0-9_]+/', '_', trim((string)$input['title'])));
+        }
         $v = new Validator();
         $v->require($input, 'code', $this->t('common/messages.field_required'))
             ->require($input, 'title', $this->t('common/messages.field_required'))

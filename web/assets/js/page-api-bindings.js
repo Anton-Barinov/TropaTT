@@ -24388,10 +24388,10 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         body.innerHTML = items.map(function (item) {
-          var name = String(item.name || '—');
+          var name = String(item.title || item.name || '—');
           var color = String(item.color || '#6b7280');
           var description = String(item.description || '—');
-          var usageCount = Number(item.usage_count || item.tasks_count || item.count || 0);
+          var usageCount = Number(item.usage_count || 0);
           var publicId = String(item.public_id || '');
           return '<tr data-tag-id="' + safeText(publicId) + '">'
             + '<td><span class="crm-chip" style="background:' + safeText(color) + ';color:#fff">' + safeText(name) + '</span></td>'
@@ -24406,7 +24406,7 @@ window.CRM.pageApiBindings = (function () {
         }).join('');
         var stats = document.getElementById('adminTagsStats');
         if (stats) {
-          var totalUsage = items.reduce(function (sum, item) { return sum + Number(item.usage_count || item.tasks_count || item.count || 0); }, 0);
+          var totalUsage = items.reduce(function (sum, item) { return sum + Number(item.usage_count || 0); }, 0);
           stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">Всего тегов</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
             + '<div class="crm-info-panel"><small class="text-muted">Всего использований</small><div class="fw-semibold">' + safeText(String(totalUsage)) + '</div></div>';
         }
