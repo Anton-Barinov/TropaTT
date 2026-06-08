@@ -498,55 +498,69 @@ window.CRM.navigation = (function () {
 
   function bindSidebarToggle() {
     var toggle = document.getElementById('sidebarToggle');
+    var backdrop = null;
+
+    function ensureBackdrop() {
+      if (!backdrop || !backdrop.parentNode) {
+        backdrop = document.querySelector('.crm-mobile-backdrop');
+        if (!backdrop) {
+          backdrop = document.createElement('div');
+          backdrop.className = 'crm-mobile-backdrop';
+          document.body.appendChild(backdrop);
+        }
+        backdrop.addEventListener('click', closeMobileMenu);
+      }
+      return backdrop;
+    }
+
+    function openMobileMenu() {
+      document.body.classList.add('sidebar-open');
+      var bd = ensureBackdrop();
+      setTimeout(function () { bd.classList.add('is-visible'); }, 10);
+    }
+
+    function closeMobileMenu() {
+      var bd = document.querySelector('.crm-mobile-backdrop');
+      if (bd) bd.classList.remove('is-visible');
+      document.body.classList.remove('sidebar-open');
+    }
+
+    function toggleMobileMenu() {
+      if (document.body.classList.contains('sidebar-open')) {
+        closeMobileMenu();
+      } else {
+        openMobileMenu();
+      }
+    }
+
     if (toggle && toggle.dataset.sidebarToggleBound !== '1') {
       toggle.dataset.sidebarToggleBound = '1';
-      toggle.addEventListener('click', function () {
-        // Mobile offcanvas behavior
-        if (window.innerWidth <= 991.98) {
-          var sidebar = document.querySelector('.crm-sidebar');
-          if (sidebar) {
-            sidebar.classList.toggle('crm-sidebar-mobile-open');
-            var backdrop = document.querySelector('.crm-mobile-backdrop');
-            if (!backdrop) {
-              backdrop = document.createElement('div');
-              backdrop.className = 'crm-mobile-backdrop';
-              document.body.appendChild(backdrop);
-              backdrop.addEventListener('click', function () {
-                sidebar.classList.remove('crm-sidebar-mobile-open');
-                backdrop.classList.remove('is-visible');
-                document.body.classList.remove('crm-mobile-menu-open');
-              });
-            }
-            backdrop.classList.toggle('is-visible', sidebar.classList.contains('crm-sidebar-mobile-open'));
-            document.body.classList.toggle('crm-mobile-menu-open', sidebar.classList.contains('crm-sidebar-mobile-open'));
-          }
-        } else {
-          // Desktop: use existing body.sidebar-open behavior
-          document.body.classList.toggle('sidebar-open');
-        }
-      });
+      toggle.addEventListener('click', toggleMobileMenu);
     }
 
     // Close mobile menu on orientation change to desktop
     var mobileResizeHandler = function () {
       if (window.innerWidth > 991.98) {
-        var sidebar = document.querySelector('.crm-sidebar');
-        var backdrop = document.querySelector('.crm-mobile-backdrop');
-        if (sidebar) sidebar.classList.remove('crm-sidebar-mobile-open');
-        if (backdrop) backdrop.classList.remove('is-visible');
-        document.body.classList.remove('crm-mobile-menu-open');
+        closeMobileMenu();
       }
     };
     window.addEventListener('resize', mobileResizeHandler);
 
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+        closeMobileMenu();
+      }
+    });
+
     if (!sidebarDocumentClickBound) {
       sidebarDocumentClickBound = true;
       document.addEventListener('click', function (e) {
-        if (window.innerWidth > 1199) return;
+        if (window.innerWidth > 991.98) return;
         if (!document.body.classList.contains('sidebar-open')) return;
         var insideSidebar = e.target.closest('.crm-sidebar');
         var isToggle = e.target.closest('#sidebarToggle');
-        if (!insideSidebar && !isToggle) document.body.classList.remove('sidebar-open');
+        if (!insideSidebar && !isToggle) closeMobileMenu();
       });
     }
 
@@ -554,6 +568,10 @@ window.CRM.navigation = (function () {
     if (collapseToggle && collapseToggle.dataset.sidebarCollapseBound !== '1') {
       collapseToggle.dataset.sidebarCollapseBound = '1';
       collapseToggle.addEventListener('click', function () {
+        if (window.innerWidth <= 991.98) {
+          openMobileMenu();
+          return;
+        }
         applySidebarCollapsedState(!sidebarCollapsed, true);
       });
     }
