@@ -5,16 +5,10 @@
 <main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title">Теги</h1><p class="crm-subtitle">Управление глобальными тегами для задач и проектов.</p></div><div class="d-flex gap-2"><button id="adminTagsRefreshBtn" class="btn crm-btn-secondary" type="button">Обновить</button></div></div>
 
 <div class="row g-3">
-  <div class="col-lg-8">
+  <div class="col-lg-12">
     <div class="crm-card crm-section-card">
       <div class="crm-section-head"><div><h2 class="h6 mb-0">Список тегов</h2><div class="crm-section-note">Глобальные теги, доступные для всех задач и проектов.</div></div><div class="d-flex gap-2"><button id="createTagBtn" class="btn btn-sm crm-btn-primary" type="button">Создать</button></div></div>
       <div class="table-responsive"><table class="table table-sm crm-table mb-0"><thead><tr><th>Название</th><th>Цвет</th><th>Описание</th><th>Использований</th><th></th></tr></thead><tbody id="adminTagsBody"><tr><td colspan="5" class="text-muted">Загрузка...</td></tr></tbody></table></div>
-    </div>
-  </div>
-  <div class="col-lg-4">
-    <div class="crm-card crm-section-card">
-      <div class="crm-section-head"><div><h2 class="h6 mb-0">Статистика</h2><div class="crm-section-note">Общая информация о тегах.</div></div></div>
-      <div id="adminTagsStats"><div class="text-muted">Загрузка...</div></div>
     </div>
   </div>
 </div>
