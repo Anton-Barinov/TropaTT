@@ -418,7 +418,17 @@ window.CRM.navigation = (function () {
     if (!bar) return;
 
     if (!bar.querySelector('#sidebarToggle')) {
-      bar.insertAdjacentHTML('afterbegin', '<button class="crm-sidebar-toggle" id="sidebarToggle" aria-label="' + t('topbar.open_menu', 'Open menu') + '" style="display:inline-flex">' + icon('menu') + '</button>');
+      var toggleBtn = document.createElement('button');
+      toggleBtn.id = 'sidebarToggle';
+      toggleBtn.className = 'crm-sidebar-toggle';
+      toggleBtn.setAttribute('aria-label', t('topbar.open_menu', 'Open menu'));
+      toggleBtn.innerHTML = icon('menu');
+      toggleBtn.style.display = 'inline-flex';
+      bar.insertAdjacentElement('afterbegin', toggleBtn);
+      // Force visibility via style attribute after DOM insertion
+      requestAnimationFrame(function() {
+        toggleBtn.style.setProperty('display', 'inline-flex', 'important');
+      });
     } else {
       var sidebarToggle = bar.querySelector('#sidebarToggle');
       if (sidebarToggle && !sidebarToggle.querySelector('i')) sidebarToggle.innerHTML = icon('menu');
