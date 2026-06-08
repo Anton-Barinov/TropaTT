@@ -25186,7 +25186,7 @@ window.CRM.pageApiBindings = (function () {
           tbl.querySelectorAll('tr').forEach(function (r) {
             var c = r.cells[ci];
             if (c) {
-              var bg = isWeekendRow(r) ? 'var(--color-primary-50)' : 'var(--color-primary-50)';
+              var bg = isWeekendRow(r) ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.03)';
               c.dataset.colHover = '1';
               c.style.setProperty('background-color', bg, 'important');
             }
