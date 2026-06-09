@@ -2557,6 +2557,7 @@ window.CRM.pageApiBindings = (function () {
     var managerFilter = String(query.get('manager') || '').trim();
     var projectFilter = String(query.get('project') || '').trim();
     var tagFilter = String(query.get('tag') || '').trim();
+    var dueFilter = String(query.get('due') || '').trim();
     var sortFilter = String(query.get('sort') || '');
     var orderFilter = String(query.get('order') || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     var pageFilter = Math.max(1, Number.parseInt(String(query.get('page') || '1'), 10) || 1);
@@ -2645,6 +2646,32 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    if (dueFilter) {
+      var nowMs = Date.now();
+      var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      var weekEnd = new Date(todayStart); weekEnd.setDate(weekEnd.getDate() + 6);
+      items = items.filter(function (item) {
+        var code = String(item.status_code || '').toLowerCase();
+        if (dueFilter === 'overdue') {
+          if (code === 'done' || code === 'completed') return false;
+          if (!item.due_at) return false;
+          var dueMs = Date.parse(String(item.due_at));
+          return Number.isFinite(dueMs) && dueMs < nowMs;
+        }
+        if (dueFilter === 'today') {
+          if (!item.due_at) return false;
+          var d = Date.parse(String(item.due_at));
+          return Number.isFinite(d) && d >= todayStart.getTime() && d < todayStart.getTime() + 86400000;
+        }
+        if (dueFilter === 'week') {
+          if (!item.due_at) return false;
+          var wd = Date.parse(String(item.due_at));
+          return Number.isFinite(wd) && wd >= todayStart.getTime() && wd <= weekEnd.getTime() + 86400000;
+        }
+        return true;
+      });
+    }
+
     var filterSnapshot = {
       search: searchFilter,
       status: statusFilter,
@@ -2658,7 +2685,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'tag', 'sort', 'order', 'page'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
         delete queryObj[key];
       });
       if (!next.keepViewPublicId) {
@@ -2671,6 +2698,7 @@ window.CRM.pageApiBindings = (function () {
       if (next.manager) queryObj.manager = next.manager;
       if (next.project) queryObj.project = next.project;
       if (next.tag) queryObj.tag = next.tag;
+      if (next.due) queryObj.due = next.due;
       if (next.sort) queryObj.sort = next.sort;
       if (next.order) queryObj.order = next.order;
       if (next.page && Number(next.page) > 1) queryObj.page = String(next.page);
@@ -2859,13 +2887,13 @@ window.CRM.pageApiBindings = (function () {
 
     function bindTasksFilters() {
       var searchInput = document.getElementById('tasksSearchInput');
-      var statusSelect = document.getElementById('tasksStatusFilter');
-      var prioritySelect = document.getElementById('tasksPriorityFilter');
       var assigneeSelect = document.getElementById('tasksAssigneeFilter');
       var managerSelect = document.getElementById('tasksManagerFilter');
       var projectSelect = document.getElementById('tasksProjectFilter');
       var tagSelect = document.getElementById('tasksTagFilter');
       var resetBtn = document.getElementById('tasksFiltersResetBtn');
+      var summary = document.getElementById('tasksResultSummary');
+      var dueBtns = document.querySelectorAll('.crm-kanban-due-filters .btn');
 
       if (assigneeSelect) assigneeSelect.value = assigneeFilter;
       if (managerSelect) managerSelect.value = managerFilter;
@@ -2875,12 +2903,13 @@ window.CRM.pageApiBindings = (function () {
       function tasksFiltersFromDom() {
         return {
           search: searchInput ? searchInput.value.trim() : '',
-          status: statusSelect ? statusSelect.value : '',
-          priority: prioritySelect ? prioritySelect.value : '',
+          status: '',
+          priority: '',
           assignee: assigneeSelect ? assigneeSelect.value : '',
           manager: managerSelect ? managerSelect.value : '',
           project: projectSelect ? projectSelect.value : '',
           tag: tagSelect ? tagSelect.value : '',
+          due: dueFilter,
           sort: sortFilter,
           order: orderFilter
         };
@@ -2900,7 +2929,7 @@ window.CRM.pageApiBindings = (function () {
         }
       }
 
-      [statusSelect, prioritySelect, assigneeSelect, managerSelect, projectSelect, tagSelect].forEach(function (sel) {
+      [assigneeSelect, managerSelect, projectSelect, tagSelect].forEach(function (sel) {
         if (!sel || sel.dataset.bound === '1') return;
         sel.addEventListener('change', function () {
           applyTaskRouteQuery(tasksFiltersFromDom());
@@ -2908,16 +2937,36 @@ window.CRM.pageApiBindings = (function () {
         sel.dataset.bound = '1';
       });
 
+      // Due-date buttons
+      dueBtns.forEach(function (btn) {
+        var due = String(btn.getAttribute('data-kanban-due') || '').trim();
+        btn.classList.toggle('is-active', due !== '' && due === dueFilter);
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', function () {
+          var f = tasksFiltersFromDom();
+          f.due = due === f.due ? '' : due;
+          applyTaskRouteQuery(f);
+        });
+        btn.dataset.bound = '1';
+      });
+
+      // Summary
+      if (summary) {
+        summary.textContent = 'Показано ' + items.length + ' из ' + items.length + ' задач';
+      }
+
+      // Reset button
       if (resetBtn && resetBtn.dataset.bound !== '1') {
         resetBtn.addEventListener('click', function () {
           if (searchInput) searchInput.value = '';
-          if (statusSelect) statusSelect.value = '';
-          if (prioritySelect) prioritySelect.value = '';
           if (assigneeSelect) assigneeSelect.value = '';
           if (managerSelect) managerSelect.value = '';
           if (projectSelect) projectSelect.value = '';
           if (tagSelect) tagSelect.value = '';
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', tag: '', sort: '', order: '' });
+          // Clear searchable inputs
+          document.querySelectorAll('.crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
+          document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', tag: '', due: '', sort: '', order: '' });
         });
         resetBtn.dataset.bound = '1';
       }

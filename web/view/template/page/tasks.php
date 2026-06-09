@@ -12,7 +12,34 @@
 <div id="tasksAiPriorityCard" data-ai-state="idle"><div class="crm-tasks-local-actions"><div class="btn-group crm-tasks-view-toggle" role="group" aria-label="Вид списка задач" data-tasks-view-toggle><button class="btn crm-btn-secondary" type="button" data-tasks-view="list">Список</button><button class="btn crm-btn-secondary" type="button" data-tasks-view="tree">Иерархия</button><button class="btn crm-btn-secondary" type="button" data-tasks-view="cards">Карточки</button></div><a class="btn crm-btn-secondary" href="index.php?route=kanban">Канбан</a><button id="tasksAiPriorityBtn" class="btn crm-btn-secondary" type="button" data-requires-ai-use="1" title="Сформировать AI-ранжирование задач по риску и срочности">AI-приоритет</button><button id="tasksAiPriorityResetBtn" class="btn crm-btn-muted d-none" type="button" data-requires-ai-use="1" title="Вернуть обычный порядок задач">Сброс AI-порядка</button></div>
 <div id="tasksAiPriorityState" class="small text-muted mb-2"></div></div>
 
-<div class="crm-toolbar crm-filters-card d-flex flex-wrap gap-2 align-items-center"><label class="visually-hidden" for="tasksSearchInput">Поиск задач</label><input id="tasksSearchInput" class="form-control crm-field-w-280" placeholder="Поиск: SLA, клиент, исполнитель"><label class="visually-hidden" for="tasksAssigneeFilter">Исполнитель</label><select id="tasksAssigneeFilter" class="form-select crm-field-w-170"><option value="">Исполнитель</option></select><label class="visually-hidden" for="tasksManagerFilter">Менеджер</label><select id="tasksManagerFilter" class="form-select crm-field-w-170"><option value="">Менеджер</option></select><label class="visually-hidden" for="tasksProjectFilter">Проект</label><select id="tasksProjectFilter" class="form-select crm-field-w-200"><option value="">Все проекты</option></select><label class="visually-hidden" for="tasksStatusFilter">Статус задачи</label><select id="tasksStatusFilter" class="form-select crm-field-w-170"><option value="">Все статусы</option><option value="new">К выполнению</option><option value="in_progress">В работе</option><option value="blocked">Блокировано</option><option value="done">Готово</option></select><label class="visually-hidden" for="tasksPriorityFilter">Приоритет задачи</label><select id="tasksPriorityFilter" class="form-select crm-field-w-170"><option value="">Все приоритеты</option><option value="low">Низкий</option><option value="normal">Нормальный</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select><label class="visually-hidden" for="tasksTagFilter">Тег</label><select id="tasksTagFilter" class="form-select crm-field-w-170"><option value="">Все теги</option></select><button id="tasksFiltersResetBtn" class="btn crm-btn-muted" type="button">Сбросить</button></div>
+<section class="crm-kanban-filters crm-filters-card">
+  <div class="crm-kanban-search">
+    <label class="crm-filter-label" for="tasksSearchInput">Поиск</label>
+    <input id="tasksSearchInput" class="form-control" type="search" placeholder="Название, описание или код задачи">
+  </div>
+  <div>
+    <label class="crm-filter-label" for="tasksAssigneeFilter">Исполнитель</label>
+    <select id="tasksAssigneeFilter" class="form-select"><option value="">Исполнитель</option></select>
+  </div>
+  <div>
+    <label class="crm-filter-label" for="tasksManagerFilter">Менеджер</label>
+    <select id="tasksManagerFilter" class="form-select"><option value="">Менеджер</option></select>
+  </div>
+  <div>
+    <label class="crm-filter-label" for="tasksProjectFilter">Проект</label>
+    <select id="tasksProjectFilter" class="form-select"><option value="">Все проекты</option></select>
+  </div>
+  <div class="crm-kanban-due-filters" role="group">
+    <button class="btn" type="button" data-kanban-due="overdue">Просроченные</button>
+    <button class="btn" type="button" data-kanban-due="today">Сегодня</button>
+    <button class="btn" type="button" data-kanban-due="week">На неделе</button>
+  </div>
+  <div style="display:none" id="tasksTagChipFilter"></div>
+  <div class="crm-kanban-filter-summary">
+    <span id="tasksResultSummary">Показано 0 из 0 задач</span>
+    <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled>Сбросить</button>
+  </div>
+</section>
 
 <div id="bulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="Bulk actions">
   <div>Выбрано задач: <strong data-selected-count>0</strong> <span class="small ms-2" id="tasksBulkResult" aria-live="polite"></span></div>
