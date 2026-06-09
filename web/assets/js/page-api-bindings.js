@@ -1002,7 +1002,7 @@ window.CRM.pageApiBindings = (function () {
 
     var query = pageQuery();
     var currentViewPublicId = String(query.get('view_public_id') || '').trim();
-    var state = window.CRM.__projectsPageState || {
+    var state = {
       search: String(query.get('search') || ''),
       status: String(query.get('status') || ''),
       priority: String(query.get('priority') || ''),
