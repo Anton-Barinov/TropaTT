@@ -10236,6 +10236,18 @@ a.task-tag:hover {
     white-space: nowrap;
 }
 
+.crm-filters-view-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.crm-filters-view-actions .btn {
+    height: 36px;
+    font-size: var(--text-sm);
+}
+
 .crm-kanban-card {
     display: flex;
     flex-direction: column;

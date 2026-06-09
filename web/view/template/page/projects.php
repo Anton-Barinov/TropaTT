@@ -37,9 +37,8 @@
   <div class="crm-filters-view-actions">
     <button id="projectsSaveViewBtn" class="btn crm-btn-secondary" type="button">Сохранить вид</button>
     <button id="projectsDeleteViewBtn" class="btn crm-btn-secondary" type="button" disabled>Удалить вид</button>
+    <button class="btn crm-btn-secondary" type="button" id="projectsFiltersResetBtn" disabled>Сбросить</button>
   </div>
-  <div style="flex:1"></div>
-  <button class="btn crm-btn-secondary" type="button" id="projectsFiltersResetBtn" disabled>Сбросить</button>
 </section>
 
 <div class="row g-3 mb-3" id="projectsDynamicList">
