@@ -1326,6 +1326,7 @@ window.CRM.pageApiBindings = (function () {
       if (searchInput) searchInput.value = state.search;
     }
     syncProjectsSearchableInputs();
+    bindProjectsInlineFilters();
 
     ensureProjectsFilterUi();
     var filtered = applyFilters(items);
