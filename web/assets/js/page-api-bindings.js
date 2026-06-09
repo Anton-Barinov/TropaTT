@@ -1131,19 +1131,9 @@ window.CRM.pageApiBindings = (function () {
 
     function ensureProjectsFilterUi() {
       var searchInput = document.getElementById('projectsSearchInput');
-      if (searchInput && searchInput.dataset.bound !== '1') {
+      if (searchInput && searchInput.dataset.boundProjectsSearch !== '1') {
         searchInput.value = state.search;
-        searchInput.addEventListener('input', function () {
-          state.search = searchInput.value.trim();
-          applyProjectsRouteQuery({
-            search: state.search,
-            status: state.status,
-            priority: state.priority,
-            team_public_id: state.teamPublicId
-          });
-          renderProjectsPage();
-        });
-        searchInput.dataset.bound = '1';
+        searchInput.dataset.boundProjectsSearch = '1';
       }
 
       var filterDrawer = document.getElementById('filterOffcanvas');
@@ -1270,7 +1260,21 @@ window.CRM.pageApiBindings = (function () {
     populateProjectsInlineFilters();
 
     function bindProjectsInlineFilters() {
-      var selects = ['projectsSearchInput', 'projectsStatusFilter', 'projectsClientFilter', 'projectsTeamFilter', 'projectsManagerFilter', 'projectsPriorityFilter'];
+      var searchInput = document.getElementById('projectsSearchInput');
+      if (searchInput && searchInput.dataset.boundProject !== '1') {
+        var timer = null;
+        searchInput.addEventListener('input', function () {
+          if (timer) window.clearTimeout(timer);
+          timer = window.setTimeout(async function () {
+            var s = Object.assign({}, state);
+            s.search = searchInput.value || '';
+            applyProjectsRouteQuery(s);
+            await renderProjectsPage();
+          }, 250);
+        });
+        searchInput.dataset.boundProject = '1';
+      }
+      var selects = ['projectsStatusFilter', 'projectsClientFilter', 'projectsTeamFilter', 'projectsManagerFilter', 'projectsPriorityFilter'];
       selects.forEach(function (id) {
         var el = document.getElementById(id);
         if (!el || el.dataset.boundProject === '1') return;
@@ -1290,10 +1294,18 @@ window.CRM.pageApiBindings = (function () {
       var resetBtn = document.getElementById('projectsFiltersResetBtn');
       if (resetBtn && resetBtn.dataset.boundProject !== '1') {
         resetBtn.addEventListener('click', async function () {
+          document.querySelectorAll('.crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
+          document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
           applyProjectsRouteQuery({ search: '', status: '', clientPublicId: '', teamPublicId: '', managerPublicId: '', priority: '' });
           await renderProjectsPage();
         });
         resetBtn.dataset.boundProject = '1';
+      }
+      // Enable/disable reset based on active filters
+      var hasActive = Boolean(state.search || state.status || state.clientPublicId || state.teamPublicId || state.managerPublicId || state.priority);
+      if (resetBtn) {
+        resetBtn.disabled = !hasActive;
+        resetBtn.classList.toggle('is-active', hasActive);
       }
     }
     bindProjectsInlineFilters();
