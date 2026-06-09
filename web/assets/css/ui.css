@@ -3436,7 +3436,7 @@ body {
 .crm-kanban-card {
   border: 1px solid #e4e9ef !important;
   border-radius: 6px !important;
-  box-shadow: none !important;
+  
 }
 
 /* 4) Gantt: reduce decorative density */
