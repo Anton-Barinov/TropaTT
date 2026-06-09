@@ -25552,10 +25552,29 @@ window.CRM.pageApiBindings = (function () {
     if (tagSelectId && !tagSelectId.dataset.searchable) makeSelectSearchable(tagSelectId);
   }
 
-  // Auto-apply to all user selects on mutation
+  // Auto-apply to all date inputs: prevent past dates in task/project forms
   document.addEventListener('DOMContentLoaded', function () {
     applySearchableSelects();
-    // Delegate click on tag chips to navigate to tasks page with filter
+    var today = new Date();
+    var dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    var datetimeStr = dateStr + 'T' + String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0');
+    // Apply to all date/datetime inputs not in filter areas
+    document.querySelectorAll('input[type="date"]:not([data-date-no-min]), input[type="datetime-local"]:not([data-date-no-min])').forEach(function(input) {
+      var isFilter = input.closest('[data-analytics-filters]') || input.closest('.crm-kanban-filters') || input.closest('.crm-toolbar-surface') || input.id.indexOf('timeAnalytics') >= 0 || input.id.indexOf('kanban') >= 0 || input.id.indexOf('filter') >= 0;
+      if (isFilter) return;
+      if (input.type === 'date') input.setAttribute('min', dateStr);
+      else input.setAttribute('min', datetimeStr);
+    });
+    // Also apply when new modals are opened (Bootstrap modal show event)
+    document.addEventListener('show.bs.modal', function(e) {
+      var modal = e.target;
+      if (!modal) return;
+      modal.querySelectorAll('input[type="date"]:not([data-date-no-min]), input[type="datetime-local"]:not([data-date-no-min])').forEach(function(input) {
+        if (input.getAttribute('min')) return;
+        if (input.type === 'date') input.setAttribute('min', dateStr);
+        else input.setAttribute('min', datetimeStr);
+      });
+    });
     document.body.addEventListener('click', function (e) {
       var tagEl = e.target.closest('[data-tag-id]');
       if (tagEl) {

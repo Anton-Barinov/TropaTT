@@ -30,7 +30,7 @@ window.CRM.modals = (function () {
         <div class="col-md-4"><label class="form-label">Статус</label><select class="form-select" name="status"><option value="new">Новая</option></select></div>\
         <div class="col-md-4"><label class="form-label">Приоритет</label><select class="form-select" name="priority"><option value="normal">Нормальный</option><option value="low">Низкий</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select></div>\
         <div class="col-md-4"><label class="form-label">Исполнитель</label><select class="form-select" name="assignee_user_public_id"><option value="">Не назначен</option></select></div>\
-        <div class="col-md-4"><label class="form-label">Начало</label><input class="form-control" name="start_at" type="date"></div>\
+<div class="col-md-4"><label class="form-label">Начало</label><input class="form-control" name="start_at" type="date"></div>\
         <div class="col-md-4"><label class="form-label">Дедлайн</label><input class="form-control" name="due_at" type="date"></div>\
         <div class="col-md-4"><label class="form-label">Плановое завершение</label><input class="form-control" name="end_at" type="date"></div>\
         <div class="col-12"><label class="form-label">Теги</label><select class="form-select" name="tag_public_ids" multiple size="5"></select><div class="form-text">Можно выбрать несколько тегов.</div></div>\
@@ -40,8 +40,6 @@ window.CRM.modals = (function () {
     </form>\
   </div></div>\
 </div>\
-\
-<div class="modal fade" id="createProjectModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">Создать проект</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>\
     <form id="createProjectForm" novalidate>\

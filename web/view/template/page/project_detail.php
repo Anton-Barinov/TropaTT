@@ -49,7 +49,7 @@
           </div>
           <div class="col-md-4">
             <label class="form-label" for="projectTaskDueAtInput">Срок</label>
-            <input class="form-control" id="projectTaskDueAtInput" name="due_at" type="datetime-local">
+            <input class="form-control" id="projectTaskDueAtInput" name="due_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
         </div>
         <div class="d-flex gap-2 mt-3">

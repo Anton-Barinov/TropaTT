@@ -143,7 +143,7 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Дата/время</label>
-            <input class="form-control" name="logged_at" type="datetime-local">
+            <input class="form-control" name="logged_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Комментарий</label>
@@ -351,15 +351,15 @@
         <form id="taskDatesInlineForm" class="mt-2 d-none">
           <div class="mb-2">
             <label class="form-label mb-1 small text-muted" for="taskDatesStartAt">Начало</label>
-            <input class="form-control form-control-sm" id="taskDatesStartAt" name="start_at" type="datetime-local">
+            <input class="form-control form-control-sm" id="taskDatesStartAt" name="start_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="mb-2">
             <label class="form-label mb-1 small text-muted" for="taskDatesDueAt">Дедлайн</label>
-            <input class="form-control form-control-sm" id="taskDatesDueAt" name="due_at" type="datetime-local">
+            <input class="form-control form-control-sm" id="taskDatesDueAt" name="due_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="mb-2">
             <label class="form-label mb-1 small text-muted" for="taskDatesEndAt">Плановое завершение</label>
-            <input class="form-control form-control-sm" id="taskDatesEndAt" name="end_at" type="datetime-local">
+            <input class="form-control form-control-sm" id="taskDatesEndAt" name="end_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
@@ -423,15 +423,15 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Начало</label>
-              <input class="form-control" name="start_at" type="date">
+              <input class="form-control" name="start_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
               <label class="form-label">Дедлайн</label>
-              <input class="form-control" name="due_at" type="date">
+              <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
               <label class="form-label">Плановое завершение</label>
-              <input class="form-control" name="end_at" type="date">
+              <input class="form-control" name="end_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-12">
               <label class="form-label">Теги</label>
@@ -488,15 +488,15 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Начало</label>
-              <input class="form-control" name="start_at" type="date">
+              <input class="form-control" name="start_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
               <label class="form-label">Дедлайн</label>
-              <input class="form-control" name="due_at" type="date">
+              <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
               <label class="form-label">Плановое завершение</label>
-              <input class="form-control" name="end_at" type="date">
+              <input class="form-control" name="end_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-12">
               <label class="form-label">Теги</label>
