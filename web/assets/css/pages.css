@@ -846,11 +846,12 @@
   background: var(--crm-surface);
   border: 1px solid var(--crm-border);
   border-radius: var(--radius-lg);
-  padding: 16px 18px;
+  padding: 14px 18px;
   margin-bottom: var(--space-4);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .crm-kanban-page .crm-kanban-filters .crm-kanban-search {
@@ -870,6 +871,16 @@
 }
 
 .crm-kanban-page .crm-filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--crm-text-muted);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.crm-filter-label {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -10175,10 +10186,11 @@ a.task-tag:hover {
 
 .crm-kanban-filters {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     margin: 0 0 16px;
-    padding: 16px 18px;
+    padding: 14px 18px;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-lg);
     background: var(--crm-surface);
@@ -10186,79 +10198,10 @@ a.task-tag:hover {
     z-index: 99;
 }
 
-/* ── Unified filter grid ── */
-.filter-fields {
-    display: grid;
-    gap: 12px;
-    align-items: end;
-}
-
-.filter-fields > div .crm-filter-label {
-    display: block;
-    margin-bottom: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--crm-text-muted);
-    line-height: 1.3;
-}
-
-.filter-fields .crm-kanban-search {
-    flex: none;
-}
-
-.tasks-filter .filter-fields {
-    grid-template-columns: minmax(240px, 1.3fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(190px, 1fr);
-}
-
-.kanban-filter .filter-fields {
-    grid-template-columns: minmax(240px, 1.3fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(190px, 1fr);
-}
-
-.projects-filter .filter-fields {
-    grid-template-columns: minmax(220px, 1.3fr) minmax(160px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(160px, 1fr);
-}
-
-/* Actions row */
-.filter-actions-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.filter-quick-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.filter-quick-actions .btn {
-    height: 34px;
-    font-size: 12px;
-    padding: 4px 12px;
-}
-
-.filter-meta-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-left: auto;
-    white-space: nowrap;
-    font-size: 12px;
-    color: var(--crm-text-muted);
-}
-
-.filter-meta-actions .btn {
-    height: 34px;
-    font-size: 12px;
-    padding: 4px 12px;
-}
-
 .crm-kanban-search {
+    min-width: 0;
+    flex: 2;
+}
 
 .crm-kanban-filters .form-control,
 .crm-kanban-filters .form-select {

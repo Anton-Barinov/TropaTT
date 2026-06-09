@@ -12,35 +12,32 @@
 <div id="tasksAiPriorityCard" data-ai-state="idle"><div class="crm-tasks-local-actions"><div class="btn-group crm-tasks-view-toggle" role="group" aria-label="Вид списка задач" data-tasks-view-toggle><button class="btn crm-btn-secondary" type="button" data-tasks-view="list">Список</button><button class="btn crm-btn-secondary" type="button" data-tasks-view="tree">Иерархия</button><button class="btn crm-btn-secondary" type="button" data-tasks-view="cards">Карточки</button></div><a class="btn crm-btn-secondary" href="index.php?route=kanban">Канбан</a><button id="tasksAiPriorityBtn" class="btn crm-btn-secondary" type="button" data-requires-ai-use="1" title="Сформировать AI-ранжирование задач по риску и срочности">AI-приоритет</button><button id="tasksAiPriorityResetBtn" class="btn crm-btn-muted d-none" type="button" data-requires-ai-use="1" title="Вернуть обычный порядок задач">Сброс AI-порядка</button></div>
 <div id="tasksAiPriorityState" class="small text-muted mb-2"></div></div>
 
-<section class="crm-kanban-filters crm-filters-card tasks-filter">
-  <div class="filter-fields">
-    <div class="crm-kanban-search">
-      <label class="crm-filter-label" for="tasksSearchInput">Поиск</label>
-      <input id="tasksSearchInput" class="form-control" type="search" placeholder="Название, описание или код задачи">
-    </div>
-    <div>
-      <label class="crm-filter-label" for="tasksAssigneeFilter">Исполнитель</label>
-      <select id="tasksAssigneeFilter" class="form-select"><option value="">Исполнитель</option></select>
-    </div>
-    <div>
-      <label class="crm-filter-label" for="tasksManagerFilter">Менеджер</label>
-      <select id="tasksManagerFilter" class="form-select"><option value="">Менеджер</option></select>
-    </div>
-    <div>
-      <label class="crm-filter-label" for="tasksProjectFilter">Проект</label>
-      <select id="tasksProjectFilter" class="form-select"><option value="">Все проекты</option></select>
-    </div>
+<section class="crm-kanban-filters crm-filters-card">
+  <div class="crm-kanban-search">
+    <label class="crm-filter-label" for="tasksSearchInput">Поиск</label>
+    <input id="tasksSearchInput" class="form-control" type="search" placeholder="Название, описание или код задачи">
   </div>
-  <div class="filter-actions-row">
-    <div class="filter-quick-actions">
-      <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue">Просроченные</button>
-      <button class="btn crm-btn-secondary" type="button" data-kanban-due="today">Сегодня</button>
-      <button class="btn crm-btn-secondary" type="button" data-kanban-due="week">На неделе</button>
-    </div>
-    <div class="filter-meta-actions">
-      <span id="tasksResultSummary">Показано 0 из 0 задач</span>
-      <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled>Сбросить</button>
-    </div>
+  <div>
+    <label class="crm-filter-label" for="tasksAssigneeFilter">Исполнитель</label>
+    <select id="tasksAssigneeFilter" class="form-select"><option value="">Исполнитель</option></select>
+  </div>
+  <div>
+    <label class="crm-filter-label" for="tasksManagerFilter">Менеджер</label>
+    <select id="tasksManagerFilter" class="form-select"><option value="">Менеджер</option></select>
+  </div>
+  <div>
+    <label class="crm-filter-label" for="tasksProjectFilter">Проект</label>
+    <select id="tasksProjectFilter" class="form-select"><option value="">Все проекты</option></select>
+  </div>
+  <div class="crm-kanban-due-filters" role="group">
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue">Просроченные</button>
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="today">Сегодня</button>
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="week">На неделе</button>
+  </div>
+  <div style="flex:1"></div>
+  <div class="crm-kanban-filter-summary">
+    <span id="tasksResultSummary">Показано 0 из 0 задач</span>
+    <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled>Сбросить</button>
   </div>
 </section>
 <div style="display:none" id="tasksTagChipFilter"></div>
