@@ -10220,6 +10220,7 @@ a.task-tag:hover {
 .crm-kanban-filter-summary {
     display: flex;
     align-items: center;
+    margin-left: auto;
     justify-content: flex-end;
     gap: 8px;
     min-width: 0;

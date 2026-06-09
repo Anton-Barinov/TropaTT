@@ -2901,6 +2901,7 @@ window.CRM.pageApiBindings = (function () {
       if (tagSelect) tagSelect.value = tagFilter;
 
       function tasksFiltersFromDom() {
+        var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
         return {
           search: searchInput ? searchInput.value.trim() : '',
           status: '',
@@ -2909,7 +2910,7 @@ window.CRM.pageApiBindings = (function () {
           manager: managerSelect ? managerSelect.value : '',
           project: projectSelect ? projectSelect.value : '',
           tag: tagSelect ? tagSelect.value : '',
-          due: dueFilter,
+          due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
           sort: sortFilter,
           order: orderFilter
         };
@@ -2966,9 +2967,18 @@ window.CRM.pageApiBindings = (function () {
           // Clear searchable inputs
           document.querySelectorAll('.crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
           document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
+          // Clear due-date buttons
+          dueBtns.forEach(function (b) { b.classList.remove('is-active'); });
           applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', tag: '', due: '', sort: '', order: '' });
         });
         resetBtn.dataset.bound = '1';
+      }
+
+      // Enable/disable reset button based on active filters
+      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || tagFilter || dueFilter);
+      if (resetBtn) {
+        resetBtn.disabled = !hasActive;
+        resetBtn.classList.toggle('is-active', hasActive);
       }
     }
 

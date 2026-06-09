@@ -30,9 +30,9 @@
     <select id="tasksProjectFilter" class="form-select"><option value="">Все проекты</option></select>
   </div>
   <div class="crm-kanban-due-filters" role="group">
-    <button class="btn" type="button" data-kanban-due="overdue">Просроченные</button>
-    <button class="btn" type="button" data-kanban-due="today">Сегодня</button>
-    <button class="btn" type="button" data-kanban-due="week">На неделе</button>
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue">Просроченные</button>
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="today">Сегодня</button>
+    <button class="btn crm-btn-secondary" type="button" data-kanban-due="week">На неделе</button>
   </div>
   <div style="display:none" id="tasksTagChipFilter"></div>
   <div class="crm-kanban-filter-summary">
