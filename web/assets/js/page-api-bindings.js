@@ -1575,6 +1575,11 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
+    var summary = document.getElementById('projectsResultSummary');
+    if (summary) {
+      summary.textContent = 'Показано ' + filtered.length + ' из ' + items.length + ' проектов';
+    }
+
     var projectBulkBar = document.getElementById('projectsBulkActionsBar');
     var projectBulkCount = document.querySelector('[data-projects-selected-count]');
     var projectSelectAll = document.getElementById('projectsBulkSelectAll');

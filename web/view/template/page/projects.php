@@ -31,12 +31,7 @@
     <select id="projectsPriorityFilter" class="form-select"><option value="">Все приоритеты</option><option value="low">Низкий</option><option value="normal">Нормальный</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select>
   </div>
   <div class="crm-filters-view-actions">
-    <div>
-      <label class="crm-filter-label" for="projectsSavedViewSelect">Вид</label>
-      <select id="projectsSavedViewSelect" class="form-select"><option value="">Вид по умолчанию</option></select>
-    </div>
-    <button id="projectsSaveViewBtn" class="btn crm-btn-secondary" type="button">Сохранить вид</button>
-    <button id="projectsDeleteViewBtn" class="btn crm-btn-secondary" type="button" disabled>Удалить вид</button>
+    <span id="projectsResultSummary" class="text-muted" style="font-size:11px"></span>
     <button class="btn crm-btn-secondary" type="button" id="projectsFiltersResetBtn" disabled>Сбросить</button>
   </div>
 </section>
