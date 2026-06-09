@@ -850,8 +850,8 @@
   margin-bottom: var(--space-4);
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .crm-kanban-page .crm-kanban-filters .crm-kanban-search {
@@ -10187,8 +10187,8 @@ a.task-tag:hover {
 .crm-kanban-filters {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-end;
+    gap: 10px;
     margin: 0 0 16px;
     padding: 14px 18px;
     border: 1px solid var(--crm-border);
@@ -10196,6 +10196,32 @@ a.task-tag:hover {
     background: var(--crm-surface);
     position: relative;
     z-index: 99;
+}
+
+/* ── Filter field widths ── */
+.crm-kanban-filters > .crm-kanban-search {
+    flex: 0 1 280px;
+    min-width: 220px;
+}
+
+.crm-kanban-filters > div:not(.crm-kanban-search):not(.crm-kanban-due-filters):not(.crm-kanban-filter-summary):not(.crm-filters-view-actions):not(.crm-kanban-tag-filter-area) {
+    flex: 0 1 200px;
+    min-width: 150px;
+}
+
+.crm-kanban-filters > .crm-kanban-due-filters {
+    flex: 0 0 auto;
+    align-self: flex-end;
+}
+
+.crm-kanban-filters > .crm-kanban-filter-summary {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.crm-kanban-filters > .crm-filters-view-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 .crm-kanban-search {
