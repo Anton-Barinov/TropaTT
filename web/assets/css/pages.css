@@ -10175,26 +10175,32 @@ a.task-tag:hover {
 }
 
 .crm-kanban-filters {
-    display: grid;
-    grid-template-columns: minmax(180px, 1.25fr) repeat(3, minmax(132px, 0.8fr));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
     gap: 10px;
-    align-items: end;
     margin: 8px 0 10px;
-    padding: 10px;
+    padding: 12px 16px;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-lg);
-    background: var(--crm-surface);    position: relative;
+    background: var(--crm-surface);
+    position: relative;
     z-index: 99;
 }
 
 .crm-kanban-search {
     min-width: 0;
+    flex: 2;
 }
 
 .crm-kanban-filters .form-control,
 .crm-kanban-filters .form-select {
     min-height: 38px;
     border-radius: 10px;
+}
+
+.crm-kanban-filters > div:not(.crm-kanban-search):not(.crm-filters-view-actions):not(.crm-kanban-due-filters):not(.crm-kanban-tag-filter-area) {
+    min-width: 140px;
 }
 
 .crm-kanban-due-filters {

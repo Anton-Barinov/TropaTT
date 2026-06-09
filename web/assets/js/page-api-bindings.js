@@ -1252,7 +1252,7 @@ window.CRM.pageApiBindings = (function () {
         managerSelect.innerHTML = '<option value="">Менеджер</option>';
         Object.keys(userMap).forEach(function (k) {
           var u = userMap[k];
-          managerSelect.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.name || u.login) + '</option>';
+          managerSelect.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
         });
         managerSelect.value = mgrVal || state.managerPublicId || '';
       }
