@@ -5,34 +5,39 @@
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-projects-page"><div class="crm-page-head"><div class="crm-page-intro"><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard">Главная</a></li><li class="breadcrumb-item active">Проекты</li></ol><h1 class="crm-page-title">Проекты</h1><p class="crm-subtitle">Список проектов со статусами, клиентами, командами и сроками.</p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-open-modal="createProjectModal">Создать проект</button></div></div>
 
-<section class="crm-kanban-filters crm-filters-card">
-  <div class="crm-kanban-search">
-    <label class="crm-filter-label" for="projectsSearchInput">Поиск</label>
-    <input id="projectsSearchInput" class="form-control" type="search" placeholder="Название, описание или код проекта">
+<section class="crm-kanban-filters crm-filters-card projects-filter">
+  <div class="filter-fields">
+    <div class="crm-kanban-search">
+      <label class="crm-filter-label" for="projectsSearchInput">Поиск</label>
+      <input id="projectsSearchInput" class="form-control" type="search" placeholder="Название, описание или код проекта">
+    </div>
+    <div>
+      <label class="crm-filter-label" for="projectsStatusFilter">Статус</label>
+      <select id="projectsStatusFilter" class="form-select"><option value="">Все статусы</option><option value="active">Активный</option><option value="in_progress">В работе</option><option value="blocked">Блокирован</option><option value="done">Завершен</option></select>
+    </div>
+    <div>
+      <label class="crm-filter-label" for="projectsClientFilter">Клиент</label>
+      <select id="projectsClientFilter" class="form-select"><option value="">Все клиенты</option></select>
+    </div>
+    <div>
+      <label class="crm-filter-label" for="projectsTeamFilter">Команда</label>
+      <select id="projectsTeamFilter" class="form-select"><option value="">Все команды</option></select>
+    </div>
+    <div>
+      <label class="crm-filter-label" for="projectsManagerFilter">Менеджер</label>
+      <select id="projectsManagerFilter" class="form-select"><option value="">Менеджер</option></select>
+    </div>
+    <div>
+      <label class="crm-filter-label" for="projectsPriorityFilter">Приоритет</label>
+      <select id="projectsPriorityFilter" class="form-select"><option value="">Все приоритеты</option><option value="low">Низкий</option><option value="normal">Нормальный</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select>
+    </div>
   </div>
-  <div>
-    <label class="crm-filter-label" for="projectsStatusFilter">Статус</label>
-    <select id="projectsStatusFilter" class="form-select"><option value="">Все статусы</option><option value="active">Активный</option><option value="in_progress">В работе</option><option value="blocked">Блокирован</option><option value="done">Завершен</option></select>
-  </div>
-  <div>
-    <label class="crm-filter-label" for="projectsClientFilter">Клиент</label>
-    <select id="projectsClientFilter" class="form-select"><option value="">Все клиенты</option></select>
-  </div>
-  <div>
-    <label class="crm-filter-label" for="projectsTeamFilter">Команда</label>
-    <select id="projectsTeamFilter" class="form-select"><option value="">Все команды</option></select>
-  </div>
-  <div>
-    <label class="crm-filter-label" for="projectsManagerFilter">Менеджер</label>
-    <select id="projectsManagerFilter" class="form-select"><option value="">Менеджер</option></select>
-  </div>
-  <div>
-    <label class="crm-filter-label" for="projectsPriorityFilter">Приоритет</label>
-    <select id="projectsPriorityFilter" class="form-select"><option value="">Все приоритеты</option><option value="low">Низкий</option><option value="normal">Нормальный</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select>
-  </div>
-  <div class="crm-filters-view-actions">
-    <span id="projectsResultSummary" class="text-muted" style="font-size:11px"></span>
-    <button class="btn crm-btn-secondary" type="button" id="projectsFiltersResetBtn" disabled>Сбросить</button>
+  <div class="filter-actions-row">
+    <div class="filter-quick-actions"></div>
+    <div class="filter-meta-actions">
+      <span id="projectsResultSummary">Показано 0 из 0 проектов</span>
+      <button class="btn crm-btn-secondary" type="button" id="projectsFiltersResetBtn" disabled>Сбросить</button>
+    </div>
   </div>
 </section>
 
