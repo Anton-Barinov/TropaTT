@@ -10183,7 +10183,8 @@ a.task-tag:hover {
     padding: 10px;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-lg);
-    background: var(--crm-surface);
+    background: var(--crm-surface);    position: relative;
+    z-index: 99;
 }
 
 .crm-kanban-search {
