@@ -2626,6 +2626,25 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    if (assigneeFilter) {
+      items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
+    }
+    if (managerFilter) {
+      items = items.filter(function (item) { return String(item.project_manager_user_public_id || '') === managerFilter; });
+    }
+    if (projectFilter) {
+      items = items.filter(function (item) { return String(item.project_public_id || '') === projectFilter; });
+    }
+    if (tagFilter) {
+      items = items.filter(function (item) {
+        if (!item.tags) return false;
+        try {
+          var parsed = typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags;
+          return Array.isArray(parsed) && parsed.some(function (t) { return t.public_id === tagFilter; });
+        } catch(e) { return false; }
+      });
+    }
+
     var filterSnapshot = {
       search: searchFilter,
       status: statusFilter,
@@ -2847,6 +2866,11 @@ window.CRM.pageApiBindings = (function () {
       var projectSelect = document.getElementById('tasksProjectFilter');
       var tagSelect = document.getElementById('tasksTagFilter');
       var resetBtn = document.getElementById('tasksFiltersResetBtn');
+
+      if (assigneeSelect) assigneeSelect.value = assigneeFilter;
+      if (managerSelect) managerSelect.value = managerFilter;
+      if (projectSelect) projectSelect.value = projectFilter;
+      if (tagSelect) tagSelect.value = tagFilter;
 
       function tasksFiltersFromDom() {
         return {
@@ -3073,8 +3097,8 @@ window.CRM.pageApiBindings = (function () {
 
     if (tasksAssignSelect || tasksManagerSelect) {
       var taskUsers = Object.keys(userDirectoryMap).map(function (k) { return userDirectoryMap[k]; });
-      if (tasksAssignSelect) fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.name || u.login; });
-      if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.name || u.login; });
+      if (tasksAssignSelect) fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
+      if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
     }
     if (tasksProjectSelect) {
       var projEnv = await tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true });
@@ -16489,6 +16513,17 @@ window.CRM.pageApiBindings = (function () {
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
       select.dataset.bound = '1';
     });
+    // Bind search input
+    if (search && search.dataset.bound !== '1') {
+      var searchTimer = null;
+      search.addEventListener('input', function () {
+        if (searchTimer) window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(function () {
+          apply(kanbanCurrentFiltersFromControls(), true);
+        }, 250);
+      });
+      search.dataset.bound = '1';
+    }
     document.querySelectorAll('[data-kanban-due]').forEach(function (btn) {
       var due = String(btn.getAttribute('data-kanban-due') || '').trim();
       btn.classList.toggle('is-active', due !== '' && due === String(filters.due || ''));
@@ -25590,6 +25625,45 @@ window.CRM.pageApiBindings = (function () {
 
     renderOptions('');
     if (isMultiple) renderChips();
+
+    // Clear button for single selects
+    var clearBtn = null;
+    if (!isMultiple) {
+      var wrapperParent = wrapper.parentNode;
+      // Check if there's already a clear btn
+      clearBtn = document.createElement('span');
+      clearBtn.innerHTML = '&times;';
+      clearBtn.className = 'crm-searchable-clear';
+      clearBtn.title = 'Очистить';
+      clearBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;color:var(--crm-text-muted);z-index:1;display:none;line-height:1';
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(clearBtn);
+
+      clearBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Reset select to first empty option
+        for (var ci = 0; ci < select.options.length; ci++) {
+          if (select.options[ci].value === '') {
+            select.value = '';
+            input.value = '';
+            clearBtn.style.display = 'none';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            renderOptions('');
+            break;
+          }
+        }
+      });
+
+      input.addEventListener('input', function () {
+        clearBtn.style.display = select.value ? 'block' : 'none';
+      });
+
+      // Initial state
+      if (select.value) {
+        clearBtn.style.display = 'block';
+      }
+    }
 
     // Observe the select for option changes (e.g. innerHTML replacement)
     var tagObserver = new MutationObserver(function () {
