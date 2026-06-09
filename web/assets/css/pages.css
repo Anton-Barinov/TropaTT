@@ -10177,9 +10177,9 @@ a.task-tag:hover {
 .crm-kanban-filters {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 10px;
-    margin: 8px 0 10px;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
     padding: 12px 16px;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-lg);
