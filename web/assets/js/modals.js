@@ -40,23 +40,6 @@ window.CRM.modals = (function () {
     </form>\
   </div></div>\
 </div>\
-  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
-    <div class="modal-header"><h5 class="modal-title">Создать проект</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>\
-    <form id="createProjectForm" novalidate>\
-      <div class="modal-body"><div class="row g-3">\
-        <div class="col-md-8"><label class="form-label">Название проекта</label><input class="form-control" name="title" maxlength="255" placeholder="Запуск клиентского портала"></div>\
-        <div class="col-md-4"><label class="form-label">Статус</label><select class="form-select" name="status"><option value="active">Активный</option><option value="new">К выполнению</option><option value="in_progress">В работе</option><option value="blocked">Блокирован</option><option value="done">Завершен</option></select></div>\
-        <div class="col-md-6"><label class="form-label">Клиент</label><select class="form-select" name="client_public_id"><option value="">Без клиента</option></select></div>\
-        <div class="col-md-6"><label class="form-label">Команда</label><select class="form-select" name="team_public_id"><option value="">Команда не назначена</option></select></div>\
-        <div class="col-md-6"><label class="form-label">Менеджер проекта</label><select class="form-select" name="manager_user_public_id"><option value="">Без менеджера</option></select></div>\
-        <div class="col-md-6"><label class="form-label">Приоритет</label><select class="form-select" name="priority"><option value="normal">Нормальный</option><option value="low">Низкий</option><option value="high">Высокий</option><option value="urgent">Срочный</option></select></div>\
-        <div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="4" placeholder="Цели, контекст и основные ожидания по проекту"></textarea></div>\
-        <div class="col-12"><div class="form-text" data-project-create-hint>Проект будет создан сразу в рабочей модели API, включая клиента, команду и менеджера.</div></div>\
-      </div></div>\
-      <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn crm-btn-primary">Создать</button></div>\
-    </form>\
-  </div></div>\
-</div>\
 \
 <div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
