@@ -1006,7 +1006,9 @@ window.CRM.pageApiBindings = (function () {
       search: String(query.get('search') || ''),
       status: String(query.get('status') || ''),
       priority: String(query.get('priority') || ''),
-      teamPublicId: String(query.get('team_public_id') || ''),
+      clientPublicId: String(query.get('client') || ''),
+      managerPublicId: String(query.get('manager') || ''),
+      teamPublicId: String(query.get('team') || ''),
       view: normalizeView(readCookie(VIEW_COOKIE) || 'cards')
     };
     state.view = normalizeView(state.view);
@@ -1064,6 +1066,8 @@ window.CRM.pageApiBindings = (function () {
         if (state.status && String(item.status_code || '') !== state.status) return false;
         if (state.priority && String(item.priority_code || '') !== state.priority) return false;
         if (state.teamPublicId && String(item.team_public_id || '') !== state.teamPublicId) return false;
+        if (state.clientPublicId && String(item.client_public_id || '') !== state.clientPublicId) return false;
+        if (state.managerPublicId && String(item.manager_user_public_id || '') !== state.managerPublicId) return false;
 
         if (state.search) {
           var haystack = [
@@ -1229,6 +1233,71 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
+    function populateProjectsInlineFilters() {
+      var userMap = window.CRM.userDirectory ? window.CRM.userDirectory.users : userDirectoryMap;
+      // Populate client select
+      var clientSelect = document.getElementById('projectsClientFilter');
+      if (clientSelect) {
+        var clientVal = clientSelect.value;
+        clientSelect.innerHTML = '<option value="">Все клиенты</option>';
+        (mapItems(clientsEnvelope) || []).forEach(function (c) {
+          clientSelect.innerHTML += '<option value="' + safeText(c.public_id) + '">' + safeText(c.title || c.name || c.company_name || c.public_id) + '</option>';
+        });
+        clientSelect.value = clientVal || state.clientPublicId || '';
+      }
+      // Populate team select
+      var teamSelect = document.getElementById('projectsTeamFilter');
+      if (teamSelect) {
+        var teamVal = teamSelect.value;
+        teamSelect.innerHTML = '<option value="">Все команды</option>';
+        (mapItems(teamsEnvelope) || []).forEach(function (t) {
+          teamSelect.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name || t.public_id) + '</option>';
+        });
+        teamSelect.value = teamVal || state.teamPublicId || '';
+      }
+      // Populate manager select from users
+      var managerSelect = document.getElementById('projectsManagerFilter');
+      if (managerSelect && userMap) {
+        var mgrVal = managerSelect.value;
+        managerSelect.innerHTML = '<option value="">Менеджер</option>';
+        Object.keys(userMap).forEach(function (k) {
+          var u = userMap[k];
+          managerSelect.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.name || u.login) + '</option>';
+        });
+        managerSelect.value = mgrVal || state.managerPublicId || '';
+      }
+    }
+    populateProjectsInlineFilters();
+
+    function bindProjectsInlineFilters() {
+      var selects = ['projectsSearchInput', 'projectsStatusFilter', 'projectsClientFilter', 'projectsTeamFilter', 'projectsManagerFilter', 'projectsPriorityFilter'];
+      selects.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || el.dataset.boundProject === '1') return;
+        el.addEventListener('change', async function () {
+          var s = Object.assign({}, state);
+          s.search = document.getElementById('projectsSearchInput')?.value || '';
+          s.status = document.getElementById('projectsStatusFilter')?.value || '';
+          s.clientPublicId = document.getElementById('projectsClientFilter')?.value || '';
+          s.teamPublicId = document.getElementById('projectsTeamFilter')?.value || '';
+          s.managerPublicId = document.getElementById('projectsManagerFilter')?.value || '';
+          s.priority = document.getElementById('projectsPriorityFilter')?.value || '';
+          applyProjectsRouteQuery(s);
+          await renderProjectsPage();
+        });
+        el.dataset.boundProject = '1';
+      });
+      var resetBtn = document.getElementById('projectsFiltersResetBtn');
+      if (resetBtn && resetBtn.dataset.boundProject !== '1') {
+        resetBtn.addEventListener('click', async function () {
+          applyProjectsRouteQuery({ search: '', status: '', clientPublicId: '', teamPublicId: '', managerPublicId: '', priority: '' });
+          await renderProjectsPage();
+        });
+        resetBtn.dataset.boundProject = '1';
+      }
+    }
+    bindProjectsInlineFilters();
+
     ensureProjectsFilterUi();
     var filtered = applyFilters(items);
     var list = document.getElementById('projectsDynamicList');
@@ -1244,15 +1313,13 @@ window.CRM.pageApiBindings = (function () {
       ? window.bootstrap.Modal.getOrCreateInstance(saveViewModalNode)
       : null;
     function applyProjectsRouteQuery(next) {
-      var queryObj = {
-        search: String(next.search || '').trim(),
-        status: String(next.status || '').trim(),
-        priority: String(next.priority || '').trim(),
-        team_public_id: String(next.team_public_id || '').trim()
-      };
+      var queryObj = Object.assign({}, next);
+      delete queryObj.view_public_id;
       if (next.view_public_id) {
         queryObj.view_public_id = String(next.view_public_id).trim();
       }
+      // Clean up empty values
+      Object.keys(queryObj).forEach(function (k) { if (!queryObj[k]) delete queryObj[k]; });
       window.history.replaceState({}, '', window.CRM.api.buildWebUrl('projects', queryObj));
     }
 
@@ -2486,6 +2553,10 @@ window.CRM.pageApiBindings = (function () {
     var statusFilter = String(query.get('status') || '');
     var priorityFilter = String(query.get('priority') || '');
     var searchFilter = String(query.get('search') || '').trim().toLowerCase();
+    var assigneeFilter = String(query.get('assignee') || '').trim();
+    var managerFilter = String(query.get('manager') || '').trim();
+    var projectFilter = String(query.get('project') || '').trim();
+    var tagFilter = String(query.get('tag') || '').trim();
     var sortFilter = String(query.get('sort') || '');
     var orderFilter = String(query.get('order') || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     var pageFilter = Math.max(1, Number.parseInt(String(query.get('page') || '1'), 10) || 1);
@@ -2568,7 +2639,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'sort', 'order', 'page'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'tag', 'sort', 'order', 'page'].forEach(function (key) {
         delete queryObj[key];
       });
       if (!next.keepViewPublicId) {
@@ -2577,6 +2648,10 @@ window.CRM.pageApiBindings = (function () {
       if (next.search) queryObj.search = next.search;
       if (next.status) queryObj.status = next.status;
       if (next.priority) queryObj.priority = next.priority;
+      if (next.assignee) queryObj.assignee = next.assignee;
+      if (next.manager) queryObj.manager = next.manager;
+      if (next.project) queryObj.project = next.project;
+      if (next.tag) queryObj.tag = next.tag;
       if (next.sort) queryObj.sort = next.sort;
       if (next.order) queryObj.order = next.order;
       if (next.page && Number(next.page) > 1) queryObj.page = String(next.page);
@@ -2767,7 +2842,25 @@ window.CRM.pageApiBindings = (function () {
       var searchInput = document.getElementById('tasksSearchInput');
       var statusSelect = document.getElementById('tasksStatusFilter');
       var prioritySelect = document.getElementById('tasksPriorityFilter');
+      var assigneeSelect = document.getElementById('tasksAssigneeFilter');
+      var managerSelect = document.getElementById('tasksManagerFilter');
+      var projectSelect = document.getElementById('tasksProjectFilter');
+      var tagSelect = document.getElementById('tasksTagFilter');
       var resetBtn = document.getElementById('tasksFiltersResetBtn');
+
+      function tasksFiltersFromDom() {
+        return {
+          search: searchInput ? searchInput.value.trim() : '',
+          status: statusSelect ? statusSelect.value : '',
+          priority: prioritySelect ? prioritySelect.value : '',
+          assignee: assigneeSelect ? assigneeSelect.value : '',
+          manager: managerSelect ? managerSelect.value : '',
+          project: projectSelect ? projectSelect.value : '',
+          tag: tagSelect ? tagSelect.value : '',
+          sort: sortFilter,
+          order: orderFilter
+        };
+      }
 
       if (searchInput) {
         searchInput.value = searchFilter;
@@ -2776,57 +2869,31 @@ window.CRM.pageApiBindings = (function () {
           searchInput.addEventListener('input', function () {
             if (timer) window.clearTimeout(timer);
             timer = window.setTimeout(function () {
-              applyTaskRouteQuery({
-                search: searchInput.value.trim(),
-                status: statusSelect ? statusSelect.value : '',
-                priority: prioritySelect ? prioritySelect.value : '',
-                sort: sortFilter,
-                order: orderFilter
-              });
+              applyTaskRouteQuery(tasksFiltersFromDom());
             }, 250);
           });
           searchInput.dataset.bound = '1';
         }
       }
 
-      if (statusSelect) {
-        statusSelect.value = statusFilter;
-        if (statusSelect.dataset.bound !== '1') {
-          statusSelect.addEventListener('change', function () {
-              applyTaskRouteQuery({
-                search: searchInput ? searchInput.value.trim() : '',
-                status: statusSelect.value,
-                priority: prioritySelect ? prioritySelect.value : '',
-                sort: sortFilter,
-                order: orderFilter
-              });
-          });
-          statusSelect.dataset.bound = '1';
-        }
-      }
-
-      if (prioritySelect) {
-        prioritySelect.value = priorityFilter;
-        if (prioritySelect.dataset.bound !== '1') {
-          prioritySelect.addEventListener('change', function () {
-              applyTaskRouteQuery({
-                search: searchInput ? searchInput.value.trim() : '',
-                status: statusSelect ? statusSelect.value : '',
-                priority: prioritySelect.value,
-                sort: sortFilter,
-                order: orderFilter
-              });
-          });
-          prioritySelect.dataset.bound = '1';
-        }
-      }
+      [statusSelect, prioritySelect, assigneeSelect, managerSelect, projectSelect, tagSelect].forEach(function (sel) {
+        if (!sel || sel.dataset.bound === '1') return;
+        sel.addEventListener('change', function () {
+          applyTaskRouteQuery(tasksFiltersFromDom());
+        });
+        sel.dataset.bound = '1';
+      });
 
       if (resetBtn && resetBtn.dataset.bound !== '1') {
         resetBtn.addEventListener('click', function () {
           if (searchInput) searchInput.value = '';
           if (statusSelect) statusSelect.value = '';
           if (prioritySelect) prioritySelect.value = '';
-          applyTaskRouteQuery({ search: '', status: '', priority: '', sort: '', order: '' });
+          if (assigneeSelect) assigneeSelect.value = '';
+          if (managerSelect) managerSelect.value = '';
+          if (projectSelect) projectSelect.value = '';
+          if (tagSelect) tagSelect.value = '';
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', tag: '', sort: '', order: '' });
         });
         resetBtn.dataset.bound = '1';
       }
@@ -2984,6 +3051,40 @@ window.CRM.pageApiBindings = (function () {
         });
         btn.dataset.boundTasksView = '1';
       });
+    }
+
+    function fillSelect(select, items, idKey, labelFn) {
+      if (!select) return;
+      var val = select.value;
+      select.innerHTML = '<option value="">' + (select.options[0]?.text || 'Все') + '</option>';
+      items.forEach(function (item) {
+        var id = item[idKey || 'public_id'];
+        var label = labelFn ? labelFn(item) : (item.title || item.name || item.login || id);
+        select.innerHTML += '<option value="' + safeText(id) + '">' + safeText(label) + '</option>';
+      });
+      select.value = val || '';
+    }
+
+    // Populate task filter selects
+    var tasksAssignSelect = document.getElementById('tasksAssigneeFilter');
+    var tasksManagerSelect = document.getElementById('tasksManagerFilter');
+    var tasksProjectSelect = document.getElementById('tasksProjectFilter');
+    var tasksTagSelect = document.getElementById('tasksTagFilter');
+
+    if (tasksAssignSelect || tasksManagerSelect) {
+      var taskUsers = Object.keys(userDirectoryMap).map(function (k) { return userDirectoryMap[k]; });
+      if (tasksAssignSelect) fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.name || u.login; });
+      if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.name || u.login; });
+    }
+    if (tasksProjectSelect) {
+      var projEnv = await tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true });
+      var projItems = mapItems(projEnv);
+      fillSelect(tasksProjectSelect, projItems, 'public_id', function (p) { return p.title; });
+    }
+    if (tasksTagSelect) {
+      var tagEnv = await tryRequest('api/v1/tags', { query: { limit: 100 }, silent: true });
+      var tagItems = mapItems(tagEnv);
+      fillSelect(tasksTagSelect, tagItems, 'public_id', function (t) { return t.title || t.code || t.public_id; });
     }
 
     bindTasksFilters();
@@ -16243,7 +16344,7 @@ window.CRM.pageApiBindings = (function () {
       managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
       projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
       tags: kanbanSelectedValues(document.getElementById('kanbanTagFilter')),
-      due: String((document.querySelector('[data-kanban-due].is-active') || {}).getAttribute('data-kanban-due') || '').trim()
+      due: String((document.querySelector('[data-kanban-due].is-active')?.getAttribute('data-kanban-due') || '')).trim()
     };
     // Preserve dueFrom/dueTo from URL if not currently active (they come from URL only)
     if (!result.due) {
