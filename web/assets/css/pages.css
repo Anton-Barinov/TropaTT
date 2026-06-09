@@ -841,6 +841,8 @@
 
 /* Kanban filters panel */
 .crm-kanban-page .crm-kanban-filters {
+  position: relative;
+  z-index: 30;
   background: var(--crm-surface);
   border: 1px solid var(--crm-border);
   border-radius: var(--radius-lg);
@@ -11582,6 +11584,9 @@ a.task-tag:hover {
     background: #fff;
     border: 1px solid var(--crm-border);
     border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    min-width: max-content;
+    max-width: min(420px, 90vw);
     display: none;
 }
 
@@ -11591,6 +11596,10 @@ a.task-tag:hover {
     font-size: var(--text-sm);
     line-height: 1.4;
     transition: background 0.12s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .crm-searchable-item:hover,
