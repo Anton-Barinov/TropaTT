@@ -34,6 +34,7 @@
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today">Сегодня</button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="week">На неделе</button>
   </div>
+  <div style="flex:1"></div>
   <div class="crm-kanban-filter-summary">
     <span id="tasksResultSummary">Показано 0 из 0 задач</span>
     <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled>Сбросить</button>
