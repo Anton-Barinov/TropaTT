@@ -10237,10 +10237,19 @@ a.task-tag:hover {
 }
 
 .crm-filters-view-actions {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    align-items: flex-end;
     gap: 6px;
     margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.crm-filters-view-actions > div .crm-filter-label {
+    margin-bottom: 3px;
+}
+
+.crm-filters-view-actions select {
+    min-width: 180px;
 }
 
 .crm-filters-view-actions .btn {
