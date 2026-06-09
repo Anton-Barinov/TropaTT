@@ -34,12 +34,12 @@
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today">Сегодня</button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="week">На неделе</button>
   </div>
-  <div style="display:none" id="tasksTagChipFilter"></div>
   <div class="crm-kanban-filter-summary">
     <span id="tasksResultSummary">Показано 0 из 0 задач</span>
     <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled>Сбросить</button>
   </div>
 </section>
+<div style="display:none" id="tasksTagChipFilter"></div>
 
 <div id="bulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="Bulk actions">
   <div>Выбрано задач: <strong data-selected-count>0</strong> <span class="small ms-2" id="tasksBulkResult" aria-live="polite"></span></div>
