@@ -1006,9 +1006,9 @@ window.CRM.pageApiBindings = (function () {
       search: String(query.get('search') || ''),
       status: String(query.get('status') || ''),
       priority: String(query.get('priority') || ''),
-      clientPublicId: String(query.get('client') || ''),
-      managerPublicId: String(query.get('manager') || ''),
-      teamPublicId: String(query.get('team') || ''),
+      clientPublicId: String(query.get('client') || query.get('clientPublicId') || ''),
+      managerPublicId: String(query.get('manager') || query.get('managerPublicId') || ''),
+      teamPublicId: String(query.get('team') || query.get('teamPublicId') || ''),
       view: normalizeView(readCookie(VIEW_COOKIE) || 'cards')
     };
     state.view = normalizeView(state.view);
@@ -1308,7 +1308,24 @@ window.CRM.pageApiBindings = (function () {
         resetBtn.classList.toggle('is-active', hasActive);
       }
     }
-    bindProjectsInlineFilters();
+    function syncProjectsSearchableInputs() {
+      document.querySelectorAll('.crm-filters-card select[data-searchable="1"]').forEach(function (sel) {
+        var wrapper = sel.parentNode.querySelector('.crm-searchable-select');
+        if (!wrapper) return;
+        var input = wrapper.querySelector('.crm-searchable-input');
+        if (!input) return;
+        if (sel.value) {
+          var opt = sel.options[sel.selectedIndex];
+          input.value = opt ? (opt.textContent || opt.text) : '';
+        } else {
+          input.value = '';
+        }
+      });
+      // Also sync search input
+      var searchInput = document.getElementById('projectsSearchInput');
+      if (searchInput) searchInput.value = state.search;
+    }
+    syncProjectsSearchableInputs();
 
     ensureProjectsFilterUi();
     var filtered = applyFilters(items);
@@ -25734,8 +25751,16 @@ window.CRM.pageApiBindings = (function () {
         clearBtn.style.display = select.value ? 'block' : 'none';
       });
 
-      // Update clear button when select changes externally (e.g. reset button)
+      // Update clear button and input when select changes externally
       select.addEventListener('change', function () {
+        if (!isMultiple) {
+          var selectedOpt = select.options[select.selectedIndex];
+          if (selectedOpt && selectedOpt.value) {
+            input.value = selectedOpt.textContent || selectedOpt.text;
+          } else {
+            input.value = '';
+          }
+        }
         if (clearBtn) clearBtn.style.display = select.value ? 'block' : 'none';
       });
 
