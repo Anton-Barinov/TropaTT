@@ -2404,7 +2404,6 @@ PROMPT;
         $allTasks = [];
         if (!empty($projects)) {
             $prj = $projects[0];
-            $prjTitle = $prj['title'] ?: $prjTitle;
             $prjDesc = $prj['description'] ?: $prjDesc;
             $allTasks = $prj['tasks'] ?? [];
         } else {
