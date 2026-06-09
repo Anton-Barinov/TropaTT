@@ -16542,9 +16542,12 @@ window.CRM.pageApiBindings = (function () {
         reset.addEventListener('click', function () {
           var empty = { q: '', assignees: [], managers: [], projects: [], tags: [], due: '', dueFrom: '', dueTo: '' };
           if (search) search.value = '';
-          if (assignee) assignee.value = '';
-          if (manager) manager.value = '';
-          if (project) project.value = '';
+          if (assignee) { assignee.value = ''; }
+          if (manager) { manager.value = ''; }
+          if (project) { project.value = ''; }
+          // Clear searchable inputs and clear buttons
+          document.querySelectorAll('.crm-kanban-filters .crm-searchable-input, .crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
+          document.querySelectorAll('.crm-kanban-filters .crm-searchable-clear, .crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
           apply(empty, true);
         });
         reset.dataset.bound = '1';
@@ -25603,6 +25606,7 @@ window.CRM.pageApiBindings = (function () {
           item.addEventListener('click', function () {
             select.value = this.dataset.value;
             input.value = this.textContent;
+            if (clearBtn) clearBtn.style.display = 'block';
             dropdown.style.display = 'none';
             select.dispatchEvent(new Event('change', { bubbles: true }));
           });
@@ -25657,6 +25661,11 @@ window.CRM.pageApiBindings = (function () {
 
       input.addEventListener('input', function () {
         clearBtn.style.display = select.value ? 'block' : 'none';
+      });
+
+      // Update clear button when select changes externally (e.g. reset button)
+      select.addEventListener('change', function () {
+        if (clearBtn) clearBtn.style.display = select.value ? 'block' : 'none';
       });
 
       // Initial state
