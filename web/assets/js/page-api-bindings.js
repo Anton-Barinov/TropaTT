@@ -25727,7 +25727,22 @@ window.CRM.pageApiBindings = (function () {
       '#contactCreateCounterpartySelect',
       '#contactEditCounterpartySelect'
     ];
+    // Task page filter selects
+    var taskFilterSelectors = [
+      '#tasksAssigneeFilter',
+      '#tasksManagerFilter',
+      '#tasksProjectFilter',
+      '#tasksTagFilter'
+    ];
+    // Projects page filter selects
+    var projectFilterSelectors = [
+      '#projectsClientFilter',
+      '#projectsTeamFilter',
+      '#projectsManagerFilter'
+    ];
     clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    taskFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    projectFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     // Tag multi-selects
     root.querySelectorAll('select[name="tag_public_ids"]').forEach(function (el) {
       if (!el.dataset.searchable) makeSelectSearchable(el);
