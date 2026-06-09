@@ -25419,13 +25419,15 @@ window.CRM.pageApiBindings = (function () {
           var removeBtn = document.createElement('span');
           removeBtn.className = 'crm-searchable-tag-remove';
           removeBtn.innerHTML = '&times;';
-          removeBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            so.selected = false;
-            renderChips();
-            renderOptions(input.value);
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-          });
+          removeBtn.addEventListener('click', (function (opt) {
+            return function (e) {
+              e.stopPropagation();
+              opt.selected = false;
+              renderChips();
+              renderOptions(input.value);
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+          })(so));
           tag.appendChild(removeBtn);
           chipsRow.insertBefore(tag, input);
         }
