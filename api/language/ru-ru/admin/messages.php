@@ -7,4 +7,6 @@ return [
     'role_matrix_updated' => 'Матрица ролей и прав обновлена',
     'widgets_summary' => 'Сводка административных виджетов',
     'widgets_system' => 'Системные административные виджеты',
+    'cache_stats' => 'Статистика кэша API',
+    'cache_cleared' => 'Кэш API очищен',
 ];

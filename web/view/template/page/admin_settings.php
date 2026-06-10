@@ -40,6 +40,17 @@
   </div>
 </div>
 
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="crm-card crm-section-card">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0">Кэш API</h2><div class="crm-section-note">Файловое кэширование ответов справочных эндпоинтов. После включения изменения вступают в силу немедленно.</div></div></div>
+      <div class="crm-section-body p-3" id="adminCacheSection">
+        <div class="text-muted">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3 mt-1" id="adminSystemInfoSection" style="display:none;">
   <div class="col-12">
     <div class="crm-card crm-section-card">

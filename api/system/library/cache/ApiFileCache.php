@@ -40,6 +40,68 @@ final class ApiFileCache
         return $this->enabled;
     }
 
+    public function setEnabled(bool $enabled): void
+    {
+        $this->enabled = $enabled;
+    }
+
+    public function getDefaultTtl(): int
+    {
+        return $this->defaultTtl;
+    }
+
+    public function setDefaultTtl(int $ttl): void
+    {
+        $this->defaultTtl = max(1, $ttl);
+    }
+
+    public function getBasePath(): string
+    {
+        return $this->basePath;
+    }
+
+    /** @return array{fileCount: int, totalSizeBytes: int, basePath: string} */
+    public function stats(): array
+    {
+        $fileCount = 0;
+        $totalSizeBytes = 0;
+
+        $pattern = $this->basePath . '/' . self::CACHE_KEY_PREFIX . '*.json';
+        $files = @glob($pattern);
+        if ($files !== false) {
+            foreach ($files as $file) {
+                $fileCount++;
+                $size = @filesize($file);
+                if ($size !== false) {
+                    $totalSizeBytes += $size;
+                }
+            }
+        }
+
+        return [
+            'fileCount' => $fileCount,
+            'totalSizeBytes' => $totalSizeBytes,
+            'basePath' => $this->basePath,
+        ];
+    }
+
+    public function clearAll(): void
+    {
+        $files = @glob($this->basePath . '/' . self::CACHE_KEY_PREFIX . '*.json');
+        if ($files !== false) {
+            foreach ($files as $file) {
+                @unlink($file);
+            }
+        }
+        $versionFiles = @glob($this->basePath . '/*' . self::VERSION_FILE_SUFFIX);
+        if ($versionFiles !== false) {
+            foreach ($versionFiles as $file) {
+                @unlink($file);
+            }
+        }
+        $this->log('cache_clear_all', []);
+    }
+
     public function remember(string $namespace, string $key, int $ttl, callable $callback): mixed
     {
         if (!$this->enabled) {

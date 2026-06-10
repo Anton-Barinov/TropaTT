@@ -97,7 +97,22 @@ abstract class BaseController
             return null;
         }
         $cache = $this->container->get('cache.api');
-        return ($cache instanceof ApiFileCache && $cache->isEnabled()) ? $cache : null;
+        if (!($cache instanceof ApiFileCache && $cache->isEnabled())) {
+            return null;
+        }
+        // Check runtime DB setting (overrides bootstrap config)
+        if ($this->container->has('service.setting')) {
+            try {
+                $settingSvc = $this->container->get('service.setting');
+                $setting = $settingSvc->get('system', 'api_file_cache_enabled');
+                if ($setting !== null && !(bool)($setting['value'] ?? true)) {
+                    return null;
+                }
+            } catch (\Throwable) {
+                // Settings service unavailable — proceed with bootstrap config
+            }
+        }
+        return $cache;
     }
 
     protected function invalidateCache(string $namespace): void

@@ -45,6 +45,8 @@ return [
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/admin/role-matrix', 'controller' => Api\Controller\Admin\RoleMatrixController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['role.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/widgets/summary', 'controller' => Api\Controller\Admin\WidgetController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/widgets/system', 'controller' => Api\Controller\Admin\WidgetController::class, 'action' => 'system', 'auth' => true, 'required_permissions' => ['logs.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/admin/cache', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'stats', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/cache/clear', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'clear', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-clients', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['api_client.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/api-clients', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['api_client.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/api-clients/{public_id}', 'controller' => Api\Controller\ApiClient\ApiClientController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['api_client.view']],
@@ -702,6 +704,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/migrations', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'migrations', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'errors', 'auth' => true],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'clearErrors', 'auth' => true],
+
+    ['methods' => ['GET'], 'pattern' => '/api/v1/admin/cache/stats', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'stats', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/cache/clear-all', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'clear', 'auth' => true, 'required_permissions' => ['settings.manage']],
 
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'list', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'create', 'auth' => true],

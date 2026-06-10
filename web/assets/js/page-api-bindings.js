@@ -20815,9 +20815,11 @@ window.CRM.pageApiBindings = (function () {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute'];
+    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl'];
     var settingLabels = {
-      max_requests_per_minute: 'Лимит запросов в минуту'
+      max_requests_per_minute: 'Лимит запросов в минуту',
+      api_file_cache_enabled: 'Кэш API (включён/выключен)',
+      api_file_cache_ttl: 'Время хранения кэша (сек)'
     };
     var retentionLabels = {
       request_logs_days: 'Журнал запросов',
@@ -20860,6 +20862,7 @@ window.CRM.pageApiBindings = (function () {
         tryRequest('api/v1/profile/preferences'),
         tryRequest('api/v1/settings', { query: { scope: 'system', limit: 100 } }),
         tryRequest('api/v1/retention/metadata'),
+        tryRequest('api/v1/admin/cache'),
       ];
       if (hasPermission('logs.view')) {
         requests.push(tryRequest('api/v1/logs/audit', { query: { limit: 10, entity_type: 'setting' } }));
@@ -20871,7 +20874,8 @@ window.CRM.pageApiBindings = (function () {
       var prefEnvelope = results[0];
       var settingsEnvelope = results[1];
       var retentionEnvelope = results[2];
-      var auditEnvelope = results[3];
+      var cacheEnvelope = results[3];
+      var auditEnvelope = results[4];
 
       var preferences = (prefEnvelope && prefEnvelope.data && prefEnvelope.data.preferences) || {};
       if (userPrefsState) {
@@ -21007,6 +21011,46 @@ window.CRM.pageApiBindings = (function () {
           });
           if (auditState) auditState.textContent = 'Событий аудита: ' + String(auditItems.length);
         }
+      }
+
+      renderCacheSection(cacheEnvelope);
+    }
+
+    function renderCacheSection(cacheEnvelope) {
+      var section = document.getElementById('adminCacheSection');
+      if (!section) return;
+      var data = (cacheEnvelope && cacheEnvelope.data) || {};
+      var enabled = Boolean(data.enabled);
+      var ttl = Number(data.ttl || 60);
+      var fileCount = Number(data.fileCount || 0);
+      var sizeBytes = Number(data.totalSizeBytes || 0);
+
+      var html = '<div class="row g-3 align-items-center">';
+      html += '<div class="col-auto"><span class="fw-semibold">Статус:</span></div>';
+      html += '<div class="col-auto"><span class="badge ' + (enabled ? 'bg-success' : 'bg-secondary') + '">' + (enabled ? 'Включён' : 'Выключен') + '</span></div>';
+      if (enabled) {
+        html += '<div class="col-auto"><span class="text-muted small">TTL: ' + ttl + ' с</span></div>';
+        html += '<div class="col-auto"><span class="text-muted small">Файлов: ' + fileCount + '</span></div>';
+        html += '<div class="col-auto"><span class="text-muted small">Объём: ' + formatBytes(sizeBytes) + '</span></div>';
+        html += '<div class="col-auto"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">Очистить кэш</button></div>';
+      }
+      html += '</div>';
+      section.innerHTML = html;
+
+      var clearBtn = document.getElementById('adminCacheClearBtn');
+      if (clearBtn && clearBtn.dataset.bound !== '1') {
+        clearBtn.dataset.bound = '1';
+        clearBtn.addEventListener('click', async function () {
+          if (!window.confirm('Очистить весь файловый кэш API?')) return;
+          try {
+            await request('api/v1/admin/cache/clear', { method: 'POST' });
+            notify('Кэш API очищен');
+            await loadPage();
+          } catch (error) {
+            var normalized = window.CRM.api.normalizeError(error, 'Не удалось очистить кэш');
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
       }
     }
 

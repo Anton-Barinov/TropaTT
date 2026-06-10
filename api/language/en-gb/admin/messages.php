@@ -7,4 +7,6 @@ return [
     'role_matrix_updated' => 'Role and permission matrix updated',
     'widgets_summary' => 'Admin widgets summary',
     'widgets_system' => 'Admin system widgets',
+    'cache_stats' => 'API cache stats',
+    'cache_cleared' => 'API cache cleared',
 ];
