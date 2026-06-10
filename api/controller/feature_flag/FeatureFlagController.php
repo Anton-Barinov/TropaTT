@@ -10,9 +10,21 @@ final class FeatureFlagController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        /** @var FeatureFlagService $service */
-        $service = $this->container->get('service.feature_flag');
-        $result = $service->list($this->request()->allInput());
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . md5(json_encode($input));
+            $result = $cache->remember('feature_flag', $cacheKey, 60, function () use ($input) {
+                /** @var FeatureFlagService $service */
+                $service = $this->container->get('service.feature_flag');
+                return $service->list($input);
+            });
+        } else {
+            /** @var FeatureFlagService $service */
+            $service = $this->container->get('service.feature_flag');
+            $result = $service->list($this->request()->allInput());
+        }
 
         return $this->success('FEATURE_FLAG_LIST', $this->t('feature_flag/messages.list'), [
             'items' => $result['items'],
@@ -41,6 +53,8 @@ final class FeatureFlagController extends BaseController
                 'feature_flag' => [$code],
             ]);
         }
+
+        $this->invalidateCache('feature_flag');
 
         return $this->success('FEATURE_FLAG_UPDATED', $this->t('feature_flag/messages.updated'), [
             'feature_flag' => $result['flag'],

@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Api\Controller\Status;
 
 use Api\Controller\Common\BaseController;
-use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Service\StatusService;
 use Api\System\Library\Validation\Validator;
 
@@ -12,7 +11,7 @@ final class StatusController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        $cache = $this->getApiFileCache();
+        $cache = $this->cacheApi();
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
@@ -29,23 +28,6 @@ final class StatusController extends BaseController
         }
 
         return $this->success('STATUS_LIST', $this->t('status/messages.list'), ['items' => $result['items']], meta: $result['meta']);
-    }
-
-    private function getApiFileCache(): ?ApiFileCache
-    {
-        if (!$this->container->has('cache.api')) {
-            return null;
-        }
-        $cache = $this->container->get('cache.api');
-        return ($cache instanceof ApiFileCache && $cache->isEnabled()) ? $cache : null;
-    }
-
-    private function invalidateStatusCache(): void
-    {
-        $cache = $this->getApiFileCache();
-        if ($cache !== null) {
-            $cache->invalidateNamespace('status');
-        }
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
@@ -86,7 +68,7 @@ final class StatusController extends BaseController
             ]);
         }
 
-        $this->invalidateStatusCache();
+        $this->invalidateCache('status');
 
         return $this->success('STATUS_CREATED', $this->t('status/messages.created'), ['status' => $item], 201);
     }
@@ -117,7 +99,7 @@ final class StatusController extends BaseController
             ]);
         }
 
-        $this->invalidateStatusCache();
+        $this->invalidateCache('status');
 
         return $this->success('STATUS_UPDATED', $this->t('status/messages.updated'), ['status' => $item]);
     }
@@ -149,7 +131,7 @@ final class StatusController extends BaseController
             return $this->error($code, $this->t('status/messages.delete_failed'), $status, $errors);
         }
 
-        $this->invalidateStatusCache();
+        $this->invalidateCache('status');
 
         return $this->success('STATUS_DELETED', $this->t('status/messages.deleted'), [
             'remapped' => (bool)($result['remapped'] ?? false),

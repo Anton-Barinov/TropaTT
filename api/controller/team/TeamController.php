@@ -16,9 +16,22 @@ final class TeamController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var TeamService $service */
-        $service = $this->container->get('service.team');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $userId = (string)($auth['user']['id'] ?? 0);
+            $cacheKey = 'list:' . $userId . ':' . md5(json_encode($input));
+            $result = $cache->remember('team', $cacheKey, 60, function () use ($input, $auth) {
+                /** @var TeamService $service */
+                $service = $this->container->get('service.team');
+                return $service->list($input, $auth['user']);
+            });
+        } else {
+            /** @var TeamService $service */
+            $service = $this->container->get('service.team');
+            $result = $service->list($this->request()->allInput(), $auth['user']);
+        }
 
         return $this->success('TEAM_LIST', $this->t('team/messages.list'), [
             'items' => $result['items'],
@@ -44,6 +57,8 @@ final class TeamController extends BaseController
         /** @var TeamService $service */
         $service = $this->container->get('service.team');
         $team = $service->create($input, $auth['user']);
+
+        $this->invalidateCache('team');
 
         return $this->success('TEAM_CREATED', $this->t('team/messages.created'), ['team' => $team], 201);
     }
@@ -85,6 +100,8 @@ final class TeamController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('team');
+
         return $this->success('TEAM_UPDATED', $this->t('team/messages.updated'), ['team' => $team]);
     }
 
@@ -105,7 +122,8 @@ final class TeamController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('team');
+
         return $this->success('TEAM_DELETED', $this->t('team/messages.deleted'));
     }
-
 }

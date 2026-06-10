@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Api\Controller\Priority;
 
 use Api\Controller\Common\BaseController;
-use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Service\PriorityService;
 use Api\System\Library\Validation\Validator;
 
@@ -12,7 +11,7 @@ final class PriorityController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        $cache = $this->getApiFileCache();
+        $cache = $this->cacheApi();
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
@@ -29,23 +28,6 @@ final class PriorityController extends BaseController
         }
 
         return $this->success('PRIORITY_LIST', $this->t('priority/messages.list'), ['items' => $result['items']], meta: $result['meta']);
-    }
-
-    private function getApiFileCache(): ?ApiFileCache
-    {
-        if (!$this->container->has('cache.api')) {
-            return null;
-        }
-        $cache = $this->container->get('cache.api');
-        return ($cache instanceof ApiFileCache && $cache->isEnabled()) ? $cache : null;
-    }
-
-    private function invalidatePriorityCache(): void
-    {
-        $cache = $this->getApiFileCache();
-        if ($cache !== null) {
-            $cache->invalidateNamespace('priority');
-        }
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
@@ -84,7 +66,7 @@ final class PriorityController extends BaseController
             ]);
         }
 
-        $this->invalidatePriorityCache();
+        $this->invalidateCache('priority');
 
         return $this->success('PRIORITY_CREATED', $this->t('priority/messages.created'), ['priority' => $item], 201);
     }
@@ -114,7 +96,7 @@ final class PriorityController extends BaseController
             ]);
         }
 
-        $this->invalidatePriorityCache();
+        $this->invalidateCache('priority');
 
         return $this->success('PRIORITY_UPDATED', $this->t('priority/messages.updated'), ['priority' => $item]);
     }
@@ -130,7 +112,7 @@ final class PriorityController extends BaseController
             ]);
         }
 
-        $this->invalidatePriorityCache();
+        $this->invalidateCache('priority');
 
         return $this->success('PRIORITY_DELETED', $this->t('priority/messages.deleted'));
     }

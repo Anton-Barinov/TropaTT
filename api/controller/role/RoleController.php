@@ -11,9 +11,21 @@ final class RoleController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        /** @var RoleService $service */
-        $service = $this->container->get('service.role');
-        $result = $service->list($this->request()->allInput());
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . md5(json_encode($input));
+            $result = $cache->remember('role', $cacheKey, 60, function () use ($input) {
+                /** @var RoleService $service */
+                $service = $this->container->get('service.role');
+                return $service->list($input);
+            });
+        } else {
+            /** @var RoleService $service */
+            $service = $this->container->get('service.role');
+            $result = $service->list($this->request()->allInput());
+        }
 
         return $this->success('ROLE_LIST', $this->t('role/messages.list'), $result);
     }
@@ -42,6 +54,8 @@ final class RoleController extends BaseController
             return $this->error((string)$result['code'], $this->t('role/messages.create_failed'), 403, ['role' => [(string)$result['code']]]);
         }
 
+        $this->invalidateCache('role');
+
         return $this->success('ROLE_CREATED', $this->t('role/messages.created'), ['role' => $result['role']], 201);
     }
 
@@ -61,6 +75,8 @@ final class RoleController extends BaseController
             return $this->error((string)$result['code'], $this->t('role/messages.update_failed'), $status, ['role' => [(string)$result['code']]]);
         }
 
+        $this->invalidateCache('role');
+
         return $this->success('ROLE_UPDATED', $this->t('role/messages.updated'), ['role' => $result['role']]);
     }
 
@@ -79,6 +95,8 @@ final class RoleController extends BaseController
             $status = in_array((string)$result['code'], ['ROLE_NOT_FOUND'], true) ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('role/messages.delete_failed'), $status, ['role' => [(string)$result['code']]]);
         }
+
+        $this->invalidateCache('role');
 
         return $this->success('ROLE_DELETED', $this->t('role/messages.deleted'));
     }

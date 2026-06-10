@@ -28,8 +28,8 @@ return [
     ],
 
     'api_file_cache' => [
-        'enabled' => false,
-        'default_ttl' => 60,
-        'debug' => false,
+        'enabled' => (getenv('API_FILE_CACHE_ENABLED') ?: 'false') === 'true',
+        'default_ttl' => (int)(getenv('API_FILE_CACHE_TTL') ?: 60),
+        'debug' => (getenv('API_FILE_CACHE_DEBUG') ?: 'false') === 'true',
     ],
 ];

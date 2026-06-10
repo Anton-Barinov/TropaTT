@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\Controller\Common;
 
+use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\Request;
@@ -88,6 +89,23 @@ abstract class BaseController
         $service->remember($request, is_array($actor) ? $actor : null, $response);
 
         return $response;
+    }
+
+    protected function cacheApi(): ?ApiFileCache
+    {
+        if (!$this->container->has('cache.api')) {
+            return null;
+        }
+        $cache = $this->container->get('cache.api');
+        return ($cache instanceof ApiFileCache && $cache->isEnabled()) ? $cache : null;
+    }
+
+    protected function invalidateCache(string $namespace): void
+    {
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $cache->invalidateNamespace($namespace);
+        }
     }
 
     /** @param array<string,mixed>|array<int,mixed> $payload */
