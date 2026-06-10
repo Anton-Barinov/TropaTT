@@ -637,7 +637,6 @@ window.CRM.navigation = (function () {
             if (query) {
               var bsModal = bootstrap.Modal.getInstance(modal);
               if (bsModal) bsModal.hide();
-              // Navigate to tasks page with search query
               window.location.href = 'index.php?route=tasks&search=' + encodeURIComponent(query);
             }
           }
@@ -649,24 +648,6 @@ window.CRM.navigation = (function () {
             if (bsModal) bsModal.hide();
           }
         });
-      }
-
-      // Connect existing global search logic to modal input
-      if (modalInput && window.CRM.api) {
-        // Copy the data-search-bound logic from the original input
-        var originalInput = searchGroup ? searchGroup.querySelector('input') : null;
-        if (originalInput && originalInput.dataset.searchBound === '1') {
-          // The global search is already bound; copy the keydown handler
-          modalInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-              var val = this.value.trim();
-              if (val) {
-                // Same logic as bindGlobalSearch
-                window.location.href = 'index.php?route=task-search&q=' + encodeURIComponent(val);
-              }
-            }
-          });
-        }
       }
 
       var bsModal = new bootstrap.Modal(modal);
