@@ -12210,6 +12210,7 @@ a.task-tag:hover {
   background: #fff !important;
   color: var(--crm-text-muted);
   min-height: 48px;
+  border-color: var(--color-primary-500) !important;
 }
 
 .crm-global-search-page #globalSearchForm .input-group .form-control {
@@ -12218,11 +12219,11 @@ a.task-tag:hover {
   border-right: none !important;
   min-height: 48px;
   font-size: 0.95rem;
+  border-color: var(--color-primary-500) !important;
 }
 
 .crm-global-search-page #globalSearchForm .input-group .form-control:focus {
   box-shadow: none !important;
-  border-color: var(--color-primary-500) !important;
 }
 
 .crm-global-search-page #globalSearchForm .input-group .btn {
@@ -12232,4 +12233,5 @@ a.task-tag:hover {
   padding-right: 20px;
   font-size: 0.92rem;
   margin-left: 0;
+  border-color: var(--color-primary-500) !important;
 }
