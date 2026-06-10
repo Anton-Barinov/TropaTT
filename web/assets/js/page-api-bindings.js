@@ -25598,6 +25598,96 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  async function renderGlobalSearchPage() {
+    setLoadingState(true);
+    var container = document.getElementById('globalSearchResults');
+    var form = document.getElementById('globalSearchForm');
+    var queryInput = document.getElementById('globalSearchQuery');
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderResults(data) {
+      if (!container) return;
+      var results = data && data.results;
+      var counts = data && data.counts;
+      if (!results) {
+        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Нет результатов.</div></div></div>';
+        return;
+      }
+
+      var sections = [];
+
+      if (results.tasks && results.tasks.length) {
+        var tasksHtml = results.tasks.slice(0, 10).map(function(task) {
+          var link = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(task.title || 'Без названия') + '</a>'
+            + '<div class="crm-search-item-meta">Задача · ' + escapeHtml(task.project_title || '—') + '</div></div>';
+        }).join('');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Задачи</h2><span class="crm-chip">' + (counts?.tasks || results.tasks.length) + '</span></div><div class="crm-search-list">' + tasksHtml + '</div></div></div>');
+      }
+
+      if (results.projects && results.projects.length) {
+        var projHtml = results.projects.slice(0, 10).map(function(proj) {
+          var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(proj.public_id || '');
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(proj.title || 'Без названия') + '</a>'
+            + '<div class="crm-search-item-meta">Проект · ' + escapeHtml(statusLabel(proj.status_code)) + '</div></div>';
+        }).join('');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Проекты</h2><span class="crm-chip">' + (counts?.projects || results.projects.length) + '</span></div><div class="crm-search-list">' + projHtml + '</div></div></div>');
+      }
+
+      if (results.counterparties && results.counterparties.length) {
+        var cpHtml = results.counterparties.slice(0, 10).map(function(cp) {
+          return '<div class="crm-search-item"><span class="crm-search-item-title">' + escapeHtml(cp.title || cp.name || cp.company_name || '—') + '</span>'
+            + '<div class="crm-search-item-meta">Контрагент</div></div>';
+        }).join('');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Контрагенты</h2><span class="crm-chip">' + (counts?.counterparties || results.counterparties.length) + '</span></div><div class="crm-search-list">' + cpHtml + '</div></div></div>');
+      }
+
+      if (results.contacts && results.contacts.length) {
+        var contactHtml = results.contacts.slice(0, 10).map(function(c) {
+          return '<div class="crm-search-item"><span class="crm-search-item-title">' + escapeHtml(c.full_name || c.name || c.email || '—') + '</span>'
+            + '<div class="crm-search-item-meta">Контакт · ' + escapeHtml(c.email || '') + '</div></div>';
+        }).join('');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Контакты</h2><span class="crm-chip">' + (counts?.contacts || results.contacts.length) + '</span></div><div class="crm-search-list">' + contactHtml + '</div></div></div>');
+      }
+
+      if (sections.length === 0) {
+        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Ничего не найдено по запросу «' + escapeHtml(queryInput ? queryInput.value : '') + '».</div></div></div>';
+        return;
+      }
+
+      container.innerHTML = sections.join('');
+    }
+
+    var query = new URLSearchParams(window.location.search).get('q') || '';
+    if (queryInput) queryInput.value = query;
+
+    if (query.length >= 2) {
+      try {
+        var env = await window.CRM.api.request('api/v1/search/global', { query: { q: query, limit: 10 } });
+        renderResults(env && env.data ? env.data : null);
+      } catch (e) {
+        if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">Ошибка поиска.</div></div></div>';
+      }
+    } else {
+      if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Введите минимум 2 символа для поиска.</div></div></div>';
+    }
+
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var val = queryInput ? queryInput.value.trim() : '';
+        if (val.length >= 2) {
+          window.location.href = 'index.php?route=global-search&q=' + encodeURIComponent(val);
+        }
+      });
+    }
+
+    setLoadingState(false);
+  }
+
   function makeSelectSearchable(select) {
     if (!select || select.dataset.searchable) return;
     select.dataset.searchable = '1';
@@ -25992,6 +26082,7 @@ window.CRM.pageApiBindings = (function () {
       if (route === 'admin-tags') return await renderAdminTagsPage();
       if (route === 'admin-webhooks') return await renderAdminWebhooksPage();
       if (route === 'time-analytics') return await renderTimeAnalyticsPage();
+      if (route === 'global-search') return await renderGlobalSearchPage();
     } finally {
       void notificationsPromise;
       humanizeUserPublicIds(document.body);
