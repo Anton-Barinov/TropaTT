@@ -79,3 +79,12 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 api/docs/
+
+
+# Ignored generated/private documentation
+/docs/api/
+/docs/api/**
+/docs/landing/
+/docs/landing/**
+/docs/web/
+/docs/web/**
