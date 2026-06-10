@@ -12235,3 +12235,31 @@ a.task-tag:hover {
   margin-left: 0;
   border-color: var(--color-primary-500) !important;
 }
+
+/* ── Unified search input-group: modal + topbar inline ── */
+.modal .input-group-lg > .input-group-text,
+[data-global-search] > .input-group-text {
+  border-radius: 10px 0 0 10px !important;
+  border-right: none !important;
+  padding-left: 16px;
+  padding-right: 12px;
+  background: #fff !important;
+  color: var(--crm-text-muted);
+  min-height: 48px;
+  border-color: var(--color-primary-500) !important;
+}
+
+.modal .input-group-lg > .form-control,
+[data-global-search] > .form-control {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  min-height: 48px;
+  font-size: 0.95rem;
+  border-color: var(--color-primary-500) !important;
+}
+
+.modal .input-group-lg > .form-control:focus,
+[data-global-search] > .form-control:focus {
+  box-shadow: none !important;
+}
