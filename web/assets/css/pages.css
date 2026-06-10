@@ -12251,9 +12251,8 @@ a.task-tag:hover {
 
 .modal .input-group-lg > .form-control,
 [data-global-search] > .form-control {
-  border-radius: 0 !important;
+  border-radius: 0 10px 10px 0 !important;
   border-left: none !important;
-  border-right: none !important;
   min-height: 48px;
   font-size: 0.95rem;
   border-color: var(--color-primary-500) !important;
