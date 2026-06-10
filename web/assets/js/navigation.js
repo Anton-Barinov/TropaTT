@@ -854,6 +854,24 @@ window.CRM.navigation = (function () {
   var _chatUnreadTimer = null;
   var _notifTimer = null;
 
+  function startNavPolling() {
+    if (_chatUnreadTimer && _notifTimer) return;
+    stopNavPolling();
+    _chatUnreadTimer = window.setInterval(updateChatUnreadBadges, 120000);
+    _notifTimer = window.setInterval(updateNotificationBadges, 120000);
+  }
+
+  function stopNavPolling() {
+    if (_chatUnreadTimer) {
+      window.clearInterval(_chatUnreadTimer);
+      _chatUnreadTimer = null;
+    }
+    if (_notifTimer) {
+      window.clearInterval(_notifTimer);
+      _notifTimer = null;
+    }
+  }
+
   async function init() {
     if (_navInitDone) return;
     _navInitDone = true;
@@ -869,8 +887,31 @@ window.CRM.navigation = (function () {
     bindLogoutButtons();
     updateChatUnreadBadges();
     updateNotificationBadges();
-    _chatUnreadTimer = window.setInterval(updateChatUnreadBadges, 120000);
-    _notifTimer = window.setInterval(updateNotificationBadges, 120000);
+    if (window.CRM && window.CRM.tabLeader) {
+      window.CRM.tabLeader.onBecomeLeader(startNavPolling);
+      window.CRM.tabLeader.onLoseLeader(stopNavPolling);
+      window.CRM.tabLeader.onMessage('nav-chat-unread', function (payload) {
+        var count = Number(payload && payload.count || 0) || 0;
+        document.querySelectorAll('[data-chat-unread-badge]').forEach(function (badge) {
+          badge.classList.toggle('d-none', count <= 0);
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных чатов: ' + count) : '');
+        });
+      });
+      window.CRM.tabLeader.onMessage('nav-notif-unread', function (payload) {
+        var count = Number(payload && payload.count || 0) || 0;
+        document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
+          badge.classList.toggle('d-none', count <= 0);
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных уведомлений: ' + count) : '');
+        });
+      });
+      if (window.CRM.tabLeader.isLeader()) {
+        startNavPolling();
+      }
+    } else {
+      startNavPolling();
+    }
   }
 
   async function updateChatUnreadBadges() {
@@ -884,6 +925,9 @@ window.CRM.navigation = (function () {
         badge.textContent = count > 99 ? '99+' : String(count);
         badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных чатов: ' + count) : '');
       });
+      if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
+        window.CRM.tabLeader.broadcast('nav-chat-unread', { count: count });
+      }
     } catch (e) {}
   }
 
@@ -899,6 +943,9 @@ window.CRM.navigation = (function () {
         badge.textContent = count > 99 ? '99+' : String(count);
         badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных уведомлений: ' + count) : '');
       });
+      if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
+        window.CRM.tabLeader.broadcast('nav-notif-unread', { count: count });
+      }
     } catch (e) {}
   }
 

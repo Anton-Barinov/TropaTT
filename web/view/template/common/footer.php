@@ -30,6 +30,7 @@ if ($assetsVersion === '') {
 <script src="assets/js/api.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/ai.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/i18n.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script src="assets/js/tab-leader.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/navigation.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/ui.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/modals.js?v=<?= urlencode($assetsVersion) ?>"></script>

@@ -141,6 +141,11 @@
 
   async function init() {
     try {
+      if (window.CRM.tabLeader) window.CRM.tabLeader.init();
+    } catch (error) {
+      console.error('tabLeader init failed', error);
+    }
+    try {
       if (window.CRM.i18n) window.CRM.i18n.init();
     } catch (error) {
       console.error('i18n init failed', error);

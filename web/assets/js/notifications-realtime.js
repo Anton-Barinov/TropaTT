@@ -415,7 +415,9 @@ window.CRM.notificationsRealtime = (function () {
 
   function ensurePollingFallback() {
     if (pollTimer) return;
+    if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
     pollTimer = window.setInterval(function () {
+      if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
       scheduleUiRefresh();
     }, 120000);
   }
@@ -447,6 +449,10 @@ window.CRM.notificationsRealtime = (function () {
 
   function connect() {
     if (!started || !isProtectedPage()) return;
+    if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) {
+      ensurePollingFallback();
+      return;
+    }
     if (!window.EventSource) {
       ensurePollingFallback();
       return;
@@ -494,9 +500,37 @@ window.CRM.notificationsRealtime = (function () {
 
     source.onerror = function () {
       closeSource();
+      if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
       ensurePollingFallback();
       scheduleReconnect();
     };
+  }
+
+  function startLeaderAware() {
+    if (window.CRM && window.CRM.tabLeader) {
+      if (window.CRM.tabLeader.isLeader()) {
+        connect();
+      }
+    } else {
+      connect();
+    }
+  }
+
+  function leaderBecameLeader() {
+    if (!isProtectedPage()) return;
+    started = true;
+    ensureAudioUnlocked();
+    connect();
+  }
+
+  function leaderLostLeader() {
+    closeSource();
+    stopPolling();
+    if (reconnectTimer) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    reconnectAttempt = 0;
   }
 
   function start() {
@@ -504,7 +538,11 @@ window.CRM.notificationsRealtime = (function () {
     if (!isProtectedPage()) return;
     started = true;
     ensureAudioUnlocked();
-    connect();
+    if (window.CRM && window.CRM.tabLeader) {
+      window.CRM.tabLeader.onBecomeLeader(leaderBecameLeader);
+      window.CRM.tabLeader.onLoseLeader(leaderLostLeader);
+    }
+    startLeaderAware();
   }
 
   function stop() {
