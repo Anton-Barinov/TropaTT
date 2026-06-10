@@ -31,5 +31,9 @@ return [
         'enabled' => (getenv('API_FILE_CACHE_ENABLED') ?: 'false') === 'true',
         'default_ttl' => (int)(getenv('API_FILE_CACHE_TTL') ?: 60),
         'debug' => (getenv('API_FILE_CACHE_DEBUG') ?: 'false') === 'true',
+        'gc_enabled' => (getenv('API_FILE_CACHE_GC_ENABLED') ?: 'true') === 'true',
+        'gc_probability' => (int)(getenv('API_FILE_CACHE_GC_PROBABILITY') ?: 1),
+        'gc_max_age' => (int)(getenv('API_FILE_CACHE_GC_MAX_AGE') ?: 86400),
+        'gc_limit' => (int)(getenv('API_FILE_CACHE_GC_LIMIT') ?: 100),
     ],
 ];

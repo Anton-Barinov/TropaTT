@@ -705,9 +705,6 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'errors', 'auth' => true],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/modules/{name}/errors', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'clearErrors', 'auth' => true],
 
-    ['methods' => ['GET'], 'pattern' => '/api/v1/admin/cache/stats', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'stats', 'auth' => true, 'required_permissions' => ['settings.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/cache/clear-all', 'controller' => Api\Controller\Admin\CacheController::class, 'action' => 'clear', 'auth' => true, 'required_permissions' => ['settings.manage']],
-
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'list', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'create', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas/{public_id}', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'get', 'auth' => true],

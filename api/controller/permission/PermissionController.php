@@ -10,9 +10,15 @@ final class PermissionController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $result = $cache->remember('permission', 'list', 60, function () {
+            $cacheKey = 'list:' . $this->cacheUserId();
+            $result = $cache->remember('permission', $cacheKey, 60, function () {
                 /** @var PermissionService $service */
                 $service = $this->container->get('service.permission');
                 return $service->list();
@@ -28,9 +34,14 @@ final class PermissionController extends BaseController
 
     public function listByRole(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'role:' . $params['public_id'];
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $params['public_id'];
             $result = $cache->remember('permission', $cacheKey, 60, function () use ($params) {
                 /** @var PermissionService $service */
                 $service = $this->container->get('service.permission');

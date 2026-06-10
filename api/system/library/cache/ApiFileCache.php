@@ -11,11 +11,16 @@ final class ApiFileCache
     private const CACHE_KEY_PREFIX = 'api_cache_';
     private const VERSION_FILE_SUFFIX = '.version';
     private const TMP_SUFFIX = '.tmp';
+    private const GC_MARKER_SUFFIX = '.gc_marker';
 
     private string $basePath;
     private bool $enabled;
     private int $defaultTtl;
     private bool $debug;
+    private bool $gcEnabled;
+    private int $gcProbability;
+    private int $gcMaxAge;
+    private int $gcLimit;
     private ?JsonLogger $logger = null;
 
     public function __construct(Config $config, ?JsonLogger $logger = null)
@@ -28,6 +33,10 @@ final class ApiFileCache
         $this->enabled = (bool)($config->get('default.api_file_cache.enabled', false));
         $this->defaultTtl = (int)($config->get('default.api_file_cache.default_ttl', 60));
         $this->debug = (bool)($config->get('default.api_file_cache.debug', false));
+        $this->gcEnabled = (bool)($config->get('default.api_file_cache.gc_enabled', true));
+        $this->gcProbability = (int)($config->get('default.api_file_cache.gc_probability', 1));
+        $this->gcMaxAge = (int)($config->get('default.api_file_cache.gc_max_age', 86400));
+        $this->gcLimit = (int)($config->get('default.api_file_cache.gc_limit', 100));
         $this->logger = $logger;
 
         if ($this->enabled && !is_dir($this->basePath)) {
@@ -108,6 +117,8 @@ final class ApiFileCache
             return $callback();
         }
 
+        $this->maybeGc();
+
         $version = $this->getNamespaceVersion($namespace);
         $cacheKey = $this->hashKey($namespace, $key, $version);
         $cached = $this->read($cacheKey, $ttl);
@@ -137,6 +148,8 @@ final class ApiFileCache
         if (!$this->enabled) {
             return;
         }
+
+        $this->maybeGc();
 
         $versionFile = $this->versionFilePath($namespace);
         $newVersion = (string)(int)(microtime(true) * 1000);
@@ -283,6 +296,65 @@ final class ApiFileCache
                 @unlink($file);
             }
         }
+    }
+
+    private function maybeGc(): void
+    {
+        if (!$this->gcEnabled || $this->gcProbability < 1) {
+            return;
+        }
+
+        if (random_int(1, max(1, $this->gcProbability)) !== 1) {
+            return;
+        }
+
+        $marker = $this->basePath . '/gc' . self::GC_MARKER_SUFFIX;
+        $markerMaxAge = 300;
+        if (is_file($marker)) {
+            $mtime = @filemtime($marker);
+            if ($mtime !== false && (time() - $mtime) < $markerMaxAge) {
+                return;
+            }
+        }
+
+        @touch($marker);
+
+        $pattern = $this->basePath . '/' . self::CACHE_KEY_PREFIX . '*.json';
+        $files = @glob($pattern);
+        if ($files === false || $files === []) {
+            return;
+        }
+
+        $now = time();
+        $deleted = 0;
+        $errors = 0;
+
+        foreach ($files as $file) {
+            if ($deleted >= $this->gcLimit) {
+                break;
+            }
+
+            $mtime = @filemtime($file);
+            if ($mtime === false) {
+                continue;
+            }
+
+            if (($now - $mtime) > $this->gcMaxAge) {
+                if (@unlink($file)) {
+                    $deleted++;
+                } else {
+                    $errors++;
+                }
+            }
+        }
+
+        $this->log('gc_run', [
+            'scanned' => count($files),
+            'deleted' => $deleted,
+            'errors' => $errors,
+            'maxAge' => $this->gcMaxAge,
+            'limit' => $this->gcLimit,
+        ]);
     }
 
     private function ensureDirectoryExists(string $path): void

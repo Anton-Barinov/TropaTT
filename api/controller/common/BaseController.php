@@ -123,6 +123,12 @@ abstract class BaseController
         }
     }
 
+    protected function cacheUserId(): string
+    {
+        $auth = $this->user();
+        return (string)($auth['user']['id'] ?? 0);
+    }
+
     /** @param array<string,mixed>|array<int,mixed> $payload */
     private function sanitizePublicContract(array $payload): array
     {

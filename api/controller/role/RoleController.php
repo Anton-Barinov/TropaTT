@@ -11,11 +11,16 @@ final class RoleController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
         $cache = $this->cacheApi();
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . md5(json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
             $result = $cache->remember('role', $cacheKey, 60, function () use ($input) {
                 /** @var RoleService $service */
                 $service = $this->container->get('service.role');
