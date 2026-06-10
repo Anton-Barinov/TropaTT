@@ -26,4 +26,10 @@ return [
         'cache' => $storageBase . '/cache',
         'secrets' => $storageBase . '/secrets',
     ],
+
+    'api_file_cache' => [
+        'enabled' => false,
+        'default_ttl' => 60,
+        'debug' => false,
+    ],
 ];

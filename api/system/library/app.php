@@ -134,6 +134,7 @@ use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\WorklogService;
 use Api\System\Library\Service\WorkflowService;
 use Api\System\Library\Service\DashboardAiContextBuilder;
+use Api\System\Library\Cache\ApiFileCache;
 use RuntimeException;
 use Throwable;
 
@@ -1312,6 +1313,11 @@ final class App
         ));
         $this->container->factory('service.idempotency', fn(Container $c) => new \Api\System\Library\Service\IdempotencyService(
             $c->get('repository.idempotency')
+        ));
+
+        $this->container->factory('cache.api', fn(Container $c) => new ApiFileCache(
+            $this->config,
+            $c->get('logger')
         ));
 
         $this->container->factory('controller.module', fn(Container $c) => new \Api\Controller\Module\ModuleController($c));

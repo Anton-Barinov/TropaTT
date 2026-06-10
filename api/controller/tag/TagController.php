@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Tag;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Cache\ApiFileCache;
 use Api\System\Library\Service\TagService;
 use Api\System\Library\Validation\Validator;
 
@@ -11,11 +12,40 @@ final class TagController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        /** @var TagService $service */
-        $service = $this->container->get('service.tag');
-        $result = $service->list($this->request()->allInput());
+        $cache = $this->getApiFileCache();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . md5(json_encode($input));
+            $result = $cache->remember('tag', $cacheKey, 60, function () use ($input) {
+                /** @var TagService $service */
+                $service = $this->container->get('service.tag');
+                return $service->list($input);
+            });
+        } else {
+            /** @var TagService $service */
+            $service = $this->container->get('service.tag');
+            $result = $service->list($this->request()->allInput());
+        }
 
         return $this->success('TAG_LIST', $this->t('tag/messages.list'), ['items' => $result['items']], meta: $result['meta']);
+    }
+
+    private function getApiFileCache(): ?ApiFileCache
+    {
+        if (!$this->container->has('cache.api')) {
+            return null;
+        }
+        $cache = $this->container->get('cache.api');
+        return ($cache instanceof ApiFileCache && $cache->isEnabled()) ? $cache : null;
+    }
+
+    private function invalidateTagCache(): void
+    {
+        $cache = $this->getApiFileCache();
+        if ($cache !== null) {
+            $cache->invalidateNamespace('tag');
+        }
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
@@ -62,6 +92,8 @@ final class TagController extends BaseController
             ]);
         }
 
+        $this->invalidateTagCache();
+
         return $this->success('TAG_CREATED', $this->t('tag/messages.created'), ['tag' => $item], 201);
     }
 
@@ -94,6 +126,8 @@ final class TagController extends BaseController
             ]);
         }
 
+        $this->invalidateTagCache();
+
         return $this->success('TAG_UPDATED', $this->t('tag/messages.updated'), ['tag' => $item]);
     }
 
@@ -107,6 +141,8 @@ final class TagController extends BaseController
                 'tag' => [$this->t('tag/messages.not_found')],
             ]);
         }
+
+        $this->invalidateTagCache();
 
         return $this->success('TAG_DELETED', $this->t('tag/messages.deleted'));
     }
