@@ -21025,17 +21025,73 @@ window.CRM.pageApiBindings = (function () {
       var fileCount = Number(data.fileCount || 0);
       var sizeBytes = Number(data.totalSizeBytes || 0);
 
-      var html = '<div class="row g-3 align-items-center">';
-      html += '<div class="col-auto"><span class="fw-semibold">Статус:</span></div>';
+      var html = '<div class="row g-3">';
+      html += '<div class="col-12"><div class="row g-3 align-items-center">';
+      html += '<div class="col-auto"><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="adminCacheToggle" ' + (enabled ? 'checked' : '') + '><label class="form-check-label fw-semibold" for="adminCacheToggle">Кэширование API</label></div></div>';
       html += '<div class="col-auto"><span class="badge ' + (enabled ? 'bg-success' : 'bg-secondary') + '">' + (enabled ? 'Включён' : 'Выключен') + '</span></div>';
-      if (enabled) {
-        html += '<div class="col-auto"><span class="text-muted small">TTL: ' + ttl + ' с</span></div>';
-        html += '<div class="col-auto"><span class="text-muted small">Файлов: ' + fileCount + '</span></div>';
-        html += '<div class="col-auto"><span class="text-muted small">Объём: ' + formatBytes(sizeBytes) + '</span></div>';
-        html += '<div class="col-auto"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">Очистить кэш</button></div>';
-      }
+      html += '</div></div>';
+
+      html += '<div class="col-md-3">';
+      html += '<label class="form-label small text-muted mb-1">Время хранения (сек)</label>';
+      html += '<div class="input-group input-group-sm"><input type="number" class="form-control form-control-sm" id="adminCacheTtlInput" min="1" max="86400" value="' + ttl + '"><button class="btn btn-sm btn-outline-primary" id="adminCacheTtlSaveBtn" type="button">Применить</button></div>';
+      html += '</div>';
+
+      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Файлов кэша</label><div class="fw-semibold">' + fileCount + '</div></div>';
+      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Объём на диске</label><div class="fw-semibold">' + formatBytes(sizeBytes) + '</div></div>';
+      html += '<div class="col-md-3 d-flex align-items-end"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">Очистить кэш</button></div>';
       html += '</div>';
       section.innerHTML = html;
+
+      var toggle = document.getElementById('adminCacheToggle');
+      if (toggle && toggle.dataset.bound !== '1') {
+        toggle.dataset.bound = '1';
+        toggle.addEventListener('change', async function () {
+          var newValue = this.checked;
+          if (!window.confirm((newValue ? 'Включить' : 'Выключить') + ' кэширование API?')) {
+            this.checked = !newValue;
+            return;
+          }
+          try {
+            await request('api/v1/settings/api_file_cache_enabled', {
+              method: 'PATCH',
+              headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('cache-toggle') },
+              body: { scope: 'system', value: newValue }
+            });
+            notify('Кэш API ' + (newValue ? 'включён' : 'выключен'));
+            await loadPage();
+          } catch (error) {
+            this.checked = !newValue;
+            var normalized = window.CRM.api.normalizeError(error, 'Не удалось изменить настройку кэша');
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
+
+      var ttlSaveBtn = document.getElementById('adminCacheTtlSaveBtn');
+      if (ttlSaveBtn && ttlSaveBtn.dataset.bound !== '1') {
+        ttlSaveBtn.dataset.bound = '1';
+        ttlSaveBtn.addEventListener('click', async function () {
+          var input = document.getElementById('adminCacheTtlInput');
+          var newTtl = Number(input && input.value || 60);
+          if (!Number.isFinite(newTtl) || newTtl < 1 || newTtl > 86400) {
+            notify('TTL должен быть от 1 до 86400 секунд', 'warning');
+            return;
+          }
+          if (!window.confirm('Изменить время хранения кэша на ' + newTtl + ' секунд?')) return;
+          try {
+            await request('api/v1/settings/api_file_cache_ttl', {
+              method: 'PATCH',
+              headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('cache-ttl') },
+              body: { scope: 'system', value: newTtl }
+            });
+            notify('Время хранения кэша изменено');
+            await loadPage();
+          } catch (error) {
+            var normalized = window.CRM.api.normalizeError(error, 'Не удалось изменить TTL');
+            notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+          }
+        });
+      }
 
       var clearBtn = document.getElementById('adminCacheClearBtn');
       if (clearBtn && clearBtn.dataset.bound !== '1') {
