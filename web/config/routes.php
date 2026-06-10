@@ -37,6 +37,7 @@ return [
 
     'analytics' => [Web\Controller\Page\AnalyticsController::class, 'index'],
     'time-analytics' => [Web\Controller\Page\TimeAnalyticsController::class, 'index'],
+    'global-search' => [Web\Controller\Page\GlobalSearchController::class, 'index'],
     'docs' => [Web\Controller\Page\DocsController::class, 'index'],
 
     'admin' => [Web\Controller\Page\AdminController::class, 'index'],

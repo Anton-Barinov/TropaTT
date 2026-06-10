@@ -637,7 +637,7 @@ window.CRM.navigation = (function () {
             if (query) {
               var bsModal = bootstrap.Modal.getInstance(modal);
               if (bsModal) bsModal.hide();
-              window.location.href = 'index.php?route=tasks&search=' + encodeURIComponent(query);
+              window.location.href = 'index.php?route=global-search&q=' + encodeURIComponent(query);
             }
           }
         });
