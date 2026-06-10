@@ -11930,3 +11930,225 @@ a.task-tag:hover {
   color: var(--color-primary-700);
   background: var(--color-primary-50);
 }
+
+/* Unified filters for tasks, kanban and projects. */
+.crm-tasks-page .crm-kanban-filters,
+.crm-kanban-page .crm-kanban-filters,
+.crm-projects-page .crm-kanban-filters {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(170px, 1fr));
+  align-items: end;
+  gap: 12px 12px;
+  margin: 0 0 16px;
+  padding: 18px 20px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.crm-tasks-page .crm-kanban-filters > *,
+.crm-kanban-page .crm-kanban-filters > *,
+.crm-projects-page .crm-kanban-filters > * {
+  min-width: 0;
+}
+
+.crm-tasks-page .crm-kanban-filters > .crm-kanban-search,
+.crm-kanban-page .crm-kanban-filters > .crm-kanban-search,
+.crm-projects-page .crm-kanban-filters > .crm-kanban-search,
+.crm-tasks-page .crm-kanban-filters > div:not(.crm-kanban-search):not(.crm-kanban-due-filters):not(.crm-kanban-filter-summary):not(.crm-filters-view-actions):not(.crm-kanban-tag-filter-area),
+.crm-kanban-page .crm-kanban-filters > div:not(.crm-kanban-search):not(.crm-kanban-due-filters):not(.crm-kanban-filter-summary):not(.crm-filters-view-actions):not(.crm-kanban-tag-filter-area),
+.crm-projects-page .crm-kanban-filters > div:not(.crm-kanban-search):not(.crm-kanban-due-filters):not(.crm-kanban-filter-summary):not(.crm-filters-view-actions):not(.crm-kanban-tag-filter-area) {
+  flex: initial;
+  min-width: 0;
+}
+
+.crm-tasks-page .crm-kanban-filters .crm-filter-label,
+.crm-kanban-page .crm-kanban-filters .crm-filter-label,
+.crm-projects-page .crm-kanban-filters .crm-filter-label {
+  margin: 0 0 7px;
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #66736f;
+}
+
+.crm-tasks-page .crm-kanban-filters .form-control,
+.crm-tasks-page .crm-kanban-filters .form-select,
+.crm-kanban-page .crm-kanban-filters .form-control,
+.crm-kanban-page .crm-kanban-filters .form-select,
+.crm-projects-page .crm-kanban-filters .form-control,
+.crm-projects-page .crm-kanban-filters .form-select {
+  width: 100%;
+  min-height: 42px;
+  height: 42px;
+  padding: 9px 14px;
+  border-color: #d8dee6;
+  border-radius: 6px;
+  background-color: #fff;
+  box-shadow: none;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.crm-tasks-page .crm-kanban-filters .form-control:focus,
+.crm-tasks-page .crm-kanban-filters .form-select:focus,
+.crm-kanban-page .crm-kanban-filters .form-control:focus,
+.crm-kanban-page .crm-kanban-filters .form-select:focus,
+.crm-projects-page .crm-kanban-filters .form-control:focus,
+.crm-projects-page .crm-kanban-filters .form-select:focus {
+  border-color: rgba(15, 143, 114, 0.48);
+  box-shadow: 0 0 0 3px rgba(15, 143, 114, 0.1);
+}
+
+.crm-tasks-page .crm-kanban-filters .crm-searchable-select,
+.crm-kanban-page .crm-kanban-filters .crm-searchable-select,
+.crm-projects-page .crm-kanban-filters .crm-searchable-select {
+  width: 100%;
+}
+
+.crm-tasks-page .crm-kanban-filters .crm-searchable-dropdown,
+.crm-kanban-page .crm-kanban-filters .crm-searchable-dropdown,
+.crm-projects-page .crm-kanban-filters .crm-searchable-dropdown {
+  margin-top: 4px;
+  border-radius: 8px;
+  border-color: #d8dee6;
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.12);
+}
+
+.crm-tasks-page .crm-kanban-due-filters,
+.crm-kanban-page .crm-kanban-due-filters {
+  grid-column: 1 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-self: end;
+}
+
+.crm-tasks-page .crm-kanban-tag-filter-area,
+.crm-kanban-page .crm-kanban-tag-filter-area {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.crm-tasks-page .crm-kanban-tag-filter-area:empty,
+.crm-kanban-page .crm-kanban-tag-filter-area:empty {
+  display: none;
+}
+
+.crm-tasks-page .crm-kanban-due-filters .btn,
+.crm-kanban-page .crm-kanban-due-filters .btn,
+.crm-tasks-page .crm-kanban-filter-summary .btn,
+.crm-kanban-page .crm-kanban-filter-summary .btn,
+.crm-projects-page .crm-filters-view-actions .btn {
+  min-height: 42px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.crm-tasks-page .crm-kanban-due-filters .btn,
+.crm-kanban-page .crm-kanban-due-filters .btn {
+  background: #fff;
+  border-color: #d8dee6;
+  color: #17211f;
+}
+
+.crm-tasks-page .crm-kanban-due-filters .btn:hover,
+.crm-kanban-page .crm-kanban-due-filters .btn:hover {
+  background: #f7fbfa;
+  border-color: rgba(15, 143, 114, 0.28);
+  color: #0f766e;
+}
+
+.crm-tasks-page .crm-kanban-due-filters .btn.is-active,
+.crm-kanban-page .crm-kanban-due-filters .btn.is-active {
+  background: #e9f6f2;
+  border-color: rgba(15, 143, 114, 0.38);
+  color: #0f766e;
+}
+
+.crm-tasks-page .crm-kanban-filter-summary,
+.crm-kanban-page .crm-kanban-filter-summary {
+  grid-column: 3 / -1;
+}
+
+.crm-projects-page .crm-filters-view-actions {
+  grid-column: 3 / -1;
+}
+
+.crm-tasks-page .crm-kanban-filter-summary,
+.crm-kanban-page .crm-kanban-filter-summary,
+.crm-projects-page .crm-filters-view-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: 0;
+  min-width: 0;
+  color: #66736f;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.crm-tasks-page .crm-kanban-filter-summary span,
+.crm-kanban-page .crm-kanban-filter-summary span,
+.crm-projects-page .crm-filters-view-actions span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-tasks-page .crm-kanban-filter-summary .btn:disabled,
+.crm-kanban-page .crm-kanban-filter-summary .btn:disabled,
+.crm-projects-page .crm-filters-view-actions .btn:disabled {
+  opacity: 0.58;
+}
+
+@media (max-width: 1199.98px) {
+  .crm-tasks-page .crm-kanban-filters,
+  .crm-kanban-page .crm-kanban-filters,
+  .crm-projects-page .crm-kanban-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crm-tasks-page .crm-kanban-due-filters,
+  .crm-kanban-page .crm-kanban-due-filters,
+  .crm-tasks-page .crm-kanban-filter-summary,
+  .crm-kanban-page .crm-kanban-filter-summary,
+  .crm-projects-page .crm-filters-view-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .crm-tasks-page .crm-kanban-filters,
+  .crm-kanban-page .crm-kanban-filters,
+  .crm-projects-page .crm-kanban-filters {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .crm-tasks-page .crm-kanban-due-filters,
+  .crm-kanban-page .crm-kanban-due-filters,
+  .crm-tasks-page .crm-kanban-filter-summary,
+  .crm-kanban-page .crm-kanban-filter-summary,
+  .crm-projects-page .crm-filters-view-actions {
+    grid-column: auto;
+    justify-content: stretch;
+  }
+
+  .crm-tasks-page .crm-kanban-due-filters .btn,
+  .crm-kanban-page .crm-kanban-due-filters .btn,
+  .crm-tasks-page .crm-kanban-filter-summary .btn,
+  .crm-kanban-page .crm-kanban-filter-summary .btn,
+  .crm-projects-page .crm-filters-view-actions .btn {
+    flex: 1 1 auto;
+  }
+}
