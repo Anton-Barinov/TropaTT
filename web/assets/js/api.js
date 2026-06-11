@@ -562,6 +562,8 @@ window.CRM.api = (function () {
 
   function referenceCacheTtlMs(route) {
     var key = String(route || '').replace(/^\/+/, '').split('?')[0];
+    if (key === 'api/v1/auth/me') return 10000;
+    if (key === 'api/v1/auth/menu') return 30000;
     if (key === 'api/v1/statuses' || key === 'api/v1/priorities') return 60000;
     if (key === 'api/v1/users') return 20000;
     return 0;
