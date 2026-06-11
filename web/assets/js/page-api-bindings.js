@@ -3783,10 +3783,13 @@ window.CRM.pageApiBindings = (function () {
         var emptyTr = document.createElement('tr');
         var emptyTd = document.createElement('td');
         emptyTd.colSpan = 5;
-        emptyTd.className = 'text-muted';
-        emptyTd.textContent = denied
+        emptyTd.className = 'crm-dashboard-empty-cell';
+        var emptyBox = document.createElement('div');
+        emptyBox.className = 'crm-empty-state crm-empty-state-compact crm-dashboard-empty-state';
+        emptyBox.textContent = denied
           ? 'Раздел задач недоступен для вашей роли.'
           : 'Актуальных задач на сегодня не найдено.';
+        emptyTd.appendChild(emptyBox);
         emptyTr.appendChild(emptyTd);
         tbody.appendChild(emptyTr);
         return;
@@ -3828,7 +3831,7 @@ window.CRM.pageApiBindings = (function () {
       container.textContent = '';
       if (denied || !Array.isArray(rows) || !rows.length) {
         var emptyArticle = document.createElement('article');
-        emptyArticle.className = 'crm-dashboard-task-card text-muted';
+        emptyArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state';
         emptyArticle.textContent = denied
           ? 'Раздел задач недоступен для вашей роли.'
           : 'Актуальных задач на сегодня не найдено.';
@@ -26058,47 +26061,47 @@ window.CRM.pageApiBindings = (function () {
       clearBtn.innerHTML = '&times;';
       clearBtn.className = 'crm-searchable-clear';
       clearBtn.title = 'Очистить';
-      clearBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;color:var(--crm-text-muted);z-index:1;display:none;line-height:1';
       wrapper.style.position = 'relative';
+      clearBtn.style.display = 'none';
       wrapper.appendChild(clearBtn);
+
+      function searchableHasClearableValue() {
+        return Boolean(select.value) && select.selectedIndex > 0;
+      }
+
+      function syncSingleSearchableInput() {
+        var selectedOpt = select.options[select.selectedIndex];
+        if (selectedOpt) {
+          input.value = selectedOpt.textContent || selectedOpt.text || '';
+        } else {
+          input.value = '';
+        }
+        if (clearBtn) clearBtn.style.display = searchableHasClearableValue() ? 'flex' : 'none';
+      }
 
       clearBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         // Reset select to first empty option
-        for (var ci = 0; ci < select.options.length; ci++) {
-          if (select.options[ci].value === '') {
-            select.value = '';
-            input.value = '';
-            clearBtn.style.display = 'none';
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            renderOptions('');
-            break;
-          }
-        }
+        select.selectedIndex = 0;
+        syncSingleSearchableInput();
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        renderOptions('');
       });
 
       input.addEventListener('input', function () {
-        clearBtn.style.display = select.value ? 'block' : 'none';
+        clearBtn.style.display = searchableHasClearableValue() ? 'flex' : 'none';
       });
 
       // Update clear button and input when select changes externally
       select.addEventListener('change', function () {
         if (!isMultiple) {
-          var selectedOpt = select.options[select.selectedIndex];
-          if (selectedOpt && selectedOpt.value) {
-            input.value = selectedOpt.textContent || selectedOpt.text;
-          } else {
-            input.value = '';
-          }
+          syncSingleSearchableInput();
         }
-        if (clearBtn) clearBtn.style.display = select.value ? 'block' : 'none';
       });
 
       // Initial state
-      if (select.value) {
-        clearBtn.style.display = 'block';
-      }
+      syncSingleSearchableInput();
     }
 
     // Observe the select for option changes (e.g. innerHTML replacement)

@@ -109,7 +109,7 @@
       <section class="crm-card crm-dashboard-section crm-dashboard-actions">
         <h2 class="crm-dashboard-actions-title mb-0">Быстрые действия</h2>
         <div class="crm-dashboard-actions-list">
-          <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-drawer="quickTaskDrawer"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-folder"></i></span>Открыть последнюю задачу</button>
+          <button class="btn crm-btn-primary crm-dashboard-action-chip crm-dashboard-action-chip-primary" type="button" data-open-drawer="quickTaskDrawer"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-folder"></i></span>Открыть последнюю задачу</button>
           <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="assignUserModal"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span>Назначить исполнителя</button>
           <button class="btn crm-btn-secondary crm-dashboard-action-chip" type="button" data-open-modal="createProjectModal"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-solid fa-circle-plus"></i></span>Создать проект</button>
           <a class="btn crm-btn-secondary crm-dashboard-action-chip" href="index.php?route=calendar"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-calendar"></i></span>Открыть календарь</a>
