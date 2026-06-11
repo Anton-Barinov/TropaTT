@@ -13600,14 +13600,21 @@ window.CRM.pageApiBindings = (function () {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var today = new Date().toISOString().split('T')[0];
     var yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    var closedStatuses = { done: true, completed: true, closed: true, archived: true, cancelled: true };
+
+    var myDayData = await Promise.all([
+      tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30, sort: 'due_at', order: 'ASC' } }),
+      tryRequest('api/v1/tasks', { query: { due_at: today, limit: 40, sort: 'priority_code', order: 'DESC' } }),
+      tryRequest('api/v1/calendar/my-day', {}),
+      loadMyDaySuggestion()
+    ]);
 
     // Load overdue tasks
-    var closedStatuses = { done: true, completed: true, closed: true, archived: true, cancelled: true };
-    var overdueEnvelope = await tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30, sort: 'due_at', order: 'ASC' } });
+    var overdueEnvelope = myDayData[0];
     var overdueTasks = overdueEnvelope ? mapItems(overdueEnvelope).filter(function (task) { return !closedStatuses[String(task.status_code || '').toLowerCase()]; }) : [];
 
     // Load today's tasks
-    var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { due_at: today, limit: 40, sort: 'priority_code', order: 'DESC' } });
+    var tasksEnvelope = myDayData[1];
     var tasks = tasksEnvelope ? mapItems(tasksEnvelope).filter(function (task) { return !closedStatuses[String(task.status_code || '').toLowerCase()]; }) : [];
 
     function taskChipLabel(item) {
@@ -13693,7 +13700,7 @@ window.CRM.pageApiBindings = (function () {
     });
 
     // Load today's events
-    var eventsEnvelope = await tryRequest('api/v1/calendar/my-day', {});
+    var eventsEnvelope = myDayData[2];
     if (eventsEnvelope && eventsEnvelope.data) {
       var events = eventsEnvelope.data.items || eventsEnvelope.data.events || [];
       var eventsHtml = events.map(function (event) {
@@ -13720,7 +13727,7 @@ window.CRM.pageApiBindings = (function () {
         + '</div>';
     }
 
-    myDayCurrentSuggestion = await loadMyDaySuggestion();
+    myDayCurrentSuggestion = myDayData[3];
     setMyDayAiState(myDayCurrentSuggestion ? 'ready' : 'empty');
     renderMyDayAiPlan(myDayCurrentSuggestion);
     if (myDayAiGenerateBtn) {
@@ -13911,11 +13918,20 @@ window.CRM.pageApiBindings = (function () {
     var weekTo = sunday.getFullYear() + '-' + String(sunday.getMonth() + 1).padStart(2, '0') + '-' + String(sunday.getDate()).padStart(2, '0');
     var yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     var today = new Date().toISOString().split('T')[0];
-    var weekTasksEnvelope = await tryRequest('api/v1/tasks', { query: { due_at_from: weekFrom, due_at_to: weekTo, limit: 50 } });
-    var weekOverdueEnvelope = await tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30 } });
     var weekClosedStatuses = { done: true, completed: true, closed: true, archived: true, cancelled: true };
 
-    var weekEnvelope = await tryRequest('api/v1/calendar/my-week');
+    var myWeekData = await Promise.all([
+      tryRequest('api/v1/tasks', { query: { due_at_from: weekFrom, due_at_to: weekTo, limit: 50 } }),
+      tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30 } }),
+      tryRequest('api/v1/calendar/my-week'),
+      loadMyWeekSuggestion()
+    ]);
+
+    var weekTasksEnvelope = myWeekData[0];
+    var weekOverdueEnvelope = myWeekData[1];
+    var weekEnvelope = myWeekData[2];
+    var loadedMyWeekSuggestion = myWeekData[3];
+
     if (weekEnvelope && weekEnvelope.success !== false) {
       var data = weekEnvelope.data || {};
       var weekTasks = weekTasksEnvelope ? mapItems(weekTasksEnvelope) : (data.tasks_due && Array.isArray(data.tasks_due) ? data.tasks_due : []);
@@ -14193,7 +14209,6 @@ window.CRM.pageApiBindings = (function () {
       };
     }
 
-    var loadedMyWeekSuggestion = await loadMyWeekSuggestion();
     if (loadedMyWeekSuggestion) {
       renderMyWeekAiSuggestion(loadedMyWeekSuggestion);
       setMyWeekAiState('ready');
