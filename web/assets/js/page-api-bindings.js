@@ -14799,10 +14799,6 @@ window.CRM.pageApiBindings = (function () {
       end = tmp;
     }
 
-    if (end === start) {
-      end = start + DAY_MS;
-    }
-
     var projectTitle = String(task.project_title || task.project_name || 'Без проекта');
     var projectId = String(task.project_public_id || projectTitle);
 
