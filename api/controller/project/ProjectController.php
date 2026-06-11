@@ -30,9 +30,20 @@ final class ProjectController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
 
-        /** @var ProjectService $service */
-        $service = $this->container->get('service.project');
-        $result = $service->list($input, $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('project', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var ProjectService $service */
+                $service = $this->container->get('service.project');
+                return $service->list($input, $authUser['user']);
+            });
+        } else {
+            /** @var ProjectService $service */
+            $service = $this->container->get('service.project');
+            $result = $service->list($input, $authUser['user']);
+        }
 
         return $this->success('PROJECT_LIST', $this->t('project/messages.list'), [
             'items' => $result['items'],
@@ -58,8 +69,10 @@ final class ProjectController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
-        return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
+            return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
             $item = $service->create($input, $authUser['user']);
+
+            $this->invalidateCache('project');
 
             return $this->success('PROJECT_CREATED', $this->t('project/messages.created'), [
                 'project' => $item,
@@ -119,6 +132,8 @@ final class ProjectController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('project');
+
         return $this->success('PROJECT_UPDATED', $this->t('project/messages.updated'), [
             'project' => $item,
         ], meta: [
@@ -141,6 +156,8 @@ final class ProjectController extends BaseController
                 'project' => [$this->t('common/messages.project_not_found')],
             ]);
         }
+
+        $this->invalidateCache('project');
 
         return $this->success('PROJECT_DELETED', $this->t('project/messages.deleted'));
     }

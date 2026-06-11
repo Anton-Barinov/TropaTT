@@ -20,9 +20,21 @@ final class TaskController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var TaskBoardService $service */
-        $service = $this->container->get('service.task_board');
-        $result = $service->board($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'board:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var TaskBoardService $service */
+                $service = $this->container->get('service.task_board');
+                return $service->board($input, $authUser['user']);
+            });
+        } else {
+            /** @var TaskBoardService $service */
+            $service = $this->container->get('service.task_board');
+            $result = $service->board($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('TASK_BOARD', $this->t('task/messages.board'), [
             'board' => $result['board'],
@@ -48,9 +60,20 @@ final class TaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
 
-        /** @var TaskService $service */
-        $service = $this->container->get('service.task');
-        $result = $service->list($input, $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var TaskService $service */
+                $service = $this->container->get('service.task');
+                return $service->list($input, $authUser['user']);
+            });
+        } else {
+            /** @var TaskService $service */
+            $service = $this->container->get('service.task');
+            $result = $service->list($input, $authUser['user']);
+        }
 
         return $this->success('TASK_LIST', $this->t('task/messages.list'), [
             'items' => $result['items'],
@@ -99,6 +122,8 @@ final class TaskController extends BaseController
             }
 
             $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
+
+            $this->invalidateCache('task');
 
             return $this->success('TASK_CREATED', $this->t('task/messages.created'), [
                 'task' => $item,
@@ -196,6 +221,8 @@ final class TaskController extends BaseController
         }
         $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
 
+        $this->invalidateCache('task');
+
         return $this->success('TASK_UPDATED', $this->t('task/messages.updated'), [
             'task' => $item,
         ], meta: [
@@ -218,6 +245,8 @@ final class TaskController extends BaseController
                 'task' => [$this->t('common/messages.task_not_found')],
             ]);
         }
+
+        $this->invalidateCache('task');
 
         return $this->success('TASK_DELETED', $this->t('task/messages.deleted'));
     }
@@ -343,6 +372,8 @@ final class TaskController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('task');
+
         return $this->success('TASK_BULK_UPDATED', $this->t('task/messages.bulk_updated'), [
             'summary' => $result['summary'],
             'updated' => $result['updated'],
@@ -388,6 +419,8 @@ final class TaskController extends BaseController
         if ($item === 'WIP_LIMIT_EXCEEDED') {
             return $this->error('WIP_LIMIT_EXCEEDED', $this->t('task/messages.wip_limit_exceeded', 'WIP limit exceeded for this column'), 422);
         }
+
+        $this->invalidateCache('task');
 
         return $this->success('TASK_MOVED', $this->t('task/messages.moved'), [
             'task' => $item,
