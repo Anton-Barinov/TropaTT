@@ -3632,7 +3632,7 @@ window.CRM.pageApiBindings = (function () {
     return out;
   }
 
-  async function ensureDashboardQuickActions(tasks) {
+  async function ensureDashboardQuickActions(tasks, preloadedUsers) {
     var list = Array.isArray(tasks) ? tasks.slice() : [];
     var canManageTasks = hasPermission('task.manage');
     var canViewUsers = hasPermission('user.view');
@@ -3658,10 +3658,11 @@ window.CRM.pageApiBindings = (function () {
       list = mapItems(fallbackTasksEnvelope);
     }
 
-    var usersEnvelope = canViewUsers
-      ? await tryRequest('api/v1/users', { query: { limit: 200 } })
-      : null;
-    var users = mapItems(usersEnvelope);
+    var users = Array.isArray(preloadedUsers) ? preloadedUsers : [];
+    if (canViewUsers && !Array.isArray(preloadedUsers)) {
+      var usersEnvelope = await tryRequest('api/v1/users', { query: { limit: 200 } });
+      users = mapItems(usersEnvelope);
+    }
 
     window.CRM.__dashboardQuickActions = {
       tasks: list,
@@ -3736,7 +3737,8 @@ window.CRM.pageApiBindings = (function () {
       canManageTasks ? tryRequest('api/v1/calendar/my-day', { silent: true }) : Promise.resolve(null),
       aiCanUse
         ? tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true })
-        : Promise.resolve(null)
+        : Promise.resolve(null),
+      hasPermission('user.view') ? tryRequest('api/v1/users', { query: { limit: 200 }, silent: true }) : Promise.resolve(null)
     ]);
 
     var summaryEnvelope = results[0];
@@ -3747,6 +3749,7 @@ window.CRM.pageApiBindings = (function () {
     var projectsEnvelope = results[5];
     var myDayEnvelope = results[6];
     var aiSuggestionsEnvelope = results[7];
+    var quickActionUsersEnvelope = results[8];
 
     function dateTimeLabel(value) {
       if (!value) return '—';
@@ -3856,6 +3859,7 @@ window.CRM.pageApiBindings = (function () {
     var myDayTasksDue = Array.isArray(myDayData.tasks_due) ? myDayData.tasks_due : [];
     var myDayReminders = Array.isArray(myDayData.reminders) ? myDayData.reminders : [];
     var aiSuggestions = aiSuggestionsEnvelope ? mapItems(aiSuggestionsEnvelope) : [];
+    var quickActionUsers = mapItems(quickActionUsersEnvelope);
     var currentUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
       ? window.CRM.api.getUser()
       : null;
@@ -4424,7 +4428,7 @@ window.CRM.pageApiBindings = (function () {
       aiDigestRefreshBtn.disabled = !aiCanUse;
     }
 
-    await ensureDashboardQuickActions(tasks);
+    await ensureDashboardQuickActions(tasks, quickActionUsers);
   }
 
   async function renderAnalyticsPage() {
