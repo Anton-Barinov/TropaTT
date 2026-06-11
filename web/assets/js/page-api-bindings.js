@@ -3902,7 +3902,7 @@ window.CRM.pageApiBindings = (function () {
       if (kpiNotes[0]) kpiNotes[0].textContent = 'Задач к выполнению сегодня: ' + String(summary.tasks_today || 0) + '.';
       if (kpiNotes[1]) kpiNotes[1].textContent = 'Просроченных задач в системе: ' + String(summary.overdue_tasks || 0) + '.';
       if (kpiNotes[2]) kpiNotes[2].textContent = 'Активных проектов в работе: ' + String(summary.active_projects || 0) + '.';
-      if (kpiNotes[3]) kpiNotes[3].textContent = 'Суммарный worklog за неделю: ' + String(summary.worklog_minutes_week || 0) + ' мин.';
+      if (kpiNotes[3]) kpiNotes[3].textContent = 'Учет времени за неделю: ' + String(summary.worklog_minutes_week || 0) + ' мин.';
       var kpiBadges = document.querySelectorAll('.crm-dashboard-kpi .crm-badge');
       if (kpiBadges[0]) {
         kpiBadges[0].className = 'crm-badge active';
@@ -4623,7 +4623,7 @@ window.CRM.pageApiBindings = (function () {
         trendNode.textContent = '';
         trendNode.appendChild(metricTile('Завершено', String(summary.completed_tasks || 0) + ' из ' + String(summary.total_tasks || 0) + ' задач'));
         trendNode.appendChild(metricTile('Доля завершения', String(summary.completion_rate_percent || 0) + '%'));
-        trendNode.appendChild(metricTile('Worklog недели', String(summary.worklog_minutes_week || 0) + ' мин'));
+        trendNode.appendChild(metricTile('Учет времени за неделю', String(summary.worklog_minutes_week || 0) + ' мин'));
       }
 
       var teamsNode = document.querySelector('[data-analytics-teams]');
@@ -4636,7 +4636,7 @@ window.CRM.pageApiBindings = (function () {
             stats: [
               { text: 'Активные ' + String(row.assigned_active_tasks || 0) },
               { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
-              { text: 'Worklog ' + String(row.worklog_minutes_week || 0) + ' мин' }
+              { text: 'Учет времени ' + String(row.worklog_minutes_week || 0) + ' мин' }
             ]
           };
         }), 'Пользовательская загрузка пока не рассчитана.');
@@ -4671,7 +4671,7 @@ window.CRM.pageApiBindings = (function () {
             stats: [
               { text: 'Активные ' + String(row.assigned_active_tasks || 0) },
               { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
-              { text: 'Worklog ' + String(row.worklog_minutes_week || 0) + ' мин' }
+              { text: 'Учет времени ' + String(row.worklog_minutes_week || 0) + ' мин' }
             ]
           };
         }), 'Исполнители пока не загружены.');
@@ -4687,7 +4687,7 @@ window.CRM.pageApiBindings = (function () {
     function exportAnalyticsCsv() {
       var state = filterAnalyticsRows();
       var lines = [
-        ['Тип', 'Название', 'ID', 'Активные', 'Просрочено', 'Всего', 'Worklog минут'].map(analyticsCsvCell).join(',')
+        ['Тип', 'Название', 'ID', 'Активные', 'Просрочено', 'Всего', 'Учет времени, минут'].map(analyticsCsvCell).join(',')
       ];
       state.projects.forEach(function (row) {
         lines.push([
