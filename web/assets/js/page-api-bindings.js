@@ -14828,9 +14828,23 @@ window.CRM.pageApiBindings = (function () {
     var minStart = Math.min.apply(null, items.map(function (item) { return item.start; }));
     var maxEnd = Math.max.apply(null, items.map(function (item) { return item.end; }));
 
+    // Clamp to reasonable range: max 3 years from now, min 1 year ago
+    var nowMs = Date.now();
+    var maxReasonableEnd = nowMs + 3 * 365 * 24 * 3600 * 1000;
+    var minReasonableStart = nowMs - 1 * 365 * 24 * 3600 * 1000;
+    if (maxEnd > maxReasonableEnd) maxEnd = maxReasonableEnd;
+    if (minStart < minReasonableStart) minStart = minReasonableStart;
+
     var padDays = zoomMode === 'days' ? 2 : (zoomMode === 'weeks' ? 7 : 20);
     minStart = crmGanttStartOfDay(crmGanttAddDays(minStart, -padDays));
     maxEnd = crmGanttStartOfDay(crmGanttAddDays(maxEnd, padDays));
+
+    // Align scale to calendar boundaries
+    if (zoomMode === 'weeks') {
+      var startDate = new Date(minStart);
+      startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7)); // Monday
+      minStart = crmGanttStartOfDay(startDate.getTime());
+    }
 
     if (zoomMode === 'months') {
       var from = new Date(minStart);
