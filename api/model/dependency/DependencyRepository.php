@@ -35,8 +35,11 @@ final class DependencyRepository
             $query->where('pf.public_id', '=', (string)$filters['project_public_id']);
         }
 
-        if (!empty($filters['project_public_ids']) && is_array($filters['project_public_ids'])) {
-            $ids = array_values(array_filter(array_map('trim', $filters['project_public_ids'])));
+        if (!empty($filters['project_public_ids'])) {
+            $ids = is_array($filters['project_public_ids'])
+                ? $filters['project_public_ids']
+                : explode(',', (string)$filters['project_public_ids']);
+            $ids = array_values(array_filter(array_map('trim', $ids)));
             if ($ids !== []) {
                 $query->whereIn('pf.public_id', $ids);
             }

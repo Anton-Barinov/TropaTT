@@ -9153,7 +9153,7 @@ font-size: 0.72rem;
 .crm-gantt-page .crm-gantt-bar--micro .crm-gantt-bar-title,
 .crm-gantt-page .crm-gantt-bar--micro .crm-gantt-bar-dates { display: none !important; }
 
-.crm-gantt-page .crm-gantt-bar--micro { width: 16px !important; min-width: 16px; padding: 0; border-radius: 999px; }
+.crm-gantt-page .crm-gantt-bar--micro { min-width: 16px; padding: 0; border-radius: 999px; }
 
 /* Project summary bar */
 .crm-gantt-page .crm-gantt-project-bar {

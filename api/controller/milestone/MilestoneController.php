@@ -19,7 +19,13 @@ final class MilestoneController extends BaseController
         $input = $this->request()->allInput();
         $projectPublicIds = $input['project_public_ids'] ?? null;
 
-        if ($projectPublicIds !== null && is_array($projectPublicIds) && $projectPublicIds !== []) {
+        // Accept both array (proper ?project_public_ids[]=a&project_public_ids[]=b) and
+        // comma-separated string (URLSearchParams.set serialization: ?project_public_ids=a,b)
+        if (is_string($projectPublicIds) && $projectPublicIds !== '') {
+            $projectPublicIds = explode(',', $projectPublicIds);
+        }
+
+        if (is_array($projectPublicIds) && $projectPublicIds !== []) {
             $projectPublicIds = array_values(array_filter(array_map('trim', $projectPublicIds)));
 
             $cache = $this->cacheApi();
