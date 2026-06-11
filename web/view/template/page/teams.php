@@ -5,10 +5,10 @@
 <main class="crm-content crm-teams-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard">Главная</a></li></ol><h1 class="crm-page-title">Команды и отделы</h1><p class="crm-subtitle">Иерархическая структура команд и отделов.</p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#teamCreateModal"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span> Создать</button></div></div>
 
 <div class="crm-card crm-section-card crm-filters-card mb-3">
-  <div class="row g-2 crm-teams-filters">
-    <div class="col-md-5"><label class="form-label" for="teamsFilterSearch">Поиск</label><input id="teamsFilterSearch" class="form-control" placeholder="Название команды"></div>
-    <div class="col-md-3"><label class="form-label">Тип</label><select id="teamsFilterType" class="form-select"><option value="">Все типы</option><option value="department">Отдел</option><option value="team">Команда</option></select></div>
-    <div class="col-12 d-flex justify-content-end"><button class="btn crm-btn-muted" type="button" id="teamsFilterReset">Сбросить</button></div>
+  <div class="row g-2 align-items-end crm-teams-filters">
+    <div class="col-lg-5 col-md-6"><label class="form-label" for="teamsFilterSearch">Поиск</label><input id="teamsFilterSearch" class="form-control" placeholder="Название команды"></div>
+    <div class="col-lg-3 col-md-4"><label class="form-label" for="teamsFilterType">Тип</label><select id="teamsFilterType" class="form-select"><option value="">Все типы</option><option value="department">Отдел</option><option value="team">Команда</option></select></div>
+    <div class="col-lg-auto col-md-2"><button class="btn crm-btn-muted crm-teams-reset" type="button" id="teamsFilterReset">Сбросить</button></div>
   </div>
 </div>
 

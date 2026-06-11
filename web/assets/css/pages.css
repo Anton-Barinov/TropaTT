@@ -4091,16 +4091,17 @@ font-size: 0.72rem;
   display: flex;
   flex-direction: column;
   overflow-x: auto;
+  border-radius: 0 0 8px 8px;
 }
 
 .crm-tree-header,
 .crm-tree-row {
-  min-width: 640px;
+  min-width: 760px;
 }
 
 .crm-tree-header {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 100px 160px 180px;
+  grid-template-columns: minmax(300px, 1fr) 120px 190px 112px;
   padding: 10px 16px;
   font-size: 12px;
   font-weight: 600;
@@ -4126,6 +4127,7 @@ font-size: 0.72rem;
 
 .crm-tree-node {
   transition: background 0.1s;
+  position: relative;
 }
 
 .crm-tree-node:hover {
@@ -4134,11 +4136,11 @@ font-size: 0.72rem;
 
 .crm-tree-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 100px 160px 180px;
-  padding: 6px 16px;
+  grid-template-columns: minmax(300px, 1fr) 120px 190px 112px;
+  padding: 7px 16px;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
+  min-height: 44px;
   border-bottom: 1px solid var(--crm-border-light, #f0f0f0);
   font-size: 13px;
 }
@@ -4149,6 +4151,18 @@ font-size: 0.72rem;
   gap: 4px;
   overflow: hidden;
   white-space: nowrap;
+  position: relative;
+}
+
+.crm-tree-node[data-depth]:not([data-depth="0"]) .crm-tree-col-name::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(15, 143, 114, 0.22);
 }
 
 .crm-tree-toggle {
@@ -4165,7 +4179,6 @@ font-size: 0.72rem;
   color: var(--crm-muted, #6c757d);
   border-radius: 3px;
   transition: color 0.1s;
-      margin-left: 19px;
 }
 
 .crm-tree-toggle:hover {
@@ -4211,7 +4224,7 @@ font-size: 0.72rem;
 
 .crm-tree-title-text {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 650;
   color: var(--crm-text, #0F172A);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4219,7 +4232,7 @@ font-size: 0.72rem;
 }
 
 .crm-tree-root {
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .crm-tree-code {
@@ -4243,9 +4256,10 @@ font-size: 0.72rem;
   padding: 0 5px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--crm-muted, #6c757d);
-  background: var(--crm-bg-subtle, #f3f4f6);
-  border-radius: 9px;
+  color: #64748b;
+  background: #f1f5f4;
+  border: 1px solid #dfe9e6;
+  border-radius: 5px;
   cursor: default;
   position: relative;
   margin-left: 6px;
@@ -4325,7 +4339,25 @@ font-size: 0.72rem;
 .crm-tree-col-actions {
   display: flex;
   gap: 4px;
-  justify-content: flex-start;
+  justify-content: flex-end;
+}
+
+.crm-teams-page .crm-teams-filters {
+  align-items: flex-end;
+}
+
+.crm-teams-page .crm-teams-reset {
+  min-width: 112px;
+}
+
+.crm-teams-page .crm-filters-card {
+  padding-bottom: 1rem;
+}
+
+.crm-teams-page .crm-tree-col-actions .btn {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
 }
 
 /* Dark theme adjustments */
@@ -9936,7 +9968,7 @@ font-size: 0.72rem;
 
 .crm-tree-header {
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) 120px 200px 120px;
+    grid-template-columns: minmax(300px, 1fr) 120px 190px 112px;
     gap: var(--space-2);
     padding: 0.65rem 1rem;
     font-size: 0.75rem;
