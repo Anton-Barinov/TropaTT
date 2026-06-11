@@ -12,7 +12,13 @@ final class IdeaService
     /** @return array<string,mixed>|null */
     public function getByPublicId(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $this->pdo->prepare(
+            "SELECT i.*, u.full_name AS author_name, u.login AS author_login, u.public_id AS author_public_id,
+                (SELECT COUNT(*) FROM comments c WHERE c.entity_type = 'idea' AND c.entity_public_id = i.public_id) AS comment_count
+             FROM ideas i
+             LEFT JOIN users u ON u.id = i.author_user_id
+             WHERE i.public_id = :pid"
+        );
         $stmt->execute(['pid' => $publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
