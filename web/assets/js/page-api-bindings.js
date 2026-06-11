@@ -6386,7 +6386,7 @@ window.CRM.pageApiBindings = (function () {
     var preview = notificationBodyPreview(item);
     var toggleAttr = item.is_read ? 'data-mark-unread' : 'data-mark-read';
     var toggleLabel = item.is_read ? 'Вернуть в непрочитанные' : 'Отметить прочитанным';
-    var toggleBtn = '<button class="btn btn-sm btn-light" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + (item.title || 'уведомление')) + '">'
+    var toggleBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + (item.title || 'уведомление')) + '">'
       + toggleLabel
       + '</button>';
 
@@ -6399,7 +6399,7 @@ window.CRM.pageApiBindings = (function () {
       + (preview ? '<div class="small mt-2">' + safeText(preview) + '</div>' : '')
       + '</div>'
       + '<div class="d-flex gap-2 flex-wrap crm-notification-actions">'
-      + '<a class="btn btn-sm crm-btn-primary" href="' + safeText(link) + '" aria-label="Открыть уведомление: ' + safeText(item.title || 'Уведомление') + '">Открыть</a>'
+      + '<a class="btn btn-sm crm-btn-primary crm-btn-compact" href="' + safeText(link) + '" aria-label="Открыть уведомление: ' + safeText(item.title || 'Уведомление') + '">Открыть</a>'
       + toggleBtn
       + '</div>'
       + '</div>'
@@ -10221,6 +10221,21 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderProfilePage() {
+    var profilePageRoot = document.querySelector('.crm-profile-page');
+    var profileSaveButton = document.getElementById('profileSaveBtn');
+    var profileEditableControls = Array.prototype.slice.call(document.querySelectorAll(
+      '.crm-profile-page input, .crm-profile-page select, .crm-profile-page textarea, #profileChangePasswordBtn, #profileToggleTwoFactorBtn, #profileRevokeSessionsBtn'
+    ));
+    if (profilePageRoot) profilePageRoot.classList.add('is-loading');
+    if (profileSaveButton) {
+      profileSaveButton.disabled = true;
+      profileSaveButton.classList.remove('is-dirty');
+      profileSaveButton.textContent = 'Загрузка...';
+    }
+    profileEditableControls.forEach(function (control) {
+      if (control) control.disabled = true;
+    });
+
     var results = await Promise.all([
       tryRequest('api/v1/profile/me'),
       tryRequest('api/v1/profile/preferences'),
@@ -10252,6 +10267,16 @@ window.CRM.pageApiBindings = (function () {
     var sessionsTile = document.getElementById('profileSessionsTile');
     var twoFactorTile = document.getElementById('profileTwoFactorTile');
     var securityLogTile = document.getElementById('profileSecurityLogTile');
+
+    if (profilePageRoot) profilePageRoot.classList.remove('is-loading');
+    profileEditableControls.forEach(function (control) {
+      if (control) control.disabled = false;
+    });
+    if (profileSaveButton) {
+      profileSaveButton.textContent = 'Сохранить изменения';
+      profileSaveButton.disabled = true;
+      profileSaveButton.classList.remove('is-dirty');
+    }
 
     function prefBool(value, fallback) {
       if (value === undefined || value === null || value === '') return !!fallback;
@@ -24117,8 +24142,8 @@ window.CRM.pageApiBindings = (function () {
       var meta = entitySearchMeta(type);
       if (label) label.textContent = meta.label;
       if (input) input.placeholder = type === 'reminder'
-        ? 'Введите дату, задачу или public_id...'
-        : 'Введите название или public_id...';
+        ? 'Введите дату или название задачи...'
+        : 'Введите название задачи или проекта...';
     }
 
     function renderRecurringTable(items) {
@@ -24144,8 +24169,9 @@ window.CRM.pageApiBindings = (function () {
         var rrule = item.rrule || item.schedule || '';
         var displayTitle = recurringRuleDisplayTitle(item);
         var entityTitle = recurringSelectedEntityLabel(item);
+        var secondaryTitle = formatDate(item.updated_at || item.created_at || '') || formatRruleLabel(rrule);
         return '<tr data-recurring-id="' + safeText(id) + '">'
-          + '<td data-label="Шаблон"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(id) + '</span></td>'
+          + '<td data-label="Шаблон"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(secondaryTitle) + '</span></td>'
           + '<td data-label="Сущность"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span><strong class="crm-muted-title">' + safeText(entityTitle || '—') + '</strong></td>'
           + '<td data-label="Расписание"><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule) + '</span></td>'
           + '<td data-label="След. запуск">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
@@ -24269,7 +24295,7 @@ window.CRM.pageApiBindings = (function () {
               ? formatDate(item.remind_at || '')
               : entityType === 'calendar_event'
                 ? formatDate(item.starts_at || '')
-                : (item.project_title || item.public_id || '');
+                : (item.project_title || item.status_title || item.status || '');
             var optionId = recurringEntityOptionId(item, entityType);
             return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(optionId) + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="crm-autocomplete-meta">' + safeText(sub || '') + '</span></div>';
           }).join('');

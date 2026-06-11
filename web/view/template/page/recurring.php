@@ -55,7 +55,7 @@
               <div class="mb-3"><label class="form-label">Название шаблона</label><input class="form-control" name="title" maxlength="255" required placeholder="Например: Еженедельный отчёт по проектам"><div class="form-text">По названию вы сможете быстро найти шаблон в списке.</div></div>
               <div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Что повторять</label><select class="form-select" name="entity_type" id="recurringEntityType" required><option value="task">Задачу</option><option value="project">Проект</option><option value="reminder">Напоминание</option><option value="calendar_event">Событие календаря</option></select></div>
-                <div class="col-md-8 position-relative"><label class="form-label" for="recurringEntitySearch" id="recurringEntitySearchLabel">Поиск задачи</label><input id="recurringEntitySearch" class="form-control" placeholder="Введите название или public_id..." autocomplete="off"><div id="recurringEntityResults" class="crm-autocomplete-list d-none"></div><input type="hidden" name="entity_public_id"></div>
+                <div class="col-md-8 position-relative"><label class="form-label" for="recurringEntitySearch" id="recurringEntitySearchLabel">Поиск задачи</label><input id="recurringEntitySearch" class="form-control" placeholder="Введите название задачи или проекта..." autocomplete="off"><div id="recurringEntityResults" class="crm-autocomplete-list d-none"></div><input type="hidden" name="entity_public_id"></div>
               </div>
               <div class="mt-3">
                 <label class="form-label">Расписание</label>
