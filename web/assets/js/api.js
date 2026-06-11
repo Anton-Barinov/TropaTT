@@ -9,6 +9,7 @@ window.CRM.api = (function () {
   var IMPERSONATION_ORIGINAL_TOKEN_KEY = 'crm_impersonation_original_token_v1';
   var IMPERSONATION_AUDIT_KEY = 'crm_impersonation_audit_public_id_v1';
   var IMPERSONATION_TARGET_KEY = 'crm_impersonation_target_label_v1';
+  var inFlightGetRequests = {};
   var ROUTE_PERMISSIONS = {
     dashboard: [],
     index: [],
@@ -558,7 +559,7 @@ window.CRM.api = (function () {
   }
 
   async function request(route, options) {
-    var opts = options || {};
+    var opts = options && typeof options === 'object' ? Object.assign({}, options) : {};
     var method = (opts.method || 'GET').toUpperCase();
     var headers = Object.assign({}, opts.headers || {});
     var useAuth = opts.auth !== false;
@@ -568,6 +569,24 @@ window.CRM.api = (function () {
     var isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
 
     void useAuth;
+
+    var hasCustomHeaders = opts.headers && typeof opts.headers === 'object' && Object.keys(opts.headers).length > 0;
+    var canDedupeGet = method === 'GET'
+      && opts.noDedupe !== true
+      && body === undefined
+      && !opts.signal
+      && !hasCustomHeaders;
+    if (canDedupeGet) {
+      var dedupeKey = buildUrl(route, opts.query) + '|locale=' + getPreferredLocale();
+      if (inFlightGetRequests[dedupeKey]) {
+        return inFlightGetRequests[dedupeKey];
+      }
+      var dedupeOptions = Object.assign({}, opts, { noDedupe: true });
+      inFlightGetRequests[dedupeKey] = request(route, dedupeOptions).finally(function () {
+        delete inFlightGetRequests[dedupeKey];
+      });
+      return inFlightGetRequests[dedupeKey];
+    }
 
     if (!headers['X-Locale'] && !headers['x-locale']) {
       headers['X-Locale'] = getPreferredLocale();
