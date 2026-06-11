@@ -760,13 +760,14 @@ window.CRM.navigation = (function () {
       openDropdown();
 
       try {
-        var envelope = mode === 'semantic' && window.CRM.ai && typeof window.CRM.ai.semanticSearch === 'function'
+        var useSemanticSearch = mode === 'semantic' && window.CRM.ai && typeof window.CRM.ai.semanticSearch === 'function';
+        var envelope = useSemanticSearch
           ? await window.CRM.ai.semanticSearch({ query: query, limit: 12 })
           : await window.CRM.api.request('api/v1/search/global', {
             query: { q: query, limit: 12 }
           });
         var data = envelope && envelope.data ? envelope.data : {};
-        currentResults = mode === 'semantic'
+        currentResults = useSemanticSearch
           ? renderSemanticSearchDropdown(dropdown, data, activeIndex)
           : renderSearchDropdown(dropdown, data, activeIndex);
         if (currentResults.length) {
@@ -777,7 +778,7 @@ window.CRM.navigation = (function () {
         }
       } catch (error) {
         var message = 'Поиск недоступен. Попробуйте позже.';
-        if (mode === 'semantic' && window.CRM.ai && typeof window.CRM.ai.toUiError === 'function') {
+        if (window.CRM.ai && typeof window.CRM.ai.toUiError === 'function') {
           message = window.CRM.ai.toUiError(error, message).message;
         }
         dropdown.innerHTML = '<div class="dropdown-item-text text-danger small">' + escapeHtml(message) + '</div>';

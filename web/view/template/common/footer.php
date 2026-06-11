@@ -25,6 +25,17 @@ if ($assetsVersion === '') {
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
 }
 $currentRoute = trim((string)($route ?? ($_GET['route'] ?? '')), '/');
+$skipAiClient = in_array($currentRoute, [
+  'approvals',
+  'chat',
+  'gantt',
+  'kanban',
+  'notifications',
+  'profile',
+  'recurring',
+  'teams',
+], true);
+$needsAiClient = !$skipAiClient;
 $needsSortable = in_array($currentRoute, [
   'kanban',
 ], true);
@@ -50,7 +61,9 @@ $needsNotificationsPush = in_array($currentRoute, [
 <script src="assets/vendor/sortable/Sortable.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script src="assets/js/api.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($needsAiClient): ?>
 <script src="assets/js/ai.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <script src="assets/js/i18n.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/tab-leader.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/navigation.js?v=<?= urlencode($assetsVersion) ?>"></script>
