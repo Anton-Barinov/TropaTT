@@ -13931,12 +13931,23 @@ window.CRM.pageApiBindings = (function () {
     var today = new Date().toISOString().split('T')[0];
     var weekClosedStatuses = { done: true, completed: true, closed: true, archived: true, cancelled: true };
 
-    var myWeekData = await Promise.all([
-      tryRequest('api/v1/tasks', { query: { due_at_from: weekFrom, due_at_to: weekTo, limit: 50 } }),
-      tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30 } }),
-      tryRequest('api/v1/calendar/my-week'),
-      loadMyWeekSuggestion()
-    ]);
+    var myWeekPageEnvelope = await tryRequest('api/v1/pages/my-week', { query: { date: today }, silent: true });
+    var myWeekPageData = myWeekPageEnvelope && myWeekPageEnvelope.success !== false && myWeekPageEnvelope.data
+      ? myWeekPageEnvelope.data
+      : null;
+    var myWeekData = myWeekPageData
+      ? [
+        { data: { items: Array.isArray(myWeekPageData.week_tasks && myWeekPageData.week_tasks.items) ? myWeekPageData.week_tasks.items : [] }, meta: myWeekPageData.week_tasks ? myWeekPageData.week_tasks.meta : {} },
+        { data: { items: Array.isArray(myWeekPageData.overdue_tasks && myWeekPageData.overdue_tasks.items) ? myWeekPageData.overdue_tasks.items : [] }, meta: myWeekPageData.overdue_tasks ? myWeekPageData.overdue_tasks.meta : {} },
+        { data: myWeekPageData.calendar || {} },
+        myWeekPageData.ai_suggestion || null
+      ]
+      : await Promise.all([
+        tryRequest('api/v1/tasks', { query: { due_at_from: weekFrom, due_at_to: weekTo, limit: 50 } }),
+        tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30 } }),
+        tryRequest('api/v1/calendar/my-week'),
+        loadMyWeekSuggestion()
+      ]);
 
     var weekTasksEnvelope = myWeekData[0];
     var weekOverdueEnvelope = myWeekData[1];

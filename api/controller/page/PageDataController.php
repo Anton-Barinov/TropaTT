@@ -35,6 +35,34 @@ final class PageDataController extends BaseController
         return $this->success('PAGE_MY_DAY', 'Данные страницы «Мой день»', $payload);
     }
 
+    public function myWeek(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $input = $this->request()->allInput();
+        $date = $this->normalizeDate((string)($input['date'] ?? ''));
+        $base = new \DateTimeImmutable($date . ' 00:00:00');
+        $weekStart = $base->modify('monday this week')->format('Y-m-d');
+        $weekEnd = $base->modify('monday this week')->modify('+6 day')->format('Y-m-d');
+        $yesterday = (new \DateTimeImmutable($date . ' 00:00:00'))->modify('-1 day')->format('Y-m-d');
+        $actor = $auth['user'];
+
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . md5(json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $payload = $cache->remember('page', $cacheKey, 45, function () use ($actor, $date, $weekStart, $weekEnd, $yesterday) {
+                return $this->buildMyWeekPayload($actor, $date, $weekStart, $weekEnd, $yesterday);
+            });
+        } else {
+            $payload = $this->buildMyWeekPayload($actor, $date, $weekStart, $weekEnd, $yesterday);
+        }
+
+        return $this->success('PAGE_MY_WEEK', 'Данные страницы «Моя неделя»', $payload);
+    }
+
     /** @param array<string,mixed> $actor */
     private function buildMyDayPayload(array $actor, string $date, string $yesterday): array
     {
@@ -73,6 +101,42 @@ final class PageDataController extends BaseController
     }
 
     /** @param array<string,mixed> $actor */
+    private function buildMyWeekPayload(array $actor, string $date, string $weekStart, string $weekEnd, string $yesterday): array
+    {
+        /** @var TaskService $taskService */
+        $taskService = $this->container->get('service.task');
+        /** @var CalendarService $calendarService */
+        $calendarService = $this->container->get('service.calendar');
+
+        $weekTasks = $taskService->list([
+            'due_at_from' => $weekStart,
+            'due_at_to' => $weekEnd,
+            'limit' => 50,
+        ], $actor);
+        $overdue = $taskService->list([
+            'due_at_to' => $yesterday,
+            'limit' => 30,
+        ], $actor);
+        $calendar = $calendarService->myWeek($actor, $date);
+
+        return [
+            'date' => $date,
+            'week_from' => $weekStart,
+            'week_to' => $weekEnd,
+            'week_tasks' => [
+                'items' => (array)($weekTasks['items'] ?? []),
+                'meta' => (array)($weekTasks['meta'] ?? []),
+            ],
+            'overdue_tasks' => [
+                'items' => (array)($overdue['items'] ?? []),
+                'meta' => (array)($overdue['meta'] ?? []),
+            ],
+            'calendar' => $calendar,
+            'ai_suggestion' => $this->latestMyWeekSuggestion($actor),
+        ];
+    }
+
+    /** @param array<string,mixed> $actor */
     private function latestMyDaySuggestion(array $actor): ?array
     {
         if (!$this->actorCanUseAi($actor) || !$this->container->has('service.ai_suggestion')) {
@@ -102,6 +166,36 @@ final class PageDataController extends BaseController
         }
     }
 
+    /** @param array<string,mixed> $actor */
+    private function latestMyWeekSuggestion(array $actor): ?array
+    {
+        if (!$this->actorCanUseAi($actor) || !$this->container->has('service.ai_suggestion')) {
+            return null;
+        }
+
+        try {
+            /** @var AiSuggestionService $service */
+            $service = $this->container->get('service.ai_suggestion');
+            $result = $service->list([
+                'intent_code' => 'my_week_plan',
+                'entity_type' => 'user',
+                'limit' => 20,
+            ], $actor);
+            $items = (array)($result['items'] ?? []);
+            usort($items, static function (array $a, array $b): int {
+                $aTime = strtotime((string)($a['updated_at'] ?? $a['created_at'] ?? '')) ?: 0;
+                $bTime = strtotime((string)($b['updated_at'] ?? $b['created_at'] ?? '')) ?: 0;
+                return $bTime <=> $aTime;
+            });
+
+            $selected = $this->selectBestMyWeekSuggestion($items);
+            $publicId = trim((string)($selected['public_id'] ?? ''));
+            return $publicId !== '' ? $service->get($publicId, $actor) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     /** @param array<int,array<string,mixed>> $items */
     private function selectBestMyDaySuggestion(array $items): ?array
     {
@@ -122,6 +216,18 @@ final class PageDataController extends BaseController
         }
 
         return $withSlots ?? $concrete ?? ($items[0] ?? null);
+    }
+
+    /** @param array<int,array<string,mixed>> $items */
+    private function selectBestMyWeekSuggestion(array $items): ?array
+    {
+        foreach ($items as $item) {
+            $payload = is_array($item['payload'] ?? null) ? (array)$item['payload'] : [];
+            if (is_array($payload['tasks_by_day'] ?? null) && (array)$payload['tasks_by_day'] !== []) {
+                return $item;
+            }
+        }
+        return $items[0] ?? null;
     }
 
     /** @param array<int,mixed> $workItems */
