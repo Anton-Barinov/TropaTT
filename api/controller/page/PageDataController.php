@@ -6,6 +6,7 @@ namespace Api\Controller\Page;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\AiSuggestionService;
 use Api\System\Library\Service\CalendarService;
+use Api\System\Library\Service\StatusService;
 use Api\System\Library\Service\TaskService;
 
 final class PageDataController extends BaseController
@@ -61,6 +62,27 @@ final class PageDataController extends BaseController
         }
 
         return $this->success('PAGE_MY_WEEK', 'Данные страницы «Моя неделя»', $payload);
+    }
+
+    public function kanban(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $actor = $auth['user'];
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $cacheKey = 'kanban:' . $this->cacheUserId();
+            $payload = $cache->remember('page', $cacheKey, 30, function () use ($actor) {
+                return $this->buildKanbanPayload($actor);
+            });
+        } else {
+            $payload = $this->buildKanbanPayload($actor);
+        }
+
+        return $this->success('PAGE_KANBAN', 'Данные страницы «Канбан»', $payload);
     }
 
     /** @param array<string,mixed> $actor */
@@ -133,6 +155,33 @@ final class PageDataController extends BaseController
             ],
             'calendar' => $calendar,
             'ai_suggestion' => $this->latestMyWeekSuggestion($actor),
+        ];
+    }
+
+    /** @param array<string,mixed> $actor */
+    private function buildKanbanPayload(array $actor): array
+    {
+        /** @var TaskService $taskService */
+        $taskService = $this->container->get('service.task');
+        /** @var StatusService $statusService */
+        $statusService = $this->container->get('service.status');
+
+        $tasks = $taskService->list([
+            'limit' => 100,
+        ], $actor);
+        $statuses = $statusService->list([
+            'limit' => 200,
+        ]);
+
+        return [
+            'tasks' => [
+                'items' => (array)($tasks['items'] ?? []),
+                'meta' => (array)($tasks['meta'] ?? []),
+            ],
+            'statuses' => [
+                'items' => (array)($statuses['items'] ?? []),
+                'meta' => (array)($statuses['meta'] ?? []),
+            ],
         ];
     }
 

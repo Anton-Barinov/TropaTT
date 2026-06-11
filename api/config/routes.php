@@ -223,6 +223,7 @@ return [
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/calendar/events/{public_id}', 'controller' => Api\Controller\Calendar\CalendarController::class, 'action' => 'updateEvent', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/calendar/events/{public_id}', 'controller' => Api\Controller\Calendar\CalendarController::class, 'action' => 'deleteEvent', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/pages/my-day', 'controller' => Api\Controller\Page\PageDataController::class, 'action' => 'myDay', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/pages/kanban', 'controller' => Api\Controller\Page\PageDataController::class, 'action' => 'kanban', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/calendar/my-day', 'controller' => Api\Controller\Calendar\CalendarController::class, 'action' => 'myDay', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/pages/my-week', 'controller' => Api\Controller\Page\PageDataController::class, 'action' => 'myWeek', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/calendar/my-week', 'controller' => Api\Controller\Calendar\CalendarController::class, 'action' => 'myWeek', 'auth' => true, 'required_permissions' => ['task.manage']],

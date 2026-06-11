@@ -16715,17 +16715,28 @@ window.CRM.pageApiBindings = (function () {
 
 
   async function renderKanbanPage() {
-    var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 100 } });
-    if (tasksEnvelope && tasksEnvelope.success !== false) {
-      var tasks = mapItems(tasksEnvelope);
-      window.CRM.kanbanTasks = tasks;
-    }
     window.CRM.kanbanFilters = kanbanReadFiltersFromQuery();
     // Try to load configured statuses (order) from API; fall back to sensible defaults
     var statusOrder = ['new', 'in_progress', 'done'];
+    var statusesEnvelope = null;
+    var pageEnvelope = await tryRequest('api/v1/pages/kanban', { silent: true });
+    if (pageEnvelope && pageEnvelope.success !== false && pageEnvelope.data) {
+      var pageData = pageEnvelope.data || {};
+      var pageTasks = pageData.tasks && Array.isArray(pageData.tasks.items) ? pageData.tasks.items : [];
+      window.CRM.kanbanTasks = pageTasks;
+      statusesEnvelope = pageData.statuses ? { success: true, data: pageData.statuses } : null;
+    } else {
+      var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 100 } });
+      if (tasksEnvelope && tasksEnvelope.success !== false) {
+        var tasks = mapItems(tasksEnvelope);
+        window.CRM.kanbanTasks = tasks;
+      }
+    }
     try {
       // fetch global statuses in admin order, then pick those with scope 'task'
-      var statusesEnvelope = await tryRequest('api/v1/statuses', { query: { limit: 200 } });
+      if (!statusesEnvelope) {
+        statusesEnvelope = await tryRequest('api/v1/statuses', { query: { limit: 200 } });
+      }
       if (statusesEnvelope && statusesEnvelope.success !== false) {
         var allStatuses = mapItems(statusesEnvelope).map(function (s) {
           return { code: String(s.code || ''), title: String(s.title || s.code || ''), sort_order: Number(s.sort_order || 0), scope: String(s.scope || '') };
