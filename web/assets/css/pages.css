@@ -3477,6 +3477,46 @@ font-size: 0.72rem;
   padding-bottom: .75rem;
 }
 
+.crm-counterparties-page .crm-counterparties-actions {
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) auto auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.crm-counterparties-page .crm-counterparties-action-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.crm-counterparties-page .crm-counterparties-action-group-links {
+  padding: 0 0.55rem;
+  border-left: 1px solid var(--crm-border);
+  border-right: 1px solid var(--crm-border);
+}
+
+.crm-counterparties-page .crm-counterparties-action-group-main {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1199.98px) {
+  .crm-counterparties-page .crm-counterparties-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-counterparties-page .crm-counterparties-action-group-links {
+    padding: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .crm-counterparties-page .crm-counterparties-action-group-main {
+    justify-content: flex-start;
+  }
+}
+
 .crm-counterparties-page #counterpartiesTable th,
 .crm-counterparties-page #counterpartiesTable td {
   vertical-align: middle;
@@ -3535,8 +3575,19 @@ font-size: 0.72rem;
 
 .crm-counterparties-page #counterpartiesTable th:last-child,
 .crm-counterparties-page #counterpartiesTable td:last-child {
-  min-width: 130px;
-  width: 130px;
+  min-width: 112px;
+  width: 112px;
+  max-width: 112px;
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #fff;
+  box-shadow: -10px 0 16px rgba(255, 255, 255, 0.92);
+}
+
+.crm-counterparties-page #counterpartiesTable th:last-child {
+  z-index: 5;
+  background: var(--crm-bg);
 }
 
 .crm-counterparties-page #counterpartiesTable .crm-counterparty-actions {
