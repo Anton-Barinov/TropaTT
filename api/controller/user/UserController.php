@@ -11,9 +11,22 @@ final class UserController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        /** @var UserService $service */
-        $service = $this->container->get('service.user');
-        $result = $service->list($this->request()->allInput());
+        $input = $this->request()->allInput();
+
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('user', $cacheKey, 60, function () use ($input) {
+                /** @var UserService $service */
+                $service = $this->container->get('service.user');
+                return $service->list($input);
+            });
+        } else {
+            /** @var UserService $service */
+            $service = $this->container->get('service.user');
+            $result = $service->list($input);
+        }
 
         return $this->success('USER_LIST', $this->t('user/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }

@@ -15,9 +15,21 @@ final class ViewController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var SavedViewService $service */
-        $service = $this->container->get('service.saved_view');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('view', $cacheKey, 60, function () use ($input, $auth) {
+                /** @var SavedViewService $service */
+                $service = $this->container->get('service.saved_view');
+                return $service->list($input, $auth['user']);
+            });
+        } else {
+            /** @var SavedViewService $service */
+            $service = $this->container->get('service.saved_view');
+            $result = $service->list($this->request()->allInput(), $auth['user']);
+        }
 
         return $this->success('VIEW_LIST', $this->t('view/messages.list'), [
             'items' => $result['items'],
@@ -51,6 +63,8 @@ final class ViewController extends BaseController
         $service = $this->container->get('service.saved_view');
         $item = $service->create($input, $auth['user']);
 
+        $this->invalidateCache('view');
+
         return $this->success('VIEW_CREATED', $this->t('view/messages.created'), [
             'view' => $item,
         ], 201);
@@ -73,6 +87,8 @@ final class ViewController extends BaseController
             return $this->error('VIEW_NOT_FOUND', $this->t('view/messages.not_found'), 404);
         }
 
+        $this->invalidateCache('view');
+
         return $this->success('VIEW_UPDATED', $this->t('view/messages.updated'), [
             'view' => $item,
         ]);
@@ -94,6 +110,8 @@ final class ViewController extends BaseController
         if (!$ok) {
             return $this->error('VIEW_NOT_FOUND', $this->t('view/messages.not_found'), 404);
         }
+
+        $this->invalidateCache('view');
 
         return $this->success('VIEW_DELETED', $this->t('view/messages.deleted'));
     }

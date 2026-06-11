@@ -16,9 +16,21 @@ final class WorklogController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var WorklogService $service */
-        $service = $this->container->get('service.worklog');
-        $result = $service->list($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var WorklogService $service */
+                $service = $this->container->get('service.worklog');
+                return $service->list($input, $authUser['user']);
+            });
+        } else {
+            /** @var WorklogService $service */
+            $service = $this->container->get('service.worklog');
+            $result = $service->list($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('WORKLOG_LIST', $this->t('worklog/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -60,6 +72,8 @@ final class WorklogController extends BaseController
                 'permission' => [$this->t('worklog/messages.permission_task')],
             ]);
         }
+
+        $this->invalidateCache('worklog');
 
         return $this->success('WORKLOG_CREATED', $this->t('worklog/messages.created'), ['worklog' => $item], 201);
     }
@@ -122,6 +136,8 @@ final class WorklogController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('worklog');
+
         return $this->success('WORKLOG_UPDATED', $this->t('worklog/messages.updated'), ['worklog' => $item]);
     }
 
@@ -146,6 +162,8 @@ final class WorklogController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('worklog');
+
         return $this->success('WORKLOG_DELETED', $this->t('worklog/messages.deleted'));
     }
 
@@ -156,9 +174,21 @@ final class WorklogController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var WorklogService $service */
-        $service = $this->container->get('service.worklog');
-        $result = $service->summary($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'summary:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var WorklogService $service */
+                $service = $this->container->get('service.worklog');
+                return $service->summary($input, $authUser['user']);
+            });
+        } else {
+            /** @var WorklogService $service */
+            $service = $this->container->get('service.worklog');
+            $result = $service->summary($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('WORKLOG_SUMMARY', $this->t('worklog/messages.summary'), $result);
     }
@@ -170,9 +200,21 @@ final class WorklogController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var WorklogService $service */
-        $service = $this->container->get('service.worklog');
-        $result = $service->earnings($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'earnings:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var WorklogService $service */
+                $service = $this->container->get('service.worklog');
+                return $service->earnings($input, $authUser['user']);
+            });
+        } else {
+            /** @var WorklogService $service */
+            $service = $this->container->get('service.worklog');
+            $result = $service->earnings($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('WORKLOG_EARNINGS', $this->t('worklog/messages.earnings'), $result);
     }
@@ -201,9 +243,21 @@ final class WorklogController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var WorklogService $service */
-        $service = $this->container->get('service.worklog');
-        $result = $service->matrix($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'matrix:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var WorklogService $service */
+                $service = $this->container->get('service.worklog');
+                return $service->matrix($input, $authUser['user']);
+            });
+        } else {
+            /** @var WorklogService $service */
+            $service = $this->container->get('service.worklog');
+            $result = $service->matrix($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('WORKLOG_MATRIX', $this->t('worklog/messages.matrix'), $result);
     }
@@ -224,9 +278,23 @@ final class WorklogController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
 
-        /** @var WorklogService $service */
-        $service = $this->container->get('service.worklog');
-        $result = $service->detail($day, $userPublicId, $projectPublicId ?: null, $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            ksort($input);
+            $cacheKey = 'detail:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('worklog', $cacheKey, 60, function () use ($input, $authUser) {
+                $day = (string)($input['day'] ?? '');
+                $userPublicId = (string)($input['user_public_id'] ?? '');
+                $projectPublicId = (string)($input['project_public_id'] ?? '');
+                /** @var WorklogService $service */
+                $service = $this->container->get('service.worklog');
+                return $service->detail($day, $userPublicId, $projectPublicId ?: null, $authUser['user']);
+            });
+        } else {
+            /** @var WorklogService $service */
+            $service = $this->container->get('service.worklog');
+            $result = $service->detail($day, $userPublicId, $projectPublicId ?: null, $authUser['user']);
+        }
 
         return $this->success('WORKLOG_DETAIL', $this->t('worklog/messages.detail'), $result);
     }

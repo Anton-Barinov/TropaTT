@@ -18,9 +18,21 @@ final class CounterpartyController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CounterpartyService $service */
-        $service = $this->container->get('service.counterparty');
-        $result = $service->list($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('counterparty', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var CounterpartyService $service */
+                $service = $this->container->get('service.counterparty');
+                return $service->list($input, $authUser['user']);
+            });
+        } else {
+            /** @var CounterpartyService $service */
+            $service = $this->container->get('service.counterparty');
+            $result = $service->list($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('COUNTERPARTY_LIST', $this->t('counterparty/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -67,6 +79,8 @@ final class CounterpartyController extends BaseController
             throw $e;
         }
 
+        $this->invalidateCache('counterparty');
+
         return $this->success('COUNTERPARTY_CREATED', $this->t('counterparty/messages.created'), ['counterparty' => $item], 201);
     }
 
@@ -103,6 +117,8 @@ final class CounterpartyController extends BaseController
             throw $e;
         }
 
+        $this->invalidateCache('counterparty');
+
         return $this->success('COUNTERPARTY_UPDATED', $this->t('counterparty/messages.updated'), ['counterparty' => $item]);
     }
 
@@ -125,6 +141,8 @@ final class CounterpartyController extends BaseController
             }
             throw $e;
         }
+
+        $this->invalidateCache('counterparty');
 
         return $this->success('COUNTERPARTY_DELETED', $this->t('counterparty/messages.deleted'));
     }

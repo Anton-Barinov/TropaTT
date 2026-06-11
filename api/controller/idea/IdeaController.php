@@ -12,14 +12,35 @@ final class IdeaController extends BaseController
 {
     public function list(): JsonResponse
     {
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('idea', $cacheKey, 60, function () use ($input) {
+                return $this->executeListQuery($input);
+            });
+            return $this->success('IDEAS_LIST', $this->t('idea/messages.list'), ['items' => $result['items'], 'current_user_id' => $result['current_user_id']], meta: [
+                'pagination' => $result['pagination'],
+            ]);
+        }
+
+        $input = $this->request()->allInput();
+        $result = $this->executeListQuery($input);
+        return $this->success('IDEAS_LIST', $this->t('idea/messages.list'), ['items' => $result['items'], 'current_user_id' => $result['current_user_id']], meta: [
+            'pagination' => $result['pagination'],
+        ]);
+    }
+
+    private function executeListQuery(array $input): array
+    {
         $pdo = $this->container->get('db.pdo');
-        $filters = $this->request()->allInput();
-        $status = (string)($filters['status'] ?? '');
-        $category = (string)($filters['category'] ?? '');
-        $sort = (string)($filters['sort'] ?? 'votes');
-        $period = (string)($filters['period'] ?? '');
-        $limit = min(50, max(1, (int)($filters['limit'] ?? 20)));
-        $offset = max(0, (int)($filters['offset'] ?? 0));
+        $status = (string)($input['status'] ?? '');
+        $category = (string)($input['category'] ?? '');
+        $sort = (string)($input['sort'] ?? 'votes');
+        $period = (string)($input['period'] ?? '');
+        $limit = min(50, max(1, (int)($input['limit'] ?? 20)));
+        $offset = max(0, (int)($input['offset'] ?? 0));
 
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
@@ -28,14 +49,12 @@ final class IdeaController extends BaseController
         $params = [];
         if ($status !== '') { $where[] = 'i.status = :status'; $params['status'] = $status; }
         if ($category !== '') { $where[] = 'i.category = :category'; $params['category'] = $category; }
-        // Filter private ideas: show only public + own
         if ($userId > 0) {
             $where[] = '(i.visibility = \'public\' OR i.author_user_id = :uid)';
             $params['uid'] = $userId;
         } else {
             $where[] = 'i.visibility = \'public\'';
         }
-        // Period filter
         if ($period === 'today') { $where[] = 'DATE(i.created_at) = CURDATE()'; }
         elseif ($period === 'week') { $where[] = 'i.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'; }
         elseif ($period === 'month') { $where[] = 'i.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)'; }
@@ -60,9 +79,11 @@ final class IdeaController extends BaseController
         $countStmt->execute();
         $total = (int)$countStmt->fetchColumn();
 
-        return $this->success('IDEAS_LIST', $this->t('idea/messages.list'), ['items' => $items, 'current_user_id' => $userId], meta: [
+        return [
+            'items' => $items,
+            'current_user_id' => $userId,
             'pagination' => ['total' => $total, 'limit' => $limit, 'offset' => $offset],
-        ]);
+        ];
     }
 
     public function get(array $params = []): JsonResponse
@@ -70,22 +91,33 @@ final class IdeaController extends BaseController
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
+        $idea = null;
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $cacheKey = 'get:' . $this->cacheUserId() . ':' . $publicId;
+            $idea = $cache->remember('idea', $cacheKey, 60, function () use ($publicId) {
+                /** @var IdeaService $service */
+                $service = $this->container->get('service.idea');
+                return $service->get($publicId);
+            });
+        } else {
+            /** @var IdeaService $service */
+            $service = $this->container->get('service.idea');
+            $idea = $service->get($publicId);
+        }
+
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT i.*, u.full_name as author_name, u.login as author_login FROM ideas i LEFT JOIN users u ON u.id = i.author_user_id WHERE i.public_id = :pid");
-        $stmt->execute(['pid' => $publicId]);
-        $item = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$item) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
-
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
         if ($userId > 0) {
             $voteStmt = $pdo->prepare("SELECT 1 FROM idea_votes WHERE idea_id = :iid AND user_id = :uid");
-            $voteStmt->execute(['iid' => $item['id'], 'uid' => $userId]);
-            $item['user_has_voted'] = (bool)$voteStmt->fetchColumn();
+            $voteStmt->execute(['iid' => $idea['id'], 'uid' => $userId]);
+            $idea['user_has_voted'] = (bool)$voteStmt->fetchColumn();
         }
 
-        return $this->success('IDEA_DETAIL', $this->t('common/messages.ok'), ['idea' => $item, 'current_user_id' => $userId]);
+        return $this->success('IDEA_DETAIL', $this->t('common/messages.ok'), ['idea' => $idea, 'current_user_id' => $userId]);
     }
 
     public function create(): JsonResponse
@@ -124,6 +156,8 @@ final class IdeaController extends BaseController
             }
         } catch (\Throwable) {}
 
+        $this->invalidateCache('idea');
+
         return $this->success('IDEA_CREATED', $this->t('idea/messages.created'), ['public_id' => $publicId], status: 201);
     }
 
@@ -154,6 +188,8 @@ final class IdeaController extends BaseController
         $stmt = $pdo->prepare("UPDATE ideas SET title = :title, description = :desc, category = :cat, region = :region, visibility = :vis, target_date = :td WHERE public_id = :pid");
         $stmt->execute(['title' => $title, 'desc' => $description, 'cat' => $category, 'region' => $region, 'vis' => $visibility, 'td' => $targetDate, 'pid' => $publicId]);
 
+        $this->invalidateCache('idea');
+
         return $this->success('IDEA_UPDATED', $this->t('idea/messages.updated'));
     }
 
@@ -176,6 +212,8 @@ final class IdeaController extends BaseController
         $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => $idea['id']]);
         $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
         $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid")->execute(['pid' => $publicId]);
+
+        $this->invalidateCache('idea');
 
         return $this->success('IDEA_DELETED', $this->t('idea/messages.deleted'));
     }
@@ -255,6 +293,8 @@ final class IdeaController extends BaseController
                 ]);
             }
         } catch (\Throwable) {}
+
+        $this->invalidateCache('idea');
 
         return $this->success('IDEA_STATUS_UPDATED', $this->t('idea/messages.status_updated'), ['status' => $newStatus]);
     }

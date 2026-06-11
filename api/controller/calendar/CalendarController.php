@@ -17,9 +17,21 @@ final class CalendarController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CalendarService $service */
-        $service = $this->container->get('service.calendar');
-        $result = $service->listEvents($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'events:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var CalendarService $service */
+                $service = $this->container->get('service.calendar');
+                return $service->listEvents($input, $authUser['user']);
+            });
+        } else {
+            /** @var CalendarService $service */
+            $service = $this->container->get('service.calendar');
+            $result = $service->listEvents($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('CALENDAR_EVENT_LIST', $this->t('calendar/messages.event_list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -57,6 +69,8 @@ final class CalendarController extends BaseController
                 'task_public_id' => [$this->t('common/messages.task_not_found')],
             ]);
         }
+
+        $this->invalidateCache('calendar');
 
         return $this->success('CALENDAR_EVENT_CREATED', $this->t('calendar/messages.event_created'), ['event' => $item], 201);
     }
@@ -116,6 +130,8 @@ final class CalendarController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('calendar');
+
         return $this->success('CALENDAR_EVENT_UPDATED', $this->t('calendar/messages.event_updated'), ['event' => $item]);
     }
 
@@ -134,6 +150,8 @@ final class CalendarController extends BaseController
                 'event' => [$this->t('calendar/messages.event_not_found')],
             ]);
         }
+
+        $this->invalidateCache('calendar');
 
         return $this->success('CALENDAR_EVENT_DELETED', $this->t('calendar/messages.event_deleted'));
     }
@@ -165,9 +183,21 @@ final class CalendarController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CalendarService $service */
-        $service = $this->container->get('service.calendar');
-        $payload = $service->myDay($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var CalendarService $service */
+                $service = $this->container->get('service.calendar');
+                return $service->myDay($authUser['user'], (string)($input['date'] ?? ''));
+            });
+        } else {
+            /** @var CalendarService $service */
+            $service = $this->container->get('service.calendar');
+            $payload = $service->myDay($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        }
 
         return $this->success('CALENDAR_MY_DAY', $this->t('calendar/messages.my_day'), $payload);
     }
@@ -179,9 +209,21 @@ final class CalendarController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CalendarService $service */
-        $service = $this->container->get('service.calendar');
-        $payload = $service->myWeek($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var CalendarService $service */
+                $service = $this->container->get('service.calendar');
+                return $service->myWeek($authUser['user'], (string)($input['date'] ?? ''));
+            });
+        } else {
+            /** @var CalendarService $service */
+            $service = $this->container->get('service.calendar');
+            $payload = $service->myWeek($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        }
 
         return $this->success('CALENDAR_MY_WEEK', $this->t('calendar/messages.my_week'), $payload);
     }
@@ -193,9 +235,21 @@ final class CalendarController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CalendarService $service */
-        $service = $this->container->get('service.calendar');
-        $payload = $service->myMonth($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'myMonth:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $payload = $cache->remember('calendar', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var CalendarService $service */
+                $service = $this->container->get('service.calendar');
+                return $service->myMonth($authUser['user'], (string)($input['date'] ?? ''));
+            });
+        } else {
+            /** @var CalendarService $service */
+            $service = $this->container->get('service.calendar');
+            $payload = $service->myMonth($authUser['user'], (string)($this->request()->allInput()['date'] ?? ''));
+        }
 
         return $this->success('CALENDAR_MY_MONTH', $this->t('calendar/messages.my_month'), $payload);
     }

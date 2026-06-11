@@ -19,9 +19,21 @@ final class ClientController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var ClientService $service */
-        $service = $this->container->get('service.client');
-        $result = $service->list($this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $result = $cache->remember('client', $cacheKey, 60, function () use ($input, $authUser) {
+                /** @var ClientService $service */
+                $service = $this->container->get('service.client');
+                return $service->list($input, $authUser['user']);
+            });
+        } else {
+            /** @var ClientService $service */
+            $service = $this->container->get('service.client');
+            $result = $service->list($this->request()->allInput(), $authUser['user']);
+        }
 
         return $this->success('CLIENT_LIST', $this->t('client/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
@@ -67,6 +79,8 @@ final class ClientController extends BaseController
             throw $e;
         }
 
+        $this->invalidateCache('client');
+
         return $this->success('CLIENT_CREATED', $this->t('client/messages.created'), ['client' => $item], 201);
     }
 
@@ -103,6 +117,8 @@ final class ClientController extends BaseController
             ]);
         }
 
+        $this->invalidateCache('client');
+
         return $this->success('CLIENT_UPDATED', $this->t('client/messages.updated'), ['client' => $item]);
     }
 
@@ -121,6 +137,8 @@ final class ClientController extends BaseController
                 'client' => [$this->t('client/messages.not_found')],
             ]);
         }
+
+        $this->invalidateCache('client');
 
         return $this->success('CLIENT_DELETED', $this->t('client/messages.deleted'));
     }

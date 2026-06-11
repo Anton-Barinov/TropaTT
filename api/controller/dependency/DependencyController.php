@@ -16,9 +16,21 @@ final class DependencyController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var DependencyService $service */
-        $service = $this->container->get('service.dependency');
-        $items = $service->list($this->request()->allInput(), $auth['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $items = $cache->remember('dependency', $cacheKey, 60, function () use ($input, $auth) {
+                /** @var DependencyService $service */
+                $service = $this->container->get('service.dependency');
+                return $service->list($input, $auth['user']);
+            });
+        } else {
+            /** @var DependencyService $service */
+            $service = $this->container->get('service.dependency');
+            $items = $service->list($this->request()->allInput(), $auth['user']);
+        }
 
         return $this->success('DEPENDENCY_LIST', $this->t('dependency/messages.list'), ['items' => $items]);
     }
@@ -54,6 +66,8 @@ final class DependencyController extends BaseController
             return $this->error('DEPENDENCY_SELF_FORBIDDEN', $this->t('dependency/messages.self_forbidden'), 422);
         }
 
+        $this->invalidateCache('dependency');
+
         return $this->success('DEPENDENCY_CREATED', $this->t('dependency/messages.created'), ['dependency' => $item], 201);
     }
 
@@ -73,6 +87,8 @@ final class DependencyController extends BaseController
         if ($ok === 'TASK_NOT_FOUND') {
             return $this->error('TASK_NOT_FOUND', $this->t('dependency/messages.task_not_found'), 404);
         }
+
+        $this->invalidateCache('dependency');
 
         return $this->success('DEPENDENCY_DELETED', $this->t('dependency/messages.deleted'));
     }

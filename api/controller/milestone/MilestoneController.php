@@ -23,9 +23,19 @@ final class MilestoneController extends BaseController
             ]);
         }
 
-        /** @var MilestoneService $service */
-        $service = $this->container->get('service.milestone');
-        $items = $service->list($projectPublicId, $auth['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . $projectPublicId;
+            $items = $cache->remember('milestone', $cacheKey, 60, function () use ($projectPublicId, $auth) {
+                /** @var MilestoneService $service */
+                $service = $this->container->get('service.milestone');
+                return $service->list($projectPublicId, $auth['user']);
+            });
+        } else {
+            /** @var MilestoneService $service */
+            $service = $this->container->get('service.milestone');
+            $items = $service->list($projectPublicId, $auth['user']);
+        }
         if ($items === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('milestone/messages.project_not_found'), 404);
         }
@@ -75,6 +85,8 @@ final class MilestoneController extends BaseController
             return $this->error('PROJECT_NOT_FOUND', $this->t('milestone/messages.project_not_found'), 404);
         }
 
+        $this->invalidateCache('milestone');
+
         return $this->success('MILESTONE_CREATED', $this->t('milestone/messages.created'), ['milestone' => $item], 201);
     }
 
@@ -104,6 +116,8 @@ final class MilestoneController extends BaseController
             return $this->error('PROJECT_NOT_FOUND', $this->t('milestone/messages.project_not_found'), 404);
         }
 
+        $this->invalidateCache('milestone');
+
         return $this->success('MILESTONE_UPDATED', $this->t('milestone/messages.updated'), ['milestone' => $item]);
     }
 
@@ -123,6 +137,8 @@ final class MilestoneController extends BaseController
         if ($ok === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('milestone/messages.project_not_found'), 404);
         }
+
+        $this->invalidateCache('milestone');
 
         return $this->success('MILESTONE_DELETED', $this->t('milestone/messages.deleted'));
     }
