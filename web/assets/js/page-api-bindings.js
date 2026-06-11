@@ -2615,7 +2615,18 @@ window.CRM.pageApiBindings = (function () {
       apiQuery.order = orderFilter;
     }
 
-    var envelope = await tryRequest('api/v1/tasks', { query: apiQuery });
+    var tasksProjectSelect = document.getElementById('tasksProjectFilter');
+    var tasksTagSelect = document.getElementById('tasksTagFilter');
+    var tasksPromise = tryRequest('api/v1/tasks', { query: apiQuery });
+    var savedViewsPromise = tryRequest('api/v1/views', { query: { entity_type: 'task', limit: 100 } });
+    var projectOptionsPromise = tasksProjectSelect
+      ? tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true })
+      : Promise.resolve(null);
+    var tagOptionsPromise = tasksTagSelect
+      ? tryRequest('api/v1/tags', { query: { limit: 100 }, silent: true })
+      : Promise.resolve(null);
+
+    var envelope = await tasksPromise;
     if (!envelope) return;
 
     var items = mapItems(envelope);
@@ -2714,7 +2725,7 @@ window.CRM.pageApiBindings = (function () {
       sort: sortFilter,
       order: orderFilter
     };
-    var savedViewsEnvelope = await tryRequest('api/v1/views', { query: { entity_type: 'task', limit: 100 } });
+    var savedViewsEnvelope = await savedViewsPromise;
     var savedViews = mapItems(savedViewsEnvelope);
     var selectionKey = tasksSelectionKey(items, currentView, filterSnapshot);
 
@@ -3186,21 +3197,18 @@ window.CRM.pageApiBindings = (function () {
     // Populate task filter selects
     var tasksAssignSelect = document.getElementById('tasksAssigneeFilter');
     var tasksManagerSelect = document.getElementById('tasksManagerFilter');
-    var tasksProjectSelect = document.getElementById('tasksProjectFilter');
-    var tasksTagSelect = document.getElementById('tasksTagFilter');
-
     if (tasksAssignSelect || tasksManagerSelect) {
       var taskUsers = Object.keys(userDirectoryMap).map(function (k) { return userDirectoryMap[k]; });
       if (tasksAssignSelect) fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
       if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
     }
     if (tasksProjectSelect) {
-      var projEnv = await tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true });
+      var projEnv = await projectOptionsPromise;
       var projItems = mapItems(projEnv);
       fillSelect(tasksProjectSelect, projItems, 'public_id', function (p) { return p.title; });
     }
     if (tasksTagSelect) {
-      var tagEnv = await tryRequest('api/v1/tags', { query: { limit: 100 }, silent: true });
+      var tagEnv = await tagOptionsPromise;
       var tagItems = mapItems(tagEnv);
       fillSelect(tasksTagSelect, tagItems, 'public_id', function (t) { return t.title || t.code || t.public_id; });
     }
