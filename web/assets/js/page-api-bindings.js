@@ -14973,8 +14973,29 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function crmGanttPercent(timestamp, windowInfo) {
-    var total = Math.max(1, windowInfo.end - windowInfo.start);
-    return ((timestamp - windowInfo.start) / total) * 100;
+    var ticks = windowInfo.ticks;
+    var tickCount = ticks.length;
+    if (tickCount < 2) return 0;
+
+    var firstTick = ticks[0];
+    var lastTick = ticks[tickCount - 1];
+
+    if (timestamp <= firstTick) return 0;
+    if (timestamp >= lastTick) return 100;
+
+    // Each grid cell spans exactly 100/tickCount % of the total track width.
+    // Interpolate position within the cell based on time fraction.
+    var cellPct = 100 / tickCount;
+    for (var i = 0; i < tickCount - 1; i++) {
+      if (timestamp >= ticks[i] && timestamp < ticks[i + 1]) {
+        var cellMs = ticks[i + 1] - ticks[i];
+        var offsetMs = timestamp - ticks[i];
+        var fraction = cellMs > 0 ? offsetMs / cellMs : 0;
+        return (i + fraction) * cellPct;
+      }
+    }
+
+    return 100;
   }
 
   function crmGanttCreateLaneBar(item, windowInfo, isProject) {
