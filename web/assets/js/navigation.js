@@ -886,8 +886,6 @@ window.CRM.navigation = (function () {
     bindSearchToggle();
     bindGlobalSearch();
     bindLogoutButtons();
-    updateChatUnreadBadges();
-    updateNotificationBadges();
     if (window.CRM && window.CRM.tabLeader) {
       window.CRM.tabLeader.onBecomeLeader(startNavPolling);
       window.CRM.tabLeader.onLoseLeader(stopNavPolling);
@@ -908,9 +906,13 @@ window.CRM.navigation = (function () {
         });
       });
       if (window.CRM.tabLeader.isLeader()) {
+        updateChatUnreadBadges();
+        updateNotificationBadges();
         startNavPolling();
       }
     } else {
+      updateChatUnreadBadges();
+      updateNotificationBadges();
       startNavPolling();
     }
   }
