@@ -10,6 +10,8 @@ window.CRM.api = (function () {
   var IMPERSONATION_AUDIT_KEY = 'crm_impersonation_audit_public_id_v1';
   var IMPERSONATION_TARGET_KEY = 'crm_impersonation_target_label_v1';
   var inFlightGetRequests = {};
+  var referenceGetCache = {};
+  var REFERENCE_GET_CACHE_PREFIX = 'crm_ref_get_cache_v1:';
   var ROUTE_PERMISSIONS = {
     dashboard: [],
     index: [],
@@ -558,6 +560,80 @@ window.CRM.api = (function () {
     });
   }
 
+  function referenceCacheTtlMs(route) {
+    var key = String(route || '').replace(/^\/+/, '').split('?')[0];
+    if (key === 'api/v1/statuses' || key === 'api/v1/priorities') return 60000;
+    if (key === 'api/v1/users') return 20000;
+    return 0;
+  }
+
+  function referenceCacheKey(route, query) {
+    return buildUrl(route, query) + '|locale=' + getPreferredLocale();
+  }
+
+  function referenceCacheStorageKey(cacheKey) {
+    return REFERENCE_GET_CACHE_PREFIX + cacheKey;
+  }
+
+  function readReferenceCache(cacheKey) {
+    var memoryCached = referenceGetCache[cacheKey];
+    if (memoryCached && memoryCached.expiresAt > Date.now()) {
+      return memoryCached.envelope;
+    }
+    if (memoryCached) {
+      delete referenceGetCache[cacheKey];
+    }
+
+    var raw = sessionGet(referenceCacheStorageKey(cacheKey), '');
+    if (!raw) return null;
+    try {
+      var decoded = JSON.parse(raw);
+      if (!decoded || Number(decoded.expiresAt || 0) <= Date.now() || !decoded.envelope) {
+        sessionRemove(referenceCacheStorageKey(cacheKey));
+        return null;
+      }
+      referenceGetCache[cacheKey] = {
+        expiresAt: Number(decoded.expiresAt || 0),
+        envelope: decoded.envelope
+      };
+      return decoded.envelope;
+    } catch (e) {
+      sessionRemove(referenceCacheStorageKey(cacheKey));
+      return null;
+    }
+  }
+
+  function writeReferenceCache(cacheKey, envelope, ttlMs) {
+    var payload = {
+      expiresAt: Date.now() + ttlMs,
+      envelope: envelope
+    };
+    referenceGetCache[cacheKey] = payload;
+    try {
+      sessionSet(referenceCacheStorageKey(cacheKey), JSON.stringify(payload));
+    } catch (e) {
+      void e;
+    }
+  }
+
+  function clearReferenceGetCache() {
+    referenceGetCache = {};
+    try {
+      if (!window.sessionStorage) return;
+      var keys = [];
+      for (var i = 0; i < window.sessionStorage.length; i += 1) {
+        keys.push(window.sessionStorage.key(i));
+      }
+      keys.forEach(function (key) {
+        if (String(key || '').indexOf(REFERENCE_GET_CACHE_PREFIX) === 0) {
+          window.sessionStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      void e;
+    }
+  }
+
   async function request(route, options) {
     var opts = options && typeof options === 'object' ? Object.assign({}, options) : {};
     var method = (opts.method || 'GET').toUpperCase();
@@ -569,6 +645,15 @@ window.CRM.api = (function () {
     var isBlob = typeof Blob !== 'undefined' && body instanceof Blob;
 
     void useAuth;
+
+    var cacheTtlMs = method === 'GET' && body === undefined && !opts.signal && opts.noCache !== true
+      ? referenceCacheTtlMs(route)
+      : 0;
+    var cacheKey = cacheTtlMs > 0 ? referenceCacheKey(route, opts.query) : '';
+    if (cacheKey) {
+      var cached = readReferenceCache(cacheKey);
+      if (cached) return cached;
+    }
 
     var hasCustomHeaders = opts.headers && typeof opts.headers === 'object' && Object.keys(opts.headers).length > 0;
     var canDedupeGet = method === 'GET'
@@ -745,6 +830,11 @@ window.CRM.api = (function () {
 
       var envelope = applyResponseMeta(normalizeEnvelope(response.status, payload), response);
       if (response.ok && envelope.success) {
+        if (cacheKey) {
+          writeReferenceCache(cacheKey, envelope, cacheTtlMs);
+        } else if (method !== 'GET') {
+          clearReferenceGetCache();
+        }
         return envelope;
       }
 
