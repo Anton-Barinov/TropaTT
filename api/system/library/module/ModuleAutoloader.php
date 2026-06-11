@@ -41,18 +41,20 @@ final class ModuleAutoloader
         $moduleKey = strtolower($vendor) . '.' . strtolower($name);
         $basePath = $this->modulePaths[$moduleKey] ?? ($this->projectRoot . '/modules/' . $vendor . '.' . $name);
         $relativePath = str_replace('\\', '/', $rest) . '.php';
+        $relativePaths = array_values(array_unique([
+            $relativePath,
+            $this->lowerFirstPathSegment($relativePath),
+        ]));
 
-        $apiPath = $basePath . '/api/' . $relativePath;
-        $webPath = $basePath . '/web/' . $relativePath;
+        foreach (['api', 'web'] as $area) {
+            foreach ($relativePaths as $candidate) {
+                $path = $basePath . '/' . $area . '/' . $candidate;
 
-        if (is_file($apiPath) && !class_exists($class, false)) {
-            require_once $apiPath;
-            return true;
-        }
-
-        if (is_file($webPath) && !class_exists($class, false)) {
-            require_once $webPath;
-            return true;
+                if (is_file($path) && !class_exists($class, false)) {
+                    require_once $path;
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -66,5 +68,15 @@ final class ModuleAutoloader
     private function dashToCamel(string $name): string
     {
         return str_replace(' ', '', ucwords(str_replace('-', ' ', $name)));
+    }
+
+    private function lowerFirstPathSegment(string $relativePath): string
+    {
+        $parts = explode('/', $relativePath);
+        if ($parts === []) {
+            return $relativePath;
+        }
+        $parts[0] = strtolower($parts[0]);
+        return implode('/', $parts);
     }
 }

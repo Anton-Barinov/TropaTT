@@ -1426,13 +1426,29 @@ final class App
 
         try {
             $activeModules = $moduleConfig->getActiveModules();
+            $loadedModuleNames = [];
             foreach ($activeModules as $reg) {
                 $moduleName = (string)$reg['module_name'];
                 $pluginManager->load($moduleName);
+                if ($pluginManager->isLoaded($moduleName)) {
+                    $loadedModuleNames[$moduleName] = true;
+                }
 
                 $autoloader = $this->container->get('module.autoloader');
                 $manifest = $pluginManager->getManifest($moduleName);
                 if ($manifest !== null) {
+                    $autoloader->registerModule($manifest->name, $manifest->vendor);
+                }
+            }
+
+            foreach ($pluginManager->getDiscovered() as $moduleName => $manifest) {
+                if (isset($loadedModuleNames[$moduleName])) {
+                    continue;
+                }
+
+                $pluginManager->load($moduleName);
+                if ($pluginManager->isLoaded($moduleName)) {
+                    $autoloader = $this->container->get('module.autoloader');
                     $autoloader->registerModule($manifest->name, $manifest->vendor);
                 }
             }
