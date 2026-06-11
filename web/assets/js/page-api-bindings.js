@@ -13602,12 +13602,23 @@ window.CRM.pageApiBindings = (function () {
     var yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     var closedStatuses = { done: true, completed: true, closed: true, archived: true, cancelled: true };
 
-    var myDayData = await Promise.all([
-      tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30, sort: 'due_at', order: 'ASC' } }),
-      tryRequest('api/v1/tasks', { query: { due_at: today, limit: 40, sort: 'priority_code', order: 'DESC' } }),
-      tryRequest('api/v1/calendar/my-day', {}),
-      loadMyDaySuggestion()
-    ]);
+    var myDayPageEnvelope = await tryRequest('api/v1/pages/my-day', { query: { date: today }, silent: true });
+    var myDayPageData = myDayPageEnvelope && myDayPageEnvelope.success !== false && myDayPageEnvelope.data
+      ? myDayPageEnvelope.data
+      : null;
+    var myDayData = myDayPageData
+      ? [
+        { data: { items: Array.isArray(myDayPageData.overdue_tasks && myDayPageData.overdue_tasks.items) ? myDayPageData.overdue_tasks.items : [] }, meta: myDayPageData.overdue_tasks ? myDayPageData.overdue_tasks.meta : {} },
+        { data: { items: Array.isArray(myDayPageData.today_tasks && myDayPageData.today_tasks.items) ? myDayPageData.today_tasks.items : [] }, meta: myDayPageData.today_tasks ? myDayPageData.today_tasks.meta : {} },
+        { data: myDayPageData.calendar || {} },
+        myDayPageData.ai_suggestion || null
+      ]
+      : await Promise.all([
+        tryRequest('api/v1/tasks', { query: { due_at_to: yesterday, limit: 30, sort: 'due_at', order: 'ASC' } }),
+        tryRequest('api/v1/tasks', { query: { due_at: today, limit: 40, sort: 'priority_code', order: 'DESC' } }),
+        tryRequest('api/v1/calendar/my-day', {}),
+        loadMyDaySuggestion()
+      ]);
 
     // Load overdue tasks
     var overdueEnvelope = myDayData[0];
