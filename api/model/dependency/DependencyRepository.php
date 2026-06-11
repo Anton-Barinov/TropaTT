@@ -35,6 +35,13 @@ final class DependencyRepository
             $query->where('pf.public_id', '=', (string)$filters['project_public_id']);
         }
 
+        if (!empty($filters['project_public_ids']) && is_array($filters['project_public_ids'])) {
+            $ids = array_values(array_filter(array_map('trim', $filters['project_public_ids'])));
+            if ($ids !== []) {
+                $query->whereIn('pf.public_id', $ids);
+            }
+        }
+
         if (!empty($filters['task_public_id'])) {
             $query->whereRaw(
                 '(tf.public_id = ? OR td.public_id = ?)',

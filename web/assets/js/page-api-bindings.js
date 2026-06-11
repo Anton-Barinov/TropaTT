@@ -6503,20 +6503,10 @@ window.CRM.pageApiBindings = (function () {
     var hasError = false;
 
     try {
-      var results = await Promise.all([
-        tryRequest('api/v1/notifications', { query: { limit: 7 } }),
-        tryRequest('api/v1/notifications/counters')
-      ]);
+      var envelope = await tryRequest('api/v1/notifications', { query: { limit: 7 } });
 
-      var envelope = results[0];
-      var countersEnvelope = results[1];
       items = mapItems(envelope);
-      unread = countersEnvelope
-        && countersEnvelope.data
-        && countersEnvelope.data.counters
-        && typeof countersEnvelope.data.counters.unread === 'number'
-        ? countersEnvelope.data.counters.unread
-        : items.filter(function (item) { return !item.is_read; }).length;
+      unread = items.filter(function (item) { return !item.is_read; }).length;
     } catch (error) {
       hasError = true;
     }
@@ -15802,26 +15792,27 @@ window.CRM.pageApiBindings = (function () {
         var projects = mapItems(projectsEnvelope);
         var allMilestones = [];
 
-        // Load milestones for each project (limit to first 10 to avoid too many requests)
-        for (var i = 0; i < Math.min(projects.length, 10); i++) {
-          var project = projects[i];
-          var projectPublicId = String(project.public_id || '');
-          if (!projectPublicId) continue;
-
+        // Batch load milestones for all projects at once
+        var projectIds = projects.slice(0, 10).map(function (p) { return String(p.public_id || ''); }).filter(Boolean);
+        if (projectIds.length > 0) {
           try {
-            var msEnvelope = await tryRequest('api/v1/milestone/list', { query: { project_public_id: projectPublicId }, silent: true });
-            if (msEnvelope && msEnvelope.success !== false) {
-              var msItems = mapItems(msEnvelope);
-              msItems.forEach(function (m) {
-                m.project_id = projectPublicId;
-                m.project_title = project.title || project.name || '';
+            var msEnvelope = await tryRequest('api/v1/milestone/list', { query: { project_public_ids: projectIds }, silent: true });
+            if (msEnvelope && msEnvelope.success !== false && msEnvelope.data && msEnvelope.data.by_project) {
+              var byProject = msEnvelope.data.by_project;
+              Object.keys(byProject).forEach(function (projectPublicId) {
+                var project = projects.filter(function (p) { return String(p.public_id || '') === projectPublicId; })[0];
+                var projectTitle = project ? (project.title || project.name || '') : '';
+                (byProject[projectPublicId] || []).forEach(function (m) {
+                  m.project_id = projectPublicId;
+                  m.project_title = projectTitle;
+                  if (m.due_at || m.due_date) {
+                    allMilestones.push(m);
+                  }
+                });
               });
-              allMilestones = allMilestones.concat(msItems.filter(function (m) {
-                return m.due_at || m.due_date;
-              }));
             }
           } catch (e) {
-            // skip project if milestones fail
+            // skip if batch milestones fail
           }
         }
 
@@ -26120,7 +26111,31 @@ window.CRM.pageApiBindings = (function () {
     });
 
     try {
-      await directoryPromise;
+      if (route === 'gantt') {
+        try {
+          // Parallelize additional data loading with first render
+          await Promise.all([
+            crmGanttLoadAdditionalData(),
+            renderGanttPage()
+          ]);
+          // Initialize controls (zoom, interactions)
+          initGanttControls();
+          // Initialize new enhancements
+          crmGanttBindSearch();
+          crmGanttBindKpiFilters();
+          crmGanttBindLegendStatusFilters();
+        } catch (error) {
+          console.error('[CRM] Gantt render failed', error);
+          setErrorState('Не удалось загрузить диаграмму Ганта');
+          return;
+        }
+        // Fire-and-forget secondary loads (users, notifications) — not blocking Gantt first render
+        directoryPromise;
+        notificationsPromise;
+      } else {
+        await directoryPromise;
+      }
+
       if (route === 'projects') return await renderProjectsPage();
       if (route === 'project-detail') return await renderProjectDetailPage();
       if (route === 'tasks' && !document.getElementById('taskStatusBadge')) return await renderTasksPage();
@@ -26141,24 +26156,6 @@ window.CRM.pageApiBindings = (function () {
       if (route === 'my-day') return await renderMyDayPage();
       if (route === 'my-week') return await renderMyWeekPage();
       if (route === 'kanban') return await renderKanbanPage();
-      if (route === 'gantt') {
-        try {
-          // Load dependencies and milestones first
-          await crmGanttLoadAdditionalData();
-          await renderGanttPage();
-          // Initialize controls (zoom, interactions)
-          initGanttControls();
-          // Initialize new enhancements
-          crmGanttBindSearch();
-          crmGanttBindKpiFilters();
-          crmGanttBindLegendStatusFilters();
-        } catch (error) {
-          console.error('[CRM] Gantt render failed', error);
-          setErrorState('Не удалось загрузить диаграмму Ганта');
-          return;
-        }
-      }
-
       if (route === 'admin') return await renderAdminMainPage();
       if (route === 'admin-users') return await renderAdminUsersPage();
       if (route === 'admin-roles') return await renderAdminRolesPage();

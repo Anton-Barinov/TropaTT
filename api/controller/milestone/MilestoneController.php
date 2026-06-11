@@ -16,7 +16,30 @@ final class MilestoneController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $projectPublicId = trim((string)($this->request()->allInput()['project_public_id'] ?? ''));
+        $input = $this->request()->allInput();
+        $projectPublicIds = $input['project_public_ids'] ?? null;
+
+        if ($projectPublicIds !== null && is_array($projectPublicIds) && $projectPublicIds !== []) {
+            $projectPublicIds = array_values(array_filter(array_map('trim', $projectPublicIds)));
+
+            $cache = $this->cacheApi();
+            if ($cache !== null) {
+                $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($projectPublicIds));
+                $byProject = $cache->remember('milestone', $cacheKey, 60, function () use ($projectPublicIds, $auth) {
+                    /** @var MilestoneService $service */
+                    $service = $this->container->get('service.milestone');
+                    return $service->listByProjectIds($projectPublicIds, $auth['user']);
+                });
+            } else {
+                /** @var MilestoneService $service */
+                $service = $this->container->get('service.milestone');
+                $byProject = $service->listByProjectIds($projectPublicIds, $auth['user']);
+            }
+
+            return $this->success('MILESTONE_LIST', $this->t('milestone/messages.list'), ['by_project' => $byProject]);
+        }
+
+        $projectPublicId = trim((string)($input['project_public_id'] ?? ''));
         if ($projectPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'project_public_id' => [$this->t('milestone/messages.project_public_id_required')],

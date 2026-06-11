@@ -23,6 +23,20 @@ final class MilestoneService
         return $this->milestones->listByProjectPublicId($projectPublicId);
     }
 
+    public function listByProjectIds(array $projectPublicIds, array $actor): array
+    {
+        $grouped = [];
+        $items = $this->milestones->listByProjectPublicIds($projectPublicIds);
+        foreach ($items as $item) {
+            $projectPub = (string)$item['project_public_id'];
+            if (!isset($grouped[$projectPub])) {
+                $grouped[$projectPub] = [];
+            }
+            $grouped[$projectPub][] = $item;
+        }
+        return $grouped;
+    }
+
     public function get(string $publicId, array $actor): array|null
     {
         $item = $this->milestones->findByPublicId($publicId);

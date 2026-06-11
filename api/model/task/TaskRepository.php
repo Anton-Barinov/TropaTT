@@ -22,7 +22,7 @@ final class TaskRepository
         $sort = in_array(($filters['sort'] ?? ''), ['title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
         $paginationMode = (($filters['pagination_mode'] ?? '') === 'cursor' || !empty($filters['cursor'])) ? 'cursor' : 'offset';
-        $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
+        $limit = min(500, max(1, (int)($filters['limit'] ?? 20)));
 
         $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')

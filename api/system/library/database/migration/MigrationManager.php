@@ -41,6 +41,7 @@ final class MigrationManager
             new CrmEntityConsolidationMigration(),
             new RecurringProcessorMigration(),
             new RecurringRuleTitleMigration(),
+            new GanttPerformanceIndexesMigration(),
         ];
     }
 

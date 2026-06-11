@@ -35,6 +35,28 @@ final class MilestoneRepository
             ->get();
     }
 
+    public function listByProjectPublicIds(array $projectPublicIds): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('milestones m')
+            ->join('projects p', 'p.id', '=', 'm.project_id')
+            ->select([
+                'm.public_id',
+                'm.title',
+                'm.due_at',
+                'm.status',
+                'm.created_at',
+                'm.updated_at',
+                'p.public_id AS project_public_id',
+                'p.title AS project_title',
+            ])
+            ->whereIn('p.public_id', $projectPublicIds)
+            ->orderBy('m.due_at IS NULL', 'ASC')
+            ->orderBy('m.due_at', 'ASC')
+            ->orderBy('m.created_at', 'ASC')
+            ->get();
+    }
+
     public function findByPublicId(string $publicId): ?array
     {
         return (new QueryBuilder($this->pdo))
