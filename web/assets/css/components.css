@@ -339,6 +339,8 @@
   margin-bottom: 0;
   border-collapse: separate;
   border-spacing: 0;
+  width: 100%;
+  min-width: 760px;
 }
 
 .crm-table thead th {
@@ -353,6 +355,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
+  white-space: nowrap;
 }
 
 .crm-table tbody td {
@@ -361,6 +364,12 @@
   padding: 0.7rem 1rem;
   min-width: 20px;
   font-size: var(--text-sm);
+  color: var(--crm-text);
+}
+
+.crm-table tbody td:last-child,
+.crm-table thead th:last-child {
+  padding-right: 1.25rem;
 }
 
 .crm-table tbody tr {
@@ -375,17 +384,112 @@
   background: var(--color-primary-50);
 }
 
-.crm-table thead th input{
-  
+.table-responsive,
+.crm-table-wrap {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
+.table-responsive::after,
+.crm-table-wrap::after {
+  content: "Прокрутка по горизонтали";
+  position: sticky;
+  left: 100%;
+  bottom: 0;
+  display: block;
+  width: max-content;
+  max-width: 220px;
+  margin: 0 0 0 auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--crm-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.4rem);
+}
 
+.table-responsive:hover::after,
+.table-responsive:focus-within::after,
+.crm-table-wrap:hover::after,
+.crm-table-wrap:focus-within::after {
+  opacity: 1;
+}
 
-.modal-dialog-scrollable .modal-body {
-    overflow-y: auto;
-    overflow: auto;
-    max-height: 370px;
-    height: 80vh;
+.crm-table-actions,
+.crm-table td:last-child,
+.crm-table th:last-child {
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .table-responsive .crm-table th:last-child,
+  .table-responsive .crm-table td:last-child,
+  .crm-table-wrap .crm-table th:last-child,
+  .crm-table-wrap .crm-table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    background: var(--crm-surface);
+    box-shadow: -10px 0 18px rgba(15, 23, 42, 0.045);
+  }
+
+  .table-responsive .crm-table thead th:last-child,
+  .crm-table-wrap .crm-table thead th:last-child {
+    z-index: 4;
+    background: var(--crm-surface-2);
+  }
+}
+
+.crm-table .crm-empty-state,
+.crm-table .crm-table-empty {
+  min-width: min(100%, 34rem);
+  margin: 0.5rem auto;
+  padding: 1.25rem;
+}
+
+.modal-dialog {
+  max-height: calc(100vh - 2rem);
+}
+
+.modal-dialog.modal-lg,
+.modal-dialog.modal-xl {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-dialog .modal-content {
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+}
+
+.modal-dialog .modal-header,
+.modal-dialog .modal-footer {
+  position: sticky;
+  flex: 0 0 auto;
+  background: var(--crm-surface);
+  z-index: 2;
+}
+
+.modal-dialog .modal-header {
+  top: 0;
+}
+
+.modal-dialog .modal-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.modal-dialog .modal-footer {
+  bottom: 0;
+  border-top: 1px solid var(--crm-border);
+  box-shadow: 0 -10px 18px rgba(15, 23, 42, 0.04);
 }
 
 

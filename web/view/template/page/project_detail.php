@@ -78,7 +78,7 @@
         <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="projectAiNextActionsBtn">Следующие действия</button>
       </div>
       <div class="d-flex gap-2 mb-2 flex-wrap" id="projectAiSecondaryActions">
-        <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="projectAiPreviewBtn" disabled>Открыть preview</button>
+        <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="projectAiPreviewBtn" disabled>Предпросмотр</button>
         <button type="button" class="btn btn-sm crm-btn-muted crm-btn-compact" id="projectAiDismissBtn" disabled>Отклонить</button>
       </div>
       <div class="crm-empty-state mb-2" id="projectAiSummaryText">Нажмите «AI-сводка», чтобы получить AI-рекомендацию по проекту.</div>

@@ -2,7 +2,7 @@
 <?php $title = 'TropaTT — Гант'; ?>
 <body data-page="gantt" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-gantt-page"><div class="crm-page-head"><div><h1 class="crm-page-title">Гант</h1><p class="crm-subtitle">План-график задач и проектов по датам.</p></div><div class="crm-page-actions"><button class="btn crm-btn-secondary" type="button" data-open-drawer="filterOffcanvas">Фильтры</button><button class="btn crm-btn-primary" type="button" data-open-modal="createTaskModal">Создать задачу</button></div></div>
+<main class="crm-content crm-gantt-page"><div class="crm-page-head"><div><h1 class="crm-page-title">Гант</h1><p class="crm-subtitle">План-график задач и проектов по датам.</p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-open-modal="createTaskModal">Создать задачу</button></div></div>
 <section class="crm-gantt-shell crm-card crm-section-card">
   <div class="crm-gantt-shell-head">
     <div>
@@ -36,7 +36,7 @@
   </div>
   <div class="crm-gantt-legend" id="ganttLegend"><span class="crm-chip">Загрузка статусов...</span></div>
   <div class="crm-gantt-kpis" id="ganttSummaryTiles"><div class="crm-gantt-kpi-card"><small>Активные задачи</small><strong>...</strong><span>Подготовка данных</span></div></div>
-  <div class="crm-mobile-work-mode-hint d-md-none">Таймлайн можно прокручивать по горизонтали.</div>
+  <div class="crm-mobile-work-mode-hint">Таймлайн можно прокручивать по горизонтали. Заголовок шкалы остается ориентиром при прокрутке.</div>
   <div class="crm-gantt-board">
     <div class="crm-gantt-scale"><div class="crm-gantt-scale-label">Проект / задача</div><div class="crm-gantt-scale-track" id="ganttScaleTrack"><span>Загрузка шкалы...</span></div>
       <div class="crm-gantt"><div class="crm-gantt-rows"></div><div class="crm-gantt-lanes">

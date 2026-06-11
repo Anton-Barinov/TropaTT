@@ -804,11 +804,14 @@
 
   function openNewChatModal() {
     var modal = document.getElementById('newChatModal');
+    if (!modal) return;
     setChatError('');
     document.getElementById('newChatTitle').value = '';
     chatParticipants = [];
     renderChatParticipants();
     loadAllUsers();
+    modal.hidden = false;
+    modal.style.display = 'flex';
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     window.setTimeout(function () { var input = document.getElementById('chatParticipantSearch'); if (input) input.focus(); }, 0);
@@ -816,8 +819,10 @@
 
   function closeNewChatModal() {
     var modal = document.getElementById('newChatModal');
+    if (!modal) return;
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = '';
     setChatError('');
     document.getElementById('chatParticipantSearch').value = '';
     document.getElementById('chatSearchResults').hidden = true;

@@ -34,17 +34,17 @@
     </div>
     <div class="crm-calendar-side-card mt-3" id="calendarAiDayPlanCard" data-calendar-ai-day-plan data-ai-state="idle">
       <div class="crm-section-head">
-        <div><h2 class="h6 mb-0">AI-блоки дня</h2><div class="crm-section-note">Preview дневного плана с ручным подтверждением перед применением.</div></div>
+        <div><h2 class="h6 mb-0">AI-блоки дня</h2><div class="crm-section-note">Предпросмотр дневного плана с ручным подтверждением перед применением.</div></div>
       </div>
       <div class="crm-empty-state mb-2" data-calendar-ai-plan-summary>
         <strong>План не сформирован</strong>
-        <p class="mb-0">Нажмите «Сформировать preview», чтобы получить AI-предложение.</p>
+        <p class="mb-0">Нажмите «Сформировать предпросмотр», чтобы получить AI-предложение.</p>
       </div>
       <div class="crm-calendar-agenda" data-calendar-ai-plan-list>
         <div class="crm-calendar-agenda-empty">Слоты будут показаны после генерации.</div>
       </div>
       <div class="d-grid gap-2 mt-2">
-        <button class="btn crm-btn-secondary" type="button" data-calendar-ai-plan-generate-btn>Сформировать preview</button>
+        <button class="btn crm-btn-secondary" type="button" data-calendar-ai-plan-generate-btn>Сформировать предпросмотр</button>
         <button class="btn crm-btn-primary" type="button" data-calendar-ai-plan-apply-btn disabled>Применить выбранные слоты</button>
       </div>
       <a class="btn crm-btn-muted w-100 mt-2" href="index.php?route=my-day">Открыть «Мой день»</a>

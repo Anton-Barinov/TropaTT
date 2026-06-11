@@ -18,13 +18,13 @@
   </div>
   <div class="col-lg-4">
     <div class="crm-card crm-section-card mb-3" id="clientAiCard" data-requires-ai-use="1" data-ai-state="idle">
-      <div class="crm-section-head"><div><h2 class="h6 mb-0">AI по клиенту</h2><div class="crm-section-note">Сводка по клиенту с preview перед любыми действиями.</div></div></div>
+      <div class="crm-section-head"><div><h2 class="h6 mb-0">AI по клиенту</h2><div class="crm-section-note">Сводка по клиенту с предпросмотром перед любыми действиями.</div></div></div>
       <div class="d-flex flex-wrap gap-2 mb-2">
         <button class="btn btn-sm crm-btn-primary" type="button" id="clientAiSummaryBtn">AI-сводка</button>
         <button class="btn btn-sm btn-light" type="button" id="clientAiMeetingPrepBtn">Подготовка к встрече</button>
         <button class="btn btn-sm btn-light" type="button" id="clientAiDataQualityBtn">Качество данных</button>
         <button class="btn btn-sm btn-light" type="button" id="clientAiSafeReportBtn">Client-safe отчёт</button>
-        <button class="btn btn-sm btn-light" type="button" id="clientAiPreviewBtn" disabled>Открыть preview</button>
+        <button class="btn btn-sm btn-light" type="button" id="clientAiPreviewBtn" disabled>Предпросмотр</button>
         <button class="btn btn-sm crm-btn-muted" type="button" id="clientAiDismissBtn" disabled>Отклонить</button>
       </div>
       <div class="small text-muted mb-2" id="clientAiState">AI-сводка клиента не сформирована.</div>

@@ -6701,8 +6701,14 @@ font-size: 0.72rem;
   display: flex;
 }
 
+.crm-chat-modal[aria-hidden="false"] {
+  display: flex;
+}
+
 .crm-chat-modal-panel {
   width: min(420px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   background: #fff;
   border-radius: 10px;
   border: 1px solid var(--crm-border);
@@ -6723,12 +6729,15 @@ font-size: 0.72rem;
 }
 
 .crm-chat-modal-actions {
+  position: sticky;
+  bottom: -1.25rem;
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--crm-border);
+  background: #fff;
 }
 
 #newChatModal .team-participant-panel {
@@ -12261,4 +12270,79 @@ a.task-tag:hover {
 .modal .input-group-lg > .form-control:focus,
 [data-global-search] > .form-control:focus {
   box-shadow: none !important;
+}
+
+/* ── Visual audit fixes: Gantt readability and horizontal navigation ── */
+.crm-gantt-page {
+  --gantt-left: 420px;
+  --gantt-left-width: 420px;
+}
+
+.crm-gantt-page .crm-mobile-work-mode-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-color: #d8e3f4;
+  background: #f8fbff;
+  color: #526783;
+}
+
+.crm-gantt-page .crm-mobile-work-mode-hint::before {
+  content: "↔";
+  flex: 0 0 auto;
+  color: var(--crm-accent);
+  font-weight: 900;
+}
+
+.crm-gantt-page .crm-gantt-board {
+  position: relative;
+  scrollbar-gutter: stable both-edges;
+}
+
+.crm-gantt-page .crm-gantt-board::after {
+  content: "Прокрутка по горизонтали";
+  position: sticky;
+  left: max(1rem, calc(var(--gantt-left-width) + 1rem));
+  bottom: 0.55rem;
+  z-index: 40;
+  display: inline-flex;
+  margin: 0 0 0.45rem 0.8rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #d8e3f4;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 750;
+  pointer-events: none;
+}
+
+.crm-gantt-page .crm-gantt-scale-label,
+.crm-gantt-page .crm-gantt-rows {
+  width: var(--gantt-left-width);
+  min-width: var(--gantt-left-width);
+}
+
+.crm-gantt-page .crm-gantt-row {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.crm-gantt-page .crm-gantt-row-main strong,
+.crm-gantt-page .crm-gantt-row-main a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1199.98px) {
+  .crm-gantt-page {
+    --gantt-left: 340px;
+    --gantt-left-width: 340px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .crm-gantt-page {
+    --gantt-left: 280px;
+    --gantt-left-width: 280px;
+  }
 }

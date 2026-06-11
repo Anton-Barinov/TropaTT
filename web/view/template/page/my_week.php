@@ -22,7 +22,7 @@
       <div id="myWeekAiPlanDetails" class="mt-2"></div>
       <div class="d-flex gap-2 mt-2 flex-wrap crm-ai-actions">
         <button id="myWeekAiApplyEventsBtn" class="btn btn-sm btn-outline-secondary crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_week.ai_btn_apply', 'Создать выбранные события'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button id="myWeekAiPreviewBtn" class="btn btn-sm btn-light crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_week.ai_btn_preview', 'Открыть'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="myWeekAiPreviewBtn" class="btn btn-sm btn-light crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_week.ai_btn_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
         <button id="myWeekAiDismissBtn" class="btn btn-sm crm-btn-muted crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_week.ai_btn_dismiss', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>

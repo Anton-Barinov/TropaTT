@@ -1965,7 +1965,7 @@ window.CRM.pageApiBindings = (function () {
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
       if (previewChanges > 0) {
-        stateCopy += ' · preview: ' + String(previewChanges) + ' изм.';
+        stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
       }
 
       setProjectAiState('ready', stateCopy);
@@ -2134,7 +2134,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         projectAiPreviewBtn.disabled = true;
-        setProjectAiState('loading', 'Подготавливаем preview AI-предложения...');
+        setProjectAiState('loading', 'Подготавливаем предпросмотр AI-предложения...');
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentProjectAiSuggestion.public_id)
@@ -2153,7 +2153,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentProjectAiSuggestion, latestProjectAiPreview, {
               onApply: function () {
-                notify('Для project-detail действует только preview. Применение бизнес-изменений не выполняется автоматически.', 'warning');
+                notify('Для карточки проекта действует только предпросмотр. Применение бизнес-изменений не выполняется автоматически.', 'warning');
               },
               onDismiss: function () {
                 if (projectAiDismissBtn) projectAiDismissBtn.click();
@@ -2164,12 +2164,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var aiError = toProjectAiError(error, 'Не удалось загрузить preview AI-предложения');
-          setProjectAiState(resolveAiUiState(aiError), aiError.message || 'Не удалось загрузить preview AI-предложения');
+          var aiError = toProjectAiError(error, 'Не удалось загрузить предпросмотр AI-предложения');
+          setProjectAiState(resolveAiUiState(aiError), aiError.message || 'Не удалось загрузить предпросмотр AI-предложения');
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось загрузить preview AI-предложения');
+            window.CRM.ai.renderAiError(error, 'Не удалось загрузить предпросмотр AI-предложения');
           }
-          notify(aiError.message || 'Не удалось загрузить preview AI-предложения', 'error');
+          notify(aiError.message || 'Не удалось загрузить предпросмотр AI-предложения', 'error');
         } finally {
           projectAiPreviewBtn.disabled = !currentProjectAiSuggestion;
         }
@@ -4271,7 +4271,7 @@ window.CRM.pageApiBindings = (function () {
         }
       } catch (previewError) {
         if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-          window.CRM.ai.renderAiError(previewError, 'Не удалось открыть preview AI-сводки');
+          window.CRM.ai.renderAiError(previewError, 'Не удалось открыть предпросмотр AI-сводки');
         }
       }
 
@@ -4635,9 +4635,12 @@ window.CRM.pageApiBindings = (function () {
       if (projectsNode) {
         renderMetricRows(projectsNode, state.projects.slice(0, 6).map(function (row) {
           var overdue = analyticsNumber(row.overdue_tasks);
+          var projectMeta = row.client_title
+            ? 'Клиент: ' + String(row.client_title)
+            : (row.team_title ? 'Команда: ' + String(row.team_title) : 'Проект без привязки к клиенту');
           return {
             title: String(row.title || row.public_id || 'Проект'),
-            meta: String(row.public_id || ''),
+            meta: projectMeta,
             stats: [
               { text: 'Активные ' + String(row.active_tasks || 0) },
               { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
@@ -4826,7 +4829,7 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = analyticsIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · preview: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
       setAnalyticsAiState('ready', stateCopy);
       analyticsAiSummaryText.textContent = summaryText || 'AI-предложение сформировано.';
       renderAnalyticsAiList(analyticsAiFacts, facts, 'Факты/метрики не указаны.');
@@ -4948,7 +4951,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         analyticsAiPreviewBtn.disabled = true;
-        setAnalyticsAiState('loading', 'Подготавливаем preview AI-пояснения...');
+        setAnalyticsAiState('loading', 'Подготавливаем предпросмотр AI-пояснения...');
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentAnalyticsSuggestion.public_id)
@@ -4964,7 +4967,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentAnalyticsSuggestion, currentAnalyticsPreview, {
               onApply: function () {
-                notify('Для analytics действует только preview. Числовые метрики остаются первичными.', 'warning');
+                notify('Для аналитики действует только предпросмотр. Числовые метрики остаются первичными.', 'warning');
               },
               onDismiss: function () {
                 if (analyticsAiDismissBtn) analyticsAiDismissBtn.click();
@@ -4975,12 +4978,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var previewError = toAnalyticsAiError(error, 'Не удалось открыть preview AI-пояснения');
-          setAnalyticsAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть preview AI-пояснения');
+          var previewError = toAnalyticsAiError(error, 'Не удалось открыть предпросмотр AI-пояснения');
+          setAnalyticsAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть предпросмотр AI-пояснения');
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось открыть preview AI-пояснения');
+            window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр AI-пояснения');
           }
-          notify(previewError.message || 'Не удалось открыть preview AI-пояснения', 'error');
+          notify(previewError.message || 'Не удалось открыть предпросмотр AI-пояснения', 'error');
         } finally {
           analyticsAiPreviewBtn.disabled = !currentAnalyticsSuggestion;
         }
@@ -5923,7 +5926,7 @@ window.CRM.pageApiBindings = (function () {
       if (!aiDayPlanSummary || !aiDayPlanList) return;
       if (!suggestion || !suggestion.payload) {
         aiDayPlanSlots = [];
-        aiDayPlanSummary.innerHTML = '<strong>План не сформирован</strong><p class="mb-0">Нажмите «Сформировать preview», чтобы получить AI-предложение.</p>';
+        aiDayPlanSummary.innerHTML = '<strong>План не сформирован</strong><p class="mb-0">Нажмите «Сформировать предпросмотр», чтобы получить AI-предложение.</p>';
         aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">Слоты будут показаны после генерации.</div>';
         updateCalendarAiApplyButtonState(aiCanUse);
         return;
@@ -6026,7 +6029,7 @@ window.CRM.pageApiBindings = (function () {
         var regenerateRequested = !!(latestMyDaySuggestion && latestMyDaySuggestion.public_id);
         if (regenerateRequested && !await confirmCalendarAction({
           title: 'Пересчитать AI-план дня?',
-          body: 'Будет создан новый preview AI-плана дня. Уже созданные события календаря не изменятся автоматически.',
+          body: 'Будет создан новый предпросмотр AI-плана дня. Уже созданные события календаря не изменятся автоматически.',
           actionText: 'Пересчитать',
           actionClass: 'crm-btn-primary'
         })) {
@@ -6046,7 +6049,7 @@ window.CRM.pageApiBindings = (function () {
             ? planEnvelope.data.suggestion
             : await loadLatestMyDaySuggestionForCurrentUser();
           renderCalendarAiDailyBlocks(latestMyDaySuggestion);
-          notify('Preview AI-плана дня обновлен');
+          notify('Предпросмотр AI-плана дня обновлен');
         } catch (error) {
           var aiError = toCalendarAiError(error, 'Не удалось сформировать AI-план дня');
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
@@ -9279,7 +9282,7 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = clientAiIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · preview: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
 
       setClientAiState('ready', stateCopy);
       clientAiSummaryText.textContent = summary || 'AI-предложение сформировано.';
@@ -9418,7 +9421,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         clientAiPreviewBtn.disabled = true;
-        setClientAiState('loading', 'Подготавливаем preview AI-сводки клиента...');
+        setClientAiState('loading', 'Подготавливаем предпросмотр AI-сводки клиента...');
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentClientAiSuggestion.public_id)
@@ -9435,7 +9438,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentClientAiSuggestion, currentClientAiPreview, {
               onApply: function () {
-                notify('Для client-detail действует только preview. Прямое авто-применение отключено.', 'warning');
+                notify('Для карточки клиента действует только предпросмотр. Прямое авто-применение отключено.', 'warning');
               },
               onDismiss: function () {
                 if (clientAiDismissBtn) clientAiDismissBtn.click();
@@ -9446,12 +9449,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var previewError = toClientAiError(error, 'Не удалось открыть preview AI-сводки клиента');
-          setClientAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть preview AI-сводки клиента');
+          var previewError = toClientAiError(error, 'Не удалось открыть предпросмотр AI-сводки клиента');
+          setClientAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть предпросмотр AI-сводки клиента');
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось открыть preview AI-сводки клиента');
+            window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр AI-сводки клиента');
           }
-          notify(previewError.message || 'Не удалось открыть preview AI-сводки клиента', 'error');
+          notify(previewError.message || 'Не удалось открыть предпросмотр AI-сводки клиента', 'error');
         } finally {
           clientAiPreviewBtn.disabled = !currentClientAiSuggestion;
         }
@@ -17855,7 +17858,7 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = adminReviewIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · preview: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
       var suggestionStatus = String(suggestion.status || '').trim();
       var aiState = suggestionStatus === 'dismissed'
         ? 'dismissed'

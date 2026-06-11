@@ -22,7 +22,7 @@
       <div id="myDayAiPlanTasks" class="mt-2"></div>
       <div class="d-flex gap-2 mt-2 flex-wrap crm-ai-actions">
         <button id="myDayAiApplySlotsBtn" class="btn btn-sm btn-outline-secondary crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_day.ai_btn_apply', 'Применить выбранные слоты'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button id="myDayAiPreviewBtn" class="btn btn-sm btn-light crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_day.ai_btn_preview', 'Открыть'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button id="myDayAiPreviewBtn" class="btn btn-sm btn-light crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_day.ai_btn_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
         <button id="myDayAiDismissBtn" class="btn btn-sm crm-btn-muted crm-btn-compact d-none" type="button" disabled><?= htmlspecialchars($t('my_day.ai_btn_dismiss', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
