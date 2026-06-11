@@ -18,9 +18,22 @@ final class CustomFieldController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $result = $service->list($this->request()->allInput());
+        $input = $this->request()->allInput();
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            ksort($input);
+            $cachePayload = json_encode($input, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $cacheKey = 'list:' . md5($cachePayload !== false ? $cachePayload : serialize($input));
+            $result = $cache->remember('custom_field', $cacheKey, 60, function () use ($input) {
+                /** @var CustomFieldService $service */
+                $service = $this->container->get('service.custom_field');
+                return $service->list($input);
+            });
+        } else {
+            /** @var CustomFieldService $service */
+            $service = $this->container->get('service.custom_field');
+            $result = $service->list($input);
+        }
 
         return $this->success('CUSTOM_FIELD_LIST', $this->t('custom_field/messages.list'), [
             'items' => $result['items'],
@@ -61,6 +74,7 @@ final class CustomFieldController extends BaseController
                 'code' => [$this->t('custom_field/messages.code_exists')],
             ]);
         }
+        $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_CREATED', $this->t('custom_field/messages.created'), [
             'field' => $item,
@@ -73,9 +87,19 @@ final class CustomFieldController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var CustomFieldService $service */
-        $service = $this->container->get('service.custom_field');
-        $item = $service->get((string)$params['public_id']);
+        $publicId = (string)$params['public_id'];
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $item = $cache->remember('custom_field', 'get:' . md5($publicId), 60, function () use ($publicId) {
+                /** @var CustomFieldService $service */
+                $service = $this->container->get('service.custom_field');
+                return $service->get($publicId);
+            });
+        } else {
+            /** @var CustomFieldService $service */
+            $service = $this->container->get('service.custom_field');
+            $item = $service->get($publicId);
+        }
         if (!$item) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
@@ -117,6 +141,7 @@ final class CustomFieldController extends BaseController
         if (!$item) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
+        $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_UPDATED', $this->t('custom_field/messages.updated'), [
             'field' => $item,
@@ -135,6 +160,7 @@ final class CustomFieldController extends BaseController
         if (!$ok) {
             return $this->error('CUSTOM_FIELD_NOT_FOUND', $this->t('custom_field/messages.not_found'), 404);
         }
+        $this->invalidateCache('custom_field');
 
         return $this->success('CUSTOM_FIELD_DELETED', $this->t('custom_field/messages.deleted'), []);
     }

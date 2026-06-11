@@ -52,6 +52,9 @@ final class ApiFileCache
     public function setEnabled(bool $enabled): void
     {
         $this->enabled = $enabled;
+        if ($this->enabled && !is_dir($this->basePath)) {
+            $this->ensureDirectoryExists($this->basePath);
+        }
     }
 
     public function getDefaultTtl(): int
@@ -117,6 +120,7 @@ final class ApiFileCache
             return $callback();
         }
 
+        $ttl = $this->defaultTtl > 0 ? $this->defaultTtl : max(1, $ttl);
         $this->maybeGc();
 
         $version = $this->getNamespaceVersion($namespace);
@@ -145,11 +149,13 @@ final class ApiFileCache
 
     public function invalidateNamespace(string $namespace): void
     {
-        if (!$this->enabled) {
-            return;
+        if (!is_dir($this->basePath)) {
+            $this->ensureDirectoryExists($this->basePath);
         }
 
-        $this->maybeGc();
+        if ($this->enabled) {
+            $this->maybeGc();
+        }
 
         $versionFile = $this->versionFilePath($namespace);
         $newVersion = (string)(int)(microtime(true) * 1000);

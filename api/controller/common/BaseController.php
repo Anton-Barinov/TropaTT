@@ -97,22 +97,38 @@ abstract class BaseController
             return null;
         }
         $cache = $this->container->get('cache.api');
-        if (!($cache instanceof ApiFileCache && $cache->isEnabled())) {
+        if (!($cache instanceof ApiFileCache)) {
             return null;
         }
-        // Check runtime DB setting (overrides bootstrap config)
+
+        $enabled = $cache->isEnabled();
+        $ttl = $cache->getDefaultTtl();
+
         if ($this->container->has('service.setting')) {
             try {
                 $settingSvc = $this->container->get('service.setting');
-                $setting = $settingSvc->get('system', 'api_file_cache_enabled');
-                if ($setting !== null && !(bool)($setting['value'] ?? true)) {
-                    return null;
+
+                $enabledSetting = $settingSvc->get('system', 'api_file_cache_enabled');
+                if ($enabledSetting !== null) {
+                    $enabled = (bool)($enabledSetting['value'] ?? true);
+                }
+
+                $ttlSetting = $settingSvc->get('system', 'api_file_cache_ttl');
+                if ($ttlSetting !== null) {
+                    $val = $ttlSetting['value'] ?? null;
+                    if ($val !== null && $val !== '') {
+                        $ttl = max(1, (int)$val);
+                    }
                 }
             } catch (\Throwable) {
                 // Settings service unavailable — proceed with bootstrap config
             }
         }
-        return $cache;
+
+        $cache->setEnabled($enabled);
+        $cache->setDefaultTtl($ttl);
+
+        return $enabled ? $cache : null;
     }
 
     protected function invalidateCache(string $namespace): void
