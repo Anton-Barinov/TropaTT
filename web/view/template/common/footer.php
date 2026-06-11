@@ -24,9 +24,31 @@ if ($assetsVersion === '') {
   }
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
 }
+$currentRoute = trim((string)($route ?? ($_GET['route'] ?? '')), '/');
+$needsSortable = in_array($currentRoute, [
+  'kanban',
+], true);
+$needsRichText = in_array($currentRoute, [
+  'ideas',
+  'idea-detail',
+  'tasks',
+  'task-detail',
+  'projects',
+  'project-detail',
+  'calendar',
+  'notifications',
+], true);
+$needsNotificationsPush = in_array($currentRoute, [
+  'notifications',
+  'profile',
+  'admin',
+  'admin-settings',
+], true);
 ?>
 <script src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($needsSortable): ?>
 <script src="assets/vendor/sortable/Sortable.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <script src="assets/js/api.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/ai.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/i18n.js?v=<?= urlencode($assetsVersion) ?>"></script>
@@ -42,10 +64,14 @@ if ($assetsVersion === '') {
 <script src="assets/js/error-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/list-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/notifications.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($needsRichText): ?>
 <script src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <script src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($needsNotificationsPush): ?>
 <script src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <script src="assets/js/notifications-realtime.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>
