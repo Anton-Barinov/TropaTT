@@ -55,6 +55,20 @@ $needsNotificationsPush = in_array($currentRoute, [
   'admin',
   'admin-settings',
 ], true);
+$needsPageApiBindings = !in_array($currentRoute, [
+  'login',
+  'password-reset-request',
+  'password-reset-confirm',
+  'invitation-accept',
+  'chat',
+  'ideas',
+  'idea-detail',
+  'docs',
+  'admin-modules',
+  'admin-module-detail',
+  'admin-modules-install',
+  'module-wip-limit',
+], true);
 ?>
 <script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsSortable): ?>
@@ -81,7 +95,9 @@ $needsNotificationsPush = in_array($currentRoute, [
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php if ($needsPageApiBindings): ?>
 <script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <?php if ($needsNotificationsPush): ?>
 <script defer src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>

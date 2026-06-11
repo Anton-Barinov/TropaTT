@@ -202,6 +202,7 @@
   }
 
   async function init() {
+    var hasPageApiBindings = false;
     try {
       if (window.CRM.tabLeader) window.CRM.tabLeader.init();
     } catch (error) {
@@ -239,9 +240,25 @@
 
     try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { console.error('br1 init failed', error); }
     try { if (window.CRM.navigation) await window.CRM.navigation.init(); } catch (error) { console.error('navigation init failed', error); }
-    try { if (window.CRM.pageApiBindings) window.CRM.pageApiBindings.init(); } catch (error) { console.error('pageApiBindings init failed', error); }
+    try {
+      if (window.CRM.pageApiBindings) {
+        hasPageApiBindings = true;
+        window.CRM.pageApiBindings.init();
+      }
+    } catch (error) { console.error('pageApiBindings init failed', error); }
     try { startPushAfterPageData(); } catch (error) { console.error('notificationsPush bootstrap failed', error); }
     try { startRealtimeAfterPageData(); } catch (error) { console.error('realtime bootstrap failed', error); }
+    if (!hasPageApiBindings) {
+      window.setTimeout(function () {
+        try {
+          document.dispatchEvent(new CustomEvent('crm:page-data-ready', {
+            detail: { route: new URLSearchParams(window.location.search || '').get('route') || '' }
+          }));
+        } catch (e) {
+          void e;
+        }
+      }, 0);
+    }
     try { enhanceAccessibility(document); } catch (error) { console.error('a11y enhance failed', error); }
     document.addEventListener('crm:page-data-ready', function () {
       try { enhanceAccessibility(document); } catch (error) { console.error('a11y enhance failed', error); }
