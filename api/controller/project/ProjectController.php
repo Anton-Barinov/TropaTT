@@ -169,9 +169,22 @@ final class ProjectController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var GanttService $service */
-        $service = $this->container->get('service.gantt');
-        $result = $service->timeline((string)$params['public_id'], $this->request()->allInput(), $authUser['user']);
+        $cache = $this->cacheApi();
+        if ($cache !== null) {
+            $input = $this->request()->allInput();
+            ksort($input);
+            $cacheKey = 'timeline:' . $this->cacheUserId() . ':' . (string)$params['public_id'] . ':' . md5(json_encode($input));
+            $result = $cache->remember('project', $cacheKey, 60, function () use ($params, $input, $authUser) {
+                /** @var GanttService $service */
+                $service = $this->container->get('service.gantt');
+                return $service->timeline((string)$params['public_id'], $input, $authUser['user']);
+            });
+        } else {
+            /** @var GanttService $service */
+            $service = $this->container->get('service.gantt');
+            $result = $service->timeline((string)$params['public_id'], $this->request()->allInput(), $authUser['user']);
+        }
+
         if ($result === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                 'project' => [$this->t('common/messages.project_not_found')],
