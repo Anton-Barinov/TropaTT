@@ -57,12 +57,41 @@
   }
 
   function startRealtimeAfterPageData() {
-    if (!window.CRM.notificationsRealtime || typeof window.CRM.notificationsRealtime.start !== 'function') {
-      return;
-    }
-
     var started = false;
     var startTimer = null;
+    var loadingPromise = null;
+
+    function loadRealtimeScript() {
+      if (window.CRM.notificationsRealtime && typeof window.CRM.notificationsRealtime.start === 'function') {
+        return Promise.resolve();
+      }
+      if (loadingPromise) {
+        return loadingPromise;
+      }
+
+      loadingPromise = new Promise(function (resolve, reject) {
+        var existing = document.querySelector('script[data-crm-script="notifications-realtime"]');
+        if (existing) {
+          existing.addEventListener('load', function () { resolve(); }, { once: true });
+          existing.addEventListener('error', reject, { once: true });
+          return;
+        }
+
+        var script = document.createElement('script');
+        var version = window.CRM && window.CRM.config ? String(window.CRM.config.assetsVersion || '') : '';
+        script.src = 'assets/js/notifications-realtime.js' + (version ? '?v=' + encodeURIComponent(version) : '');
+        script.defer = true;
+        script.dataset.crmScript = 'notifications-realtime';
+        script.onload = function () { resolve(); };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      }).catch(function (error) {
+        console.error('notificationsRealtime load failed', error);
+      });
+
+      return loadingPromise;
+    }
+
     function startOnce() {
       if (started) return;
       if (startTimer) {
@@ -70,7 +99,11 @@
         startTimer = null;
       }
       started = true;
-      window.CRM.notificationsRealtime.start();
+      loadRealtimeScript().then(function () {
+        if (window.CRM.notificationsRealtime && typeof window.CRM.notificationsRealtime.start === 'function') {
+          window.CRM.notificationsRealtime.start();
+        }
+      });
     }
     function scheduleStart(delayMs) {
       if (started || startTimer) return;

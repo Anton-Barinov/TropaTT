@@ -56,39 +56,38 @@ $needsNotificationsPush = in_array($currentRoute, [
   'admin-settings',
 ], true);
 ?>
-<script src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/vendor/bootstrap/bootstrap.bundle.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsSortable): ?>
-<script src="assets/vendor/sortable/Sortable.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/vendor/sortable/Sortable.min.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<script src="assets/js/api.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/api.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsAiClient): ?>
-<script src="assets/js/ai.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/ai.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<script src="assets/js/i18n.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/tab-leader.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/navigation.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/ui.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/modals.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/drawers.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/tabs.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/filters.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/tables.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/text-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/error-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/list-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/notifications.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/i18n.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/tab-leader.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/navigation.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/ui.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/modals.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/drawers.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/tabs.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/filters.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/tables.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/text-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/error-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/list-utils.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/notifications.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsRichText): ?>
-<script src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<script src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php if ($needsNotificationsPush): ?>
-<script src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<script src="assets/js/notifications-realtime.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<script src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>
-<script src="/<?= htmlspecialchars($jsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="/<?= htmlspecialchars($jsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endforeach; ?>
 <?php if (isset($module_js_routes) && $module_js_routes !== []): ?>
 <script>
