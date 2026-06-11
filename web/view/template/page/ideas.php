@@ -472,6 +472,17 @@
   loadState();renderSteps();
 })();
 try{(function(){var pid='<?=$publicId?>';var idea=null;var currentUserId=null;
+function deferHiddenAnalysisLoad(loader){
+  if(typeof loader!=='function')return;
+  window.setTimeout(function(){
+    var run=function(){try{loader();}catch(e){}};
+    if(window.requestIdleCallback){
+      window.requestIdleCallback(run,{timeout:5000});
+    }else{
+      run();
+    }
+  },1800);
+}
 function normalizeIdeaDescription(value){return String(value||'').replace(/<br\s*\/?>/gi,'\n');}
 function renderIdeaDescription(value){return window.CRM.text.escapeHtml(normalizeIdeaDescription(value)).replace(/\n/g,'<br>');}
 function load(){if(!window.CRM||!window.CRM.api){setTimeout(load,200);return;}
@@ -1001,7 +1012,7 @@ window._renderClarifications=function(data){
     }).catch(function(){b.disabled=false;});
   });
 
-  loadCard();
+  deferHiddenAnalysisLoad(loadCard);
 })();
 // Gap questions (targeted at understanding card gaps)
 (function(){
@@ -1159,7 +1170,7 @@ window._saveGaps=function(){
     }).catch(function(){b.disabled=false;});
   });
 
-  loadRefined();
+  deferHiddenAnalysisLoad(loadRefined);
 })();
 // Potential score
 (function(){
@@ -1211,7 +1222,7 @@ window._saveGaps=function(){
     var b=this;b.disabled=true;
     window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'DELETE',timeoutMs:10000}).then(function(){body.innerHTML='<p class="text-muted mb-0">Потенциал идеи еще не рассчитан.</p>';if(upd)upd.textContent='';b.disabled=false;}).catch(function(){b.disabled=false;});
   });
-  loadPotential();
+  deferHiddenAnalysisLoad(loadPotential);
 })();
 // Risk report
 (function(){
@@ -1265,7 +1276,7 @@ window._saveGaps=function(){
     var b=this;b.disabled=true;
     window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'DELETE',timeoutMs:10000}).then(function(){body.innerHTML='<p class="text-muted mb-0">Риски идеи еще не рассчитаны.</p>';if(upd)upd.textContent='';b.disabled=false;}).catch(function(){b.disabled=false;});
   });
-  loadRisk();
+  deferHiddenAnalysisLoad(loadRisk);
 })();
 // Pitfalls
 (function(){
@@ -1308,7 +1319,7 @@ window._saveGaps=function(){
     var b=this;b.disabled=true;
     window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'DELETE',timeoutMs:10000}).then(function(){body.innerHTML='<p class="text-muted mb-0">Подводные камни еще не рассчитаны.</p>';if(upd)upd.textContent='';b.disabled=false;}).catch(function(){b.disabled=false;});
   });
-  loadPitfalls();
+  deferHiddenAnalysisLoad(loadPitfalls);
 })();
 // Implementation plan
 (function(){
@@ -1355,7 +1366,7 @@ window._saveGaps=function(){
     var b=this;b.disabled=true;
     window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'DELETE',timeoutMs:10000}).then(function(){body.innerHTML='<p class="text-muted mb-0">План реализации еще не собран.</p>';if(upd)upd.textContent='';b.disabled=false;}).catch(function(){b.disabled=false;});
   });
-  loadPlan();
+  deferHiddenAnalysisLoad(loadPlan);
 })();
 // Final recommendation
 (function(){

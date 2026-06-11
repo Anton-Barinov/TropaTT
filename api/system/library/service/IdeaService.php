@@ -18,6 +18,12 @@ final class IdeaService
         return $row ?: null;
     }
 
+    /** @return array<string,mixed>|null */
+    public function get(string $publicId): ?array
+    {
+        return $this->getByPublicId($publicId);
+    }
+
     public function getById(int $id): ?array
     {
         $stmt = $this->pdo->prepare("SELECT * FROM ideas WHERE id = :id");
