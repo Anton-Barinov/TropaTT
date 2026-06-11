@@ -20,24 +20,20 @@ final class CacheController extends BaseController
         $cache = $this->container->get('cache.api');
 
         $enabled = $cache->isEnabled();
-        if ($enabled && $this->container->has('service.setting')) {
-            try {
-                $settingSvc = $this->container->get('service.setting');
-                $setting = $settingSvc->get('system', 'api_file_cache_enabled');
-                if ($setting !== null) {
-                    $enabled = (bool)($setting['value'] ?? true);
-                }
-            } catch (\Throwable) {
-            }
-        }
-
         $ttl = $cache->getDefaultTtl();
-        if ($enabled && $this->container->has('service.setting')) {
+
+        if ($this->container->has('service.setting')) {
             try {
                 $settingSvc = $this->container->get('service.setting');
-                $setting = $settingSvc->get('system', 'api_file_cache_ttl');
-                if ($setting !== null) {
-                    $val = $setting['value'] ?? null;
+
+                $enabledSetting = $settingSvc->get('system', 'api_file_cache_enabled');
+                if ($enabledSetting !== null) {
+                    $enabled = (bool)($enabledSetting['value'] ?? true);
+                }
+
+                $ttlSetting = $settingSvc->get('system', 'api_file_cache_ttl');
+                if ($ttlSetting !== null) {
+                    $val = $ttlSetting['value'] ?? null;
                     if ($val !== null && $val !== '') {
                         $ttl = max(1, (int)$val);
                     }
