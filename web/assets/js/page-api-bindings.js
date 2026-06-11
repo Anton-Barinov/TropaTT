@@ -1544,13 +1544,21 @@ window.CRM.pageApiBindings = (function () {
       } else {
         list.innerHTML = filtered.slice(0, 9).map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
+        var projectMetaParts = [];
+        var clientLabel = resolveProjectClientLabel(item);
+        var teamLabel = resolveProjectTeamLabel(item);
+        if (clientLabel && clientLabel !== 'Без клиента') projectMetaParts.push(clientLabel);
+        if (teamLabel && teamLabel !== 'Команда не назначена') projectMetaParts.push(teamLabel);
+        var projectMetaLine = projectMetaParts.length
+          ? '<p class="crm-project-card-subtitle text-muted mb-2">' + safeText(projectMetaParts.join(' · ')) + '</p>'
+          : '<p class="crm-project-card-subtitle crm-project-card-subtitle-muted mb-2">Клиент и команда пока не назначены</p>';
         return '<div class="col-lg-4"><article class="crm-card crm-card-hover">'
           + '<div class="d-flex justify-content-between"><h2 class="h6 mb-1">' + safeText(item.title) + '</h2>'
           + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
-          + '<p class="text-muted mb-2">' + safeText(resolveProjectClientLabel(item)) + ' · ' + safeText(resolveProjectTeamLabel(item)) + '</p>'
+          + projectMetaLine
           + '<div class="crm-project-card-meta"><span class="crm-chip">Приоритет: ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
           + '<span class="crm-chip">Обновлено: ' + safeText(formatDate(item.updated_at)) + '</span></div>'
-          + '<div class="crm-project-card-actions"><a class="btn btn-sm btn-light" href="' + link + '">Открыть</a><button class="btn btn-sm btn-light" data-project-preview="' + safeText(item.public_id) + '">Предпросмотр</button></div>'
+          + '<div class="crm-project-card-actions"><a class="btn btn-sm crm-btn-primary" href="' + link + '">Открыть</a><button class="btn btn-sm crm-btn-secondary" data-project-preview="' + safeText(item.public_id) + '">Предпросмотр</button></div>'
           + '</article></div>';
         }).join('');
       }
@@ -23553,7 +23561,7 @@ window.CRM.pageApiBindings = (function () {
       if (status !== 'pending') return 'Решение уже принято';
       if (item.viewer_review_status === 'approved') return 'Вы уже одобрили';
       if (item.viewer_review_status === 'rejected') return 'Вы уже отклонили';
-      if (item.viewer_is_requester) return 'Вы автор запроса';
+      if (item.viewer_is_requester) return 'Ожидает согласующих';
       if (item.viewer_is_reviewer === false || item.viewer_is_reviewer === 0) return 'Вы не согласующий';
       return 'Нет доступных действий';
     }
@@ -23610,7 +23618,8 @@ window.CRM.pageApiBindings = (function () {
         var actionsHtml = status === 'pending' && canReview
           ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
               + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
-          : '<span class="crm-action-note">' + safeText(approvalActionHint(item, status)) + '</span>';
+          : '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-approval-detail="' + safeText(id) + '">Открыть</button>'
+              + '<span class="crm-action-note">' + safeText(approvalActionHint(item, status)) + '</span>';
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
           + '<td data-label="Запрос"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
           + '<td data-label="Сущность">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'

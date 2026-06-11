@@ -2326,6 +2326,15 @@ font-size: 0.72rem;
   margin: 0.6rem 0 0.85rem;
 }
 
+.crm-projects-page .crm-project-card-subtitle {
+  min-height: 1.45rem;
+  color: var(--crm-muted);
+}
+
+.crm-projects-page .crm-project-card-subtitle-muted {
+  color: var(--crm-text-soft);
+}
+
 .crm-projects-page .crm-project-card-actions {
   display: flex;
   gap: 0.5rem;
@@ -12365,7 +12374,7 @@ a.task-tag:hover {
 .crm-notifications-page .crm-notification-item {
   display: block !important;
   contain: none !important;
-  min-height: 136px !important;
+  min-height: 176px !important;
   padding: 0.72rem 0.82rem !important;
 }
 
