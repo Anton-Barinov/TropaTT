@@ -14897,7 +14897,8 @@ window.CRM.pageApiBindings = (function () {
 
     return {
       start: minStart,
-      end: Math.max(trackEnd, maxEnd),
+      end: trackEnd,
+      dataEnd: maxEnd,
       ticks: ticks,
       stepDays: stepDays,
       cellWidth: cellWidth,
@@ -14985,21 +14986,21 @@ window.CRM.pageApiBindings = (function () {
   function crmGanttPercent(timestamp, windowInfo) {
     var ticks = windowInfo.ticks;
     var tickCount = ticks.length;
-    if (tickCount < 2) return 0;
+    if (!windowInfo || tickCount < 1) return 0;
 
     var firstTick = ticks[0];
-    var lastTick = ticks[tickCount - 1];
+    var trackEnd = windowInfo.end || (tickCount > 1 ? ticks[tickCount - 1] : firstTick);
 
     if (timestamp <= firstTick) return 0;
-    if (timestamp >= lastTick) return 100;
+    if (timestamp >= trackEnd) return 100;
 
-    // Each grid cell spans exactly 100/tickCount % of the total track width.
-    // Interpolate position within the cell based on time fraction.
     var cellPct = 100 / tickCount;
-    for (var i = 0; i < tickCount - 1; i++) {
-      if (timestamp >= ticks[i] && timestamp < ticks[i + 1]) {
-        var cellMs = ticks[i + 1] - ticks[i];
-        var offsetMs = timestamp - ticks[i];
+    for (var i = 0; i < tickCount; i++) {
+      var cellStart = ticks[i];
+      var cellEnd = i + 1 < tickCount ? ticks[i + 1] : trackEnd;
+      if (timestamp >= cellStart && timestamp < cellEnd) {
+        var cellMs = cellEnd - cellStart;
+        var offsetMs = timestamp - cellStart;
         var fraction = cellMs > 0 ? offsetMs / cellMs : 0;
         return (i + fraction) * cellPct;
       }
@@ -15013,6 +15014,7 @@ window.CRM.pageApiBindings = (function () {
     // Add 1 day so the bar covers the full due-date cell (inclusive)
     var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, windowInfo), 0, 100);
     var widthPct = Math.max(0.8, endPct - startPct);
+    var widthPx = Math.max(0, widthPct / 100 * (windowInfo.trackWidth || 0));
 
     var href = item.id ? taskLink(item.id) : '#';
     var bar = document.createElement(item.id ? 'a' : 'div');
@@ -15041,17 +15043,17 @@ window.CRM.pageApiBindings = (function () {
 
     var dates = document.createElement('span');
     dates.className = 'crm-gantt-bar-dates';
-    dates.textContent = formatDate(crmGanttDateIso(item.end));
-    if (widthPct < 8) {
+    dates.textContent = crmGanttFormatShortDateValue(item.start) + ' — ' + crmGanttFormatShortDateValue(item.end);
+    if (widthPx < 120) {
       dates.style.display = 'none';
     }
     bar.appendChild(dates);
 
-    if (widthPct < 8) {
+    if (widthPx < 120) {
       bar.classList.add('crm-gantt-bar--compact');
     }
 
-    if (widthPct < 4) {
+    if (widthPx < 28) {
       bar.classList.add('crm-gantt-bar--micro');
     }
 
@@ -15087,6 +15089,7 @@ window.CRM.pageApiBindings = (function () {
     // Add 1 day so the bar covers the full due-date cell (inclusive)
     var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, windowInfo), 0, 100);
     var widthPct = Math.max(0.8, endPct - startPct);
+    var widthPx = Math.max(0, widthPct / 100 * (windowInfo.trackWidth || 0));
 
     var href = item.id ? taskLink(item.id) : '#';
     var bar = document.createElement(item.id ? 'a' : 'div');
@@ -15121,17 +15124,17 @@ window.CRM.pageApiBindings = (function () {
 
     var dates = document.createElement('span');
     dates.className = 'crm-gantt-bar-dates';
-    dates.textContent = formatDate(crmGanttDateIso(item.end));
-    if (widthPct < 8) {
+    dates.textContent = crmGanttFormatShortDateValue(item.start) + ' — ' + crmGanttFormatShortDateValue(item.end);
+    if (widthPx < 120) {
       dates.style.display = 'none';
     }
     bar.appendChild(dates);
 
-    if (widthPct < 8) {
+    if (widthPx < 120) {
       bar.classList.add('crm-gantt-bar--compact');
     }
 
-    if (widthPct < 4) {
+    if (widthPx < 28) {
       bar.classList.add('crm-gantt-bar--micro');
     }
 
@@ -15142,7 +15145,7 @@ window.CRM.pageApiBindings = (function () {
     progress.style.width = progressPercent + '%';
     bar.appendChild(progress);
 
-    if (progressPercent > 0 && widthPct >= 8) {
+    if (progressPercent > 0 && widthPx >= 120) {
       var progressText = document.createElement('span');
       progressText.className = 'crm-gantt-bar-progress-text';
       progressText.textContent = progressPercent + '%';
