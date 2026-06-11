@@ -6794,9 +6794,22 @@ window.CRM.br1 = (function () {
         var knownIntents = Array.from(new Set(Object.keys(AI_INTENT_VISIBILITY_SELECTORS).map(function (selector) {
           return AI_INTENT_VISIBILITY_SELECTORS[selector];
         })));
-        window.CRM.ai.hydrateAvailability(knownIntents).finally(function () {
+        var aiAvailabilityHydrated = false;
+        var hydrateAiAvailability = function () {
+          if (aiAvailabilityHydrated) return;
+          aiAvailabilityHydrated = true;
+          window.CRM.ai.hydrateAvailability(knownIntents).finally(function () {
+            applyPermissionVisibility();
+          });
+        };
+        document.addEventListener('crm:page-data-ready', function () {
+          window.setTimeout(hydrateAiAvailability, 1500);
+        }, { once: true });
+        window.setTimeout(hydrateAiAvailability, 12000);
+      } else {
+        window.setTimeout(function () {
           applyPermissionVisibility();
-        });
+        }, 0);
       }
       initProjectCreateFlow();
       initTaskCreateFlow();

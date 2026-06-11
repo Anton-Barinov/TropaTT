@@ -94,6 +94,35 @@
     });
   }
 
+  function startPushAfterPageData() {
+    if (!window.CRM.notificationsPush || typeof window.CRM.notificationsPush.start !== 'function') {
+      return;
+    }
+
+    var started = false;
+    var startTimer = null;
+    function startOnce() {
+      if (started) return;
+      if (startTimer) {
+        window.clearTimeout(startTimer);
+        startTimer = null;
+      }
+      started = true;
+      window.CRM.notificationsPush.start();
+    }
+    function scheduleStart(delayMs) {
+      if (started || startTimer) return;
+      startTimer = window.setTimeout(startOnce, Math.max(0, Number(delayMs) || 0));
+    }
+
+    document.addEventListener('crm:page-data-ready', function () {
+      scheduleStart(2500);
+    }, { once: true });
+    window.setTimeout(function () {
+      scheduleStart(0);
+    }, 12000);
+  }
+
   function enhanceAccessibility(root) {
     var scope = root && root.querySelectorAll ? root : document;
     var autoId = 0;
@@ -178,7 +207,7 @@
     try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { console.error('br1 init failed', error); }
     try { if (window.CRM.navigation) await window.CRM.navigation.init(); } catch (error) { console.error('navigation init failed', error); }
     try { if (window.CRM.pageApiBindings) window.CRM.pageApiBindings.init(); } catch (error) { console.error('pageApiBindings init failed', error); }
-    try { if (window.CRM.notificationsPush) window.CRM.notificationsPush.start(); } catch (error) { console.error('notificationsPush start failed', error); }
+    try { startPushAfterPageData(); } catch (error) { console.error('notificationsPush bootstrap failed', error); }
     try { startRealtimeAfterPageData(); } catch (error) { console.error('realtime bootstrap failed', error); }
     try { enhanceAccessibility(document); } catch (error) { console.error('a11y enhance failed', error); }
     document.addEventListener('crm:page-data-ready', function () {
