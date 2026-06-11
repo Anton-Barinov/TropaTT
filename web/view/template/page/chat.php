@@ -85,6 +85,7 @@
   var pollingChats = false;
   var lastMessageId = 0;
   var messageRevisionTick = 0;
+  var chatListPollTick = 0;
   var emojiSet = ['👍','👌','🙏','🔥','✅','⚡','🙂','🤝','💡','📌','👀','🚀'];
   var stickerSet = [
     { label: 'Сделано', text: '[стикер: сделано ✅]' },
@@ -434,7 +435,9 @@
     if (loadingMessages) return;
     loadingMessages = true;
     try {
-      var detailEnv = await request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
+      var detailPromise = request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
+      var messagesPromise = request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
+      var detailEnv = await detailPromise;
       var chat = detailEnv.data.chat || {};
       renderConversationShell(chat);
       if (chat.is_archived || chat.archived_at) {
@@ -444,10 +447,10 @@
         lastMessageId = 0;
         return;
       }
-      var messagesEnv = await request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
+      var messagesEnv = await messagesPromise;
       renderMessages((messagesEnv.data && messagesEnv.data.items) || []);
-      await markRead();
-      await loadChats({ silent: true });
+      markRead();
+      loadChats({ silent: true });
     } catch (error) {
       var area = document.getElementById('chatArea');
       if (area) area.innerHTML = '<div class="crm-chat-empty"><strong>Не удалось открыть чат</strong><span>Проверьте доступ или попробуйте позже.</span></div>';
@@ -914,7 +917,10 @@
     var input = document.getElementById('msgInput');
     var userTyping = input && document.activeElement === input && input.value.trim();
     try {
-      if (!showArchived && !pollingChats) {
+      chatListPollTick += 1;
+      var shouldRefreshChatList = !selectedChatId || chatListPollTick >= 3;
+      if (!showArchived && shouldRefreshChatList && !pollingChats) {
+        chatListPollTick = 0;
         pollingChats = true;
         try {
           await loadChats({ silent: true });
