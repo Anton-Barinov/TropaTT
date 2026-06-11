@@ -4644,3 +4644,27 @@ body {
 .crm-admin-page .crm-table {
   min-width: 0 !important;
 }
+
+/* Ideas table keeps its own compact column model after the global table safety layer. */
+.crm-ideas-page .crm-ideas-table {
+  width: 100% !important;
+  min-width: 980px !important;
+  table-layout: fixed !important;
+}
+
+.crm-ideas-page .crm-ideas-table th,
+.crm-ideas-page .crm-ideas-table td {
+  min-width: 0 !important;
+}
+
+.crm-ideas-page .crm-ideas-table .sortable {
+  text-transform: uppercase !important;
+}
+
+.crm-ideas-page .crm-ideas-table th.crm-table-actions-col,
+.crm-ideas-page .crm-ideas-table td.crm-ideas-actions {
+  width: 84px !important;
+  min-width: 84px !important;
+  max-width: 84px !important;
+  background: #fff !important;
+}
