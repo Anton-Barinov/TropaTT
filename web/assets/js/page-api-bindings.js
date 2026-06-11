@@ -3727,16 +3727,26 @@ window.CRM.pageApiBindings = (function () {
       ? window.CRM.ai.hasAiPermission('dashboard_daily_digest')
       : (window.CRM.api && typeof window.CRM.api.hasPermission === 'function' ? window.CRM.api.hasPermission('ai.use') : true);
 
+    function softDashboardRequest(promise, timeoutMs) {
+      var fallback = new Promise(function (resolve) {
+        window.setTimeout(function () { resolve(null); }, timeoutMs);
+      });
+      return Promise.race([
+        promise.catch(function () { return null; }),
+        fallback
+      ]);
+    }
+
     var results = await Promise.all([
       canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 } }) : Promise.resolve(null),
       tryRequest('api/v1/notifications/counters'),
-      canViewActivity ? tryRequest('api/v1/activity/feed', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
-      tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }),
+      canViewActivity ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8 }, silent: true }), 900) : Promise.resolve(null),
+      softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/calendar/my-day', { silent: true }) : Promise.resolve(null),
       aiCanUse
-        ? tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true })
+        ? softDashboardRequest(tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true }), 700)
         : Promise.resolve(null),
       hasPermission('user.view') ? tryRequest('api/v1/users', { query: { limit: 200 }, silent: true }) : Promise.resolve(null)
     ]);
