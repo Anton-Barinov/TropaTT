@@ -15000,7 +15000,8 @@ window.CRM.pageApiBindings = (function () {
 
   function crmGanttCreateLaneBar(item, windowInfo, isProject) {
     var startPct = crmGanttClamp(crmGanttPercent(item.start, windowInfo), 0, 100);
-    var endPct = crmGanttClamp(crmGanttPercent(item.end, windowInfo), 0, 100);
+    // Add 1 day so the bar covers the full due-date cell (inclusive)
+    var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, windowInfo), 0, 100);
     var widthPct = Math.max(0.8, endPct - startPct);
 
     var href = item.id ? taskLink(item.id) : '#';
@@ -15073,7 +15074,8 @@ window.CRM.pageApiBindings = (function () {
   // Enhanced bar with priority, progress text, and resize handle
   function crmGanttCreateLaneBarEnhanced(item, windowInfo, isProject) {
     var startPct = crmGanttClamp(crmGanttPercent(item.start, windowInfo), 0, 100);
-    var endPct = crmGanttClamp(crmGanttPercent(item.end, windowInfo), 0, 100);
+    // Add 1 day so the bar covers the full due-date cell (inclusive)
+    var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, windowInfo), 0, 100);
     var widthPct = Math.max(0.8, endPct - startPct);
 
     var href = item.id ? taskLink(item.id) : '#';
@@ -15695,7 +15697,7 @@ window.CRM.pageApiBindings = (function () {
       var projBarWrap = document.createElement('div');
       projBarWrap.className = 'crm-gantt-project-bar';
       var pStartPct = crmGanttClamp(crmGanttPercent(group.start, windowInfo), 0, 100);
-      var pEndPct   = crmGanttClamp(crmGanttPercent(group.end,   windowInfo), 0, 100);
+      var pEndPct   = crmGanttClamp(crmGanttPercent(group.end + 86400000, windowInfo), 0, 100);
       projBarWrap.style.left  = pStartPct + '%';
       projBarWrap.style.width = Math.max(1, pEndPct - pStartPct) + '%';
       var projBarFill = document.createElement('span');
@@ -15961,7 +15963,7 @@ window.CRM.pageApiBindings = (function () {
       if (fromRow === undefined || toRow === undefined) return;
 
       var fromStartPct = crmGanttClamp(crmGanttPercent(fromItem.start, windowInfo), 0, 100);
-      var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end, windowInfo), 0, 100);
+      var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end + 86400000, windowInfo), 0, 100);
       var toStartPct = crmGanttClamp(crmGanttPercent(toItem.start, windowInfo), 0, 100);
 
       var x1 = (fromEndPct / 100) * trackWidth;
