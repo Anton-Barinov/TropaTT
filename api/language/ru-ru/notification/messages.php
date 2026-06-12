@@ -82,4 +82,10 @@ return [
     'test_push_title' => 'Тест push-уведомления',
     'test_push_body' => 'Канал push подключен и готов к работе.',
     'new_notification' => 'Новое уведомление',
+    'push_subscriptions_list' => 'Список push-подписок',
+    'push_subscription_invalid' => 'Некорректные данные push-подписки',
+    'push_subscription_saved' => 'Push-подписка сохранена',
+    'push_subscription_not_found' => 'Push-подписка не найдена',
+    'push_subscription_deleted' => 'Push-подписка удалена',
+    'push_test_prepared' => 'Тестовый push подготовлен',
 ];

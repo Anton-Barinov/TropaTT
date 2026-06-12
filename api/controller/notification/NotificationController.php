@@ -149,7 +149,7 @@ final class NotificationController extends BaseController
         $service = $this->container->get('service.notification_push');
         $result = $service->list($this->request()->allInput(), $authUser['user']);
 
-        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTIONS_LIST', 'Push subscriptions list', [
+        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTIONS_LIST', $this->t('notification/messages.push_subscriptions_list'), [
             'items' => $result['items'],
         ], meta: $result['meta']);
     }
@@ -180,12 +180,12 @@ final class NotificationController extends BaseController
         $service = $this->container->get('service.notification_push');
         $item = $service->upsert($input, $authUser['user']);
         if (!$item) {
-            return $this->error('NOTIFICATION_PUSH_SUBSCRIPTION_INVALID', 'Push subscription payload is invalid', 422, [
+            return $this->error('NOTIFICATION_PUSH_SUBSCRIPTION_INVALID', $this->t('notification/messages.push_subscription_invalid'), 422, [
                 'subscription' => ['invalid_payload'],
             ]);
         }
 
-        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTION_SAVED', 'Push subscription saved', [
+        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTION_SAVED', $this->t('notification/messages.push_subscription_saved'), [
             'subscription' => $item,
         ], 201);
     }
@@ -201,12 +201,12 @@ final class NotificationController extends BaseController
         $service = $this->container->get('service.notification_push');
         $deleted = $service->delete((string)($params['public_id'] ?? ''), $authUser['user']);
         if (!$deleted) {
-            return $this->error('NOTIFICATION_PUSH_SUBSCRIPTION_NOT_FOUND', 'Push subscription not found', 404, [
+            return $this->error('NOTIFICATION_PUSH_SUBSCRIPTION_NOT_FOUND', $this->t('notification/messages.push_subscription_not_found'), 404, [
                 'subscription' => ['not_found'],
             ]);
         }
 
-        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTION_DELETED', 'Push subscription deleted');
+        return $this->success('NOTIFICATION_PUSH_SUBSCRIPTION_DELETED', $this->t('notification/messages.push_subscription_deleted'));
     }
 
     public function pushTest(): \Api\System\Library\Http\JsonResponse
@@ -220,7 +220,7 @@ final class NotificationController extends BaseController
         $service = $this->container->get('service.notification_push');
         $result = $service->sendTestToUser((int)($authUser['user']['id'] ?? 0), $authUser['user']);
 
-        return $this->success('NOTIFICATION_PUSH_TEST', 'Push test payload prepared', [
+        return $this->success('NOTIFICATION_PUSH_TEST', $this->t('notification/messages.push_test_prepared'), [
             'push' => [
                 'title' => $this->t('notification/messages.test_push_title'),
                 'body' => $this->t('notification/messages.test_push_body'),

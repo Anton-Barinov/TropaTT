@@ -21,7 +21,7 @@ final class InstallController extends BaseController
     public function check(): \Api\System\Library\Http\JsonResponse
     {
         if ($this->request()->method === 'GET') {
-            return $this->error('METHOD_NOT_ALLOWED', 'Use POST for install check payload', 405, [
+            return $this->error('METHOD_NOT_ALLOWED', $this->t('install/messages.method_not_allowed'), 405, [
                 'method' => ['POST_REQUIRED'],
             ]);
         }
@@ -82,7 +82,7 @@ final class InstallController extends BaseController
         $config = $this->container->get('config');
         $expected = trim((string)$config->get('install.bootstrap_secret', ''));
         if ($expected === '') {
-            return $this->error('INSTALL_BOOTSTRAP_FORBIDDEN', 'Install bootstrap token is not configured', 403);
+            return $this->error('INSTALL_BOOTSTRAP_FORBIDDEN', $this->t('install/messages.bootstrap_not_configured'), 403);
         }
 
         $actual = trim((string)(
@@ -91,7 +91,7 @@ final class InstallController extends BaseController
             ?? ''
         ));
         if ($actual === '' || !hash_equals($expected, $actual)) {
-            return $this->error('INSTALL_BOOTSTRAP_FORBIDDEN', 'Install bootstrap token is required', 403);
+            return $this->error('INSTALL_BOOTSTRAP_FORBIDDEN', $this->t('install/messages.bootstrap_token_required'), 403);
         }
 
         return null;

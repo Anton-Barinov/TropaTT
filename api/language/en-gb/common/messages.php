@@ -13,4 +13,7 @@ return [
     'task_not_found' => 'Task not found',
     'internal_error' => 'Internal server error',
     'ok' => 'OK',
+    'invalid_event_type' => 'event_type must be api_error, js_error, or csp_violation',
+    'csp_accepted' => 'CSP violation report accepted',
+    'saved' => 'Saved',
 ];

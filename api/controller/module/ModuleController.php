@@ -116,17 +116,17 @@ final class ModuleController
 
         $manifest = $pm->getManifest($name);
         if ($manifest === null) {
-            return JsonResponse::error('MODULE_NOT_FOUND', 'Module not found', 404);
+            return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.not_found'), 404);
         }
 
         $errors = $pm->validate($manifest);
         if ($errors !== []) {
-            return JsonResponse::error('VALIDATION_ERROR', 'Module validation failed', 400, ['errors' => $errors]);
+            return JsonResponse::error('VALIDATION_ERROR', $this->t('module/messages.validation_failed'), 400, ['errors' => $errors]);
         }
 
         $registry = $mc->getRegistry($name);
         if ($registry !== null) {
-            return JsonResponse::error('ALREADY_INSTALLED', 'Module already installed', 409);
+            return JsonResponse::error('ALREADY_INSTALLED', $this->t('module/messages.already_installed'), 409);
         }
 
         $mc->register($name, $manifest->vendor, $manifest->version);
@@ -136,13 +136,13 @@ final class ModuleController
             $result = $mm->migrate($name, $migrationDir);
 
             if ($result['errors'] !== []) {
-                return JsonResponse::error('MIGRATION_ERROR', 'Migration failed', 500, ['errors' => $result['errors']]);
+                return JsonResponse::error('MIGRATION_ERROR', $this->t('module/messages.migration_failed'), 500, ['errors' => $result['errors']]);
             }
         }
 
         $mc->initFromManifest($name, $manifest);
 
-        return JsonResponse::success('MODULE_INSTALLED', 'Module installed successfully', ['name' => $name, 'version' => $manifest->version]);
+        return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed'), ['name' => $name, 'version' => $manifest->version]);
     }
 
     public function activate(array $params = []): JsonResponse
@@ -157,12 +157,12 @@ final class ModuleController
 
         $registry = $mc->getRegistry($name);
         if ($registry === null) {
-            return JsonResponse::error('NOT_INSTALLED', 'Module not installed', 400);
+            return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
         }
 
         $manifest = $pm->getManifest($name);
         if ($manifest === null) {
-            return JsonResponse::error('MODULE_NOT_FOUND', 'Module manifest not found', 404);
+            return JsonResponse::error('MODULE_NOT_FOUND', $this->t('module/messages.manifest_not_found'), 404);
         }
 
         if (!$pm->checkCoreCompatibility($manifest, '1.0.0')) {
@@ -173,7 +173,7 @@ final class ModuleController
 
         $mc->setActive($name);
 
-        return JsonResponse::success('MODULE_ACTIVATED', 'Module activated successfully', ['name' => $name]);
+        return JsonResponse::success('MODULE_ACTIVATED', $this->t('module/messages.activated'), ['name' => $name]);
     }
 
     public function deactivate(array $params = []): JsonResponse
@@ -186,12 +186,12 @@ final class ModuleController
         $mc = $this->container->get('module.config');
         $registry = $mc->getRegistry($name);
         if ($registry === null) {
-            return JsonResponse::error('NOT_INSTALLED', 'Module not installed', 400);
+            return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
         }
 
         $mc->setInactive($name);
 
-        return JsonResponse::success('MODULE_DEACTIVATED', 'Module deactivated successfully', ['name' => $name]);
+        return JsonResponse::success('MODULE_DEACTIVATED', $this->t('module/messages.deactivated'), ['name' => $name]);
     }
 
     public function uninstall(array $params = []): JsonResponse
@@ -207,7 +207,7 @@ final class ModuleController
 
         $registry = $mc->getRegistry($name);
         if ($registry === null) {
-            return JsonResponse::error('NOT_INSTALLED', 'Module not installed', 400);
+            return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
         }
 
         $manifest = $pm->getManifest($name);
@@ -233,7 +233,7 @@ final class ModuleController
             if ($wd instanceof ModuleWebhookDispatcher) $wd->deleteWebhooks($name);
         } catch (\Throwable) {}
 
-        return JsonResponse::success('MODULE_REMOVED', 'Module removed successfully', ['name' => $name]);
+        return JsonResponse::success('MODULE_REMOVED', $this->t('module/messages.removed'), ['name' => $name]);
     }
 
     public function config(array $params = []): JsonResponse
@@ -276,7 +276,7 @@ final class ModuleController
     {
         $url = trim((string)($params['url'] ?? ''));
         if ($url === '') {
-            return JsonResponse::error('INVALID_PARAM', 'URL is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.url_required'), 400);
         }
 
         $projectRoot = dirname(__DIR__, 3);
@@ -287,7 +287,7 @@ final class ModuleController
         try {
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
             $name = $installer->installFromUrl($url, true);
-            return JsonResponse::success('MODULE_INSTALLED', 'Module installed from URL', ['name' => $name]);
+            return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
         } catch (\Throwable $e) {
             return JsonResponse::error('INSTALL_FAILED', $e->getMessage(), 500);
         }
@@ -298,7 +298,7 @@ final class ModuleController
         $fileData = trim((string)($params['file_data'] ?? ''));
         $fileName = trim((string)($params['file_name'] ?? 'module.zip'));
         if ($fileData === '') {
-            return JsonResponse::error('INVALID_PARAM', 'File data is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_data_required'), 400);
         }
 
         $projectRoot = dirname(__DIR__, 3);
@@ -308,7 +308,7 @@ final class ModuleController
         try {
             $decoded = base64_decode($fileData, true);
             if ($decoded === false) {
-                return JsonResponse::error('INVALID_PARAM', 'Invalid base64 data', 400);
+                return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.invalid_base64'), 400);
             }
 
             $archivePath = $tmpDir . '/' . basename($fileName);
@@ -320,7 +320,7 @@ final class ModuleController
 
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
             $name = $installer->installFromFile($archivePath, true);
-            return JsonResponse::success('MODULE_INSTALLED', 'Module installed from file', ['name' => $name]);
+            return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
         } catch (\Throwable $e) {
             return JsonResponse::error('INSTALL_FAILED', $e->getMessage(), 500);
         } finally {
@@ -348,13 +348,13 @@ final class ModuleController
         if (!is_array($config)) $config = [];
 
         if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', 'Module name is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required'), 400);
         }
 
         try {
             $mc = $this->container->get('module.config');
             $mc->setMultiple($name, $config);
-            return JsonResponse::success('CONFIG_UPDATED', 'Configuration updated', ['name' => $name, 'config' => $mc->getAll($name)]);
+            return JsonResponse::success('CONFIG_UPDATED', $this->t('module/messages.config_updated'), ['name' => $name, 'config' => $mc->getAll($name)]);
         } catch (\Throwable $e) {
             return JsonResponse::error('UPDATE_FAILED', $e->getMessage(), 500);
         }
@@ -364,7 +364,7 @@ final class ModuleController
     {
         $name = $params['name'] ?? '';
         if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', 'Module name is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required'), 400);
         }
 
         try {
@@ -388,7 +388,7 @@ final class ModuleController
     {
         $name = $params['name'] ?? '';
         if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', 'Module name is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required'), 400);
         }
 
         try {
@@ -404,13 +404,13 @@ final class ModuleController
     {
         $name = $params['name'] ?? '';
         if ($name === '') {
-            return JsonResponse::error('INVALID_PARAM', 'Module name is required', 400);
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required'), 400);
         }
 
         try {
             $eh = $this->container->get('module.error_handler');
             $eh->clearErrors($name);
-            return JsonResponse::success('ERRORS_CLEARED', 'Errors cleared');
+            return JsonResponse::success('ERRORS_CLEARED', $this->t('module/messages.errors_cleared'));
         } catch (\Throwable $e) {
             return JsonResponse::error('CLEAR_FAILED', $e->getMessage(), 500);
         }

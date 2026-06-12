@@ -13,4 +13,7 @@ return [
     'task_not_found' => 'Задача не найдена',
     'internal_error' => 'Внутренняя ошибка сервера',
     'ok' => 'OK',
+    'invalid_event_type' => 'event_type должен быть api_error, js_error или csp_violation',
+    'csp_accepted' => 'Отчёт CSP принят',
+    'saved' => 'Сохранено',
 ];

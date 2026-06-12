@@ -18,4 +18,7 @@ return [
     'migration_rollback_check' => 'Migration rollback check',
     'migration_rollback_check_failed' => 'Failed to verify migration rollback',
     'default_admin_name' => 'Main administrator',
+    'method_not_allowed' => 'Use POST for install check payload',
+    'bootstrap_not_configured' => 'Install bootstrap token is not configured',
+    'bootstrap_token_required' => 'Install bootstrap token is required',
 ];

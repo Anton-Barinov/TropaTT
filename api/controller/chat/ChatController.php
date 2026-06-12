@@ -27,7 +27,7 @@ final class ChatController extends BaseController
 
             if ($archived) {
                 if (!$hasArchivedColumn) {
-                    return $this->success('CHATS_ARCHIVED', 'OK', ['items' => []]);
+                    return $this->success('CHATS_ARCHIVED', $this->t('common/messages.ok'), ['items' => []]);
                 }
                 $stmt = $pdo->prepare("
                     SELECT c.*, 0 as is_favorite, null as muted_until, 0 as last_read_id, 0 as unread,
@@ -61,7 +61,7 @@ final class ChatController extends BaseController
                     }
                     unset($item);
                 }
-                return $this->success('CHATS_ARCHIVED', 'OK', ['items' => $items]);
+                return $this->success('CHATS_ARCHIVED', $this->t('common/messages.ok'), ['items' => $items]);
             }
 
             $archivedFilter = $hasArchivedColumn ? 'WHERE c.archived_at IS NULL' : '';
@@ -122,7 +122,7 @@ final class ChatController extends BaseController
         if (!$chat) {
             $chat = $this->archivedChatForCurrentUser((string)($params['public_id'] ?? ''));
         }
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         $chat['participants'] = !empty($chat['archived_at'])
             ? $this->participantsForChatArchived($chat)
             : $this->participantsForChat((int)$chat['id']);
@@ -133,15 +133,15 @@ final class ChatController extends BaseController
     public function participants(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
-        return $this->success('CHAT_PARTICIPANTS', 'OK', ['items' => $this->participantsForChat((int)$chat['id'])]);
+        return $this->success('CHAT_PARTICIPANTS', $this->t('common/messages.ok'), ['items' => $this->participantsForChat((int)$chat['id'])]);
     }
 
     public function settings(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         $input = $this->request()->allInput();
         $favorite = array_key_exists('is_favorite', $input) ? (bool)$input['is_favorite'] : null;
         $mutedUntil = '__keep__';
@@ -156,7 +156,7 @@ final class ChatController extends BaseController
         $service = $this->container->get('service.chat');
         $state = $service->updateParticipantSettings((int)$chat['id'], $this->currentUserId(), $favorite, $mutedUntil);
 
-        return $this->success('CHAT_SETTINGS_UPDATED', 'Settings updated', ['settings' => $state]);
+        return $this->success('CHAT_SETTINGS_UPDATED', $this->t('chat/messages.settings_updated'), ['settings' => $state]);
     }
 
     public function create(): JsonResponse
@@ -178,22 +178,22 @@ final class ChatController extends BaseController
         $service = $this->container->get('service.chat');
 
         if (!in_array($type, ['direct', 'project', 'team', 'group'], true)) {
-            return $this->error('INVALID_TYPE', 'Unsupported chat type', 422);
+            return $this->error('INVALID_TYPE', $this->t('chat/messages.unsupported_chat_type'), 422);
         }
 
         if ($type === 'direct') {
             if ($withUserId <= 0 || $withUserId === $userId) {
-                return $this->error('INVALID_USER', 'Select another active user', 422);
+                return $this->error('INVALID_USER', $this->t('chat/messages.select_active_user'), 422);
             }
 
             $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL");
             $userStmt->execute(['id' => $withUserId]);
             if (!$userStmt->fetchColumn()) {
-                return $this->error('USER_NOT_FOUND', 'User not found', 404);
+                return $this->error('USER_NOT_FOUND', $this->t('chat/messages.user_not_found'), 404);
             }
 
             $chat = $service->ensureDirectChat($userId, $withUserId);
-            return $this->success('CHAT_CREATED', 'Chat ready', ['public_id' => $chat['public_id'] ?? ''], status: 201);
+            return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
         if ($type === 'project' && $projectId > 0) {
@@ -205,20 +205,20 @@ final class ChatController extends BaseController
             ");
             $stmt->execute(['id' => $projectId]);
             $project = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($project)) return $this->error('PROJECT_NOT_FOUND', 'Project not found', 404);
+            if (!is_array($project)) return $this->error('PROJECT_NOT_FOUND', $this->t('chat/messages.project_not_found'), 404);
             $chat = $service->ensureProjectChat($project, $user);
-            if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', 'Not a participant', 403);
-            return $this->success('CHAT_CREATED', 'Chat ready', ['public_id' => $chat['public_id'] ?? ''], status: 201);
+            if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+            return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
         if ($type === 'team' && $teamId > 0) {
             $stmt = $pdo->prepare("SELECT * FROM teams WHERE id = :id");
             $stmt->execute(['id' => $teamId]);
             $team = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($team)) return $this->error('TEAM_NOT_FOUND', 'Team not found', 404);
+            if (!is_array($team)) return $this->error('TEAM_NOT_FOUND', $this->t('chat/messages.team_not_found'), 404);
             $chat = $service->ensureTeamChat($team, $user);
-            if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', 'Not a participant', 403);
-            return $this->success('CHAT_CREATED', 'Chat ready', ['public_id' => $chat['public_id'] ?? ''], status: 201);
+            if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+            return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
         if ($type === 'group') {
@@ -230,26 +230,26 @@ final class ChatController extends BaseController
                 $participantPublicIds
             ), static fn(string $id): bool => $id !== '')));
             if ($title === '' || count($participantPublicIds) === 0) {
-                return $this->error('INVALID_PARAM', 'Title and at least one participant are required', 422);
+                return $this->error('INVALID_PARAM', $this->t('chat/messages.title_participants_required'), 422);
             }
             if (mb_strlen($title) > 160) {
-                return $this->error('TITLE_TOO_LONG', 'Chat title is too long', 422);
+                return $this->error('TITLE_TOO_LONG', $this->t('chat/messages.title_too_long'), 422);
             }
             if (count($participantPublicIds) > 100) {
-                return $this->error('TOO_MANY_PARTICIPANTS', 'Too many chat participants', 422);
+                return $this->error('TOO_MANY_PARTICIPANTS', $this->t('chat/messages.too_many_participants'), 422);
             }
             $chat = $service->ensureGroupChat($title, $participantPublicIds, $user);
-            if ($chat === []) return $this->error('PARTICIPANTS_NOT_FOUND', 'Select at least one active participant', 422);
-            return $this->success('CHAT_CREATED', 'Chat ready', ['public_id' => $chat['public_id'] ?? ''], status: 201);
+            if ($chat === []) return $this->error('PARTICIPANTS_NOT_FOUND', $this->t('chat/messages.select_at_least_one'), 422);
+            return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
-        return $this->error('INVALID_PARAM', 'Entity id required', 422);
+        return $this->error('INVALID_PARAM', $this->t('chat/messages.entity_id_required'), 422);
     }
 
     public function messages(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
         $limit = min(100, max(1, (int)($this->request()->allInput()['limit'] ?? 50)));
         $beforeId = (int)($this->request()->allInput()['before_id'] ?? 0);
@@ -298,8 +298,8 @@ final class ChatController extends BaseController
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $input = $this->request()->allInput();
         $text = trim((string)($input['text'] ?? ''));
-        if (!$chat || $text === '') return $this->error('INVALID_PARAM', 'text required', 400);
-        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', 'Message is too long', 422);
+        if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
         $messageType = (string)($input['message_type'] ?? 'text');
         if (!in_array($messageType, ['text'], true)) $messageType = 'text';
 
@@ -333,55 +333,55 @@ final class ChatController extends BaseController
             'title' => $reply ? $this->t('chat/messages.reply_to_message') : $this->t('chat/messages.new_chat_message'),
         ]);
 
-        return $this->success('MESSAGE_SENT', 'Message sent', ['public_id' => $msgPublicId], status: 201);
+        return $this->success('MESSAGE_SENT', $this->t('chat/messages.message_sent'), ['public_id' => $msgPublicId], status: 201);
     }
 
     public function editMessage(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $text = trim((string)($this->request()->allInput()['text'] ?? ''));
-        if (!$chat || $text === '') return $this->error('INVALID_PARAM', 'text required', 400);
-        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', 'Message is too long', 422);
+        if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
 
         $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
-        if (!$message) return $this->error('EDIT_FORBIDDEN', 'Message cannot be edited', 403);
+        if (!$message) return $this->error('EDIT_FORBIDDEN', $this->t('chat/messages.cannot_edit'), 403);
 
         $pdo = $this->container->get('db.pdo');
         $pdo->prepare("UPDATE chat_messages SET text = :text, edited_at = NOW() WHERE id = :id")->execute(['text' => $text, 'id' => (int)$message['id']]);
         $this->auditMessage((int)$message['id'], (int)$chat['id'], 'edit', (string)$message['text'], $text);
 
-        return $this->success('MESSAGE_EDITED', 'Message edited');
+        return $this->success('MESSAGE_EDITED', $this->t('chat/messages.message_edited'));
     }
 
     public function deleteMessage(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
-        if (!$message) return $this->error('DELETE_FORBIDDEN', 'Message cannot be deleted', 403);
+        if (!$message) return $this->error('DELETE_FORBIDDEN', $this->t('chat/messages.cannot_delete'), 403);
 
         $pdo = $this->container->get('db.pdo');
         $pdo->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")
             ->execute(['uid' => $this->currentUserId(), 'id' => (int)$message['id']]);
         $this->auditMessage((int)$message['id'], (int)$chat['id'], 'delete', (string)$message['text'], null);
 
-        return $this->success('MESSAGE_DELETED', 'Message deleted');
+        return $this->success('MESSAGE_DELETED', $this->t('chat/messages.message_deleted'));
     }
 
     public function uploadAttachment(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
         $file = $this->request()->files['file'] ?? null;
-        if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return $this->error('FILE_REQUIRED', 'File required', 400);
-        if ((int)($file['size'] ?? 0) > 20 * 1024 * 1024) return $this->error('FILE_TOO_LARGE', 'File is too large', 422);
+        if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return $this->error('FILE_REQUIRED', $this->t('chat/messages.file_required'), 400);
+        if ((int)($file['size'] ?? 0) > 20 * 1024 * 1024) return $this->error('FILE_TOO_LARGE', $this->t('chat/messages.file_too_large'), 422);
         $fileValidation = $this->validateChatUpload($file);
         if ($fileValidation !== null) return $this->error($fileValidation['code'], $fileValidation['message'], 422);
 
         $pdo = $this->container->get('db.pdo');
         $msgPublicId = 'msg_' . bin2hex(random_bytes(8));
         $text = trim((string)($this->request()->allInput()['text'] ?? ''));
-        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', 'Message is too long', 422);
+        if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
         $pdo->prepare("
             INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
             VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
@@ -396,7 +396,7 @@ final class ChatController extends BaseController
         $service->markRead((int)$chat['id'], $this->currentUserId());
         $service->notifyMessage($chat, ['public_id' => $msgPublicId, 'id' => $msgId, 'text' => $text !== '' ? $text : $this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name']], $this->user()['user'] ?? []);
 
-        return $this->success('ATTACHMENT_UPLOADED', 'Attachment uploaded', ['message_public_id' => $msgPublicId, 'file' => $fileRow], status: 201);
+        return $this->success('ATTACHMENT_UPLOADED', $this->t('chat/messages.attachment_uploaded'), ['message_public_id' => $msgPublicId, 'file' => $fileRow], status: 201);
     }
 
     public function downloadAttachment(array $params = []): array
@@ -429,13 +429,13 @@ final class ChatController extends BaseController
     public function markRead(array $params = []): JsonResponse
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!$chat) return $this->error('NOT_FOUND', 'Chat not found', 404);
+        if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
         $service->markRead((int)$chat['id'], $this->currentUserId());
 
-        return $this->success('CHAT_READ', 'Marked as read');
+        return $this->success('CHAT_READ', $this->t('chat/messages.marked_read'));
     }
 
     public function unreadCount(): JsonResponse
@@ -456,9 +456,9 @@ final class ChatController extends BaseController
             ");
             $stmt->execute(['uid' => $userId, 'uid2' => $userId]);
             $count = (int)$stmt->fetchColumn();
-            return $this->success('UNREAD_COUNT', 'OK', ['count' => $count]);
+            return $this->success('UNREAD_COUNT', $this->t('common/messages.ok'), ['count' => $count]);
         } catch (\Throwable $e) {
-            return $this->error('ERROR', 'Server error', 500);
+            return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
 
@@ -469,27 +469,27 @@ final class ChatController extends BaseController
         if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
 
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
-        if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', 'Chat not found', 404);
-        if ((int)($chat['created_by_user_id'] ?? 0) !== $userId) return $this->error('NOT_ALLOWED', 'Only the chat creator can archive this chat', 422);
+        if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        if ((int)($chat['created_by_user_id'] ?? 0) !== $userId) return $this->error('NOT_ALLOWED', $this->t('chat/messages.only_creator_archive'), 422);
 
         $pdo = $this->container->get('db.pdo');
         if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) $this->ensureChatArchiveColumns($pdo);
 
-        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) return $this->error('NOT_AVAILABLE', 'Archive feature unavailable — please contact administrator', 503);
+        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) return $this->error('NOT_AVAILABLE', $this->t('chat/messages.archive_unavailable'), 503);
 
         try {
             $stmt = $pdo->prepare("SELECT id FROM chats WHERE public_id = :pid");
             $stmt->execute(['pid' => $chat['public_id']]);
             $chatId = (int)$stmt->fetchColumn();
-            if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', 'Chat not found', 404);
+            if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
             /** @var ChatService $service */
             $service = $this->container->get('service.chat');
             $result = $service->archiveChat($chatId, $userId);
-            if ($result === []) return $this->error('ARCHIVE_FAILED', 'Failed to archive chat', 500);
-            return $this->success('CHAT_ARCHIVED', 'OK', ['chat' => $result]);
+            if ($result === []) return $this->error('ARCHIVE_FAILED', $this->t('chat/messages.archive_failed'), 500);
+            return $this->success('CHAT_ARCHIVED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
-            return $this->error('ERROR', 'Server error', 500);
+            return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
 
@@ -500,26 +500,26 @@ final class ChatController extends BaseController
         if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
 
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('MISSING_ID', 'Chat ID required', 422);
+        if ($publicId === '') return $this->error('MISSING_ID', $this->t('chat/messages.chat_id_required'), 422);
 
         $pdo = $this->container->get('db.pdo');
         if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) $this->ensureChatArchiveColumns($pdo);
 
-        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) return $this->error('NOT_AVAILABLE', 'Archive feature unavailable — please contact administrator', 503);
+        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) return $this->error('NOT_AVAILABLE', $this->t('chat/messages.archive_unavailable'), 503);
 
         try {
             $stmt = $pdo->prepare("SELECT id FROM chats WHERE public_id = :pid AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
             $stmt->execute(['pid' => $publicId, 'uid' => $userId]);
             $chatId = (int)$stmt->fetchColumn();
-            if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', 'Chat not found', 404);
+            if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
             /** @var ChatService $service */
             $service = $this->container->get('service.chat');
             $result = $service->restoreChat($chatId, $userId);
-            if ($result === []) return $this->error('RESTORE_FAILED', 'Failed to restore chat', 500);
-            return $this->success('CHAT_RESTORED', 'OK', ['chat' => $result]);
+            if ($result === []) return $this->error('RESTORE_FAILED', $this->t('chat/messages.restore_failed'), 500);
+            return $this->success('CHAT_RESTORED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
-            return $this->error('ERROR', 'Server error', 500);
+            return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
 
@@ -724,7 +724,7 @@ final class ChatController extends BaseController
 
         $blockedExt = ['svg', 'html', 'htm', 'js', 'mjs', 'php', 'phtml', 'phar', 'exe', 'dll', 'bat', 'cmd', 'sh', 'ps1', 'jar', 'com', 'scr'];
         if ($ext === '' || in_array($ext, $blockedExt, true)) {
-            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'This file type is not allowed in chat'];
+            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => $this->t('chat/messages.file_type_not_allowed')];
         }
 
         $allowed = [
@@ -746,7 +746,7 @@ final class ChatController extends BaseController
         ];
 
         if (!isset($allowed[$ext]) || !in_array($mime, $allowed[$ext], true)) {
-            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => 'This file type is not allowed in chat'];
+            return ['code' => 'FILE_TYPE_NOT_ALLOWED', 'message' => $this->t('chat/messages.file_type_not_allowed')];
         }
 
         return null;

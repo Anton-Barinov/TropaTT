@@ -82,4 +82,10 @@ return [
     'test_push_title' => 'Push notification test',
     'test_push_body' => 'Push channel connected and ready.',
     'new_notification' => 'New notification',
+    'push_subscriptions_list' => 'Push subscriptions list',
+    'push_subscription_invalid' => 'Push subscription payload is invalid',
+    'push_subscription_saved' => 'Push subscription saved',
+    'push_subscription_not_found' => 'Push subscription not found',
+    'push_subscription_deleted' => 'Push subscription deleted',
+    'push_test_prepared' => 'Push test payload prepared',
 ];

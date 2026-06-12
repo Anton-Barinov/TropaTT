@@ -975,7 +975,7 @@ final class IdeaController extends BaseController
             }
 
             $pdo->commit();
-            return $this->success('TASKS_CREATED', 'Tasks created', ['tasks' => $created], 201);
+            return $this->success('TASKS_CREATED', $this->t('idea/messages.tasks_created'), ['tasks' => $created], 201);
         } catch (\Throwable $e) {
             $pdo->rollBack();
             return $this->error('CREATE_FAILED', $e->getMessage(), 500);
@@ -988,10 +988,10 @@ final class IdeaController extends BaseController
     public function debugLog(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $pdo = $this->container->get('db.pdo');
 
@@ -1102,11 +1102,11 @@ final class IdeaController extends BaseController
     public function additionalQuestions(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         // GET: return existing clarifications — filter out old entries without public_id, and answered ones
@@ -1252,11 +1252,11 @@ PROMPT;
     public function understandingCard(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
 
@@ -1401,11 +1401,11 @@ PROMPT;
     public function gapQuestions(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         // GET
@@ -1555,11 +1555,11 @@ PROMPT;
     public function refinedCard(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
 
@@ -1719,11 +1719,11 @@ PROMPT;
     public function potentialScore(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
 
@@ -1851,11 +1851,11 @@ PROMPT;
     public function riskReport(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $this->ensureIdeaWorkflowTables($pdo);
 
@@ -1940,12 +1940,12 @@ PROMPT;
     public function pitfallsReport(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $this->ensureIdeaWorkflowTables($pdo);
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
@@ -2028,11 +2028,11 @@ PROMPT;
     public function implementationPlan(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
@@ -2108,11 +2108,11 @@ PROMPT;
     public function finalRecommendation(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
@@ -2229,11 +2229,11 @@ PROMPT;
     public function suggestedTasks(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
@@ -2322,10 +2322,10 @@ PROMPT;
     public function createProjectFromTasks(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         $pdo = $this->container->get('db.pdo');
         $idea = $this->container->get('service.idea')->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         $ideaId = (int)$idea['id'];
         $userId = (int)($this->user()['user']['id'] ?? 0);
 
@@ -2457,10 +2457,10 @@ PROMPT;
         // DELETE: clear all questions and answers for this idea
         if (($this->request()->method ?? '') === 'DELETE') {
             $publicId = (string)($params['public_id'] ?? '');
-            if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+            if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
             $service = $this->container->get('service.idea');
             $idea = $service->getByPublicId($publicId);
-            if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+            if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
             $ideaId = (int)$idea['id'];
             $pdo = $this->container->get('db.pdo');
             $pdo->exec("DELETE FROM idea_answers WHERE idea_id={$ideaId}");
@@ -2472,12 +2472,12 @@ PROMPT;
 
         set_time_limit(0);
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
         $pdo = $this->container->get('db.pdo');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $ideaId = (int)$idea['id'];
 
@@ -2735,11 +2735,11 @@ PROMPT;
     public function saveInterviewAnswers(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid parameter', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.idea');
         $idea = $service->getByPublicId($publicId);
-        if (!$idea) return $this->error('NOT_FOUND', 'Not found', 404);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
         $ideaId = (int)$idea['id'];
         $input = $this->request()->allInput();
@@ -4276,7 +4276,7 @@ PROMPT;
     public function listComments(array $params = []): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('INVALID_PARAM', 'Invalid param', 400);
+        if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
         $stmt = $pdo->prepare("SELECT c.*, u.full_name as author_name, u.login as author_login FROM comments c LEFT JOIN users u ON u.id = c.author_user_id WHERE c.entity_type = 'idea' AND c.entity_public_id = :pid ORDER BY c.created_at ASC");
@@ -4290,7 +4290,7 @@ PROMPT;
     {
         $publicId = (string)($params['public_id'] ?? '');
         $body = trim((string)($this->request()->allInput()['body'] ?? ''));
-        if ($publicId === '' || $body === '') return $this->error('INVALID_PARAM', 'Invalid param', 400);
+        if ($publicId === '' || $body === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $user = $this->user()['user'] ?? [];
         $userId = (int)($user['id'] ?? 0);
@@ -4302,6 +4302,6 @@ PROMPT;
             ->execute(['pid' => $commentId, 'epid' => $publicId, 'uid' => $userId, 'body' => $body]);
         $pdo->prepare("UPDATE ideas SET comment_count = comment_count + 1 WHERE public_id = :pid")->execute(['pid' => $publicId]);
 
-        return $this->success('COMMENT_ADDED', 'Comment added', ['public_id' => $commentId], status: 201);
+        return $this->success('COMMENT_ADDED', $this->t('common/messages.saved'), ['public_id' => $commentId], status: 201);
     }
 }

@@ -18,4 +18,7 @@ return [
     'migration_rollback_check' => 'Проверка отката миграций',
     'migration_rollback_check_failed' => 'Не удалось проверить откат миграций',
     'default_admin_name' => 'Главный администратор',
+    'method_not_allowed' => 'Используйте POST для передачи данных проверки установки',
+    'bootstrap_not_configured' => 'Токен bootstrap установки не настроен',
+    'bootstrap_token_required' => 'Требуется токен bootstrap установки',
 ];

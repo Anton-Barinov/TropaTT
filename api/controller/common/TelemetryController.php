@@ -18,7 +18,7 @@ final class TelemetryController extends BaseController
         $eventType = strtolower(trim((string)($input['event_type'] ?? '')));
         if (!in_array($eventType, ['api_error', 'js_error', 'csp_violation'], true)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                ['field' => 'event_type', 'message' => 'event_type must be api_error, js_error, or csp_violation'],
+                ['field' => 'event_type', 'message' => $this->t('common/messages.invalid_event_type')],
             ]);
         }
 
@@ -80,7 +80,7 @@ final class TelemetryController extends BaseController
             'details' => $sanitized,
         ]);
 
-        return $this->success('CSP_REPORT_ACCEPTED', 'CSP violation report accepted', [
+        return $this->success('CSP_REPORT_ACCEPTED', $this->t('common/messages.csp_accepted'), [
             'accepted' => true,
             'captured_at' => gmdate('c'),
         ]);

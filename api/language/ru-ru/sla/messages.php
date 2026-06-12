@@ -10,4 +10,5 @@ return [
     'max_255' => 'Максимум 255 символов',
     'minutes_gt_zero' => 'Значение должно быть больше 0',
     'escalation_payload_object' => 'Поле escalation_payload должно быть объектом',
+    'assigned' => 'SLA назначено',
 ];

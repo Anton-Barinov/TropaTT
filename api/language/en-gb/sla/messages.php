@@ -10,4 +10,5 @@ return [
     'max_255' => 'Maximum 255 characters',
     'minutes_gt_zero' => 'Value must be greater than 0',
     'escalation_payload_object' => 'escalation_payload must be an object',
+    'assigned' => 'SLA assigned',
 ];

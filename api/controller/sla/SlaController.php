@@ -166,12 +166,12 @@ final class SlaController extends BaseController
 
         $taskId = (string)($params['public_id'] ?? '');
         $slaId = (string)($this->request()->allInput()['sla_policy_id'] ?? '');
-        if ($taskId === '' || $slaId === '') return $this->error('INVALID_PARAM', 'Invalid param', 400);
+        if ($taskId === '' || $slaId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $service = $this->container->get('service.sla');
         $result = $service->assignToTask($taskId, $slaId);
         if ($result === null) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
 
-        return $this->success('SLA_ASSIGNED', 'SLA assigned', ['task' => $result]);
+        return $this->success('SLA_ASSIGNED', $this->t('sla/messages.assigned'), ['task' => $result]);
     }
 }
