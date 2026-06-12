@@ -72,6 +72,8 @@ window.CRM.br1 = (function () {
     if (value === 'ru') return 'ru-ru';
     if (value === 'en') return 'en-gb';
     if (value === 'zh' || value === 'cn' || value === 'zh-hans') return 'zh-cn';
+    if (value === 'es') return 'es-es';
+    if (value === 'pt') return 'pt-br';
     return value;
   }
 

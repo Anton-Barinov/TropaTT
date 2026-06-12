@@ -30,6 +30,8 @@
             <option value="ru-ru"<?= $loginLocale === 'ru-ru' ? ' selected' : '' ?> data-i18n="login.option_ru"><?= htmlspecialchars($t('login.option_ru', 'Русский'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="en-gb"<?= $loginLocale === 'en-gb' ? ' selected' : '' ?> data-i18n="login.option_en"><?= htmlspecialchars($t('login.option_en', 'English'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="zh-cn"<?= $loginLocale === 'zh-cn' ? ' selected' : '' ?> data-i18n="login.option_zh"><?= htmlspecialchars($t('login.option_zh', '中文'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="es-es"<?= $loginLocale === 'es-es' ? ' selected' : '' ?> data-i18n="login.option_es"><?= htmlspecialchars($t('login.option_es', 'Español'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="pt-br"<?= $loginLocale === 'pt-br' ? ' selected' : '' ?> data-i18n="login.option_pt"><?= htmlspecialchars($t('login.option_pt', 'Português (Brasil)'), ENT_QUOTES, 'UTF-8') ?></option>
           </select>
         </div>
         <div id="loginError" class="alert alert-danger d-none py-2"></div>

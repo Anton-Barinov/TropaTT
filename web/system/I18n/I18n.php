@@ -71,7 +71,7 @@ final class I18n
     {
         $moduleKey = "module.{$vendor}.{$name}";
 
-        foreach (['ru-ru', 'en-gb'] as $locale) {
+        foreach (['ru-ru', 'en-gb', 'pt-br'] as $locale) {
             $file = $this->baseDir . '/modules/' . $vendor . '.' . $name . '/web/language/' . $locale . '.php';
             if (!is_file($file)) {
                 continue;
@@ -103,7 +103,7 @@ final class I18n
 
         $candidate = self::normalizeLocaleCode($candidate);
 
-        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn'], true)) {
+        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br'], true)) {
             $candidate = 'ru-ru';
         }
 
@@ -117,6 +117,8 @@ final class I18n
             'ru' => 'ru-ru',
             'en' => 'en-gb',
             'zh', 'cn', 'zh-hans' => 'zh-cn',
+            'es' => 'es-es',
+            'pt' => 'pt-br',
             default => $value,
         };
     }
