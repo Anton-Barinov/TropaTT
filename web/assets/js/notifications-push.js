@@ -118,7 +118,7 @@ window.CRM.notificationsPush = (function () {
   }
 
   function buildNotificationPayload(item) {
-    var title = String(item && item.title ? item.title : 'Новое уведомление');
+    var title = String(item && item.title ? item.title : window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
     var body = String(item && item.body ? item.body : '');
     var link = String(item && item.link ? item.link : 'index.php?route=notifications');
     return {

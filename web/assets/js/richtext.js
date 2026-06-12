@@ -3,20 +3,36 @@ window.CRM.richtext = (function () {
   var FIELD_MARKER = 'data-crm-richtext-ready';
   var WATCHERS = new WeakMap();
 
+  function descriptionHint() {
+    var translated = window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
+      ? window.CRM.i18n.t('richtext.description_hint', 'description')
+      : 'description';
+    return String(translated || 'description').toLowerCase();
+  }
+
+  function containsDescriptionHint(value) {
+    var text = String(value || '').toLowerCase();
+    if (!text) return false;
+    var hints = ['description', descriptionHint()];
+    return hints.some(function (hint) {
+      return hint && text.indexOf(hint) !== -1;
+    });
+  }
+
   function hasDescriptionIntent(textarea) {
     var name = String(textarea.getAttribute('name') || '').toLowerCase();
     var id = String(textarea.id || '').toLowerCase();
     var placeholder = String(textarea.getAttribute('placeholder') || '').toLowerCase();
-    if (name.indexOf('description') !== -1 || name.indexOf('опис') !== -1) return true;
-    if (id.indexOf('description') !== -1 || id.indexOf('опис') !== -1) return true;
-    if (placeholder.indexOf('описан') !== -1) return true;
+    if (containsDescriptionHint(name)) return true;
+    if (containsDescriptionHint(id)) return true;
+    if (containsDescriptionHint(placeholder)) return true;
 
     var wrapper = textarea.closest('.mb-2, .mb-3, .mb-4, .col-12, .col-md-6, .col-md-8, .col-lg-6, .col-lg-8, .crm-card, form');
     if (!wrapper) return false;
     var label = wrapper.querySelector('label');
     if (!label) return false;
     var labelText = String(label.textContent || '').toLowerCase();
-    return labelText.indexOf('описан') !== -1 || labelText.indexOf('description') !== -1;
+    return containsDescriptionHint(labelText);
   }
 
   function shouldEnhance(textarea) {
@@ -153,14 +169,14 @@ window.CRM.richtext = (function () {
     var toolbar = document.createElement('div');
     toolbar.className = 'crm-rte-toolbar';
     toolbar.innerHTML = ''
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="bold" title="Полужирный"><strong>B</strong></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="italic" title="Курсив"><em>I</em></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="underline" title="Подчеркивание"><u>U</u></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertUnorderedList" title="Маркированный список">&bull; Список</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertOrderedList" title="Нумерованный список">1. Список</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="formatBlock" data-rte-value="blockquote" title="Цитата">Цитата</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="createLink" title="Ссылка">Ссылка</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="removeFormat" title="Очистить формат">Очистить</button>';
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="bold" title="' + window.CRM.i18n.t('richtext.bold', 'Bold') + '"><strong>B</strong></button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="italic" title="' + window.CRM.i18n.t('richtext.italic', 'Italic') + '"><em>I</em></button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="underline" title="' + window.CRM.i18n.t('richtext.underline', 'Underline') + '"><u>U</u></button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertUnorderedList" title="' + window.CRM.i18n.t('richtext.bullet_list', 'Bullet list') + '">&bull; ' + window.CRM.i18n.t('richtext.list', 'List') + '</button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertOrderedList" title="' + window.CRM.i18n.t('richtext.ordered_list', 'Ordered list') + '">1. ' + window.CRM.i18n.t('richtext.list', 'List') + '</button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="formatBlock" data-rte-value="blockquote" title="' + window.CRM.i18n.t('richtext.blockquote', 'Quote') + '">' + window.CRM.i18n.t('richtext.blockquote', 'Quote') + '</button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="createLink" title="' + window.CRM.i18n.t('richtext.link', 'Link') + '">' + window.CRM.i18n.t('richtext.link', 'Link') + '</button>'
+      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="removeFormat" title="' + window.CRM.i18n.t('richtext.clear_format', 'Clear formatting') + '">' + window.CRM.i18n.t('richtext.clear', 'Clear') + '</button>';
     return toolbar;
   }
 
@@ -195,7 +211,7 @@ window.CRM.richtext = (function () {
       editor.focus();
       var cmd = button.getAttribute('data-rte-cmd');
       if (cmd === 'createLink') {
-        var href = window.prompt('Введите ссылку (https://...)', 'https://');
+        var href = window.prompt(window.CRM.i18n.t('richtext.prompt_link', 'Enter link (https://...)'), 'https://');
         if (!href) return;
         var safeHref = sanitizeLinkHref(href);
         if (!safeHref) return;

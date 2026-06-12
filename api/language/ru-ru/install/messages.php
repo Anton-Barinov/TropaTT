@@ -17,4 +17,5 @@ return [
     'migration_dry_run_failed' => 'Не удалось выполнить пробный запуск миграций',
     'migration_rollback_check' => 'Проверка отката миграций',
     'migration_rollback_check_failed' => 'Не удалось проверить откат миграций',
+    'default_admin_name' => 'Главный администратор',
 ];

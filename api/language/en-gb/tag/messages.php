@@ -14,4 +14,12 @@ return [
     'detached' => 'Tag detached from task',
     'max_64' => 'Maximum 64 characters',
     'max_255' => 'Maximum 255 characters',
+    'empty' => 'No tags',
+    'not_created' => 'Tags not created.',
+    'btn_edit' => 'Edit',
+    'btn_delete' => 'Delete',
+    'load_error' => 'Load error',
+    'validate_title' => 'Enter title',
+    'stat_total' => 'Total tags',
+    'stat_used' => 'Total uses',
 ];

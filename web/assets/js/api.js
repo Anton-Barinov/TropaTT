@@ -432,13 +432,13 @@ window.CRM.api = (function () {
 
     var message = (envelope && envelope.message) ? String(envelope.message) : '';
     if (!message) {
-      if (isAborted) message = 'Запрос отменен';
-      else if (isTimeout) message = 'Истекло время ожидания ответа';
-      else if (isNetworkError) message = 'Ошибка сети';
-      else if (isAuthError) message = 'Требуется повторный вход';
-      else if (isPermissionError) message = 'Недостаточно прав для выполнения действия';
-      else if (isRateLimited) message = 'Слишком много запросов, повторите позже';
-      else message = String(fallbackMessage || 'Ошибка API');
+      if (isAborted) message = window.CRM.i18n.t('js.api.aborted', 'Request cancelled');
+      else if (isTimeout) message = window.CRM.i18n.t('js.api.timeout', 'Response timeout expired');
+      else if (isNetworkError) message = window.CRM.i18n.t('js.api.network_error', 'Network error');
+      else if (isAuthError) message = window.CRM.i18n.t('js.api.auth_required', 'Re-authentication required');
+      else if (isPermissionError) message = window.CRM.i18n.t('js.api.permission_denied', 'Insufficient permissions');
+      else if (isRateLimited) message = window.CRM.i18n.t('js.api.rate_limited', 'Too many requests, try again later');
+      else message = String(fallbackMessage || window.CRM.i18n.t('js.api.error', 'API Error'));
     }
 
     return {
@@ -466,7 +466,7 @@ window.CRM.api = (function () {
     var err = normalizedError && typeof normalizedError === 'object' ? normalizedError : normalizeError(normalizedError);
     var opts = options && typeof options === 'object' ? options : {};
     var withRequestId = opts.withRequestId === true;
-    var baseMessage = String(err.message || 'Ошибка API');
+    var baseMessage = String(err.message || window.CRM.i18n.t('js.api.error', 'API Error'));
     if (withRequestId && err.requestId) {
       return baseMessage + ' [request_id: ' + err.requestId + ']';
     }

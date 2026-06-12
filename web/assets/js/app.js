@@ -9,7 +9,7 @@
     var showError = function (message) {
       if (!errorNode) return;
       errorNode.classList.remove('d-none');
-      errorNode.textContent = String(message || 'Ошибка входа');
+      errorNode.textContent = String(message || window.CRM.i18n.t('js.app.login_error', 'Login error'));
     };
     var hideError = function () {
       if (!errorNode) return;
@@ -23,7 +23,7 @@
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (!window.CRM || !window.CRM.api || typeof window.CRM.api.login !== 'function') {
-        showError('Модуль авторизации недоступен. Обновите страницу (Ctrl+F5).');
+        showError(window.CRM.i18n.t('js.app.auth_unavailable', 'Auth module unavailable. Refresh the page (Ctrl+F5).'));
         return;
       }
       hideError();
@@ -34,7 +34,7 @@
       var password = passInput ? String(passInput.value || '').trim() : '';
       var locale = localeInput ? String(localeInput.value || '').trim().toLowerCase() : '';
       if (!login || !password) {
-        showError('Введите логин и пароль.');
+        showError(window.CRM.i18n.t('js.app.enter_credentials', 'Enter login and password.'));
         return;
       }
       try {
@@ -45,11 +45,11 @@
         window.location.href = withQuery(returnRoute);
       } catch (error) {
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
-          ? window.CRM.api.normalizeError(error, 'Ошибка входа')
-          : { message: 'Ошибка входа', fieldErrors: {} };
+          ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.app.login_error', 'Login error'))
+          : { message: window.CRM.i18n.t('js.app.login_error', 'Login error'), fieldErrors: {} };
         var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
           ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: true })
-          : String(normalized.message || 'Ошибка входа');
+          : String(normalized.message || window.CRM.i18n.t('js.app.login_error', 'Login error'));
         showError(message);
       }
     });

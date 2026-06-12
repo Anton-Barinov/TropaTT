@@ -33,7 +33,7 @@ final class PageDataController extends BaseController
             $payload = $this->buildMyDayPayload($actor, $date, $yesterday);
         }
 
-        return $this->success('PAGE_MY_DAY', 'Данные страницы «Мой день»', $payload);
+        return $this->success('PAGE_MY_DAY', $this->t('page/messages.my_day_data'), $payload);
     }
 
     public function myWeek(): \Api\System\Library\Http\JsonResponse
@@ -61,7 +61,7 @@ final class PageDataController extends BaseController
             $payload = $this->buildMyWeekPayload($actor, $date, $weekStart, $weekEnd, $yesterday);
         }
 
-        return $this->success('PAGE_MY_WEEK', 'Данные страницы «Моя неделя»', $payload);
+        return $this->success('PAGE_MY_WEEK', $this->t('page/messages.my_week_data'), $payload);
     }
 
     public function kanban(): \Api\System\Library\Http\JsonResponse
@@ -82,7 +82,7 @@ final class PageDataController extends BaseController
             $payload = $this->buildKanbanPayload($actor);
         }
 
-        return $this->success('PAGE_KANBAN', 'Данные страницы «Канбан»', $payload);
+        return $this->success('PAGE_KANBAN', $this->t('page/messages.kanban_data'), $payload);
     }
 
     /** @param array<string,mixed> $actor */

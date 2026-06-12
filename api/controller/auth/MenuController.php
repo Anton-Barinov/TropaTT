@@ -9,23 +9,23 @@ use Api\System\Library\Service\AuthzService;
 final class MenuController extends BaseController
 {
     private const MENU_ITEMS = [
-        ['key' => 'dashboard', 'i18n' => 'nav.dashboard', 'label' => 'Главная', 'href' => 'index.php?route=dashboard', 'permissions' => []],
-        ['key' => 'ideas', 'i18n' => 'nav.ideas', 'label' => 'Идеи', 'href' => 'index.php?route=ideas', 'permissions' => []],
-        ['key' => 'tasks', 'i18n' => 'nav.tasks', 'label' => 'Задачи', 'href' => 'index.php?route=tasks', 'permissions' => ['task.manage']],
-        ['key' => 'day', 'i18n' => 'nav.day', 'label' => 'Мой день', 'href' => 'index.php?route=my-day', 'permissions' => ['task.manage']],
-        ['key' => 'week', 'i18n' => 'nav.week', 'label' => 'Моя неделя', 'href' => 'index.php?route=my-week', 'permissions' => ['task.manage']],
-        ['key' => 'kanban', 'i18n' => 'nav.kanban', 'label' => 'Канбан', 'href' => 'index.php?route=kanban', 'permissions' => ['task.manage']],
-        ['key' => 'gantt', 'i18n' => 'nav.gantt', 'label' => 'Гант', 'href' => 'index.php?route=gantt', 'permissions' => ['project.manage']],
-        ['key' => 'projects', 'i18n' => 'nav.projects', 'label' => 'Проекты', 'href' => 'index.php?route=projects', 'permissions' => ['project.manage']],
-        ['key' => 'calendar', 'i18n' => 'nav.calendar', 'label' => 'Календарь', 'href' => 'index.php?route=calendar', 'permissions' => ['task.manage']],
-        ['key' => 'counterparties', 'i18n' => 'nav.counterparties', 'label' => 'Контрагенты', 'href' => 'index.php?route=counterparties', 'permissions' => ['counterparty.manage']],
-        ['key' => 'teams', 'i18n' => 'nav.teams', 'label' => 'Команды', 'href' => 'index.php?route=teams', 'permissions' => []],
-        ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label' => 'Аналитика', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
-        ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label' => 'Уведомления', 'href' => 'index.php?route=notifications', 'permissions' => []],
-        ['key' => 'admin', 'i18n' => 'nav.admin', 'label' => 'Администрирование', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],
-        ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label' => 'Модули', 'href' => 'index.php?route=admin-modules', 'permissions' => ['role.view']],
-        ['key' => 'chat', 'i18n' => 'nav.chat', 'label' => 'Чаты', 'href' => 'index.php?route=chat', 'permissions' => []],
-        ['key' => 'docs', 'i18n' => 'nav.api', 'label' => 'Справка', 'href' => 'index.php?route=docs', 'permissions' => []],
+        ['key' => 'dashboard', 'i18n' => 'nav.dashboard', 'label_key' => 'nav.messages.dashboard', 'href' => 'index.php?route=dashboard', 'permissions' => []],
+        ['key' => 'ideas', 'i18n' => 'nav.ideas', 'label_key' => 'nav.messages.ideas', 'href' => 'index.php?route=ideas', 'permissions' => []],
+        ['key' => 'tasks', 'i18n' => 'nav.tasks', 'label_key' => 'nav.messages.tasks', 'href' => 'index.php?route=tasks', 'permissions' => ['task.manage']],
+        ['key' => 'day', 'i18n' => 'nav.day', 'label_key' => 'nav.messages.day', 'href' => 'index.php?route=my-day', 'permissions' => ['task.manage']],
+        ['key' => 'week', 'i18n' => 'nav.week', 'label_key' => 'nav.messages.week', 'href' => 'index.php?route=my-week', 'permissions' => ['task.manage']],
+        ['key' => 'kanban', 'i18n' => 'nav.kanban', 'label_key' => 'nav.messages.kanban', 'href' => 'index.php?route=kanban', 'permissions' => ['task.manage']],
+        ['key' => 'gantt', 'i18n' => 'nav.gantt', 'label_key' => 'nav.messages.gantt', 'href' => 'index.php?route=gantt', 'permissions' => ['project.manage']],
+        ['key' => 'projects', 'i18n' => 'nav.projects', 'label_key' => 'nav.messages.projects', 'href' => 'index.php?route=projects', 'permissions' => ['project.manage']],
+        ['key' => 'calendar', 'i18n' => 'nav.calendar', 'label_key' => 'nav.messages.calendar', 'href' => 'index.php?route=calendar', 'permissions' => ['task.manage']],
+        ['key' => 'counterparties', 'i18n' => 'nav.counterparties', 'label_key' => 'nav.messages.counterparties', 'href' => 'index.php?route=counterparties', 'permissions' => ['counterparty.manage']],
+        ['key' => 'teams', 'i18n' => 'nav.teams', 'label_key' => 'nav.messages.teams', 'href' => 'index.php?route=teams', 'permissions' => []],
+        ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.messages.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
+        ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.messages.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
+        ['key' => 'admin', 'i18n' => 'nav.admin', 'label_key' => 'nav.messages.admin', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],
+        ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.messages.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['role.view']],
+        ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.messages.chat', 'href' => 'index.php?route=chat', 'permissions' => []],
+        ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.messages.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];
 
     public function list(): \Api\System\Library\Http\JsonResponse
@@ -54,7 +54,7 @@ final class MenuController extends BaseController
                 $availableItems[] = [
                     'key' => $item['key'],
                     'i18n' => $item['i18n'],
-                    'label' => $item['label'] ?? $item['key'],
+                    'label' => $this->t($item['label_key'] ?? $item['i18n']),
                     'href' => $item['href'],
                 ];
             }

@@ -146,8 +146,8 @@ final class IdeaController extends BaseController
             if ($this->container->has('service.notification')) {
                 $this->container->get('service.notification')->notifyUsers([$userId], [
                     'category' => 'ideas',
-                    'title' => 'Идея создана',
-                    'body' => 'Ваша идея "' . $title . '" успешно создана.',
+                    'title' => $this->t('idea/messages.notif_idea_created_title'),
+                    'body' => $this->t('idea/messages.notif_idea_created_body') . ' "' . $title . '" ' . $this->t('idea/messages.notif_idea_created_body2'),
                     'entity_type' => 'idea',
                     'entity_public_id' => $publicId,
                     'action_code' => 'idea_created',
@@ -250,8 +250,8 @@ final class IdeaController extends BaseController
                 if ($idea && (int)$idea['author_user_id'] !== $userId && $this->container->has('service.notification')) {
                     $this->container->get('service.notification')->notifyUsers([(int)$idea['author_user_id']], [
                         'category' => 'ideas',
-                        'title' => 'Новый голос за идею',
-                        'body' => 'Пользователь проголосовал за вашу идею "' . ($idea['title'] ?? '') . '".',
+                        'title' => $this->t('idea/messages.notif_idea_voted_title'),
+                        'body' => $this->t('idea/messages.notif_idea_voted_body') . ' "' . ($idea['title'] ?? '') . '".',
                         'entity_type' => 'idea',
                         'entity_public_id' => $publicId,
                         'action_code' => 'idea_voted',
@@ -284,8 +284,8 @@ final class IdeaController extends BaseController
             if ($idea && $this->container->has('service.notification')) {
                 $this->container->get('service.notification')->notifyUsers([(int)$idea['author_user_id']], [
                     'category' => 'ideas',
-                    'title' => 'Статус идеи изменён',
-                    'body' => 'Статус вашей идеи "' . ($idea['title'] ?? '') . '" изменён на "' . $newStatus . '".',
+                    'title' => $this->t('idea/messages.notif_idea_status_changed_title'),
+                    'body' => $this->t('idea/messages.notif_idea_status_changed_body1') . ' "' . ($idea['title'] ?? '') . '" ' . $this->t('idea/messages.notif_idea_status_changed_body2') . ' "' . $newStatus . '".',
                     'entity_type' => 'idea',
                     'entity_public_id' => $publicId,
                     'action_code' => 'idea_status_changed',
@@ -325,15 +325,15 @@ final class IdeaController extends BaseController
             if (count($existingQuestions) > 0) {
                 $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
                 $recAction = $this->getRecommendedNextAction($ideaId, $coverage);
-                return $this->success('QUESTIONS_NEEDED', 'Текущее состояние', [
+                return $this->success('QUESTIONS_NEEDED', $this->t('idea/messages.current_state'), [
                     'status' => $status,
                     'code' => 'QUESTIONS_NEEDED',
                     'active_questions' => $existingQuestions,
                     'active_questions_count' => count($existingQuestions),
                     'recommended_next_action' => $recAction,
                     'message' => $status === 'ready_for_analysis'
-                        ? 'Данных достаточно. Нажмите «Провести анализ».'
-                        : 'Ответьте на уточняющие вопросы и нажмите «Отправить».',
+                        ? $this->t('idea/messages.data_sufficient_click_analyze')
+                        : $this->t('idea/messages.answer_questions_click_send'),
                     'available_actions' => $status === 'ready_for_analysis'
                         ? ['run_analysis', 'edit_idea']
                         : ['answer_questions', 'edit_idea'],
@@ -352,12 +352,12 @@ final class IdeaController extends BaseController
                 ->execute(['id' => $ideaId]);
 
             $savedQuestions = $service->getQuestions($ideaId, 1);
-            return $this->success('IDEA_AI_ANALYZED', 'Вопросы сформированы (safe mode)', [
+            return $this->success('IDEA_AI_ANALYZED', $this->t('idea/messages.questions_formed_safe_mode'), [
                 'status' => 'questioning',
                 'code' => 'QUESTIONS_NEEDED',
                 'active_questions' => $savedQuestions,
                 'active_questions_count' => count($savedQuestions),
-                'message' => 'Для качественного анализа нужно ответить на уточняющие вопросы.',
+                'message' => $this->t('idea/messages.answer_for_quality_analysis'),
                 'available_actions' => ['answer_questions', 'edit_idea'],
             ]);
         }
@@ -373,7 +373,7 @@ final class IdeaController extends BaseController
         try {
             $ai = $this->container->get('service.ai_action');
         } catch (\Throwable $e) {
-            return $this->error('AI_SERVICE_UNAVAILABLE', 'AI-сервис временно недоступен. Попробуйте позже.', 503);
+            return $this->error('AI_SERVICE_UNAVAILABLE', $this->t('idea/messages.ai_service_unavailable'), 503);
         }
 
         try {
@@ -431,14 +431,14 @@ final class IdeaController extends BaseController
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, 1, 'analyze', :req, :resp, NOW())")
                 ->execute(['pid' => $iterId, 'iid' => $ideaId, 'req' => json_encode(['title' => $title, 'description' => $description, 'created_at' => $createdAt, 'current_date' => $currentDate, 'data' => $data], JSON_UNESCAPED_UNICODE), 'resp' => json_encode($result, JSON_UNESCAPED_UNICODE)]);
 
-            return $this->success('IDEA_AI_ANALYZED', 'Анализ выполнен', [
+            return $this->success('IDEA_AI_ANALYZED', $this->t('idea/messages.analysis_completed'), [
                 'status' => $newStatus,
                 'visible_mode' => ($newStatus === 'questioning') ? 'questions' : 'ready_for_analysis',
                 'code' => 'QUESTIONS_NEEDED',
                 'active_questions' => $service->getQuestions($ideaId, 1),
                 'message' => ($newStatus === 'questioning')
-                    ? 'Ответьте на уточняющие вопросы и нажмите «Отправить».'
-                    : 'Данных достаточно. Можно провести анализ.',
+                    ? $this->t('idea/messages.answer_questions_then_send')
+                    : $this->t('idea/messages.data_sufficient_can_analyze'),
                 'available_actions' => ($newStatus === 'questioning')
                     ? ['answer_questions', 'edit_idea']
                     : ['run_analysis', 'edit_idea'],
@@ -446,7 +446,7 @@ final class IdeaController extends BaseController
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
             ai_diag_log("[AI_ANALYZE_FAILED][{$reqId}] {$e->getMessage()}");
-            return $this->error('AI_ANALYSIS_FAILED', 'AI-провайдер не отвечает. Попробуйте позже.', 503);
+            return $this->error('AI_ANALYSIS_FAILED', $this->t('idea/messages.ai_provider_not_responding'), 503);
         }
     }
 
@@ -455,11 +455,11 @@ final class IdeaController extends BaseController
         $pdo = $this->container->get('db.pdo');
         $pdo->prepare("DELETE FROM idea_questions WHERE idea_id = :id AND cycle_id = 1")->execute(['id' => $ideaId]);
         return [
-            ['question_text' => 'Где вы планируете реализовать эту идею?', 'reason' => 'Локация определяет рынок, клиентов и затраты.', 'question_type' => 'single_choice', 'options' => [['key' => 'local', 'label' => 'Местный рынок (район/город)', 'description' => null], ['key' => 'regional', 'label' => 'Региональный', 'description' => null], ['key' => 'national', 'label' => 'Вся страна', 'description' => null], ['key' => 'unknown', 'label' => 'Пока не знаю', 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'operations', 'impact' => 'critical', 'sort_order' => 1],
-            ['question_text' => 'Какой ориентировочный бюджет вы рассматриваете?', 'reason' => 'Бюджет определяет масштаб и скорость запуска.', 'question_type' => 'single_choice', 'options' => [['key' => 'minimal', 'label' => 'Минимальный (до 150 000 ₽)', 'description' => null], ['key' => 'small', 'label' => 'Небольшой (150 000 – 500 000 ₽)', 'description' => null], ['key' => 'medium', 'label' => 'Средний (500 000 – 2 000 000 ₽)', 'description' => null], ['key' => 'unknown', 'label' => 'Пока не знаю', 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'finance', 'impact' => 'critical', 'sort_order' => 2],
-            ['question_text' => 'Кто ваша основная целевая аудитория?', 'reason' => 'Аудитория определяет продукт, цены и продвижение.', 'question_type' => 'multiple_choice', 'options' => [['key' => 'individuals', 'label' => 'Частные лица', 'description' => null], ['key' => 'businesses', 'label' => 'Бизнес / компании', 'description' => null], ['key' => 'both', 'label' => 'И те и другие', 'description' => null], ['key' => 'unknown', 'label' => 'Пока не знаю', 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'target_audience', 'impact' => 'high', 'sort_order' => 3],
-            ['question_text' => 'Есть ли у вас опыт в этой сфере?', 'reason' => 'Опыт влияет на сроки, риски и необходимость обучения.', 'question_type' => 'single_choice', 'options' => [['key' => 'experienced', 'label' => 'Да, есть опыт', 'description' => null], ['key' => 'no_experience', 'label' => 'Нет опыта', 'description' => null], ['key' => 'have_knowledge', 'label' => 'Есть теоретические знания', 'description' => null], ['key' => 'unknown', 'label' => 'Пока не знаю', 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'resources', 'impact' => 'high', 'sort_order' => 4],
-            ['question_text' => 'Что вас больше всего беспокоит в реализации идеи?', 'reason' => 'Помогает понять ключевые риски.', 'question_type' => 'text', 'options' => [], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => false, 'dimension' => 'risks', 'impact' => 'medium', 'sort_order' => 5],
+            ['question_text' => $this->t('idea/messages.sm_q1_text'), 'reason' => $this->t('idea/messages.sm_q1_reason'), 'question_type' => 'single_choice', 'options' => [['key' => 'local', 'label' => $this->t('idea/messages.sm_q1_local'), 'description' => null], ['key' => 'regional', 'label' => $this->t('idea/messages.sm_q1_regional'), 'description' => null], ['key' => 'national', 'label' => $this->t('idea/messages.sm_q1_national'), 'description' => null], ['key' => 'unknown', 'label' => $this->t('idea/messages.sm_not_sure'), 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'operations', 'impact' => 'critical', 'sort_order' => 1],
+            ['question_text' => $this->t('idea/messages.sm_q2_text'), 'reason' => $this->t('idea/messages.sm_q2_reason'), 'question_type' => 'single_choice', 'options' => [['key' => 'minimal', 'label' => $this->t('idea/messages.sm_q2_minimal'), 'description' => null], ['key' => 'small', 'label' => $this->t('idea/messages.sm_q2_small'), 'description' => null], ['key' => 'medium', 'label' => $this->t('idea/messages.sm_q2_medium'), 'description' => null], ['key' => 'unknown', 'label' => $this->t('idea/messages.sm_not_sure'), 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'finance', 'impact' => 'critical', 'sort_order' => 2],
+            ['question_text' => $this->t('idea/messages.sm_q3_text'), 'reason' => $this->t('idea/messages.sm_q3_reason'), 'question_type' => 'multiple_choice', 'options' => [['key' => 'individuals', 'label' => $this->t('idea/messages.sm_q3_individuals'), 'description' => null], ['key' => 'businesses', 'label' => $this->t('idea/messages.sm_q3_businesses'), 'description' => null], ['key' => 'both', 'label' => $this->t('idea/messages.sm_q3_both'), 'description' => null], ['key' => 'unknown', 'label' => $this->t('idea/messages.sm_not_sure'), 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'target_audience', 'impact' => 'high', 'sort_order' => 3],
+            ['question_text' => $this->t('idea/messages.sm_q4_text'), 'reason' => $this->t('idea/messages.sm_q4_reason'), 'question_type' => 'single_choice', 'options' => [['key' => 'experienced', 'label' => $this->t('idea/messages.sm_q4_experienced'), 'description' => null], ['key' => 'no_experience', 'label' => $this->t('idea/messages.sm_q4_no_experience'), 'description' => null], ['key' => 'have_knowledge', 'label' => $this->t('idea/messages.sm_q4_have_knowledge'), 'description' => null], ['key' => 'unknown', 'label' => $this->t('idea/messages.sm_not_sure'), 'description' => null]], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => true, 'dimension' => 'resources', 'impact' => 'high', 'sort_order' => 4],
+            ['question_text' => $this->t('idea/messages.sm_q5_text'), 'reason' => $this->t('idea/messages.sm_q5_reason'), 'question_type' => 'text', 'options' => [], 'allow_custom_answer' => true, 'allow_unknown' => true, 'required' => false, 'dimension' => 'risks', 'impact' => 'medium', 'sort_order' => 5],
         ];
     }
 
@@ -474,7 +474,7 @@ final class IdeaController extends BaseController
             $l = $a['label'] ?? '';
             $t = $a['answer_text'] ?? '';
             $k = $a['answer_key'] ?? '';
-            if ($l === 'Пока не знаю' || $k === 'unknown') {
+            if ($l === $this->t('idea/messages.sm_not_sure') || $k === 'unknown') {
                 $realUnknowns[] = $a['question'];
             } elseif ($l !== '') {
                 $realKnownFacts[] = $a['question'] . ' — ' . $l;
@@ -483,14 +483,14 @@ final class IdeaController extends BaseController
             }
         }
         if (!$realKnownFacts) $realKnownFacts = [$title];
-        if (!$realUnknowns) $realUnknowns = ['Точный спрос', 'Бюджет', 'Конкуренты'];
+        if (!$realUnknowns) $realUnknowns = [$this->t('idea/messages.sm_exact_demand'), $this->t('idea/messages.sm_budget'), $this->t('idea/messages.sm_competitors')];
         if (count($realKnownFacts) > 6) $realKnownFacts = array_slice($realKnownFacts, 0, 6);
         if (count($realUnknowns) > 6) $realUnknowns = array_slice($realUnknowns, 0, 6);
 
         return [
-            'main_analysis' => ['_demo_mode' => true, 'summary' => "Идея «{$title}» на стадии проработки. " . $desc, 'idea_interpretation' => $desc, 'strengths' => ['Идея описана'], 'weaknesses' => ['Нет детальных данных для анализа'], 'key_hypotheses' => ['Проверить спрос в выбранной локации'], 'first_checks' => ['Изучить конкурентов рядом'], 'preliminary_recommendation' => 'validate_first', 'confidence' => 'low'],
-            'final_report' => ['_demo_mode' => true, 'executive_summary' => "Идея «{$title}» требует проверки перед вложениями.", 'known_facts' => $realKnownFacts, 'unknowns' => $realUnknowns, 'assumptions' => ['Рынок существует'], 'strengths' => ['Идея описана'], 'weaknesses' => ['Мало данных'], 'critical_findings' => ['Проверить спрос перед вложениями'], 'top_risks' => [['title' => 'Недостаток данных', 'why_it_matters' => 'Без данных сложно оценить', 'mitigation' => 'Ответить на уточняющие вопросы']], 'pitfalls' => ['Отсутствие анализа рынка'], 'opportunities' => ['Изучить спрос в выбранном районе'], 'validation_plan_short' => [['hypothesis' => 'Спрос существует', 'how_to_test' => 'Опрос целевой аудитории', 'success_metric' => '>20 положительных ответов']], 'recommended_path' => 'Проверить спрос, изучить конкурентов в выбранном районе.', 'next_3_actions' => ['1. Изучить конкурентов в радиусе локации.', '2. Провести опрос жителей района.', '3. Посчитать минимальный бюджет.'], 'decision' => 'validate_first', 'confidence' => 'low'],
-            'critical_analysis' => ['_demo_mode' => true, 'main_doubts' => ['Нет данных о спросе'], 'what_to_check_before_investing' => ['Спрос', 'Конкуренты'], 'confidence' => 'low'],
+            'main_analysis' => ['_demo_mode' => true, 'summary' => "Идея «{$title}» " . $this->t('idea/messages.sm_analysis_summary') . ' ' . $desc, 'idea_interpretation' => $desc, 'strengths' => [$this->t('idea/messages.sm_idea_described')], 'weaknesses' => [$this->t('idea/messages.sm_no_detailed_data')], 'key_hypotheses' => [$this->t('idea/messages.sm_check_demand')], 'first_checks' => [$this->t('idea/messages.sm_study_competitors')], 'preliminary_recommendation' => 'validate_first', 'confidence' => 'low'],
+            'final_report' => ['_demo_mode' => true, 'executive_summary' => "Идея «{$title}» " . $this->t('idea/messages.sm_final_needs_verification'), 'known_facts' => $realKnownFacts, 'unknowns' => $realUnknowns, 'assumptions' => [$this->t('idea/messages.sm_market_exists')], 'strengths' => [$this->t('idea/messages.sm_idea_described')], 'weaknesses' => [$this->t('idea/messages.sm_few_data')], 'critical_findings' => [$this->t('idea/messages.sm_check_demand_before')], 'top_risks' => [['title' => $this->t('idea/messages.sm_insufficient_data'), 'why_it_matters' => $this->t('idea/messages.sm_without_data_hard'), 'mitigation' => $this->t('idea/messages.sm_answer_questions_action')]], 'pitfalls' => [$this->t('idea/messages.sm_no_market_analysis')], 'opportunities' => [$this->t('idea/messages.sm_study_demand_district')], 'validation_plan_short' => [['hypothesis' => $this->t('idea/messages.sm_demand_exists'), 'how_to_test' => $this->t('idea/messages.sm_survey_audience'), 'success_metric' => $this->t('idea/messages.sm_positive_answers')]], 'recommended_path' => $this->t('idea/messages.sm_check_competitors_path'), 'next_3_actions' => [$this->t('idea/messages.sm_action1'), $this->t('idea/messages.sm_action2'), $this->t('idea/messages.sm_action3')], 'decision' => 'validate_first', 'confidence' => 'low'],
+            'critical_analysis' => ['_demo_mode' => true, 'main_doubts' => [$this->t('idea/messages.sm_no_demand_data')], 'what_to_check_before_investing' => [$this->t('idea/messages.sm_check_demand_label'), $this->t('idea/messages.sm_check_competitors_label')], 'confidence' => 'low'],
         ];
     }
 
@@ -789,15 +789,15 @@ final class IdeaController extends BaseController
             if ($readyForAnalysis) {
                 $pdo->prepare("UPDATE ideas SET status = 'ready_for_analysis' WHERE id = :id")
                     ->execute(['id' => $idea['id']]);
-                return $this->success('IDEA_AI_REFINED', 'Данных достаточно', [
+                        return $this->success('IDEA_AI_REFINED', $this->t('idea/messages.enough_data'), [
                     'result' => [
                         'ready_for_analysis' => true,
-                        'summary_for_user' => $pr['summary_for_user'] ?? 'Данных достаточно для анализа.',
+                        'summary_for_user' => $pr['summary_for_user'] ?? $this->t('idea/messages.enough_data_for_analysis'),
                     ],
                     'active_questions' => [],
                     'status' => 'ready_for_analysis',
                     'next_action' => 'ready_for_analysis',
-                    'message' => 'Данных достаточно. Можно провести анализ.',
+                    'message' => $this->t('idea/messages.enough_data_can_analyze'),
                     'summary_for_user' => $pr['summary_for_user'] ?? '',
                     'available_actions' => ['run_analysis', 'edit_idea'],
                     'iteration' => $iteration,
@@ -841,12 +841,13 @@ final class IdeaController extends BaseController
                     if ($uniqueNextQuestions === []) {
                         $pdo->prepare("UPDATE ideas SET status = 'ready_for_analysis' WHERE id = :id")
                             ->execute(['id' => $idea['id']]);
-                        return $this->success('IDEA_AI_REFINED', 'Данных достаточно', [
-                            'result' => ['ready_for_analysis' => true, 'summary_for_user' => 'Новых уточняющих вопросов не осталось. Можно запускать анализ.'],
+                return $this->success('IDEA_AI_REFINED', $this->t('idea/messages.enough_data'), [
+
+                            'result' => ['ready_for_analysis' => true, 'summary_for_user' => $this->t('idea/messages.no_new_questions_remaining')],
                             'active_questions' => [],
                             'status' => 'ready_for_analysis',
                             'next_action' => 'ready_for_analysis',
-                            'message' => 'Новых уточняющих вопросов не осталось. Можно провести анализ.',
+                            'message' => $this->t('idea/messages.no_new_questions_can_analyze'),
                             'available_actions' => ['run_analysis', 'edit_idea'],
                             'iteration' => $iteration,
                         ]);
@@ -855,16 +856,16 @@ final class IdeaController extends BaseController
                     $answerSvc->saveQuestions((int)$idea['id'], $nextCycle, $uniqueNextQuestions);
                     $pdo->prepare("UPDATE ideas SET status = 'questioning' WHERE id = :id")
                         ->execute(['id' => $idea['id']]);
-                    return $this->success('IDEA_AI_REFINED', 'Нужны уточнения', [
+                    return $this->success('IDEA_AI_REFINED', $this->t('idea/messages.need_clarification'), [
                         'result' => [
                             'ready_for_analysis' => false,
                             'new_questions' => $uniqueNextQuestions,
-                            'summary_for_user' => $pr['summary_for_user'] ?? 'Ответы сохранены. Нужны уточнения.',
+                            'summary_for_user' => $pr['summary_for_user'] ?? $this->t('idea/messages.answers_saved_need_clarification'),
                         ],
                         'active_questions' => $answerSvc->getQuestions((int)$idea['id'], $nextCycle),
                         'status' => 'questioning',
                         'next_action' => 'answer_questions',
-                        'message' => $pr['summary_for_user'] ?? 'Ответы сохранены. Нужны дополнительные уточнения.',
+                        'message' => $pr['summary_for_user'] ?? $this->t('idea/messages.answers_saved_need_more_clarification'),
                         'summary_for_user' => $pr['summary_for_user'] ?? '',
                         'available_actions' => ['answer_questions'],
                         'iteration' => $iteration,
@@ -875,19 +876,19 @@ final class IdeaController extends BaseController
             // Neither ready nor need_more: fallback
             $pdo->prepare("UPDATE ideas SET status = 'ready_for_analysis' WHERE id = :id")
                 ->execute(['id' => $idea['id']]);
-            return $this->success('IDEA_AI_REFINED', 'Ответы сохранены', [
-                'result' => ['ready_for_analysis' => true, 'summary_for_user' => 'Ответы сохранены.'],
+            return $this->success('IDEA_AI_REFINED', $this->t('idea/messages.answers_saved_label'), [
+                'result' => ['ready_for_analysis' => true, 'summary_for_user' => $this->t('idea/messages.answers_saved_label')],
                 'active_questions' => [],
                 'status' => 'ready_for_analysis',
                 'next_action' => 'ready_for_analysis',
-                'message' => 'Ответы сохранены. Можно провести анализ.',
+                'message' => $this->t('idea/messages.answers_saved_can_analyze'),
                 'available_actions' => ['run_analysis', 'edit_idea'],
                 'iteration' => $iteration,
             ]);
         } catch (\Throwable $e) {
             $reqId = bin2hex(random_bytes(6));
             ai_diag_log("[AI_REFINE_FAILED][{$reqId}] {$e->getMessage()}");
-            return $this->error('AI_REFINE_FAILED', 'Не удалось обработать ответы. Попробуйте ещё раз.', 503);
+            return $this->error('AI_REFINE_FAILED', $this->t('idea/messages.refine_failed'), 503);
         }
     }
 
@@ -997,7 +998,7 @@ final class IdeaController extends BaseController
         // DELETE: clear all AI iterations for this idea
         if (($this->request()->method ?? '') === 'DELETE') {
             $pdo->exec("DELETE FROM idea_ai_iterations WHERE idea_id={$ideaId}");
-            return $this->success('DEBUG_CLEARED', 'Логи AI очищены');
+            return $this->success('DEBUG_CLEARED', $this->t('idea/messages.debug_logs_cleared'));
         }
 
         $iterations = $pdo->query("SELECT * FROM idea_ai_iterations WHERE idea_id={$ideaId} ORDER BY created_at ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -1021,7 +1022,7 @@ final class IdeaController extends BaseController
             $ans = null;
             if ($la) {
                 if (!empty($la['answer_text']) && empty($la['is_unknown'])) $ans = $la['answer_text'];
-                elseif (!empty($la['is_unknown'])) $ans = 'НЕ ЗНАЮ';
+                elseif (!empty($la['is_unknown'])) $ans = $this->t('idea/messages.answer_dont_know');
                 elseif (!empty($la['selected_option_label'])) $ans = $la['selected_option_label'];
                 elseif (!empty($la['selected_option_key'])) $ans = $la['selected_option_key'];
             }
@@ -1149,7 +1150,7 @@ final class IdeaController extends BaseController
             }
             $qaList[] = [
                 'question' => $q['question_text'] ?? '',
-                'answer' => $answerText ?: 'нет ответа',
+                'answer' => $answerText ?: $this->t('idea/messages.no_answer'),
             ];
         }
 
@@ -1186,7 +1187,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $result = $aiSvc->execute('idea_analyze', [
-                '__usr' => "[SYSTEM]\nТы — аналитик идей. Проанализируй данные и найди пробелы." . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $prompt . "\n[/USER]",
+                '__usr' => "[SYSTEM]\n" . $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $prompt . "\n[/USER]",
             ], $this->user()['user'] ?? []);
 
             $rawText = $result['result']['preview']['summary'] ?? '';
@@ -1239,7 +1240,7 @@ PROMPT;
             return $this->success('CLARIFICATIONS_GENERATED', 'OK', $clarifications);
         } catch (\Throwable $e) {
             ai_diag_log("[ADDITIONAL_QUESTIONS_ERROR] " . $e->getMessage());
-            return $this->error('AI_UNAVAILABLE', 'AI не смог провести анализ', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_analysis_failed'), 503);
         }
     }
 
@@ -1315,34 +1316,7 @@ PROMPT;
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
         ];
 
-        $systemPrompt = <<<'PROMPT'
-Ты собираешь "Карточку понимания идеи" на основе всей доступной информации.
-
-Твоя задача — НЕ делать финальный анализ идеи. НЕ давать рекомендацию "стоит / не стоит". НЕ составлять бизнес-план.
-Собери структурированный профиль текущего понимания идеи для последующего всестороннего анализа.
-
-На вход: исходные данные идеи, описание, все уточняющие вопросы и ответы, раскрытые темы, темы где пользователь ответил "не знаю".
-
-Правила:
-1. Используй только предоставленные данные. Не выдумывай факты.
-2. Отделяй факты от предположений.
-3. "не знаю" / "пока не определился" — это факт: пользователь не определился.
-4. Не превращай неопределенный ответ в конкретное значение.
-5. Не делай финальный вывод о перспективности.
-6. Не давай советов. Не оценивай "стоит ли заниматься".
-7. Определи, насколько идея сейчас понятна и каких данных не хватает.
-8. Определи ранние риски как предварительные зоны внимания.
-9. Определи ключевые факторы для последующего анализа.
-10. completeness.overall и confidence_score — числа от 0 до 1.
-11. next_step.action: ask_more_questions / start_analysis / preliminary_analysis.
-12. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
-13. Если нужны скобки в тексте — используй только ( ) или [ ].
-
-Верни ТОЛЬКО валидный JSON. Без markdown, без комментариев, без текста до или после JSON.
-
-JSON:
-{"idea_profile":{"summary":"краткое резюме","idea_type":"business","specificity_level":"medium","known_facts":[],"user_unknowns":[],"missing_facts":[],"assumptions":[],"constraints":[],"early_risks":[],"key_decision_factors":[],"completeness":{"overall":0.5,"goal":0.5,"product_or_service":0.5,"audience":0.5,"region":0.5,"finance":0.5,"timeline":0.5,"operations":0.5,"team":0.5,"market":0.5,"legal":0.5,"risks":0.5},"confidence_score":0.5},"next_step":{"action":"start_analysis","reason":"почему","recommended_missing_topics":[],"can_continue_without_more_questions":true}}
-PROMPT;
+        $systemPrompt = $this->t('idea/messages.system_prompt_card');
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
@@ -1415,7 +1389,7 @@ PROMPT;
             return $this->success('CARD_BUILT', 'OK', $row ?: $card);
         } catch (\Throwable $e) {
             ai_diag_log("[UNDERSTANDING_CARD_ERROR] " . $e->getMessage());
-            return $this->error('AI_UNAVAILABLE', 'AI не смог собрать карточку. Попробуйте позже.', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_card_failed'), 503);
         }
     }
 
@@ -1469,7 +1443,7 @@ PROMPT;
         $cardStmt->execute(['iid' => $ideaId]);
         $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         if (!$card) {
-            return $this->error('NO_CARD', 'Сначала соберите карточку понимания идеи.', 400);
+            return $this->error('NO_CARD', $this->t('idea/messages.card_first_required'), 400);
         }
 
         $profile = json_decode($card['profile_json'] ?? '{}', true) ?: [];
@@ -1496,7 +1470,7 @@ PROMPT;
             if ($ans) {
                 $answerText = $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '—';
             }
-            $qaList[] = ['question' => $q['question_text'] ?? '', 'answer' => $answerText ?: 'нет ответа'];
+            $qaList[] = ['question' => $q['question_text'] ?? '', 'answer' => $answerText ?: $this->t('idea/messages.no_answer')];
         }
         $info = ['title' => $idea['title'] ?? '', 'description' => $idea['description'] ?? '', 'category' => $idea['category'] ?? '', 'questions_and_answers' => $qaList];
         $infoJson = json_encode($info, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -1569,7 +1543,7 @@ PROMPT;
             return $this->success('GAP_QUESTIONS_GENERATED', 'OK', $gapData);
         } catch (\Throwable $e) {
             ai_diag_log("[GAP_QUESTIONS_ERROR] " . $e->getMessage());
-            return $this->error('AI_UNAVAILABLE', 'AI не смог найти пробелы', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_gaps_failed'), 503);
         }
     }
 
@@ -1608,7 +1582,7 @@ PROMPT;
         $origStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
         $origStmt->execute(['iid' => $ideaId]);
         $origCard = $origStmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$origCard) return $this->error('NO_CARD', 'Сначала соберите карточку понимания идеи.', 400);
+        if (!$origCard) return $this->error('NO_CARD', $this->t('idea/messages.card_first_required'), 400);
 
         // Collect answered questions (unanswered not useful for card refinement)
         $questions = $service->getQuestions($ideaId);
@@ -1651,31 +1625,7 @@ PROMPT;
             'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? [],
         ];
 
-        $systemPrompt = <<<'PROMPT'
-Ты уточняешь "Карточку понимания идеи" на основе всех доступных данных.
-
-Ты получишь:
-1. existing_understanding_card — карточка, собранная ранее
-2. all_questions_and_answers — ВСЕ вопросы и ответы (включая уточнённые, помеченные 🔍)
-3. Данные идеи
-
-Твоя задача: пересобрать карточку с учётом новых ответов.
-- Обнови known_facts на основе ответов.
-- Перенеси темы из missing_facts/user_unknowns в known_facts если ответы их закрыли.
-- Обнови completeness_score и confidence_score.
-- Пересмотри early_risks, constraints, assumptions.
-- Определи новый next_step.
-
-Правила:
-1. Не делай финальный анализ, не советуй.
-2. Используй только предоставленные данные.
-3. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
-4. Если нужны скобки в тексте — используй только ( ) или [ ].
-5. Верни только JSON, без markdown и без текста до или после JSON.
-
-JSON:
-{"idea_profile":{"summary":"краткое резюме","idea_type":"business","specificity_level":"medium","known_facts":[],"user_unknowns":[],"missing_facts":[],"assumptions":[],"constraints":[],"early_risks":[],"key_decision_factors":[],"completeness":{"overall":0.5,"goal":0.5,"product_or_service":0.5,"audience":0.5,"region":0.5,"finance":0.5,"timeline":0.5,"operations":0.5,"team":0.5,"market":0.5,"legal":0.5,"risks":0.5},"confidence_score":0.5},"next_step":{"action":"start_analysis","reason":"почему","recommended_missing_topics":[],"can_continue_without_more_questions":true}}
-PROMPT;
+        $systemPrompt = $this->t('idea/messages.system_prompt_refined_card');
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
@@ -1759,7 +1709,7 @@ PROMPT;
             return $this->success('REFINED_CARD_BUILT', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $card);
         } catch (\Throwable $e) {
             ai_diag_log("[REFINED_CARD_ERROR] " . $e->getMessage());
-            return $this->error('AI_UNAVAILABLE', 'AI не смог уточнить карточку.', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_refine_card_failed'), 503);
         }
     }
 
@@ -1891,7 +1841,7 @@ PROMPT;
             return $this->success('POTENTIAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) {
             ai_diag_log("[POTENTIAL_ERROR] " . $e->getMessage());
-            return $this->error('AI_UNAVAILABLE', 'AI не смог рассчитать потенциал.', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_potential_failed'), 503);
         }
     }
 
@@ -1932,17 +1882,7 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
-        $sp = <<<'PROMPT'
-Ты эксперт по риск-анализу. Оцени риски идеи. Каждый риск: category, probability 1-5, impact 1-5.
-
-ВАЖНЕЙШЕЕ ПРАВИЛО: ЗАПРЕЩЕНО использовать символы { и } в тексте описаний. 
-Если в тексте нужны скобки — используй ТОЛЬКО ( ) или [ ].
-Любой символ { или } внутри строки "description" или "title" сделает JSON невалидным.
-Твой ответ должен быть ТОЛЬКО JSON. Никакого текста до или после. Никаких markdown-ограждений.
-
-JSON:
-{"risk_report":{"summary":"Краткая сводка","overall_risk_score":12,"overall_risk_level":"high","risks":[{"title":"Название риска","category":"finance","description":"Описание без символов { или }","probability_score":3,"impact_score":4,"risk_score":12,"risk_level":"high","mitigation_actions":["Действие 1","Действие 2"]}],"recommended_first_actions":["Первое","Второе"]}}
-PROMPT;
+        $sp = $this->t('idea/messages.system_prompt_risk');
 
         try {
             $aiSvc = $this->container->get('service.ai_action');
@@ -1963,7 +1903,7 @@ PROMPT;
             if (!$parsed['ok'] || empty($parsed['data']['risk_report'])) {
                 ai_diag_log("[RISK_PARSE_FAIL] text_len=".strlen($rawText)." parse_error=".($parsed['error']??'unknown')." preview=".substr($rawText,0,300));
                 // Save fallback record instead of returning error
-                $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => 'AI не смог завершить анализ рисков. Попробуйте другой провайдер AI для более точных результатов.', 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
                 $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
                 return $this->success('RISK_FALLBACK', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
@@ -1991,7 +1931,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('RISK_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { ai_diag_log("[RISK_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог рассчитать риски.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[RISK_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_risks_failed'), 503); }
     }
 
     /**
@@ -2030,15 +1970,7 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
-        $sp = <<<'PROMPT'
-Ты анализируешь идею и выявляешь подводные камни. Для каждого: category, probability 1-5, impact 1-5.
-
-ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
-Твой ответ — ТОЛЬКО JSON, без текста до или после.
-
-JSON:
-{"overall_hidden_complexity":"medium","overall_summary":"Краткая сводка","data_confidence":0.7,"pitfalls":[{"title":"Название","category":"finance","description":"Описание без { }","consequence":"Последствие","probability_score":3,"impact_score":3,"hiddenness_score":3,"urgency_score":2,"mitigation_steps":["Шаг 1","Шаг 2"]}]}
-PROMPT;
+        $sp = $this->t('idea/messages.system_prompt_pitfalls');
 
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
@@ -2057,7 +1989,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['pitfalls'])) {
                 ai_diag_log("[PITFALLS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['pitfalls_json' => '[]', 'overall_summary' => 'AI не смог завершить анализ.', 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['pitfalls_json' => '[]', 'overall_summary' => $this->t('idea/messages.ai_pitfalls_fallback_summary'), 'data_confidence' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,pitfalls_json,overall_summary,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:pitfalls_json,:overall_summary,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row);
                 return $this->success('PITFALLS_FALLBACK', 'OK', $row);
             }
@@ -2087,7 +2019,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,overall_hidden_complexity,overall_summary,pitfalls_json,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:overall_hidden_complexity,:overall_summary,:pitfalls_json,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_pitfalls_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PITFALLS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { ai_diag_log("[PITFALLS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог найти подводные камни.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[PITFALLS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_pitfalls_failed'), 503); }
     }
 
     /**
@@ -2126,15 +2058,7 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
 
-        $sp = <<<'PROMPT'
-Ты составляешь план реализации идеи. Выдели 3-7 этапов, для каждого 2-4 задачи.
-
-ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
-Твой ответ — ТОЛЬКО JSON, без текста до или после.
-
-JSON:
-{"implementation_plan":{"summary":"Общее описание","stages":[{"title":"Название этапа","goal":"Цель","description":"Описание","tasks":[{"title":"Задача","description":"Описание","priority":"high","expected_result":"Результат"}]}],"next_7_days":{"summary":"Ближайшие шаги","tasks":[{"title":"Задача","description":"Описание","priority":"high"}]},"recommended_next_action":"Первое действие"}}
-PROMPT;
+        $sp = $this->t('idea/messages.system_prompt_plan');
 
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
@@ -2153,7 +2077,7 @@ PROMPT;
 
             if (!$parsed['ok'] || empty($parsed['data']['implementation_plan'])) {
                 ai_diag_log("[PLAN_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['plan_json' => '{}', 'summary' => 'AI не смог завершить план.', 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['plan_json' => '{}', 'summary' => $this->t('idea/messages.ai_plan_fallback_summary'), 'planning_horizon' => '', 'plan_type' => 'preliminary', 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
                 return $this->success('PLAN_FALLBACK', 'OK', $row);
             }
@@ -2175,7 +2099,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_implementation_plans WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PLAN_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { ai_diag_log("[PLAN_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог собрать план.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[PLAN_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_plan_failed'), 503); }
     }
 
     /**
@@ -2250,21 +2174,7 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'questions_and_answers' => $qaList] + $blocks;
 
-        $sp = <<<'PROMPT'
-Ты формируешь итоговую рекомендацию. Опирайся на уже подготовленные блоки, не делай анализ с нуля.
-
-Оцени по шкале 0-100: potential_score, feasibility_score, risk_score, data_completeness_score, plan_quality_score, blocker_score, confidence_score.
-
-Статус: proceed / proceed_with_validation / refine_first / collect_more_data / postpone / reject_current_form.
-
-Правила:
-1. ЗАПРЕЩЕНО использовать символы { и } внутри текстовых значений.
-2. Если нужны скобки в тексте — используй только ( ) или [ ].
-3. Верни только JSON, без markdown и без текста до или после JSON.
-
-JSON:
-{"final_recommendation":{"status":"refine_first","status_label":"","recommendation_score":0,"potential_score":0,"feasibility_score":0,"risk_score":0,"data_completeness_score":0,"plan_quality_score":0,"blocker_score":0,"confidence_score":0,"short_verdict":"","detailed_verdict":"","main_reasons":[],"positive_arguments":[],"negative_arguments":[],"critical_blockers":[],"conditions_to_proceed":[],"what_to_validate_first":[],"next_best_actions":[],"what_can_go_wrong":[],"missing_data_that_affects_recommendation":[],"assumptions_used":[],"user_friendly_summary":""}}
-PROMPT;
+        $sp = $this->t('idea/messages.system_prompt_final');
 
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
@@ -2301,7 +2211,7 @@ PROMPT;
             $status = $dcs < 35 ? 'collect_more_data' : ($blk >= 85 ? 'reject_current_form' : ($blk >= 75 ? 'postpone' : ($risk >= 75 && $pot < 70 ? 'reject_current_form' : ($calcScore >= 75 && $risk <= 55 && $dcs >= 60 ? 'proceed' : ($calcScore >= 60 && $pot >= 65 ? 'proceed_with_validation' : ($calcScore >= 45 ? 'refine_first' : ($calcScore < 45 && $blk < 75 ? 'postpone' : 'reject_current_form')))))));
             if ($calcScore < 35) $status = 'reject_current_form';
 
-            $labels = ['proceed' => 'Можно рассматривать к реализации', 'proceed_with_validation' => 'Можно рассматривать, но сначала проверить гипотезы', 'refine_first' => 'Сначала доработать идею', 'collect_more_data' => 'Сначала собрать недостающие данные', 'postpone' => 'Лучше отложить', 'reject_current_form' => 'Не рекомендуется в текущем виде'];
+            $labels = ['proceed' => $this->t('idea/messages.status_proceed'), 'proceed_with_validation' => $this->t('idea/messages.status_proceed_with_validation'), 'refine_first' => $this->t('idea/messages.status_refine_first'), 'collect_more_data' => $this->t('idea/messages.status_collect_more_data'), 'postpone' => $this->t('idea/messages.status_postpone'), 'reject_current_form' => $this->t('idea/messages.status_reject')];
 
             $row = ['status' => $status, 'status_label' => $labels[$status] ?? $status, 'recommendation_score' => $calcScore, 'ai_recommendation_score' => $scores('recommendation_score'), 'calculated_recommendation_score' => $calcScore, 'potential_score' => $pot, 'feasibility_score' => $feas, 'risk_score' => $risk, 'data_completeness_score' => $dcs, 'plan_quality_score' => $pqs, 'blocker_score' => $blk, 'confidence_score' => $conf, 'recommendation_json' => json_encode($data, JSON_UNESCAPED_UNICODE), 'ai_request_json' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode($data, JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
 
@@ -2310,7 +2220,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_final_recommendations (idea_id,status,status_label,recommendation_score,ai_recommendation_score,calculated_recommendation_score,potential_score,feasibility_score,risk_score,data_completeness_score,plan_quality_score,blocker_score,confidence_score,recommendation_json,ai_request_json,ai_response_json) VALUES (:idea_id,:status,:status_label,:recommendation_score,:ai_recommendation_score,:calculated_recommendation_score,:potential_score,:feasibility_score,:risk_score,:data_completeness_score,:plan_quality_score,:blocker_score,:confidence_score,:recommendation_json,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_final_recommendations WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('FINAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { ai_diag_log("[FINAL_RECOMMENDATION_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог сформировать рекомендацию.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[FINAL_RECOMMENDATION_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_recommendation_failed'), 503); }
     }
 
     /**
@@ -2366,15 +2276,7 @@ PROMPT;
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'category' => $idea['category'] ?? '', 'current_date' => date('Y-m-d'), 'target_date' => $idea['target_date'] ?? null], 'final_recommendation' => $final, 'implementation_plan' => $plan];
 
-         $sp = <<<'PROMPT'
-Создай детальный план проекта с задачами (8-15 штук).
-
-ЗАПРЕЩЕНО использовать { или } в тексте описаний. Только ( ) или [ ].
-Твой ответ — ТОЛЬКО JSON, без текста до или после.
-
-JSON:
-{"summary":"Обзор проекта","projects":[{"id":"p1","title":"Название проекта","description":"Описание","tasks":[{"id":"t1","title":"Задача","description":"Описание без фигурных скобок","priority":"high","estimated_time":"2-3 часа","expected_outcome":"Результат","subtasks":[{"id":"t1.1","title":"Подзадача","description":"Описание","priority":"high","estimated_time":"1 час","expected_outcome":"Результат"}]}]}]}
-PROMPT;
+         $sp = $this->t('idea/messages.system_prompt_project');
 
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
@@ -2393,7 +2295,7 @@ PROMPT;
 
             if (!$parsed['ok'] || (empty($parsed['data']['projects']) && empty($parsed['data']['tasks']))) {
                 ai_diag_log("[TASKS_PARSE_FAIL] parse_error=".($parsed['error']??'unknown')." text_len=".strlen($rawText));
-                $row = ['tasks_json' => '{}', 'summary' => 'AI не смог сгенерировать задачи.', 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
+                $row = ['tasks_json' => '{}', 'summary' => $this->t('idea/messages.ai_tasks_fallback_summary'), 'ai_request_json' => json_encode(['note' => 'AI analysis failed'], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row);
                 return $this->success('TASKS_FALLBACK', 'OK', $row);
             }
@@ -2401,7 +2303,7 @@ PROMPT;
 
             // Normalize: if AI returned flat tasks, wrap in a single default project
             if (empty($data['projects']) && !empty($data['tasks'])) {
-                $data = ['summary' => $data['summary'] ?? '', 'projects' => [['id' => 'p1', 'title' => 'План реализации', 'description' => '', 'tasks' => $data['tasks']]]];
+                $data = ['summary' => $data['summary'] ?? '', 'projects' => [['id' => 'p1', 'title' => $this->t('idea/messages.plan_title'), 'description' => '', 'tasks' => $data['tasks']]]];
             }
 
             $row = ['tasks_json' => json_encode($data, JSON_UNESCAPED_UNICODE), 'summary' => $data['summary'] ?? '', 'ai_request_json' => json_encode(['system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode($data, JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
@@ -2411,7 +2313,7 @@ PROMPT;
             else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
             $fresh = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('TASKS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
-        } catch (\Throwable $e) { ai_diag_log("[SUGGESTED_TASKS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', 'AI не смог предложить задачи.', 503); }
+        } catch (\Throwable $e) { ai_diag_log("[SUGGESTED_TASKS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_tasks_failed'), 503); }
     }
 
     /**
@@ -2431,15 +2333,15 @@ PROMPT;
         $stmt = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid");
         $stmt->execute(['iid' => $ideaId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row || empty($row['tasks_json'])) return $this->error('NO_TASKS', 'Сначала сформируйте предлагаемые задачи.', 400);
+        if (!$row || empty($row['tasks_json'])) return $this->error('NO_TASKS', $this->t('idea/messages.generate_tasks_first'), 400);
 
         $tasksData = json_decode($row['tasks_json'], true) ?: [];
         $projects = $tasksData['projects'] ?? [];
         $flatTasks = $tasksData['tasks'] ?? [];
-        if (empty($projects) && empty($flatTasks)) return $this->error('NO_TASKS', 'Нет задач для создания.', 400);
+        if (empty($projects) && empty($flatTasks)) return $this->error('NO_TASKS', $this->t('idea/messages.no_tasks_to_create'), 400);
 
         // Use project-level data or wrap flat tasks
-        $prjTitle = $idea['title'] ?? 'Проект';
+        $prjTitle = $idea['title'] ?? $this->t('idea/messages.project_label');
         $prjDesc = $idea['description'] ?? '';
         $allTasks = [];
         if (!empty($projects)) {
@@ -2465,7 +2367,7 @@ PROMPT;
         $orderSequence = 0;
         $createTasks = function(array $tasks, ?string $parentPublicId = null, int $depth = 0) use ($taskSvc, $subSvc, $projectPublicId, $actor, &$createTasks, &$created, $orderBaseTs, &$orderSequence) {
             foreach ($tasks as $i => $t) {
-                $title = $t['title'] ?? ('Задача '.($i+1));
+                $title = $t['title'] ?? ($this->t('idea/messages.task_label') . ' '.($i+1));
                 $desc = $t['description'] ?? '';
                 $prio = in_array(($t['priority'] ?? ''), ['high','medium','low'], true) ? $t['priority'] : 'medium';
                 $sortOrder = ($i + 1) * 10;
@@ -2498,7 +2400,7 @@ PROMPT;
         };
         $createTasks($allTasks);
 
-        return $this->success('PROJECT_CREATED', "Создан проект «{$prjTitle}» с {$created} задачами", ['project_public_id' => $projectPublicId, 'tasks_created' => $created]);
+        return $this->success('PROJECT_CREATED', $this->t('idea/messages.project_created') . ' «{$prjTitle}» с {$created} ' . $this->t('idea/messages.tasks_created_count'), ['project_public_id' => $projectPublicId, 'tasks_created' => $created]);
     }
 
     private function localeInstruction(): string
@@ -2565,7 +2467,7 @@ PROMPT;
             $pdo->exec("DELETE FROM idea_questions WHERE idea_id={$ideaId}");
             $pdo->exec("DELETE FROM idea_ai_iterations WHERE idea_id={$ideaId}");
             $pdo->prepare("UPDATE ideas SET coverage_json = NULL WHERE id = :iid")->execute(['iid' => $ideaId]);
-            return $this->success('INTERVIEW_CLEARED', 'История вопросов и ответов очищена');
+            return $this->success('INTERVIEW_CLEARED', $this->t('idea/messages.interview_cleared'));
         }
 
         set_time_limit(0);
@@ -2593,7 +2495,7 @@ PROMPT;
         $interviewQ = $totalQ - count($clarPids) - count($gapPids);
         $remaining = 25 - $interviewQ;
         if ($remaining < 5) {
-            return $this->success('INTERVIEW_COMPLETE', 'Достигнут лимит вопросов (25)', [
+            return $this->success('INTERVIEW_COMPLETE', $this->t('idea/messages.interview_limit_reached'), [
                 'complete' => true, 'total' => $interviewQ, 'questions' => $service->getQuestions($ideaId),
             ]);
         }
@@ -2748,7 +2650,7 @@ PROMPT;
         // No fallback — all questions MUST be AI-generated
         if (count($genQuestions) === 0 && $interviewQ === 0) {
             ai_diag_log("[AI_INTERVIEW_EMPTY] idea_id={$ideaId} interview={$interviewQ} aiFailed=".($aiFailed?'1':'0')." aiMode={$aiMode} textLen=".strlen($rawText));
-            return $this->error('AI_UNAVAILABLE', 'AI не смог сгенерировать вопросы. Попробуйте позже.', 503);
+            return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_questions_generation_failed'), 503);
         }
 
         // Take up to remaining count (cap at 15 per batch for response size)
@@ -2821,7 +2723,7 @@ PROMPT;
             ->execute(['cov' => $coverageJson, 'iid' => $ideaId]);
 
         $savedQuestions = $service->getQuestions($ideaId);
-        return $this->success('INTERVIEW_QUESTIONS', 'Вопросы сгенерированы', [
+        return $this->success('INTERVIEW_QUESTIONS', $this->t('idea/messages.questions_generated'), [
             'questions' => $savedQuestions,
             'total' => $interviewQ,
         ]);
@@ -2844,7 +2746,7 @@ PROMPT;
         $answers = $input['answers'] ?? [];
 
         if (!is_array($answers) || $answers === []) {
-            return $this->error('VALIDATION', 'Нет ответов для сохранения', 400);
+            return $this->error('VALIDATION', $this->t('idea/messages.no_answers_to_save'), 400);
         }
 
         // Validate and normalize
@@ -2891,7 +2793,7 @@ PROMPT;
         }
 
         $updatedQuestions = $service->getQuestions($ideaId);
-        return $this->success('ANSWERS_SAVED', 'Ответы сохранены', ['questions' => $updatedQuestions, 'saved_count' => count($normalized)]);
+        return $this->success('ANSWERS_SAVED', $this->t('idea/messages.answers_saved_label'), ['questions' => $updatedQuestions, 'saved_count' => count($normalized)]);
     }
 
     private function normalizeSelectedOptions(mixed $options): array
@@ -2953,7 +2855,7 @@ PROMPT;
         }
 
         if ($appendDefaults) {
-            foreach ([['value' => 'not_sure', 'label' => 'Пока не знаю'], ['value' => 'custom', 'label' => 'Свой ответ']] as $default) {
+            foreach ([['value' => 'not_sure', 'label' => $this->t('idea/messages.sm_not_sure')], ['value' => 'custom', 'label' => $this->t('idea/messages.option_custom_answer')]] as $default) {
                 $fingerprint = mb_strtolower($default['label']);
                 if ($default['value'] === 'not_sure' && (isset($seenKeys['unknown']) || isset($seenKeys['not_sure']))) continue;
                 if ($default['value'] === 'custom' && (isset($seen['другое']) || isset($seenKeys['custom']))) continue;
@@ -3230,12 +3132,12 @@ PROMPT;
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             ai_diag_log("[IDEA_RESET_ANALYSIS_ERROR] " . $e->getMessage());
-            return $this->error('RESET_FAILED', 'Не удалось сбросить AI-анализ.', 500);
+            return $this->error('RESET_FAILED', $this->t('idea/messages.analysis_reset_failed'), 500);
         }
 
-        return $this->success('ANALYSIS_RESET', 'AI-анализ сброшен. Можно запустить заново.', [
+        return $this->success('ANALYSIS_RESET', $this->t('idea/messages.analysis_reset'), [
             'status' => (string)($idea['status'] ?? 'new'),
-            'message' => 'Старые данные AI-анализа очищены. Нажмите «Запустить» для нового анализа.',
+            'message' => $this->t('idea/messages.analysis_reset_message'),
             'deleted' => $deleted,
         ]);
     }
@@ -3367,7 +3269,7 @@ PROMPT;
         $idea = $service->getByPublicId($publicId);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         if (($idea['status'] ?? '') !== 'ready_for_analysis') {
-            return $this->error('ANALYSIS_NOT_READY', 'Анализ можно запускать только из статуса ready_for_analysis.', 422);
+            return $this->error('ANALYSIS_NOT_READY', $this->t('idea/messages.analysis_not_ready_status'), 422);
         }
         $pdo = $this->container->get('db.pdo');
         $ideaId = (int)$idea['id'];
@@ -3378,7 +3280,7 @@ PROMPT;
             if (empty($q['last_answer'])) { $unanswered = true; break; }
         }
         if ($unanswered) {
-            return $this->error('QUESTIONS_NOT_COMPLETED', 'Ответьте на все уточняющие вопросы перед запуском анализа.', 422);
+            return $this->error('QUESTIONS_NOT_COMPLETED', $this->t('idea/messages.answer_all_questions_first'), 422);
         }
 
         // SAFE MODE: instant demo analysis — clearly marked for dev/test only
@@ -3396,7 +3298,7 @@ PROMPT;
                 $data['_demo_mode'] = true;
                 $service->saveAnalysis($ideaId, $type, $data);
             }
-            return $this->success('ANALYSIS_RUN', 'Демо-анализ (safe mode)', ['status' => 'analysis_partially_ready', 'demo_mode' => true, 'message' => 'Демо-режим. Для реального AI-анализа отключите safe_mode.']);
+            return $this->success('ANALYSIS_RUN', $this->t('idea/messages.demo_analysis'), ['status' => 'analysis_partially_ready', 'demo_mode' => true, 'message' => $this->t('idea/messages.demo_mode_message')]);
         }
 
         // NORMAL MODE: run ALL analysis steps with 50s time budget
@@ -3438,10 +3340,10 @@ PROMPT;
         $finalStatus = $completed >= $totalSteps ? 'analysis_ready' : 'analysis_partially_ready';
         $service->updateStatus($ideaId, $finalStatus);
 
-        return $this->success('ANALYSIS_RUN', 'Анализ завершён', [
+        return $this->success('ANALYSIS_RUN', $this->t('idea/messages.analysis_completed_label'), [
             'status' => $finalStatus,
             'progress' => ['completed' => $completed, 'total' => $totalSteps],
-            'message' => $completed >= $totalSteps ? 'Полный анализ готов.' : "Готово {$completed} из {$totalSteps} шагов.",
+            'message' => $completed >= $totalSteps ? $this->t('idea/messages.analysis_complete_full') : $this->t('idea/messages.analysis_complete_partial') . ' ' . $completed . ' ' . $this->t('idea/messages.analysis_complete_of') . ' ' . $totalSteps . ' ' . $this->t('idea/messages.analysis_complete_steps'),
         ]);
     }
 
@@ -3461,11 +3363,11 @@ PROMPT;
         $idea = $service->getByPublicId($publicId);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
         if (!in_array($stepKey, $this->analysisStepKeys(), true)) {
-            return $this->error('INVALID_STEP', 'Неизвестный step_key.', 422);
+            return $this->error('INVALID_STEP', $this->t('idea/messages.unknown_step_key'), 422);
         }
 
         $result = $this->runAnalysisStepInternal($idea, $stepKey);
-        return $this->success('ANALYSIS_STEP_DONE', 'Шаг анализа выполнен', [
+        return $this->success('ANALYSIS_STEP_DONE', $this->t('idea/messages.analysis_step_done'), [
             'step_key' => $stepKey,
             'step_status' => 'completed',
             'result' => $result,
@@ -3685,7 +3587,7 @@ PROMPT;
             $raw = $ai->execute($actionType, $context, $this->user()['user'] ?? []);
             $structured = $this->extractStructuredResult($raw) ?? (is_array($raw) ? $raw : []);
             if (!is_array($structured) || $structured === []) {
-                throw new \RuntimeException('Пустой result_json для шага анализа.');
+                throw new \RuntimeException($this->t('idea/messages.empty_analysis_result'));
             }
 
             $pdo->prepare("UPDATE idea_analysis_steps SET status = 'completed', input_snapshot_json = :inp, result_json = :res, completed_at = NOW(), updated_at = NOW() WHERE idea_id = :iid AND step_key = :k")
@@ -3875,12 +3777,12 @@ PROMPT;
         $summarySource = $plainDesc !== '' ? $plainDesc : $title;
         $summary = $summarySource !== ''
             ? mb_substr($summarySource, 0, 420)
-            : 'Идея пока описана недостаточно подробно. Карточка собрана из доступных данных CRM.';
+            : $this->t('idea/messages.fallback_card_summary');
 
         $knownFacts = [];
-        if ($title !== '') $knownFacts[] = 'Название идеи: ' . $title;
-        if ($plainDesc !== '') $knownFacts[] = 'Описание идеи: ' . mb_substr($plainDesc, 0, 700);
-        foreach (['category' => 'Категория', 'product' => 'Продукт', 'region' => 'Регион', 'target_date' => 'Целевая дата'] as $key => $label) {
+        if ($title !== '') $knownFacts[] = $this->t('idea/messages.fallback_fact_title') . ' ' . $title;
+        if ($plainDesc !== '') $knownFacts[] = $this->t('idea/messages.fallback_fact_description') . ' ' . mb_substr($plainDesc, 0, 700);
+        foreach (['category' => $this->t('idea/messages.fallback_category'), 'product' => $this->t('idea/messages.fallback_product'), 'region' => $this->t('idea/messages.fallback_region'), 'target_date' => $this->t('idea/messages.fallback_target_date')] as $key => $label) {
             $value = trim((string)($idea[$key] ?? ''));
             if ($value !== '') $knownFacts[] = $label . ': ' . $value;
         }
@@ -3911,13 +3813,13 @@ PROMPT;
         }
 
         $defaultMissing = [
-            'Цель внедрения и критерии успеха',
-            'Целевая аудитория или пользователи',
-            'Бюджет и финансовые ограничения',
-            'Сроки и критичные даты',
-            'Команда и ответственные',
-            'Юридические или операционные ограничения',
-            'Основные риски и зависимости',
+            $this->t('idea/messages.fallback_missing_goal'),
+            $this->t('idea/messages.fallback_missing_audience'),
+            $this->t('idea/messages.fallback_missing_budget'),
+            $this->t('idea/messages.fallback_missing_timeline'),
+            $this->t('idea/messages.fallback_missing_team'),
+            $this->t('idea/messages.fallback_missing_legal'),
+            $this->t('idea/messages.fallback_missing_risks'),
         ];
         $missingFacts = array_values(array_unique(array_filter(array_merge($missingFacts, $defaultMissing))));
         $knownFacts = array_values(array_unique(array_filter($knownFacts)));
@@ -3953,8 +3855,8 @@ PROMPT;
                 'missing_facts' => array_slice($missingFacts, 0, 10),
                 'assumptions' => [],
                 'constraints' => [],
-                'early_risks' => ['AI-провайдер вернул некорректный JSON, поэтому карточка собрана по фактам из CRM и требует проверки на следующих шагах.'],
-                'key_decision_factors' => ['Цель', 'Сроки', 'Бюджет', 'Ответственные', 'Риски внедрения', 'Ожидаемый бизнес-эффект'],
+                'early_risks' => [$this->t('idea/messages.fallback_early_risks')],
+                'key_decision_factors' => [$this->t('idea/messages.fallback_factor_goal'), $this->t('idea/messages.fallback_factor_timeline'), $this->t('idea/messages.fallback_factor_budget'), $this->t('idea/messages.fallback_factor_responsible'), $this->t('idea/messages.fallback_factor_impl_risks'), $this->t('idea/messages.fallback_factor_business_effect')],
                 'completeness' => $completeness,
                 'confidence_score' => round(max(0.15, min(0.55, $overall - 0.1)), 2),
                 '_fallback' => true,
@@ -3962,7 +3864,7 @@ PROMPT;
             ],
             'next_step' => [
                 'action' => 'start_analysis',
-                'reason' => 'Доступных данных достаточно, чтобы не блокировать дальнейшие этапы анализа; уточнения можно собрать позже.',
+                'reason' => $this->t('idea/messages.fallback_next_step_reason'),
                 'recommended_missing_topics' => array_slice($missingFacts, 0, 6),
                 'can_continue_without_more_questions' => true,
             ],
@@ -4018,35 +3920,35 @@ PROMPT;
         $baseScore = 35 + (int)round($completeness * 25) + min(15, $answeredCount * 3);
         $score = max(20, min(70, $baseScore));
         $level = $score <= 20 ? 'very_low' : ($score <= 40 ? 'low' : ($score <= 60 ? 'medium' : 'high'));
-        $title = trim((string)($idea['title'] ?? 'идея'));
+        $title = trim((string)($idea['title'] ?? $this->t('idea/messages.default_idea_title')));
 
         return [
             'potential' => [
                 'potential_score' => $score,
                 'potential_level' => $level,
                 'calculation_type' => 'preliminary',
-                'verdict' => 'Предварительная оценка: идею можно анализировать дальше, но результат требует проверки из-за неполного ответа AI-провайдера.',
-                'summary' => 'Потенциал рассчитан по доступной карточке понимания идеи и ответам пользователя. AI-провайдер вернул некорректный JSON, поэтому оценка не является финальной.',
+                'verdict' => $this->t('idea/messages.fallback_potential_verdict'),
+                'summary' => $this->t('idea/messages.fallback_potential_summary'),
                 'confidence_score' => $confidence,
                 'completeness_score' => $completeness,
                 '_fallback' => true,
                 '_fallback_reason' => $reason,
             ],
             'criteria' => [
-                ['criterion_id' => 'clarity', 'title' => 'Понятность идеи', 'weight' => 25, 'score' => max(2, min(8, (int)round($completeness * 10))), 'weighted_score' => (int)round(25 * $completeness), 'reason' => 'Оценено по полноте карточки понимания.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
-                ['criterion_id' => 'business_relevance', 'title' => 'Бизнес-значимость', 'weight' => 25, 'score' => $title !== '' ? 6 : 4, 'weighted_score' => $title !== '' ? 15 : 10, 'reason' => 'Оценено по описанию идеи.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
-                ['criterion_id' => 'data_quality', 'title' => 'Качество исходных данных', 'weight' => 25, 'score' => min(8, 3 + $answeredCount), 'weighted_score' => min(20, (int)round((3 + $answeredCount) * 2.5)), 'reason' => 'Оценено по количеству ответов.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
-                ['criterion_id' => 'implementation_readiness', 'title' => 'Готовность к реализации', 'weight' => 25, 'score' => 5, 'weighted_score' => 13, 'reason' => 'Требуется дальнейшая проверка рисков и плана.', 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => ['Риски', 'План реализации', 'Ограничения']],
+                ['criterion_id' => 'clarity', 'title' => $this->t('idea/messages.fallback_criterion_clarity'), 'weight' => 25, 'score' => max(2, min(8, (int)round($completeness * 10))), 'weighted_score' => (int)round(25 * $completeness), 'reason' => $this->t('idea/messages.fallback_criterion_clarity_reason'), 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'business_relevance', 'title' => $this->t('idea/messages.fallback_criterion_business'), 'weight' => 25, 'score' => $title !== '' ? 6 : 4, 'weighted_score' => $title !== '' ? 15 : 10, 'reason' => $this->t('idea/messages.fallback_criterion_business_reason'), 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'data_quality', 'title' => $this->t('idea/messages.fallback_criterion_data'), 'weight' => 25, 'score' => min(8, 3 + $answeredCount), 'weighted_score' => min(20, (int)round((3 + $answeredCount) * 2.5)), 'reason' => $this->t('idea/messages.fallback_criterion_data_reason'), 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => []],
+                ['criterion_id' => 'implementation_readiness', 'title' => $this->t('idea/messages.fallback_criterion_readiness'), 'weight' => 25, 'score' => 5, 'weighted_score' => 13, 'reason' => $this->t('idea/messages.fallback_criterion_readiness_reason'), 'positive_factors' => [], 'negative_factors' => [], 'missing_data' => ['Риски', $this->t('idea/messages.plan_title'), 'Ограничения']],
             ],
-            'strengths' => ['Есть исходное описание и карточка понимания идеи.'],
-            'weaknesses' => ['Оценка предварительная, потому что AI-провайдер не вернул корректный структурированный ответ.'],
-            'growth_factors' => ['Уточнение целей, бюджета, сроков и ответственных повысит качество оценки.'],
-            'risk_factors' => ['Недостаточная структурированность данных может исказить оценку потенциала.'],
-            'missing_data' => ['Финансовые ограничения', 'Критерии успеха', 'Основные риски', 'План внедрения'],
+            'strengths' => [$this->t('idea/messages.fallback_strengths')],
+            'weaknesses' => [$this->t('idea/messages.fallback_weaknesses')],
+            'growth_factors' => [$this->t('idea/messages.fallback_growth_factors')],
+            'risk_factors' => [$this->t('idea/messages.fallback_risk_factors')],
+            'missing_data' => [$this->t('idea/messages.fallback_missing_financial'), $this->t('idea/messages.fallback_missing_success'), $this->t('idea/messages.fallback_missing_main_risks'), $this->t('idea/messages.fallback_missing_impl_plan')],
             'assumptions' => [],
-            'what_can_improve_score' => ['Ответить на недостающие вопросы и повторить расчет.'],
-            'what_can_reduce_score' => ['Критичные риски, неясный бюджет или отсутствие ответственных.'],
-            'recommended_next_step' => ['action' => 'finalize', 'reason' => 'Не блокировать конвейер анализа, но считать оценку предварительной.'],
+            'what_can_improve_score' => [$this->t('idea/messages.fallback_improve_score')],
+            'what_can_reduce_score' => [$this->t('idea/messages.fallback_reduce_score')],
+            'recommended_next_step' => ['action' => 'finalize', 'reason' => $this->t('idea/messages.fallback_next_action_reason')],
         ];
     }
 
@@ -4072,7 +3974,7 @@ PROMPT;
         return [
             'final_recommendation' => [
                 'status' => 'refine_first',
-                'status_label' => 'Сначала доработать идею',
+                'status_label' => $this->t('idea/messages.fallback_status_refine_first'),
                 'recommendation_score' => 45,
                 'potential_score' => max(0, min(100, $potentialScore)),
                 'feasibility_score' => round($feasibility),
@@ -4081,19 +3983,19 @@ PROMPT;
                 'plan_quality_score' => $planScore,
                 'blocker_score' => $blocker,
                 'confidence_score' => $confidence,
-                'short_verdict' => 'Предварительно: идею стоит доработать и перепроверить анализ.',
-                'detailed_verdict' => 'AI-провайдер вернул некорректный JSON на этапе итоговой рекомендации. CRM сохранила безопасную предварительную рекомендацию по уже рассчитанным блокам, чтобы не блокировать работу пользователя.',
-                'main_reasons' => ['Итог сформирован по доступным блокам анализа.', 'Нужна повторная генерация для полноценной AI-рекомендации.'],
+                'short_verdict' => $this->t('idea/messages.fallback_final_short_verdict'),
+                'detailed_verdict' => $this->t('idea/messages.fallback_final_detailed_verdict'),
+                'main_reasons' => [$this->t('idea/messages.fallback_final_reason1'), $this->t('idea/messages.fallback_final_reason2')],
                 'positive_arguments' => [],
-                'negative_arguments' => ['Часть AI-ответа не удалось разобрать как валидный JSON.'],
+                'negative_arguments' => [$this->t('idea/messages.fallback_final_negative')],
                 'critical_blockers' => [],
-                'conditions_to_proceed' => ['Проверить недостающие данные', 'Повторить AI-анализ при стабильном ответе провайдера'],
-                'what_to_validate_first' => ['Цель', 'Бюджет', 'Сроки', 'Риски', 'Ответственные'],
-                'next_best_actions' => ['Проверить карточку понимания', 'Уточнить недостающие данные', 'Запустить повторную генерацию итоговой рекомендации'],
-                'what_can_go_wrong' => ['Решение будет принято на неполных данных.'],
-                'missing_data_that_affects_recommendation' => ['Полностью корректный структурированный ответ AI-провайдера'],
+                'conditions_to_proceed' => [$this->t('idea/messages.fallback_final_condition1'), $this->t('idea/messages.fallback_final_condition2')],
+                'what_to_validate_first' => [$this->t('idea/messages.fallback_validate_goal'), $this->t('idea/messages.fallback_validate_budget'), $this->t('idea/messages.fallback_validate_timeline'), $this->t('idea/messages.fallback_validate_risks'), $this->t('idea/messages.fallback_validate_responsible')],
+                'next_best_actions' => [$this->t('idea/messages.fallback_action_check_card'), $this->t('idea/messages.fallback_action_clarify_data'), $this->t('idea/messages.fallback_action_regenerate')],
+                'what_can_go_wrong' => [$this->t('idea/messages.fallback_wrong_decision')],
+                'missing_data_that_affects_recommendation' => [$this->t('idea/messages.fallback_missing_ai_response')],
                 'assumptions_used' => [],
-                'user_friendly_summary' => 'Система сохранила предварительную рекомендацию, но для финального решения лучше повторить генерацию после проверки данных.',
+                'user_friendly_summary' => $this->t('idea/messages.fallback_final_summary'),
                 '_fallback' => true,
                 '_fallback_reason' => $reason,
             ],
@@ -4321,7 +4223,7 @@ PROMPT;
                 $tasks[] = $t;
             }
             if ($tasks) {
-                $data['projects'] = [['id' => 'p1', 'title' => 'План', 'description' => '', 'tasks' => $tasks]];
+                $data['projects'] = [['id' => 'p1', 'title' => $this->t('idea/messages.plan_title'), 'description' => '', 'tasks' => $tasks]];
             }
             return $data;
         }

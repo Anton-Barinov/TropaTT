@@ -17,4 +17,5 @@ return [
     'migration_dry_run_failed' => 'Failed to execute migration dry run',
     'migration_rollback_check' => 'Migration rollback check',
     'migration_rollback_check_failed' => 'Failed to verify migration rollback',
+    'default_admin_name' => 'Main administrator',
 ];

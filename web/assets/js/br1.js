@@ -222,27 +222,27 @@ window.CRM.br1 = (function () {
     }
 
     var map = {
-      new: 'К выполнению',
-      todo: 'К выполнению',
-      in_progress: 'В работе',
-      active: 'Активный',
-      on_hold: 'На паузе',
-      blocked: 'Блокировано',
-      done: 'Готово',
-      completed: 'Готово',
-      archived: 'Архив'
+      new: window.CRM.i18n.t('js.br1.k_vypolneniyu', 'К выполнению'),
+      todo: window.CRM.i18n.t('js.br1.k_vypolneniyu_2', 'К выполнению'),
+      in_progress: window.CRM.i18n.t('js.br1.v_rabote', 'В работе'),
+      active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
+      on_hold: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
+      blocked: window.CRM.i18n.t('js.br1.blokirovano', 'Блокировано'),
+      done: window.CRM.i18n.t('js.br1.gotovo', 'Готово'),
+      completed: window.CRM.i18n.t('js.br1.gotovo_2', 'Готово'),
+      archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив')
     };
-    return map[code] || code || 'Без статуса';
+    return map[code] || code || window.CRM.i18n.t('js.br1.bez_statusa', 'Без статуса');
   }
 
   function priorityLabel(code) {
     var map = {
-      low: 'Низкий',
-      normal: 'Нормальный',
-      high: 'Высокий',
-      urgent: 'Срочный'
+      low: window.CRM.i18n.t('js.br1.nizkiy', 'Низкий'),
+      normal: window.CRM.i18n.t('js.br1.normalnyy', 'Нормальный'),
+      high: window.CRM.i18n.t('js.br1.vysokiy', 'Высокий'),
+      urgent: window.CRM.i18n.t('js.br1.srochnyy', 'Срочный')
     };
-    return map[code] || code || 'Без приоритета';
+    return map[code] || code || window.CRM.i18n.t('js.br1.bez_prioriteta', 'Без приоритета');
   }
 
   function formatDate(dateValue) {
@@ -271,7 +271,7 @@ window.CRM.br1 = (function () {
   }
 
   function activityActorLabel(item) {
-    if (!item || typeof item !== 'object') return 'Система';
+    if (!item || typeof item !== 'object') return window.CRM.i18n.t('js.br1.sistema', 'Система');
     var explicitName = String(
       item.actor_name
       || item.user_full_name
@@ -297,7 +297,7 @@ window.CRM.br1 = (function () {
       return resolvedName || actorPublicId;
     }
 
-    return 'Система';
+    return window.CRM.i18n.t('js.br1.sistema_2', 'Система');
   }
 
   function activityDetailLabel(item) {
@@ -471,17 +471,17 @@ window.CRM.br1 = (function () {
     }
 
     var audit = current.audit && typeof current.audit === 'object' ? current.audit : {};
-    var targetLabel = localState.target_label || audit.target_login || audit.target_user_public_id || 'пользователь';
-    var originalLabel = audit.admin_login || audit.admin_user_public_id || 'администратор';
+    var targetLabel = localState.target_label || audit.target_login || audit.target_user_public_id || window.CRM.i18n.t('js.br1.polzovatel', 'пользователь');
+    var originalLabel = audit.admin_login || audit.admin_user_public_id || window.CRM.i18n.t('js.br1.administrator', 'администратор');
     var existing = document.getElementById('globalImpersonationBanner');
     var banner = existing || document.createElement('div');
     banner.id = 'globalImpersonationBanner';
     banner.className = 'crm-impersonation-banner';
     banner.setAttribute('role', 'status');
     banner.innerHTML = ''
-      + '<div><strong>Вход как пользователь:</strong> ' + escapeHtml(targetLabel)
-      + '<span class="text-muted ms-2">Исходная сессия: ' + escapeHtml(originalLabel) + '</span></div>'
-      + '<button class="btn btn-sm btn-danger" type="button" id="globalStopImpersonationBtn">Вернуться</button>';
+      + window.CRM.i18n.t('js.br1.div_strong_vkhod_kak_polzovatel_strong', '<div><strong>Вход как пользователь:</strong> ') + escapeHtml(targetLabel)
+      + window.CRM.i18n.t('js.br1.span_class_text_muted_ms_2_iskhodnaya_sessiya', '<span class="text-muted ms-2">Исходная сессия: ') + escapeHtml(originalLabel) + '</span></div>'
+      + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_btn_danger_type_button_id_globa', '<button class="btn btn-sm btn-danger" type="button" id="globalStopImpersonationBtn">Вернуться</button>');
 
     if (!existing) {
       var content = document.querySelector('.crm-content');
@@ -539,12 +539,12 @@ window.CRM.br1 = (function () {
 
   function aiIntentDisabledLabel(reason) {
     var code = String(reason || '').trim();
-    if (code === 'ai_disabled') return 'AI выключен в feature flags.';
-    if (code === 'provider_missing') return 'AI-провайдер или secret еще не настроен.';
-    if (code === 'intent_disabled') return 'AI intent выключен в настройках.';
-    if (code === 'feature_disabled') return 'Доменный AI feature flag выключен.';
-    if (code === 'permission_required') return 'Недостаточно прав для этого AI-действия.';
-    return 'AI-действие сейчас недоступно.';
+    if (code === 'ai_disabled') return window.CRM.i18n.t('js.br1.ai_vyklyuchen_v_feature_flags', 'AI выключен в feature flags.');
+    if (code === 'provider_missing') return window.CRM.i18n.t('js.br1.ai_provayder_ili_secret_eshche_ne_nastroen', 'AI-провайдер или secret еще не настроен.');
+    if (code === 'intent_disabled') return window.CRM.i18n.t('js.br1.ai_intent_vyklyuchen_v_nastroykakh', 'AI intent выключен в настройках.');
+    if (code === 'feature_disabled') return window.CRM.i18n.t('js.br1.domennyy_ai_feature_flag_vyklyuchen', 'Доменный AI feature flag выключен.');
+    if (code === 'permission_required') return window.CRM.i18n.t('js.br1.nedostatochno_prav_dlya_etogo_ai_deystviya', 'Недостаточно прав для этого AI-действия.');
+    return window.CRM.i18n.t('js.br1.ai_deystvie_seychas_nedostupno', 'AI-действие сейчас недоступно.');
   }
 
   function hideByIntentElement(el, reason) {
@@ -767,7 +767,7 @@ window.CRM.br1 = (function () {
   }
 
   function setSessionUiUser(user) {
-    var fullName = user && (user.full_name || user.login) ? (user.full_name || user.login) : 'Гость';
+    var fullName = user && (user.full_name || user.login) ? (user.full_name || user.login) : window.CRM.i18n.t('js.br1.gost', 'Гость');
     var publicId = user && user.public_id ? user.public_id : '—';
 
     document.querySelectorAll('[data-session-user]').forEach(function (el) {
@@ -809,7 +809,7 @@ window.CRM.br1 = (function () {
     var errorNode = document.getElementById('loginError');
     if (!errorNode) return;
     errorNode.classList.remove('d-none');
-    errorNode.textContent = String(message || 'Ошибка входа');
+    errorNode.textContent = String(message || window.CRM.i18n.t('js.br1.oshibka_vkhoda', 'Ошибка входа'));
   }
 
   async function initLoginFlow() {
@@ -848,7 +848,7 @@ window.CRM.br1 = (function () {
       plog('checking CRM.api');
       if (!window.CRM.api || typeof window.CRM.api.login !== 'function') {
         plog('CRM.api.login not available');
-        showLoginError('Не удалось инициализировать модуль авторизации. Обновите страницу (Ctrl+F5).');
+        showLoginError(window.CRM.i18n.t('js.br1.ne_udalos_initsializirovat_modul_avtorizatsii_obnovite', 'Не удалось инициализировать модуль авторизации. Обновите страницу (Ctrl+F5).'));
         return;
       }
       plog('CRM.api.login available');
@@ -862,7 +862,7 @@ window.CRM.br1 = (function () {
 
       if (!login || !password) {
         plog('login or password empty');
-        showLoginError('Введите логин и пароль.');
+        showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol', 'Введите логин и пароль.'));
         return;
       }
       try {
@@ -871,15 +871,15 @@ window.CRM.br1 = (function () {
         plog('login successful, calling CRM.api.me...');
         await window.CRM.api.me();
         plog('me() successful, redirecting to dashboard');
-        notify('Вход выполнен');
+        notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen', 'Вход выполнен'));
         var query = new URLSearchParams(window.location.search);
         var returnRoute = query.get('return_route') || query.get('redirect');
         window.location.href = withQuery(returnRoute || 'dashboard');
       } catch (error) {
         plog('login error: ' + (error && error.message ? error.message : String(error)));
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
-          ? window.CRM.api.normalizeError(error, 'Ошибка входа')
-          : { message: 'Ошибка входа', fieldErrors: {} };
+          ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.oshibka_vkhoda_2', 'Ошибка входа'))
+          : { message: window.CRM.i18n.t('js.br1.oshibka_vkhoda_3', 'Ошибка входа'), fieldErrors: {} };
         var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
           ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: normalized.isServerError })
           : normalized.message;
@@ -972,7 +972,7 @@ window.CRM.br1 = (function () {
       console.log('[BR1] checking CRM.api');
       if (!window.CRM.api || typeof window.CRM.api.login !== 'function') {
         console.log('[BR1] CRM.api.login not available');
-        showLoginError('Не удалось инициализировать модуль авторизации. Обновите страницу (Ctrl+F5).');
+        showLoginError(window.CRM.i18n.t('js.br1.ne_udalos_initsializirovat_modul_avtorizatsii_obnovite_2', 'Не удалось инициализировать модуль авторизации. Обновите страницу (Ctrl+F5).'));
         return;
       }
       console.log('[BR1] CRM.api.login available');
@@ -985,7 +985,7 @@ window.CRM.br1 = (function () {
 
       if (!login || !password) {
         console.log('[BR1] credentials missing');
-        showLoginError('Введите логин и пароль.');
+        showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol_2', 'Введите логин и пароль.'));
         return;
       }
       try {
@@ -994,7 +994,7 @@ window.CRM.br1 = (function () {
         console.log('[BR1] login successful, calling CRM.api.me...');
         await window.CRM.api.me();
         console.log('[BR1] me() successful, redirecting');
-        notify('Вход выполнен');
+        notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen_2', 'Вход выполнен'));
 
         var query = new URLSearchParams(window.location.search);
         var returnRoute = query.get('return_route') || query.get('redirect');
@@ -1002,8 +1002,8 @@ window.CRM.br1 = (function () {
       } catch (error) {
         console.log('[BR1] login error:', error);
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
-          ? window.CRM.api.normalizeError(error, 'Ошибка входа')
-          : { message: 'Ошибка входа', fieldErrors: {} };
+          ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.oshibka_vkhoda_4', 'Ошибка входа'))
+          : { message: window.CRM.i18n.t('js.br1.oshibka_vkhoda_5', 'Ошибка входа'), fieldErrors: {} };
         var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
           ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: normalized.isServerError })
           : normalized.message;
@@ -1038,7 +1038,7 @@ window.CRM.br1 = (function () {
       var identifierInput = form.querySelector('[name="identifier"]');
       var identifier = identifierInput ? String(identifierInput.value || '').trim() : '';
       if (!identifier) {
-        showFormAlert('passwordResetRequestError', 'Укажите логин или email.', 'error');
+        showFormAlert('passwordResetRequestError', window.CRM.i18n.t('js.br1.ukazhite_login_ili_email', 'Укажите логин или email.'), 'error');
         return;
       }
       try {
@@ -1047,9 +1047,9 @@ window.CRM.br1 = (function () {
           auth: false,
           body: { identifier: identifier }
         });
-        showFormAlert('passwordResetRequestSuccess', 'Запрос принят. Если пользователь существует, сброс будет обработан.', 'success');
+        showFormAlert('passwordResetRequestSuccess', window.CRM.i18n.t('js.br1.zapros_prinyat_esli_polzovatel_sushchestvuet_sbros_bude', 'Запрос принят. Если пользователь существует, сброс будет обработан.'), 'success');
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Не удалось отправить запрос');
+        var normalized = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.ne_udalos_otpravit_zapros', 'Не удалось отправить запрос'));
         showFormAlert('passwordResetRequestError', window.CRM.api.formatErrorMessage(normalized), 'error');
       }
     });
@@ -1070,11 +1070,11 @@ window.CRM.br1 = (function () {
       var passwordInput = form.querySelector('[name="new_password"]');
       var password = passwordInput ? String(passwordInput.value || '') : '';
       if (!resetToken || !password) {
-        showFormAlert('passwordResetConfirmError', 'Заполните токен и новый пароль.', 'error');
+        showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.zapolnite_token_i_novyy_parol', 'Заполните токен и новый пароль.'), 'error');
         return;
       }
       if (password.length < 8) {
-        showFormAlert('passwordResetConfirmError', 'Новый пароль должен содержать минимум 8 символов.', 'error');
+        showFormAlert('passwordResetConfirmError', window.CRM.i18n.t('js.br1.novyy_parol_dolzhen_soderzhat_minimum_8_simvolov', 'Новый пароль должен содержать минимум 8 символов.'), 'error');
         return;
       }
       try {
@@ -1083,9 +1083,9 @@ window.CRM.br1 = (function () {
           auth: false,
           body: { reset_token: resetToken, new_password: password }
         });
-        showFormAlert('passwordResetConfirmSuccess', 'Пароль обновлен. Теперь вы можете войти в систему.', 'success');
+        showFormAlert('passwordResetConfirmSuccess', window.CRM.i18n.t('js.br1.parol_obnovlen_teper_vy_mozhete_voyti_v_sistemu', 'Пароль обновлен. Теперь вы можете войти в систему.'), 'success');
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить сброс пароля');
+        var normalized = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.ne_udalos_vypolnit_sbros_parolya', 'Не удалось выполнить сброс пароля'));
         showFormAlert('passwordResetConfirmError', window.CRM.api.formatErrorMessage(normalized), 'error');
       }
     });
@@ -1109,11 +1109,11 @@ window.CRM.br1 = (function () {
         password: String(((form.querySelector('[name="password"]') || {}).value) || '')
       };
       if (!body.invitation_token || !body.login || !body.full_name || !body.password) {
-        showFormAlert('invitationAcceptError', 'Заполните все обязательные поля.', 'error');
+        showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.zapolnite_vse_obyazatelnye_polya', 'Заполните все обязательные поля.'), 'error');
         return;
       }
       if (body.password.length < 8) {
-        showFormAlert('invitationAcceptError', 'Пароль должен содержать минимум 8 символов.', 'error');
+        showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.parol_dolzhen_soderzhat_minimum_8_simvolov', 'Пароль должен содержать минимум 8 символов.'), 'error');
         return;
       }
       try {
@@ -1122,9 +1122,9 @@ window.CRM.br1 = (function () {
           auth: false,
           body: body
         });
-        showFormAlert('invitationAcceptSuccess', 'Приглашение принято. Войдите в систему под новым логином.', 'success');
+        showFormAlert('invitationAcceptSuccess', window.CRM.i18n.t('js.br1.priglashenie_prinyato_voydite_v_sistemu_pod_novym_login', 'Приглашение принято. Войдите в систему под новым логином.'), 'success');
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Не удалось принять приглашение');
+        var normalized = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.ne_udalos_prinyat_priglashenie', 'Не удалось принять приглашение'));
         showFormAlert('invitationAcceptError', window.CRM.api.formatErrorMessage(normalized), 'error');
       }
     });
@@ -1255,24 +1255,24 @@ window.CRM.br1 = (function () {
 
       if (clientSelect) {
         var currentClient = String(clientSelect.value || '').trim();
-        clientSelect.innerHTML = ['<option value="">Без клиента</option>'].concat(availableClients.map(function (client) {
-          return '<option value="' + escapeHtml(client.public_id || '') + '">' + escapeHtml(client.title || client.legal_name || client.public_id || 'Клиент') + '</option>';
+        clientSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_bez_klienta_option', '<option value="">Без клиента</option>')].concat(availableClients.map(function (client) {
+          return '<option value="' + escapeHtml(client.public_id || '') + '">' + escapeHtml(client.title || client.legal_name || client.public_id || window.CRM.i18n.t('js.br1.klient', 'Клиент')) + '</option>';
         })).join('');
         clientSelect.value = currentClient;
       }
 
       if (teamSelect) {
         var currentTeam = String(teamSelect.value || '').trim();
-        teamSelect.innerHTML = ['<option value="">Команда не назначена</option>'].concat(availableTeams.map(function (team) {
-          return '<option value="' + escapeHtml(team.public_id || '') + '">' + escapeHtml(team.title || team.name || team.public_id || 'Команда') + '</option>';
+        teamSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_komanda_ne_naznachena_option', '<option value="">Команда не назначена</option>')].concat(availableTeams.map(function (team) {
+          return '<option value="' + escapeHtml(team.public_id || '') + '">' + escapeHtml(team.title || team.name || team.public_id || window.CRM.i18n.t('js.br1.komanda', 'Команда')) + '</option>';
         })).join('');
         teamSelect.value = currentTeam;
       }
 
       if (managerSelect) {
         var currentManager = String(managerSelect.value || '').trim();
-        managerSelect.innerHTML = ['<option value="">Без менеджера</option>'].concat(availableUsers.map(function (user) {
-          return '<option value="' + escapeHtml(user.public_id || '') + '">' + escapeHtml(user.full_name || user.login || user.public_id || 'Пользователь') + '</option>';
+        managerSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_bez_menedzhera_option', '<option value="">Без менеджера</option>')].concat(availableUsers.map(function (user) {
+          return '<option value="' + escapeHtml(user.public_id || '') + '">' + escapeHtml(user.full_name || user.login || user.public_id || window.CRM.i18n.t('js.br1.polzovatel_2', 'Пользователь')) + '</option>';
         })).join('');
         managerSelect.value = currentManager;
       }
@@ -1349,8 +1349,8 @@ window.CRM.br1 = (function () {
 
       var title = titleEl ? titleEl.value.trim() : '';
       if (!title) {
-        showProjectCreateError(titleEl, 'Введите название проекта');
-        notify('Введите название проекта', 'warning');
+        showProjectCreateError(titleEl, window.CRM.i18n.t('js.br1.vvedite_nazvanie_proekta', 'Введите название проекта'));
+        notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_proekta_2', 'Введите название проекта'), 'warning');
         return;
       }
 
@@ -1372,7 +1372,7 @@ window.CRM.br1 = (function () {
           }
         });
 
-        notify('Проект создан');
+        notify(window.CRM.i18n.t('js.br1.proekt_sozdan', 'Проект создан'));
         if (window.bootstrap && modal) {
           window.bootstrap.Modal.getOrCreateInstance(modal).hide();
         }
@@ -1387,9 +1387,9 @@ window.CRM.br1 = (function () {
         var envelope = error && error.envelope ? error.envelope : null;
         var errors = envelope && envelope.errors && typeof envelope.errors === 'object' ? envelope.errors : {};
         if (errors.title) {
-          showProjectCreateError(titleEl, Array.isArray(errors.title) ? String(errors.title[0] || 'Проверьте название проекта') : String(errors.title));
+          showProjectCreateError(titleEl, Array.isArray(errors.title) ? String(errors.title[0] || window.CRM.i18n.t('js.br1.proverte_nazvanie_proekta', 'Проверьте название проекта')) : String(errors.title));
         }
-        notify((envelope && envelope.message) || 'Не удалось создать проект', 'error');
+        notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_proekt', 'Не удалось создать проект'), 'error');
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -1405,7 +1405,7 @@ window.CRM.br1 = (function () {
     if (!projectSelect) return;
 
     var currentValue = projectSelect.value || '';
-    var options = ['<option value="">Без проекта</option>'].concat(availableProjects.map(function (project) {
+    var options = [window.CRM.i18n.t('js.br1.option_value_bez_proekta_option', '<option value="">Без проекта</option>')].concat(availableProjects.map(function (project) {
       return '<option value="' + escapeHtml(project.public_id || '') + '">' + escapeHtml(project.title || project.public_id || '') + '</option>';
     }));
     projectSelect.innerHTML = options.join('');
@@ -1420,7 +1420,7 @@ window.CRM.br1 = (function () {
     if (!assigneeSelect) return;
 
     var currentValue = assigneeSelect.value || '';
-    var options = ['<option value="">Не назначен</option>'].concat(availableUsers.map(function (user) {
+    var options = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option', '<option value="">Не назначен</option>')].concat(availableUsers.map(function (user) {
       return '<option value="' + escapeHtml(user.public_id || '') + '">' + escapeHtml(user.full_name || user.login || user.public_id || '') + '</option>';
     }));
     assigneeSelect.innerHTML = options.join('');
@@ -1436,10 +1436,10 @@ window.CRM.br1 = (function () {
 
     var currentValue = statusSelect.value || 'new';
     var source = availableTaskStatuses.length ? availableTaskStatuses : [
-      { code: 'new', title: 'Новая' },
-      { code: 'in_progress', title: 'В работе' },
-      { code: 'blocked', title: 'Заблокирована' },
-      { code: 'done', title: 'Завершена' }
+      { code: 'new', title: window.CRM.i18n.t('js.br1.novaya', 'Новая') },
+      { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_2', 'В работе') },
+      { code: 'blocked', title: window.CRM.i18n.t('js.br1.zablokirovana', 'Заблокирована') },
+      { code: 'done', title: window.CRM.i18n.t('js.br1.zavershena', 'Завершена') }
     ];
 
     statusSelect.innerHTML = source.map(function (status) {
@@ -1565,7 +1565,7 @@ window.CRM.br1 = (function () {
 
         var title = titleInput ? titleInput.value.trim() : '';
         if (!title) {
-          notify('Введите название задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi', 'Введите название задачи'), 'warning');
           return;
         }
         if (!hasPermission('task.manage')) {
@@ -1624,7 +1624,7 @@ window.CRM.br1 = (function () {
             }
           }
 
-          notify('Задача создана');
+          notify(window.CRM.i18n.t('js.br1.zadacha_sozdana', 'Задача создана'));
           if (window.bootstrap) {
             window.bootstrap.Modal.getOrCreateInstance(modal).hide();
           }
@@ -1635,7 +1635,7 @@ window.CRM.br1 = (function () {
           }
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
-          notify((envelope && envelope.message) || 'Не удалось создать задачу', 'error');
+          notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_zadachu', 'Не удалось создать задачу'), 'error');
         } finally {
           if (submitBtn) submitBtn.disabled = false;
         }
@@ -1690,8 +1690,8 @@ window.CRM.br1 = (function () {
       }
       var title = modal.querySelector('.modal-title');
       var submitBtn = form.querySelector('[type="submit"]');
-      if (title) title.textContent = isEdit ? 'Редактировать событие' : 'Создать событие';
-      if (submitBtn) submitBtn.textContent = isEdit ? 'Сохранить' : 'Создать';
+      if (title) title.textContent = isEdit ? window.CRM.i18n.t('js.br1.redaktirovat_sobytie', 'Редактировать событие') : window.CRM.i18n.t('js.br1.sozdat_sobytie', 'Создать событие');
+      if (submitBtn) submitBtn.textContent = isEdit ? window.CRM.i18n.t('js.br1.sokhranit', 'Сохранить') : window.CRM.i18n.t('js.br1.sozdat', 'Создать');
     }
 
     function prepareCalendarCreate(trigger) {
@@ -1768,7 +1768,7 @@ window.CRM.br1 = (function () {
         var titleEl = document.querySelector('.crm-page-title');
         title = titleEl ? String(titleEl.textContent || '').trim() : '';
       }
-      if (title === 'Загрузка задачи...') title = '';
+      if (title === window.CRM.i18n.t('js.br1.zagruzka_zadachi', 'Загрузка задачи...')) title = '';
 
       return { id: taskId, title: title };
     }
@@ -1788,8 +1788,8 @@ window.CRM.br1 = (function () {
 
       contextBox.classList.remove('d-none');
       contextBox.innerHTML = '<div class="crm-calendar-form-context">'
-        + '<span>Контекст</span>'
-        + '<strong>Задача: ' + escapeHtml(context.title || context.id) + '</strong>'
+        + window.CRM.i18n.t('js.br1.span_kontekst_span', '<span>Контекст</span>')
+        + window.CRM.i18n.t('js.br1.strong_zadacha', '<strong>Задача: ') + escapeHtml(context.title || context.id) + '</strong>'
         + '</div>';
     }
 
@@ -1843,26 +1843,26 @@ window.CRM.br1 = (function () {
 
       var title = titleInput ? titleInput.value.trim() : '';
       if (!title) {
-        showCalendarFormErrors({ title: ['Введите название события'] });
-        notify('Введите название события', 'warning');
+        showCalendarFormErrors({ title: [window.CRM.i18n.t('js.br1.vvedite_nazvanie_sobytiya', 'Введите название события')] });
+        notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_sobytiya_2', 'Введите название события'), 'warning');
         return;
       }
 
       var minDate = todayValue();
       if (!startsDateInput || !startsDateInput.value) {
-        showCalendarFormErrors({ starts_at_date: ['Выберите дату начала события'] });
-        notify('Выберите дату начала события', 'warning');
+        showCalendarFormErrors({ starts_at_date: [window.CRM.i18n.t('js.br1.vyberite_datu_nachala_sobytiya', 'Выберите дату начала события')] });
+        notify(window.CRM.i18n.t('js.br1.vyberite_datu_nachala_sobytiya_2', 'Выберите дату начала события'), 'warning');
         return;
       }
       if (startsDateInput.value < minDate) {
-        showCalendarFormErrors({ starts_at_date: ['Нельзя создать событие на дату из прошлого'] });
-        notify('Нельзя создать событие на дату из прошлого', 'warning');
+        showCalendarFormErrors({ starts_at_date: [window.CRM.i18n.t('js.br1.nelzya_sozdat_sobytie_na_datu_iz_proshlogo', 'Нельзя создать событие на дату из прошлого')] });
+        notify(window.CRM.i18n.t('js.br1.nelzya_sozdat_sobytie_na_datu_iz_proshlogo_2', 'Нельзя создать событие на дату из прошлого'), 'warning');
         startsDateInput.focus();
         return;
       }
       if (endsDateInput && endsDateInput.value && endsDateInput.value < startsDateInput.value) {
-        showCalendarFormErrors({ ends_at_date: ['Дата окончания не может быть раньше даты начала'] });
-        notify('Дата окончания не может быть раньше даты начала', 'warning');
+        showCalendarFormErrors({ ends_at_date: [window.CRM.i18n.t('js.br1.data_okonchaniya_ne_mozhet_byt_ranshe_daty_nachala', 'Дата окончания не может быть раньше даты начала')] });
+        notify(window.CRM.i18n.t('js.br1.data_okonchaniya_ne_mozhet_byt_ranshe_daty_nachala_2', 'Дата окончания не может быть раньше даты начала'), 'warning');
         endsDateInput.focus();
         return;
       }
@@ -1875,8 +1875,8 @@ window.CRM.br1 = (function () {
         : startsAt;
 
       if (startsAt && endsAt && new Date(endsAt.replace(' ', 'T')).getTime() <= new Date(startsAt.replace(' ', 'T')).getTime()) {
-        showCalendarFormErrors({ ends_at_time: ['Окончание должно быть позже начала'] });
-        notify('Окончание события должно быть позже начала', 'warning');
+        showCalendarFormErrors({ ends_at_time: [window.CRM.i18n.t('js.br1.okonchanie_dolzhno_byt_pozzhe_nachala', 'Окончание должно быть позже начала')] });
+        notify(window.CRM.i18n.t('js.br1.okonchanie_sobytiya_dolzhno_byt_pozzhe_nachala', 'Окончание события должно быть позже начала'), 'warning');
         return;
       }
 
@@ -1898,7 +1898,7 @@ window.CRM.br1 = (function () {
           body: body
         });
 
-        notify(editId ? 'Событие обновлено' : 'Событие создано');
+        notify(editId ? window.CRM.i18n.t('js.br1.sobytie_obnovleno', 'Событие обновлено') : window.CRM.i18n.t('js.br1.sobytie_sozdano', 'Событие создано'));
         if (window.bootstrap) {
           window.bootstrap.Modal.getOrCreateInstance(modal).hide();
         }
@@ -1912,7 +1912,7 @@ window.CRM.br1 = (function () {
         if (envelope && envelope.errors && typeof envelope.errors === 'object') {
           showCalendarFormErrors(envelope.errors);
         }
-        notify((envelope && envelope.message) || (form.dataset.calendarEditId ? 'Не удалось обновить событие' : 'Не удалось создать событие'), 'error');
+        notify((envelope && envelope.message) || (form.dataset.calendarEditId ? window.CRM.i18n.t('js.br1.ne_udalos_obnovit_sobytie', 'Не удалось обновить событие') : window.CRM.i18n.t('js.br1.ne_udalos_sozdat_sobytie', 'Не удалось создать событие')), 'error');
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -1946,10 +1946,10 @@ window.CRM.br1 = (function () {
 
   function orderedTaskStatuses(currentStatusCode) {
     var fallback = [
-      { code: 'new', title: 'К выполнению', sort_order: 10 },
-      { code: 'in_progress', title: 'В работе', sort_order: 20 },
-      { code: 'blocked', title: 'Блокировано', sort_order: 30 },
-      { code: 'done', title: 'Готово', sort_order: 40 }
+      { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_3', 'К выполнению'), sort_order: 10 },
+      { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_3', 'В работе'), sort_order: 20 },
+      { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_2', 'Блокировано'), sort_order: 30 },
+      { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_3', 'Готово'), sort_order: 40 }
     ];
     var options = (availableTaskStatuses && availableTaskStatuses.length) ? availableTaskStatuses.slice() : fallback.slice();
     var currentCode = String(currentStatusCode || '');
@@ -1976,12 +1976,12 @@ window.CRM.br1 = (function () {
         var hasMarkup = /<\/?[a-z][\s\S]*>/i.test(text);
         if (hasMarkup) {
           var sanitized = sanitizeRichTextHtml(text);
-          detail.innerHTML = sanitized || '<p class="text-muted mb-0">Описание задачи не заполнено.</p>';
+          detail.innerHTML = sanitized || window.CRM.i18n.t('js.br1.p_class_text_muted_mb_0_opisanie_zadachi_ne_zapolneno_p', '<p class="text-muted mb-0">Описание задачи не заполнено.</p>');
         } else {
           detail.innerHTML = '<p class="mb-0">' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>';
         }
       } else {
-        detail.innerHTML = '<p class="text-muted mb-0">Описание задачи не заполнено.</p>';
+        detail.innerHTML = window.CRM.i18n.t('js.br1.p_class_text_muted_mb_0_opisanie_zadachi_ne_zapolneno_p_2', '<p class="text-muted mb-0">Описание задачи не заполнено.</p>');
       }
     }
 
@@ -2014,7 +2014,7 @@ window.CRM.br1 = (function () {
     progressBar.style.width = percent + '%';
     progressBar.textContent = percent + '%';
     if (progressHint) {
-      progressHint.textContent = 'Прогресс: ' + String(percent) + '% (позиция статуса «' + statusLabel(code) + '» в воронке статусов).';
+      progressHint.textContent = window.CRM.i18n.t('js.br1.progress', 'Прогресс: ') + String(percent) + window.CRM.i18n.t('js.br1.pozitsiya_statusa', '% (позиция статуса «') + statusLabel(code) + window.CRM.i18n.t('js.br1.v_voronke_statusov', '» в воронке статусов).');
     }
   }
 
@@ -2028,24 +2028,24 @@ window.CRM.br1 = (function () {
 
     if (isOverdue) {
       alert.className = 'alert alert-danger mb-2';
-      alert.innerHTML = '<strong>Риск:</strong> задача просрочена, нужен приоритетный разбор блокеров.';
+      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_risk_strong_zadacha_prosrochena_nuzhen_prioritet', '<strong>Риск:</strong> задача просрочена, нужен приоритетный разбор блокеров.');
       return;
     }
 
     if (statusCode === 'blocked') {
       alert.className = 'alert alert-warning mb-2';
-      alert.innerHTML = '<strong>Риск:</strong> задача в блоке. Требуется эскалация/согласование.';
+      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_risk_strong_zadacha_v_bloke_trebuetsya_eskalatsi', '<strong>Риск:</strong> задача в блоке. Требуется эскалация/согласование.');
       return;
     }
 
     if (statusCode === 'done' || statusCode === 'completed') {
       alert.className = 'alert alert-success mb-2';
-      alert.innerHTML = '<strong>Статус:</strong> задача завершена.';
+      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_zadacha_zavershena', '<strong>Статус:</strong> задача завершена.');
       return;
     }
 
     alert.className = 'alert alert-info mb-2';
-    alert.innerHTML = '<strong>Статус:</strong> критичных рисков по задаче не выявлено.';
+    alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_kritichnykh_riskov_po_zadache_ne_v', '<strong>Статус:</strong> критичных рисков по задаче не выявлено.');
   }
 
   function setTaskEditAvailability(canEdit) {
@@ -2114,7 +2114,7 @@ window.CRM.br1 = (function () {
       authorEl.textContent = resolveUserDisplayName(
         currentTask.creator_user_name || '',
         currentTask.creator_user_public_id || '',
-        'Не указан'
+        window.CRM.i18n.t('js.br1.ne_ukazan', 'Не указан')
       );
     }
 
@@ -2123,7 +2123,7 @@ window.CRM.br1 = (function () {
       assigneeEl.textContent = resolveUserDisplayName(
         currentTask.assignee_name || currentTask.assignee_login || '',
         currentTask.assignee_user_public_id || '',
-        'Не назначен'
+        window.CRM.i18n.t('js.br1.ne_naznachen', 'Не назначен')
       );
     }
 
@@ -2132,7 +2132,7 @@ window.CRM.br1 = (function () {
       managerEl.textContent = resolveUserDisplayName(
         currentTask.project_manager_name || '',
         currentTask.project_manager_user_public_id || '',
-        'Не назначен'
+        window.CRM.i18n.t('js.br1.ne_naznachen_2', 'Не назначен')
       );
     }
 
@@ -2143,7 +2143,7 @@ window.CRM.br1 = (function () {
           return '<span class="crm-chip me-1 mb-1">' + escapeHtml(tag.title || tag.code || tag.public_id || '—') + '</span>';
         }).join('');
       } else {
-        tagsEl.textContent = 'Нет тегов';
+        tagsEl.textContent = window.CRM.i18n.t('js.br1.net_tegov', 'Нет тегов');
       }
     }
 
@@ -2153,7 +2153,7 @@ window.CRM.br1 = (function () {
         projectLink.textContent = currentTask.project_title || currentTask.project_public_id;
         projectLink.href = withQuery('project-detail', 'project_public_id', currentTask.project_public_id);
       } else {
-        projectLink.textContent = 'Без проекта';
+        projectLink.textContent = window.CRM.i18n.t('js.br1.bez_proekta', 'Без проекта');
         projectLink.href = '#';
       }
     }
@@ -2161,10 +2161,10 @@ window.CRM.br1 = (function () {
     var datesEl = document.getElementById('taskDatesValue');
     if (datesEl) {
       var parts = [];
-      if (currentTask.start_at) parts.push('Начало: ' + formatDate(currentTask.start_at));
-      if (currentTask.due_at) parts.push('Дедлайн: ' + formatDate(currentTask.due_at));
-      if (currentTask.end_at) parts.push('Завершение: ' + formatDate(currentTask.end_at));
-      datesEl.textContent = parts.length ? parts.join(' · ') : 'Не заданы';
+      if (currentTask.start_at) parts.push(window.CRM.i18n.t('js.br1.nachalo', 'Начало: ') + formatDate(currentTask.start_at));
+      if (currentTask.due_at) parts.push(window.CRM.i18n.t('js.br1.dedlayn', 'Дедлайн: ') + formatDate(currentTask.due_at));
+      if (currentTask.end_at) parts.push(window.CRM.i18n.t('js.br1.zavershenie', 'Завершение: ') + formatDate(currentTask.end_at));
+      datesEl.textContent = parts.length ? parts.join(' · ') : window.CRM.i18n.t('js.br1.ne_zadany', 'Не заданы');
     }
 
     var datesStartInput = document.getElementById('taskDatesStartAt');
@@ -2178,7 +2178,7 @@ window.CRM.br1 = (function () {
 
     var projectSelect = document.getElementById('taskProjectInlineSelect');
     if (projectSelect) {
-      var projectOptions = ['<option value="">Без проекта</option>'].concat(availableProjects.map(function (p) {
+      var projectOptions = [window.CRM.i18n.t('js.br1.option_value_bez_proekta_option_2', '<option value="">Без проекта</option>')].concat(availableProjects.map(function (p) {
         var selected = currentTask && String(currentTask.project_public_id || '') === String(p.public_id || '') ? ' selected' : '';
         return '<option value="' + escapeHtml(p.public_id || '') + '"' + selected + '>' + escapeHtml(p.title || p.public_id || '') + '</option>';
       }));
@@ -2187,7 +2187,7 @@ window.CRM.br1 = (function () {
 
     var assigneeSelect = document.getElementById('taskAssigneeInlineSelect');
     if (assigneeSelect) {
-      var assigneeOptions = ['<option value="">Не назначен</option>'].concat(availableUsers.map(function (u) {
+      var assigneeOptions = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_2', '<option value="">Не назначен</option>')].concat(availableUsers.map(function (u) {
         var selected = currentTask && String(currentTask.assignee_user_public_id || '') === String(u.public_id || '') ? ' selected' : '';
         return '<option value="' + escapeHtml(u.public_id || '') + '"' + selected + '>' + escapeHtml(u.full_name || u.login || u.public_id || '') + '</option>';
       }));
@@ -2196,7 +2196,7 @@ window.CRM.br1 = (function () {
 
     var managerSelect = document.getElementById('taskManagerInlineSelect');
     if (managerSelect) {
-      var managerOptions = ['<option value="">Не назначен</option>'].concat(availableUsers.map(function (u) {
+      var managerOptions = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_3', '<option value="">Не назначен</option>')].concat(availableUsers.map(function (u) {
         var selected = currentTask && String(currentTask.project_manager_user_public_id || '') === String(u.public_id || '') ? ' selected' : '';
         return '<option value="' + escapeHtml(u.public_id || '') + '"' + selected + '>' + escapeHtml(u.full_name || u.login || u.public_id || '') + '</option>';
       }));
@@ -2226,7 +2226,7 @@ window.CRM.br1 = (function () {
       descForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditIdentity) {
-          notify('Изменение описания доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_opisaniya_dostupno_tolko_avtoru_zadachi', 'Изменение описания доступно только автору задачи'), 'warning');
           return;
         }
         var input = document.getElementById('taskDescriptionInlineInput');
@@ -2243,10 +2243,10 @@ window.CRM.br1 = (function () {
           renderTaskDescription(currentTask.description);
           descForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Описание обновлено');
+          notify(window.CRM.i18n.t('js.br1.opisanie_obnovleno', 'Описание обновлено'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить описание', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_opisanie', 'Не удалось обновить описание'), 'error');
         }
       });
       descForm.dataset.bound = '1';
@@ -2256,7 +2256,7 @@ window.CRM.br1 = (function () {
       assigneeForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditAssignment) {
-          notify('Изменение исполнителя доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_ispolnitelya_dostupno_tolko_avtoru_zadachi', 'Изменение исполнителя доступно только автору задачи'), 'warning');
           return;
         }
         var assigneeSelect = document.getElementById('taskAssigneeInlineSelect');
@@ -2283,10 +2283,10 @@ window.CRM.br1 = (function () {
           renderTaskSidebarSummary();
           assigneeForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Исполнитель обновлен');
+          notify(window.CRM.i18n.t('js.br1.ispolnitel_obnovlen', 'Исполнитель обновлен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить исполнителя', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_ispolnitelya', 'Не удалось обновить исполнителя'), 'error');
         }
       });
       assigneeForm.dataset.bound = '1';
@@ -2296,13 +2296,13 @@ window.CRM.br1 = (function () {
       managerForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditAssignment) {
-          notify('Изменение менеджера доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_menedzhera_dostupno_tolko_avtoru_zadachi', 'Изменение менеджера доступно только автору задачи'), 'warning');
           return;
         }
         var managerSelect = document.getElementById('taskManagerInlineSelect');
         var managerPublicId = managerSelect ? String(managerSelect.value || '').trim() : '';
         if (!currentTask.project_public_id) {
-          notify('Чтобы назначить менеджера, сначала привяжите задачу к проекту', 'warning');
+          notify(window.CRM.i18n.t('js.br1.chtoby_naznachit_menedzhera_snachala_privyazhite_zadach', 'Чтобы назначить менеджера, сначала привяжите задачу к проекту'), 'warning');
           return;
         }
         try {
@@ -2329,10 +2329,10 @@ window.CRM.br1 = (function () {
           renderTaskSidebarSummary();
           managerForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Менеджер обновлен');
+          notify(window.CRM.i18n.t('js.br1.menedzher_obnovlen', 'Менеджер обновлен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить менеджера', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_menedzhera', 'Не удалось обновить менеджера'), 'error');
         }
       });
       managerForm.dataset.bound = '1';
@@ -2342,7 +2342,7 @@ window.CRM.br1 = (function () {
       projectForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditProject) {
-          notify('Изменение проекта доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_proekta_dostupno_tolko_avtoru_zadachi', 'Изменение проекта доступно только автору задачи'), 'warning');
           return;
         }
         var projectSelect = document.getElementById('taskProjectInlineSelect');
@@ -2367,17 +2367,17 @@ window.CRM.br1 = (function () {
           }
           var subtitle = document.querySelector('.crm-subtitle');
           if (subtitle) {
-            subtitle.textContent = 'Проект: ' + (currentTask.project_title || '—')
-              + ' · Дедлайн: ' + (currentTask.due_at ? formatDate(currentTask.due_at) : 'не задан');
+            subtitle.textContent = window.CRM.i18n.t('js.br1.proekt', 'Проект: ') + (currentTask.project_title || '—')
+              + window.CRM.i18n.t('js.br1.dedlayn_2', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan', 'не задан'));
           }
           renderTaskSidebarSummary();
           renderTaskMetaChips();
           projectForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Проект задачи обновлен');
+          notify(window.CRM.i18n.t('js.br1.proekt_zadachi_obnovlen', 'Проект задачи обновлен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить проект задачи', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_proekt_zadachi', 'Не удалось обновить проект задачи'), 'error');
         }
       });
       projectForm.dataset.bound = '1';
@@ -2387,7 +2387,7 @@ window.CRM.br1 = (function () {
       tagsForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditTags) {
-          notify('Изменение тегов доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_tegov_dostupno_tolko_avtoru_zadachi', 'Изменение тегов доступно только автору задачи'), 'warning');
           return;
         }
         var tagsSelect = document.getElementById('taskTagsInlineSelect');
@@ -2400,7 +2400,7 @@ window.CRM.br1 = (function () {
 
         try {
           if (!addTagIds.length && !removeTagIds.length) {
-            notify('Изменений по тегам нет', 'warning');
+            notify(window.CRM.i18n.t('js.br1.izmeneniy_po_tegam_net', 'Изменений по тегам нет'), 'warning');
             tagsForm.classList.add('d-none');
             return;
           }
@@ -2421,10 +2421,10 @@ window.CRM.br1 = (function () {
           renderTaskSidebarSummary();
           tagsForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Теги задачи обновлены');
+          notify(window.CRM.i18n.t('js.br1.tegi_zadachi_obnovleny', 'Теги задачи обновлены'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить теги задачи', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_tegi_zadachi', 'Не удалось обновить теги задачи'), 'error');
         }
       });
       tagsForm.dataset.bound = '1';
@@ -2435,7 +2435,7 @@ window.CRM.br1 = (function () {
       datesForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!currentTaskPermissions.canEditIdentity) {
-          notify('Изменение сроков доступно только автору задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_srokov_dostupno_tolko_avtoru_zadachi', 'Изменение сроков доступно только автору задачи'), 'warning');
           return;
         }
         var startAt = String((document.getElementById('taskDatesStartAt') || {}).value || '').trim();
@@ -2454,15 +2454,15 @@ window.CRM.br1 = (function () {
           renderTaskSidebarSummary();
           var subtitle = document.querySelector('.crm-subtitle');
           if (subtitle) {
-            subtitle.textContent = 'Проект: ' + (currentTask.project_title || '—')
-              + ' · Дедлайн: ' + (currentTask.due_at ? formatDate(currentTask.due_at) : 'не задан');
+            subtitle.textContent = window.CRM.i18n.t('js.br1.proekt_2', 'Проект: ') + (currentTask.project_title || '—')
+              + window.CRM.i18n.t('js.br1.dedlayn_3', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_2', 'не задан'));
           }
           datesForm.classList.add('d-none');
           await loadTaskActivity(taskId);
-          notify('Сроки задачи обновлены');
+          notify(window.CRM.i18n.t('js.br1.sroki_zadachi_obnovleny', 'Сроки задачи обновлены'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить сроки задачи', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_sroki_zadachi', 'Не удалось обновить сроки задачи'), 'error');
         }
       });
       datesForm.dataset.bound = '1';
@@ -2478,7 +2478,7 @@ window.CRM.br1 = (function () {
           var block = String(toggle.getAttribute('data-task-inline-toggle') || '');
           if (block === 'description') {
             if (!currentTaskPermissions.canEditIdentity) {
-              notify('Изменение описания доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_opisaniya_dostupno_tolko_avtoru_zadachi_2', 'Изменение описания доступно только автору задачи'), 'warning');
               return;
             }
             var descriptionForm = document.getElementById('taskDescriptionInlineForm');
@@ -2486,7 +2486,7 @@ window.CRM.br1 = (function () {
           }
           if (block === 'assignee') {
             if (!currentTaskPermissions.canEditAssignment) {
-              notify('Изменение исполнителя доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_ispolnitelya_dostupno_tolko_avtoru_zadachi_2', 'Изменение исполнителя доступно только автору задачи'), 'warning');
               return;
             }
             var assigneeInlineForm = document.getElementById('taskAssigneeInlineForm');
@@ -2494,7 +2494,7 @@ window.CRM.br1 = (function () {
           }
           if (block === 'manager') {
             if (!currentTaskPermissions.canEditAssignment) {
-              notify('Изменение менеджера доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_menedzhera_dostupno_tolko_avtoru_zadachi_2', 'Изменение менеджера доступно только автору задачи'), 'warning');
               return;
             }
             var managerInlineForm = document.getElementById('taskManagerInlineForm');
@@ -2502,7 +2502,7 @@ window.CRM.br1 = (function () {
           }
           if (block === 'project') {
             if (!currentTaskPermissions.canEditProject) {
-              notify('Изменение проекта доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_proekta_dostupno_tolko_avtoru_zadachi_2', 'Изменение проекта доступно только автору задачи'), 'warning');
               return;
             }
             var projectInlineForm = document.getElementById('taskProjectInlineForm');
@@ -2510,7 +2510,7 @@ window.CRM.br1 = (function () {
           }
           if (block === 'tags') {
             if (!currentTaskPermissions.canEditTags) {
-              notify('Изменение тегов доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_tegov_dostupno_tolko_avtoru_zadachi_2', 'Изменение тегов доступно только автору задачи'), 'warning');
               return;
             }
             var tagsInlineForm = document.getElementById('taskTagsInlineForm');
@@ -2518,7 +2518,7 @@ window.CRM.br1 = (function () {
           }
           if (block === 'dates') {
             if (!currentTaskPermissions.canEditIdentity) {
-              notify('Изменение сроков доступно только автору задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.izmenenie_srokov_dostupno_tolko_avtoru_zadachi_2', 'Изменение сроков доступно только автору задачи'), 'warning');
               return;
             }
             var datesInlineForm = document.getElementById('taskDatesInlineForm');
@@ -2614,17 +2614,17 @@ window.CRM.br1 = (function () {
     var canEditProject = Boolean(permissions && permissions.canEditProject);
     var canEditTags = Boolean(permissions && permissions.canEditTags);
 
-    var assigneeOptions = ['<option value="">Не назначен</option>'].concat(availableUsers.map(function (u) {
+    var assigneeOptions = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_4', '<option value="">Не назначен</option>')].concat(availableUsers.map(function (u) {
       var selected = currentTask && currentTask.assignee_user_public_id && String(currentTask.assignee_user_public_id) === String(u.public_id) ? ' selected' : '';
       return '<option value="' + escapeHtml(u.public_id || '') + '"' + selected + '>' + escapeHtml(u.full_name || u.login || u.public_id || '') + '</option>';
     })).join('');
 
-    var managerOptions = ['<option value="">Не назначен</option>'].concat(availableUsers.map(function (u) {
+    var managerOptions = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_5', '<option value="">Не назначен</option>')].concat(availableUsers.map(function (u) {
       var selected = currentTask && currentTask.project_manager_user_public_id && String(currentTask.project_manager_user_public_id) === String(u.public_id) ? ' selected' : '';
       return '<option value="' + escapeHtml(u.public_id || '') + '"' + selected + '>' + escapeHtml(u.full_name || u.login || u.public_id || '') + '</option>';
     })).join('');
 
-    var projectOptions = ['<option value="">Без проекта</option>'].concat(availableProjects.map(function (project) {
+    var projectOptions = [window.CRM.i18n.t('js.br1.option_value_bez_proekta_option_3', '<option value="">Без проекта</option>')].concat(availableProjects.map(function (project) {
       var selected = currentTask && currentTask.project_public_id && String(currentTask.project_public_id) === String(project.public_id) ? ' selected' : '';
       return '<option value="' + escapeHtml(project.public_id || '') + '"' + selected + '>' + escapeHtml(project.title || project.public_id || '') + '</option>';
     })).join('');
@@ -2636,10 +2636,10 @@ window.CRM.br1 = (function () {
     }).join('');
 
     var fallbackTaskStatuses = [
-      { code: 'new', title: 'К выполнению', sort_order: 10 },
-      { code: 'in_progress', title: 'В работе', sort_order: 20 },
-      { code: 'blocked', title: 'Блокировано', sort_order: 30 },
-      { code: 'done', title: 'Готово', sort_order: 40 }
+      { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_4', 'К выполнению'), sort_order: 10 },
+      { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_4', 'В работе'), sort_order: 20 },
+      { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_3', 'Блокировано'), sort_order: 30 },
+      { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_4', 'Готово'), sort_order: 40 }
     ];
     var taskStatuses = (availableTaskStatuses && availableTaskStatuses.length) ? availableTaskStatuses.slice() : fallbackTaskStatuses.slice();
     if (currentTask && currentTask.status_code) {
@@ -2662,82 +2662,82 @@ window.CRM.br1 = (function () {
 
     var currentTagTitles = currentTaskTags.length
       ? currentTaskTags.map(function (tag) { return escapeHtml(tag.title || tag.code || tag.public_id || '—'); }).join(', ')
-      : 'Нет тегов';
-    var currentProjectTitle = 'Без проекта';
+      : window.CRM.i18n.t('js.br1.net_tegov_2', 'Нет тегов');
+    var currentProjectTitle = window.CRM.i18n.t('js.br1.bez_proekta_2', 'Без проекта');
     if (currentTask && currentTask.project_public_id) {
       var selectedProject = availableProjects.find(function (project) {
         return String(project.public_id || '') === String(currentTask.project_public_id || '');
       });
       currentProjectTitle = selectedProject
-        ? String(selectedProject.title || selectedProject.public_id || 'Без проекта')
-        : String(currentTask.project_public_id || 'Без проекта');
+        ? String(selectedProject.title || selectedProject.public_id || window.CRM.i18n.t('js.br1.bez_proekta_3', 'Без проекта'))
+        : String(currentTask.project_public_id || window.CRM.i18n.t('js.br1.bez_proekta_4', 'Без проекта'));
     }
 
     panel.innerHTML = ''
       + '<div class="crm-card p-3 bg-light-subtle">'
-      + '<div class="d-flex justify-content-between align-items-center mb-3"><h3 class="h6 mb-0">Параметры задачи</h3><small class="text-muted">'
-      + (canEditIdentity ? 'Вы автор задачи: доступно редактирование всех параметров.' : (canEditWorkflow ? 'Вы исполнитель задачи: доступно рабочее изменение статуса и приоритета.' : 'Редактирование параметров недоступно.'))
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce', '<div class="d-flex justify-content-between align-items-center mb-3"><h3 class="h6 mb-0">Параметры задачи</h3><small class="text-muted">')
+      + (canEditIdentity ? window.CRM.i18n.t('js.br1.vy_avtor_zadachi_dostupno_redaktirovanie_vsekh_parametr', 'Вы автор задачи: доступно редактирование всех параметров.') : (canEditWorkflow ? window.CRM.i18n.t('js.br1.vy_ispolnitel_zadachi_dostupno_rabochee_izmenenie_statu', 'Вы исполнитель задачи: доступно рабочее изменение статуса и приоритета.') : window.CRM.i18n.t('js.br1.redaktirovanie_parametrov_nedostupno', 'Редактирование параметров недоступно.')))
       + '</small></div>'
       + '<div class="row g-3">'
       + '<div class="col-lg-12">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Название и описание</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="identity"' + (canEditIdentity ? '' : ' disabled') + '>✏️</button></div>'
-      + '<div class="small text-muted mb-1">Название</div><div class="mb-2">' + escapeHtml(currentTask && currentTask.title || '—') + '</div>'
-      + '<div class="small text-muted mb-1">Описание</div><div class="mb-2">' + escapeHtml(currentTask && currentTask.description || 'Описание отсутствует') + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_2', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Название и описание</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="identity"') + (canEditIdentity ? '' : ' disabled') + '>✏️</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_nazvanie_div_div_class', '<div class="small text-muted mb-1">Название</div><div class="mb-2">') + escapeHtml(currentTask && currentTask.title || '—') + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_opisanie_div_div_class', '<div class="small text-muted mb-1">Описание</div><div class="mb-2">') + escapeHtml(currentTask && currentTask.description || window.CRM.i18n.t('js.br1.opisanie_otsutstvuet', 'Описание отсутствует')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="identity">'
-      + '<div class="col-md-6"><label class="form-label">Название</label><input class="form-control" name="title" maxlength="255" value="' + escapeHtml(currentTask && currentTask.title || '') + '"></div>'
-      + '<div class="col-md-6"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="3">' + escapeHtml(currentTask && currentTask.description || '') + '</textarea></div>'
-      + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="identity">Отмена</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_nazvanie_labe', '<div class="col-md-6"><label class="form-label">Название</label><input class="form-control" name="title" maxlength="255" value="') + escapeHtml(currentTask && currentTask.title || '') + '"></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_opisanie_labe', '<div class="col-md-6"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="3">') + escapeHtml(currentTask && currentTask.description || '') + '</textarea></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="identity">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Статус и приоритет</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="workflow"' + (canEditWorkflow ? '' : ' disabled') + '>✏️</button></div>'
-      + '<div class="small text-muted mb-1">Статус</div><div class="mb-2"><span class="crm-badge ' + statusBadgeClass(currentTask && currentTask.status_code || 'new') + '">' + escapeHtml(statusLabel(currentTask && currentTask.status_code || 'new')) + '</span></div>'
-      + '<div class="small text-muted mb-1">Приоритет</div><div class="mb-2">' + escapeHtml(priorityLabel(currentTask && currentTask.priority_code || 'normal')) + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_3', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Статус и приоритет</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="workflow"') + (canEditWorkflow ? '' : ' disabled') + '>✏️</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_status_div_div_class_mb', '<div class="small text-muted mb-1">Статус</div><div class="mb-2"><span class="crm-badge ') + statusBadgeClass(currentTask && currentTask.status_code || 'new') + '">' + escapeHtml(statusLabel(currentTask && currentTask.status_code || 'new')) + '</span></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_prioritet_div_div_class', '<div class="small text-muted mb-1">Приоритет</div><div class="mb-2">') + escapeHtml(priorityLabel(currentTask && currentTask.priority_code || 'normal')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="workflow">'
-      + '<div class="col-6"><label class="form-label">Статус</label><select class="form-select" name="status">' + statusOptions + '</select></div>'
-      + '<div class="col-6"><label class="form-label">Приоритет</label><select class="form-select" name="priority">'
-      + '<option value="low"' + (currentTask && currentTask.priority_code === 'low' ? ' selected' : '') + '>Низкий</option>'
-      + '<option value="normal"' + (currentTask && currentTask.priority_code === 'normal' ? ' selected' : '') + '>Нормальный</option>'
-      + '<option value="high"' + (currentTask && currentTask.priority_code === 'high' ? ' selected' : '') + '>Высокий</option>'
-      + '<option value="urgent"' + (currentTask && currentTask.priority_code === 'urgent' ? ' selected' : '') + '>Срочный</option>'
+      + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_status_label_sel', '<div class="col-6"><label class="form-label">Статус</label><select class="form-select" name="status">') + statusOptions + '</select></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_prioritet_label', '<div class="col-6"><label class="form-label">Приоритет</label><select class="form-select" name="priority">')
+      + '<option value="low"' + (currentTask && currentTask.priority_code === 'low' ? ' selected' : '') + window.CRM.i18n.t('js.br1.nizkiy_option', '>Низкий</option>')
+      + '<option value="normal"' + (currentTask && currentTask.priority_code === 'normal' ? ' selected' : '') + window.CRM.i18n.t('js.br1.normalnyy_option', '>Нормальный</option>')
+      + '<option value="high"' + (currentTask && currentTask.priority_code === 'high' ? ' selected' : '') + window.CRM.i18n.t('js.br1.vysokiy_option', '>Высокий</option>')
+      + '<option value="urgent"' + (currentTask && currentTask.priority_code === 'urgent' ? ' selected' : '') + window.CRM.i18n.t('js.br1.srochnyy_option', '>Срочный</option>')
       + '</select></div>'
-      + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="workflow">Отмена</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_2', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="workflow">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Исполнители</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="assignment"' + (canEditAssignment ? '' : ' disabled') + '>✏️</button></div>'
-      + '<div class="small text-muted mb-1">Исполнитель</div><div class="mb-2">' + escapeHtml(currentTask && (currentTask.assignee_name || currentTask.assignee_login || currentTask.assignee_user_public_id) || 'Не назначен') + '</div>'
-      + '<div class="small text-muted mb-1">Менеджер проекта</div><div class="mb-2">' + escapeHtml(currentTask && (currentTask.project_manager_name || currentTask.project_manager_user_public_id) || 'Не назначен') + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_4', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Исполнители</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="assignment"') + (canEditAssignment ? '' : ' disabled') + '>✏️</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_ispolnitel_div_div_clas', '<div class="small text-muted mb-1">Исполнитель</div><div class="mb-2">') + escapeHtml(currentTask && (currentTask.assignee_name || currentTask.assignee_login || currentTask.assignee_user_public_id) || window.CRM.i18n.t('js.br1.ne_naznachen_3', 'Не назначен')) + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_menedzher_proekta_div_d', '<div class="small text-muted mb-1">Менеджер проекта</div><div class="mb-2">') + escapeHtml(currentTask && (currentTask.project_manager_name || currentTask.project_manager_user_public_id) || window.CRM.i18n.t('js.br1.ne_naznachen_4', 'Не назначен')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="assignment">'
-      + '<div class="col-6"><label class="form-label">Исполнитель</label><select class="form-select" name="assignee_user_public_id">' + assigneeOptions + '</select></div>'
-      + '<div class="col-6"><label class="form-label">Менеджер проекта</label><select class="form-select" name="manager_user_public_id">' + managerOptions + '</select></div>'
-      + '<div class="col-12"><small class="text-muted">Менеджер назначается на выбранный проект. Если у задачи нет проекта, сначала выберите проект в блоке «Проект».</small></div>'
-      + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="assignment">Отмена</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_ispolnitel_label', '<div class="col-6"><label class="form-label">Исполнитель</label><select class="form-select" name="assignee_user_public_id">') + assigneeOptions + '</select></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_menedzher_proekt', '<div class="col-6"><label class="form-label">Менеджер проекта</label><select class="form-select" name="manager_user_public_id">') + managerOptions + '</select></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_small_class_text_muted_menedzher_nazna', '<div class="col-12"><small class="text-muted">Менеджер назначается на выбранный проект. Если у задачи нет проекта, сначала выберите проект в блоке «Проект».</small></div>')
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_3', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="assignment">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Проект</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="project"' + (canEditProject ? '' : ' disabled') + '>✏️</button></div>'
-      + '<div class="small text-muted mb-1">Текущий проект</div><div class="mb-2">' + escapeHtml(currentProjectTitle) + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_5', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Проект</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="project"') + (canEditProject ? '' : ' disabled') + '>✏️</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_tekushchiy_proekt_div_d', '<div class="small text-muted mb-1">Текущий проект</div><div class="mb-2">') + escapeHtml(currentProjectTitle) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="project">'
-      + '<div class="col-12"><label class="form-label">Проект</label><select class="form-select" name="project_public_id">' + projectOptions + '</select></div>'
-      + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="project">Отмена</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_label_class_form_label_proekt_label_se', '<div class="col-12"><label class="form-label">Проект</label><select class="form-select" name="project_public_id">') + projectOptions + '</select></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_4', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="project">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
-      + '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Теги</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="tags"' + (canEditTags ? '' : ' disabled') + '>✏️</button></div>'
-      + '<div class="small text-muted mb-1">Назначенные теги</div><div class="mb-2">' + currentTagTitles + '</div>'
+      + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_6', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Теги</h4><button type="button" class="btn btn-sm btn-light" data-task-edit-toggle="tags"') + (canEditTags ? '' : ' disabled') + '>✏️</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_naznachennye_tegi_div_d', '<div class="small text-muted mb-1">Назначенные теги</div><div class="mb-2">') + currentTagTitles + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="tags">'
-      + '<div class="col-12"><label class="form-label">Теги</label><select class="form-select" name="tag_public_ids" multiple size="5">' + tagOptions + '</select></div>'
-      + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="tags">Отмена</button></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_label_class_form_label_tegi_label_sele', '<div class="col-12"><label class="form-label">Теги</label><select class="form-select" name="tag_public_ids" multiple size="5">') + tagOptions + '</select></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class_5', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="tags">Отмена</button></div>')
       + '</form>'
       + '</article>'
       + '</div>'
@@ -2754,17 +2754,17 @@ window.CRM.br1 = (function () {
       var canEditComment = currentUserPublicId !== ''
         && String(item.author_public_id || '') === currentUserPublicId;
       var editButton = canEditComment
-        ? '<button type="button" class="btn btn-sm btn-light" data-comment-edit="' + escapeHtml(item.public_id || '') + '">Редактировать</button>'
+        ? '<button type="button" class="btn btn-sm btn-light" data-comment-edit="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.redaktirovat_button', '">Редактировать</button>')
         : '';
       var commentId = String(item.public_id || '');
       var ownReaction = currentTaskOwnReactionsByComment[commentId] || null;
       var reactionLabel = ownReaction && ownReaction.reaction
-        ? ('Моя реакция: ' + String(ownReaction.reaction))
-        : 'Без реакции';
+        ? (window.CRM.i18n.t('js.br1.moya_reaktsiya', 'Моя реакция: ') + String(ownReaction.reaction))
+        : window.CRM.i18n.t('js.br1.bez_reaktsii', 'Без реакции');
 
       return '<div class="crm-comment mb-2" data-comment-id="' + escapeHtml(item.public_id || '') + '" data-comment-author="' + escapeHtml(item.author_public_id || '') + '">'
         + '<div class="d-flex justify-content-between align-items-start gap-2">'
-        + '<div><strong>' + escapeHtml(item.author_name || item.author_login || 'Пользователь') + '</strong></div>'
+        + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong></div>'
         + editButton
         + '</div>'
         + '<p class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + escapeHtml(item.body || '') + '</p>'
@@ -2772,12 +2772,12 @@ window.CRM.br1 = (function () {
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="like">👍</button>'
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="love">❤️</button>'
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="up">⬆️</button>'
-        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-reaction-clear="' + escapeHtml(commentId) + '"' + (ownReaction ? '' : ' disabled') + '>Снять</button>'
+        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-reaction-clear="' + escapeHtml(commentId) + '"' + (ownReaction ? '' : ' disabled') + window.CRM.i18n.t('js.br1.snyat_button', '>Снять</button>')
         + '<small class="text-muted">' + escapeHtml(reactionLabel) + '</small>'
         + '</div>'
         + '<small class="text-muted">' + escapeHtml(formatDate(item.created_at)) + '</small>'
         + '</div>';
-    }).join('') : '<div class="crm-empty"><h3 class="h6">Комментариев пока нет</h3><p class="text-muted mb-0">Добавьте первый комментарий к задаче.</p></div>';
+    }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_empty_h3_class_h6_kommentariev_poka_net_h', '<div class="crm-empty"><h3 class="h6">Комментариев пока нет</h3><p class="text-muted mb-0">Добавьте первый комментарий к задаче.</p></div>');
   }
 
   function matchMentionedUsersFromText(text) {
@@ -2840,7 +2840,7 @@ window.CRM.br1 = (function () {
     var subs = window.CRM.api.items(subscriptionsEnvelope);
     currentTaskFollowSubscription = subs.length ? subs[0] : null;
     if (followBtn) {
-      followBtn.textContent = currentTaskFollowSubscription ? 'Не отслеживать задачу' : 'Отслеживать задачу';
+      followBtn.textContent = currentTaskFollowSubscription ? window.CRM.i18n.t('js.br1.ne_otslezhivat_zadachu', 'Не отслеживать задачу') : window.CRM.i18n.t('js.br1.otslezhivat_zadachu', 'Отслеживать задачу');
       followBtn.classList.toggle('crm-btn-primary', Boolean(currentTaskFollowSubscription));
       followBtn.classList.toggle('crm-btn-secondary', !currentTaskFollowSubscription);
     }
@@ -2855,7 +2855,7 @@ window.CRM.br1 = (function () {
     var favorites = window.CRM.api.items(favoritesEnvelope);
     currentTaskFavorite = favorites.length ? favorites[0] : null;
     if (favoriteBtn) {
-      favoriteBtn.textContent = currentTaskFavorite ? 'Убрать из избранного' : 'В избранное';
+      favoriteBtn.textContent = currentTaskFavorite ? window.CRM.i18n.t('js.br1.ubrat_iz_izbrannogo', 'Убрать из избранного') : window.CRM.i18n.t('js.br1.v_izbrannoe', 'В избранное');
       favoriteBtn.classList.toggle('crm-btn-primary', Boolean(currentTaskFavorite));
       favoriteBtn.classList.toggle('crm-btn-secondary', !currentTaskFavorite);
     }
@@ -2879,14 +2879,14 @@ window.CRM.br1 = (function () {
         || file.file_name
         || file.filename
         || file.public_id
-        || 'Файл'
+        || window.CRM.i18n.t('js.br1.fayl', 'Файл')
       );
       return '<div class="crm-file-item mb-2 d-flex justify-content-between align-items-center">'
         + '<div><strong>' + escapeHtml(displayName) + '</strong><div class="small text-muted">'
         + escapeHtml(formatDate(file.created_at || new Date().toISOString())) + '</div></div>'
-        + '<button type="button" class="btn btn-sm btn-light" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + '">Скачать</button>'
+        + '<button type="button" class="btn btn-sm btn-light" data-file-download="' + escapeHtml(String(file.public_id || '')) + '" data-file-name="' + escapeHtml(displayName) + window.CRM.i18n.t('js.br1.skachat_button', '">Скачать</button>')
         + '</div>';
-    }).join('') : '<div class="text-muted">Файлы к задаче пока не загружены.</div>';
+    }).join('') : window.CRM.i18n.t('js.br1.div_class_text_muted_fayly_k_zadache_poka_ne_zagruzheny', '<div class="text-muted">Файлы к задаче пока не загружены.</div>');
   }
 
   async function loadTaskFiles(taskId) {
@@ -2909,10 +2909,10 @@ window.CRM.br1 = (function () {
 
   function subtaskPriorityOptions(selectedPriority) {
     var priorities = [
-      { code: 'low', title: 'Низкий' },
-      { code: 'normal', title: 'Нормальный' },
-      { code: 'high', title: 'Высокий' },
-      { code: 'urgent', title: 'Срочный' }
+      { code: 'low', title: window.CRM.i18n.t('js.br1.nizkiy_2', 'Низкий') },
+      { code: 'normal', title: window.CRM.i18n.t('js.br1.normalnyy_2', 'Нормальный') },
+      { code: 'high', title: window.CRM.i18n.t('js.br1.vysokiy_2', 'Высокий') },
+      { code: 'urgent', title: window.CRM.i18n.t('js.br1.srochnyy_2', 'Срочный') }
     ];
     return priorities.map(function (item) {
       var selected = String(selectedPriority || 'normal') === item.code ? ' selected' : '';
@@ -2963,7 +2963,7 @@ window.CRM.br1 = (function () {
 
     var currentProjectId = String((currentTask && currentTask.project_public_id) || '').trim();
     var currentProjectTitle = String((currentTask && currentTask.project_title) || '').trim();
-    var optionTitle = currentProjectTitle || (currentProjectId ? currentProjectId : 'Без проекта');
+    var optionTitle = currentProjectTitle || (currentProjectId ? currentProjectId : window.CRM.i18n.t('js.br1.bez_proekta_5', 'Без проекта'));
     projectSelect.innerHTML = '<option value="' + escapeHtml(currentProjectId) + '" selected>' + escapeHtml(optionTitle) + '</option>';
   }
 
@@ -2990,11 +2990,11 @@ window.CRM.br1 = (function () {
     var assigneeSelect = formNode.querySelector('[name="assignee_user_public_id"]');
     if (!assigneeSelect) return;
     var selectedAssignee = String(selectedAssigneePublicId || '').trim();
-    assigneeSelect.innerHTML = '<option value="">Не назначен</option>' + availableUsers.map(function (user) {
+    assigneeSelect.innerHTML = window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_6', '<option value="">Не назначен</option>') + availableUsers.map(function (user) {
       var label = String(user.full_name || user.login || user.public_id || '').trim();
       var value = String(user.public_id || '');
       var selected = selectedAssignee === value ? ' selected' : '';
-      return '<option value="' + escapeHtml(value) + '"' + selected + '>' + escapeHtml(label || 'Пользователь') + '</option>';
+      return '<option value="' + escapeHtml(value) + '"' + selected + '>' + escapeHtml(label || window.CRM.i18n.t('js.br1.polzovatel_4', 'Пользователь')) + '</option>';
     }).join('');
   }
 
@@ -3048,29 +3048,29 @@ window.CRM.br1 = (function () {
     setTaskTabCounter('detailSubtasksCounter', Array.isArray(items) ? items.length : 0);
 
     if (!items.length) {
-      list.innerHTML = '<div class="text-muted">Подзадач пока нет. Нажмите «Создать подзадачу», чтобы создать первую.</div>';
+      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_podzadach_poka_net_nazhmite_sozdat', '<div class="text-muted">Подзадач пока нет. Нажмите «Создать подзадачу», чтобы создать первую.</div>');
       return;
     }
 
     list.innerHTML = '<div class="table-responsive"><table class="table align-middle crm-subtasks-table mb-0">'
       + '<thead><tr>'
-      + '<th>Подзадача</th>'
-      + '<th>Дедлайн</th>'
-      + '<th>Статус</th>'
-      + '<th>Приоритет</th>'
-      + '<th class="text-end">Действия</th>'
+      + window.CRM.i18n.t('js.br1.th_podzadacha_th', '<th>Подзадача</th>')
+      + window.CRM.i18n.t('js.br1.th_dedlayn_th', '<th>Дедлайн</th>')
+      + window.CRM.i18n.t('js.br1.th_status_th', '<th>Статус</th>')
+      + window.CRM.i18n.t('js.br1.th_prioritet_th', '<th>Приоритет</th>')
+      + window.CRM.i18n.t('js.br1.th_class_text_end_deystviya_th', '<th class="text-end">Действия</th>')
       + '</tr></thead><tbody>'
       + items.map(function (item) {
         var subtaskId = String(item.public_id || '');
-        var dueLabel = item.due_at ? formatDate(item.due_at) : 'Без дедлайна';
+        var dueLabel = item.due_at ? formatDate(item.due_at) : window.CRM.i18n.t('js.br1.bez_dedlayna', 'Без дедлайна');
         var canEditSubtask = canCreateTask && isSubtaskAuthor(item);
-        var authorLabel = resolveUserDisplayName(item.creator_name || '', item.creator_user_public_id || '', 'Не указан');
+        var authorLabel = resolveUserDisplayName(item.creator_name || '', item.creator_user_public_id || '', window.CRM.i18n.t('js.br1.ne_ukazan_2', 'Не указан'));
         return '<tr data-subtask-id="' + escapeHtml(subtaskId) + '">'
           + '<td>'
           + '<a class="crm-subtask-link fw-semibold" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + '">'
-          + escapeHtml(item.title || 'Без названия')
+          + escapeHtml(item.title || window.CRM.i18n.t('js.br1.bez_nazvaniya', 'Без названия'))
           + '</a>'
-          + '<div class="small text-muted mt-1">Автор: ' + escapeHtml(authorLabel) + '</div>'
+          + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mt_1_avtor', '<div class="small text-muted mt-1">Автор: ') + escapeHtml(authorLabel) + '</div>'
           + '</td>'
           + '<td>' + escapeHtml(dueLabel) + '</td>'
           + '<td style="min-width:190px">'
@@ -3081,8 +3081,8 @@ window.CRM.br1 = (function () {
           + '<td><span class="crm-chip">' + escapeHtml(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
           + '<td class="text-end">'
           + '<div class="d-inline-flex gap-2">'
-          + '<a class="btn btn-sm btn-light crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + '">Открыть</a>'
-          + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-subtask-edit="' + escapeHtml(subtaskId) + '"' + (canEditSubtask ? '' : ' disabled') + '>Редактировать</button>'
+          + '<a class="btn btn-sm btn-light crm-btn-compact" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + window.CRM.i18n.t('js.br1.otkryt_a', '">Открыть</a>')
+          + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-subtask-edit="' + escapeHtml(subtaskId) + '"' + (canEditSubtask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_2', '>Редактировать</button>')
           + '</div>'
           + '</td>'
           + '</tr>';
@@ -3145,15 +3145,15 @@ window.CRM.br1 = (function () {
       + '<article class="crm-checklist-card" data-checklist-id="' + escapeHtml(checklistId) + '">'
       + '<header class="crm-checklist-head">'
       + '<div class="crm-checklist-head-main">'
-      + '<div class="crm-checklist-title">' + escapeHtml(checklist.title || 'Без названия') + '</div>'
+      + '<div class="crm-checklist-title">' + escapeHtml(checklist.title || window.CRM.i18n.t('js.br1.bez_nazvaniya_2', 'Без названия')) + '</div>'
       + '<div class="crm-checklist-progress-line">'
-      + '<span class="crm-checklist-progress-copy">' + escapeHtml(String(progress.done)) + ' из ' + escapeHtml(String(progress.total)) + ' выполнено</span>'
-      + '<div class="crm-checklist-progress-bar" role="progressbar" aria-label="Прогресс чеклиста"><span style="width:' + escapeHtml(String(progress.percent)) + '%"></span></div>'
+      + '<span class="crm-checklist-progress-copy">' + escapeHtml(String(progress.done)) + window.CRM.i18n.t('js.br1.iz', ' из ') + escapeHtml(String(progress.total)) + window.CRM.i18n.t('js.br1.vypolneno_span', ' выполнено</span>')
+      + window.CRM.i18n.t('js.br1.div_class_crm_checklist_progress_bar_role_progressbar_a', '<div class="crm-checklist-progress-bar" role="progressbar" aria-label="Прогресс чеклиста"><span style="width:') + escapeHtml(String(progress.percent)) + '%"></span></div>'
       + '<span class="crm-checklist-progress-percent">' + escapeHtml(String(progress.percent)) + '%</span>'
       + '</div>'
       + '</div>'
       + '<div class="crm-checklist-head-actions">'
-      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>Редактировать</button>'
+      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.redaktirovat_button_3', '>Редактировать</button>')
       + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-more="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>...</button>'
       + '</div>'
       + '</header>'
@@ -3163,21 +3163,21 @@ window.CRM.br1 = (function () {
         return '<li class="crm-checklist-view-item' + (done ? ' is-done' : '') + '">'
           + '<label class="crm-checklist-view-label">'
           + '<input class="form-check-input mt-0" type="checkbox" data-checklist-item-toggle="' + escapeHtml(String(item && item.public_id || '')) + '"' + (done ? ' checked' : '') + (canEditTask ? '' : ' disabled') + '>'
-          + '<span class="crm-checklist-view-title">' + escapeHtml(item && item.title || 'Без названия') + '</span>'
+          + '<span class="crm-checklist-view-title">' + escapeHtml(item && item.title || window.CRM.i18n.t('js.br1.bez_nazvaniya_3', 'Без названия')) + '</span>'
           + '</label>'
-          + '<span class="crm-checklist-view-status">' + (done ? 'Выполнено' : 'Не выполнено') + '</span>'
+          + '<span class="crm-checklist-view-status">' + (done ? window.CRM.i18n.t('js.br1.vypolneno', 'Выполнено') : window.CRM.i18n.t('js.br1.ne_vypolneno', 'Не выполнено')) + '</span>'
           + '</li>';
-      }).join('') : '<li class="crm-checklist-empty">Пунктов пока нет.</li>')
+      }).join('') : window.CRM.i18n.t('js.br1.li_class_crm_checklist_empty_punktov_poka_net_li', '<li class="crm-checklist-empty">Пунктов пока нет.</li>'))
       + '</ul>'
       + (canEditTask
         ? '<div class="crm-checklist-view-add">'
           + (canAdd
             ? '<form class="d-flex gap-2" data-checklist-item-create-view="' + escapeHtml(checklistId) + '">'
-              + '<input class="form-control form-control-sm" name="title" maxlength="255" placeholder="Новый пункт чеклиста" required>'
-              + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Добавить</button>'
-              + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-item-create-cancel="' + escapeHtml(checklistId) + '">Отмена</button>'
+              + window.CRM.i18n.t('js.br1.input_class_form_control_form_control_sm_name_title_max', '<input class="form-control form-control-sm" name="title" maxlength="255" placeholder="Новый пункт чеклиста" required>')
+              + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_primary_crm_btn_compact', '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Добавить</button>')
+              + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-item-create-cancel="' + escapeHtml(checklistId) + window.CRM.i18n.t('js.br1.otmena_button', '">Отмена</button>')
               + '</form>'
-            : '<button class="btn btn-sm btn-link p-0 text-decoration-none" type="button" data-checklist-item-create-toggle="' + escapeHtml(checklistId) + '">+ Добавить пункт</button>')
+            : '<button class="btn btn-sm btn-link p-0 text-decoration-none" type="button" data-checklist-item-create-toggle="' + escapeHtml(checklistId) + window.CRM.i18n.t('js.br1.dobavit_punkt_button', '">+ Добавить пункт</button>'))
           + '</div>'
         : '')
       + '</article>';
@@ -3194,14 +3194,14 @@ window.CRM.br1 = (function () {
       + '<div class="crm-checklist-head-main">'
       + '<input class="form-control crm-checklist-title-input" name="title" maxlength="255" value="' + escapeHtml(draft && draft.title || '') + '"' + (canEditTask ? '' : ' disabled') + '>'
       + '<div class="crm-checklist-progress-line">'
-      + '<span class="crm-checklist-progress-copy">' + escapeHtml(String(progress.done)) + ' из ' + escapeHtml(String(progress.total)) + ' выполнено</span>'
-      + '<div class="crm-checklist-progress-bar" role="progressbar" aria-label="Прогресс чеклиста"><span style="width:' + escapeHtml(String(progress.percent)) + '%"></span></div>'
+      + '<span class="crm-checklist-progress-copy">' + escapeHtml(String(progress.done)) + window.CRM.i18n.t('js.br1.iz_2', ' из ') + escapeHtml(String(progress.total)) + window.CRM.i18n.t('js.br1.vypolneno_span_2', ' выполнено</span>')
+      + window.CRM.i18n.t('js.br1.div_class_crm_checklist_progress_bar_role_progressbar_a_2', '<div class="crm-checklist-progress-bar" role="progressbar" aria-label="Прогресс чеклиста"><span style="width:') + escapeHtml(String(progress.percent)) + '%"></span></div>'
       + '<span class="crm-checklist-progress-percent">' + escapeHtml(String(progress.percent)) + '%</span>'
       + '</div>'
       + '</div>'
       + '<div class="crm-checklist-head-actions">'
-      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit-cancel="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>Отмена</button>'
-      + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit"' + (canEditTask ? '' : ' disabled') + '>Сохранить</button>'
+      + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-checklist-edit-cancel="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.otmena_button_2', '>Отмена</button>')
+      + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.sokhranit_button', '>Сохранить</button>')
       + '</div>'
       + '</header>'
       + '<div class="crm-checklist-edit-items">'
@@ -3211,15 +3211,15 @@ window.CRM.br1 = (function () {
           + '<input class="form-check-input mt-0" type="checkbox" data-checklist-draft-done="' + escapeHtml(String(item.public_id || '')) + '"' + (Number(item.is_done || 0) === 1 ? ' checked' : '') + (canEditTask ? '' : ' disabled') + '>'
           + '<input class="form-control form-control-sm" data-checklist-draft-title="' + escapeHtml(String(item.public_id || '')) + '" maxlength="255" value="' + escapeHtml(item.title || '') + '"' + (canEditTask ? '' : ' disabled') + '>'
           + '<span class="crm-checklist-order-meta small text-muted" aria-hidden="true">#' + escapeHtml(String(index + 1)) + '</span>'
-          + '<button class="btn btn-sm crm-btn-danger-icon" type="button" aria-label="Удалить пункт чеклиста" data-checklist-draft-delete="' + escapeHtml(String(item.public_id || '')) + '"' + (canEditTask ? '' : ' disabled') + '><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span></button>'
+          + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_danger_icon_type_button', '<button class="btn btn-sm crm-btn-danger-icon" type="button" aria-label="Удалить пункт чеклиста" data-checklist-draft-delete="') + escapeHtml(String(item.public_id || '')) + '"' + (canEditTask ? '' : ' disabled') + '><span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span></button>'
           + '</div>';
-      }).join('') : '<div class="crm-checklist-empty">Пунктов пока нет.</div>')
+      }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_checklist_empty_punktov_poka_net_div', '<div class="crm-checklist-empty">Пунктов пока нет.</div>'))
       + '</div>'
       + '<div class="crm-checklist-edit-add">'
-      + '<button class="btn btn-sm btn-link p-0 text-decoration-none" type="button" data-checklist-draft-add-item="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>+ Добавить пункт</button>'
+      + '<button class="btn btn-sm btn-link p-0 text-decoration-none" type="button" data-checklist-draft-add-item="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.dobavit_punkt_button_2', '>+ Добавить пункт</button>')
       + '</div>'
       + '<div class="crm-checklist-edit-danger">'
-      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-checklist-delete="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + '>Удалить чеклист</button>'
+      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-checklist-delete="' + escapeHtml(checklistId) + '"' + (canEditTask ? '' : ' disabled') + window.CRM.i18n.t('js.br1.udalit_cheklist_button', '>Удалить чеклист</button>')
       + '</div>'
       + '</form>'
       + '</article>';
@@ -3231,7 +3231,7 @@ window.CRM.br1 = (function () {
     setTaskTabCounter('detailChecklistsCounter', Array.isArray(items) ? items.length : 0);
 
     if (!items.length) {
-      list.innerHTML = '<div class="text-muted">Чеклистов пока нет. Добавьте первый чеклист выше.</div>';
+      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_cheklistov_poka_net_dobavte_pervyy', '<div class="text-muted">Чеклистов пока нет. Добавьте первый чеклист выше.</div>');
       return;
     }
 
@@ -3300,23 +3300,23 @@ window.CRM.br1 = (function () {
       var joined = raw + ' ' + route;
 
       if (joined.indexOf('comment') >= 0) {
-        if (joined.indexOf('delete') >= 0) return 'Удален комментарий';
-        if (joined.indexOf('update') >= 0 || joined.indexOf('edit') >= 0 || joined.indexOf('patch') >= 0) return 'Изменен комментарий';
-        return 'Добавлен комментарий';
+        if (joined.indexOf('delete') >= 0) return window.CRM.i18n.t('js.br1.udalen_kommentariy', 'Удален комментарий');
+        if (joined.indexOf('update') >= 0 || joined.indexOf('edit') >= 0 || joined.indexOf('patch') >= 0) return window.CRM.i18n.t('js.br1.izmenen_kommentariy', 'Изменен комментарий');
+        return window.CRM.i18n.t('js.br1.dobavlen_kommentariy', 'Добавлен комментарий');
       }
-      if (joined.indexOf('status') >= 0) return 'Изменен статус задачи';
-      if (joined.indexOf('assignee') >= 0) return 'Изменен исполнитель';
-      if (joined.indexOf('manager') >= 0) return 'Изменен менеджер проекта';
-      if (joined.indexOf('project') >= 0) return 'Изменен связанный проект';
-      if (joined.indexOf('tag') >= 0) return 'Обновлены теги задачи';
-      if (joined.indexOf('worklog') >= 0 || joined.indexOf('time') >= 0) return 'Изменен учет времени';
-      if (joined.indexOf('file') >= 0 || joined.indexOf('attachment') >= 0 || joined.indexOf('upload') >= 0) return 'Изменены файлы задачи';
-      if (joined.indexOf('subtask') >= 0) return 'Изменены подзадачи';
-      if (joined.indexOf('checklist') >= 0) return 'Изменен чеклист';
-      if (joined.indexOf('create') >= 0 && joined.indexOf('task') >= 0) return 'Создана задача';
-      if (joined.indexOf('update') >= 0 || joined.indexOf('patch') >= 0 || joined.indexOf('put') >= 0) return 'Обновлены параметры задачи';
-      if (joined.indexOf('delete') >= 0) return 'Выполнено удаление по задаче';
-      return 'Событие по задаче';
+      if (joined.indexOf('status') >= 0) return window.CRM.i18n.t('js.br1.izmenen_status_zadachi', 'Изменен статус задачи');
+      if (joined.indexOf('assignee') >= 0) return window.CRM.i18n.t('js.br1.izmenen_ispolnitel', 'Изменен исполнитель');
+      if (joined.indexOf('manager') >= 0) return window.CRM.i18n.t('js.br1.izmenen_menedzher_proekta', 'Изменен менеджер проекта');
+      if (joined.indexOf('project') >= 0) return window.CRM.i18n.t('js.br1.izmenen_svyazannyy_proekt', 'Изменен связанный проект');
+      if (joined.indexOf('tag') >= 0) return window.CRM.i18n.t('js.br1.obnovleny_tegi_zadachi', 'Обновлены теги задачи');
+      if (joined.indexOf('worklog') >= 0 || joined.indexOf('time') >= 0) return window.CRM.i18n.t('js.br1.izmenen_uchet_vremeni', 'Изменен учет времени');
+      if (joined.indexOf('file') >= 0 || joined.indexOf('attachment') >= 0 || joined.indexOf('upload') >= 0) return window.CRM.i18n.t('js.br1.izmeneny_fayly_zadachi', 'Изменены файлы задачи');
+      if (joined.indexOf('subtask') >= 0) return window.CRM.i18n.t('js.br1.izmeneny_podzadachi', 'Изменены подзадачи');
+      if (joined.indexOf('checklist') >= 0) return window.CRM.i18n.t('js.br1.izmenen_cheklist', 'Изменен чеклист');
+      if (joined.indexOf('create') >= 0 && joined.indexOf('task') >= 0) return window.CRM.i18n.t('js.br1.sozdana_zadacha', 'Создана задача');
+      if (joined.indexOf('update') >= 0 || joined.indexOf('patch') >= 0 || joined.indexOf('put') >= 0) return window.CRM.i18n.t('js.br1.obnovleny_parametry_zadachi', 'Обновлены параметры задачи');
+      if (joined.indexOf('delete') >= 0) return window.CRM.i18n.t('js.br1.vypolneno_udalenie_po_zadache', 'Выполнено удаление по задаче');
+      return window.CRM.i18n.t('js.br1.sobytie_po_zadache', 'Событие по задаче');
     }
 
     function activityReadableDetail(item) {
@@ -3328,9 +3328,9 @@ window.CRM.br1 = (function () {
         var d = item.details;
         if (d.comment_body) return String(d.comment_body);
         if (d.diff && typeof d.diff === 'string') return String(d.diff);
-        if (d.from && d.to) return 'Из "' + String(d.from) + '" в "' + String(d.to) + '"';
+        if (d.from && d.to) return window.CRM.i18n.t('js.br1.iz_3', 'Из "') + String(d.from) + window.CRM.i18n.t('js.br1.v', '" в "') + String(d.to) + '"';
         if (d.status_from || d.status_to) {
-          return 'Из "' + statusLabel(d.status_from || '') + '" в "' + statusLabel(d.status_to || '') + '"';
+          return window.CRM.i18n.t('js.br1.iz_4', 'Из "') + statusLabel(d.status_from || '') + window.CRM.i18n.t('js.br1.v_2', '" в "') + statusLabel(d.status_to || '') + '"';
         }
       }
       return '';
@@ -3345,7 +3345,7 @@ window.CRM.br1 = (function () {
         + (detail ? '<div class="small mt-1">' + escapeHtml(detail) + '</div>' : '')
         + '<div class="small text-muted mt-1">' + escapeHtml(actor) + ' · ' + escapeHtml(formatDate(item.created_at)) + '</div>'
         + '</div>';
-    }).join('') : '<div class="crm-timeline-item">История изменений пока пуста.</div>';
+    }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_timeline_item_istoriya_izmeneniy_poka_pus', '<div class="crm-timeline-item">История изменений пока пуста.</div>');
   }
 
   async function loadTaskActivity(taskId) {
@@ -3373,7 +3373,7 @@ window.CRM.br1 = (function () {
       var items = window.CRM.api.items(envelope);
       renderTaskHistory(items);
     } catch (e) {
-      list.innerHTML = '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>';
+      list.innerHTML = window.CRM.i18n.t('js.br1.tr_td_colspan_5_class_text_muted_net_istorii_izmeneniy', '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>');
     }
   }
 
@@ -3381,19 +3381,19 @@ window.CRM.br1 = (function () {
     var list = document.getElementById('taskHistoryList');
     if (!list) return;
     if (!items || items.length === 0) {
-      list.innerHTML = '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>';
+      list.innerHTML = window.CRM.i18n.t('js.br1.tr_td_colspan_5_class_text_muted_net_istorii_izmeneniy_2', '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>');
       return;
     }
     var fieldLabels = {
-      title: 'Название',
-      description: 'Описание',
-      status_code: 'Статус',
-      assignee_user_public_id: 'Исполнитель',
-      priority_code: 'Приоритет',
-      due_at: 'Дедлайн',
-      project_public_id: 'Проект',
-      estimated_hours: 'Оценка (часы)',
-      actual_hours: 'Факт (часы)'
+      title: window.CRM.i18n.t('js.br1.nazvanie', 'Название'),
+      description: window.CRM.i18n.t('js.br1.opisanie', 'Описание'),
+      status_code: window.CRM.i18n.t('js.br1.status', 'Статус'),
+      assignee_user_public_id: window.CRM.i18n.t('js.br1.ispolnitel', 'Исполнитель'),
+      priority_code: window.CRM.i18n.t('js.br1.prioritet', 'Приоритет'),
+      due_at: window.CRM.i18n.t('js.br1.dedlayn_4', 'Дедлайн'),
+      project_public_id: window.CRM.i18n.t('js.br1.proekt_3', 'Проект'),
+      estimated_hours: window.CRM.i18n.t('js.br1.otsenka_chasy', 'Оценка (часы)'),
+      actual_hours: window.CRM.i18n.t('js.br1.fakt_chasy', 'Факт (часы)')
     };
     list.innerHTML = items.map(function (item) {
       var fieldName = String(item.field_name || item.field || '—');
@@ -3440,21 +3440,21 @@ window.CRM.br1 = (function () {
     async function updateTaskStatus(nextStatus, reasonText) {
       if (!currentTask) return;
       if (!currentTaskPermissions.canWorkItems) {
-        notify('Изменение статуса доступно автору или исполнителю задачи', 'warning');
+        notify(window.CRM.i18n.t('js.br1.izmenenie_statusa_dostupno_avtoru_ili_ispolnitelyu_zada', 'Изменение статуса доступно автору или исполнителю задачи'), 'warning');
         return;
       }
       var targetStatus = String(nextStatus || '').trim();
       if (!targetStatus) {
-        notify('Выберите статус', 'warning');
+        notify(window.CRM.i18n.t('js.br1.vyberite_status', 'Выберите статус'), 'warning');
         return;
       }
       var statusReason = String(reasonText || '').trim();
       if (!statusReason) {
-        notify('Укажите причину смены статуса', 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_prichinu_smeny_statusa', 'Укажите причину смены статуса'), 'warning');
         return;
       }
       if (statusReason.length < 5) {
-        notify('Комментарий к смене статуса должен быть подробнее', 'warning');
+        notify(window.CRM.i18n.t('js.br1.kommentariy_k_smene_statusa_dolzhen_byt_podrobnee', 'Комментарий к смене статуса должен быть подробнее'), 'warning');
         return;
       }
       var oldStatusCode = String(currentTask.status_code || '');
@@ -3479,17 +3479,17 @@ window.CRM.br1 = (function () {
           await window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', {
             method: 'POST',
             body: {
-              body: 'Изменение статуса: "' + oldStatusLabel + '" → "' + newStatusLabel + '". Причина: ' + statusReason
+              body: window.CRM.i18n.t('js.br1.izmenenie_statusa', 'Изменение статуса: "') + oldStatusLabel + '" → "' + newStatusLabel + window.CRM.i18n.t('js.br1.prichina', '". Причина: ') + statusReason
             }
           });
         } catch (commentError) {
-          notify('Статус изменен, но не удалось сохранить комментарий причины', 'warning');
+          notify(window.CRM.i18n.t('js.br1.status_izmenen_no_ne_udalos_sokhranit_kommentariy_prich', 'Статус изменен, но не удалось сохранить комментарий причины'), 'warning');
         }
         await loadTaskActivity(taskId);
-        notify('Статус задачи обновлен');
+        notify(window.CRM.i18n.t('js.br1.status_zadachi_obnovlen', 'Статус задачи обновлен'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось обновить статус', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_status', 'Не удалось обновить статус'), 'error');
       }
     }
 
@@ -3522,7 +3522,7 @@ window.CRM.br1 = (function () {
           return;
         }
         if (!currentTaskPermissions.canWorkItems) {
-          notify('Изменение статуса доступно автору или исполнителю задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.izmenenie_statusa_dostupno_avtoru_ili_ispolnitelyu_zada_2', 'Изменение статуса доступно автору или исполнителю задачи'), 'warning');
           select.value = currentTask ? String(currentTask.status_code || '') : '';
           return;
         }
@@ -3542,7 +3542,7 @@ window.CRM.br1 = (function () {
         if (!select || !currentTask) return;
         var value = String(select.value || '').trim();
         if (!value || String(currentTask.status_code || '') === value) {
-          notify('Выберите новый статус', 'warning');
+          notify(window.CRM.i18n.t('js.br1.vyberite_novyy_status', 'Выберите новый статус'), 'warning');
           return;
         }
         pendingStatus = value;
@@ -3559,7 +3559,7 @@ window.CRM.br1 = (function () {
       reasonForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!pendingStatus) {
-          notify('Сначала выберите новый статус', 'warning');
+          notify(window.CRM.i18n.t('js.br1.snachala_vyberite_novyy_status', 'Сначала выберите новый статус'), 'warning');
           return;
         }
         var reason = reasonInput ? String(reasonInput.value || '').trim() : '';
@@ -3593,7 +3593,7 @@ window.CRM.br1 = (function () {
       mentionSelect.textContent = '';
       var base = document.createElement('option');
       base.value = '';
-      base.textContent = 'Без упоминания';
+      base.textContent = window.CRM.i18n.t('js.br1.bez_upominaniya', 'Без упоминания');
       mentionSelect.appendChild(base);
       availableUsers.forEach(function (user) {
         var userId = String(user && user.public_id || '').trim();
@@ -3614,7 +3614,7 @@ window.CRM.br1 = (function () {
             await window.CRM.api.request('api/v1/subscriptions/' + encodeURIComponent(String(currentTaskFollowSubscription.public_id)), {
               method: 'DELETE'
             });
-            notify('Отслеживание задачи отключено');
+            notify(window.CRM.i18n.t('js.br1.otslezhivanie_zadachi_otklyucheno', 'Отслеживание задачи отключено'));
           } else {
             await window.CRM.api.request('api/v1/subscriptions', {
               method: 'POST',
@@ -3623,12 +3623,12 @@ window.CRM.br1 = (function () {
                 entity_public_id: taskId
               }
             });
-            notify('Отслеживание задачи включено');
+            notify(window.CRM.i18n.t('js.br1.otslezhivanie_zadachi_vklyucheno', 'Отслеживание задачи включено'));
           }
           await loadTaskCollaborationState(taskId);
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось изменить подписку', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_izmenit_podpisku', 'Не удалось изменить подписку'), 'error');
         }
       });
     }
@@ -3641,7 +3641,7 @@ window.CRM.br1 = (function () {
             await window.CRM.api.request('api/v1/favorites/' + encodeURIComponent(String(currentTaskFavorite.public_id)), {
               method: 'DELETE'
             });
-            notify('Убрано из избранного');
+            notify(window.CRM.i18n.t('js.br1.ubrano_iz_izbrannogo', 'Убрано из избранного'));
           } else {
             await window.CRM.api.request('api/v1/favorites', {
               method: 'POST',
@@ -3650,12 +3650,12 @@ window.CRM.br1 = (function () {
                 entity_public_id: taskId
               }
             });
-            notify('Добавлено в избранное');
+            notify(window.CRM.i18n.t('js.br1.dobavleno_v_izbrannoe', 'Добавлено в избранное'));
           }
           await loadTaskCollaborationState(taskId);
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось изменить избранное', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_izmenit_izbrannoe', 'Не удалось изменить избранное'), 'error');
         }
       });
     }
@@ -3680,7 +3680,7 @@ window.CRM.br1 = (function () {
       e.preventDefault();
       var text = textArea ? textArea.value.trim() : '';
       if (!text) {
-        notify('Введите текст комментария', 'warning');
+        notify(window.CRM.i18n.t('js.br1.vvedite_tekst_kommentariya', 'Введите текст комментария'), 'warning');
         return;
       }
 
@@ -3729,10 +3729,10 @@ window.CRM.br1 = (function () {
 
         await loadTaskCollaborationState(taskId);
         await loadTaskComments(taskId);
-        notify('Комментарий сохранен');
+        notify(window.CRM.i18n.t('js.br1.kommentariy_sokhranen', 'Комментарий сохранен'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось сохранить комментарий', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sokhranit_kommentariy', 'Не удалось сохранить комментарий'), 'error');
       }
     });
 
@@ -3764,8 +3764,8 @@ window.CRM.br1 = (function () {
       editor.innerHTML = ''
         + '<textarea class="form-control mb-2" rows="3" data-comment-edit-text="' + commentPublicId + '"></textarea>'
         + '<div class="d-flex gap-2">'
-        + '<button type="button" class="btn btn-sm crm-btn-primary" data-comment-save="' + commentPublicId + '">Сохранить</button>'
-        + '<button type="button" class="btn btn-sm btn-light" data-comment-cancel="' + commentPublicId + '">Отмена</button>'
+        + '<button type="button" class="btn btn-sm crm-btn-primary" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
+        + '<button type="button" class="btn btn-sm btn-light" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
         + '</div>';
       commentCard.appendChild(editor);
 
@@ -3804,10 +3804,10 @@ window.CRM.br1 = (function () {
           });
           await loadTaskCollaborationState(taskId);
           await loadTaskComments(taskId);
-          notify('Реакция сохранена');
+          notify(window.CRM.i18n.t('js.br1.reaktsiya_sokhranena', 'Реакция сохранена'));
         } catch (reactionError) {
           var reactionEnvelopeError = reactionError && reactionError.envelope ? reactionError.envelope : null;
-          notify((reactionEnvelopeError && reactionEnvelopeError.message) || 'Не удалось сохранить реакцию', 'error');
+          notify((reactionEnvelopeError && reactionEnvelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sokhranit_reaktsiyu', 'Не удалось сохранить реакцию'), 'error');
         }
         return;
       }
@@ -3817,7 +3817,7 @@ window.CRM.br1 = (function () {
         var clearCommentId = String(clearReactionBtn.getAttribute('data-comment-reaction-clear') || '').trim();
         var ownReaction = currentTaskOwnReactionsByComment[clearCommentId] || null;
         if (!ownReaction || !ownReaction.public_id) {
-          notify('Для комментария нет вашей реакции', 'warning');
+          notify(window.CRM.i18n.t('js.br1.dlya_kommentariya_net_vashey_reaktsii', 'Для комментария нет вашей реакции'), 'warning');
           return;
         }
         try {
@@ -3826,10 +3826,10 @@ window.CRM.br1 = (function () {
           });
           await loadTaskCollaborationState(taskId);
           await loadTaskComments(taskId);
-          notify('Реакция удалена');
+          notify(window.CRM.i18n.t('js.br1.reaktsiya_udalena', 'Реакция удалена'));
         } catch (clearError) {
           var clearEnvelopeError = clearError && clearError.envelope ? clearError.envelope : null;
-          notify((clearEnvelopeError && clearEnvelopeError.message) || 'Не удалось удалить реакцию', 'error');
+          notify((clearEnvelopeError && clearEnvelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_udalit_reaktsiyu', 'Не удалось удалить реакцию'), 'error');
         }
         return;
       }
@@ -3844,14 +3844,14 @@ window.CRM.br1 = (function () {
 
       var commentAuthorPublicId = String(editorCard.getAttribute('data-comment-author') || '');
       if (!currentUserPublicId || !commentAuthorPublicId || commentAuthorPublicId !== currentUserPublicId) {
-        notify('Редактировать можно только свои комментарии', 'warning');
+        notify(window.CRM.i18n.t('js.br1.redaktirovat_mozhno_tolko_svoi_kommentarii', 'Редактировать можно только свои комментарии'), 'warning');
         return;
       }
 
       var editText = editorCard.querySelector('[data-comment-edit-text="' + commentPublicId + '"]');
       var body = editText ? editText.value.trim() : '';
       if (!body) {
-        notify('Текст комментария не может быть пустым', 'warning');
+        notify(window.CRM.i18n.t('js.br1.tekst_kommentariya_ne_mozhet_byt_pustym', 'Текст комментария не может быть пустым'), 'warning');
         return;
       }
 
@@ -3861,10 +3861,10 @@ window.CRM.br1 = (function () {
           body: { body: body }
         });
         await loadTaskComments(taskId);
-        notify('Комментарий обновлен');
+        notify(window.CRM.i18n.t('js.br1.kommentariy_obnovlen', 'Комментарий обновлен'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось обновить комментарий', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_kommentariy', 'Не удалось обновить комментарий'), 'error');
       }
     });
 
@@ -3879,7 +3879,7 @@ window.CRM.br1 = (function () {
 
     button.addEventListener('click', async function () {
       if (!input.files || !input.files.length) {
-        notify('Выберите файл для загрузки', 'warning');
+        notify(window.CRM.i18n.t('js.br1.vyberite_fayl_dlya_zagruzki', 'Выберите файл для загрузки'), 'warning');
         return;
       }
 
@@ -3909,10 +3909,10 @@ window.CRM.br1 = (function () {
           renderTaskFiles(currentTaskFiles);
 
           input.value = '';
-          notify('Файл загружен');
+          notify(window.CRM.i18n.t('js.br1.fayl_zagruzhen', 'Файл загружен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось загрузить файл', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_zagruzit_fayl', 'Не удалось загрузить файл'), 'error');
         }
       };
 
@@ -3944,7 +3944,7 @@ window.CRM.br1 = (function () {
           });
 
           if (!response.ok) {
-            var errorMessage = 'Не удалось скачать файл';
+            var errorMessage = window.CRM.i18n.t('js.br1.ne_udalos_skachat_fayl', 'Не удалось скачать файл');
             try {
               var errorEnvelope = await response.json();
               errorMessage = (errorEnvelope && errorEnvelope.message) ? String(errorEnvelope.message) : errorMessage;
@@ -3966,7 +3966,7 @@ window.CRM.br1 = (function () {
           document.body.removeChild(a);
           window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
-          notify('Не удалось скачать файл', 'error');
+          notify(window.CRM.i18n.t('js.br1.ne_udalos_skachat_fayl_2', 'Не удалось скачать файл'), 'error');
         }
       });
       list.dataset.downloadBound = '1';
@@ -4021,7 +4021,7 @@ window.CRM.br1 = (function () {
 
         var title = String((createForm.querySelector('[name="title"]') || {}).value || '').trim();
         if (!title) {
-          notify('Введите название подзадачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_podzadachi', 'Введите название подзадачи'), 'warning');
           return;
         }
 
@@ -4055,11 +4055,11 @@ window.CRM.br1 = (function () {
             priority_code: 'normal'
           }, []);
           await loadSubtasks(taskId, canWorkTask, canCreateTask);
-          notify('Подзадача создана');
+          notify(window.CRM.i18n.t('js.br1.podzadacha_sozdana', 'Подзадача создана'));
           window.bootstrap.Modal.getOrCreateInstance(createModalEl).hide();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать подзадачу', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_podzadachu', 'Не удалось создать подзадачу'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -4076,7 +4076,7 @@ window.CRM.br1 = (function () {
           return String(item.public_id || '') === subtaskPublicId;
         });
         if (!editedItem || !isSubtaskAuthor(editedItem)) {
-          notify('Редактировать подзадачу может только ее автор', 'warning');
+          notify(window.CRM.i18n.t('js.br1.redaktirovat_podzadachu_mozhet_tolko_ee_avtor', 'Редактировать подзадачу может только ее автор'), 'warning');
           return;
         }
 
@@ -4111,11 +4111,11 @@ window.CRM.br1 = (function () {
           }
 
           await loadSubtasks(taskId, canWorkTask, canCreateTask);
-          notify('Подзадача обновлена');
+          notify(window.CRM.i18n.t('js.br1.podzadacha_obnovlena', 'Подзадача обновлена'));
           window.bootstrap.Modal.getOrCreateInstance(editModalEl).hide();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить подзадачу', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_podzadachu', 'Не удалось обновить подзадачу'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -4140,10 +4140,10 @@ window.CRM.br1 = (function () {
           }
         });
         await loadSubtasks(taskId, canWorkTask, canCreateTask);
-        notify('Статус подзадачи обновлен');
+        notify(window.CRM.i18n.t('js.br1.status_podzadachi_obnovlen', 'Статус подзадачи обновлен'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось изменить статус подзадачи', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_izmenit_status_podzadachi', 'Не удалось изменить статус подзадачи'), 'error');
       }
     });
 
@@ -4157,7 +4157,7 @@ window.CRM.br1 = (function () {
       });
       if (!subtaskItem) return;
       if (!canCreateTask || !isSubtaskAuthor(subtaskItem)) {
-        notify('Редактировать подзадачу может только ее автор', 'warning');
+        notify(window.CRM.i18n.t('js.br1.redaktirovat_podzadachu_mozhet_tolko_ee_avtor_2', 'Редактировать подзадачу может только ее автор'), 'warning');
         return;
       }
 
@@ -4187,7 +4187,7 @@ window.CRM.br1 = (function () {
         if (!canEditTask) return;
         var title = String((createForm.querySelector('[name="title"]') || {}).value || '').trim();
         if (!title) {
-          notify('Введите название чеклиста', 'warning');
+          notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_cheklista', 'Введите название чеклиста'), 'warning');
           return;
         }
         try {
@@ -4197,10 +4197,10 @@ window.CRM.br1 = (function () {
           });
           createForm.reset();
           await loadChecklists(taskId, canEditTask);
-          notify('Чеклист создан');
+          notify(window.CRM.i18n.t('js.br1.cheklist_sozdan', 'Чеклист создан'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать чеклист', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_cheklist', 'Не удалось создать чеклист'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -4215,7 +4215,7 @@ window.CRM.br1 = (function () {
 
       var nextTitle = String(draft.title || '').trim();
       if (!nextTitle) {
-        notify('Название чеклиста не может быть пустым', 'warning');
+        notify(window.CRM.i18n.t('js.br1.nazvanie_cheklista_ne_mozhet_byt_pustym', 'Название чеклиста не может быть пустым'), 'warning');
         return;
       }
 
@@ -4306,10 +4306,10 @@ window.CRM.br1 = (function () {
           checklistActiveEditId = '';
           delete checklistDraftState[checklistId];
           await loadChecklists(taskId, canEditTask);
-          notify('Чеклист сохранен');
+          notify(window.CRM.i18n.t('js.br1.cheklist_sokhranen', 'Чеклист сохранен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось сохранить чеклист', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sokhranit_cheklist', 'Не удалось сохранить чеклист'), 'error');
         }
         return;
       }
@@ -4321,7 +4321,7 @@ window.CRM.br1 = (function () {
         var checklistPublicId = String(createItemForm.getAttribute('data-checklist-item-create-view') || '');
         var itemTitle = String((createItemForm.querySelector('[name="title"]') || {}).value || '').trim();
         if (!checklistPublicId || !itemTitle) {
-          notify('Введите название пункта', 'warning');
+          notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_punkta', 'Введите название пункта'), 'warning');
           return;
         }
         try {
@@ -4332,10 +4332,10 @@ window.CRM.br1 = (function () {
           createItemForm.reset();
           checklistViewAddItemState[checklistPublicId] = false;
           await loadChecklists(taskId, canEditTask);
-          notify('Пункт чеклиста добавлен');
+          notify(window.CRM.i18n.t('js.br1.punkt_cheklista_dobavlen', 'Пункт чеклиста добавлен'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось добавить пункт', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_dobavit_punkt', 'Не удалось добавить пункт'), 'error');
         }
         return;
       }
@@ -4370,7 +4370,7 @@ window.CRM.br1 = (function () {
         await loadChecklists(taskId, canEditTask);
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось изменить статус пункта', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_izmenit_status_punkta', 'Не удалось изменить статус пункта'), 'error');
       }
     });
 
@@ -4464,10 +4464,10 @@ window.CRM.br1 = (function () {
           delete checklistDraftState[checklistPublicId];
           delete checklistViewAddItemState[checklistPublicId];
           await loadChecklists(taskId, canEditTask);
-          notify('Чеклист удален');
+          notify(window.CRM.i18n.t('js.br1.cheklist_udalen', 'Чеклист удален'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить чеклист', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_udalit_cheklist', 'Не удалось удалить чеклист'), 'error');
         }
         return;
       }
@@ -4481,17 +4481,17 @@ window.CRM.br1 = (function () {
     var total = Number(minutes || 0);
     var hours = Math.floor(total / 60);
     var mins = total % 60;
-    if (hours <= 0) return String(mins) + ' мин';
-    return String(hours) + ' ч ' + String(mins) + ' мин';
+    if (hours <= 0) return String(mins) + window.CRM.i18n.t('js.br1.min', ' мин');
+    return String(hours) + window.CRM.i18n.t('js.br1.ch', ' ч ') + String(mins) + window.CRM.i18n.t('js.br1.min_2', ' мин');
   }
 
   function formatWorklogEntriesLabel(count) {
     var normalized = Number(count || 0);
     var mod10 = normalized % 10;
     var mod100 = normalized % 100;
-    if (mod10 === 1 && mod100 !== 11) return String(normalized) + ' запись';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return String(normalized) + ' записи';
-    return String(normalized) + ' записей';
+    if (mod10 === 1 && mod100 !== 11) return String(normalized) + window.CRM.i18n.t('js.br1.zapis', ' запись');
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return String(normalized) + window.CRM.i18n.t('js.br1.zapisi', ' записи');
+    return String(normalized) + window.CRM.i18n.t('js.br1.zapisey', ' записей');
   }
 
   function toApiDatetimeFromLocal(value) {
@@ -4582,7 +4582,7 @@ window.CRM.br1 = (function () {
 
     if (!canUseTimer) {
       elapsedEl.textContent = '00:00:00';
-      startedAtEl.textContent = 'Таймер недоступен: недостаточно прав';
+      startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_nedostupen_nedostatochno_prav', 'Таймер недоступен: недостаточно прав');
       startBtn.disabled = true;
       stopBtn.disabled = true;
       if (timerForm) timerForm.classList.add('d-none');
@@ -4591,7 +4591,7 @@ window.CRM.br1 = (function () {
 
     if (!hasState) {
       elapsedEl.textContent = '00:00:00';
-      startedAtEl.textContent = 'Таймер не запущен';
+      startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_ne_zapushchen', 'Таймер не запущен');
       startBtn.disabled = false;
       stopBtn.disabled = true;
       return;
@@ -4612,7 +4612,7 @@ window.CRM.br1 = (function () {
         elapsedEl.textContent = formatElapsedSeconds(seconds);
       };
 
-      startedAtEl.textContent = 'Старт: ' + formatDate(state.started_at);
+      startedAtEl.textContent = window.CRM.i18n.t('js.br1.start', 'Старт: ') + formatDate(state.started_at);
       updateElapsed();
       taskTimerTickIntervalId = window.setInterval(updateElapsed, 1000);
       return;
@@ -4620,9 +4620,9 @@ window.CRM.br1 = (function () {
 
     elapsedEl.textContent = '00:00:00';
     if (isCurrentUser) {
-      startedAtEl.textContent = 'У вас уже запущен таймер в другой задаче';
+      startedAtEl.textContent = window.CRM.i18n.t('js.br1.u_vas_uzhe_zapushchen_taymer_v_drugoy_zadache', 'У вас уже запущен таймер в другой задаче');
     } else {
-      startedAtEl.textContent = 'Таймер занят другим пользователем';
+      startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_zanyat_drugim_polzovatelem', 'Таймер занят другим пользователем');
     }
     startBtn.disabled = true;
     stopBtn.disabled = true;
@@ -4654,9 +4654,9 @@ window.CRM.br1 = (function () {
       var currentUserId = getCurrentUserPublicId();
       if (activeState && String(activeState.user_public_id || '') === String(currentUserId || '')) {
         if (String(activeState.task_public_id || '') === String(taskId || '')) {
-          notify('Таймер уже запущен для этой задачи', 'warning');
+          notify(window.CRM.i18n.t('js.br1.taymer_uzhe_zapushchen_dlya_etoy_zadachi', 'Таймер уже запущен для этой задачи'), 'warning');
         } else {
-          notify('Сначала остановите таймер в другой задаче', 'warning');
+          notify(window.CRM.i18n.t('js.br1.snachala_ostanovite_taymer_v_drugoy_zadache', 'Сначала остановите таймер в другой задаче'), 'warning');
         }
         return;
       }
@@ -4672,14 +4672,14 @@ window.CRM.br1 = (function () {
       if (noteInput) noteInput.value = '';
       timerForm.classList.add('d-none');
       renderTaskTimerState(taskId, readTaskTimerState());
-      notify('Таймер запущен');
+      notify(window.CRM.i18n.t('js.br1.taymer_zapushchen', 'Таймер запущен'));
     });
 
     stopBtn.addEventListener('click', function () {
       var state = readTaskTimerState();
       var currentUserId = getCurrentUserPublicId();
       if (!state || String(state.user_public_id || '') !== String(currentUserId || '') || String(state.task_public_id || '') !== String(taskId || '')) {
-        notify('Активный таймер для этой задачи не найден', 'warning');
+        notify(window.CRM.i18n.t('js.br1.aktivnyy_taymer_dlya_etoy_zadachi_ne_nayden', 'Активный таймер для этой задачи не найден'), 'warning');
         renderTaskTimerState(taskId, state);
         return;
       }
@@ -4690,7 +4690,7 @@ window.CRM.br1 = (function () {
       if (Number.isNaN(startMs)) {
         clearTaskTimerState();
         renderTaskTimerState(taskId, null);
-        notify('Таймер был повреждён и сброшен', 'warning');
+        notify(window.CRM.i18n.t('js.br1.taymer_byl_povrezhdyon_i_sbroshen', 'Таймер был повреждён и сброшен'), 'warning');
         return;
       }
 
@@ -4720,18 +4720,18 @@ window.CRM.br1 = (function () {
     timerForm.addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!pendingLogPayload) {
-        notify('Сначала остановите таймер', 'warning');
+        notify(window.CRM.i18n.t('js.br1.snachala_ostanovite_taymer', 'Сначала остановите таймер'), 'warning');
         return;
       }
 
       var minutes = Number(minutesInput ? minutesInput.value : 0);
       var note = String(noteInput ? noteInput.value : '').trim();
       if (minutes <= 0) {
-        notify('Укажите количество минут больше нуля', 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya', 'Укажите количество минут больше нуля'), 'warning');
         return;
       }
       if (!note) {
-        notify('Опишите, что было сделано', 'warning');
+        notify(window.CRM.i18n.t('js.br1.opishite_chto_bylo_sdelano', 'Опишите, что было сделано'), 'warning');
         return;
       }
 
@@ -4754,10 +4754,10 @@ window.CRM.br1 = (function () {
         await loadTaskWorklogs(taskId);
         await loadTaskActivity(taskId);
         renderTaskTimerState(taskId, null);
-        notify('Время по таймеру добавлено в учёт');
+        notify(window.CRM.i18n.t('js.br1.vremya_po_taymeru_dobavleno_v_uchyot', 'Время по таймеру добавлено в учёт'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось сохранить время по таймеру', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sokhranit_vremya_po_taymeru', 'Не удалось сохранить время по таймеру'), 'error');
       }
     });
 
@@ -4782,13 +4782,13 @@ window.CRM.br1 = (function () {
         card.setAttribute('data-ai-state', String(stateCode || 'idle'));
       }
       if (stateNode) {
-        stateNode.textContent = String(message || ('Состояние: ' + String(stateCode || 'idle')));
+        stateNode.textContent = String(message || (window.CRM.i18n.t('js.br1.sostoyanie', 'Состояние: ') + String(stateCode || 'idle')));
       }
     }
 
     if (!stateNode || !resultNode || !summaryNode || !metaNode || !previewNode || !previewWrap) return;
     if (!suggestion) {
-      setTaskCardState('empty', 'AI-сводка не сформирована.');
+      setTaskCardState('empty', window.CRM.i18n.t('js.br1.ai_svodka_ne_sformirovana', 'AI-сводка не сформирована.'));
       resultNode.classList.add('d-none');
       previewWrap.classList.add('d-none');
       if (dismissBtn) dismissBtn.disabled = true;
@@ -4797,9 +4797,9 @@ window.CRM.br1 = (function () {
       return;
     }
 
-    setTaskCardState('ready', 'Сформировано: ' + formatDate(suggestion.created_at || ''));
+    setTaskCardState('ready', window.CRM.i18n.t('js.br1.sformirovano', 'Сформировано: ') + formatDate(suggestion.created_at || ''));
     summaryNode.textContent = String(suggestion.summary || '—');
-    metaNode.textContent = 'Статус: ' + String(suggestion.status || 'draft');
+    metaNode.textContent = window.CRM.i18n.t('js.br1.status_2', 'Статус: ') + String(suggestion.status || 'draft');
     resultNode.classList.remove('d-none');
     var isFinal = String(suggestion.status || '') === 'applied' || String(suggestion.status || '') === 'dismissed';
     if (dismissBtn) dismissBtn.disabled = isFinal;
@@ -4892,7 +4892,7 @@ window.CRM.br1 = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || window.CRM.i18n.t('js.br1.ne_udalos_vypolnit_ai_zapros', 'Не удалось выполнить AI-запрос'))
       };
     }
 
@@ -4920,7 +4920,7 @@ window.CRM.br1 = (function () {
         card.setAttribute('data-ai-state', String(stateCode || 'idle'));
       }
       if (stateNode) {
-        stateNode.textContent = String(message || ('Состояние: ' + String(stateCode || 'idle')));
+        stateNode.textContent = String(message || (window.CRM.i18n.t('js.br1.sostoyanie_2', 'Состояние: ') + String(stateCode || 'idle')));
       }
     }
 
@@ -4938,12 +4938,12 @@ window.CRM.br1 = (function () {
           aiError: aiError,
           controls: primaryButtons.concat([previewBtn, applyBtn, dismissBtn]),
           setState: setTaskAiState,
-          fallbackMessage: 'AI-действие временно недоступно.'
+          fallbackMessage: window.CRM.i18n.t('js.br1.ai_deystvie_vremenno_nedostupno', 'AI-действие временно недоступно.')
         });
         return;
       }
       setTaskAiHardDisabled(true);
-      setTaskAiState(toAiUiState(aiError), String((aiError && aiError.message) || 'AI-действие временно недоступно.'));
+      setTaskAiState(toAiUiState(aiError), String((aiError && aiError.message) || window.CRM.i18n.t('js.br1.ai_deystvie_vremenno_nedostupno_2', 'AI-действие временно недоступно.')));
     }
 
     if (generateBtn.dataset.bound === '1') {
@@ -4958,7 +4958,7 @@ window.CRM.br1 = (function () {
         onApply: function (selectedActions) {
           var selected = Array.isArray(selectedActions) ? selectedActions : [];
           if (selected.length === 0) {
-            notify('Выберите хотя бы одно действие для применения', 'warning');
+            notify(window.CRM.i18n.t('js.br1.vyberite_khotya_by_odno_deystvie_dlya_primeneniya', 'Выберите хотя бы одно действие для применения'), 'warning');
             return;
           }
           pendingSelectedActions = selected.slice();
@@ -4975,12 +4975,12 @@ window.CRM.br1 = (function () {
 
     function showHighRiskModal(actions) {
       if (!highRiskModal || !highRiskConfirmBtn || !window.bootstrap || typeof window.bootstrap.Modal !== 'function') {
-        return Promise.resolve(window.confirm('Вы выбрали действие с повышенным риском. Продолжить применение?'));
+        return Promise.resolve(window.confirm(window.CRM.i18n.t('js.br1.vy_vybrali_deystvie_s_povyshennym_riskom_prodolzhit_pri', 'Вы выбрали действие с повышенным риском. Продолжить применение?')));
       }
       var highRiskActions = actions.filter(function (a) { return a && a.high_risk; });
       if (highRiskActionsNode) {
         highRiskActionsNode.innerHTML = '<ul class="mb-0 ps-3">' + highRiskActions.map(function (a) {
-          var label = a.label || a.field || a.type || 'действие';
+          var label = a.label || a.field || a.type || window.CRM.i18n.t('js.br1.deystvie', 'действие');
           return '<li>' + escapeHtml(label) + '</li>';
         }).join('') + '</ul>';
       }
@@ -5007,11 +5007,11 @@ window.CRM.br1 = (function () {
       if (aiClient && typeof aiClient.canPreviewSuggestion === 'function' && !aiClient.canPreviewSuggestion(currentTaskAiSuggestion)) {
         var blockedMessage = typeof aiClient.suggestionPreviewPolicyMessage === 'function'
           ? aiClient.suggestionPreviewPolicyMessage(currentTaskAiSuggestion)
-          : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+          : window.CRM.i18n.t('js.br1.predprosmotr_vremenno_nedostupen_obnovite_ai_rezultat', 'Предпросмотр временно недоступен. Обновите AI-результат.');
         setTaskAiState('ready', blockedMessage);
         return null;
       }
-      setTaskAiState('loading', 'Подготавливаем preview AI-предложения...');
+      setTaskAiState('loading', window.CRM.i18n.t('js.br1.podgotavlivaem_preview_ai_predlozheniya', 'Подготавливаем preview AI-предложения...'));
       var envelope = aiClient && typeof aiClient.previewSuggestion === 'function'
         ? await aiClient.previewSuggestion(currentTaskAiSuggestion.public_id)
         : await window.CRM.api.request('api/v1/ai/suggestions/' + encodeURIComponent(currentTaskAiSuggestion.public_id) + '/preview-apply', {
@@ -5033,7 +5033,7 @@ window.CRM.br1 = (function () {
         pendingRegenerateIntent = { intentPath: intentPath, payload: payload || {}, successMessage: successMessage, options: opts };
         if (regenerateSummaryNode) regenerateSummaryNode.textContent = String(currentTaskAiSuggestion.summary || '—');
         if (regenerateStatusNode) {
-          var statusLabels = { draft: 'Черновик', ready: 'Готово', applied: 'Применено', dismissed: 'Отклонено', error: 'Ошибка' };
+          var statusLabels = { draft: window.CRM.i18n.t('js.br1.chernovik', 'Черновик'), ready: window.CRM.i18n.t('js.br1.gotovo_5', 'Готово'), applied: window.CRM.i18n.t('js.br1.primeneno', 'Применено'), dismissed: window.CRM.i18n.t('js.br1.otkloneno', 'Отклонено'), error: window.CRM.i18n.t('js.br1.oshibka', 'Ошибка') };
           regenerateStatusNode.textContent = statusLabels[String(currentTaskAiSuggestion.status || '')] || String(currentTaskAiSuggestion.status || '—');
         }
         if (regenerateUpdatedNode) regenerateUpdatedNode.textContent = String(currentTaskAiSuggestion.updated_at || '—');
@@ -5047,7 +5047,7 @@ window.CRM.br1 = (function () {
     }
 
     async function doRequestTaskSuggestion(intentPath, payload, successMessage, opts) {
-      setTaskAiState('loading', 'Формируем AI-предложение по задаче...');
+      setTaskAiState('loading', window.CRM.i18n.t('js.br1.formiruem_ai_predlozhenie_po_zadache', 'Формируем AI-предложение по задаче...'));
 
       var envelope = aiClient && typeof aiClient.requestAi === 'function'
         ? await aiClient.requestAi('api/v1/ai/tasks/' + encodeURIComponent(taskId) + '/' + intentPath, payload || {})
@@ -5068,7 +5068,7 @@ window.CRM.br1 = (function () {
           pendingRegenerateIntent = { intentPath: intentPath, payload: payload || {}, successMessage: successMessage, options: opts };
           if (regenerateSummaryNode) regenerateSummaryNode.textContent = String(currentTaskAiSuggestion.summary || '—');
           if (regenerateStatusNode) {
-            var statusLabels = { draft: 'Черновик', ready: 'Готово', applied: 'Применено', dismissed: 'Отклонено', error: 'Ошибка' };
+            var statusLabels = { draft: window.CRM.i18n.t('js.br1.chernovik_2', 'Черновик'), ready: window.CRM.i18n.t('js.br1.gotovo_6', 'Готово'), applied: window.CRM.i18n.t('js.br1.primeneno_2', 'Применено'), dismissed: window.CRM.i18n.t('js.br1.otkloneno_2', 'Отклонено'), error: window.CRM.i18n.t('js.br1.oshibka_2', 'Ошибка') };
             regenerateStatusNode.textContent = statusLabels[String(currentTaskAiSuggestion.status || '')] || String(currentTaskAiSuggestion.status || '—');
           }
           if (regenerateUpdatedNode) regenerateUpdatedNode.textContent = String(currentTaskAiSuggestion.updated_at || '—');
@@ -5099,7 +5099,7 @@ window.CRM.br1 = (function () {
     }
 
     async function doRegenerateTaskSuggestion(intentPath, payload, successMessage, opts) {
-      setTaskAiState('loading', 'Перегенерируем AI-предложение...');
+      setTaskAiState('loading', window.CRM.i18n.t('js.br1.peregeneriruem_ai_predlozhenie', 'Перегенерируем AI-предложение...'));
 
       var requestPayload = Object.assign({}, payload || {}, { force_refresh: true });
       var envelope = aiClient && typeof aiClient.requestAi === 'function'
@@ -5156,19 +5156,19 @@ window.CRM.br1 = (function () {
           return String(c && c.type || '') === 'update_task_description' || String(c && c.field || '') === 'task.description';
         });
         if (!descChange || !descChange.value) {
-          setTaskAiState('ready', 'AI не предложил изменений описания.');
-          notify('AI не предложил изменений описания.', 'warning');
+          setTaskAiState('ready', window.CRM.i18n.t('js.br1.ai_ne_predlozhil_izmeneniy_opisaniya', 'AI не предложил изменений описания.'));
+          notify(window.CRM.i18n.t('js.br1.ai_ne_predlozhil_izmeneniy_opisaniya_2', 'AI не предложил изменений описания.'), 'warning');
           return;
         }
 
         var confirmed = await confirmDescriptionDiff(descChange.value);
         if (!confirmed) {
-          setTaskAiState('ready', 'Применение отменено.');
-          notify('Применение отменено.', 'warning');
+          setTaskAiState('ready', window.CRM.i18n.t('js.br1.primenenie_otmeneno', 'Применение отменено.'));
+          notify(window.CRM.i18n.t('js.br1.primenenie_otmeneno_2', 'Применение отменено.'), 'warning');
           return;
         }
 
-        setTaskAiState('loading', 'Применяем улучшение описания...');
+        setTaskAiState('loading', window.CRM.i18n.t('js.br1.primenyaem_uluchshenie_opisaniya', 'Применяем улучшение описания...'));
         var rowVersion = Number(currentTask && currentTask.row_version ? currentTask.row_version : 0);
         if (!rowVersion) {
           var reloadEnvelope = await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId));
@@ -5203,16 +5203,16 @@ window.CRM.br1 = (function () {
         latestPreview = null;
         pendingSelectedActions = [];
         renderTaskAiSuggestionCard(currentTaskAiSuggestion, null);
-        setTaskAiState('applied', 'AI-предложение применено.');
+        setTaskAiState('applied', window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno', 'AI-предложение применено.'));
         if (aiClient && typeof aiClient.setDrawerState === 'function') {
           aiClient.setDrawerState('applied');
         }
         await loadTaskActivity(taskId);
-        notify('Описание задачи улучшено.');
+        notify(window.CRM.i18n.t('js.br1.opisanie_zadachi_uluchsheno', 'Описание задачи улучшено.'));
       } catch (error) {
-        var aiError = toAiUiError(error, 'Не удалось улучшить описание');
-        setTaskAiState(toAiUiState(aiError), aiError.message || 'Не удалось улучшить описание');
-        notify(aiError.message || 'Не удалось улучшить описание', 'error');
+        var aiError = toAiUiError(error, window.CRM.i18n.t('js.br1.ne_udalos_uluchshit_opisanie', 'Не удалось улучшить описание'));
+        setTaskAiState(toAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_uluchshit_opisanie_2', 'Не удалось улучшить описание'));
+        notify(aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_uluchshit_opisanie_3', 'Не удалось улучшить описание'), 'error');
       }
     }
 
@@ -5230,9 +5230,9 @@ window.CRM.br1 = (function () {
         } catch (previewError) {
           var previewCode = previewError && previewError.code ? String(previewError.code) : '';
           var previewMsg = previewError && previewError.message ? String(previewError.message) : '';
-          if (previewCode === 'AI_SUGGESTION_NOT_ACTIONABLE' || previewCode === 'AI_SUGGESTION_STALE' || previewMsg.indexOf('устарело') >= 0 || previewMsg.indexOf('уже применено') >= 0) {
-            setTaskAiState('ready', 'AI-предложение уже применено.');
-            notify('AI-предложение уже применено. Нажмите кнопку ещё раз для перегенерации.', 'warning');
+          if (previewCode === 'AI_SUGGESTION_NOT_ACTIONABLE' || previewCode === 'AI_SUGGESTION_STALE' || previewMsg.indexOf(window.CRM.i18n.t('js.br1.ustarelo', 'устарело')) >= 0 || previewMsg.indexOf(window.CRM.i18n.t('js.br1.uzhe_primeneno', 'уже применено')) >= 0) {
+            setTaskAiState('ready', window.CRM.i18n.t('js.br1.ai_predlozhenie_uzhe_primeneno', 'AI-предложение уже применено.'));
+            notify(window.CRM.i18n.t('js.br1.ai_predlozhenie_uzhe_primeneno_nazhmite_knopku_eshchyo', 'AI-предложение уже применено. Нажмите кнопку ещё раз для перегенерации.'), 'warning');
             return;
           }
           throw previewError;
@@ -5252,8 +5252,8 @@ window.CRM.br1 = (function () {
         }) : [];
 
         if (selectedActions.length === 0) {
-          setTaskAiState('ready', 'AI-предложение сформировано. Нет действий для применения.');
-          notify('AI-предложение сформировано. Нет действий для применения.', 'warning');
+          setTaskAiState('ready', window.CRM.i18n.t('js.br1.ai_predlozhenie_sformirovano_net_deystviy_dlya_primenen', 'AI-предложение сформировано. Нет действий для применения.'));
+          notify(window.CRM.i18n.t('js.br1.ai_predlozhenie_sformirovano_net_deystviy_dlya_primenen_2', 'AI-предложение сформировано. Нет действий для применения.'), 'warning');
           return;
         }
 
@@ -5263,18 +5263,18 @@ window.CRM.br1 = (function () {
         if (hasHighRisk) {
           var confirmed = await showHighRiskModal(selectedActions);
           if (!confirmed) {
-            setTaskAiState('ready', 'AI-предложение сформировано. Применение отменено.');
-            notify('Применение отменено.', 'warning');
+            setTaskAiState('ready', window.CRM.i18n.t('js.br1.ai_predlozhenie_sformirovano_primenenie_otmeneno', 'AI-предложение сформировано. Применение отменено.'));
+            notify(window.CRM.i18n.t('js.br1.primenenie_otmeneno_3', 'Применение отменено.'), 'warning');
             return;
           }
         }
 
-        setTaskAiState('loading', 'Применяем AI-предложение...');
+        setTaskAiState('loading', window.CRM.i18n.t('js.br1.primenyaem_ai_predlozhenie', 'Применяем AI-предложение...'));
         var applyResult = await applySelectedActions(selectedActions);
 
         if (applyResult.appliedCount <= 0) {
-          setTaskAiState('error', 'Не удалось применить AI-предложение.');
-          notify('Не удалось применить AI-предложение.', 'error');
+          setTaskAiState('error', window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_predlozhenie', 'Не удалось применить AI-предложение.'));
+          notify(window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_predlozhenie_2', 'Не удалось применить AI-предложение.'), 'error');
           return;
         }
 
@@ -5311,7 +5311,7 @@ window.CRM.br1 = (function () {
         renderTaskAiSuggestionCard(currentTaskAiSuggestion, latestPreview);
         setTaskAiState(
           isPartiallyApplied ? 'partially_applied' : 'applied',
-          isPartiallyApplied ? 'AI-предложение применено частично.' : 'AI-предложение применено.'
+          isPartiallyApplied ? window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_chastichno', 'AI-предложение применено частично.') : window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_2', 'AI-предложение применено.')
         );
         if (aiClient && typeof aiClient.setDrawerState === 'function') {
           aiClient.setDrawerState(isPartiallyApplied ? 'partially_applied' : 'applied');
@@ -5328,11 +5328,11 @@ window.CRM.br1 = (function () {
         if (applyResult.touchedActivity || applyResult.touchedDescription) {
           await loadTaskActivity(taskId);
         }
-        notify('AI-предложение применено: ' + String(applyResult.appliedCount) + ' действ.');
+        notify(window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_3', 'AI-предложение применено: ') + String(applyResult.appliedCount) + window.CRM.i18n.t('js.br1.deystv', ' действ.'));
       } catch (error) {
-        var aiError = toAiUiError(error, 'Не удалось применить AI-предложение');
-        setTaskAiState(toAiUiState(aiError), aiError.message || 'Не удалось применить AI-предложение');
-        notify(aiError.message || 'Не удалось применить AI-предложение', 'error');
+        var aiError = toAiUiError(error, window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_predlozhenie_3', 'Не удалось применить AI-предложение'));
+        setTaskAiState(toAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_predlozhenie_4', 'Не удалось применить AI-предложение'));
+        notify(aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_predlozhenie_5', 'Не удалось применить AI-предложение'), 'error');
       }
     }
 
@@ -5345,11 +5345,11 @@ window.CRM.br1 = (function () {
 
     async function confirmDescriptionDiff(newDescription) {
       if (!descriptionDiffModal || !descriptionDiffApplyBtn || !window.bootstrap || typeof window.bootstrap.Modal !== 'function') {
-        return window.confirm('Применить улучшенное описание задачи?');
+        return window.confirm(window.CRM.i18n.t('js.br1.primenit_uluchshennoe_opisanie_zadachi', 'Применить улучшенное описание задачи?'));
       }
 
       if (descriptionDiffOldNode) {
-        descriptionDiffOldNode.textContent = String(currentTask && currentTask.description ? currentTask.description : 'Описание отсутствует');
+        descriptionDiffOldNode.textContent = String(currentTask && currentTask.description ? currentTask.description : window.CRM.i18n.t('js.br1.opisanie_otsutstvuet_2', 'Описание отсутствует'));
       }
       if (descriptionDiffNewNode) {
         descriptionDiffNewNode.textContent = String(newDescription || '').trim();
@@ -5523,7 +5523,7 @@ window.CRM.br1 = (function () {
             throw {
               envelope: {
                 code: 'AI_ROW_VERSION_CONFLICT',
-                message: 'Для изменения описания требуется актуальная версия задачи.'
+                message: window.CRM.i18n.t('js.br1.dlya_izmeneniya_opisaniya_trebuetsya_aktualnaya_versiya', 'Для изменения описания требуется актуальная версия задачи.')
               }
             };
           }
@@ -5560,7 +5560,7 @@ window.CRM.br1 = (function () {
             throw {
               envelope: {
                 code: 'AI_CALENDAR_MODAL_NOT_AVAILABLE',
-                message: 'Не удалось открыть форму встречи. Обновите страницу и повторите.'
+                message: window.CRM.i18n.t('js.br1.ne_udalos_otkryt_formu_vstrechi_obnovite_stranitsu_i_po', 'Не удалось открыть форму встречи. Обновите страницу и повторите.')
               }
             };
           }
@@ -5573,7 +5573,7 @@ window.CRM.br1 = (function () {
         if (actionType || actionField || actionValue) {
           invalidCount += 1;
           skippedActionTypes.push(actionType || actionField || 'unknown_action');
-          warnings.push('Невалидное или неподдерживаемое AI-действие пропущено: ' + (actionType || actionField || 'unknown_action'));
+          warnings.push(window.CRM.i18n.t('js.br1.nevalidnoe_ili_nepodderzhivaemoe_ai_deystvie_propushche', 'Невалидное или неподдерживаемое AI-действие пропущено: ') + (actionType || actionField || 'unknown_action'));
         }
       }
 
@@ -5640,37 +5640,37 @@ window.CRM.br1 = (function () {
       button.dataset.bound = '1';
     }
 
-    bindIntentButton(generateBtn, 'summary', 'AI-сводка сформирована', 'Не удалось сформировать AI-сводку', function () {
-      return { prompt: 'Сделай краткую read-only сводку по задаче.' };
+    bindIntentButton(generateBtn, 'summary', window.CRM.i18n.t('js.br1.ai_svodka_sformirovana', 'AI-сводка сформирована'), window.CRM.i18n.t('js.br1.ne_udalos_sformirovat_ai_svodku', 'Не удалось сформировать AI-сводку'), function () {
+      return { prompt: window.CRM.i18n.t('js.br1.sdelay_kratkuyu_read_only_svodku_po_zadache', 'Сделай краткую read-only сводку по задаче.') };
     }, { showDrawer: true });
-    bindIntentButton(nextActionBtn, 'next-action', 'AI-следующий шаг сформирован', 'Не удалось сформировать следующий шаг', function () {
+    bindIntentButton(nextActionBtn, 'next-action', window.CRM.i18n.t('js.br1.ai_sleduyushchiy_shag_sformirovan', 'AI-следующий шаг сформирован'), window.CRM.i18n.t('js.br1.ne_udalos_sformirovat_sleduyushchiy_shag', 'Не удалось сформировать следующий шаг'), function () {
       return {};
     }, { showDrawer: true });
-    bindIntentButton(decomposeBtn, 'decompose', 'AI-предложение подзадач сформировано', 'Не удалось сформировать предложение подзадач', function () {
+    bindIntentButton(decomposeBtn, 'decompose', window.CRM.i18n.t('js.br1.ai_predlozhenie_podzadach_sformirovano', 'AI-предложение подзадач сформировано'), window.CRM.i18n.t('js.br1.ne_udalos_sformirovat_predlozhenie_podzadach', 'Не удалось сформировать предложение подзадач'), function () {
       return {};
     }, { showDrawer: true });
-    bindIntentButton(checklistBtn, 'checklist', 'AI-предложение чеклиста сформировано', 'Не удалось сформировать AI-чеклист', function () {
+    bindIntentButton(checklistBtn, 'checklist', window.CRM.i18n.t('js.br1.ai_predlozhenie_cheklista_sformirovano', 'AI-предложение чеклиста сформировано'), window.CRM.i18n.t('js.br1.ne_udalos_sformirovat_ai_cheklist', 'Не удалось сформировать AI-чеклист'), function () {
       return {};
     }, { showDrawer: true });
-    bindIntentButton(improveDescriptionBtn, 'summary', 'AI-предложение улучшенного описания сформировано', 'Не удалось улучшить описание', function () {
+    bindIntentButton(improveDescriptionBtn, 'summary', window.CRM.i18n.t('js.br1.ai_predlozhenie_uluchshennogo_opisaniya_sformirovano', 'AI-предложение улучшенного описания сформировано'), window.CRM.i18n.t('js.br1.ne_udalos_uluchshit_opisanie_4', 'Не удалось улучшить описание'), function () {
       return {
-        prompt: 'Сфокусируйся на улучшении описания задачи. Верни результат строго в structured JSON по системной схеме task_summary с полями improved_description и suggested_actions(update_task_description).'
+        prompt: window.CRM.i18n.t('js.br1.sfokusiruysya_na_uluchshenii_opisaniya_zadachi_verni_re', 'Сфокусируйся на улучшении описания задачи. Верни результат строго в structured JSON по системной схеме task_summary с полями improved_description и suggested_actions(update_task_description).')
       };
     }, { autoApply: true });
-    bindIntentButton(commentDraftBtn, 'comment-draft', 'AI-черновик комментария сформирован', 'Не удалось сформировать AI-черновик комментария', function () {
+    bindIntentButton(commentDraftBtn, 'comment-draft', window.CRM.i18n.t('js.br1.ai_chernovik_kommentariya_sformirovan', 'AI-черновик комментария сформирован'), window.CRM.i18n.t('js.br1.ne_udalos_sformirovat_ai_chernovik_kommentariya', 'Не удалось сформировать AI-черновик комментария'), function () {
       return {};
     }, { showDrawer: true });
-    bindIntentButton(qualityBtn, 'quality', 'AI-проверка задачи сформирована', 'Не удалось выполнить AI-проверку задачи', function () {
+    bindIntentButton(qualityBtn, 'quality', window.CRM.i18n.t('js.br1.ai_proverka_zadachi_sformirovana', 'AI-проверка задачи сформирована'), window.CRM.i18n.t('js.br1.ne_udalos_vypolnit_ai_proverku_zadachi', 'Не удалось выполнить AI-проверку задачи'), function () {
       return {};
     }, { showDrawer: true });
 
     if (createMeetingBtn && createMeetingBtn.dataset.bound !== '1') {
       createMeetingBtn.addEventListener('click', function () {
         if (!openTaskLinkedCalendarModal()) {
-          notify('Не удалось открыть форму встречи. Обновите страницу и повторите.', 'error');
+          notify(window.CRM.i18n.t('js.br1.ne_udalos_otkryt_formu_vstrechi_obnovite_stranitsu_i_po_2', 'Не удалось открыть форму встречи. Обновите страницу и повторите.'), 'error');
           return;
         }
-        notify('Открыта форма встречи. Проверьте детали и сохраните событие вручную.');
+        notify(window.CRM.i18n.t('js.br1.otkryta_forma_vstrechi_proverte_detali_i_sokhranite_sob', 'Открыта форма встречи. Проверьте детали и сохраните событие вручную.'));
       });
       createMeetingBtn.dataset.bound = '1';
     }
@@ -5678,13 +5678,13 @@ window.CRM.br1 = (function () {
     if (previewBtn) {
       previewBtn.addEventListener('click', async function () {
         if (!currentTaskAiSuggestion || !currentTaskAiSuggestion.public_id) {
-          notify('Сначала сформируйте AI-сводку', 'warning');
+          notify(window.CRM.i18n.t('js.br1.snachala_sformiruyte_ai_svodku', 'Сначала сформируйте AI-сводку'), 'warning');
           return;
         }
         if (aiClient && typeof aiClient.canPreviewSuggestion === 'function' && !aiClient.canPreviewSuggestion(currentTaskAiSuggestion)) {
           var blockedMessage = typeof aiClient.suggestionPreviewPolicyMessage === 'function'
             ? aiClient.suggestionPreviewPolicyMessage(currentTaskAiSuggestion)
-            : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+            : window.CRM.i18n.t('js.br1.predprosmotr_vremenno_nedostupen_obnovite_ai_rezultat_2', 'Предпросмотр временно недоступен. Обновите AI-результат.');
           setTaskAiState('ready', blockedMessage);
           if (aiClient && typeof aiClient.openSuggestionDrawer === 'function') {
             aiClient.openSuggestionDrawer(currentTaskAiSuggestion, null, ensureDrawerHandlers());
@@ -5698,14 +5698,14 @@ window.CRM.br1 = (function () {
           if (aiClient && typeof aiClient.openSuggestionDrawer === 'function') {
             aiClient.openSuggestionDrawer(currentTaskAiSuggestion, preview, ensureDrawerHandlers());
           }
-          notify('Предпросмотр готов. Изменения применяются только вручную.');
+          notify(window.CRM.i18n.t('js.br1.predprosmotr_gotov_izmeneniya_primenyayutsya_tolko_vruc', 'Предпросмотр готов. Изменения применяются только вручную.'));
         } catch (error) {
-          var aiError = toAiUiError(error, 'Не удалось построить предпросмотр');
-          setTaskAiState(toAiUiState(aiError), aiError.message || 'Не удалось построить предпросмотр');
+          var aiError = toAiUiError(error, window.CRM.i18n.t('js.br1.ne_udalos_postroit_predprosmotr', 'Не удалось построить предпросмотр'));
+          setTaskAiState(toAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_postroit_predprosmotr_2', 'Не удалось построить предпросмотр'));
           if (aiClient && typeof aiClient.renderAiError === 'function') {
-            aiClient.renderAiError(error, 'Не удалось построить предпросмотр');
+            aiClient.renderAiError(error, window.CRM.i18n.t('js.br1.ne_udalos_postroit_predprosmotr_3', 'Не удалось построить предпросмотр'));
           }
-          notify(aiError.message || 'Не удалось построить предпросмотр', 'error');
+          notify(aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_postroit_predprosmotr_4', 'Не удалось построить предпросмотр'), 'error');
         } finally {
           previewBtn.disabled = false;
         }
@@ -5715,11 +5715,11 @@ window.CRM.br1 = (function () {
     if (dismissBtn) {
       dismissBtn.addEventListener('click', async function () {
         if (!currentTaskAiSuggestion || !currentTaskAiSuggestion.public_id) {
-          notify('Сводка не выбрана', 'warning');
+          notify(window.CRM.i18n.t('js.br1.svodka_ne_vybrana', 'Сводка не выбрана'), 'warning');
           return;
         }
         dismissBtn.disabled = true;
-        setTaskAiState('loading', 'Отклоняем AI-предложение...');
+        setTaskAiState('loading', window.CRM.i18n.t('js.br1.otklonyaem_ai_predlozhenie', 'Отклоняем AI-предложение...'));
         try {
           var envelope = aiClient && typeof aiClient.dismissSuggestion === 'function'
             ? await aiClient.dismissSuggestion(currentTaskAiSuggestion.public_id)
@@ -5729,24 +5729,24 @@ window.CRM.br1 = (function () {
             });
           currentTaskAiSuggestion = envelope && envelope.data ? envelope.data.suggestion : currentTaskAiSuggestion;
           renderTaskAiSuggestionCard(currentTaskAiSuggestion, null);
-          setTaskAiState('dismissed', 'AI-предложение скрыто.');
+          setTaskAiState('dismissed', window.CRM.i18n.t('js.br1.ai_predlozhenie_skryto', 'AI-предложение скрыто.'));
           if (aiClient && typeof aiClient.setDrawerState === 'function') {
             aiClient.setDrawerState('dismissed');
           }
           if (aiClient && typeof aiClient.closeSuggestionDrawer === 'function') {
             aiClient.closeSuggestionDrawer();
           }
-          notify('AI-предложение скрыто');
+          notify(window.CRM.i18n.t('js.br1.ai_predlozhenie_skryto_2', 'AI-предложение скрыто'));
         } catch (error) {
-          var aiError = toAiUiError(error, 'Не удалось скрыть AI-предложение');
-          setTaskAiState(toAiUiState(aiError), aiError.message || 'Не удалось скрыть AI-предложение');
+          var aiError = toAiUiError(error, window.CRM.i18n.t('js.br1.ne_udalos_skryt_ai_predlozhenie', 'Не удалось скрыть AI-предложение'));
+          setTaskAiState(toAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_skryt_ai_predlozhenie_2', 'Не удалось скрыть AI-предложение'));
           if (aiClient && typeof aiClient.renderAiError === 'function') {
-            aiClient.renderAiError(error, 'Не удалось скрыть AI-предложение');
+            aiClient.renderAiError(error, window.CRM.i18n.t('js.br1.ne_udalos_skryt_ai_predlozhenie_3', 'Не удалось скрыть AI-предложение'));
           }
           if (aiClient && typeof aiClient.closeSuggestionDrawer === 'function') {
             aiClient.closeSuggestionDrawer();
           }
-          notify(aiError.message || 'Не удалось скрыть AI-предложение', 'error');
+          notify(aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_skryt_ai_predlozhenie_4', 'Не удалось скрыть AI-предложение'), 'error');
         } finally {
           dismissBtn.disabled = false;
         }
@@ -5756,16 +5756,16 @@ window.CRM.br1 = (function () {
     if (applyBtn) {
       applyBtn.addEventListener('click', async function () {
         if (!currentTaskAiSuggestion || !currentTaskAiSuggestion.public_id) {
-          notify('Сначала сформируйте AI-сводку', 'warning');
+          notify(window.CRM.i18n.t('js.br1.snachala_sformiruyte_ai_svodku_2', 'Сначала сформируйте AI-сводку'), 'warning');
           return;
         }
         if (String(currentTaskAiSuggestion.status || '') === 'applied') {
-          notify('Предложение уже применено', 'warning');
+          notify(window.CRM.i18n.t('js.br1.predlozhenie_uzhe_primeneno', 'Предложение уже применено'), 'warning');
           return;
         }
 
         applyBtn.disabled = true;
-        setTaskAiState('loading', 'Применяем выбранные AI-действия...');
+        setTaskAiState('loading', window.CRM.i18n.t('js.br1.primenyaem_vybrannye_ai_deystviya', 'Применяем выбранные AI-действия...'));
         try {
           if (!latestPreview) {
             await loadSuggestionPreview();
@@ -5784,7 +5784,7 @@ window.CRM.br1 = (function () {
               };
             })) : []);
           if (selectedActions.length === 0) {
-            notify('Для этого предложения нет действий применения. Режим read-only.', 'warning');
+            notify(window.CRM.i18n.t('js.br1.dlya_etogo_predlozheniya_net_deystviy_primeneniya_rezhi', 'Для этого предложения нет действий применения. Режим read-only.'), 'warning');
             return;
           }
 
@@ -5818,11 +5818,11 @@ window.CRM.br1 = (function () {
                 });
               currentTaskAiSuggestion = failedEnvelope && failedEnvelope.data ? failedEnvelope.data.suggestion : currentTaskAiSuggestion;
               renderTaskAiSuggestionCard(currentTaskAiSuggestion, latestPreview);
-              setTaskAiState('error', 'AI-действия не применены: обнаружены невалидные пункты.');
-              notify('AI-действия не применены: обнаружены невалидные пункты.', 'warning');
+              setTaskAiState('error', window.CRM.i18n.t('js.br1.ai_deystviya_ne_primeneny_obnaruzheny_nevalidnye_punkty', 'AI-действия не применены: обнаружены невалидные пункты.'));
+              notify(window.CRM.i18n.t('js.br1.ai_deystviya_ne_primeneny_obnaruzheny_nevalidnye_punkty_2', 'AI-действия не применены: обнаружены невалидные пункты.'), 'warning');
               return;
             }
-            notify('Не выбрано ни одного применимого действия', 'warning');
+            notify(window.CRM.i18n.t('js.br1.ne_vybrano_ni_odnogo_primenimogo_deystviya', 'Не выбрано ни одного применимого действия'), 'warning');
             return;
           }
 
@@ -5861,8 +5861,8 @@ window.CRM.br1 = (function () {
           setTaskAiState(
             isPartiallyApplied ? 'partially_applied' : 'applied',
             isPartiallyApplied
-              ? 'AI-предложение применено частично.'
-              : 'AI-предложение применено.'
+              ? window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_chastichno_2', 'AI-предложение применено частично.')
+              : window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_4', 'AI-предложение применено.')
           );
           if (aiClient && typeof aiClient.setDrawerState === 'function') {
             aiClient.setDrawerState(isPartiallyApplied ? 'partially_applied' : 'applied');
@@ -5883,18 +5883,18 @@ window.CRM.br1 = (function () {
     await loadTaskActivity(taskId);
     await loadTaskHistory(taskId);
           }
-          notify('AI-предложение применено: ' + String(applyResult.appliedCount) + ' действ.');
+          notify(window.CRM.i18n.t('js.br1.ai_predlozhenie_primeneno_5', 'AI-предложение применено: ') + String(applyResult.appliedCount) + window.CRM.i18n.t('js.br1.deystv_2', ' действ.'));
         } catch (error) {
-          var aiError = toAiUiError(error, 'Не удалось применить AI-сводку');
-          setTaskAiState(toAiUiState(aiError), aiError.message || 'Не удалось применить AI-сводку');
+          var aiError = toAiUiError(error, window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_svodku', 'Не удалось применить AI-сводку'));
+          setTaskAiState(toAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_svodku_2', 'Не удалось применить AI-сводку'));
           pendingSelectedActions = [];
           if (aiClient && typeof aiClient.renderAiError === 'function') {
-            aiClient.renderAiError(error, 'Не удалось применить AI-сводку');
+            aiClient.renderAiError(error, window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_svodku_3', 'Не удалось применить AI-сводку'));
           }
           if (aiClient && typeof aiClient.closeSuggestionDrawer === 'function') {
             aiClient.closeSuggestionDrawer();
           }
-          notify(aiError.message || 'Не удалось применить AI-сводку', 'error');
+          notify(aiError.message || window.CRM.i18n.t('js.br1.ne_udalos_primenit_ai_svodku_4', 'Не удалось применить AI-сводку'), 'error');
         } finally {
           applyBtn.disabled = false;
         }
@@ -5908,10 +5908,10 @@ window.CRM.br1 = (function () {
         if (regenerateInfo) regenerateInfo.classList.remove('d-none');
         if (regenerateLoading) regenerateLoading.classList.add('d-none');
         if (regenerateFooter) regenerateFooter.classList.remove('d-none');
-        if (regenerateModalTitle) regenerateModalTitle.textContent = 'AI-предложение уже существует';
+        if (regenerateModalTitle) regenerateModalTitle.textContent = window.CRM.i18n.t('js.br1.ai_predlozhenie_uzhe_sushchestvuet', 'AI-предложение уже существует');
         if (regenerateBtn) {
           regenerateBtn.disabled = false;
-          regenerateBtn.innerHTML = 'Перегенерировать';
+          regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.peregenerirovat', 'Перегенерировать');
         }
       });
       regenerateBtn.addEventListener('click', function () {
@@ -5920,12 +5920,12 @@ window.CRM.br1 = (function () {
         pendingRegenerateIntent = null;
         if (regenerateInfo) regenerateInfo.classList.add('d-none');
         if (regenerateLoading) regenerateLoading.classList.remove('d-none');
-        if (regenerateLoadingText) regenerateLoadingText.textContent = 'Перегенерируем AI-предложение...';
+        if (regenerateLoadingText) regenerateLoadingText.textContent = window.CRM.i18n.t('js.br1.peregeneriruem_ai_predlozhenie_2', 'Перегенерируем AI-предложение...');
         if (regenerateFooter) regenerateFooter.classList.add('d-none');
-        if (regenerateModalTitle) regenerateModalTitle.textContent = 'Перегенерация AI';
+        if (regenerateModalTitle) regenerateModalTitle.textContent = window.CRM.i18n.t('js.br1.peregeneratsiya_ai', 'Перегенерация AI');
         if (regenerateBtn) {
           regenerateBtn.disabled = true;
-          regenerateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Перегенерация...';
+          regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.span_class_spinner_border_spinner_border_sm_me_1_span_p', '<span class="spinner-border spinner-border-sm me-1"></span>Перегенерация...');
         }
         doRegenerateTaskSuggestion(intent.intentPath, intent.payload, intent.successMessage, intent.options).then(function () {
           if (regenerateModalInstance) {
@@ -5935,10 +5935,10 @@ window.CRM.br1 = (function () {
           if (regenerateInfo) regenerateInfo.classList.remove('d-none');
           if (regenerateLoading) regenerateLoading.classList.add('d-none');
           if (regenerateFooter) regenerateFooter.classList.remove('d-none');
-          if (regenerateModalTitle) regenerateModalTitle.textContent = 'AI-предложение уже существует';
+          if (regenerateModalTitle) regenerateModalTitle.textContent = window.CRM.i18n.t('js.br1.ai_predlozhenie_uzhe_sushchestvuet_2', 'AI-предложение уже существует');
           if (regenerateBtn) {
             regenerateBtn.disabled = false;
-            regenerateBtn.innerHTML = 'Перегенерировать';
+            regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.peregenerirovat_2', 'Перегенерировать');
           }
         });
       });
@@ -5992,18 +5992,18 @@ window.CRM.br1 = (function () {
           + '<span class="crm-worklog-user-pct">(' + pct + '%)</span></div>';
       });
       var userBreakdownBlock = sortedUsers.length > 1
-        ? '<article class="crm-worklog-summary-card crm-worklog-summary-users"><div class="crm-worklog-summary-label">По пользователям</div>' + userBreakdownHtml + '</article>'
+        ? window.CRM.i18n.t('js.br1.article_class_crm_worklog_summary_card_crm_worklog_summ', '<article class="crm-worklog-summary-card crm-worklog-summary-users"><div class="crm-worklog-summary-label">По пользователям</div>') + userBreakdownHtml + '</article>'
         : '';
 
       summary.innerHTML = '<article class="crm-worklog-summary-card">'
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>'
         + '<div class="crm-worklog-summary-value">' + escapeHtml(formatMinutes(totalMinutes)) + '</div>'
-        + '<div class="crm-worklog-summary-label">Всего времени</div>'
+        + window.CRM.i18n.t('js.br1.div_class_crm_worklog_summary_label_vsego_vremeni_div', '<div class="crm-worklog-summary-label">Всего времени</div>')
         + '</article>'
         + '<article class="crm-worklog-summary-card">'
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>'
         + '<div class="crm-worklog-summary-value">' + escapeHtml(formatWorklogEntriesLabel(items.length)) + '</div>'
-        + '<div class="crm-worklog-summary-label">В журнале</div>'
+        + window.CRM.i18n.t('js.br1.div_class_crm_worklog_summary_label_v_zhurnale_div', '<div class="crm-worklog-summary-label">В журнале</div>')
         + '</article>'
         + userBreakdownBlock;
     }
@@ -6023,7 +6023,7 @@ window.CRM.br1 = (function () {
     if (addToggleBtn) addToggleBtn.classList.toggle('d-none', worklogAddOpen);
 
     if (!items.length) {
-      list.innerHTML = '<div class="text-muted">Записей времени пока нет.</div>';
+      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_zapisey_vremeni_poka_net_div', '<div class="text-muted">Записей времени пока нет.</div>');
       return;
     }
 
@@ -6035,30 +6035,30 @@ window.CRM.br1 = (function () {
       var note = String(item.note || '').trim();
       var noteHtml = note
         ? '<div class="crm-worklog-note">' + escapeHtml(note) + '</div>'
-        : '<div class="crm-worklog-note text-muted">Комментарий не указан</div>';
+        : window.CRM.i18n.t('js.br1.div_class_crm_worklog_note_text_muted_kommentariy_ne_uk', '<div class="crm-worklog-note text-muted">Комментарий не указан</div>');
       if (!isEditing) {
         return '<article class="crm-worklog-card" data-worklog-id="' + escapeHtml(worklogId) + '">'
           + '<div class="crm-worklog-view-head">'
           + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(formatMinutes(item.minutes_spent || 0)) + '</strong>'
           + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span></div>'
-          + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + '">Редактировать</button>'
-          + '<details class="crm-worklog-more"><summary class="btn btn-light crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="' + escapeHtml(worklogId) + '">Удалить</button></div></details></div>'
+          + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '">Редактировать</button>')
+          + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn btn-light crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
           + '</div>'
           + noteHtml
-          + '<div class="crm-worklog-meta">Автор: ' + escapeHtml(author) + ' · Создано: ' + escapeHtml(formatDate(item.created_at)) + '</div>'
+          + window.CRM.i18n.t('js.br1.div_class_crm_worklog_meta_avtor', '<div class="crm-worklog-meta">Автор: ') + escapeHtml(author) + window.CRM.i18n.t('js.br1.sozdano', ' · Создано: ') + escapeHtml(formatDate(item.created_at)) + '</div>'
           + '</article>';
       }
       return '<article class="crm-worklog-card is-editing" data-worklog-id="' + escapeHtml(worklogId) + '">'
-        + '<div class="crm-worklog-edit-badge">Режим редактирования</div>'
+        + window.CRM.i18n.t('js.br1.div_class_crm_worklog_edit_badge_rezhim_redaktirovaniya', '<div class="crm-worklog-edit-badge">Режим редактирования</div>')
         + '<form class="row g-2" data-worklog-update-form="' + escapeHtml(worklogId) + '">'
-        + '<div class="col-md-3"><label class="form-label">Минуты</label><input class="form-control" type="number" min="1" step="1" name="minutes_spent" value="' + escapeHtml(draft.minutes_spent) + '" required></div>'
-        + '<div class="col-md-3"><label class="form-label">Дата/время</label><input class="form-control" type="datetime-local" name="logged_at" value="' + escapeHtml(draft.logged_at) + '" required></div>'
-        + '<div class="col-md-6"><label class="form-label">Комментарий</label><input class="form-control" name="note" maxlength="8000" value="' + escapeHtml(draft.note) + '"></div>'
-        + '<div class="col-12"><div class="crm-worklog-meta">Автор: ' + escapeHtml(author) + ' · Создано: ' + escapeHtml(formatDate(item.created_at)) + '</div></div>'
+        + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_minuty_label', '<div class="col-md-3"><label class="form-label">Минуты</label><input class="form-control" type="number" min="1" step="1" name="minutes_spent" value="') + escapeHtml(draft.minutes_spent) + '" required></div>'
+        + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_data_vremya_l', '<div class="col-md-3"><label class="form-label">Дата/время</label><input class="form-control" type="datetime-local" name="logged_at" value="') + escapeHtml(draft.logged_at) + '" required></div>'
+        + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_kommentariy_l', '<div class="col-md-6"><label class="form-label">Комментарий</label><input class="form-control" name="note" maxlength="8000" value="') + escapeHtml(draft.note) + '"></div>'
+        + window.CRM.i18n.t('js.br1.div_class_col_12_div_class_crm_worklog_meta_avtor', '<div class="col-12"><div class="crm-worklog-meta">Автор: ') + escapeHtml(author) + window.CRM.i18n.t('js.br1.sozdano_2', ' · Создано: ') + escapeHtml(formatDate(item.created_at)) + '</div></div>'
         + '<div class="col-12 crm-task-row-actions">'
-        + '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Сохранить</button>'
-        + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-worklog-edit-cancel="' + escapeHtml(worklogId) + '">Отмена</button>'
-        + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete="' + escapeHtml(worklogId) + '">Удалить</button>'
+        + window.CRM.i18n.t('js.br1.button_class_btn_btn_sm_crm_btn_primary_crm_btn_compact_2', '<button class="btn btn-sm crm-btn-primary crm-btn-compact" type="submit">Сохранить</button>')
+        + '<button class="btn btn-sm btn-light crm-btn-compact" type="button" data-worklog-edit-cancel="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.otmena_button_4', '">Отмена</button>')
+        + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button', '">Удалить</button>')
         + '</div>'
         + '</form>'
         + '</article>';
@@ -6122,11 +6122,11 @@ window.CRM.br1 = (function () {
         var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
 
         if (minutes <= 0) {
-          notify('Укажите количество минут больше нуля', 'warning');
+          notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_2', 'Укажите количество минут больше нуля'), 'warning');
           return;
         }
         if (!loggedAtRaw) {
-          notify('Укажите дату и время', 'warning');
+          notify(window.CRM.i18n.t('js.br1.ukazhite_datu_i_vremya', 'Укажите дату и время'), 'warning');
           return;
         }
 
@@ -6144,10 +6144,10 @@ window.CRM.br1 = (function () {
           worklogCreateDraft = getDefaultWorklogDraft();
           await loadTaskWorklogs(taskId);
           await loadTaskActivity(taskId);
-          notify('Запись времени добавлена');
+          notify(window.CRM.i18n.t('js.br1.zapis_vremeni_dobavlena', 'Запись времени добавлена'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось добавить запись времени', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_dobavit_zapis_vremeni', 'Не удалось добавить запись времени'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -6181,11 +6181,11 @@ window.CRM.br1 = (function () {
       var loggedAtRaw = String((form.querySelector('[name="logged_at"]') || {}).value || '').trim();
       var loggedAt = toApiDatetimeFromLocal(loggedAtRaw);
       if (minutes <= 0) {
-        notify('Укажите количество минут больше нуля', 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_3', 'Укажите количество минут больше нуля'), 'warning');
         return;
       }
       if (!loggedAtRaw) {
-        notify('Укажите дату и время', 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_datu_i_vremya_2', 'Укажите дату и время'), 'warning');
         return;
       }
 
@@ -6202,10 +6202,10 @@ window.CRM.br1 = (function () {
         delete worklogEditDrafts[worklogId];
         await loadTaskWorklogs(taskId);
         await loadTaskActivity(taskId);
-        notify('Запись времени обновлена');
+        notify(window.CRM.i18n.t('js.br1.zapis_vremeni_obnovlena', 'Запись времени обновлена'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось обновить запись времени', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_zapis_vremeni', 'Не удалось обновить запись времени'), 'error');
       }
     });
 
@@ -6238,7 +6238,7 @@ window.CRM.br1 = (function () {
       var worklogId = String(deleteBtn.getAttribute('data-worklog-delete') || '');
       if (!worklogId) worklogId = String(deleteBtn.getAttribute('data-worklog-delete-view') || '');
       if (!worklogId) return;
-      if (!window.confirm('Удалить запись времени?')) return;
+      if (!window.confirm(window.CRM.i18n.t('js.br1.udalit_zapis_vremeni', 'Удалить запись времени?'))) return;
 
       try {
         await window.CRM.api.request('api/v1/worklogs/' + worklogId, { method: 'DELETE' });
@@ -6246,10 +6246,10 @@ window.CRM.br1 = (function () {
         delete worklogEditDrafts[worklogId];
         await loadTaskWorklogs(taskId);
         await loadTaskActivity(taskId);
-        notify('Запись времени удалена');
+        notify(window.CRM.i18n.t('js.br1.zapis_vremeni_udalena', 'Запись времени удалена'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось удалить запись времени', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_udalit_zapis_vremeni', 'Не удалось удалить запись времени'), 'error');
       }
     });
 
@@ -6286,15 +6286,15 @@ window.CRM.br1 = (function () {
 
       var section = String(form.getAttribute('data-task-manage-form') || '');
       if (section === 'identity' && !currentTaskPermissions.canEditIdentity) {
-        notify('Изменение названия и описания доступно только автору задачи', 'warning');
+        notify(window.CRM.i18n.t('js.br1.izmenenie_nazvaniya_i_opisaniya_dostupno_tolko_avtoru_z', 'Изменение названия и описания доступно только автору задачи'), 'warning');
         return;
       }
       if (section === 'workflow' && !currentTaskPermissions.canEditWorkflow) {
-        notify('Изменение статуса и приоритета доступно автору или исполнителю задачи', 'warning');
+        notify(window.CRM.i18n.t('js.br1.izmenenie_statusa_i_prioriteta_dostupno_avtoru_ili_ispo', 'Изменение статуса и приоритета доступно автору или исполнителю задачи'), 'warning');
         return;
       }
       if ((section === 'assignment' || section === 'project' || section === 'tags') && !currentTaskPermissions.canEditIdentity) {
-        notify('Изменение этого блока доступно только автору задачи', 'warning');
+        notify(window.CRM.i18n.t('js.br1.izmenenie_etogo_bloka_dostupno_tolko_avtoru_zadachi', 'Изменение этого блока доступно только автору задачи'), 'warning');
         return;
       }
 
@@ -6303,7 +6303,7 @@ window.CRM.br1 = (function () {
           var titleValue = String((form.querySelector('[name="title"]') || {}).value || '').trim();
           var descriptionValue = String((form.querySelector('[name="description"]') || {}).value || '').trim();
           if (!titleValue) {
-            notify('Введите название задачи', 'warning');
+            notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi_2', 'Введите название задачи'), 'warning');
             return;
           }
           var identityEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId, {
@@ -6340,7 +6340,7 @@ window.CRM.br1 = (function () {
             bulkChanges.assignee_user_public_id = ((form.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim();
             var managerPublicId = ((form.querySelector('[name="manager_user_public_id"]') || {}).value || '').trim();
             if (managerPublicId && !currentTask.project_public_id) {
-              notify('Чтобы назначить менеджера, сначала выберите проект для задачи', 'warning');
+              notify(window.CRM.i18n.t('js.br1.chtoby_naznachit_menedzhera_snachala_vyberite_proekt_dl', 'Чтобы назначить менеджера, сначала выберите проект для задачи'), 'warning');
               return;
             }
             if (currentTask.project_public_id && String(managerPublicId) !== String(currentTask.project_manager_user_public_id || '')) {
@@ -6389,10 +6389,10 @@ window.CRM.br1 = (function () {
         renderTaskSidebarSummary();
         renderTaskStatus(currentTask.status_code);
         await loadTaskActivity(taskId);
-        notify('Параметры задачи обновлены');
+        notify(window.CRM.i18n.t('js.br1.parametry_zadachi_obnovleny', 'Параметры задачи обновлены'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось обновить параметры задачи', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_parametry_zadachi', 'Не удалось обновить параметры задачи'), 'error');
       }
     });
 
@@ -6458,7 +6458,7 @@ window.CRM.br1 = (function () {
 
       var title = titleInput ? titleInput.value.trim() : '';
       if (!title) {
-        notify('Введите название задачи', 'warning');
+        notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi_3', 'Введите название задачи'), 'warning');
         return;
       }
 
@@ -6523,18 +6523,18 @@ window.CRM.br1 = (function () {
         renderTaskRiskBanner();
         var subtitle = document.querySelector('.crm-subtitle');
         if (subtitle) {
-          subtitle.textContent = 'Проект: ' + (currentTask.project_title || '—')
-            + ' · Дедлайн: ' + (currentTask.due_at ? formatDate(currentTask.due_at) : 'не задан');
+          subtitle.textContent = window.CRM.i18n.t('js.br1.proekt_4', 'Проект: ') + (currentTask.project_title || '—')
+            + window.CRM.i18n.t('js.br1.dedlayn_5', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_3', 'не задан'));
         }
         await loadTaskActivity(taskId);
 
         if (window.bootstrap) {
           window.bootstrap.Modal.getOrCreateInstance(modal).hide();
         }
-        notify('Задача обновлена');
+        notify(window.CRM.i18n.t('js.br1.zadacha_obnovlena', 'Задача обновлена'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось обновить задачу', 'error');
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_zadachu', 'Не удалось обновить задачу'), 'error');
       }
     });
 
@@ -6584,7 +6584,7 @@ window.CRM.br1 = (function () {
     var projectSelect = form.querySelector('[name="project_public_id"]');
     if (projectSelect) {
       var projects = availableProjects || [];
-      var projectOptions = ['<option value="">Без проекта</option>'].concat(projects.map(function (p) {
+      var projectOptions = [window.CRM.i18n.t('js.br1.option_value_bez_proekta_option_4', '<option value="">Без проекта</option>')].concat(projects.map(function (p) {
         var selected = currentTask && String(currentTask.project_public_id || '') === String(p.public_id || '') ? ' selected' : '';
         return '<option value="' + escapeHtml(p.public_id || '') + '"' + selected + '>' + escapeHtml(p.title || p.public_id || '') + '</option>';
       }));
@@ -6594,10 +6594,10 @@ window.CRM.br1 = (function () {
     var statusSelect = form.querySelector('[name="status"]');
     if (statusSelect) {
       var fallbackStatuses = [
-        { code: 'new', title: 'К выполнению' },
-        { code: 'in_progress', title: 'В работе' },
-        { code: 'blocked', title: 'Блокировано' },
-        { code: 'done', title: 'Готово' }
+        { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_5', 'К выполнению') },
+        { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_5', 'В работе') },
+        { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_4', 'Блокировано') },
+        { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_7', 'Готово') }
       ];
       var statuses = (availableTaskStatuses && availableTaskStatuses.length) ? availableTaskStatuses.slice() : fallbackStatuses;
       if (currentTask && currentTask.status_code) {
@@ -6618,10 +6618,10 @@ window.CRM.br1 = (function () {
       var priorities = (typeof availablePriorities !== 'undefined' && availablePriorities && availablePriorities.length)
         ? availablePriorities
         : [
-            { code: 'low', title: 'Низкий' },
-            { code: 'normal', title: 'Нормальный' },
-            { code: 'high', title: 'Высокий' },
-            { code: 'urgent', title: 'Срочный' }
+            { code: 'low', title: window.CRM.i18n.t('js.br1.nizkiy_3', 'Низкий') },
+            { code: 'normal', title: window.CRM.i18n.t('js.br1.normalnyy_3', 'Нормальный') },
+            { code: 'high', title: window.CRM.i18n.t('js.br1.vysokiy_3', 'Высокий') },
+            { code: 'urgent', title: window.CRM.i18n.t('js.br1.srochnyy_3', 'Срочный') }
           ];
       prioritySelect.innerHTML = priorities.map(function (p) {
         var selected = currentTask && String(currentTask.priority_code || 'normal') === String(p.code || '') ? ' selected' : '';
@@ -6632,7 +6632,7 @@ window.CRM.br1 = (function () {
     var assigneeSelect = form.querySelector('[name="assignee_user_public_id"]');
     if (assigneeSelect) {
       var users = availableUsers || [];
-      var assigneeOptions = ['<option value="">Не назначен</option>'].concat(users.map(function (u) {
+      var assigneeOptions = [window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_7', '<option value="">Не назначен</option>')].concat(users.map(function (u) {
         var selected = currentTask && String(currentTask.assignee_user_public_id || '') === String(u.public_id || '') ? ' selected' : '';
         return '<option value="' + escapeHtml(u.public_id || '') + '"' + selected + '>' + escapeHtml(u.full_name || u.login || u.public_id || '') + '</option>';
       }));
@@ -6657,7 +6657,7 @@ window.CRM.br1 = (function () {
 
     var taskId = await resolveTaskForDetail();
     if (!taskId) {
-      notify('Не удалось определить задачу для карточки', 'warning');
+      notify(window.CRM.i18n.t('js.br1.ne_udalos_opredelit_zadachu_dlya_kartochki', 'Не удалось определить задачу для карточки'), 'warning');
       return;
     }
 
@@ -6666,7 +6666,7 @@ window.CRM.br1 = (function () {
       currentTask = mergeTaskState(extractTaskPayload(taskEnvelope));
     } catch (error) {
       var envelopeError = error && error.envelope ? error.envelope : null;
-      notify((envelopeError && envelopeError.message) || 'Не удалось загрузить карточку задачи', 'error');
+      notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_zagruzit_kartochku_zadachi', 'Не удалось загрузить карточку задачи'), 'error');
       return;
     }
 
@@ -6694,8 +6694,8 @@ window.CRM.br1 = (function () {
 
       var subtitle = document.querySelector('.crm-subtitle');
       if (subtitle) {
-        subtitle.textContent = 'Проект: ' + (currentTask.project_title || '—')
-          + ' · Дедлайн: ' + (currentTask.due_at ? formatDate(currentTask.due_at) : 'не задан');
+        subtitle.textContent = window.CRM.i18n.t('js.br1.proekt_5', 'Проект: ') + (currentTask.project_title || '—')
+          + window.CRM.i18n.t('js.br1.dedlayn_6', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_4', 'не задан'));
       }
 
       if (currentProject && currentProject.manager_user_public_id) {

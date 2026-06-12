@@ -128,23 +128,23 @@ window.CRM.navigation = (function () {
 
   function getDefaultNavItems() {
     return [
-      { key: 'dashboard', i18n: 'nav.dashboard', label: 'Главная', href: 'index.php?route=dashboard' },
-      { key: 'ideas', i18n: 'nav.ideas', label: 'Идеи', href: 'index.php?route=ideas' },
-      { key: 'tasks', i18n: 'nav.tasks', label: 'Задачи', href: 'index.php?route=tasks' },
-      { key: 'day', i18n: 'nav.day', label: 'Мой день', href: 'index.php?route=my-day' },
-      { key: 'week', i18n: 'nav.week', label: 'Моя неделя', href: 'index.php?route=my-week' },
-      { key: 'kanban', i18n: 'nav.kanban', label: 'Канбан', href: 'index.php?route=kanban' },
-      { key: 'gantt', i18n: 'nav.gantt', label: 'Гант', href: 'index.php?route=gantt' },
-      { key: 'projects', i18n: 'nav.projects', label: 'Проекты', href: 'index.php?route=projects' },
-      { key: 'calendar', i18n: 'nav.calendar', label: 'Календарь', href: 'index.php?route=calendar' },
-      { key: 'counterparties', i18n: 'nav.counterparties', label: 'Контрагенты', href: 'index.php?route=counterparties' },
-      { key: 'teams', i18n: 'nav.teams', label: 'Команды и отделы', href: 'index.php?route=teams' },
-      { key: 'analytics', i18n: 'nav.analytics', label: 'Аналитика', href: 'index.php?route=analytics' },
-      { key: 'notifications', i18n: 'nav.notifications', label: 'Уведомления', href: 'index.php?route=notifications' },
-      { key: 'chat', i18n: 'nav.chat', label: 'Чаты', href: 'index.php?route=chat' },
-      { key: 'admin', i18n: 'nav.admin', label: 'Администрирование', href: 'index.php?route=admin' },
-      { key: 'admin-modules', i18n: 'nav.admin_modules', label: 'Модули', href: 'index.php?route=admin-modules' },
-      { key: 'docs', i18n: 'nav.docs', label: 'Документация', href: 'index.php?route=docs' }
+      { key: 'dashboard', i18n: 'nav.dashboard', label: t('nav.dashboard', 'Dashboard'), href: 'index.php?route=dashboard' },
+      { key: 'ideas', i18n: 'nav.ideas', label: t('nav.ideas', 'Ideas'), href: 'index.php?route=ideas' },
+      { key: 'tasks', i18n: 'nav.tasks', label: t('nav.tasks', 'Tasks'), href: 'index.php?route=tasks' },
+      { key: 'day', i18n: 'nav.day', label: t('nav.day', 'My day'), href: 'index.php?route=my-day' },
+      { key: 'week', i18n: 'nav.week', label: t('nav.week', 'My week'), href: 'index.php?route=my-week' },
+      { key: 'kanban', i18n: 'nav.kanban', label: t('nav.kanban', 'Kanban'), href: 'index.php?route=kanban' },
+      { key: 'gantt', i18n: 'nav.gantt', label: t('nav.gantt', 'Gantt'), href: 'index.php?route=gantt' },
+      { key: 'projects', i18n: 'nav.projects', label: t('nav.projects', 'Projects'), href: 'index.php?route=projects' },
+      { key: 'calendar', i18n: 'nav.calendar', label: t('nav.calendar', 'Calendar'), href: 'index.php?route=calendar' },
+      { key: 'counterparties', i18n: 'nav.counterparties', label: t('nav.counterparties', 'Counterparties'), href: 'index.php?route=counterparties' },
+      { key: 'teams', i18n: 'nav.teams', label: t('nav.teams', 'Teams and departments'), href: 'index.php?route=teams' },
+      { key: 'analytics', i18n: 'nav.analytics', label: t('nav.analytics', 'Analytics'), href: 'index.php?route=analytics' },
+      { key: 'notifications', i18n: 'nav.notifications', label: t('nav.notifications', 'Notifications'), href: 'index.php?route=notifications' },
+      { key: 'chat', i18n: 'nav.chat', label: t('nav.chat', 'Chats'), href: 'index.php?route=chat' },
+      { key: 'admin', i18n: 'nav.admin', label: t('nav.admin', 'Administration'), href: 'index.php?route=admin' },
+      { key: 'admin-modules', i18n: 'nav.admin_modules', label: t('nav.admin_modules', 'Modules'), href: 'index.php?route=admin-modules' },
+      { key: 'docs', i18n: 'nav.docs', label: t('nav.docs', 'Documentation'), href: 'index.php?route=docs' }
     ];
   }
 
@@ -173,15 +173,15 @@ window.CRM.navigation = (function () {
 
   function resultTypeLabel(type) {
     var map = {
-      task: 'Задача',
-      project: 'Проект',
-      client: 'Клиент',
-      company: 'Компания',
-      contact: 'Контакт',
-      comment: 'Комментарий',
-      file: 'Файл'
+      task: t('nav.result_task', 'Task'),
+      project: t('nav.result_project', 'Project'),
+      client: t('nav.result_client', 'Client'),
+      company: t('nav.result_company', 'Company'),
+      contact: t('nav.result_contact', 'Contact'),
+      comment: t('nav.result_comment', 'Comment'),
+      file: t('nav.result_file', 'File')
     };
-    return map[String(type || '').trim()] || 'Результат';
+    return map[String(type || '').trim()] || t('nav.result_default', 'Result');
   }
 
   function renderSearchDropdown(container, payload, activeIndex) {
@@ -201,7 +201,7 @@ window.CRM.navigation = (function () {
     });
 
     if (!results.length) {
-      container.innerHTML = '<div class="dropdown-item-text text-muted small">Ничего не найдено</div>';
+      container.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.search_no_results', 'Nothing found') + '</div>';
       return [];
     }
 
@@ -219,7 +219,7 @@ window.CRM.navigation = (function () {
       }
       var activeClass = index === activeIndex ? ' active' : '';
       return '<a class="dropdown-item crm-search-result' + activeClass + '" href="' + resultUrl(item) + '" data-search-result-index="' + index + '">'
-        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || 'Без названия') + '</strong><span class="text-muted small">' + escapeHtml(resultTypeLabel(item.entity_type)) + '</span></div>'
+        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || t('nav.untitled', 'Untitled')) + '</strong><span class="text-muted small">' + escapeHtml(resultTypeLabel(item.entity_type)) + '</span></div>'
         + (subtitle ? '<div class="small text-muted">' + escapeHtml(subtitle) + '</div>' : '')
         + '</a>';
     }).join('');
@@ -248,7 +248,7 @@ window.CRM.navigation = (function () {
     });
 
     if (!results.length) {
-      container.innerHTML = '<div class="dropdown-item-text text-muted small">AI ничего не нашел</div>';
+      container.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.ai_no_results', 'AI found nothing') + '</div>';
       return [];
     }
 
@@ -257,7 +257,7 @@ window.CRM.navigation = (function () {
       var activeClass = index === activeIndex ? ' active' : '';
       var subtitle = resultTypeLabel(item.entity_type) + (score > 0 ? (' · score ' + score.toFixed(2)) : '');
       return '<a class="dropdown-item crm-search-result' + activeClass + '" href="' + resultUrl(item) + '" data-search-result-index="' + index + '">'
-        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || 'Без названия') + '</strong><span class="text-muted small">AI</span></div>'
+        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || t('nav.untitled', 'Untitled')) + '</strong><span class="text-muted small">AI</span></div>'
         + '<div class="small text-muted">' + escapeHtml(subtitle) + '</div>'
         + '</a>';
     }).join('');
@@ -354,7 +354,7 @@ window.CRM.navigation = (function () {
   }
 
   function sidebarToggleMarkup() {
-    return '<button class="crm-sidebar-toggle" type="button" data-sidebar-collapse-toggle aria-label="' + t('sidebar.collapse', 'Свернуть меню') + '" title="' + t('sidebar.collapse', 'Свернуть меню') + '">' + icon('chevronLeft') + '</button>';
+    return '<button class="crm-sidebar-toggle" type="button" data-sidebar-collapse-toggle aria-label="' + t('nav.collapse_menu', 'Collapse menu') + '" title="' + t('nav.collapse_menu', 'Collapse menu') + '">' + icon('chevronLeft') + '</button>';
   }
 
   function ensureSidebarCollapseControl() {
@@ -377,8 +377,8 @@ window.CRM.navigation = (function () {
     var toggle = document.querySelector('[data-sidebar-collapse-toggle]');
     if (toggle) {
       var label = sidebarCollapsed
-        ? t('sidebar.expand', 'Развернуть меню')
-        : t('sidebar.collapse', 'Свернуть меню');
+        ? t('nav.expand_menu', 'Expand menu')
+        : t('nav.collapse_menu', 'Collapse menu');
       toggle.setAttribute('aria-label', label);
       toggle.setAttribute('title', label);
       toggle.innerHTML = sidebarCollapsed ? icon('chevronRight') : icon('chevronLeft');
@@ -470,7 +470,7 @@ window.CRM.navigation = (function () {
     }
 
     if (!bar.querySelector('[data-global-chat]')) {
-      right.insertAdjacentHTML('beforeend', '<a class="btn crm-btn-ghost crm-btn-icon position-relative" data-global-chat href="index.php?route=chat" aria-label="Чаты" title="Чаты">' + icon('chat') + '<span class="crm-topbar-badge d-none" data-chat-unread-badge aria-label=""></span></a>');
+      right.insertAdjacentHTML('beforeend', '<a class="btn crm-btn-ghost crm-btn-icon position-relative" data-global-chat href="index.php?route=chat" aria-label="' + t('nav.chats', 'Chats') + '" title="' + t('nav.chats', 'Chats') + '">' + icon('chat') + '<span class="crm-topbar-badge d-none" data-chat-unread-badge aria-label=""></span></a>');
     }
 
     if (!bar.querySelector('[data-global-notifications]') && !bar.querySelector('[data-bs-toggle="popover"]')) {
@@ -625,7 +625,7 @@ window.CRM.navigation = (function () {
       modal.className = 'modal fade';
       modal.setAttribute('tabindex', '-1');
       modal.setAttribute('aria-hidden', 'true');
-      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Поиск по TropaTT') + '" autocomplete="off" autofocus></div></div></div></div>';
+      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Search') + '" autocomplete="off" autofocus></div></div></div></div>';
       document.body.appendChild(modal);
 
       var modalInput = modal.querySelector('input');
@@ -681,7 +681,7 @@ window.CRM.navigation = (function () {
     if (!canSearch && !canSemanticSearch) {
       input.value = '';
       input.disabled = true;
-      input.placeholder = 'Поиск недоступен для вашей роли';
+      input.placeholder = t('nav.search_role_restricted', 'Search is not available for your role');
       input.dataset.searchBound = '1';
       return;
     }
@@ -695,8 +695,8 @@ window.CRM.navigation = (function () {
         modeToggle.className = 'btn btn-light';
         modeToggle.type = 'button';
         modeToggle.setAttribute('data-search-mode-toggle', '1');
-        modeToggle.setAttribute('title', 'AI-поиск');
-        modeToggle.setAttribute('aria-label', 'AI-поиск');
+        modeToggle.setAttribute('title', t('nav.ai_search', 'AI Search'));
+        modeToggle.setAttribute('aria-label', t('nav.ai_search', 'AI Search'));
         modeToggle.textContent = 'AI';
         input.insertAdjacentElement('afterend', modeToggle);
       }
@@ -717,7 +717,7 @@ window.CRM.navigation = (function () {
 
     function updateSearchModeUi() {
       if (mode === 'semantic') {
-        input.placeholder = 'AI-поиск';
+        input.placeholder = t('nav.ai_search', 'AI Search');
       } else {
         input.placeholder = t('topbar.search_placeholder', 'Search');
       }
@@ -756,7 +756,7 @@ window.CRM.navigation = (function () {
         return;
       }
 
-      dropdown.innerHTML = '<div class="dropdown-item-text text-muted small">Ищем совпадения...</div>';
+      dropdown.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.search_loading', 'Searching...') + '</div>';
       openDropdown();
 
       try {
@@ -777,7 +777,7 @@ window.CRM.navigation = (function () {
           openDropdown();
         }
       } catch (error) {
-        var message = 'Поиск недоступен. Попробуйте позже.';
+        var message = t('nav.search_unavailable', 'Search is unavailable. Try again later.');
         if (window.CRM.ai && typeof window.CRM.ai.toUiError === 'function') {
           message = window.CRM.ai.toUiError(error, message).message;
         }
@@ -894,7 +894,7 @@ window.CRM.navigation = (function () {
         document.querySelectorAll('[data-chat-unread-badge]').forEach(function (badge) {
           badge.classList.toggle('d-none', count <= 0);
           badge.textContent = count > 99 ? '99+' : String(count);
-          badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных чатов: ' + count) : '');
+          badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_chats', 'Unread chats: ') + count) : '');
         });
       });
       window.CRM.tabLeader.onMessage('nav-notif-unread', function (payload) {
@@ -902,7 +902,7 @@ window.CRM.navigation = (function () {
         document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
           badge.classList.toggle('d-none', count <= 0);
           badge.textContent = count > 99 ? '99+' : String(count);
-          badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных уведомлений: ' + count) : '');
+          badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_notifications', 'Unread notifications: ') + count) : '');
         });
       });
       if (window.CRM.tabLeader.isLeader()) {
@@ -926,7 +926,7 @@ window.CRM.navigation = (function () {
       document.querySelectorAll('[data-chat-unread-badge]').forEach(function (badge) {
         badge.classList.toggle('d-none', count <= 0);
         badge.textContent = count > 99 ? '99+' : String(count);
-        badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных чатов: ' + count) : '');
+        badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_chats', 'Unread chats: ') + count) : '');
       });
       if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
         window.CRM.tabLeader.broadcast('nav-chat-unread', { count: count });
@@ -944,7 +944,7 @@ window.CRM.navigation = (function () {
       document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
         badge.classList.toggle('d-none', count <= 0);
         badge.textContent = count > 99 ? '99+' : String(count);
-        badge.setAttribute('aria-label', count > 0 ? ('Непрочитанных уведомлений: ' + count) : '');
+        badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_notifications', 'Unread notifications: ') + count) : '');
       });
       if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
         window.CRM.tabLeader.broadcast('nav-notif-unread', { count: count });

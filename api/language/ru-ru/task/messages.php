@@ -23,4 +23,11 @@ return [
     'bulk_updated' => 'Массовое обновление задач выполнено',
     'to_status_required' => 'Передайте to_status или to_status_public_id',
     'moved' => 'Карточка задачи перемещена',
+    'status_new' => 'Новые',
+    'status_in_progress' => 'В работе',
+    'status_blocked' => 'Блокировано',
+    'status_done' => 'Выполнено',
+    'unassigned' => 'Не назначено',
+    'no_project' => 'Без проекта',
+    'all_tasks' => 'Все задачи',
 ];

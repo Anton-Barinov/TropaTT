@@ -7,7 +7,7 @@ window.CRM.errors = (function () {
 
     return {
       code: 'REQUEST_FAILED',
-      message: String(fallbackMessage || 'Ошибка запроса'),
+      message: String(fallbackMessage || window.CRM.i18n.t('js.error.request_error', 'Request error')),
       fieldErrors: {},
       retryAfter: '',
       requestId: '',
@@ -25,7 +25,7 @@ window.CRM.errors = (function () {
     if (window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function') {
       return window.CRM.api.formatErrorMessage(error, options || {});
     }
-    return String(error && error.message ? error.message : 'Ошибка запроса');
+    return String(error && error.message ? error.message : window.CRM.i18n.t('js.error.request_error', 'Request error'));
   }
 
   function toUiResult(error, fallbackMessage, options) {

@@ -368,7 +368,7 @@ window.CRM.notificationsRealtime = (function () {
 
     var wasNew = registerSeenNotification(item.public_id);
     if (wasNew) {
-      var title = String(item.title || 'Новое уведомление');
+      var title = String(item.title || window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
       var category = normalizeCategory(item.category || 'system');
       if (isChannelEnabled(category, 'in_app')) {
         notify(title);

@@ -1,0 +1,21 @@
+<?php
+return [
+    'dashboard' => 'Главная',
+    'ideas' => 'Идеи',
+    'tasks' => 'Задачи',
+    'day' => 'Мой день',
+    'week' => 'Моя неделя',
+    'kanban' => 'Канбан',
+    'gantt' => 'Гант',
+    'projects' => 'Проекты',
+    'calendar' => 'Календарь',
+    'counterparties' => 'Контрагенты',
+    'teams' => 'Команды',
+    'analytics' => 'Аналитика',
+    'notifications' => 'Уведомления',
+    'admin' => 'Администрирование',
+    'admin_modules' => 'Модули',
+    'chat' => 'Чаты',
+    'api' => 'Справка',
+    'menu_loaded' => 'Меню загружено',
+];

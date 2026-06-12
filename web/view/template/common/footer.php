@@ -116,15 +116,15 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title" id="crmConfirmTitle">Подтвердите действие</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" id="crmConfirmTitle" data-i18n="common.confirm_title"><?= htmlspecialchars($t('common.confirm_title', 'Подтвердите действие'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close_aria', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.close_aria"></button>
       </div>
       <div class="modal-body" id="crmConfirmBody">
-        <p>Вы уверены?</p>
+        <p data-i18n="common.confirm_body"><?= htmlspecialchars($t('common.confirm_body', 'Вы уверены?'), ENT_QUOTES, 'UTF-8') ?></p>
       </div>
       <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn crm-btn-danger-soft" id="crmConfirmActionBtn">Подтвердить</button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel_btn"><?= htmlspecialchars($t('common.cancel_btn', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-danger-soft" id="crmConfirmActionBtn" data-i18n="common.confirm_btn"><?= htmlspecialchars($t('common.confirm_btn', 'Подтвердить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

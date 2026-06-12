@@ -330,7 +330,7 @@ final class ChatController extends BaseController
             'priority_user_ids' => $priorityIds,
             'reply_to_message_public_id' => $reply['public_id'] ?? null,
             'action_code' => $reply ? 'chat_message_replied' : 'chat_message_created',
-            'title' => $reply ? 'Ответ на сообщение в чате' : 'Новое сообщение в чате',
+            'title' => $reply ? $this->t('chat/messages.reply_to_message') : $this->t('chat/messages.new_chat_message'),
         ]);
 
         return $this->success('MESSAGE_SENT', 'Message sent', ['public_id' => $msgPublicId], status: 201);
@@ -394,7 +394,7 @@ final class ChatController extends BaseController
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
         $service->markRead((int)$chat['id'], $this->currentUserId());
-        $service->notifyMessage($chat, ['public_id' => $msgPublicId, 'id' => $msgId, 'text' => $text !== '' ? $text : 'Прикрепил файл: ' . $fileRow['original_name']], $this->user()['user'] ?? []);
+        $service->notifyMessage($chat, ['public_id' => $msgPublicId, 'id' => $msgId, 'text' => $text !== '' ? $text : $this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name']], $this->user()['user'] ?? []);
 
         return $this->success('ATTACHMENT_UPLOADED', 'Attachment uploaded', ['message_public_id' => $msgPublicId, 'file' => $fileRow], status: 201);
     }

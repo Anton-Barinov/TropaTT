@@ -222,8 +222,8 @@ final class NotificationController extends BaseController
 
         return $this->success('NOTIFICATION_PUSH_TEST', 'Push test payload prepared', [
             'push' => [
-                'title' => 'Тест push-уведомления',
-                'body' => 'Канал push подключен и готов к работе.',
+                'title' => $this->t('notification/messages.test_push_title'),
+                'body' => $this->t('notification/messages.test_push_body'),
                 'link' => 'index.php?route=notifications',
                 'timestamp' => gmdate('c'),
             ],

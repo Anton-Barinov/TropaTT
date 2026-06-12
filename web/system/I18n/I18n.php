@@ -101,7 +101,7 @@ final class I18n
             $candidate = strtolower(trim((string)$_GET['lang']));
         }
 
-        if (!in_array($candidate, ['ru-ru', 'en-gb'], true)) {
+        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn'], true)) {
             $candidate = 'ru-ru';
         }
 

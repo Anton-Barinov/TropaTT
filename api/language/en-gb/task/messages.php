@@ -23,4 +23,11 @@ return [
     'bulk_updated' => 'Task bulk update completed',
     'to_status_required' => 'Provide to_status or to_status_public_id',
     'moved' => 'Task card moved',
+    'status_new' => 'New',
+    'status_in_progress' => 'In progress',
+    'status_blocked' => 'Blocked',
+    'status_done' => 'Done',
+    'unassigned' => 'Unassigned',
+    'no_project' => 'No project',
+    'all_tasks' => 'All tasks',
 ];

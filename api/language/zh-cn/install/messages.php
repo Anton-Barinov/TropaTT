@@ -1,0 +1,21 @@
+<?php
+return [
+    'install_required' => '系统未安装',
+    'install_required_setup_hint' => '系统未安装。请执行 /install/setup',
+    'install_completed' => '安装已完成',
+    'status' => '安装状态',
+    'check_ok' => '数据库连接成功',
+    'check_failed' => '无法连接数据库',
+    'already_installed' => '系统已安装',
+    'install_failed' => '安装出错',
+    'root_required' => '需要 root 权限',
+    'migration_status' => '迁移状态',
+    'migration_status_failed' => '无法获取迁移状态',
+    'migration_up_done' => '迁移已执行',
+    'migration_up_failed' => '迁移执行出错',
+    'migration_dry_run' => '迁移试运行',
+    'migration_dry_run_failed' => '无法执行迁移试运行',
+    'migration_rollback_check' => '迁移回滚检查',
+    'migration_rollback_check_failed' => '无法检查迁移回滚',
+    'default_admin_name' => '超级管理员',
+];

@@ -1,207 +1,207 @@
 <?php declare(strict_types=1); ?>
-<?php $title = 'TropaTT — Карточка задачи'; ?>
+<?php $title = $t('task_detail.title', 'TropaTT — Карточка задачи'); ?>
 <body data-page="tasks" data-protected="1"><div class="crm-app">
-<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav">
+<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav">
 </nav></aside>
-<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid d-flex align-items-center gap-2"><button class="btn crm-btn-secondary d-xl-none" id="sidebarToggle" aria-label="Открыть меню"></button><div class="input-group crm-field-w-420" data-global-search><span class="input-group-text"></span><input id="taskDetailGlobalSearchInput" class="form-control" placeholder="Поиск" aria-label="Глобальный поиск"></div><div class="ms-auto d-flex gap-2" data-global-actions="1"><div class="dropdown"><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">Пользователь</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">Профиль</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">Выйти</button></li></ul></div></div></div></header>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid d-flex align-items-center gap-2"><button class="btn crm-btn-secondary d-xl-none" id="sidebarToggle" aria-label="<?= htmlspecialchars($t('task_detail.sidebar_toggle_aria', 'Открыть меню'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.sidebar_toggle_aria"></button><div class="input-group crm-field-w-420" data-global-search><span class="input-group-text"></span><input id="taskDetailGlobalSearchInput" class="form-control" placeholder="<?= htmlspecialchars($t('task_detail.global_search_placeholder', 'Поиск'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('task_detail.global_search_aria', 'Глобальный поиск'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.global_search_placeholder" data-i18n-aria-label="task_detail.global_search_aria"></div><div class="ms-auto d-flex gap-2" data-global-actions="1"><div class="dropdown"><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown" data-i18n="task_detail.user_dropdown"><?= htmlspecialchars($t('task_detail.user_dropdown', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile" data-i18n="task_detail.profile_link"><?= htmlspecialchars($t('task_detail.profile_link', 'Профиль'), ENT_QUOTES, 'UTF-8') ?></a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout" data-i18n="task_detail.logout"><?= htmlspecialchars($t('task_detail.logout', 'Выйти'), ENT_QUOTES, 'UTF-8') ?></button></li></ul></div></div></div></header>
 <main class="crm-content crm-task-detail-page">
-<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks">Задачи</a></li><li class="breadcrumb-item active">Карточка задачи</li></ol><h1 class="crm-page-title">Загрузка задачи...</h1><p class="crm-subtitle">Загрузка параметров задачи...</p></div><div class="crm-page-actions crm-task-page-actions"><a class="btn crm-btn-secondary" href="index.php?route=companies">Компании</a><a class="btn crm-btn-secondary" href="index.php?route=contacts">Контакты</a><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal">Редактировать</button><button class="btn crm-btn-danger-soft crm-task-delete-head" type="button" data-confirm-delete>Удалить</button></div></div>
+<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks" data-i18n="task_detail.breadcrumb_tasks"><?= htmlspecialchars($t('task_detail.breadcrumb_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="task_detail.breadcrumb_current"><?= htmlspecialchars($t('task_detail.breadcrumb_current', 'Карточка задачи'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="task_detail.loading_title"><?= htmlspecialchars($t('task_detail.loading_title', 'Загрузка задачи...'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="task_detail.loading_subtitle"><?= htmlspecialchars($t('task_detail.loading_subtitle', 'Загрузка параметров задачи...'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions crm-task-page-actions"><a class="btn crm-btn-secondary" href="index.php?route=companies" data-i18n="task_detail.companies_link"><?= htmlspecialchars($t('task_detail.companies_link', 'Компании'), ENT_QUOTES, 'UTF-8') ?></a><a class="btn crm-btn-secondary" href="index.php?route=contacts" data-i18n="task_detail.contacts_link"><?= htmlspecialchars($t('task_detail.contacts_link', 'Контакты'), ENT_QUOTES, 'UTF-8') ?></a><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal" data-i18n="task_detail.btn_edit"><?= htmlspecialchars($t('task_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-danger-soft crm-task-delete-head" type="button" data-confirm-delete data-i18n="task_detail.btn_delete"><?= htmlspecialchars($t('task_detail.btn_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
 
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="crm-card mb-3 crm-task-hero">
       <div class="crm-task-hero-top">
-        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue">Просрочено</span><span class="crm-chip" id="taskPriorityChip">normal</span></div>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue" data-i18n="task_detail.status_overdue"><?= htmlspecialchars($t('task_detail.status_overdue', 'Просрочено'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-chip" id="taskPriorityChip">normal</span></div>
       </div>
       <div class="crm-task-hero-progress-wrap">
         <div class="crm-task-hero-progress-head">
           <div>
-            <div class="crm-task-eyebrow">Прогресс выполнения</div>
-            <div class="crm-task-progress-copy" id="taskProgressHint">Прогресс рассчитывается по текущему статусу.</div>
+            <div class="crm-task-eyebrow" data-i18n="task_detail.progress_label"><?= htmlspecialchars($t('task_detail.progress_label', 'Прогресс выполнения'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="crm-task-progress-copy" id="taskProgressHint" data-i18n="task_detail.progress_hint"><?= htmlspecialchars($t('task_detail.progress_hint', 'Прогресс рассчитывается по текущему статусу.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         </div>
-        <div class="progress mb-0 crm-task-progress" role="progressbar" aria-label="Прогресс"><div class="progress-bar" id="taskProgressBar" style="width: 0%">0%</div></div>
+        <div class="progress mb-0 crm-task-progress" role="progressbar" aria-label="<?= htmlspecialchars($t('task_detail.progress_aria', 'Прогресс'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.progress_aria"><div class="progress-bar" id="taskProgressBar" style="width: 0%">0%</div></div>
       </div>
       <div class="crm-task-control-panel">
         <div class="crm-task-control-panel-head">
           <div>
-            <div class="crm-task-eyebrow">Управление статусом</div>
-            <div class="crm-task-control-panel-title">Смена текущего статуса задачи</div>
+            <div class="crm-task-eyebrow" data-i18n="task_detail.status_control_label"><?= htmlspecialchars($t('task_detail.status_control_label', 'Управление статусом'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="crm-task-control-panel-title" data-i18n="task_detail.status_control_title"><?= htmlspecialchars($t('task_detail.status_control_title', 'Смена текущего статуса задачи'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         </div>
         <div class="crm-task-quick-statuses">
-          <label class="form-label mb-0 small text-muted" for="taskStatusSelect">Статус задачи</label>
+          <label class="form-label mb-0 small text-muted" for="taskStatusSelect" data-i18n="task_detail.status_select_label"><?= htmlspecialchars($t('task_detail.status_select_label', 'Статус задачи'), ENT_QUOTES, 'UTF-8') ?></label>
           <select class="form-select form-select-sm" id="taskStatusSelect"></select>
-          <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="taskStatusApplyBtn" disabled>Применить</button>
+          <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="taskStatusApplyBtn" disabled data-i18n="task_detail.status_apply_btn"><?= htmlspecialchars($t('task_detail.status_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </div>
       <form id="taskStatusReasonForm" class="mb-3 d-none">
-        <div class="small text-muted mb-1">Причина смены статуса: <span id="taskStatusReasonTarget">—</span></div>
+        <div class="small text-muted mb-1"><span data-i18n="task_detail.status_reason_label"><?= htmlspecialchars($t('task_detail.status_reason_label', 'Причина смены статуса: '), ENT_QUOTES, 'UTF-8') ?></span><span id="taskStatusReasonTarget">—</span></div>
         <div class="d-flex gap-2">
-          <textarea class="form-control form-control-sm" id="taskStatusReasonInput" rows="2" placeholder="Опишите, почему меняете статус и что изменилось"></textarea>
+          <textarea class="form-control form-control-sm" id="taskStatusReasonInput" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.status_reason_placeholder', 'Опишите, почему меняете статус и что изменилось'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.status_reason_placeholder"></textarea>
           <div class="d-flex flex-column gap-2">
-            <button class="btn btn-sm crm-btn-primary" type="submit">Сохранить</button>
-            <button class="btn btn-sm btn-light" type="button" id="taskStatusReasonCancelBtn">Отмена</button>
+            <button class="btn btn-sm crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn btn-sm btn-light" type="button" id="taskStatusReasonCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
       </form>
-      <div class="alert alert-info mb-0 crm-task-risk-alert" id="taskRiskAlert"><strong>Риск:</strong> оценка риска загружается...</div>
+      <div class="alert alert-info mb-0 crm-task-risk-alert" id="taskRiskAlert"><strong data-i18n="task_detail.risk_label"><?= htmlspecialchars($t('task_detail.risk_label', 'Риск:'), ENT_QUOTES, 'UTF-8') ?></strong> <span data-i18n="task_detail.risk_loading"><?= htmlspecialchars($t('task_detail.risk_loading', 'оценка риска загружается...'), ENT_QUOTES, 'UTF-8') ?></span></div>
     </div>
 
     <ul class="nav nav-tabs mb-3 crm-task-tabs-nav" role="tablist">
-      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailDesc" type="button">Описание</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button">Подзадачи <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button">Зависимости <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button">Чеклисты <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button">Учет времени</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button">Файлы</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailComments" type="button">Комментарии <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button">Активность</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailHistory" type="button">История</button></li>
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailDesc" type="button" data-i18n="task_detail.tab_description"><?= htmlspecialchars($t('task_detail.tab_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button" data-i18n="task_detail.tab_dependencies"><?= htmlspecialchars($t('task_detail.tab_dependencies', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?> <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-i18n="task_detail.tab_activity"><?= htmlspecialchars($t('task_detail.tab_activity', 'Активность'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailHistory" type="button" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li>
     </ul>
 
     <div class="tab-content">
       <section id="detailDesc" class="tab-pane fade show active crm-card crm-task-section">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="h6 mb-0">Контекст и критерии готовности</h2>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="description" aria-label="Редактировать описание">
+          <h2 class="h6 mb-0" data-i18n="task_detail.desc_title"><?= htmlspecialchars($t('task_detail.desc_title', 'Контекст и критерии готовности'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="description" aria-label="<?= htmlspecialchars($t('task_detail.desc_edit_aria', 'Редактировать описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.desc_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
-        <div id="taskDescriptionContent"><div class="text-muted">Детали задачи загружаются...</div></div>
+        <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
         <form id="taskDescriptionInlineForm" class="mt-3 d-none">
-          <label class="form-label">Описание</label>
+          <label class="form-label" data-i18n="task_detail.desc_field_label"><?= htmlspecialchars($t('task_detail.desc_field_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
           <textarea id="taskDescriptionInlineInput" class="form-control" rows="5"></textarea>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="description">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="description" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </section>
 
       <section id="detailSubtasks" class="tab-pane fade crm-card crm-task-section">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="h6 mb-0">Подзадачи</h2>
+          <h2 class="h6 mb-0" data-i18n="task_detail.subtasks_title"><?= htmlspecialchars($t('task_detail.subtasks_title', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?></h2>
           <div class="d-flex align-items-center gap-2">
-            <small class="text-muted">Декомпозиция задачи на шаги</small>
-            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateSubtaskModalBtn" data-open-modal="createSubtaskModal">Создать подзадачу</button>
+            <small class="text-muted" data-i18n="task_detail.subtasks_hint"><?= htmlspecialchars($t('task_detail.subtasks_hint', 'Декомпозиция задачи на шаги'), ENT_QUOTES, 'UTF-8') ?></small>
+            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateSubtaskModalBtn" data-open-modal="createSubtaskModal" data-i18n="task_detail.subtasks_create_btn"><?= htmlspecialchars($t('task_detail.subtasks_create_btn', 'Создать подзадачу'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
-        <div id="subtasksList"><div class="text-muted">Подзадачи загружаются...</div></div>
+        <div id="subtasksList"><div class="text-muted" data-i18n="task_detail.subtasks_loading"><?= htmlspecialchars($t('task_detail.subtasks_loading', 'Подзадачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailDependencies" class="tab-pane fade crm-card crm-task-section">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="h6 mb-0">Зависимости</h2>
+          <h2 class="h6 mb-0" data-i18n="task_detail.dependencies_title"><?= htmlspecialchars($t('task_detail.dependencies_title', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?></h2>
           <div class="d-flex align-items-center gap-2">
-            <small class="text-muted">Связи с другими задачами</small>
-            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateDependencyBtn">Добавить зависимость</button>
+            <small class="text-muted" data-i18n="task_detail.dependencies_hint"><?= htmlspecialchars($t('task_detail.dependencies_hint', 'Связи с другими задачами'), ENT_QUOTES, 'UTF-8') ?></small>
+            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateDependencyBtn" data-i18n="task_detail.dependencies_add_btn"><?= htmlspecialchars($t('task_detail.dependencies_add_btn', 'Добавить зависимость'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
-        <div id="dependenciesList"><div class="text-muted">Зависимости загружаются...</div></div>
+        <div id="dependenciesList"><div class="text-muted" data-i18n="task_detail.dependencies_loading"><?= htmlspecialchars($t('task_detail.dependencies_loading', 'Зависимости загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailChecklists" class="tab-pane fade crm-card crm-task-section">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="h6 mb-0">Чеклисты</h2>
-          <small class="text-muted">Контроль выполнения деталей</small>
+          <h2 class="h6 mb-0" data-i18n="task_detail.checklists_title"><?= htmlspecialchars($t('task_detail.checklists_title', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <small class="text-muted" data-i18n="task_detail.checklists_hint"><?= htmlspecialchars($t('task_detail.checklists_hint', 'Контроль выполнения деталей'), ENT_QUOTES, 'UTF-8') ?></small>
         </div>
         <form id="checklistCreateForm" class="row g-2 mb-3 crm-task-create-form">
           <div class="col-md-9">
-            <label class="form-label">Новый чеклист</label>
-            <input class="form-control" name="title" maxlength="255" placeholder="Например: Проверка перед релизом" required>
+            <label class="form-label" data-i18n="task_detail.checklist_new_label"><?= htmlspecialchars($t('task_detail.checklist_new_label', 'Новый чеклист'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input class="form-control" name="title" maxlength="255" placeholder="<?= htmlspecialchars($t('task_detail.checklist_placeholder', 'Например: Проверка перед релизом'), ENT_QUOTES, 'UTF-8') ?>" required data-i18n-placeholder="task_detail.checklist_placeholder">
           </div>
           <div class="col-md-3 d-flex align-items-end crm-task-create-action">
-            <button class="btn crm-btn-primary crm-btn-compact w-100" type="submit">+ Новый чеклист</button>
+            <button class="btn crm-btn-primary crm-btn-compact w-100" type="submit" data-i18n="task_detail.checklist_add_btn"><?= htmlspecialchars($t('task_detail.checklist_add_btn', '+ Новый чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
-        <div id="checklistsList"><div class="text-muted">Чеклисты загружаются...</div></div>
+        <div id="checklistsList"><div class="text-muted" data-i18n="task_detail.checklists_loading"><?= htmlspecialchars($t('task_detail.checklists_loading', 'Чеклисты загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailWorklogs" class="tab-pane fade crm-card crm-task-section">
         <div class="crm-worklog-head mb-3">
           <div>
-            <h2 class="h6 mb-1">Учет времени</h2>
-            <small class="text-muted">Фиксация фактически затраченного времени</small>
+            <h2 class="h6 mb-1" data-i18n="task_detail.worklogs_title"><?= htmlspecialchars($t('task_detail.worklogs_title', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></h2>
+            <small class="text-muted" data-i18n="task_detail.worklogs_hint"><?= htmlspecialchars($t('task_detail.worklogs_hint', 'Фиксация фактически затраченного времени'), ENT_QUOTES, 'UTF-8') ?></small>
           </div>
-          <button class="btn crm-btn-primary crm-btn-compact" type="button" id="worklogAddToggleBtn">+ Добавить запись</button>
+          <button class="btn crm-btn-primary crm-btn-compact" type="button" id="worklogAddToggleBtn" data-i18n="task_detail.worklogs_add_btn"><?= htmlspecialchars($t('task_detail.worklogs_add_btn', '+ Добавить запись'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <div id="taskWorklogSummary" class="crm-worklog-summary mb-3">
           <article class="crm-worklog-summary-card">
-            <div class="crm-worklog-summary-value">0 мин</div>
-            <div class="crm-worklog-summary-label">Всего времени</div>
+            <div class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_minutes', 'мин'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_total_label"><?= htmlspecialchars($t('task_detail.worklogs_total_label', 'Всего времени'), ENT_QUOTES, 'UTF-8') ?></div>
           </article>
           <article class="crm-worklog-summary-card">
-            <div class="crm-worklog-summary-value">0 записей</div>
-            <div class="crm-worklog-summary-label">В журнале</div>
+            <div class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_entries', 'записей'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_entries_label"><?= htmlspecialchars($t('task_detail.worklogs_entries_label', 'В журнале'), ENT_QUOTES, 'UTF-8') ?></div>
           </article>
         </div>
         <form id="worklogCreateForm" class="row g-2 mb-3 crm-task-create-form d-none">
           <div class="col-md-3">
-            <label class="form-label">Минуты</label>
+            <label class="form-label" data-i18n="task_detail.worklog_minutes_label"><?= htmlspecialchars($t('task_detail.worklog_minutes_label', 'Минуты'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="minutes_spent" type="number" min="1" step="1" placeholder="60" required>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Дата/время</label>
+            <label class="form-label" data-i18n="task_detail.worklog_date_label"><?= htmlspecialchars($t('task_detail.worklog_date_label', 'Дата/время'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="logged_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Комментарий</label>
-            <input class="form-control" name="note" maxlength="8000" placeholder="Что было сделано">
+            <label class="form-label" data-i18n="task_detail.worklog_comment_label"><?= htmlspecialchars($t('task_detail.worklog_comment_label', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.worklog_comment_placeholder', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.worklog_comment_placeholder">
           </div>
           <div class="col-md-2 d-flex align-items-end crm-task-create-action">
-            <button class="btn crm-btn-primary crm-btn-compact w-100" type="submit">Сохранить</button>
+            <button class="btn crm-btn-primary crm-btn-compact w-100" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
           <div class="col-md-2 d-flex align-items-end crm-task-create-action">
-            <button class="btn crm-btn-secondary crm-btn-compact w-100" type="button" id="worklogCreateCancelBtn">Отмена</button>
+            <button class="btn crm-btn-secondary crm-btn-compact w-100" type="button" id="worklogCreateCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
-        <div class="crm-worklog-list-head mb-2"><h3 class="h6 mb-0">Журнал времени</h3></div>
-        <div id="taskWorklogsList"><div class="text-muted">Логи времени загружаются...</div></div>
+        <div class="crm-worklog-list-head mb-2"><h3 class="h6 mb-0" data-i18n="task_detail.worklog_list_title"><?= htmlspecialchars($t('task_detail.worklog_list_title', 'Журнал времени'), ENT_QUOTES, 'UTF-8') ?></h3></div>
+        <div id="taskWorklogsList"><div class="text-muted" data-i18n="task_detail.worklogs_loading"><?= htmlspecialchars($t('task_detail.worklogs_loading', 'Логи времени загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailFiles" class="tab-pane fade crm-card crm-task-section">
-        <h2 class="h6">Файлы</h2>
+        <h2 class="h6" data-i18n="task_detail.files_title"><?= htmlspecialchars($t('task_detail.files_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div class="mb-3">
-          <label class="form-label">Добавить файл</label>
+          <label class="form-label" data-i18n="task_detail.files_add_label"><?= htmlspecialchars($t('task_detail.files_add_label', 'Добавить файл'), ENT_QUOTES, 'UTF-8') ?></label>
           <div class="d-flex gap-2">
             <input class="form-control" type="file" id="taskFileInput">
-            <button class="btn crm-btn-primary" type="button" id="taskFileUploadBtn">Загрузить</button>
+            <button class="btn crm-btn-primary" type="button" id="taskFileUploadBtn" data-i18n="task_detail.files_upload_btn"><?= htmlspecialchars($t('task_detail.files_upload_btn', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
           
         </div>
-        <div id="taskFilesList"><div class="text-muted">Файлы к задаче пока не загружены.</div></div>
+        <div id="taskFilesList"><div class="text-muted" data-i18n="task_detail.files_empty"><?= htmlspecialchars($t('task_detail.files_empty', 'Файлы к задаче пока не загружены.'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailComments" class="tab-pane fade crm-card crm-task-section">
-        <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0">Комментарии</h2></div>
+        <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0" data-i18n="task_detail.comments_title"><?= htmlspecialchars($t('task_detail.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?></h2></div>
         <div class="d-flex gap-2 flex-wrap mb-3">
-          <button id="taskFollowBtn" class="btn btn-sm crm-btn-secondary" type="button">Отслеживать задачу</button>
-          <button id="taskFavoriteBtn" class="btn btn-sm crm-btn-secondary" type="button">В избранное</button>
+          <button id="taskFollowBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="task_detail.comments_follow_btn"><?= htmlspecialchars($t('task_detail.comments_follow_btn', 'Отслеживать задачу'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button id="taskFavoriteBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="task_detail.comments_favorite_btn"><?= htmlspecialchars($t('task_detail.comments_favorite_btn', 'В избранное'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <form id="commentForm" class="mb-3">
-          <label class="form-label">Новый комментарий</label>
+          <label class="form-label" data-i18n="task_detail.comment_new_label"><?= htmlspecialchars($t('task_detail.comment_new_label', 'Новый комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
           <div class="d-flex gap-2">
-            <textarea class="form-control" name="comment_text" rows="2" placeholder="Добавьте комментарий и сохраните его в карточке задачи"></textarea>
-            <button class="btn crm-btn-primary" type="submit">Сохранить</button>
+            <textarea class="form-control" name="comment_text" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.comment_placeholder', 'Добавьте комментарий и сохраните его в карточке задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.comment_placeholder"></textarea>
+            <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
           <div class="d-flex gap-2 align-items-center mt-2">
-            <label class="small text-muted mb-0" for="commentMentionUserSelect">Упомянуть:</label>
-            <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="">Без упоминания</option></select>
+            <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="" data-i18n="task_detail.comment_no_mention"><?= htmlspecialchars($t('task_detail.comment_no_mention', 'Без упоминания'), ENT_QUOTES, 'UTF-8') ?></option></select>
           </div>
         </form>
-        <div id="commentsList"><div class="text-muted">Комментарии загружаются...</div></div>
+        <div id="commentsList"><div class="text-muted" data-i18n="task_detail.comments_loading"><?= htmlspecialchars($t('task_detail.comments_loading', 'Комментарии загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailActivity" class="tab-pane fade crm-card crm-task-section">
-        <h2 class="h6">История изменений</h2>
-        <div class="crm-timeline" id="taskActivityList"><div class="crm-timeline-item">История изменений загружается...</div></div>
+        <h2 class="h6" data-i18n="task_detail.activity_title"><?= htmlspecialchars($t('task_detail.activity_title', 'История изменений'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <div class="crm-timeline" id="taskActivityList"><div class="crm-timeline-item" data-i18n="task_detail.activity_loading"><?= htmlspecialchars($t('task_detail.activity_loading', 'История изменений загружается...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailHistory" class="tab-pane fade crm-card crm-task-section">
-        <h2 class="h6">История изменений полей</h2>
-        <p class="text-muted small mb-3">Хронология изменений атрибутов задачи.</p>
-        <table class="table table-sm crm-table mb-0"><thead><tr><th>Дата</th><th>Поле</th><th>Было</th><th>Стало</th><th>Кем изменено</th></tr></thead><tbody id="taskHistoryList"><tr><td colspan="5" class="text-muted">Загрузка...</td></tr></tbody></table>
+        <h2 class="h6" data-i18n="task_detail.history_title"><?= htmlspecialchars($t('task_detail.history_title', 'История изменений полей'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p class="text-muted small mb-3" data-i18n="task_detail.history_subtitle"><?= htmlspecialchars($t('task_detail.history_subtitle', 'Хронология изменений атрибутов задачи.'), ENT_QUOTES, 'UTF-8') ?></p>
+        <table class="table table-sm crm-table mb-0"><thead><tr><th data-i18n="task_detail.history_th_date"><?= htmlspecialchars($t('task_detail.history_th_date', 'Дата'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_field"><?= htmlspecialchars($t('task_detail.history_th_field', 'Поле'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_was"><?= htmlspecialchars($t('task_detail.history_th_was', 'Было'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_became"><?= htmlspecialchars($t('task_detail.history_th_became', 'Стало'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_by"><?= htmlspecialchars($t('task_detail.history_th_by', 'Кем изменено'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="taskHistoryList"><tr><td colspan="5" class="text-muted" data-i18n="task_detail.history_loading"><?= htmlspecialchars($t('task_detail.history_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
       </section>
     </div>
   </div>
@@ -211,90 +211,90 @@
     <div class="crm-card mb-3" id="taskTimerPanel">
       <div class="crm-side-card-head">
         <div>
-          <div class="crm-task-eyebrow">Таймер работы</div>
-          <h2 class="h6 mb-0">Таймер задачи</h2>
+          <div class="crm-task-eyebrow" data-i18n="task_detail.timer_eyebrow"><?= htmlspecialchars($t('task_detail.timer_eyebrow', 'Таймер работы'), ENT_QUOTES, 'UTF-8') ?></div>
+          <h2 class="h6 mb-0" data-i18n="task_detail.timer_title"><?= htmlspecialchars($t('task_detail.timer_title', 'Таймер задачи'), ENT_QUOTES, 'UTF-8') ?></h2>
         </div>
       </div>
-	      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-	        <div>
-	          <div class="small text-muted">Таймер работы по задаче</div>
-	          <div class="fw-semibold" id="taskTimerElapsed">00:00:00</div>
-	          <div class="small text-muted" id="taskTimerStartedAt">Таймер не запущен</div>
-	        </div>
-	        <div class="d-flex gap-2">
-	          <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="taskTimerStartBtn">Начать работу</button>
-	          <button type="button" class="btn btn-sm crm-btn-danger-soft crm-btn-compact" id="taskTimerStopBtn" disabled>Остановить</button>
-	        </div>
-	      </div>
-	      <div class="crm-task-timer-actions">
-	        <div>
-	          <div class="small text-muted">Планирование</div>
-	          <div class="crm-task-timer-action-copy">Событие будет связано с этой задачей.</div>
-	        </div>
-	        <button class="btn btn-sm btn-light crm-task-calendar-action" type="button" data-open-modal="calendarEventModal">Создать событие</button>
-	      </div>
-	      <form id="taskTimerLogForm" class="row g-2 mt-3 d-none">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <div>
+          <div class="small text-muted" data-i18n="task_detail.timer_running_label"><?= htmlspecialchars($t('task_detail.timer_running_label', 'Таймер работы по задаче'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="fw-semibold" id="taskTimerElapsed">00:00:00</div>
+          <div class="small text-muted" id="taskTimerStartedAt" data-i18n="task_detail.timer_not_started"><?= htmlspecialchars($t('task_detail.timer_not_started', 'Таймер не запущен'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="taskTimerStartBtn" data-i18n="task_detail.timer_start_btn"><?= htmlspecialchars($t('task_detail.timer_start_btn', 'Начать работу'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="button" class="btn btn-sm crm-btn-danger-soft crm-btn-compact" id="taskTimerStopBtn" disabled data-i18n="task_detail.timer_stop_btn"><?= htmlspecialchars($t('task_detail.timer_stop_btn', 'Остановить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </div>
+      <div class="crm-task-timer-actions">
+        <div>
+          <div class="small text-muted" data-i18n="task_detail.timer_planning_label"><?= htmlspecialchars($t('task_detail.timer_planning_label', 'Планирование'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="crm-task-timer-action-copy" data-i18n="task_detail.timer_event_hint"><?= htmlspecialchars($t('task_detail.timer_event_hint', 'Событие будет связано с этой задачей.'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+        <button class="btn btn-sm btn-light crm-task-calendar-action" type="button" data-open-modal="calendarEventModal" data-i18n="task_detail.timer_create_event_btn"><?= htmlspecialchars($t('task_detail.timer_create_event_btn', 'Создать событие'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+      <form id="taskTimerLogForm" class="row g-2 mt-3 d-none">
         <div class="col-12">
-          <label class="form-label">Затрачено (мин)</label>
+          <label class="form-label" data-i18n="task_detail.timer_log_minutes_label"><?= htmlspecialchars($t('task_detail.timer_log_minutes_label', 'Затрачено (мин)'), ENT_QUOTES, 'UTF-8') ?></label>
           <input class="form-control" type="number" min="1" step="1" name="minutes_spent" required>
         </div>
         <div class="col-12">
-          <label class="form-label">Что было сделано</label>
-          <input class="form-control" name="note" maxlength="8000" placeholder="Кратко опишите выполненную работу" required>
+          <label class="form-label" data-i18n="task_detail.timer_log_note_label"><?= htmlspecialchars($t('task_detail.timer_log_note_label', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.timer_log_note_placeholder', 'Кратко опишите выполненную работу'), ENT_QUOTES, 'UTF-8') ?>" required data-i18n-placeholder="task_detail.timer_log_note_placeholder">
         </div>
         <div class="col-12 d-flex gap-2">
-          <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact">Добавить запись</button>
-          <button type="button" class="btn btn-sm btn-light" id="taskTimerLogCancelBtn">Отмена</button>
+          <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact" data-i18n="task_detail.timer_log_add_btn"><?= htmlspecialchars($t('task_detail.timer_log_add_btn', 'Добавить запись'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="button" class="btn btn-sm btn-light" id="taskTimerLogCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
     <div class="crm-card mb-3" id="taskAiSummaryCard" data-requires-ai-use="1">
       <div class="crm-side-card-head">
         <div>
-          <div class="crm-task-eyebrow">AI-помощник</div>
-          <h2 class="h6 mb-0">AI-действия по задаче</h2>
+          <div class="crm-task-eyebrow" data-i18n="task_detail.ai_eyebrow"><?= htmlspecialchars($t('task_detail.ai_eyebrow', 'AI-помощник'), ENT_QUOTES, 'UTF-8') ?></div>
+          <h2 class="h6 mb-0" data-i18n="task_detail.ai_title"><?= htmlspecialchars($t('task_detail.ai_title', 'AI-действия по задаче'), ENT_QUOTES, 'UTF-8') ?></h2>
         </div>
       </div>
-      <div class="small text-muted mb-2" id="taskAiSummaryState">AI-сводка не сформирована.</div>
+      <div class="small text-muted mb-2" id="taskAiSummaryState" data-i18n="task_detail.ai_state_idle"><?= htmlspecialchars($t('task_detail.ai_state_idle', 'AI-сводка не сформирована.'), ENT_QUOTES, 'UTF-8') ?></div>
       <div class="d-flex gap-2 mb-2 flex-wrap" id="taskAiPrimaryActions">
-        <button class="btn btn-sm crm-btn-primary crm-btn-compact" type="button" id="taskAiGenerateBtn">AI-сводка</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiNextActionBtn">Следующий шаг</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiDecomposeBtn">Предложить подзадачи</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiChecklistBtn">Предложить чеклист</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiImproveDescBtn">Улучшить описание</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCommentDraftBtn">Черновик комментария</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiQualityBtn">Проверить задачу</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCreateMeetingBtn">Создать встречу</button>
+        <button class="btn btn-sm crm-btn-primary crm-btn-compact" type="button" id="taskAiGenerateBtn" data-i18n="task_detail.ai_generate_btn"><?= htmlspecialchars($t('task_detail.ai_generate_btn', 'AI-сводка'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiNextActionBtn" data-i18n="task_detail.ai_next_action_btn"><?= htmlspecialchars($t('task_detail.ai_next_action_btn', 'Следующий шаг'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiDecomposeBtn" data-i18n="task_detail.ai_decompose_btn"><?= htmlspecialchars($t('task_detail.ai_decompose_btn', 'Предложить подзадачи'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiChecklistBtn" data-i18n="task_detail.ai_checklist_btn"><?= htmlspecialchars($t('task_detail.ai_checklist_btn', 'Предложить чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiImproveDescBtn" data-i18n="task_detail.ai_improve_desc_btn"><?= htmlspecialchars($t('task_detail.ai_improve_desc_btn', 'Улучшить описание'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCommentDraftBtn" data-i18n="task_detail.ai_comment_draft_btn"><?= htmlspecialchars($t('task_detail.ai_comment_draft_btn', 'Черновик комментария'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiQualityBtn" data-i18n="task_detail.ai_quality_btn"><?= htmlspecialchars($t('task_detail.ai_quality_btn', 'Проверить задачу'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiCreateMeetingBtn" data-i18n="task_detail.ai_create_meeting_btn"><?= htmlspecialchars($t('task_detail.ai_create_meeting_btn', 'Создать встречу'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div class="d-flex gap-2 mb-2 flex-wrap" id="taskAiSecondaryActions">
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiPreviewBtn" disabled>Предпросмотр</button>
-        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiApplyBtn" disabled>Применить</button>
-        <button class="btn btn-sm crm-btn-muted crm-btn-compact" type="button" id="taskAiDismissBtn" disabled>Отклонить</button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiPreviewBtn" disabled data-i18n="task_detail.ai_preview_btn"><?= htmlspecialchars($t('task_detail.ai_preview_btn', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm btn-light crm-btn-compact" type="button" id="taskAiApplyBtn" disabled data-i18n="task_detail.ai_apply_btn"><?= htmlspecialchars($t('task_detail.ai_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-muted crm-btn-compact" type="button" id="taskAiDismissBtn" disabled data-i18n="task_detail.ai_dismiss_btn"><?= htmlspecialchars($t('task_detail.ai_dismiss_btn', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
       <div id="taskAiSummaryResult" class="crm-empty-state d-none">
         <div class="small mb-2" id="taskAiSummaryText">—</div>
         <div class="small text-muted" id="taskAiSummaryMeta">—</div>
       </div>
       <div id="taskAiSummaryPreviewWrap" class="mt-2 d-none">
-        <div class="small text-muted mb-1">Предпросмотр применения:</div>
+        <div class="small text-muted mb-1" data-i18n="task_detail.ai_preview_label"><?= htmlspecialchars($t('task_detail.ai_preview_label', 'Предпросмотр применения:'), ENT_QUOTES, 'UTF-8') ?></div>
         <div class="crm-info-panel small" id="taskAiSummaryPreview"></div>
       </div>
     </div>
     <div class="crm-card mb-3 crm-task-summary-card" id="taskSummaryCard">
       <div class="crm-side-card-head">
         <div>
-          <div class="crm-task-eyebrow">Быстрая навигация</div>
-          <h2 class="h6 mb-0">Сводка</h2>
+          <div class="crm-task-eyebrow" data-i18n="task_detail.summary_eyebrow"><?= htmlspecialchars($t('task_detail.summary_eyebrow', 'Быстрая навигация'), ENT_QUOTES, 'UTF-8') ?></div>
+          <h2 class="h6 mb-0" data-i18n="task_detail.summary_title"><?= htmlspecialchars($t('task_detail.summary_title', 'Сводка'), ENT_QUOTES, 'UTF-8') ?></h2>
         </div>
       </div>
       <div class="crm-info-panel mb-2">
-        <small class="text-muted">Автор задачи</small>
+        <small class="text-muted" data-i18n="task_detail.summary_author_label"><?= htmlspecialchars($t('task_detail.summary_author_label', 'Автор задачи'), ENT_QUOTES, 'UTF-8') ?></small>
         <div class="crm-summary-value" id="taskAuthorValue">—</div>
       </div>
       <div class="crm-info-panel mb-2">
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Исполнитель</small>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="assignee" aria-label="Редактировать исполнителя">
+          <small class="text-muted" data-i18n="task_detail.summary_assignee_label"><?= htmlspecialchars($t('task_detail.summary_assignee_label', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></small>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="assignee" aria-label="<?= htmlspecialchars($t('task_detail.summary_assignee_edit_aria', 'Редактировать исполнителя'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_assignee_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
@@ -302,15 +302,15 @@
         <form id="taskAssigneeInlineForm" class="mt-2 d-none">
           <select id="taskAssigneeInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="assignee">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="assignee" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
       <div class="crm-info-panel mb-2">
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Менеджер</small>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="manager" aria-label="Редактировать менеджера">
+          <small class="text-muted" data-i18n="task_detail.summary_manager_label"><?= htmlspecialchars($t('task_detail.summary_manager_label', 'Менеджер'), ENT_QUOTES, 'UTF-8') ?></small>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="manager" aria-label="<?= htmlspecialchars($t('task_detail.summary_manager_edit_aria', 'Редактировать менеджера'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_manager_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
@@ -318,59 +318,59 @@
         <form id="taskManagerInlineForm" class="mt-2 d-none">
           <select id="taskManagerInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="manager">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="manager" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
       <div class="crm-info-panel mb-2">
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Теги</small>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="tags" aria-label="Редактировать теги">
+          <small class="text-muted" data-i18n="task_detail.summary_tags_label"><?= htmlspecialchars($t('task_detail.summary_tags_label', 'Теги'), ENT_QUOTES, 'UTF-8') ?></small>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="tags" aria-label="<?= htmlspecialchars($t('task_detail.summary_tags_edit_aria', 'Редактировать теги'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_tags_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskTagsValue">—</div>
         <form id="taskTagsInlineForm" class="mt-2 d-none">
           <select id="taskTagsInlineSelect" class="form-select form-select-sm" multiple size="6"></select>
-          <div class="form-text">Можно выбрать несколько тегов (Ctrl/Cmd + клик).</div>
+          <div class="form-text" data-i18n="task_detail.summary_tags_hint"><?= htmlspecialchars($t('task_detail.summary_tags_hint', 'Можно выбрать несколько тегов (Ctrl/Cmd + клик).'), ENT_QUOTES, 'UTF-8') ?></div>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="tags">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="tags" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
       <div class="crm-info-panel mb-2">
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Сроки задачи</small>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="dates" aria-label="Редактировать сроки задачи">
+          <small class="text-muted" data-i18n="task_detail.summary_dates_label"><?= htmlspecialchars($t('task_detail.summary_dates_label', 'Сроки задачи'), ENT_QUOTES, 'UTF-8') ?></small>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="dates" aria-label="<?= htmlspecialchars($t('task_detail.summary_dates_edit_aria', 'Редактировать сроки задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_dates_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
         <div class="crm-summary-value" id="taskDatesValue">—</div>
         <form id="taskDatesInlineForm" class="mt-2 d-none">
           <div class="mb-2">
-            <label class="form-label mb-1 small text-muted" for="taskDatesStartAt">Начало</label>
+            <label class="form-label mb-1 small text-muted" for="taskDatesStartAt" data-i18n="task_detail.summary_dates_start_label"><?= htmlspecialchars($t('task_detail.summary_dates_start_label', 'Начало'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control form-control-sm" id="taskDatesStartAt" name="start_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="mb-2">
-            <label class="form-label mb-1 small text-muted" for="taskDatesDueAt">Дедлайн</label>
+            <label class="form-label mb-1 small text-muted" for="taskDatesDueAt" data-i18n="task_detail.summary_dates_due_label"><?= htmlspecialchars($t('task_detail.summary_dates_due_label', 'Дедлайн'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control form-control-sm" id="taskDatesDueAt" name="due_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="mb-2">
-            <label class="form-label mb-1 small text-muted" for="taskDatesEndAt">Плановое завершение</label>
+            <label class="form-label mb-1 small text-muted" for="taskDatesEndAt" data-i18n="task_detail.summary_dates_end_label"><?= htmlspecialchars($t('task_detail.summary_dates_end_label', 'Плановое завершение'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control form-control-sm" id="taskDatesEndAt" name="end_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="dates">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="dates" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
       <div class="crm-info-panel">
         <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Связанный проект</small>
-          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="project" aria-label="Редактировать проект">
+          <small class="text-muted" data-i18n="task_detail.summary_project_label"><?= htmlspecialchars($t('task_detail.summary_project_label', 'Связанный проект'), ENT_QUOTES, 'UTF-8') ?></small>
+          <button type="button" class="btn btn-sm crm-inline-icon-btn" data-task-inline-toggle="project" aria-label="<?= htmlspecialchars($t('task_detail.summary_project_edit_aria', 'Редактировать проект'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.summary_project_edit_aria">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
@@ -378,13 +378,13 @@
         <form id="taskProjectInlineForm" class="mt-2 d-none">
           <select id="taskProjectInlineSelect" class="form-select form-select-sm"></select>
           <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button>
-            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="project">Отмена</button>
+            <button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="project" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
       </div>
     </div>
-	    </div>
+    </div>
   </aside>
 </div>
 
@@ -392,61 +392,61 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Создать подзадачу</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" data-i18n="task_detail.modal_create_subtask_title"><?= htmlspecialchars($t('task_detail.modal_create_subtask_title', 'Создать подзадачу'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="subtaskCreateForm">
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-md-8">
-              <label class="form-label">Название подзадачи</label>
-              <input class="form-control" name="title" maxlength="255" placeholder="Например: Подготовить макет" required>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_title"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_title', 'Название подзадачи'), ENT_QUOTES, 'UTF-8') ?></label>
+              <input class="form-control" name="title" maxlength="255" placeholder="<?= htmlspecialchars($t('task_detail.modal_create_subtask_placeholder_title', 'Например: Подготовить макет'), ENT_QUOTES, 'UTF-8') ?>" required data-i18n-placeholder="task_detail.modal_create_subtask_placeholder_title">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Проект</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_project"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="project_public_id" disabled>
-                <option value="">Без проекта</option>
+                <option value="" data-i18n="task_detail.modal_create_subtask_option_no_project"><?= htmlspecialchars($t('task_detail.modal_create_subtask_option_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
-              <div class="form-text">Подзадача создается в проекте родительской задачи.</div>
+              <div class="form-text" data-i18n="task_detail.modal_create_subtask_project_hint"><?= htmlspecialchars($t('task_detail.modal_create_subtask_project_hint', 'Подзадача создается в проекте родительской задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Статус</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_status"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="status"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Приоритет</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_priority"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="priority"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Исполнитель</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_assignee"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_assignee', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="assignee_user_public_id"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Начало</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_start"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_start', 'Начало'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="start_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Дедлайн</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_due"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_due', 'Дедлайн'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Плановое завершение</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_end"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_end', 'Плановое завершение'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="end_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-12">
-              <label class="form-label">Теги</label>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_tags"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_tags', 'Теги'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="tag_public_ids" multiple size="6"></select>
-              <div class="form-text">Можно выбрать несколько тегов.</div>
+              <div class="form-text" data-i18n="task_detail.modal_create_subtask_tags_hint"><?= htmlspecialchars($t('task_detail.modal_create_subtask_tags_hint', 'Можно выбрать несколько тегов.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
             <div class="col-12">
-              <label class="form-label">Описание</label>
-              <textarea class="form-control" name="description" rows="5" placeholder="Контекст, шаги, критерии готовности"></textarea>
+              <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_description"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
+              <textarea class="form-control" name="description" rows="5" placeholder="<?= htmlspecialchars($t('task_detail.modal_create_subtask_placeholder_description', 'Контекст, шаги, критерии готовности'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.modal_create_subtask_placeholder_description"></textarea>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn crm-btn-primary" type="submit">Создать</button>
+          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-primary" type="submit" data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
@@ -457,61 +457,61 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Редактирование подзадачи</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" data-i18n="task_detail.modal_edit_subtask_title"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_title', 'Редактирование подзадачи'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="subtaskEditForm">
         <input type="hidden" name="public_id" value="">
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-md-8">
-              <label class="form-label">Название подзадачи</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_title"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_title', 'Название подзадачи'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="title" maxlength="255" required>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Проект</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_project"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="project_public_id" disabled>
-                <option value="">Без проекта</option>
+                <option value="" data-i18n="task_detail.modal_edit_subtask_option_no_project"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_option_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Статус</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_status"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="status"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Приоритет</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_priority"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="priority"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Исполнитель</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_assignee"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_assignee', 'Исполнитель'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="assignee_user_public_id"></select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Начало</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_start"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_start', 'Начало'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="start_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Дедлайн</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_due"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_due', 'Дедлайн'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-md-4">
-              <label class="form-label">Плановое завершение</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_end"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_end', 'Плановое завершение'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="end_at" type="date" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="col-12">
-              <label class="form-label">Теги</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_tags"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_tags', 'Теги'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" name="tag_public_ids" multiple size="6"></select>
-              <div class="form-text">Можно выбрать несколько тегов.</div>
+              <div class="form-text" data-i18n="task_detail.modal_edit_subtask_tags_hint"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_tags_hint', 'Можно выбрать несколько тегов.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
             <div class="col-12">
-              <label class="form-label">Описание</label>
+              <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_description"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
               <textarea class="form-control" name="description" rows="5"></textarea>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button class="btn crm-btn-primary" type="submit">Сохранить изменения</button>
+          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-primary" type="submit" data-i18n="task_detail.modal_edit_subtask_save_btn"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_save_btn', 'Сохранить изменения'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
@@ -522,29 +522,29 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>AI: улучшение описания</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" data-i18n="task_detail.modal_ai_diff_title"><i class="fa-solid fa-wand-magic-sparkles me-2"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_title', 'AI: улучшение описания'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted mb-3">Сравните текущее и предложенное описание. Применение обновит описание задачи.</p>
+        <p class="text-muted mb-3" data-i18n="task_detail.modal_ai_diff_desc"><?= htmlspecialchars($t('task_detail.modal_ai_diff_desc', 'Сравните текущее и предложенное описание. Применение обновит описание задачи.'), ENT_QUOTES, 'UTF-8') ?></p>
         <div class="row g-3">
           <div class="col-md-6">
             <div class="d-flex align-items-center mb-2">
-              <span class="badge bg-secondary me-2">Текущее</span>
+              <span class="badge bg-secondary me-2" data-i18n="task_detail.modal_ai_diff_current"><?= htmlspecialchars($t('task_detail.modal_ai_diff_current', 'Текущее'), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
             <div class="crm-diff-panel p-3" id="taskAiDescriptionDiffOld">—</div>
           </div>
           <div class="col-md-6">
             <div class="d-flex align-items-center mb-2">
-              <span class="badge bg-success me-2">Предложенное</span>
+              <span class="badge bg-success me-2" data-i18n="task_detail.modal_ai_diff_proposed"><?= htmlspecialchars($t('task_detail.modal_ai_diff_proposed', 'Предложенное'), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
             <div class="crm-diff-panel crm-diff-panel-new p-3" id="taskAiDescriptionDiffNew">—</div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn crm-btn-primary" id="taskAiDescriptionDiffApplyBtn"><i class="fa-solid fa-check me-1"></i>Применить</button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="taskAiDescriptionDiffApplyBtn" data-i18n="task_detail.modal_ai_diff_apply_btn"><i class="fa-solid fa-check me-1"></i><?= htmlspecialchars($t('task_detail.modal_ai_diff_apply_btn', 'Применить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -554,30 +554,30 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="taskAiRegenerateModalTitle">AI-предложение уже существует</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" id="taskAiRegenerateModalTitle" data-i18n="task_detail.modal_ai_regenerate_title"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_title', 'AI-предложение уже существует'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <div class="modal-body">
         <div id="taskAiRegenerateInfo">
-          <p class="mb-2">Для этой задачи уже есть AI-предложение:</p>
+          <p class="mb-2" data-i18n="task_detail.modal_ai_regenerate_info"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_info', 'Для этой задачи уже есть AI-предложение:'), ENT_QUOTES, 'UTF-8') ?></p>
           <div class="crm-info-panel p-3 mb-3">
-            <div class="small text-muted mb-1">Сводка</div>
+            <div class="small text-muted mb-1" data-i18n="task_detail.modal_ai_regenerate_summary_label"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_summary_label', 'Сводка'), ENT_QUOTES, 'UTF-8') ?></div>
             <div id="taskAiRegenerateSummary" class="mb-2">—</div>
-            <div class="small text-muted mb-1">Статус</div>
+            <div class="small text-muted mb-1" data-i18n="task_detail.modal_ai_regenerate_status_label"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_status_label', 'Статус'), ENT_QUOTES, 'UTF-8') ?></div>
             <div id="taskAiRegenerateStatus" class="mb-2">—</div>
-            <div class="small text-muted mb-1">Обновлено</div>
+            <div class="small text-muted mb-1" data-i18n="task_detail.modal_ai_regenerate_updated_label"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_updated_label', 'Обновлено'), ENT_QUOTES, 'UTF-8') ?></div>
             <div id="taskAiRegenerateUpdated">—</div>
           </div>
-          <p class="mb-0">Перегенерировать предложение?</p>
+          <p class="mb-0" data-i18n="task_detail.modal_ai_regenerate_confirm"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_confirm', 'Перегенерировать предложение?'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
         <div id="taskAiRegenerateLoading" class="d-none text-center py-4">
           <div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>
-          <div id="taskAiRegenerateLoadingText" class="text-muted fs-6">Перегенерируем AI-предложение...</div>
+          <div id="taskAiRegenerateLoadingText" class="text-muted fs-6" data-i18n="task_detail.modal_ai_regenerate_loading"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_loading', 'Перегенерируем AI-предложение...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </div>
       <div class="modal-footer" id="taskAiRegenerateFooter">
-        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn crm-btn-primary" id="taskAiRegenerateBtn">Перегенерировать</button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="taskAiRegenerateBtn" data-i18n="task_detail.modal_ai_regenerate_btn"><?= htmlspecialchars($t('task_detail.modal_ai_regenerate_btn', 'Перегенерировать'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
@@ -587,17 +587,17 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Действие с повышенным риском</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        <h5 class="modal-title" data-i18n="task_detail.modal_ai_high_risk_title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_title', 'Действие с повышенным риском'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2">AI предлагает действие, которое может существенно изменить задачу:</p>
+        <p class="mb-2" data-i18n="task_detail.modal_ai_high_risk_desc"><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_desc', 'AI предлагает действие, которое может существенно изменить задачу:'), ENT_QUOTES, 'UTF-8') ?></p>
         <div id="taskAiHighRiskActions" class="crm-info-panel p-3 mb-3 small">—</div>
-        <p class="mb-0">Продолжить применение?</p>
+        <p class="mb-0" data-i18n="task_detail.modal_ai_high_risk_confirm"><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_confirm', 'Продолжить применение?'), ENT_QUOTES, 'UTF-8') ?></p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn crm-btn-warning" id="taskAiHighRiskConfirmBtn">Продолжить</button>
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-warning" id="taskAiHighRiskConfirmBtn" data-i18n="task_detail.modal_ai_high_risk_confirm_btn"><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_confirm_btn', 'Продолжить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>

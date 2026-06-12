@@ -1,31 +1,31 @@
 <?php declare(strict_types=1); ?>
-<?php $title = 'TropaTT — Чаты'; ?>
-<body data-page="chat" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<?php $title = $t('chat.title', 'TropaTT — Чаты'); ?>
+<body data-page="chat" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-chat-page">
   <div class="crm-chat-layout" id="chatRoot">
-    <aside class="crm-chat-sidebar" aria-label="Список чатов">
+    <aside class="crm-chat-sidebar" aria-label="<?= htmlspecialchars($t('chat.sidebar_aria', 'Список чатов'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="chat.sidebar_aria">
       <div class="crm-chat-sidebar-head">
         <div>
-          <h1 class="crm-chat-title">Чаты</h1>
-          <div class="crm-chat-subtitle" id="chatListSummary">Загрузка...</div>
+          <h1 class="crm-chat-title" data-i18n="chat.page_title"><?= htmlspecialchars($t('chat.page_title', 'Чаты'), ENT_QUOTES, 'UTF-8') ?></h1>
+          <div class="crm-chat-subtitle" id="chatListSummary"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
-        <button class="btn crm-btn-primary crm-chat-new-btn" type="button" id="newChatBtn" title="Создать чат" aria-label="Создать чат"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>Новый</span></button>
+        <button class="btn crm-btn-primary crm-chat-new-btn" type="button" id="newChatBtn" title="<?= htmlspecialchars($t('chat.btn_new_chat_title', 'Создать чат'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('chat.btn_new_chat_aria', 'Создать чат'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="chat.btn_new_chat_title" data-i18n-aria-label="chat.btn_new_chat_aria"><i class="fa-solid fa-plus" aria-hidden="true"></i><span data-i18n="chat.btn_new"><?= htmlspecialchars($t('chat.btn_new', 'Новый'), ENT_QUOTES, 'UTF-8') ?></span></button>
       </div>
       <div class="crm-chat-search">
         <span aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
-          <label class="visually-hidden" for="chatSearchInput">Поиск по чатам</label>
-          <input id="chatSearchInput" type="search" placeholder="Поиск по чатам">
+          <label class="visually-hidden" for="chatSearchInput" data-i18n="chat.search_label"><?= htmlspecialchars($t('chat.search_label', 'Поиск по чатам'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input id="chatSearchInput" type="search" placeholder="<?= htmlspecialchars($t('chat.placeholder_search', 'Поиск по чатам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="chat.placeholder_search">
         </div>
-        <button class="btn crm-btn-subtle crm-btn-compact w-100 mb-2" type="button" id="toggleArchivedBtn" aria-pressed="false" title="Показать архивные чаты" aria-label="Показать архивные чаты">Архив</button>
-        <div id="chatList" class="crm-chat-list" role="list" aria-live="polite"><div class="crm-chat-list-state">Загрузка чатов...</div></div>
+        <button class="btn crm-btn-subtle crm-btn-compact w-100 mb-2" type="button" id="toggleArchivedBtn" aria-pressed="false" title="<?= htmlspecialchars($t('chat.btn_archived_title', 'Показать архивные чаты'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('chat.btn_archived_aria', 'Показать архивные чаты'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="chat.btn_archived_title" data-i18n-aria-label="chat.btn_archived_aria" data-i18n="chat.btn_archived"><?= htmlspecialchars($t('chat.btn_archived', 'Архив'), ENT_QUOTES, 'UTF-8') ?></button>
+        <div id="chatList" class="crm-chat-list" role="list" aria-live="polite"><div class="crm-chat-list-state" data-i18n="chat.loading_chats"><?= htmlspecialchars($t('chat.loading_chats', 'Загрузка чатов...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </aside>
 
     <section class="crm-chat-conversation" id="chatArea" aria-live="polite">
       <div class="crm-chat-empty">
         <i class="fa-solid fa-comments" aria-hidden="true"></i>
-        <strong>Выберите чат</strong>
-        <span>Откройте существующий диалог или создайте новый.</span>
+        <strong data-i18n="chat.empty_title"><?= htmlspecialchars($t('chat.empty_title', 'Выберите чат'), ENT_QUOTES, 'UTF-8') ?></strong>
+        <span data-i18n="chat.empty_text"><?= htmlspecialchars($t('chat.empty_text', 'Откройте существующий диалог или создайте новый.'), ENT_QUOTES, 'UTF-8') ?></span>
       </div>
     </section>
   </div>
@@ -34,32 +34,32 @@
 <div id="newChatModal" class="crm-chat-modal" role="dialog" aria-modal="true" aria-labelledby="newChatModalTitle" aria-hidden="true">
   <div class="crm-chat-modal-panel crm-chat-modal-wide">
     <div class="crm-chat-modal-head">
-      <h2 class="h5 mb-0" id="newChatModalTitle">Новый чат</h2>
-      <button class="btn-close" type="button" id="closeChatModalIcon" aria-label="Закрыть"></button>
+      <h2 class="h5 mb-0" id="newChatModalTitle" data-i18n="chat.modal_new_chat_title"><?= htmlspecialchars($t('chat.modal_new_chat_title', 'Новый чат'), ENT_QUOTES, 'UTF-8') ?></h2>
+      <button class="btn-close" type="button" id="closeChatModalIcon" aria-label="<?= htmlspecialchars($t('page.close_aria', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close_aria"></button>
     </div>
     <div class="row g-3">
-      <div class="col-12"><label class="form-label" for="newChatTitle">Название чата</label><input type="text" class="form-control" id="newChatTitle" placeholder="Введите название" maxlength="160"></div>
+      <div class="col-12"><label class="form-label" for="newChatTitle" data-i18n="chat.modal_field_title"><?= htmlspecialchars($t('chat.modal_field_title', 'Название чата'), ENT_QUOTES, 'UTF-8') ?></label><input type="text" class="form-control" id="newChatTitle" placeholder="<?= htmlspecialchars($t('chat.modal_placeholder_title', 'Введите название'), ENT_QUOTES, 'UTF-8') ?>" maxlength="160" data-i18n-placeholder="chat.modal_placeholder_title"></div>
       <div class="col-12">
         <div class="team-participant-panel">
-          <div class="team-participant-toolbar"><h6 class="team-participant-title">Участники <span class="team-participant-count" id="chatParticipantCount">0</span></h6></div>
+          <div class="team-participant-toolbar"><h6 class="team-participant-title"><span data-i18n="chat.participant_title"><?= htmlspecialchars($t('chat.participant_title', 'Участники'), ENT_QUOTES, 'UTF-8') ?></span> <span class="team-participant-count" id="chatParticipantCount">0</span></h6></div>
           <div class="team-participant-search-wrap">
             <span class="crm-icon team-search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="text" class="team-search-input" id="chatParticipantSearch" placeholder="Найти сотрудника...">
+            <input type="text" class="team-search-input" id="chatParticipantSearch" placeholder="<?= htmlspecialchars($t('chat.placeholder_search_participant', 'Найти сотрудника...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="chat.placeholder_search_participant">
             <div class="team-search-dropdown" id="chatSearchResults" hidden></div>
           </div>
           <div class="team-participant-list" id="chatParticipantList" role="listbox"></div>
           <div class="team-empty-state" id="chatParticipantEmpty">
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-user-plus"></i></span>
-            <p>Добавьте участников</p>
-            <span class="team-empty-hint">Используйте поиск для добавления</span>
+            <p data-i18n="chat.empty_add_participants"><?= htmlspecialchars($t('chat.empty_add_participants', 'Добавьте участников'), ENT_QUOTES, 'UTF-8') ?></p>
+            <span class="team-empty-hint" data-i18n="chat.hint_search_add"><?= htmlspecialchars($t('chat.hint_search_add', 'Используйте поиск для добавления'), ENT_QUOTES, 'UTF-8') ?></span>
           </div>
         </div>
       </div>
     </div>
     <div class="text-danger small mb-2 d-none" id="newChatError" aria-live="polite"></div>
     <div class="crm-chat-modal-actions">
-      <button class="btn crm-btn-muted" type="button" id="closeChatModal">Отмена</button>
-      <button class="btn crm-btn-primary" type="button" id="createChatBtn">Создать</button>
+      <button class="btn crm-btn-muted" type="button" id="closeChatModal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-primary" type="button" id="createChatBtn" data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div>
 </div>
@@ -88,12 +88,12 @@
   var chatListPollTick = 0;
   var emojiSet = ['👍','👌','🙏','🔥','✅','⚡','🙂','🤝','💡','📌','👀','🚀'];
   var stickerSet = [
-    { label: 'Сделано', text: '[стикер: сделано ✅]' },
-    { label: 'Принято', text: '[стикер: принято 🤝]' },
-    { label: 'Внимание', text: '[стикер: нужно внимание 📌]' },
-    { label: 'Отлично', text: '[стикер: отлично 🚀]' },
-    { label: 'GIF: аплодисменты', text: '[gif: аплодисменты 👏]' },
-    { label: 'GIF: в работе', text: '[gif: в работе ⚙️]' }
+    { label: window.CRM.i18n.t('chat.sticker_done', 'Сделано'), text: '[стикер: сделано ✅]' },
+    { label: window.CRM.i18n.t('chat.sticker_accepted', 'Принято'), text: '[стикер: принято 🤝]' },
+    { label: window.CRM.i18n.t('chat.sticker_attention', 'Внимание'), text: '[стикер: нужно внимание 📌]' },
+    { label: window.CRM.i18n.t('chat.sticker_great', 'Отлично'), text: '[стикер: отлично 🚀]' },
+    { label: window.CRM.i18n.t('chat.sticker_gif_applause', 'GIF: аплодисменты'), text: '[gif: аплодисменты 👏]' },
+    { label: window.CRM.i18n.t('chat.sticker_gif_in_progress', 'GIF: в работе'), text: '[gif: в работе ⚙️]' }
   ];
 
   function esc(value) {
@@ -123,17 +123,17 @@
     var title = String(chat.title || '').trim();
     var participants = String(chat.participant_names || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean);
     if ((chat.type === 'project' || chat.type === 'team') && title) return title;
-    if (title && title.toLowerCase() !== 'чат') return title;
+    if (title && title.toLowerCase() !== 'chat') return title;
     if (participants.length) return participants.join(', ');
-    return title || ('Чат #' + String(chat.public_id || '').slice(-6));
+    return title || (window.CRM.i18n.t('chat.chat_prefix', 'Чат #') + String(chat.public_id || '').slice(-6));
   }
 
   function chatTypeLabel(chat) {
     var type = String(chat && chat.type || 'direct');
-    if (type === 'project') return 'Проект';
-    if (type === 'team') return 'Команда';
-    if (type === 'group') return 'Группа';
-    return 'Личный';
+    if (type === 'project') return window.CRM.i18n.t('chat.type_project', 'Проект');
+    if (type === 'team') return window.CRM.i18n.t('chat.type_team', 'Команда');
+    if (type === 'group') return window.CRM.i18n.t('chat.type_group', 'Группа');
+    return window.CRM.i18n.t('chat.type_direct', 'Личный');
   }
 
   function isMuted(chat) {
@@ -144,15 +144,15 @@
   }
 
   function lastMessageText(chat) {
-    if (String(chat.last_message_type || '') === 'attachment') return 'Файл или изображение';
-    return chat.last_message || 'Сообщений пока нет';
+    if (String(chat.last_message_type || '') === 'attachment') return window.CRM.i18n.t('chat.last_msg_attachment', 'Файл или изображение');
+    return chat.last_message || window.CRM.i18n.t('chat.last_msg_empty', 'Сообщений пока нет');
   }
 
   function updateListSummary() {
     var node = document.getElementById('chatListSummary');
     if (!node) return;
     var unread = chats.reduce(function (sum, chat) { return sum + (Number(chat.unread || 0) || 0); }, 0);
-    node.textContent = chats.length ? chats.length + ' ' + plural(chats.length, 'диалог', 'диалога', 'диалогов') + (unread ? ' · ' + unread + ' непрочит.' : '') : 'Нет диалогов';
+    node.textContent = chats.length ? chats.length + ' ' + plural(chats.length, window.CRM.i18n.t('chat.dialog_one', 'диалог'), window.CRM.i18n.t('chat.dialog_few', 'диалога'), window.CRM.i18n.t('chat.dialog_many', 'диалогов')) + (unread ? ' · ' + unread + ' ' + window.CRM.i18n.t('chat.unread_short', 'непрочит.') : '') : window.CRM.i18n.t('chat.no_dialogs', 'Нет диалогов');
   }
 
   function filteredChats() {
@@ -169,11 +169,11 @@
     updateListSummary();
     var items = filteredChats();
     if (!chats.length) {
-      list.innerHTML = '<div class="crm-chat-list-state"><strong>Чатов пока нет</strong><span>Создайте первый диалог с коллегой.</span></div>';
+      list.innerHTML = '<div class="crm-chat-list-state"><strong>' + window.CRM.i18n.t('chat.list_empty_title', 'Чатов пока нет') + '</strong><span>' + window.CRM.i18n.t('chat.list_empty_text', 'Создайте первый диалог с коллегой.') + '</span></div>';
       return;
     }
     if (!items.length) {
-      list.innerHTML = '<div class="crm-chat-list-state"><strong>Ничего не найдено</strong><span>Измените поисковый запрос.</span></div>';
+      list.innerHTML = '<div class="crm-chat-list-state"><strong>' + window.CRM.i18n.t('chat.list_no_results_title', 'Ничего не найдено') + '</strong><span>' + window.CRM.i18n.t('chat.list_no_results_text', 'Измените поисковый запрос.') + '</span></div>';
       return;
     }
     list.innerHTML = items.map(function (chat) {
@@ -181,8 +181,8 @@
       var unread = Number(chat.unread || 0) || 0;
       var active = id && id === selectedChatId;
       var title = chatTitle(chat);
-      return '<button type="button" class="crm-chat-item' + (active ? ' is-active' : '') + (unread ? ' has-unread' : '') + (Number(chat.is_favorite || 0) ? ' is-favorite' : '') + '" data-chat-id="' + esc(id) + '" role="listitem" aria-current="' + (active ? 'true' : 'false') + '" title="Открыть чат: ' + esc(title) + '" aria-label="Открыть чат: ' + esc(title) + '">'
-        + '<span class="crm-chat-item-main"><span class="crm-chat-item-kicker">' + esc(chatTypeLabel(chat)) + (Number(chat.is_favorite || 0) ? ' · избранный' : '') + (isMuted(chat) ? ' · без уведомлений' : '') + '</span><strong>' + esc(chatTitle(chat)) + '</strong><small>' + esc(lastMessageText(chat)) + '</small></span>'
+      return '<button type="button" class="crm-chat-item' + (active ? ' is-active' : '') + (unread ? ' has-unread' : '') + (Number(chat.is_favorite || 0) ? ' is-favorite' : '') + '" data-chat-id="' + esc(id) + '" role="listitem" aria-current="' + (active ? 'true' : 'false') + '" title="' + esc(window.CRM.i18n.t('chat.open_chat_title', 'Открыть чат: ') + title) + '" aria-label="' + esc(window.CRM.i18n.t('chat.open_chat_aria', 'Открыть чат: ') + title) + '">'
+        + '<span class="crm-chat-item-main"><span class="crm-chat-item-kicker">' + esc(chatTypeLabel(chat)) + (Number(chat.is_favorite || 0) ? ' · ' + window.CRM.i18n.t('chat.badge_favorite', 'избранный') : '') + (isMuted(chat) ? ' · ' + window.CRM.i18n.t('chat.badge_muted', 'без уведомлений') : '') + '</span><strong>' + esc(chatTitle(chat)) + '</strong><small>' + esc(lastMessageText(chat)) + '</small></span>'
         + '<span class="crm-chat-item-meta">' + (formatTime(chat.last_message_at) ? '<small>' + esc(formatTime(chat.last_message_at)) + '</small>' : '') + (unread ? '<b>' + unread + '</b>' : '') + (Number(chat.is_favorite || 0) ? '<i class="fa-solid fa-star" aria-hidden="true"></i>' : '') + '</span>'
         + '</button>';
     }).join('');
@@ -202,7 +202,7 @@
     options = options || {};
     if (!window.CRM || !window.CRM.api) { window.setTimeout(function () { loadChats(options); }, 200); return; }
     var list = document.getElementById('chatList');
-    if (list && !options.silent) list.innerHTML = '<div class="crm-chat-list-state">Загрузка чатов...</div>';
+    if (list && !options.silent) list.innerHTML = '<div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_chats', 'Загрузка чатов...') + '</div>';
     try {
       var env = await request('api/v1/chats', { method: 'GET' });
       chats = (env.data && env.data.items) || [];
@@ -214,7 +214,7 @@
       renderChatList();
       if (options.initial && selectedChatId) selectChat(selectedChatId, { updateUrl: false });
     } catch (error) {
-      if (list) list.innerHTML = '<div class="crm-chat-list-state is-error"><strong>Не удалось загрузить чаты</strong><span>Обновите страницу или повторите позже.</span></div>';
+      if (list) list.innerHTML = '<div class="crm-chat-list-state is-error"><strong>' + window.CRM.i18n.t('chat.load_error_title', 'Не удалось загрузить чаты') + '</strong><span>' + window.CRM.i18n.t('chat.load_error_text', 'Обновите страницу или повторите позже.') + '</span></div>';
     }
   }
 
@@ -223,20 +223,20 @@
     if (!area) return;
     currentChat = chat;
     var participants = Array.isArray(chat.participants) ? chat.participants : [];
-    var participantText = participants.length + ' ' + plural(participants.length, 'участник', 'участника', 'участников');
+    var participantText = participants.length + ' ' + plural(participants.length, window.CRM.i18n.t('chat.participant_one', 'участник'), window.CRM.i18n.t('chat.participant_few', 'участника'), window.CRM.i18n.t('chat.participant_many', 'участников'));
     var isStandalone = (String(chat.created_by_user_id || '') !== '');
     var isArchived = (chat.is_archived || !!chat.archived_at);
     area.innerHTML = '<div class="crm-chat-conversation-head">'
-      + '<div class="crm-chat-head-main"><div class="crm-chat-conversation-type">' + esc(chatTypeLabel(chat)) + (isArchived ? ' · Архив' : '') + '</div><h2>' + esc(chatTitle(chat)) + '</h2><button type="button" class="crm-chat-participants-link" id="chatParticipantsBtn" title="Показать участников чата" aria-label="Показать участников чата">' + esc(participantText) + '</button></div>'
+      + '<div class="crm-chat-head-main"><div class="crm-chat-conversation-type">' + esc(chatTypeLabel(chat)) + (isArchived ? ' · ' + window.CRM.i18n.t('chat.state_archived', 'Архив') : '') + '</div><h2>' + esc(chatTitle(chat)) + '</h2><button type="button" class="crm-chat-participants-link" id="chatParticipantsBtn" title="' + esc(window.CRM.i18n.t('chat.btn_participants_title', 'Показать участников чата')) + '" aria-label="' + esc(window.CRM.i18n.t('chat.btn_participants_aria', 'Показать участников чата')) + '">' + esc(participantText) + '</button></div>'
       + '<div class="crm-chat-head-actions">'
-      + (isStandalone ? (isArchived ? '<button class="btn crm-btn-primary crm-btn-compact" type="button" id="restoreChatBtn" title="Восстановить чат" aria-label="Восстановить чат"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span class="d-none d-md-inline"> Восстановить</span></button>' : '<button class="btn crm-btn-danger-soft crm-btn-compact" type="button" id="archiveChatBtn" title="Архивировать чат" aria-label="Архивировать чат"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="d-none d-md-inline"> В архив</span></button>') : '')
-      + '<button class="btn crm-icon-btn" type="button" id="favoriteChatBtn" title="' + (Number(chat.is_favorite || 0) ? 'Убрать из избранного' : 'В избранное') + '" aria-label="' + (Number(chat.is_favorite || 0) ? 'Убрать чат из избранного' : 'Добавить чат в избранное') + '"><i class="' + (Number(chat.is_favorite || 0) ? 'fa-solid' : 'fa-regular') + ' fa-star" aria-hidden="true"></i></button>'
-      + '<button class="btn crm-icon-btn" type="button" id="muteChatBtn" title="' + (isMuted(chat) ? 'Включить уведомления' : 'Отключить уведомления') + '" aria-label="' + (isMuted(chat) ? 'Включить уведомления чата' : 'Отключить уведомления чата') + '"><i class="fa-solid ' + (isMuted(chat) ? 'fa-bell-slash' : 'fa-bell') + '" aria-hidden="true"></i></button>'
-      + '<button class="btn crm-btn-muted d-md-none" type="button" id="backToChatsBtn" aria-label="Вернуться к списку чатов">К списку</button></div>'
+      + (isStandalone ? (isArchived ? '<button class="btn crm-btn-primary crm-btn-compact" type="button" id="restoreChatBtn" title="' + esc(window.CRM.i18n.t('chat.btn_restore_title', 'Восстановить чат')) + '" aria-label="' + esc(window.CRM.i18n.t('chat.btn_restore_aria', 'Восстановить чат')) + '"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span class="d-none d-md-inline"> ' + esc(window.CRM.i18n.t('chat.btn_restore', 'Восстановить')) + '</span></button>' : '<button class="btn crm-btn-danger-soft crm-btn-compact" type="button" id="archiveChatBtn" title="' + esc(window.CRM.i18n.t('chat.btn_archive_title', 'Архивировать чат')) + '" aria-label="' + esc(window.CRM.i18n.t('chat.btn_archive_aria', 'Архивировать чат')) + '"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="d-none d-md-inline"> ' + esc(window.CRM.i18n.t('chat.btn_archive', 'В архив')) + '</span></button>') : '')
+      + '<button class="btn crm-icon-btn" type="button" id="favoriteChatBtn" title="' + esc((Number(chat.is_favorite || 0) ? window.CRM.i18n.t('chat.btn_unfavorite_title', 'Убрать из избранного') : window.CRM.i18n.t('chat.btn_favorite_title', 'В избранное'))) + '" aria-label="' + esc((Number(chat.is_favorite || 0) ? window.CRM.i18n.t('chat.btn_unfavorite_aria', 'Убрать чат из избранного') : window.CRM.i18n.t('chat.btn_favorite_aria', 'Добавить чат в избранное'))) + '"><i class="' + (Number(chat.is_favorite || 0) ? 'fa-solid' : 'fa-regular') + ' fa-star" aria-hidden="true"></i></button>'
+      + '<button class="btn crm-icon-btn" type="button" id="muteChatBtn" title="' + esc((isMuted(chat) ? window.CRM.i18n.t('chat.btn_unmute_title', 'Включить уведомления') : window.CRM.i18n.t('chat.btn_mute_title', 'Отключить уведомления'))) + '" aria-label="' + esc((isMuted(chat) ? window.CRM.i18n.t('chat.btn_unmute_aria', 'Включить уведомления чата') : window.CRM.i18n.t('chat.btn_mute_aria', 'Отключить уведомления чата'))) + '"><i class="fa-solid ' + (isMuted(chat) ? 'fa-bell-slash' : 'fa-bell') + '" aria-hidden="true"></i></button>'
+      + '<button class="btn crm-btn-muted d-md-none" type="button" id="backToChatsBtn" aria-label="' + esc(window.CRM.i18n.t('chat.btn_back_aria', 'Вернуться к списку чатов')) + '">' + esc(window.CRM.i18n.t('chat.btn_back', 'К списку')) + '</button></div>'
       + '</div>'
-      + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">Загрузка сообщений...</div></div>'
-      + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div><div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="Упомянуть участника"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
-      + '<div class="crm-chat-compose-row"><button class="btn crm-icon-btn" type="button" id="attachChatFileBtn" aria-label="Прикрепить файл" title="Прикрепить файл"><i class="fa-solid fa-paperclip"></i></button><button class="btn crm-icon-btn" type="button" id="emojiChatBtn" aria-label="Эмоджи и стикеры" title="Эмоджи и стикеры" aria-expanded="false" aria-controls="emojiPicker"><i class="fa-regular fa-face-smile"></i></button><input class="d-none" type="file" id="chatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip"><label class="visually-hidden" for="msgInput">Сообщение</label><textarea class="form-control crm-chat-message-input" id="msgInput" rows="1" maxlength="4000" placeholder="Сообщение..."></textarea><button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="sendChatMessageBtn" disabled aria-label="Отправить сообщение" title="Отправить сообщение"><i class="fa-solid fa-paper-plane"></i></button></div><div class="crm-chat-compose-hint">Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.</div></div>')
+      + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_messages', 'Загрузка сообщений...') + '</div></div>'
+      + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div><div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
+      + '<div class="crm-chat-compose-row"><button class="btn crm-icon-btn" type="button" id="attachChatFileBtn" aria-label="' + window.CRM.i18n.t('chat.btn_attach_aria', 'Прикрепить файл') + '" title="' + window.CRM.i18n.t('chat.btn_attach_title', 'Прикрепить файл') + '"><i class="fa-solid fa-paperclip"></i></button><button class="btn crm-icon-btn" type="button" id="emojiChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_emoji_aria', 'Эмоджи и стикеры') + '" title="' + window.CRM.i18n.t('chat.btn_emoji_title', 'Эмоджи и стикеры') + '" aria-expanded="false" aria-controls="emojiPicker"><i class="fa-regular fa-face-smile"></i></button><input class="d-none" type="file" id="chatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip"><label class="visually-hidden" for="msgInput">' + window.CRM.i18n.t('chat.msg_input_label', 'Сообщение') + '</label><textarea class="form-control crm-chat-message-input" id="msgInput" rows="1" maxlength="4000" placeholder="' + window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...') + '"></textarea><button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="sendChatMessageBtn" disabled aria-label="' + window.CRM.i18n.t('chat.btn_send_aria', 'Отправить сообщение') + '" title="' + window.CRM.i18n.t('chat.btn_send_title', 'Отправить сообщение') + '"><i class="fa-solid fa-paper-plane"></i></button></div><div class="crm-chat-compose-hint">' + window.CRM.i18n.t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.') + '</div></div>')
       + '</div>';
     renderedChatId = selectedChatId;
     bindComposer();
@@ -246,21 +246,21 @@
   }
 
   function renderReplyQuote(message) {
-    var sender = esc(message.reply_sender_name || message.reply_sender_login || 'Сообщение');
+    var sender = esc(message.reply_sender_name || message.reply_sender_login || window.CRM.i18n.t('chat.reply_default_sender', 'Сообщение'));
     var text = message.reply_text;
     if (text != null && text !== '') return '<strong>' + sender + '</strong><span>' + esc(text) + '</span>';
     var original = findMessage(message.reply_public_id);
     if (original) {
-      if (original.deleted_at) return '<strong>' + sender + '</strong><span class="crm-chat-deleted-text">Сообщение удалено</span>';
+      if (original.deleted_at) return '<strong>' + sender + '</strong><span class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</span>';
       if (original.text && original.text.trim()) return '<strong>' + sender + '</strong><span>' + esc(original.text) + '</span>';
       var attachments = Array.isArray(original.attachments) ? original.attachments : [];
       if (attachments.length) {
-        var names = attachments.map(function (f) { return esc(f.original_name || 'Файл'); }).slice(0, 3).join(', ');
-        if (attachments.length > 3) names += ' и ещё ' + (attachments.length - 3);
+        var names = attachments.map(function (f) { return esc(f.original_name || window.CRM.i18n.t('chat.file_default', 'Файл')); }).slice(0, 3).join(', ');
+        if (attachments.length > 3) names += ' ' + window.CRM.i18n.t('chat.and_more', 'и ещё') + ' ' + (attachments.length - 3);
         return '<strong>' + sender + '</strong><span><i class="fa-solid fa-paperclip" aria-hidden="true"></i> ' + names + '</span>';
       }
     }
-    return '<strong>' + sender + '</strong><span>Без текста</span>';
+    return '<strong>' + sender + '</strong><span>' + window.CRM.i18n.t('chat.no_text', 'Без текста') + '</span>';
   }
 
   function messageNumericId(message) {
@@ -289,16 +289,16 @@
   }
 
   function renderMessage(message) {
-      var sender = message.sender_name || message.sender_login || 'Пользователь';
+      var sender = message.sender_name || message.sender_login || window.CRM.i18n.t('chat.default_sender', 'Пользователь');
       var own = Number(message.is_own || 0) === 1;
       var deleted = !!message.deleted_at;
       var canEdit = own && !deleted && canModifyMessage(message);
       return '<article class="crm-chat-message' + (own ? ' is-own' : '') + (deleted ? ' is-deleted' : '') + '" data-message-id="' + esc(message.public_id || '') + '">'
         + '<div class="crm-chat-message-meta"><strong>' + esc(sender) + '</strong><time>' + esc(formatTime(message.created_at)) + '</time></div>'
-         + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="Перейти к исходному сообщению" aria-label="Перейти к исходному сообщению">' + renderReplyQuote(message) + '</button>' : '')
-        + (deleted ? '<p class="crm-chat-deleted-text">Сообщение удалено</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
+         + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
+        + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
-        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>изменено</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="Ответить на сообщение" aria-label="Ответить на сообщение">Ответить</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="Изменить сообщение" aria-label="Изменить сообщение">Изменить</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="Удалить сообщение" aria-label="Удалить сообщение">Удалить</button>' : '') + '</div></article>';
+        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '</div></article>';
   }
 
   function renderMessages(messages) {
@@ -308,7 +308,7 @@
     lastMessageId = 0;
     updateLastMessageId(messages);
     if (!messages.length) {
-      box.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>Сообщений пока нет</strong><span>Напишите первое сообщение в этом диалоге.</span></div>';
+      box.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>' + window.CRM.i18n.t('chat.messages_empty_title', 'Сообщений пока нет') + '</strong><span>' + window.CRM.i18n.t('chat.messages_empty_text', 'Напишите первое сообщение в этом диалоге.') + '</span></div>';
       return;
     }
     box.innerHTML = messages.map(renderMessage).join('');
@@ -403,16 +403,16 @@
     if (!files.length) return '';
     return '<div class="crm-chat-attachments">' + files.map(function (file) {
       var url = file.download_url || '#';
-      if (String(file.mime_type || '').indexOf('image/') === 0) return '<button type="button" class="crm-chat-image-attachment" data-image-url="' + esc(url) + '" data-image-name="' + esc(file.original_name || 'Изображение') + '" title="Открыть изображение: ' + esc(file.original_name || 'Изображение') + '" aria-label="Открыть изображение: ' + esc(file.original_name || 'Изображение') + '"><img src="' + esc(url) + '" alt="' + esc(file.original_name || 'Изображение') + '"></button>';
-      return '<a class="crm-chat-file-attachment" href="' + esc(url) + '" download title="Скачать файл: ' + esc(file.original_name || 'Файл') + '" aria-label="Скачать файл: ' + esc(file.original_name || 'Файл') + '"><i class="fa-solid fa-file"></i><span>' + esc(file.original_name || 'Файл') + '</span><small>' + esc(formatFileSize(file.size_bytes || 0)) + '</small></a>';
+      if (String(file.mime_type || '').indexOf('image/') === 0) return '<button type="button" class="crm-chat-image-attachment" data-image-url="' + esc(url) + '" data-image-name="' + esc(file.original_name || window.CRM.i18n.t('chat.image_default', 'Изображение')) + '" title="' + window.CRM.i18n.t('chat.open_image_title', 'Открыть изображение: ') + esc(file.original_name || window.CRM.i18n.t('chat.image_default', 'Изображение')) + '" aria-label="' + window.CRM.i18n.t('chat.open_image_aria', 'Открыть изображение: ') + esc(file.original_name || window.CRM.i18n.t('chat.image_default', 'Изображение')) + '"><img src="' + esc(url) + '" alt="' + esc(file.original_name || window.CRM.i18n.t('chat.image_default', 'Изображение')) + '"></button>';
+      return '<a class="crm-chat-file-attachment" href="' + esc(url) + '" download title="' + window.CRM.i18n.t('chat.download_file_title', 'Скачать файл: ') + esc(file.original_name || window.CRM.i18n.t('chat.file_default', 'Файл')) + '" aria-label="' + window.CRM.i18n.t('chat.download_file_aria', 'Скачать файл: ') + esc(file.original_name || window.CRM.i18n.t('chat.file_default', 'Файл')) + '"><i class="fa-solid fa-file"></i><span>' + esc(file.original_name || window.CRM.i18n.t('chat.file_default', 'Файл')) + '</span><small>' + esc(formatFileSize(file.size_bytes || 0)) + '</small></a>';
     }).join('') + '</div>';
   }
 
   function formatFileSize(bytes) {
     bytes = Number(bytes || 0);
-    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' МБ';
-    if (bytes >= 1024) return Math.round(bytes / 1024) + ' КБ';
-    return bytes + ' Б';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' ' + window.CRM.i18n.t('chat.file_size_mb', 'МБ');
+    if (bytes >= 1024) return Math.round(bytes / 1024) + ' ' + window.CRM.i18n.t('chat.file_size_kb', 'КБ');
+    return bytes + ' ' + window.CRM.i18n.t('chat.file_size_b', 'Б');
   }
 
   function canModifyMessage(message) {
@@ -442,7 +442,7 @@
       renderConversationShell(chat);
       if (chat.is_archived || chat.archived_at) {
         var archivedBox = document.getElementById('msgArea');
-        if (archivedBox) archivedBox.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>Чат в архиве</strong><span>Восстановите чат, чтобы продолжить переписку.</span></div>';
+        if (archivedBox) archivedBox.innerHTML = '<div class="crm-chat-empty crm-chat-empty--small"><strong>' + window.CRM.i18n.t('chat.archived_chat_title', 'Чат в архиве') + '</strong><span>' + window.CRM.i18n.t('chat.archived_chat_text', 'Восстановите чат, чтобы продолжить переписку.') + '</span></div>';
         currentMessages = [];
         lastMessageId = 0;
         return;
@@ -453,7 +453,7 @@
       loadChats({ silent: true });
     } catch (error) {
       var area = document.getElementById('chatArea');
-      if (area) area.innerHTML = '<div class="crm-chat-empty"><strong>Не удалось открыть чат</strong><span>Проверьте доступ или попробуйте позже.</span></div>';
+      if (area) area.innerHTML = '<div class="crm-chat-empty"><strong>' + window.CRM.i18n.t('chat.open_error_title', 'Не удалось открыть чат') + '</strong><span>' + window.CRM.i18n.t('chat.open_error_text', 'Проверьте доступ или попробуйте позже.') + '</span></div>';
     } finally {
       loadingMessages = false;
     }
@@ -531,8 +531,8 @@
     var button = document.getElementById('sendChatMessageBtn');
     if (!input || !button) return;
     var text = input.value.trim();
-    if (!text) { setSendError('Напишите сообщение.'); button.disabled = true; return; }
-    if (!selectedChatId) { setSendError('Выберите чат.'); return; }
+    if (!text) { setSendError(window.CRM.i18n.t('chat.error_write_message', 'Напишите сообщение.')); button.disabled = true; return; }
+    if (!selectedChatId) { setSendError(window.CRM.i18n.t('chat.error_select_chat', 'Выберите чат.')); return; }
     input.disabled = true;
     button.disabled = true;
     setSendError('');
@@ -551,7 +551,7 @@
       renderReplyPreview();
       await loadChats({ silent: true });
     } catch (error) {
-      setSendError('Не удалось отправить сообщение. Попробуйте еще раз.');
+      setSendError(window.CRM.i18n.t('chat.error_send_failed', 'Не удалось отправить сообщение. Попробуйте еще раз.'));
     } finally {
       input.disabled = false;
       input.focus();
@@ -571,7 +571,7 @@
       await syncMessagesAfterLocalChange('append');
       await loadChats({ silent: true });
     } catch (error) {
-      setSendError('Не удалось отправить файл.');
+      setSendError(window.CRM.i18n.t('chat.error_file_upload', 'Не удалось отправить файл.'));
       input.value = '';
     }
   }
@@ -585,9 +585,9 @@
     document.getElementById('muteChatBtn').addEventListener('click', async function () {
       var muted = isMuted(chat);
       if (!muted && !await showConfirmModal({
-        title: 'Отключить уведомления?',
-        body: 'Уведомления этого чата будут скрыты. Включить их обратно можно этой же кнопкой.',
-        submitText: 'Отключить',
+        title: window.CRM.i18n.t('chat.confirm_mute_title', 'Отключить уведомления?'),
+        body: window.CRM.i18n.t('chat.confirm_mute_body', 'Уведомления этого чата будут скрыты. Включить их обратно можно этой же кнопкой.'),
+        submitText: window.CRM.i18n.t('chat.confirm_mute_submit', 'Отключить'),
         danger: false
       })) return;
       await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/settings', { method: 'PATCH', body: { is_muted: !muted } });
@@ -600,9 +600,9 @@
     if (archiveBtn) {
       archiveBtn.addEventListener('click', async function () {
         if (!await showConfirmModal({
-          title: 'Архивировать чат?',
-          body: 'Чат пропадет у всех участников. Восстановить его сможет создатель из списка архивных чатов.',
-          submitText: 'В архив',
+          title: window.CRM.i18n.t('chat.confirm_archive_title', 'Архивировать чат?'),
+          body: window.CRM.i18n.t('chat.confirm_archive_body', 'Чат пропадет у всех участников. Восстановить его сможет создатель из списка архивных чатов.'),
+          submitText: window.CRM.i18n.t('chat.confirm_archive_submit', 'В архив'),
           danger: true
         })) return;
         archiveBtn.disabled = true;
@@ -612,7 +612,7 @@
         try {
           await request('api/v1/chats/' + encodeURIComponent(chatToArchive) + '/archive', { method: 'POST' });
         } catch (e) {}
-        document.getElementById('chatArea').innerHTML = '<div class="crm-chat-empty"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><strong>Чат в архиве</strong><span>Вы можете восстановить его из списка архивных чатов.</span></div>';
+        document.getElementById('chatArea').innerHTML = '<div class="crm-chat-empty"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><strong>' + window.CRM.i18n.t('chat.archived_chat_title', 'Чат в архиве') + '</strong><span>' + window.CRM.i18n.t('chat.archived_restore_hint', 'Вы можете восстановить его из списка архивных чатов.') + '</span></div>';
         await loadChats({ silent: true });
         startPolling();
         archiveBtn.disabled = false;
@@ -662,9 +662,9 @@
       btn.setAttribute('data-chat-bound', '1');
       btn.addEventListener('click', async function () {
         if (!await showConfirmModal({
-          title: 'Удалить сообщение?',
-          body: 'Сообщение будет скрыто в чате, а действие сохранится в журнале изменений.',
-          submitText: 'Удалить',
+          title: window.CRM.i18n.t('chat.confirm_delete_title', 'Удалить сообщение?'),
+          body: window.CRM.i18n.t('chat.confirm_delete_body', 'Сообщение будет скрыто в чате, а действие сохранится в журнале изменений.'),
+          submitText: window.CRM.i18n.t('chat.confirm_delete_submit', 'Удалить'),
           danger: true
         })) return;
         await request('api/v1/chats/' + encodeURIComponent(selectedChatId) + '/messages/' + encodeURIComponent(btn.getAttribute('data-delete-message')), { method: 'DELETE' });
@@ -695,7 +695,7 @@
     var source = editingMessage || replyToMessage;
     node.classList.toggle('d-none', !source);
     if (!source) { node.innerHTML = ''; return; }
-    node.innerHTML = '<div><strong>' + (editingMessage ? 'Редактирование' : 'Ответ') + '</strong><span>' + esc(source.text || 'Сообщение') + '</span></div><button type="button" aria-label="Отменить"><i class="fa-solid fa-xmark"></i></button>';
+    node.innerHTML = '<div><strong>' + (editingMessage ? window.CRM.i18n.t('chat.reply_editing', 'Редактирование') : window.CRM.i18n.t('chat.reply_reply', 'Ответ')) + '</strong><span>' + esc(source.text || window.CRM.i18n.t('chat.reply_default_sender', 'Сообщение')) + '</span></div><button type="button" aria-label="' + window.CRM.i18n.t('chat.btn_cancel_reply_aria', 'Отменить') + '"><i class="fa-solid fa-xmark"></i></button>';
     node.querySelector('button').addEventListener('click', function () {
       replyToMessage = null;
       editingMessage = null;
@@ -707,7 +707,7 @@
   function renderEmojiPicker() {
     var picker = document.getElementById('emojiPicker');
     if (!picker) return;
-    picker.innerHTML = '<div class="crm-chat-picker-section" aria-label="Эмоджи">' + emojiSet.map(function (item) { return '<button type="button" data-emoji="' + esc(item) + '" title="Добавить эмоджи ' + esc(item) + '" aria-label="Добавить эмоджи ' + esc(item) + '">' + esc(item) + '</button>'; }).join('') + '</div><div class="crm-chat-picker-section crm-chat-sticker-list" aria-label="Стикеры">' + stickerSet.map(function (item, index) { return '<button type="button" data-sticker="' + index + '" title="Отправить ' + esc(item.label) + '" aria-label="Отправить ' + esc(item.label) + '">' + esc(item.label) + '</button>'; }).join('') + '</div>';
+    picker.innerHTML = '<div class="crm-chat-picker-section" aria-label="' + window.CRM.i18n.t('chat.picker_emoji_aria', 'Эмоджи') + '">' + emojiSet.map(function (item) { return '<button type="button" data-emoji="' + esc(item) + '" title="' + window.CRM.i18n.t('chat.picker_add_emoji_title', 'Добавить эмоджи ') + esc(item) + '" aria-label="' + window.CRM.i18n.t('chat.picker_add_emoji_aria', 'Добавить эмоджи ') + esc(item) + '">' + esc(item) + '</button>'; }).join('') + '</div><div class="crm-chat-picker-section crm-chat-sticker-list" aria-label="' + window.CRM.i18n.t('chat.picker_stickers_aria', 'Стикеры') + '">' + stickerSet.map(function (item, index) { return '<button type="button" data-sticker="' + index + '" title="' + window.CRM.i18n.t('chat.picker_send_sticker_title', 'Отправить ') + esc(item.label) + '" aria-label="' + window.CRM.i18n.t('chat.picker_send_sticker_aria', 'Отправить ') + esc(item.label) + '">' + esc(item.label) + '</button>'; }).join('') + '</div>';
     picker.querySelectorAll('[data-emoji]').forEach(function (btn) { btn.addEventListener('click', function () { insertAtCursor(btn.getAttribute('data-emoji')); }); });
     picker.querySelectorAll('[data-sticker]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -739,14 +739,14 @@
 
   function showParticipantsModal() {
     var participants = (currentChat && Array.isArray(currentChat.participants)) ? currentChat.participants : [];
-    showInfoModal('Участники чата', '<div class="crm-chat-participants-list">' + participants.map(function (user) {
-      var role = String(user.role || '') === 'admin' ? 'Администратор' : 'Участник';
-      return '<div><strong>' + esc(user.full_name || user.login || 'Пользователь') + '</strong><span>' + esc(role + (user.login ? ' · @' + user.login : '')) + '</span></div>';
+    showInfoModal(window.CRM.i18n.t('chat.modal_participants_title', 'Участники чата'), '<div class="crm-chat-participants-list">' + participants.map(function (user) {
+      var role = String(user.role || '') === 'admin' ? window.CRM.i18n.t('chat.role_admin', 'Администратор') : window.CRM.i18n.t('chat.role_participant', 'Участник');
+      return '<div><strong>' + esc(user.full_name || user.login || window.CRM.i18n.t('chat.default_sender', 'Пользователь')) + '</strong><span>' + esc(role + (user.login ? ' · @' + user.login : '')) + '</span></div>';
     }).join('') + '</div>');
   }
 
   function showImageModal(url, name) {
-    showInfoModal(name || 'Изображение', '<img class="crm-chat-modal-image" src="' + esc(url) + '" alt="' + esc(name || 'Изображение') + '">');
+    showInfoModal(name || window.CRM.i18n.t('chat.image_default', 'Изображение'), '<img class="crm-chat-modal-image" src="' + esc(url) + '" alt="' + esc(name || window.CRM.i18n.t('chat.image_default', 'Изображение')) + '">');
   }
 
   function showInfoModal(title, body) {
@@ -755,7 +755,7 @@
     var modal = document.createElement('div');
     modal.id = 'chatInfoModal';
     modal.className = 'crm-chat-modal is-open';
-    modal.innerHTML = '<div class="crm-chat-modal-panel crm-chat-info-panel"><div class="crm-chat-modal-head"><h2 class="h5 mb-0">' + esc(title) + '</h2><button class="btn-close" type="button" aria-label="Закрыть"></button></div>' + body + '</div>';
+    modal.innerHTML = '<div class="crm-chat-modal-panel crm-chat-info-panel"><div class="crm-chat-modal-head"><h2 class="h5 mb-0">' + esc(title) + '</h2><button class="btn-close" type="button" aria-label="' + window.CRM.i18n.t('page.close_aria', 'Закрыть') + '"></button></div>' + body + '</div>';
     document.body.appendChild(modal);
     modal.querySelector('.btn-close').addEventListener('click', function () { modal.remove(); });
     modal.addEventListener('click', function (event) { if (event.target === modal) modal.remove(); });
@@ -773,9 +773,9 @@
       modal.setAttribute('aria-modal', 'true');
       modal.setAttribute('aria-labelledby', 'chatConfirmTitle');
       modal.innerHTML = '<div class="crm-chat-modal-panel crm-chat-confirm-panel">'
-        + '<div class="crm-chat-modal-head"><h2 class="h5 mb-0" id="chatConfirmTitle">' + esc(options.title || 'Подтвердите действие') + '</h2><button class="btn-close" type="button" aria-label="Закрыть"></button></div>'
-        + '<p class="crm-chat-confirm-text">' + esc(options.body || 'Продолжить?') + '</p>'
-        + '<div class="crm-chat-modal-actions"><button class="btn crm-btn-muted" type="button" data-chat-confirm-cancel>Отмена</button><button class="btn ' + (options.danger ? 'crm-btn-danger-soft' : 'crm-btn-primary') + '" type="button" data-chat-confirm-submit>' + esc(options.submitText || 'Подтвердить') + '</button></div>'
+        + '<div class="crm-chat-modal-head"><h2 class="h5 mb-0" id="chatConfirmTitle">' + esc(options.title || window.CRM.i18n.t('chat.confirm_default_title', 'Подтвердите действие')) + '</h2><button class="btn-close" type="button" aria-label="' + window.CRM.i18n.t('page.close_aria', 'Закрыть') + '"></button></div>'
+        + '<p class="crm-chat-confirm-text">' + esc(options.body || window.CRM.i18n.t('chat.confirm_default_body', 'Продолжить?')) + '</p>'
+        + '<div class="crm-chat-modal-actions"><button class="btn crm-btn-muted" type="button" data-chat-confirm-cancel>' + window.CRM.i18n.t('page.cancel', 'Отмена') + '</button><button class="btn ' + (options.danger ? 'crm-btn-danger-soft' : 'crm-btn-primary') + '" type="button" data-chat-confirm-submit>' + esc(options.submitText || window.CRM.i18n.t('chat.confirm_default_submit', 'Подтвердить')) + '</button></div>'
         + '</div>';
       function close(value) {
         modal.remove();
@@ -831,8 +831,8 @@
   async function createChat() {
     var title = document.getElementById('newChatTitle').value.trim();
     var button = document.getElementById('createChatBtn');
-    if (chatParticipants.length === 0) { setChatError('Добавьте хотя бы одного участника.'); return; }
-    if (!title) { setChatError('Укажите название чата.'); return; }
+    if (chatParticipants.length === 0) { setChatError(window.CRM.i18n.t('chat.error_create_no_participants', 'Добавьте хотя бы одного участника.')); return; }
+    if (!title) { setChatError(window.CRM.i18n.t('chat.error_create_no_title', 'Укажите название чата.')); return; }
     button.disabled = true;
     setChatError('');
     var newPublicId;
@@ -844,7 +844,7 @@
       }});
       newPublicId = env.data ? env.data.public_id : null;
     } catch (error) {
-      var msg = (error.data && error.data.message) || 'Не удалось создать чат. Проверьте права доступа.';
+      var msg = (error.data && error.data.message) || window.CRM.i18n.t('chat.error_create_failed', 'Не удалось создать чат. Проверьте права доступа.');
       setChatError(msg);
       button.disabled = false;
       return;
@@ -854,7 +854,7 @@
       await selectChat(newPublicId, { updateUrl: true });
       closeNewChatModal();
     } else {
-      setChatError('Не удалось создать чат.');
+      setChatError(window.CRM.i18n.t('chat.error_create_unknown', 'Не удалось создать чат.'));
     }
     button.disabled = false;
   }
@@ -883,28 +883,28 @@
       showArchived = !showArchived;
       var btn = document.getElementById('toggleArchivedBtn');
       btn.setAttribute('aria-pressed', String(showArchived));
-      btn.textContent = showArchived ? 'Активные' : 'Архив';
-      btn.setAttribute('title', showArchived ? 'Показать активные чаты' : 'Показать архивные чаты');
-      btn.setAttribute('aria-label', showArchived ? 'Показать активные чаты' : 'Показать архивные чаты');
+      btn.textContent = showArchived ? window.CRM.i18n.t('chat.btn_active', 'Активные') : window.CRM.i18n.t('chat.btn_archived', 'Архив');
+      btn.setAttribute('title', showArchived ? window.CRM.i18n.t('chat.btn_active_title', 'Показать активные чаты') : window.CRM.i18n.t('chat.btn_archived_title', 'Показать архивные чаты'));
+      btn.setAttribute('aria-label', showArchived ? window.CRM.i18n.t('chat.btn_active_aria', 'Показать активные чаты') : window.CRM.i18n.t('chat.btn_archived_aria', 'Показать архивные чаты'));
       if (showArchived) {
         try {
           var env = await request('api/v1/chats', { method: 'GET', query: { archived: '1' } });
           var items = (env.data && env.data.items) || [];
           var list = document.getElementById('chatList');
           if (!items.length) {
-            list.innerHTML = '<div class="crm-chat-list-state"><strong>Нет архивных чатов</strong><span>Архивированные чаты появятся здесь.</span></div>';
+            list.innerHTML = '<div class="crm-chat-list-state"><strong>' + window.CRM.i18n.t('chat.no_archived_title', 'Нет архивных чатов') + '</strong><span>' + window.CRM.i18n.t('chat.no_archived_text', 'Архивированные чаты появятся здесь.') + '</span></div>';
             return;
           }
           list.innerHTML = items.map(function (chat) {
             var id = String(chat.public_id || '');
             var title = chatTitle(chat);
-            return '<button type="button" class="crm-chat-item has-unread" data-chat-id="' + esc(id) + '" role="listitem" title="Открыть архивный чат: ' + esc(title) + '" aria-label="Открыть архивный чат: ' + esc(title) + '">'
+            return '<button type="button" class="crm-chat-item has-unread" data-chat-id="' + esc(id) + '" role="listitem" title="' + esc(window.CRM.i18n.t('chat.open_archived_title', 'Открыть архивный чат: ') + title) + '" aria-label="' + esc(window.CRM.i18n.t('chat.open_archived_aria', 'Открыть архивный чат: ') + title) + '">'
               + '<span class="crm-chat-item-main"><strong>' + esc(chatTitle(chat)) + '</strong><small>' + esc(lastMessageText(chat)) + '</small></span>'
-              + '<span class="crm-chat-item-meta"><small>Архив</small></span>'
+              + '<span class="crm-chat-item-meta"><small>' + window.CRM.i18n.t('chat.state_archived', 'Архив') + '</small></span>'
               + '</button>';
           }).join('');
         } catch (e) {
-          document.getElementById('chatList').innerHTML = '<div class="crm-chat-list-state is-error"><strong>Ошибка загрузки архива</strong></div>';
+          document.getElementById('chatList').innerHTML = '<div class="crm-chat-list-state is-error"><strong>' + window.CRM.i18n.t('chat.error_archive_load', 'Ошибка загрузки архива') + '</strong></div>';
         }
       } else {
         setSelectedChatId('', true);
@@ -1077,7 +1077,7 @@
         + '<div class="team-participant-name">' + esc(p.full_name || p.login || p.public_id) + '</div>'
         + '<div class="team-participant-detail">' + esc(p.login || '') + '</div>'
         + '</div>'
-        + '<button type="button" class="team-participant-remove" data-remove="' + esc(p.public_id) + '" aria-label="Удалить"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+        + '<button type="button" class="team-participant-remove" data-remove="' + esc(p.public_id) + '" aria-label="' + window.CRM.i18n.t('chat.btn_remove_participant_aria', 'Удалить') + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
         + '</div>';
     }).join('');
     list.querySelectorAll('.team-participant-remove').forEach(function (btn) {
@@ -1102,7 +1102,7 @@
     var dropdown = document.getElementById('chatSearchResults');
     if (!dropdown) return;
     if (!items.length) {
-      dropdown.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>Ничего не найдено по запросу «' + esc(query) + '»</div>';
+      dropdown.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>' + window.CRM.i18n.t('chat.search_no_results', 'Ничего не найдено по запросу «') + esc(query) + '»</div>';
       dropdown.hidden = false;
       return;
     }
@@ -1115,7 +1115,7 @@
         + '<div class="team-search-item-name">' + esc(u.full_name || u.login || u.public_id) + '</div>'
         + '<div class="team-search-item-detail">' + esc(u.login || '') + '</div>'
         + '</div>'
-        + '<div class="team-search-item-action">' + (added ? '<span class="crm-chip">Добавлен</span>' : '<button type="button" class="btn crm-btn-primary crm-btn-compact">+ Добавить</button>') + '</div>'
+        + '<div class="team-search-item-action">' + (added ? '<span class="crm-chip">' + window.CRM.i18n.t('chat.badge_added', 'Добавлен') + '</span>' : '<button type="button" class="btn crm-btn-primary crm-btn-compact">+ ' + window.CRM.i18n.t('chat.btn_add', 'Добавить') + '</button>') + '</div>'
         + '</div>';
     }).join('');
     dropdown.hidden = false;

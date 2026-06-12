@@ -22,6 +22,31 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.br1 ? window.CRM.br1.safeText(value) : String(value || '');
   }
 
+  function tp(key, fallback) {
+    if (window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      return window.CRM.i18n.t('js.pab.' + key, fallback);
+    }
+    return fallback || key;
+  }
+
+  function tpPlural(baseKey, count, defaults) {
+    var forms = defaults || {};
+    return pluralRu(
+      count,
+      tp(baseKey + '.one', forms.one || ''),
+      tp(baseKey + '.few', forms.few || forms.one || ''),
+      tp(baseKey + '.many', forms.many || forms.few || forms.one || '')
+    );
+  }
+
+  function tpLocale(defaultLocale) {
+    var raw = (window.CRM && (window.CRM.locale || window.CRM.currentLocale))
+      || document.documentElement.getAttribute('lang')
+      || defaultLocale
+      || 'ru-RU';
+    return String(raw || 'ru-RU').replace('_', '-');
+  }
+
   function rememberUser(user) {
     if (!user || typeof user !== 'object') return;
     var publicId = String(user.public_id || '').trim();
@@ -149,7 +174,7 @@ window.CRM.pageApiBindings = (function () {
     statusNode.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)';
     statusNode.style.color = '#fff';
     statusNode.style.background = '#0f8f72';
-    statusNode.textContent = 'Загрузка данных...';
+    statusNode.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
 
     document.body.appendChild(statusNode);
     return statusNode;
@@ -163,13 +188,13 @@ window.CRM.pageApiBindings = (function () {
       node.dataset.error = '0';
       node.style.display = 'block';
       node.style.background = '#0f8f72';
-      node.textContent = 'Загрузка данных...';
+      node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
       return;
     }
 
     if (node.dataset.error === '1') return;
     node.style.display = 'none';
-    node.textContent = 'Загрузка данных...';
+    node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
   }
 
   function setErrorState(message) {
@@ -179,12 +204,12 @@ window.CRM.pageApiBindings = (function () {
     node.dataset.error = '1';
     node.style.display = 'block';
     node.style.background = '#dc2626';
-    node.textContent = message || 'Ошибка загрузки данных API';
+    node.textContent = message || window.CRM.i18n.t('js.pab.api_load_error', 'API data load error');
 
     window.setTimeout(function () {
       node.dataset.error = '0';
       node.style.display = 'none';
-      node.textContent = 'Загрузка данных...';
+      node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
     }, 5000);
   }
 
@@ -205,7 +230,7 @@ window.CRM.pageApiBindings = (function () {
     bar.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
     bar.style.minWidth = '280px';
     bar.style.maxWidth = '360px';
-    bar.innerHTML = '<div class="small fw-semibold mb-1">' + safeText(label || 'Выполняется...') + '</div>'
+    bar.innerHTML = '<div class="small fw-semibold mb-1">' + safeText(label || window.CRM.i18n.t('js.pab.in_progress', 'In progress...')) + '</div>'
       + '<div class="progress" style="height:6px;background:#334155;border-radius:3px;overflow:hidden">'
       + '<div id="crmBulkProgressFill" style="width:0%;height:100%;background:#3b82f6;transition:width 0.2s"></div>'
       + '</div>'
@@ -232,9 +257,9 @@ window.CRM.pageApiBindings = (function () {
   function renderTableState(container, state, options) {
     if (!container) return;
     var opts = options || {};
-    var loadingText = opts.loadingText || 'Загрузка...';
-    var emptyText = opts.emptyText || 'Нет данных';
-    var errorText = opts.errorText || 'Ошибка загрузки';
+    var loadingText = opts.loadingText || window.CRM.i18n.t('js.pab.loading', 'Loading...');
+    var emptyText = opts.emptyText || window.CRM.i18n.t('js.pab.no_data', 'No data');
+    var errorText = opts.errorText || window.CRM.i18n.t('js.pab.load_error', 'Load error');
     var colSpan = opts.colSpan || 4;
 
     if (state === 'loading') {
@@ -249,9 +274,9 @@ window.CRM.pageApiBindings = (function () {
   function renderCardState(container, state, options) {
     if (!container) return;
     var opts = options || {};
-    var loadingText = opts.loadingText || 'Загрузка...';
-    var emptyText = opts.emptyText || 'Нет данных';
-    var errorText = opts.errorText || 'Ошибка загрузки';
+    var loadingText = opts.loadingText || window.CRM.i18n.t('js.pab.loading', 'Loading...');
+    var emptyText = opts.emptyText || window.CRM.i18n.t('js.pab.no_data', 'No data');
+    var errorText = opts.errorText || window.CRM.i18n.t('js.pab.load_error', 'Load error');
 
     if (state === 'loading') {
       container.innerHTML = '<div class="text-muted">' + loadingText + '</div>';
@@ -333,19 +358,19 @@ window.CRM.pageApiBindings = (function () {
       if (typeof message === 'string' && message.trim() !== '') {
         stateNode.textContent = message;
       } else {
-        stateNode.textContent = 'Состояние: ' + aiStateLabel(state);
+        stateNode.textContent = window.CRM.i18n.t('js.pab.state_label', 'State:') + ' ' + aiStateLabel(state);
       }
     }
   }
 
   function priorityLabel(code) {
     var map = {
-      low: 'Низкий',
-      normal: 'Нормальный',
-      high: 'Высокий',
-      urgent: 'Срочный'
+      low: window.CRM.i18n.t('js.pab.priority_low', 'Low'),
+      normal: window.CRM.i18n.t('js.pab.priority_normal', 'Normal'),
+      high: window.CRM.i18n.t('js.pab.priority_high', 'High'),
+      urgent: window.CRM.i18n.t('js.pab.priority_urgent', 'Urgent')
     };
-    return map[String(code || '')] || code || 'Без приоритета';
+    return map[String(code || '')] || code || window.CRM.i18n.t('js.pab.priority_none', 'No priority');
   }
 
   function normalizeHexColor(value) {
@@ -382,7 +407,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function activityActorLabel(item) {
-    if (!item || typeof item !== 'object') return 'Система';
+    if (!item || typeof item !== 'object') return window.CRM.i18n.t('js.pab.system', 'System');
     return resolveUserLabel(
       item.actor_name
       || item.user_full_name
@@ -392,7 +417,7 @@ window.CRM.pageApiBindings = (function () {
       || item.login
       || '',
       item.user_public_id || item.actor_public_id || item.author_public_id || '',
-      'Система'
+      window.CRM.i18n.t('js.pab.system', 'System')
     );
   }
 
@@ -434,7 +459,7 @@ window.CRM.pageApiBindings = (function () {
     try {
       return await request(route, opts);
     } catch (error) {
-      var fallbackMessage = 'Ошибка API: ' + route;
+      var fallbackMessage = window.CRM.i18n.t('js.pab.api_error', 'API error:') + ' ' + route;
       var uiResult = window.CRM.errors && typeof window.CRM.errors.toUiResult === 'function'
         ? window.CRM.errors.toUiResult(error, fallbackMessage)
         : null;
@@ -556,22 +581,22 @@ window.CRM.pageApiBindings = (function () {
     var hierarchyMeta = '';
     if (parentTaskPublicId) {
       var parentTaskLink = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(parentTaskPublicId);
-      hierarchyMeta = '<span class="crm-chip crm-chip-subtask">Подзадача</span>'
-        + '<a class="crm-task-parent-link" href="' + parentTaskLink + '">Родитель: '
+      hierarchyMeta = '<span class="crm-chip crm-chip-subtask">' + window.CRM.i18n.t('js.pab.subtask', 'Subtask') + '</span>'
+        + '<a class="crm-task-parent-link" href="' + parentTaskLink + '">' + window.CRM.i18n.t('js.pab.parent', 'Parent:') + ' '
         + safeText(parentTaskTitle || parentTaskPublicId) + '</a>';
     } else if (hasSubtasks) {
-      hierarchyMeta = '<span class="crm-chip crm-chip-parent">Родительская задача</span>';
+      hierarchyMeta = '<span class="crm-chip crm-chip-parent">' + window.CRM.i18n.t('js.pab.parent_task', 'Parent task') + '</span>';
     } else {
-      hierarchyMeta = '<span class="crm-chip crm-chip-plain">Обычная задача</span>';
+      hierarchyMeta = '<span class="crm-chip crm-chip-plain">' + window.CRM.i18n.t('js.pab.regular_task', 'Regular task') + '</span>';
     }
     hierarchyMeta += taskAiPriorityBadge(taskId, false);
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
     return '<tr>'
-      + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="Выбрать задачу ' + safeText(item.title || taskId || '') + '"></td>'
+      + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="' + window.CRM.i18n.t('js.pab.select_task', 'Select task') + ' ' + safeText(item.title || taskId || '') + '"></td>'
       + '<td>'
-      + '<div class="crm-task-row-main"><a href="' + taskLink + '">' + safeText(item.title || 'Без названия') + '</a></div>'
+      + '<div class="crm-task-row-main"><a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
       + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
       + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
@@ -580,8 +605,8 @@ window.CRM.pageApiBindings = (function () {
       + '<td><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
       + '<td>'
       + '<div class="crm-task-row-actions-wrap">'
-      + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink + '">Открыть</a>'
-      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-task-delete="' + safeText(taskId) + '">Удалить</button>'
+      + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>'
+      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-task-delete="' + safeText(taskId) + '">' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button>'
       + '</div>'
       + '</td>'
       + '</tr>';
@@ -629,22 +654,22 @@ window.CRM.pageApiBindings = (function () {
     var parentTaskTitle = String(item.parent_task_title || '').trim();
     var hasSubtasks = String(item.has_subtasks || '') === '1' || item.has_subtasks === 1 || item.has_subtasks === true;
     if (parentTaskPublicId) {
-      return '<span class="crm-chip crm-chip-subtask">Подзадача</span>'
-        + '<a class="crm-task-parent-link" href="' + taskLink(parentTaskPublicId) + '">Родитель: '
+      return '<span class="crm-chip crm-chip-subtask">' + window.CRM.i18n.t('js.pab.subtask', 'Subtask') + '</span>'
+        + '<a class="crm-task-parent-link" href="' + taskLink(parentTaskPublicId) + '">' + window.CRM.i18n.t('js.pab.parent', 'Parent:') + ' '
         + safeText(parentTaskTitle || parentTaskPublicId) + '</a>'
         + taskAiPriorityBadge(taskId, false);
     }
     if (hasSubtasks) {
-      return '<span class="crm-chip crm-chip-parent">Родительская задача</span>' + taskAiPriorityBadge(taskId, false);
+      return '<span class="crm-chip crm-chip-parent">' + window.CRM.i18n.t('js.pab.parent_task', 'Parent task') + '</span>' + taskAiPriorityBadge(taskId, false);
     }
-    return '<span class="crm-chip crm-chip-plain">Обычная задача</span>' + taskAiPriorityBadge(taskId, false);
+    return '<span class="crm-chip crm-chip-plain">' + window.CRM.i18n.t('js.pab.regular_task', 'Regular task') + '</span>' + taskAiPriorityBadge(taskId, false);
   }
 
   function taskActionsHtml(item) {
     var taskId = item.public_id || '';
     return '<div class="crm-task-row-actions-wrap">'
-      + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(taskId) + '">Открыть</a>'
-      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-task-delete="' + safeText(taskId) + '">Удалить</button>'
+      + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink(taskId) + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>'
+      + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-task-delete="' + safeText(taskId) + '">' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button>'
       + '</div>';
   }
 
@@ -658,9 +683,9 @@ window.CRM.pageApiBindings = (function () {
     }
     var tagChips = taskTagsHtml(item.tags, 5);
     return '<div class="crm-task-card-meta">'
-      + '<div><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></div>'
-      + '<div><span>Срок</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></div>'
-      + '<div><span>Приоритет</span><strong>' + safeText(priorityLabel(item.priority_code || 'normal')) + '</strong></div>'
+      + '<div><span>' + window.CRM.i18n.t('js.pab.project', 'Project') + '</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></div>'
+      + '<div><span>' + window.CRM.i18n.t('js.pab.deadline', 'Deadline') + '</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></div>'
+      + '<div><span>' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</span><strong>' + safeText(priorityLabel(item.priority_code || 'normal')) + '</strong></div>'
       + aiRow
       + (tagChips ? '<div class="crm-task-card-tags-wrap">' + tagChips + '</div>' : '')
       + '</div>';
@@ -682,10 +707,10 @@ window.CRM.pageApiBindings = (function () {
     var config = options || {};
     var metaClass = 'crm-task-tree-meta' + (config.showProject === false ? ' is-compact' : ' has-project');
     return '<div class="' + metaClass + '">'
-      + (config.showProject === false ? '' : '<span class="crm-task-tree-meta-item"><span>Проект</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></span>')
-      + '<span class="crm-task-tree-meta-item"><span>Срок задачи</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></span>'
-      + '<span class="crm-task-tree-meta-item"><span>Статус</span><b class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</b></span>'
-      + '<span class="crm-task-tree-meta-item"><span>Приоритет</span><b class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</b></span>'
+      + (config.showProject === false ? '' : '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.project', 'Project') + '</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></span>')
+      + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.task_deadline', 'Task deadline') + '</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></span>'
+      + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.status', 'Status') + '</span><b class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</b></span>'
+      + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</span><b class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</b></span>'
       + '</div>';
   }
 
@@ -695,15 +720,15 @@ window.CRM.pageApiBindings = (function () {
     var parentTaskTitle = String(item.parent_task_title || '').trim();
     var badges = [];
     if (childCount) {
-      badges.push('<span class="crm-chip crm-chip-parent">Родительская</span>');
-      badges.push('<span class="crm-chip crm-chip-count">' + safeText(String(childCount)) + ' ' + pluralRu(childCount, 'подзадача', 'подзадачи', 'подзадач') + '</span>');
+      badges.push('<span class="crm-chip crm-chip-parent">' + window.CRM.i18n.t('js.pab.parent_short', 'Parent') + '</span>');
+      badges.push('<span class="crm-chip crm-chip-count">' + safeText(String(childCount)) + ' ' + tpPlural('task_tree.subtask', childCount, { one: 'subtask', few: 'subtasks', many: 'subtasks' }) + '</span>');
     } else if (level > 0) {
-      badges.push('<span class="crm-chip crm-chip-subtask">Подзадача</span>');
+      badges.push('<span class="crm-chip crm-chip-subtask">' + window.CRM.i18n.t('js.pab.subtask', 'Subtask') + '</span>');
     } else {
-      badges.push('<span class="crm-chip crm-chip-plain">Без подзадач</span>');
+      badges.push('<span class="crm-chip crm-chip-plain">' + window.CRM.i18n.t('js.pab.no_subtasks', 'No subtasks') + '</span>');
     }
     if (parentTaskPublicId && level === 0) {
-      badges.push('<a class="crm-task-parent-link" href="' + taskLink(parentTaskPublicId) + '">Родитель: '
+      badges.push('<a class="crm-task-parent-link" href="' + taskLink(parentTaskPublicId) + '">' + window.CRM.i18n.t('js.pab.parent', 'Parent:') + ' '
         + safeText(parentTaskTitle || parentTaskPublicId) + '</a>');
     }
     var aiBadge = taskAiPriorityBadge(taskId, true);
@@ -786,7 +811,7 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="crm-task-tree-body">'
       + '<div class="crm-task-tree-main">'
       + '<div class="crm-task-tree-title-wrap">'
-      + '<a class="crm-task-tree-title" href="' + taskLink(taskId) + '">' + safeText(item.title || 'Без названия') + '</a>'
+      + '<a class="crm-task-tree-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
       + '<div class="crm-task-row-meta">' + taskTreeBadges(item, childCount, level) + '</div>'
       + '</div>'
       + taskTreeMetaHtml(item, { showProject: level === 0 })
@@ -807,10 +832,10 @@ window.CRM.pageApiBindings = (function () {
     return '<section class="crm-task-tree-group">'
       + '<div class="crm-task-tree-group-head">'
       + '<div class="crm-task-tree-group-title">'
-      + '<a href="' + taskLink(taskId) + '">' + safeText(item.title || 'Без названия') + '</a>'
+      + '<a href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
       + '<div class="crm-task-row-meta">'
-      + '<span class="crm-chip crm-chip-parent">Родительская задача</span>'
-      + '<span class="crm-chip crm-chip-count">' + safeText(String(children.length)) + ' ' + pluralRu(children.length, 'подзадача', 'подзадачи', 'подзадач') + '</span>'
+      + '<span class="crm-chip crm-chip-parent">' + window.CRM.i18n.t('js.pab.parent_task', 'Parent task') + '</span>'
+      + '<span class="crm-chip crm-chip-count">' + safeText(String(children.length)) + ' ' + tpPlural('task_tree.subtask', children.length, { one: 'subtask', few: 'subtasks', many: 'subtasks' }) + '</span>'
       + '</div>'
       + '</div>'
       + taskTreeMetaHtml(item, { showProject: true })
@@ -827,7 +852,7 @@ window.CRM.pageApiBindings = (function () {
   function renderTaskTreeStandalone(nodes) {
     if (!nodes.length) return '';
     return '<section class="crm-task-tree-standalone">'
-      + '<div class="crm-task-tree-standalone-head">Задачи без подзадач</div>'
+      + '<div class="crm-task-tree-standalone-head">' + window.CRM.i18n.t('js.pab.tasks_without_subtasks', 'Tasks without subtasks') + '</div>'
       + nodes.map(function (node) {
         return renderTaskTreeItem(node, 0);
       }).join('')
@@ -837,14 +862,14 @@ window.CRM.pageApiBindings = (function () {
   function renderTaskTree(items) {
     var roots = buildTaskTree(items);
     if (!roots.length) {
-      return '<div class="crm-empty-state"><strong>Иерархия пуста</strong><p class="mb-0">Нет задач для выбранных фильтров.</p></div>';
+      return '<div class="crm-empty-state"><strong>' + window.CRM.i18n.t('js.pab.hierarchy_empty', 'Hierarchy is empty') + '</strong><p class="mb-0">' + window.CRM.i18n.t('js.pab.no_tasks_for_filters', 'No tasks for selected filters.') + '</p></div>';
     }
     var groups = roots.filter(function (node) { return (node.children || []).length > 0; });
     var standalone = roots.filter(function (node) { return !(node.children || []).length; });
     var parentGroups = roots.filter(function (node) { return (node.children || []).length > 0; }).length;
     var nestedTasks = roots.reduce(function (sum, node) { return sum + countTaskTreeChildren(node); }, 0);
-    return '<div class="crm-task-tree-summary"><div><strong>Иерархия задач</strong><span>Родительские задачи и вложенные подзадачи.</span></div>'
-      + '<div class="crm-task-tree-summary-stats"><span>' + safeText(String(parentGroups)) + ' ' + pluralRu(parentGroups, 'группа', 'группы', 'групп') + '</span><span>' + safeText(String(nestedTasks)) + ' ' + pluralRu(nestedTasks, 'подзадача', 'подзадачи', 'подзадач') + '</span></div></div>'
+    return '<div class="crm-task-tree-summary"><div><strong>' + window.CRM.i18n.t('js.pab.task_hierarchy', 'Task hierarchy') + '</strong><span>' + window.CRM.i18n.t('js.pab.parent_and_subtasks', 'Parent tasks and nested subtasks.') + '</span></div>'
+      + '<div class="crm-task-tree-summary-stats"><span>' + safeText(String(parentGroups)) + ' ' + tpPlural('task_tree.group', parentGroups, { one: 'group', few: 'groups', many: 'groups' }) + '</span><span>' + safeText(String(nestedTasks)) + ' ' + tpPlural('task_tree.subtask', nestedTasks, { one: 'subtask', few: 'subtasks', many: 'subtasks' }) + '</span></div></div>'
       + '<div class="crm-task-tree">'
       + groups.map(renderTaskTreeGroup).join('')
       + renderTaskTreeStandalone(standalone)
@@ -857,12 +882,12 @@ window.CRM.pageApiBindings = (function () {
       return '<article class="crm-task-card">'
         + '<div class="crm-task-card-head">'
         + '<div class="crm-task-card-title-wrap">'
-        + '<a class="crm-task-card-title" href="' + taskLink(taskId) + '">' + safeText(item.title || 'Без названия') + '</a>'
+        + '<a class="crm-task-card-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
         + '</div>'
         + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span>'
         + '</div>'
         + '<div class="crm-task-row-meta">' + taskHierarchyLabel(item) + '</div>'
-        + '<p class="crm-task-card-description">' + safeText(item.description || 'Описание не заполнено') + '</p>'
+        + '<p class="crm-task-card-description">' + safeText(item.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + taskCardMetaHtml(item)
         + '<div class="crm-task-card-footer">'
         + taskActionsHtml(item)
@@ -919,11 +944,11 @@ window.CRM.pageApiBindings = (function () {
 
         try {
           await request('api/v1/tasks/' + taskId, { method: 'DELETE' });
-          notify('Задача удалена');
+          notify(window.CRM.i18n.t('js.pab.task_deleted', 'Task deleted'));
           refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
-          notify((envelope && envelope.message) || 'Не удалось удалить задачу', 'error');
+          notify((envelope && envelope.message) || window.CRM.i18n.t('js.pab.task_delete_failed', 'Failed to delete task'), 'error');
         }
       });
     });
@@ -964,9 +989,9 @@ window.CRM.pageApiBindings = (function () {
       }
       var action = currentAction.cloneNode(true);
       currentAction.parentNode.replaceChild(action, currentAction);
-      if (title) title.textContent = String(options && options.title || 'Подтвердите действие');
-      if (body) body.textContent = String(options && options.body || 'Продолжить?');
-      action.textContent = String(options && options.actionText || 'Подтвердить');
+      if (title) title.textContent = String(options && options.title || tp('common.confirm_title', 'Confirm action'));
+      if (body) body.textContent = String(options && options.body || tp('common.confirm_body', 'Continue?'));
+      action.textContent = String(options && options.actionText || tp('common.confirm_action', 'Confirm'));
       action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
       var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
       return new Promise(function (resolve) {
@@ -1050,7 +1075,7 @@ window.CRM.pageApiBindings = (function () {
       if (direct) return direct;
       var clientId = String(item && item.client_public_id || '').trim();
       if (clientId && clientMap[clientId]) return clientMap[clientId];
-      return 'Без клиента';
+      return window.CRM.i18n.t('js.pab.no_client', 'No client');
     }
 
     function resolveProjectTeamLabel(item) {
@@ -1058,7 +1083,7 @@ window.CRM.pageApiBindings = (function () {
       if (direct) return direct;
       var teamId = String(item && item.team_public_id || '').trim();
       if (teamId && teamMap[teamId]) return teamMap[teamId];
-      return 'Команда не назначена';
+      return window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned');
     }
 
     function applyFilters(list) {
@@ -1091,14 +1116,14 @@ window.CRM.pageApiBindings = (function () {
       if (!body) return;
 
       var openLink = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(project.public_id || '');
-      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || 'Проект') + '</h6>'
-        + '<p class="text-muted">' + safeText(project.description || 'Описание отсутствует') + '</p>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Статус</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Приоритет</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Клиент</small><div>' + safeText(resolveProjectClientLabel(project)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Команда</small><div>' + safeText(resolveProjectTeamLabel(project)) + '</div></div>'
-        + '<div class="crm-metric-tile"><small class="text-muted">Обновлен</small><div>' + safeText(formatDate(project.updated_at)) + '</div></div>'
-        + '<div class="mt-3"><a class="btn btn-sm crm-btn-primary" href="' + openLink + '">Открыть проект</a></div>';
+      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
+        + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</small><div>' + safeText(resolveProjectClientLabel(project)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</small><div>' + safeText(resolveProjectTeamLabel(project)) + '</div></div>'
+        + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.updated', 'Updated') + '</small><div>' + safeText(formatDate(project.updated_at)) + '</div></div>'
+        + '<div class="mt-3"><a class="btn btn-sm crm-btn-primary" href="' + openLink + '">' + window.CRM.i18n.t('js.pab.open_project', 'Open project') + '</a></div>';
     }
 
     function bindProjectPreviewButtons(filteredItems) {
@@ -1119,7 +1144,9 @@ window.CRM.pageApiBindings = (function () {
       });
 
       var quickOpenBtn = Array.from(document.querySelectorAll('[data-open-drawer="projectQuickPreviewDrawer"]')).find(function (node) {
-        return node.classList.contains('btn') && /быстрый обзор/i.test((node.textContent || '').trim());
+        var label = String((node.textContent || '').trim()).toLowerCase();
+        var keyword = tp('common.quick_overview_keyword', 'quick overview').toLowerCase();
+        return node.classList.contains('btn') && label.indexOf(keyword) !== -1;
       });
       if (quickOpenBtn && quickOpenBtn.dataset.boundPreview !== '1') {
         quickOpenBtn.addEventListener('click', function () {
@@ -1140,32 +1167,32 @@ window.CRM.pageApiBindings = (function () {
       if (filterDrawer) {
         var body = filterDrawer.querySelector('.offcanvas-body');
         if (body && filterDrawer.dataset.projectsFiltersReady !== '1') {
-          var teamOptionsHtml = ['<option value="">Все команды</option>'].concat(mapItems(teamsEnvelope).map(function (team) {
-            return '<option value="' + safeText(team.public_id || '') + '">' + safeText(team.title || team.name || team.public_id || 'Команда') + '</option>';
+          var teamOptionsHtml = ['<option value="">' + window.CRM.i18n.t('js.pab.all_teams', 'All teams') + '</option>'].concat(mapItems(teamsEnvelope).map(function (team) {
+            return '<option value="' + safeText(team.public_id || '') + '">' + safeText(team.title || team.name || team.public_id || window.CRM.i18n.t('js.pab.team', 'Team')) + '</option>';
           })).join('');
           body.innerHTML = '<form id="projectsFilterForm" novalidate>'
-            + '<div class="mb-3 pb-3 border-bottom"><label class="form-label">Сохранённые виды</label><div class="d-flex gap-2"><select class="form-select form-select-sm" id="projectsSavedViewSelect" aria-label="Сохранённые виды проектов"><option value="">Вид по умолчанию</option></select><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsSaveViewBtn" title="Сохранить текущие фильтры как вид">Сохранить</button><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsDeleteViewBtn" disabled title="Удалить выбранный вид">Удалить</button></div></div>'
-            + '<div class="mb-3"><label class="form-label">Статус</label><select class="form-select" name="status">'
-            + '<option value="">Все</option>'
-            + '<option value="active">Активные</option>'
-            + '<option value="new">К выполнению</option>'
-            + '<option value="in_progress">В работе</option>'
-            + '<option value="blocked">Блокировано</option>'
-            + '<option value="done">Готово</option>'
+            + '<div class="mb-3 pb-3 border-bottom"><label class="form-label">' + window.CRM.i18n.t('js.pab.saved_views', 'Saved views') + '</label><div class="d-flex gap-2"><select class="form-select form-select-sm" id="projectsSavedViewSelect" aria-label="' + window.CRM.i18n.t('js.pab.saved_project_views', 'Saved project views') + '"><option value="">' + window.CRM.i18n.t('js.pab.default_view', 'Default view') + '</option></select><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsSaveViewBtn" title="' + window.CRM.i18n.t('js.pab.save_filters_as_view', 'Save current filters as view') + '">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsDeleteViewBtn" disabled title="' + window.CRM.i18n.t('js.pab.delete_selected_view', 'Delete selected view') + '">' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button></div></div>'
+            + '<div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
+            + '<option value="">' + window.CRM.i18n.t('js.pab.all', 'All') + '</option>'
+            + '<option value="active">' + window.CRM.i18n.t('js.pab.status_active', 'Active') + '</option>'
+            + '<option value="new">' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
+            + '<option value="in_progress">' + window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') + '</option>'
+            + '<option value="blocked">' + window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') + '</option>'
+            + '<option value="done">' + window.CRM.i18n.t('js.pab.status_done', 'Done') + '</option>'
             + '</select></div>'
-            + '<div class="mb-3"><label class="form-label">Приоритет</label><select class="form-select" name="priority">'
-            + '<option value="">Все</option>'
-            + '<option value="low">Низкий</option>'
-            + '<option value="normal">Нормальный</option>'
-            + '<option value="high">Высокий</option>'
-            + '<option value="urgent">Срочный</option>'
+            + '<div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</label><select class="form-select" name="priority">'
+            + '<option value="">' + window.CRM.i18n.t('js.pab.all', 'All') + '</option>'
+            + '<option value="low">' + window.CRM.i18n.t('js.pab.priority_low', 'Low') + '</option>'
+            + '<option value="normal">' + window.CRM.i18n.t('js.pab.priority_normal', 'Normal') + '</option>'
+            + '<option value="high">' + window.CRM.i18n.t('js.pab.priority_high', 'High') + '</option>'
+            + '<option value="urgent">' + window.CRM.i18n.t('js.pab.priority_urgent', 'Urgent') + '</option>'
             + '</select></div>'
-            + '<div class="mb-3"><label class="form-label">Команда</label><select class="form-select" name="team_public_id">'
+            + '<div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</label><select class="form-select" name="team_public_id">'
             + teamOptionsHtml
             + '</select></div>'
             + '<div class="d-flex gap-2">'
-            + '<button type="submit" class="btn crm-btn-primary">Применить</button>'
-            + '<button type="button" class="btn btn-light" data-project-filter-reset>Сбросить</button>'
+            + '<button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.pab.apply', 'Apply') + '</button>'
+            + '<button type="button" class="btn btn-light" data-project-filter-reset>' + window.CRM.i18n.t('js.pab.reset', 'Reset') + '</button>'
             + '</div></form>';
           filterDrawer.dataset.projectsFiltersReady = '1';
         }
@@ -1229,7 +1256,7 @@ window.CRM.pageApiBindings = (function () {
       var clientSelect = document.getElementById('projectsClientFilter');
       if (clientSelect) {
         var clientVal = clientSelect.value;
-        clientSelect.innerHTML = '<option value="">Все клиенты</option>';
+        clientSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.all_clients', 'All clients') + '</option>';
         (mapItems(clientsEnvelope) || []).forEach(function (c) {
           clientSelect.innerHTML += '<option value="' + safeText(c.public_id) + '">' + safeText(c.title || c.name || c.company_name || c.public_id) + '</option>';
         });
@@ -1239,7 +1266,7 @@ window.CRM.pageApiBindings = (function () {
       var teamSelect = document.getElementById('projectsTeamFilter');
       if (teamSelect) {
         var teamVal = teamSelect.value;
-        teamSelect.innerHTML = '<option value="">Все команды</option>';
+        teamSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.all_teams', 'All teams') + '</option>';
         (mapItems(teamsEnvelope) || []).forEach(function (t) {
           teamSelect.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name || t.public_id) + '</option>';
         });
@@ -1249,7 +1276,7 @@ window.CRM.pageApiBindings = (function () {
       var managerSelect = document.getElementById('projectsManagerFilter');
       if (managerSelect && userMap) {
         var mgrVal = managerSelect.value;
-        managerSelect.innerHTML = '<option value="">Менеджер</option>';
+        managerSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</option>';
         Object.keys(userMap).forEach(function (k) {
           var u = userMap[k];
           managerSelect.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
@@ -1406,7 +1433,7 @@ window.CRM.pageApiBindings = (function () {
       savedViewSelect.textContent = '';
       var defaultOption = document.createElement('option');
       defaultOption.value = '';
-      defaultOption.textContent = 'Вид по умолчанию';
+      defaultOption.textContent = window.CRM.i18n.t('js.pab.default_view', 'Default view');
       savedViewSelect.appendChild(defaultOption);
       projectViews.forEach(function (item) {
         var option = document.createElement('option');
@@ -1495,19 +1522,19 @@ window.CRM.pageApiBindings = (function () {
         clearProjectsSaveViewError();
         var title = saveViewTitleInput ? String(saveViewTitleInput.value || '').trim() : '';
         if (!title) {
-          showProjectsSaveViewError('Введите название вида');
+          showProjectsSaveViewError(window.CRM.i18n.t('js.pab.enter_view_name', 'Enter view name'));
           if (saveViewTitleInput) saveViewTitleInput.focus();
           return;
         }
         if (!title) return;
         try {
           await request('api/v1/views', { method: 'POST', body: { entity_type: 'project', title: title, filters: { search: state.search, status: state.status, priority: state.priority, team_public_id: state.teamPublicId } } });
-          notify('Вид сохранён');
+          notify(window.CRM.i18n.t('js.pab.view_saved', 'View saved'));
           if (saveViewModal) saveViewModal.hide();
           applyProjectsRouteQuery({ search: state.search, status: state.status, priority: state.priority, team_public_id: state.teamPublicId });
           renderProjectsPage();
         } catch (error) {
-          var err = window.CRM.api.normalizeError(error, 'Не удалось сохранить вид');
+          var err = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.pab.failed_to_save_view', 'Failed to save view'));
           notify(window.CRM.api.formatErrorMessage(err, { withRequestId: true }), 'error');
         }
       });
@@ -1517,22 +1544,22 @@ window.CRM.pageApiBindings = (function () {
       deleteViewBtn.dataset.bound = '1';
       deleteViewBtn.addEventListener('click', async function () {
         var selectedId = String(savedViewSelect && savedViewSelect.value || '').trim();
-        if (!selectedId) { notify('Выберите сохранённый вид', 'warning'); return; }
+        if (!selectedId) { notify(window.CRM.i18n.t('js.pab.select_saved_view', 'Select saved view'), 'warning'); return; }
         var confirmed = await confirmProjectsAction({
-          title: 'Удалить сохраненный вид?',
-          body: 'Вид будет удален только из списка сохраненных настроек. Проекты не изменятся.',
-          actionText: 'Удалить',
+          title: window.CRM.i18n.t('js.pab.delete_saved_view_title', 'Delete saved view?'),
+          body: window.CRM.i18n.t('js.pab.delete_saved_view_body', 'The view will be removed from saved settings only. Projects will not change.'),
+          actionText: window.CRM.i18n.t('js.pab.delete', 'Delete'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
         try {
           await request('api/v1/views/' + encodeURIComponent(selectedId), { method: 'DELETE' });
-          notify('Вид удалён');
+          notify(window.CRM.i18n.t('js.pab.view_deleted', 'View deleted'));
           currentViewPublicId = '';
           applyProjectsRouteQuery({ search: state.search, status: state.status, priority: state.priority, team_public_id: state.teamPublicId });
           renderProjectsPage();
         } catch (error) {
-          var err2 = window.CRM.api.normalizeError(error, 'Не удалось удалить вид');
+          var err2 = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.pab.failed_to_delete_view', 'Failed to delete view'));
           notify(window.CRM.api.formatErrorMessage(err2, { withRequestId: true }), 'error');
         }
       });
@@ -1540,25 +1567,25 @@ window.CRM.pageApiBindings = (function () {
 
     if (list) {
       if (!filtered.length) {
-        list.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Проекты по выбранным фильтрам не найдены.</div></div></div>';
+        list.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
       } else {
         list.innerHTML = filtered.slice(0, 9).map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
         var projectMetaParts = [];
         var clientLabel = resolveProjectClientLabel(item);
         var teamLabel = resolveProjectTeamLabel(item);
-        if (clientLabel && clientLabel !== 'Без клиента') projectMetaParts.push(clientLabel);
-        if (teamLabel && teamLabel !== 'Команда не назначена') projectMetaParts.push(teamLabel);
+        if (clientLabel && clientLabel !== window.CRM.i18n.t('js.pab.no_client', 'No client')) projectMetaParts.push(clientLabel);
+        if (teamLabel && teamLabel !== window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned')) projectMetaParts.push(teamLabel);
         var projectMetaLine = projectMetaParts.length
           ? '<p class="crm-project-card-subtitle text-muted mb-2">' + safeText(projectMetaParts.join(' · ')) + '</p>'
-          : '<p class="crm-project-card-subtitle crm-project-card-subtitle-muted mb-2">Клиент и команда пока не назначены</p>';
+          : '<p class="crm-project-card-subtitle crm-project-card-subtitle-muted mb-2">' + window.CRM.i18n.t('js.pab.no_client_team_assigned', 'Client and team not assigned yet') + '</p>';
         return '<div class="col-lg-4"><article class="crm-card crm-card-hover">'
           + '<div class="d-flex justify-content-between"><h2 class="h6 mb-1">' + safeText(item.title) + '</h2>'
           + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
           + projectMetaLine
-          + '<div class="crm-project-card-meta"><span class="crm-chip">Приоритет: ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
-          + '<span class="crm-chip">Обновлено: ' + safeText(formatDate(item.updated_at)) + '</span></div>'
-          + '<div class="crm-project-card-actions"><a class="btn btn-sm crm-btn-primary" href="' + link + '">Открыть</a><button class="btn btn-sm crm-btn-secondary" data-project-preview="' + safeText(item.public_id) + '">Предпросмотр</button></div>'
+          + '<div class="crm-project-card-meta"><span class="crm-chip">' + window.CRM.i18n.t('js.pab.priority_prefix', 'Priority:') + ' ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
+          + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.updated_prefix', 'Updated:') + ' ' + safeText(formatDate(item.updated_at)) + '</span></div>'
+          + '<div class="crm-project-card-actions"><a class="btn btn-sm crm-btn-primary" href="' + link + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a><button class="btn btn-sm crm-btn-secondary" data-project-preview="' + safeText(item.public_id) + '">' + window.CRM.i18n.t('js.pab.preview', 'Preview') + '</button></div>'
           + '</article></div>';
         }).join('');
       }
@@ -1567,7 +1594,7 @@ window.CRM.pageApiBindings = (function () {
     var table = document.querySelector('.crm-card.table-responsive table.crm-table tbody');
     if (table) {
       if (!filtered.length) {
-        table.innerHTML = '<tr><td colspan="7" class="text-muted">Проекты по выбранным фильтрам не найдены.</td></tr>';
+        table.innerHTML = '<tr><td colspan="7" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>';
       } else {
         table.innerHTML = filtered.slice(0, 30).map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
@@ -1586,7 +1613,7 @@ window.CRM.pageApiBindings = (function () {
 
     var summary = document.getElementById('projectsResultSummary');
     if (summary) {
-      summary.textContent = 'Показано ' + filtered.length + ' из ' + items.length + ' проектов';
+      summary.textContent = window.CRM.i18n.t('js.pab.showing_projects', 'Showing') + ' ' + filtered.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.projects', 'projects');
     }
 
     var projectBulkBar = document.getElementById('projectsBulkActionsBar');
@@ -1611,7 +1638,7 @@ window.CRM.pageApiBindings = (function () {
     async function applyProjectsBulkUpdate(payload, label) {
       var ids = selectedProjectIds();
       if (!ids.length) {
-        notify('Выберите хотя бы один проект', 'warning');
+        notify(window.CRM.i18n.t('js.pab.select_at_least_one', 'Select at least one project'), 'warning');
         return;
       }
       var updated = 0;
@@ -1624,7 +1651,7 @@ window.CRM.pageApiBindings = (function () {
           skipped += 1;
         }
       }));
-      var message = label + ': обновлено ' + updated + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+      var message = label + ': ' + window.CRM.i18n.t('js.pab.updated_out_of', 'updated') + ' ' + updated + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + ids.length + (skipped ? (', ' + window.CRM.i18n.t('js.pab.skipped', 'skipped') + ' ' + skipped) : '');
       if (projectBulkResult) {
         projectBulkResult.textContent = message;
         projectBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -1653,7 +1680,7 @@ window.CRM.pageApiBindings = (function () {
       projectStatusSelect.addEventListener('change', function () {
         var next = String(projectStatusSelect.value || '').trim();
         if (!next) return;
-        applyProjectsBulkUpdate({ status: next }, 'Статус проектов обновлен').finally(function () {
+        applyProjectsBulkUpdate({ status: next }, window.CRM.i18n.t('js.pab.project_status_updated', 'Project status updated')).finally(function () {
           projectStatusSelect.value = '';
         });
       });
@@ -1663,13 +1690,13 @@ window.CRM.pageApiBindings = (function () {
       projectDeleteBtn.addEventListener('click', async function () {
         var ids = selectedProjectIds();
         if (!ids.length) {
-          notify('Выберите хотя бы один проект', 'warning');
+          notify(window.CRM.i18n.t('js.pab.select_at_least_one', 'Select at least one project'), 'warning');
           return;
         }
         var confirmed = await confirmProjectsAction({
-          title: 'Удалить выбранные проекты?',
-          body: 'Будет удалено проектов: ' + ids.length + '. Это действие нельзя отменить.',
-          actionText: 'Удалить',
+          title: window.CRM.i18n.t('js.pab.delete_selected_projects', 'Delete selected projects?'),
+          body: window.CRM.i18n.t('js.pab.delete_projects_body', 'Will delete') + ' ' + ids.length + '. ' + window.CRM.i18n.t('js.pab.cannot_undo', 'This action cannot be undone.'),
+          actionText: window.CRM.i18n.t('js.pab.delete', 'Delete'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
@@ -1683,7 +1710,7 @@ window.CRM.pageApiBindings = (function () {
             skipped += 1;
           }
         }));
-        var result = 'Удалено проектов: ' + deleted + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+        var result = window.CRM.i18n.t('js.pab.deleted_projects', 'Deleted projects:') + ' ' + deleted + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + ids.length + (skipped ? (', ' + window.CRM.i18n.t('js.pab.skipped', 'skipped') + ' ' + skipped) : '');
         if (projectBulkResult) {
           projectBulkResult.textContent = result;
           projectBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -1716,7 +1743,7 @@ window.CRM.pageApiBindings = (function () {
     var projectEnvelope = await tryRequest('api/v1/projects/' + projectId);
     var project = projectEnvelope && projectEnvelope.data && projectEnvelope.data.project ? projectEnvelope.data.project : (projectEnvelope ? projectEnvelope.data : null);
     if (!project || projectEnvelope.success === false) {
-      notify('Проект не найден или недоступен', 'error');
+      notify(window.CRM.i18n.t('js.pab.project_not_found', 'Project not found or unavailable'), 'error');
       return;
     }
 
@@ -1726,20 +1753,20 @@ window.CRM.pageApiBindings = (function () {
       el.textContent = value || '—';
     }
 
-    setText('.crm-page-title', project.title || 'Карточка проекта');
-    setText('#projectBreadcrumbTitle', project.title || project.public_id || 'Карточка проекта');
-    setText('.crm-subtitle', 'Статус: ' + statusLabel(project.status_code) + ' · Обновлено: ' + formatDate(project.updated_at));
+    setText('.crm-page-title', project.title || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
+    setText('#projectBreadcrumbTitle', project.title || project.public_id || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
+    setText('.crm-subtitle', window.CRM.i18n.t('js.pab.status_label', 'Status:') + ' ' + statusLabel(project.status_code) + ' · ' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + formatDate(project.updated_at));
     setText('#projectPublicIdChip', 'ID: ' + (project.public_id || '—'));
-    setText('#projectRowVersionChip', 'Версия: ' + String(project.row_version || 1));
+    setText('#projectRowVersionChip', window.CRM.i18n.t('js.pab.version_label', 'Version:') + ' ' + String(project.row_version || 1));
     setText('#projectSummaryCreator', resolveUserLabel(project.creator_user_name || '', project.creator_user_public_id || '', '—'));
     setText('#projectSummaryManager', resolveUserLabel(project.manager_user_name || '', project.manager_user_public_id || '', '—'));
-    setText('#projectSummaryTeam', project.team_title || project.team_public_id || 'Команда не назначена');
+    setText('#projectSummaryTeam', project.team_title || project.team_public_id || window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned'));
     setText('#projectSummaryClient', project.client_title || project.client_public_id || '—');
     setText('#projectSummaryCreatedAt', formatDate(project.created_at));
     setText('#projectSummaryUpdatedAt', formatDate(project.updated_at));
     setText('#projectSummaryStatus', statusLabel(project.status_code));
     setText('#projectSummaryPriority', project.priority_code || 'normal');
-    setText('#projectSummaryDescription', project.description || 'Описание отсутствует');
+    setText('#projectSummaryDescription', project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
 
     function renderCurrentProjectPreview() {
       var drawer = document.getElementById('projectQuickPreviewDrawer');
@@ -1755,14 +1782,14 @@ window.CRM.pageApiBindings = (function () {
       var overdue = Number(summary && summary.risks ? summary.risks.overdue_tasks || 0 : 0);
       var blocked = Number(summary && summary.risks ? summary.risks.blocked_tasks || 0 : 0);
 
-      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || 'Проект') + '</h6>'
-        + '<p class="text-muted">' + safeText(project.description || 'Описание отсутствует') + '</p>'
+      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
+        + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + '<div class="progress mb-3"><div class="progress-bar" style="width:' + safeText(String(progress)) + '%">' + safeText(String(progress)) + '%</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Статус</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Приоритет</small><div>' + safeText(project.priority_code || 'normal') + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Риски</small><div>Просрочено: ' + safeText(String(overdue)) + ' · Блокировано: ' + safeText(String(blocked)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Создан</small><div>' + safeText(createdAt) + '</div></div>'
-        + '<div class="crm-metric-tile"><small class="text-muted">Обновлен</small><div>' + safeText(updatedAt) + '</div></div>';
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(project.priority_code || 'normal') + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.risks', 'Risks') + '</small><div>' + window.CRM.i18n.t('js.pab.overdue', 'Overdue:') + ' ' + safeText(String(overdue)) + ' · ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked:') + ' ' + safeText(String(blocked)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.created', 'Created') + '</small><div>' + safeText(createdAt) + '</div></div>'
+        + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.updated', 'Updated') + '</small><div>' + safeText(updatedAt) + '</div></div>';
     }
 
     renderCurrentProjectPreview();
@@ -1797,12 +1824,12 @@ window.CRM.pageApiBindings = (function () {
       var progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
       metricsWrap.innerHTML = ''
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Прогресс задач</small><div>' + safeText(progress + '%') + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Всего задач</small><div>' + safeText(String(totalTasks)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Просроченные задачи</small><div class="' + (Number(risks.overdue_tasks || 0) > 0 ? 'text-danger' : '') + '">' + safeText(String(risks.overdue_tasks || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Заблокированные задачи</small><div>' + safeText(String(risks.blocked_tasks || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">Майлстоунов выполнено</small><div>' + safeText(String(milestonesData.done || 0)) + ' / ' + safeText(String(milestonesData.total || 0)) + '</div></div>'
-        + '<div class="crm-metric-tile"><small class="text-muted">Логированное время</small><div>' + safeText(String(workloadTotals.logged_minutes || 0)) + ' мин</div></div>';
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.task_progress', 'Task progress') + '</small><div>' + safeText(progress + '%') + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.total_tasks', 'Total tasks') + '</small><div>' + safeText(String(totalTasks)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.overdue_tasks', 'Overdue tasks') + '</small><div class="' + (Number(risks.overdue_tasks || 0) > 0 ? 'text-danger' : '') + '">' + safeText(String(risks.overdue_tasks || 0)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.blocked_tasks', 'Blocked tasks') + '</small><div>' + safeText(String(risks.blocked_tasks || 0)) + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.milestones_completed', 'Milestones completed') + '</small><div>' + safeText(String(milestonesData.done || 0)) + ' / ' + safeText(String(milestonesData.total || 0)) + '</div></div>'
+        + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.logged_time', 'Logged time') + '</small><div>' + safeText(String(workloadTotals.logged_minutes || 0)) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') + '</div></div>';
     }
 
     function renderTeamBlock(summaryData) {
@@ -1813,10 +1840,10 @@ window.CRM.pageApiBindings = (function () {
         ? summaryData.workload.items
         : [];
       var teamHeading = project.team_title
-        ? '<div class="crm-metric-tile mb-2"><div><strong>' + safeText(project.team_title) + '</strong></div><div class="small text-muted">Команда, закрепленная за проектом</div></div>'
+        ? '<div class="crm-metric-tile mb-2"><div><strong>' + safeText(project.team_title) + '</strong></div><div class="small text-muted">' + window.CRM.i18n.t('js.pab.team_assigned_to_project', 'Team assigned to project') + '</div></div>'
         : '';
       if (!workloadItems.length) {
-        teamWrap.innerHTML = teamHeading + '<div class="text-muted">По проекту пока нет распределённых задач.</div>';
+        teamWrap.innerHTML = teamHeading + '<div class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_distributed', 'No tasks distributed for this project yet.') + '</div>';
         return;
       }
 
@@ -1825,9 +1852,9 @@ window.CRM.pageApiBindings = (function () {
         var total = Number(member.total_tasks || 0);
         var donePercent = total > 0 ? Math.round((done / total) * 100) : 0;
         return '<div class="crm-metric-tile mb-2">'
-          + '<div><strong>' + safeText(resolveUserLabel(member.assignee_name || '', member.assignee_user_public_id || '', 'Участник')) + '</strong></div>'
-          + '<div class="small text-muted">Задач: ' + safeText(String(total)) + ' · Готово: ' + safeText(String(done)) + ' (' + safeText(String(donePercent)) + '%)</div>'
-          + '<div class="small text-muted">Блок: ' + safeText(String(member.blocked_tasks || 0)) + ' · Просрочка: ' + safeText(String(member.overdue_tasks || 0)) + '</div>'
+          + '<div><strong>' + safeText(resolveUserLabel(member.assignee_name || '', member.assignee_user_public_id || '', window.CRM.i18n.t('js.pab.member', 'Member'))) + '</strong></div>'
+          + '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.tasks_label', 'Tasks:') + ' ' + safeText(String(total)) + ' · ' + window.CRM.i18n.t('js.pab.done_label', 'Done:') + ' ' + safeText(String(done)) + ' (' + safeText(String(donePercent)) + '%)</div>'
+          + '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.blocked_label', 'Blocked:') + ' ' + safeText(String(member.blocked_tasks || 0)) + ' · ' + window.CRM.i18n.t('js.pab.overdue_label', 'Overdue:') + ' ' + safeText(String(member.overdue_tasks || 0)) + '</div>'
           + '</div>';
       }).join('');
     }
@@ -1839,16 +1866,16 @@ window.CRM.pageApiBindings = (function () {
 
       var milestonesData = summaryData && summaryData.milestones ? summaryData.milestones : {};
       chipsWrap.innerHTML = ''
-        + '<span class="crm-chip">Всего: ' + safeText(String(milestonesData.total || milestones.length || 0)) + '</span>'
-        + '<span class="crm-chip">Готово: ' + safeText(String(milestonesData.done || 0)) + '</span>'
-        + '<span class="crm-chip">Просрочено: ' + safeText(String(milestonesData.overdue || 0)) + '</span>'
-        + '<span class="crm-chip">Ближайшие 7 дней: ' + safeText(String(milestonesData.upcoming_7_days || 0)) + '</span>';
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.total', 'Total:') + ' ' + safeText(String(milestonesData.total || milestones.length || 0)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.done', 'Done:') + ' ' + safeText(String(milestonesData.done || 0)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.overdue', 'Overdue:') + ' ' + safeText(String(milestonesData.overdue || 0)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.next_7_days', 'Next 7 days:') + ' ' + safeText(String(milestonesData.upcoming_7_days || 0)) + '</span>';
 
       if (milestones.length) {
         listWrap.innerHTML = milestones.slice(0, 12).map(function (item) {
           return '<div class="crm-timeline-item">'
             + '<strong>' + safeText(formatDate(item.due_at)) + '</strong> '
-            + safeText(item.title || item.public_id || 'Майлстоун')
+            +             safeText(item.title || item.public_id || window.CRM.i18n.t('js.pab.milestone', 'Milestone'))
             + ' · <span class="crm-badge ' + statusClass(item.status || item.status_code || 'new') + '">' + safeText(statusLabel(item.status || item.status_code || 'new')) + '</span>'
             + '</div>';
         }).join('');
@@ -1859,7 +1886,7 @@ window.CRM.pageApiBindings = (function () {
         listWrap.innerHTML = '<div class="crm-timeline-item"><strong>' + safeText(formatDate(milestonesData.next_due.due_at)) + '</strong> '
           + safeText(milestonesData.next_due.title) + '</div>';
       } else {
-        listWrap.innerHTML = '<div class="crm-timeline-item">По проекту пока нет майлстоунов.</div>';
+        listWrap.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.no_milestones', 'No milestones for this project yet.') + '</div>';
       }
     }
 
@@ -1890,10 +1917,10 @@ window.CRM.pageApiBindings = (function () {
 
     function projectAiIntentLabel(intentCode) {
       var code = String(intentCode || '').trim();
-      if (code === 'project_summary') return 'Сводка проекта';
-      if (code === 'project_risk_summary') return 'Риск-анализ проекта';
-      if (code === 'project_client_report') return 'Черновик клиентского отчета';
-      return 'AI по проекту';
+      if (code === 'project_summary') return window.CRM.i18n.t('js.pab.ai_project_summary', 'Project summary');
+      if (code === 'project_risk_summary') return window.CRM.i18n.t('js.pab.ai_risk_analysis', 'Risk analysis');
+      if (code === 'project_client_report') return window.CRM.i18n.t('js.pab.ai_client_report_draft', 'Client report draft');
+      return window.CRM.i18n.t('js.pab.ai_for_project', 'AI for project');
     }
 
     function latestProjectSuggestion(intentCode) {
@@ -1939,7 +1966,7 @@ window.CRM.pageApiBindings = (function () {
       if (!projectAiCard || !projectAiSummaryText) return;
 
       if (!aiCanUse) {
-        setProjectAiState('hidden', 'Состояние: hidden');
+        setProjectAiState('hidden', window.CRM.i18n.t('js.pab.state_label', 'State:') + ' hidden');
         projectAiSummaryText.textContent = '';
         renderProjectAiList(projectAiRisksQuestions, [], '—');
         renderProjectAiList(projectAiNextActions, [], '—');
@@ -1951,10 +1978,10 @@ window.CRM.pageApiBindings = (function () {
       }
 
       if (!suggestion) {
-        setProjectAiState('empty', 'AI-сводка проекта не сформирована.');
-        projectAiSummaryText.textContent = 'Нажмите «AI-сводка», чтобы получить AI-рекомендацию по проекту.';
-        renderProjectAiList(projectAiRisksQuestions, [], 'Пока нет AI-рисков или вопросов.');
-        renderProjectAiList(projectAiNextActions, [], 'Пока нет предложенных действий.');
+        setProjectAiState('empty', window.CRM.i18n.t('js.pab.ai_summary_not_ready', 'AI project summary not generated.'));
+        projectAiSummaryText.textContent = window.CRM.i18n.t('js.pab.ai_summary_prompt', 'Click "AI Summary" to get an AI recommendation for the project.');
+        renderProjectAiList(projectAiRisksQuestions, [], window.CRM.i18n.t('js.pab.no_ai_risks', 'No AI risks or questions yet.'));
+        renderProjectAiList(projectAiNextActions, [], window.CRM.i18n.t('js.pab.no_ai_actions', 'No suggested actions yet.'));
         if (projectAiReportDraftWrap) projectAiReportDraftWrap.classList.add('d-none');
         if (projectAiPreviewBtn) projectAiPreviewBtn.disabled = true;
         if (projectAiDismissBtn) projectAiDismissBtn.disabled = true;
@@ -1973,13 +2000,13 @@ window.CRM.pageApiBindings = (function () {
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
       if (previewChanges > 0) {
-        stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
+        stateCopy += ' · ' + window.CRM.i18n.t('js.pab.preview', 'preview') + ': ' + String(previewChanges) + ' ' + window.CRM.i18n.t('js.pab.changes', 'changes');
       }
 
       setProjectAiState('ready', stateCopy);
-      projectAiSummaryText.textContent = summaryText || 'AI-предложение сформировано.';
-      renderProjectAiList(projectAiRisksQuestions, risks.concat(questions), 'AI-риски и вопросы не обнаружены.');
-      renderProjectAiList(projectAiNextActions, suggestedTasks.concat(checklistItems), 'Предложенные действия отсутствуют.');
+      projectAiSummaryText.textContent = summaryText || window.CRM.i18n.t('js.pab.ai_proposal_ready', 'AI proposal generated.');
+      renderProjectAiList(projectAiRisksQuestions, risks.concat(questions), window.CRM.i18n.t('js.pab.no_ai_risks_found', 'No AI risks or questions found.'));
+      renderProjectAiList(projectAiNextActions, suggestedTasks.concat(checklistItems), window.CRM.i18n.t('js.pab.no_suggested_actions', 'No suggested actions.'));
       if (projectAiReportDraftWrap && projectAiReportDraftText) {
         if (reportDraft !== '') {
           projectAiReportDraftWrap.classList.remove('d-none');
@@ -2002,7 +2029,7 @@ window.CRM.pageApiBindings = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || window.CRM.i18n.t('js.pab.ai_request_failed', 'AI request failed'))
       };
     }
 
@@ -2012,12 +2039,12 @@ window.CRM.pageApiBindings = (function () {
           aiError: aiError,
           controls: projectAiPrimaryButtons.concat([projectAiPreviewBtn, projectAiDismissBtn]),
           setState: setProjectAiState,
-          fallbackMessage: 'AI-действия по проекту временно недоступны.'
+          fallbackMessage: window.CRM.i18n.t('js.pab.ai_temporarily_unavailable', 'AI actions temporarily unavailable.')
         });
         return;
       }
       setProjectAiPrimaryDisabled(true);
-      setProjectAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || 'AI-действия по проекту временно недоступны.'));
+      setProjectAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || window.CRM.i18n.t('js.pab.ai_temporarily_unavailable', 'AI actions temporarily unavailable.')));
     }
 
     async function requestProjectIntent(intentPath, payload, successMessage, fallbackMessage) {
@@ -2035,7 +2062,7 @@ window.CRM.pageApiBindings = (function () {
 
       var suggestion = envelope && envelope.data ? envelope.data.suggestion : null;
       if (!suggestion) {
-        notify(fallbackMessage || 'Не удалось сформировать AI-предложение', 'error');
+        notify(fallbackMessage || window.CRM.i18n.t('js.pab.failed_generate_ai', 'Failed to generate AI proposal'), 'error');
         return null;
       }
       currentProjectAiSuggestion = suggestion;
@@ -2051,7 +2078,7 @@ window.CRM.pageApiBindings = (function () {
       if (aiUi && typeof aiUi.bindAiActionButton === 'function') {
         aiUi.bindAiActionButton(button, {
           canRun: function () { return aiCanUse; },
-          onStart: function () { setProjectAiState('loading', 'Формируем AI-предложение по проекту...'); },
+          onStart: function () { setProjectAiState('loading', window.CRM.i18n.t('js.pab.generating_ai_proposal', 'Generating AI proposal...')); },
           run: async function () {
             var payload = typeof payloadFactory === 'function' ? payloadFactory() : {};
             await requestProjectIntent(intentPath, payload, successMessage, fallbackMessage);
@@ -2073,7 +2100,7 @@ window.CRM.pageApiBindings = (function () {
         if (button.dataset.loading === '1') return;
         button.dataset.loading = '1';
         button.disabled = true;
-        setProjectAiState('loading', 'Формируем AI-предложение по проекту...');
+        setProjectAiState('loading', window.CRM.i18n.t('js.pab.generating_ai_proposal', 'Generating AI proposal...'));
         try {
           var payload = typeof payloadFactory === 'function' ? payloadFactory() : {};
           await requestProjectIntent(intentPath, payload, successMessage, fallbackMessage);
@@ -2094,55 +2121,55 @@ window.CRM.pageApiBindings = (function () {
       projectAiSummaryBtn,
       'summary',
       function () { return {}; },
-      'AI-сводка проекта сформирована',
-      'Не удалось сформировать AI-сводку проекта'
+      window.CRM.i18n.t('js.pab.ai_summary_ready', 'AI project summary generated'),
+      window.CRM.i18n.t('js.pab.failed_ai_summary', 'Failed to generate AI project summary')
     );
     bindProjectAiIntentButton(
       projectAiRisksBtn,
       'risks',
       function () { return {}; },
-      'AI-риск-анализ проекта сформирован',
-      'Не удалось сформировать AI-риск-анализ проекта'
+      window.CRM.i18n.t('js.pab.ai_risk_analysis_ready', 'AI risk analysis generated'),
+      window.CRM.i18n.t('js.pab.failed_ai_risk_analysis', 'Failed to generate AI risk analysis')
     );
     bindProjectAiIntentButton(
       projectAiClientReportBtn,
       'client-report',
       function () {
         return {
-          prompt: 'Сформируй client_safe черновик отчета по проекту: только безопасные для клиента формулировки, без внутренних комментариев и чувствительных деталей.'
+          prompt: window.CRM.i18n.t('js.pab.client_report_prompt', 'Generate a client_safe report draft for the project: only client-safe wording, no internal comments or sensitive details.')
         };
       },
-      'AI-черновик клиентского отчета сформирован',
-      'Не удалось сформировать AI-черновик клиентского отчета'
+      window.CRM.i18n.t('js.pab.ai_client_report_ready', 'AI client report draft generated'),
+      window.CRM.i18n.t('js.pab.failed_ai_client_report', 'Failed to generate AI client report draft')
     );
     bindProjectAiIntentButton(
       projectAiNextActionsBtn,
       'summary',
       function () {
         return {
-          prompt: 'Сфокусируйся на следующих управленческих действиях по проекту. Верни конкретные next actions, риски и вопросы к уточнению.'
+          prompt: window.CRM.i18n.t('js.pab.next_actions_prompt', 'Focus on the following management actions for the project. Return specific next actions, risks, and questions for clarification.')
         };
       },
-      'AI-следующие действия по проекту сформированы',
-      'Не удалось сформировать AI-следующие действия по проекту'
+      window.CRM.i18n.t('js.pab.ai_next_actions_ready', 'AI next actions for project generated'),
+      window.CRM.i18n.t('js.pab.failed_ai_next_actions', 'Failed to generate AI next actions')
     );
 
     if (projectAiPreviewBtn && projectAiPreviewBtn.dataset.bound !== '1') {
       projectAiPreviewBtn.addEventListener('click', async function () {
         if (!currentProjectAiSuggestion || !currentProjectAiSuggestion.public_id) {
-          notify('Сначала сформируйте AI-предложение по проекту', 'warning');
+          notify(window.CRM.i18n.t('js.pab.generate_ai_first', 'Generate AI proposal first'), 'warning');
           return;
         }
         if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(currentProjectAiSuggestion)) {
           var blockedProjectMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
             ? window.CRM.ai.suggestionPreviewPolicyMessage(currentProjectAiSuggestion)
-            : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+            : window.CRM.i18n.t('js.pab.preview_temporarily_unavailable', 'Preview temporarily unavailable. Refresh AI result.');
           setProjectAiState('ready', blockedProjectMessage);
           notify(blockedProjectMessage, 'warning');
           return;
         }
         projectAiPreviewBtn.disabled = true;
-        setProjectAiState('loading', 'Подготавливаем предпросмотр AI-предложения...');
+        setProjectAiState('loading', window.CRM.i18n.t('js.pab.preparing_ai_preview', 'Preparing AI proposal preview...'));
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentProjectAiSuggestion.public_id)
@@ -2161,7 +2188,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentProjectAiSuggestion, latestProjectAiPreview, {
               onApply: function () {
-                notify('Для карточки проекта действует только предпросмотр. Применение бизнес-изменений не выполняется автоматически.', 'warning');
+                notify(window.CRM.i18n.t('js.pab.project_preview_only', 'Project card is preview only. Business changes are not applied automatically.'), 'warning');
               },
               onDismiss: function () {
                 if (projectAiDismissBtn) projectAiDismissBtn.click();
@@ -2172,12 +2199,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var aiError = toProjectAiError(error, 'Не удалось загрузить предпросмотр AI-предложения');
-          setProjectAiState(resolveAiUiState(aiError), aiError.message || 'Не удалось загрузить предпросмотр AI-предложения');
+          var aiError = toProjectAiError(error, window.CRM.i18n.t('js.pab.failed_load_ai_preview', 'Failed to load AI preview'));
+          setProjectAiState(resolveAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.pab.failed_load_ai_preview', 'Failed to load AI preview'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось загрузить предпросмотр AI-предложения');
+            window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.failed_load_ai_preview', 'Failed to load AI preview'));
           }
-          notify(aiError.message || 'Не удалось загрузить предпросмотр AI-предложения', 'error');
+          notify(aiError.message || window.CRM.i18n.t('js.pab.failed_load_ai_preview', 'Failed to load AI preview'), 'error');
         } finally {
           projectAiPreviewBtn.disabled = !currentProjectAiSuggestion;
         }
@@ -2188,11 +2215,11 @@ window.CRM.pageApiBindings = (function () {
     if (projectAiDismissBtn && projectAiDismissBtn.dataset.bound !== '1') {
       projectAiDismissBtn.addEventListener('click', async function () {
         if (!currentProjectAiSuggestion || !currentProjectAiSuggestion.public_id) {
-          notify('AI-предложение не выбрано', 'warning');
+          notify(window.CRM.i18n.t('js.pab.ai_proposal_not_selected', 'AI proposal not selected'), 'warning');
           return;
         }
         projectAiDismissBtn.disabled = true;
-        setProjectAiState('loading', 'Отклоняем AI-предложение...');
+        setProjectAiState('loading', window.CRM.i18n.t('js.pab.dismissing_ai_proposal', 'Dismissing AI proposal...'));
         try {
           var dismissEnvelope = window.CRM.ai && typeof window.CRM.ai.dismissSuggestion === 'function'
             ? await window.CRM.ai.dismissSuggestion(currentProjectAiSuggestion.public_id)
@@ -2206,15 +2233,15 @@ window.CRM.pageApiBindings = (function () {
             : currentProjectAiSuggestion;
           latestProjectAiPreview = null;
           renderProjectAiCard(currentProjectAiSuggestion, latestProjectAiPreview);
-          setProjectAiState('dismissed', 'AI-предложение по проекту отклонено.');
-          notify('AI-предложение по проекту отклонено');
+          setProjectAiState('dismissed', window.CRM.i18n.t('js.pab.ai_proposal_dismissed', 'AI proposal dismissed.'));
+          notify(window.CRM.i18n.t('js.pab.ai_proposal_dismissed', 'AI proposal dismissed'));
         } catch (error) {
-          var aiError = toProjectAiError(error, 'Не удалось отклонить AI-предложение');
-          setProjectAiState(resolveAiUiState(aiError), aiError.message || 'Не удалось отклонить AI-предложение');
+          var aiError = toProjectAiError(error, window.CRM.i18n.t('js.pab.failed_dismiss_ai', 'Failed to dismiss AI proposal'));
+          setProjectAiState(resolveAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.pab.failed_dismiss_ai', 'Failed to dismiss AI proposal'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось отклонить AI-предложение');
+            window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.failed_dismiss_ai', 'Failed to dismiss AI proposal'));
           }
-          notify(aiError.message || 'Не удалось отклонить AI-предложение', 'error');
+          notify(aiError.message || window.CRM.i18n.t('js.pab.failed_dismiss_ai', 'Failed to dismiss AI proposal'), 'error');
         } finally {
           var finalState = currentProjectAiSuggestion && String(currentProjectAiSuggestion.status || '') === 'dismissed';
           projectAiDismissBtn.disabled = !currentProjectAiSuggestion || finalState;
@@ -2232,7 +2259,7 @@ window.CRM.pageApiBindings = (function () {
     var editAccessNote = document.getElementById('projectEditAccessNote');
     if (editAccessNote) {
       editAccessNote.className = 'alert alert-secondary py-2';
-      editAccessNote.textContent = 'Редактирование проекта доступно владельцу, менеджеру проекта или менеджеру закрепленной команды.';
+      editAccessNote.textContent = window.CRM.i18n.t('js.pab.project_edit_access_note', 'Project editing is available to the owner, project manager, or assigned team manager.');
     }
 
     var clientsEnvelope = await tryRequest('api/v1/clients', { query: { limit: 200 }, silent: true });
@@ -2244,38 +2271,38 @@ window.CRM.pageApiBindings = (function () {
     var blocksWrap = document.getElementById('projectEditBlocks');
     if (blocksWrap) {
       function clientTitleById(publicId) {
-        if (!publicId) return 'Без клиента';
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_client', 'No client');
         var found = clients.find(function (item) { return String(item.public_id || '') === String(publicId || ''); });
-        return found ? String(found.title || found.public_id || 'Клиент') : String(publicId);
+        return found ? String(found.title || found.public_id || window.CRM.i18n.t('js.pab.client', 'Client')) : String(publicId);
       }
 
       function userTitleById(publicId) {
-        if (!publicId) return 'Без менеджера';
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_manager', 'No manager');
         var found = users.find(function (item) { return String(item.public_id || '') === String(publicId || ''); });
-        return found ? String(found.full_name || found.login || found.public_id || 'Пользователь') : String(publicId);
+        return found ? String(found.full_name || found.login || found.public_id || window.CRM.i18n.t('js.pab.user', 'User')) : String(publicId);
       }
 
       function teamTitleById(publicId) {
-        if (!publicId) return 'Команда не назначена';
+        if (!publicId) return window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned');
         var found = teams.find(function (item) { return String(item.public_id || '') === String(publicId || ''); });
         return found ? String(itemTitle(found)) : String(publicId);
       }
 
       function itemTitle(item) {
-        return String(item && (item.title || item.name || item.public_id) || 'Команда');
+        return String(item && (item.title || item.name || item.public_id) || window.CRM.i18n.t('js.pab.team', 'Team'));
       }
 
-      var clientOptions = ['<option value="">Без клиента</option>'].concat(clients.map(function (client) {
+      var clientOptions = ['<option value="">' + window.CRM.i18n.t('js.pab.no_client', 'No client') + '</option>'].concat(clients.map(function (client) {
         var selected = String(project.client_public_id || '') === String(client.public_id || '') ? ' selected' : '';
-        return '<option value="' + safeText(client.public_id || '') + '"' + selected + '>' + safeText(client.title || client.public_id || 'Клиент') + '</option>';
+        return '<option value="' + safeText(client.public_id || '') + '"' + selected + '>' + safeText(client.title || client.public_id || window.CRM.i18n.t('js.pab.client', 'Client')) + '</option>';
       })).join('');
 
-      var userOptions = ['<option value="">Без менеджера</option>'].concat(users.map(function (user) {
+      var userOptions = ['<option value="">' + window.CRM.i18n.t('js.pab.no_manager', 'No manager') + '</option>'].concat(users.map(function (user) {
         var selected = String(project.manager_user_public_id || '') === String(user.public_id || '') ? ' selected' : '';
-        return '<option value="' + safeText(user.public_id || '') + '"' + selected + '>' + safeText(user.full_name || user.login || user.public_id || 'Пользователь') + '</option>';
+        return '<option value="' + safeText(user.public_id || '') + '"' + selected + '>' + safeText(user.full_name || user.login || user.public_id || window.CRM.i18n.t('js.pab.user', 'User')) + '</option>';
       })).join('');
 
-      var teamOptions = ['<option value="">Команда не назначена</option>'].concat(teams.map(function (team) {
+      var teamOptions = ['<option value="">' + window.CRM.i18n.t('js.pab.no_team_assigned', 'No team assigned') + '</option>'].concat(teams.map(function (team) {
         var selected = String(project.team_public_id || '') === String(team.public_id || '') ? ' selected' : '';
         return '<option value="' + safeText(team.public_id || '') + '"' + selected + '>' + safeText(itemTitle(team)) + '</option>';
       })).join('');
@@ -2283,45 +2310,45 @@ window.CRM.pageApiBindings = (function () {
       blocksWrap.innerHTML = ''
         + '<div class="row g-3">'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">Название и описание</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity">✏️</button></div>'
-        + '<div class="small text-muted mb-1">Название</div><div class="mb-2">' + safeText(project.title || '—') + '</div>'
-        + '<div class="small text-muted mb-1">Описание</div><div class="mb-2">' + safeText(project.description || 'Описание отсутствует') + '</div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity">✏️</button></div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.name', 'Name') + '</div><div class="mb-2">' + safeText(project.title || '—') + '</div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</div><div class="mb-2">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="identity">'
-        + '<div class="col-12"><label class="form-label">Название проекта</label><input class="form-control" name="title" maxlength="255" value="' + safeText(project.title || '') + '"></div>'
-        + '<div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="4">' + safeText(project.description || '') + '</textarea></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="identity">Отмена</button></div>'
+        + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.project_name', 'Project name') + '</label><input class="form-control" name="title" maxlength="255" value="' + safeText(project.title || '') + '"></div>'
+        + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</label><textarea class="form-control" name="description" rows="4">' + safeText(project.description || '') + '</textarea></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="identity">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">Статус и приоритет</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow">✏️</button></div>'
-        + '<div class="small text-muted mb-1">Статус</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div>'
-        + '<div class="small text-muted mb-1">Приоритет</div><div class="mb-2">' + safeText(project.priority_code || 'normal') + '</div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow">✏️</button></div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(project.priority_code || 'normal') + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
-        + '<div class="col-6"><label class="form-label">Статус</label><select class="form-select" name="status">'
-        + '<option value="new"' + (project.status_code === 'new' ? ' selected' : '') + '>К выполнению</option>'
-        + '<option value="in_progress"' + (project.status_code === 'in_progress' ? ' selected' : '') + '>В работе</option>'
-        + '<option value="blocked"' + (project.status_code === 'blocked' ? ' selected' : '') + '>Блокирован</option>'
-        + '<option value="done"' + (project.status_code === 'done' ? ' selected' : '') + '>Завершен</option>'
+        + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
+        + '<option value="new"' + (project.status_code === 'new' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
+        + '<option value="in_progress"' + (project.status_code === 'in_progress' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') + '</option>'
+        + '<option value="blocked"' + (project.status_code === 'blocked' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') + '</option>'
+        + '<option value="done"' + (project.status_code === 'done' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_done', 'Done') + '</option>'
         + '</select></div>'
-        + '<div class="col-6"><label class="form-label">Приоритет</label><select class="form-select" name="priority">'
-        + '<option value="low"' + (project.priority_code === 'low' ? ' selected' : '') + '>Низкий</option>'
-        + '<option value="normal"' + (project.priority_code === 'normal' ? ' selected' : '') + '>Нормальный</option>'
-        + '<option value="high"' + (project.priority_code === 'high' ? ' selected' : '') + '>Высокий</option>'
-        + '<option value="urgent"' + (project.priority_code === 'urgent' ? ' selected' : '') + '>Срочный</option>'
+        + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</label><select class="form-select" name="priority">'
+        + '<option value="low"' + (project.priority_code === 'low' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_low', 'Low') + '</option>'
+        + '<option value="normal"' + (project.priority_code === 'normal' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_normal', 'Normal') + '</option>'
+        + '<option value="high"' + (project.priority_code === 'high' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_high', 'High') + '</option>'
+        + '<option value="urgent"' + (project.priority_code === 'urgent' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_urgent', 'Urgent') + '</option>'
         + '</select></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="workflow">Отмена</button></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="workflow">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
-        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">Связи проекта</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="links">✏️</button></div>'
-        + '<div class="small text-muted mb-1">Клиент</div><div class="mb-2">' + safeText(clientTitleById(project.client_public_id)) + '</div>'
-        + '<div class="small text-muted mb-1">Менеджер</div><div class="mb-2">' + safeText(userTitleById(project.manager_user_public_id)) + '</div>'
-        + '<div class="small text-muted mb-1">Команда</div><div class="mb-2">' + safeText(teamTitleById(project.team_public_id)) + '</div>'
+        + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.project_relations', 'Project relations') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="links">✏️</button></div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</div><div class="mb-2">' + safeText(clientTitleById(project.client_public_id)) + '</div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</div><div class="mb-2">' + safeText(userTitleById(project.manager_user_public_id)) + '</div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</div><div class="mb-2">' + safeText(teamTitleById(project.team_public_id)) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="links">'
-        + '<div class="col-md-4"><label class="form-label">Клиент</label><select class="form-select" name="client_public_id">' + clientOptions + '</select></div>'
-        + '<div class="col-md-4"><label class="form-label">Менеджер</label><select class="form-select" name="manager_user_public_id">' + userOptions + '</select></div>'
-        + '<div class="col-md-4"><label class="form-label">Команда</label><select class="form-select" name="team_public_id">' + teamOptions + '</select></div>'
-        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="links">Отмена</button></div>'
+        + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</label><select class="form-select" name="client_public_id">' + clientOptions + '</select></div>'
+        + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</label><select class="form-select" name="manager_user_public_id">' + userOptions + '</select></div>'
+        + '<div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</label><select class="form-select" name="team_public_id">' + teamOptions + '</select></div>'
+        + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="links">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
         + '</div>';
@@ -2367,11 +2394,11 @@ window.CRM.pageApiBindings = (function () {
             var updatedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
             var updated = updatedEnvelope && updatedEnvelope.data && updatedEnvelope.data.project ? updatedEnvelope.data.project : null;
             if (updated) project = updated;
-            notify('Проект обновлен');
+            notify(window.CRM.i18n.t('js.pab.project_updated', 'Project updated'));
             await renderProjectDetailPage();
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || 'Не удалось обновить проект', 'error');
+            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_update_project', 'Failed to update project'), 'error');
           }
         });
       });
@@ -2383,7 +2410,7 @@ window.CRM.pageApiBindings = (function () {
       var tbody = document.getElementById('projectTasksTableBody') || document.querySelector('.crm-content section.crm-card table.crm-table tbody');
       if (tbody) {
         if (!tasks.length) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">По проекту пока нет задач.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_yet', 'No tasks for this project yet.') + '</td></tr>';
         } else {
           tbody.innerHTML = tasks.slice(0, 50).map(function (item) {
             return '<tr>'
@@ -2436,26 +2463,26 @@ window.CRM.pageApiBindings = (function () {
           var route = normalizeProjectActivityRoute(item);
           var code = String(item.event_type || item.result_code || item.action || item.channel || '').toLowerCase();
 
-          if (route.indexOf('/api/v1/projects') >= 0 && method === 'POST') return 'Создал проект';
-          if (route.indexOf('/api/v1/projects') >= 0 && (method === 'PATCH' || method === 'PUT')) return 'Обновил проект';
-          if (route.indexOf('/api/v1/projects') >= 0 && method === 'DELETE') return 'Удалил проект';
-          if (route.indexOf('/api/v1/tasks') >= 0 && method === 'POST') return 'Добавил задачу в проект';
-          if (route.indexOf('/api/v1/tasks') >= 0 && (method === 'PATCH' || method === 'PUT')) return 'Изменил задачу проекта';
-          if (route.indexOf('/api/v1/tasks') >= 0 && method === 'DELETE') return 'Удалил задачу проекта';
-          if (route.indexOf('/api/v1/comments') >= 0 && method === 'POST') return 'Добавил комментарий';
-          if (route.indexOf('/api/v1/files') >= 0 && method === 'POST') return 'Загрузил файл';
-          if (route.indexOf('/api/v1/files') >= 0 && method === 'DELETE') return 'Удалил файл';
-          if (route.indexOf('/api/v1/worklogs') >= 0 && method === 'POST') return 'Добавил запись времени';
-          if (code.indexOf('project') >= 0 && code.indexOf('update') >= 0) return 'Обновил проект';
+          if (route.indexOf('/api/v1/projects') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_created_project', 'Created project');
+          if (route.indexOf('/api/v1/projects') >= 0 && (method === 'PATCH' || method === 'PUT')) return window.CRM.i18n.t('js.pab.activity_updated_project', 'Updated project');
+          if (route.indexOf('/api/v1/projects') >= 0 && method === 'DELETE') return window.CRM.i18n.t('js.pab.activity_deleted_project', 'Deleted project');
+          if (route.indexOf('/api/v1/tasks') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_added_task', 'Added task to project');
+          if (route.indexOf('/api/v1/tasks') >= 0 && (method === 'PATCH' || method === 'PUT')) return window.CRM.i18n.t('js.pab.activity_updated_task', 'Changed project task');
+          if (route.indexOf('/api/v1/tasks') >= 0 && method === 'DELETE') return window.CRM.i18n.t('js.pab.activity_deleted_task', 'Deleted project task');
+          if (route.indexOf('/api/v1/comments') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_added_comment', 'Added comment');
+          if (route.indexOf('/api/v1/files') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_uploaded_file', 'Uploaded file');
+          if (route.indexOf('/api/v1/files') >= 0 && method === 'DELETE') return window.CRM.i18n.t('js.pab.activity_deleted_file', 'Deleted file');
+          if (route.indexOf('/api/v1/worklogs') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_added_worklog', 'Added time entry');
+          if (code.indexOf('project') >= 0 && code.indexOf('update') >= 0) return window.CRM.i18n.t('js.pab.activity_updated_project', 'Updated project');
 
-          return 'Выполнено действие по проекту';
+          return window.CRM.i18n.t('js.pab.activity_performed_action', 'Performed project action');
         }
 
         function humanProjectActivityTail(item) {
           var route = normalizeProjectActivityRoute(item);
-          if (route.indexOf('/api/v1/tasks/') >= 0) return 'Карточка задачи';
-          if (route.indexOf('/api/v1/projects/') >= 0) return 'Карточка проекта';
-          if (route.indexOf('/api/v1/files') >= 0) return 'Файлы проекта';
+          if (route.indexOf('/api/v1/tasks/') >= 0) return window.CRM.i18n.t('js.pab.activity_task_card', 'Task card');
+          if (route.indexOf('/api/v1/projects/') >= 0) return window.CRM.i18n.t('js.pab.activity_project_card', 'Project card');
+          if (route.indexOf('/api/v1/files') >= 0) return window.CRM.i18n.t('js.pab.activity_project_files', 'Project files');
           return '';
         }
 
@@ -2470,7 +2497,7 @@ window.CRM.pageApiBindings = (function () {
           return !isProjectBackgroundNoise(item);
         });
         if (!activityItems.length) {
-          activity.innerHTML = '<div class="crm-timeline-item">История изменений проекта пока пуста.</div>';
+          activity.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.activity_empty', 'Project change history is empty.') + '</div>';
         } else {
           activity.innerHTML = activityItems.slice(0, 20).map(function (item) {
             var head = humanProjectActivityTitle(item);
@@ -2496,18 +2523,18 @@ window.CRM.pageApiBindings = (function () {
         var historyEnvelope = await request('api/v1/history/entity/project/' + projectId, { query: { limit: 50 }, silent: true });
         var historyItems = mapItems(historyEnvelope);
         if (!historyItems.length) {
-          projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>';
+          projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">' + window.CRM.i18n.t('js.pab.no_change_history', 'No change history') + '</td></tr>';
         } else {
           var projectFieldLabels = {
-            title: 'Название',
-            description: 'Описание',
-            status_code: 'Статус',
-            manager_user_public_id: 'Менеджер',
-            client_public_id: 'Клиент',
-            start_at: 'Дата начала',
-            end_at: 'Дата окончания',
-            budget: 'Бюджет',
-            currency_code: 'Валюта'
+            title: window.CRM.i18n.t('js.pab.name', 'Name'),
+            description: window.CRM.i18n.t('js.pab.description', 'Description'),
+            status_code: window.CRM.i18n.t('js.pab.status', 'Status'),
+            manager_user_public_id: window.CRM.i18n.t('js.pab.manager', 'Manager'),
+            client_public_id: window.CRM.i18n.t('js.pab.client', 'Client'),
+            start_at: window.CRM.i18n.t('js.pab.start_date', 'Start date'),
+            end_at: window.CRM.i18n.t('js.pab.end_date', 'End date'),
+            budget: window.CRM.i18n.t('js.pab.budget', 'Budget'),
+            currency_code: window.CRM.i18n.t('js.pab.currency', 'Currency')
           };
           projectHistoryList.innerHTML = historyItems.map(function (item) {
             var fieldName = String(item.field_name || item.field || '—');
@@ -2520,7 +2547,7 @@ window.CRM.pageApiBindings = (function () {
           }).join('');
         }
       } catch (e) {
-        projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>';
+        projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">' + window.CRM.i18n.t('js.pab.no_change_history', 'No change history') + '</td></tr>';
       }
     }
 
@@ -2538,7 +2565,7 @@ window.CRM.pageApiBindings = (function () {
 
           var title = titleInput ? String(titleInput.value || '').trim() : '';
           if (!title) {
-            notify('Укажите название задачи', 'warning');
+            notify(window.CRM.i18n.t('js.pab.enter_task_title', 'Enter task title'), 'warning');
             return;
           }
 
@@ -2555,7 +2582,7 @@ window.CRM.pageApiBindings = (function () {
 
           try {
             await request('api/v1/tasks', { method: 'POST', body: body });
-            notify('Задача добавлена в проект');
+            notify(window.CRM.i18n.t('js.pab.task_added_to_project', 'Task added to project'));
             createTaskForm.reset();
             var defaultStatus = createTaskForm.querySelector('[name="status"]');
             var defaultPriority = createTaskForm.querySelector('[name="priority"]');
@@ -2564,7 +2591,7 @@ window.CRM.pageApiBindings = (function () {
             await loadProjectTasks();
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || 'Не удалось создать задачу для проекта', 'error');
+            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_create_task_for_project', 'Failed to create task for project'), 'error');
           }
         });
         createTaskForm.dataset.bound = '1';
@@ -2776,17 +2803,17 @@ window.CRM.pageApiBindings = (function () {
       if (tasksAiPriorityBtn) {
         tasksAiPriorityBtn.classList.toggle('crm-btn-primary', enabled);
         tasksAiPriorityBtn.classList.toggle('btn-light', !enabled);
-        tasksAiPriorityBtn.textContent = enabled ? 'AI-приоритет: вкл' : 'AI-приоритет';
+        tasksAiPriorityBtn.textContent = enabled ? window.CRM.i18n.t('js.pab.ai_priority_on', 'AI priority: on') : window.CRM.i18n.t('js.pab.ai_priority', 'AI priority');
       }
       if (tasksAiPriorityResetBtn) {
         tasksAiPriorityResetBtn.classList.toggle('d-none', !enabled);
       }
       if (enabled && String(aiPriorityState.summary || '').trim() !== '') {
-        setTasksAiState('ready', String(aiPriorityState.summary || 'AI-приоритет рассчитан.'));
+        setTasksAiState('ready', String(aiPriorityState.summary || window.CRM.i18n.t('js.pab.ai_priority_calculated', 'AI priority calculated.')));
       } else if (canUseAi) {
-        setTasksAiState('idle', 'AI-приоритет доступен для текущей выборки задач.');
+        setTasksAiState('idle', window.CRM.i18n.t('js.pab.ai_priority_available', 'AI priority available for current task selection.'));
       } else {
-        setTasksAiState('hidden', 'AI-приоритет недоступен: требуется право ai.use.');
+        setTasksAiState('hidden', window.CRM.i18n.t('js.pab.ai_priority_unavailable', 'AI priority unavailable: requires ai.use permission.'));
       }
     }
 
@@ -2800,34 +2827,34 @@ window.CRM.pageApiBindings = (function () {
       aiPriorityState.viewMode = 'list';
       updateAiPriorityUi();
       if (notifyUser) {
-        notify('AI-порядок сброшен');
+        notify(window.CRM.i18n.t('js.pab.ai_order_reset', 'AI order reset'));
       }
     }
 
     async function requestAiPriority() {
       if (!window.CRM.ai || typeof window.CRM.ai.createTaskListPriority !== 'function') {
-        setTasksAiState('error', 'AI-модуль временно недоступен');
-        notify('AI-модуль временно недоступен', 'error');
+        setTasksAiState('error', window.CRM.i18n.t('js.pab.ai_module_unavailable', 'AI module temporarily unavailable'));
+        notify(window.CRM.i18n.t('js.pab.ai_module_unavailable', 'AI module temporarily unavailable'), 'error');
         return;
       }
       if (!window.CRM.ai.hasAiPermission('task_list_priority')) {
-        setTasksAiState('hidden', 'AI-приоритет недоступен: требуется право ai.use.');
+        setTasksAiState('hidden', window.CRM.i18n.t('js.pab.ai_priority_unavailable', 'AI priority unavailable: requires ai.use permission.'));
         return;
       }
       var taskPublicIds = items.map(function (item) {
         return String(item && item.public_id || '').trim();
       }).filter(Boolean);
       if (!taskPublicIds.length) {
-        setTasksAiState('empty', 'Нет задач в текущей выборке для AI-приоритета.');
-        notify('Нет задач в текущей выборке для AI-приоритета', 'warning');
+        setTasksAiState('empty', window.CRM.i18n.t('js.pab.no_tasks_for_ai', 'No tasks in current selection for AI priority.'));
+        notify(window.CRM.i18n.t('js.pab.no_tasks_for_ai', 'No tasks in current selection for AI priority'), 'warning');
         return;
       }
 
       if (tasksAiPriorityBtn) {
         tasksAiPriorityBtn.disabled = true;
-        tasksAiPriorityBtn.textContent = 'AI-приоритет...';
+        tasksAiPriorityBtn.textContent = window.CRM.i18n.t('js.pab.ai_priority_ellipsis', 'AI priority...');
       }
-      setTasksAiState('loading', 'Рассчитываем AI-приоритет...');
+      setTasksAiState('loading', window.CRM.i18n.t('js.pab.calculating_ai_priority', 'Calculating AI priority...'));
       try {
         var envelope = await window.CRM.ai.createTaskListPriority({
           task_public_ids: taskPublicIds,
@@ -2864,16 +2891,16 @@ window.CRM.pageApiBindings = (function () {
         aiPriorityState.selectionKey = selectionKey;
         aiPriorityState.orderMap = orderMap;
         aiPriorityState.reasonMap = reasonMap;
-        aiPriorityState.summary = String(payload.summary || suggestion.summary || ('AI-приоритет рассчитан для ' + String(taskPublicIds.length) + ' задач.'));
+        aiPriorityState.summary = String(payload.summary || suggestion.summary || (window.CRM.i18n.t('js.pab.ai_priority_calculated_for', 'AI priority calculated for') + ' ' + String(taskPublicIds.length) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks') + '.'));
         aiPriorityState.suggestionPublicId = String(suggestion && suggestion.public_id || '');
         aiPriorityState.viewMode = currentView;
         updateAiPriorityUi();
-        notify('AI-приоритет обновлен');
+        notify(window.CRM.i18n.t('js.pab.ai_priority_updated', 'AI priority updated'));
 
         if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function' && suggestion) {
           window.CRM.ai.openSuggestionDrawer(suggestion, { changes: [] }, {
             onApply: function () {
-              notify('Для AI-приоритета изменения применяются сразу к отображению списка');
+              notify(window.CRM.i18n.t('js.pab.ai_priority_changes_applied', 'AI priority changes apply directly to list display'));
             },
             onDismiss: async function () {
               if (aiPriorityState.suggestionPublicId) {
@@ -2891,7 +2918,7 @@ window.CRM.pageApiBindings = (function () {
                 renderTasksPage();
                 }).catch(function (error) {
                   console.log('Update status network error:', error);
-                  notify('Ошибка обновления статуса', 'error');
+                  notify(window.CRM.i18n.t('js.pab.update_status_error', 'Update status error'), 'error');
                   // Revert
                   evt.from.appendChild(item);
                 });
@@ -2902,12 +2929,12 @@ window.CRM.pageApiBindings = (function () {
         renderTasksPage();
       } catch (error) {
         var aiError = window.CRM.ai && typeof window.CRM.ai.toUiError === 'function'
-          ? window.CRM.ai.toUiError(error, 'Не удалось рассчитать AI-приоритет')
-          : { code: 'AI_REQUEST_FAILED', message: 'Не удалось рассчитать AI-приоритет' };
-        setTasksAiState(resolveAiUiState(aiError), aiError.message || 'Не удалось рассчитать AI-приоритет');
-        notify(aiError.message || 'Не удалось рассчитать AI-приоритет', 'error');
+          ? window.CRM.ai.toUiError(error, window.CRM.i18n.t('js.pab.failed_calculate_ai_priority', 'Failed to calculate AI priority'))
+          : { code: 'AI_REQUEST_FAILED', message: window.CRM.i18n.t('js.pab.failed_calculate_ai_priority', 'Failed to calculate AI priority') };
+        setTasksAiState(resolveAiUiState(aiError), aiError.message || window.CRM.i18n.t('js.pab.failed_calculate_ai_priority', 'Failed to calculate AI priority'));
+        notify(aiError.message || window.CRM.i18n.t('js.pab.failed_calculate_ai_priority', 'Failed to calculate AI priority'), 'error');
         if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-          window.CRM.ai.renderAiError(error, 'Не удалось рассчитать AI-приоритет');
+          window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.failed_calculate_ai_priority', 'Failed to calculate AI priority'));
         }
       } finally {
         if (tasksAiPriorityBtn) {
@@ -3007,7 +3034,7 @@ window.CRM.pageApiBindings = (function () {
 
       // Summary
       if (summary) {
-        summary.textContent = 'Показано ' + items.length + ' из ' + items.length + ' задач';
+        summary.textContent = window.CRM.i18n.t('js.pab.showing', 'Showing') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks');
       }
 
       // Reset button
@@ -3069,7 +3096,7 @@ window.CRM.pageApiBindings = (function () {
         select.textContent = '';
         var base = document.createElement('option');
         base.value = '';
-        base.textContent = 'Сохраненные виды';
+        base.textContent = window.CRM.i18n.t('js.pab.saved_views', 'Saved views');
         select.appendChild(base);
         savedViews.forEach(function (view) {
           var publicId = String(view.public_id || '').trim();
@@ -3106,11 +3133,11 @@ window.CRM.pageApiBindings = (function () {
       if (saveBtn && saveBtn.dataset.bound !== '1') {
         saveBtn.dataset.bound = '1';
         saveBtn.addEventListener('click', async function () {
-          var title = window.prompt('Название сохраненного вида');
+          var title = window.prompt(window.CRM.i18n.t('js.pab.saved_view_name_prompt', 'Saved view name'));
           if (title === null) return;
           var normalized = String(title || '').trim();
           if (!normalized) {
-            notify('Название вида не может быть пустым', 'warning');
+            notify(window.CRM.i18n.t('js.pab.view_name_empty', 'View name cannot be empty'), 'warning');
             return;
           }
           try {
@@ -3130,7 +3157,7 @@ window.CRM.pageApiBindings = (function () {
             });
             var createdView = created && created.data ? created.data.view : null;
             var createdId = String(createdView && createdView.public_id || '').trim();
-            notify('Вид сохранен');
+            notify(window.CRM.i18n.t('js.pab.view_saved', 'View saved'));
             applyTaskRouteQuery({
               search: searchFilter,
               status: statusFilter,
@@ -3141,7 +3168,7 @@ window.CRM.pageApiBindings = (function () {
             });
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || 'Не удалось сохранить вид', 'error');
+            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_to_save_view', 'Failed to save view'), 'error');
           }
         });
       }
@@ -3151,13 +3178,13 @@ window.CRM.pageApiBindings = (function () {
         deleteBtn.addEventListener('click', async function () {
           var targetId = select ? String(select.value || '').trim() : '';
           if (!targetId) {
-            notify('Выберите сохраненный вид', 'warning');
+            notify(window.CRM.i18n.t('js.pab.select_saved_view', 'Select saved view'), 'warning');
             return;
           }
-          if (!window.confirm('Удалить выбранный сохраненный вид?')) return;
+          if (!window.confirm(window.CRM.i18n.t('js.pab.delete_saved_view_confirm', 'Delete selected saved view?'))) return;
           try {
             await request('api/v1/views/' + encodeURIComponent(targetId), { method: 'DELETE' });
-            notify('Вид удален');
+            notify(window.CRM.i18n.t('js.pab.view_deleted', 'View deleted'));
             applyTaskRouteQuery({
               search: searchFilter,
               status: statusFilter,
@@ -3167,7 +3194,7 @@ window.CRM.pageApiBindings = (function () {
             });
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || 'Не удалось удалить вид', 'error');
+            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_to_delete_view', 'Failed to delete view'), 'error');
           }
         });
       }
@@ -3193,7 +3220,7 @@ window.CRM.pageApiBindings = (function () {
     function fillSelect(select, items, idKey, labelFn) {
       if (!select) return;
       var val = select.value;
-      select.innerHTML = '<option value="">' + (select.options[0]?.text || 'Все') + '</option>';
+      select.innerHTML = '<option value="">' + (select.options[0]?.text || window.CRM.i18n.t('js.pab.all', 'All')) + '</option>';
       items.forEach(function (item) {
         var id = item[idKey || 'public_id'];
         var label = labelFn ? labelFn(item) : (item.title || item.name || item.login || id);
@@ -3288,13 +3315,13 @@ window.CRM.pageApiBindings = (function () {
         pagerNode.innerHTML = '';
       } else {
         pagerNode.classList.remove('d-none');
-        pagerNode.innerHTML = '<div class="small text-muted">Показано '
+        pagerNode.innerHTML = '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.showing', 'Showing') + ' '
           + safeText(String(pageStart + 1)) + '–' + safeText(String(pageStart + pagedItems.length))
-          + ' из ' + safeText(String(displayItems.length)) + '</div>'
+          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(displayItems.length)) + '</div>'
           + '<div class="crm-table-pager-controls">'
-          + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-prev' + (currentPage <= 1 ? ' disabled' : '') + '>Назад</button>'
-          + '<span class="small">Страница ' + safeText(String(currentPage)) + ' из ' + safeText(String(totalPages)) + '</span>'
-          + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-next' + (currentPage >= totalPages ? ' disabled' : '') + '>Вперёд</button>'
+          + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-prev' + (currentPage <= 1 ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.back', 'Back') + '</button>'
+          + '<span class="small">' + window.CRM.i18n.t('js.pab.page', 'Page') + ' ' + safeText(String(currentPage)) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalPages)) + '</span>'
+          + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-next' + (currentPage >= totalPages ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.forward', 'Forward') + '</button>'
           + '</div>';
         var prevBtn = pagerNode.querySelector('[data-tasks-page-prev]');
         var nextBtn = pagerNode.querySelector('[data-tasks-page-next]');
@@ -3362,10 +3389,10 @@ window.CRM.pageApiBindings = (function () {
     async function applyBulkChanges(changes, actionLabel, askConfirm) {
       var taskIds = selectedTaskIds();
       if (!taskIds.length) {
-        notify('Выберите хотя бы одну задачу', 'warning');
+        notify(window.CRM.i18n.t('js.pab.select_at_least_one_task', 'Select at least one task'), 'warning');
         return;
       }
-      if (askConfirm && !window.confirm(actionLabel + ' для ' + taskIds.length + ' задач?')) return;
+      if (askConfirm && !window.confirm(actionLabel + ' ' + window.CRM.i18n.t('js.pab.for_count_tasks', 'for') + ' ' + taskIds.length + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks') + '?')) return;
       try {
         var envelope = await request('api/v1/tasks/bulk', {
           method: 'POST',
@@ -3378,9 +3405,9 @@ window.CRM.pageApiBindings = (function () {
         var updated = Number(summary.updated || 0);
         var skipped = Number(summary.skipped || 0);
         var requested = Number(summary.requested || taskIds.length);
-        var message = actionLabel + ': обновлено ' + updated + ' из ' + requested;
+        var message = actionLabel + ': ' + window.CRM.i18n.t('js.pab.updated', 'updated') + ' ' + updated + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + requested;
         if (skipped > 0) {
-          message += ', пропущено ' + skipped;
+          message += ', ' + window.CRM.i18n.t('js.pab.skipped', 'skipped') + ' ' + skipped;
         }
         if (resultNode) {
           resultNode.textContent = message;
@@ -3389,7 +3416,7 @@ window.CRM.pageApiBindings = (function () {
         notify(message, skipped > 0 ? 'warning' : 'success');
         await refreshCurrentPage();
       } catch (error) {
-        var bulkErr = window.CRM.api.normalizeError(error, 'Не удалось выполнить bulk-действие');
+        var bulkErr = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.pab.bulk_action_failed', 'Bulk action failed'));
         if (resultNode) {
           resultNode.textContent = window.CRM.api.formatErrorMessage(bulkErr, { withRequestId: true });
           resultNode.className = 'small text-danger';
@@ -3403,20 +3430,20 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var taskIds = selectedTaskIds();
         if (!taskIds.length) {
-          notify('Выберите хотя бы одну задачу', 'warning');
+          notify(window.CRM.i18n.t('js.pab.select_at_least_one_task', 'Select at least one task'), 'warning');
           return;
         }
         var titles = items.filter(function (item) {
           return taskIds.indexOf(String(item.public_id || '')) >= 0;
         }).slice(0, 3).map(function (item) {
-          return String(item.title || item.public_id || 'Задача');
+          return String(item.title || item.public_id || window.CRM.i18n.t('js.pab.task', 'Task'));
         });
         if (titleNode) {
-          titleNode.textContent = taskIds.length > 1 ? 'Удалить выбранные задачи?' : 'Удалить задачу?';
+          titleNode.textContent = taskIds.length > 1 ? window.CRM.i18n.t('js.pab.delete_selected_tasks', 'Delete selected tasks?') : window.CRM.i18n.t('js.pab.delete_task_q', 'Delete task?');
         }
         if (bodyNode) {
-          var preview = titles.length ? (' ' + titles.join(', ') + (taskIds.length > titles.length ? ' и другие.' : '.')) : '';
-          bodyNode.textContent = 'Действие необратимо. Будут удалены ' + taskIds.length + ' задач.' + preview;
+          var preview = titles.length ? (' ' + titles.join(', ') + (taskIds.length > titles.length ? ' ' + window.CRM.i18n.t('js.pab.and_others', 'and others.') : '.')) : '';
+          bodyNode.textContent = window.CRM.i18n.t('js.pab.action_irreversible', 'This action is irreversible.') + ' ' + window.CRM.i18n.t('js.pab.will_delete_count_tasks', 'Will delete') + ' ' + taskIds.length + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks') + '.' + preview;
         }
         confirmBtn.dataset.taskIds = taskIds.join(',');
         if (window.bootstrap && window.bootstrap.Modal) {
@@ -3432,12 +3459,12 @@ window.CRM.pageApiBindings = (function () {
           return String(id || '').trim();
         }).filter(Boolean);
         if (!taskIds.length) {
-          notify('Нет выбранных задач для удаления', 'warning');
+          notify(window.CRM.i18n.t('js.pab.no_tasks_selected_for_delete', 'No tasks selected for deletion'), 'warning');
           return;
         }
 
         confirmBtn.disabled = true;
-        showBulkProgress(taskIds.length, 'Удаление задач...');
+        showBulkProgress(taskIds.length, window.CRM.i18n.t('js.pab.deleting_tasks', 'Deleting tasks...'));
         var results = { success: 0, failed: 0, errors: [] };
 
         for (var i = 0; i < taskIds.length; i++) {
@@ -3446,7 +3473,7 @@ window.CRM.pageApiBindings = (function () {
             results.success++;
           } catch (error) {
             results.failed++;
-            var err = window.CRM.api.normalizeError(error, 'Ошибка');
+            var err = window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.pab.error', 'Error'));
             results.errors.push({ id: taskIds[i], message: err.message });
           }
           updateBulkProgress(i + 1, taskIds.length);
@@ -3458,15 +3485,15 @@ window.CRM.pageApiBindings = (function () {
         }
 
         if (results.success > 0) {
-          var msg = 'Удалено задач: ' + results.success;
+          var msg = window.CRM.i18n.t('js.pab.deleted_tasks', 'Deleted tasks:') + ' ' + results.success;
           if (results.failed > 0) {
-            msg += ', ошибок: ' + results.failed;
+            msg += ', ' + window.CRM.i18n.t('js.pab.errors', 'errors:') + ' ' + results.failed;
             notify(msg, 'warning');
           } else {
             notify(msg, 'success');
           }
         } else {
-          notify('Не удалось удалить задачи', 'error');
+          notify(window.CRM.i18n.t('js.pab.failed_delete_tasks', 'Failed to delete tasks'), 'error');
         }
 
         if (results.errors.length > 0 && results.errors.length <= 5) {
@@ -3485,7 +3512,7 @@ window.CRM.pageApiBindings = (function () {
       statusSelect.addEventListener('change', function () {
         var next = String(statusSelect.value || '').trim();
         if (!next) return;
-        applyBulkChanges({ status: next }, 'Статус обновлен', false).finally(function () {
+        applyBulkChanges({ status: next }, window.CRM.i18n.t('js.pab.status_updated', 'Status updated'), false).finally(function () {
           statusSelect.value = '';
         });
       });
@@ -3496,7 +3523,7 @@ window.CRM.pageApiBindings = (function () {
       prioritySelect.addEventListener('change', function () {
         var next = String(prioritySelect.value || '').trim();
         if (!next) return;
-        applyBulkChanges({ priority: next }, 'Приоритет обновлен', false).finally(function () {
+        applyBulkChanges({ priority: next }, window.CRM.i18n.t('js.pab.priority_updated', 'Priority updated'), false).finally(function () {
           prioritySelect.value = '';
         });
       });
@@ -3505,19 +3532,19 @@ window.CRM.pageApiBindings = (function () {
 
     if (archiveBtn && archiveBtn.dataset.boundBulk !== '1') {
       archiveBtn.addEventListener('click', function () {
-        applyBulkChanges({ archived: true }, 'Задачи архивированы', true);
+        applyBulkChanges({ archived: true }, window.CRM.i18n.t('js.pab.tasks_archived', 'Tasks archived'), true);
       });
       archiveBtn.dataset.boundBulk = '1';
     }
     if (unarchiveBtn && unarchiveBtn.dataset.boundBulk !== '1') {
       unarchiveBtn.addEventListener('click', function () {
-        applyBulkChanges({ archived: false }, 'Задачи возвращены из архива', false);
+        applyBulkChanges({ archived: false }, window.CRM.i18n.t('js.pab.tasks_unarchived', 'Tasks unarchived'), false);
       });
       unarchiveBtn.dataset.boundBulk = '1';
     }
     if (helpBtn && helpBtn.dataset.boundBulk !== '1') {
       helpBtn.addEventListener('click', function () {
-        window.alert('Шорткаты bulk:\nShift + A: архивировать выбранные\nShift + U: убрать из архива\nShift + D: удалить выбранные');
+        window.alert(window.CRM.i18n.t('js.pab.bulk_shortcuts', 'Bulk shortcuts:\nShift + A: archive selected\nShift + U: unarchive selected\nShift + D: delete selected'));
       });
       helpBtn.dataset.boundBulk = '1';
     }
@@ -3528,12 +3555,12 @@ window.CRM.pageApiBindings = (function () {
         var key = String(event.key || '').toLowerCase();
         if (key === 'a') {
           event.preventDefault();
-          applyBulkChanges({ archived: true }, 'Задачи архивированы', true);
+          applyBulkChanges({ archived: true }, window.CRM.i18n.t('js.pab.tasks_archived', 'Tasks archived'), true);
           return;
         }
         if (key === 'u') {
           event.preventDefault();
-          applyBulkChanges({ archived: false }, 'Задачи возвращены из архива', false);
+          applyBulkChanges({ archived: false }, window.CRM.i18n.t('js.pab.tasks_unarchived', 'Tasks unarchived'), false);
           return;
         }
         if (key === 'd') {
@@ -3569,24 +3596,24 @@ window.CRM.pageApiBindings = (function () {
     if (!body) return;
 
     if (!task) {
-      body.innerHTML = '<div class="text-muted mb-2">Нет доступных задач для быстрого просмотра.</div>'
-        + '<a class="btn btn-sm btn-light" href="index.php?route=tasks">К списку задач</a>';
+      body.innerHTML = '<div class="text-muted mb-2">' + window.CRM.i18n.t('js.pab.no_tasks_for_quick_view', 'No available tasks for quick view.') + '</div>'
+        + '<a class="btn btn-sm btn-light" href="index.php?route=tasks">' + window.CRM.i18n.t('js.pab.to_task_list', 'To task list') + '</a>';
       return;
     }
 
     var taskLink = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
-    body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || 'Задача') + '</h6>'
-      + '<p class="text-muted mb-2">' + safeText(task.description || 'Описание отсутствует') + '</p>'
+    body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task')) + '</h6>'
+      + '<p class="text-muted mb-2">' + safeText(task.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
       + '<div class="mb-2"><span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>'
       + ' <span class="crm-chip">' + safeText(task.priority_code || 'normal') + '</span></div>'
       + '<ul class="small ps-3 mb-3">'
-      + '<li>Проект: ' + safeText(task.project_title || '—') + '</li>'
-      + '<li>Исполнитель: ' + safeText(task.assignee_full_name || task.assignee_login || '—') + '</li>'
-      + '<li>Срок: ' + safeText(formatDate(task.due_at)) + '</li>'
+      + '<li>' + window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + safeText(task.project_title || '—') + '</li>'
+      + '<li>' + window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + safeText(task.assignee_full_name || task.assignee_login || '—') + '</li>'
+      + '<li>' + window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + safeText(formatDate(task.due_at)) + '</li>'
       + '</ul>'
       + '<div class="d-flex gap-2">'
-      + '<a class="btn btn-sm crm-btn-primary" href="' + taskLink + '">Открыть задачу</a>'
-      + '<button type="button" class="btn btn-sm btn-light" data-open-modal="assignUserModal">Назначить исполнителя</button>'
+      + '<a class="btn btn-sm crm-btn-primary" href="' + taskLink + '">' + window.CRM.i18n.t('js.pab.open_task', 'Open task') + '</a>'
+      + '<button type="button" class="btn btn-sm btn-light" data-open-modal="assignUserModal">' + window.CRM.i18n.t('js.pab.assign_executor', 'Assign executor') + '</button>'
       + '</div>';
   }
 
@@ -3601,22 +3628,22 @@ window.CRM.pageApiBindings = (function () {
     if (taskSelect) {
       var taskOptions = Array.isArray(tasks) && tasks.length
         ? tasks.map(function (task) {
-          var label = (task.title || task.public_id || 'Задача')
+          var label = (task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task'))
             + ' · ' + statusLabel(task.status_code)
             + ' · ' + formatDate(task.updated_at || task.created_at);
           return '<option value="' + safeText(task.public_id || '') + '">' + safeText(label) + '</option>';
         })
-        : ['<option value="">Нет доступных задач</option>'];
+        : ['<option value="">' + window.CRM.i18n.t('js.pab.no_available_tasks', 'No available tasks') + '</option>'];
       taskSelect.innerHTML = taskOptions.join('');
       var latest = getLatestTask(tasks || []);
       taskSelect.value = latest && latest.public_id ? latest.public_id : '';
     }
 
     if (assigneeSelect) {
-      var userOptions = ['<option value="">Снять назначение</option>'];
+      var userOptions = ['<option value="">' + window.CRM.i18n.t('js.pab.remove_assignment', 'Remove assignment') + '</option>'];
       if (Array.isArray(users) && users.length) {
         userOptions = userOptions.concat(users.map(function (user) {
-          var name = user.full_name || user.login || user.email || user.public_id || 'Пользователь';
+          var name = user.full_name || user.login || user.email || user.public_id || window.CRM.i18n.t('js.pab.user', 'User');
           return '<option value="' + safeText(user.public_id || '') + '">' + safeText(name) + '</option>';
         }));
       }
@@ -3625,8 +3652,8 @@ window.CRM.pageApiBindings = (function () {
 
     if (hint) {
       hint.textContent = (Array.isArray(tasks) && tasks.length)
-        ? 'Изменение сохранится в API и сразу обновит карточку задачи.'
-        : 'Сначала создайте задачу, затем можно назначить исполнителя.';
+        ? window.CRM.i18n.t('js.pab.assign_hint_save', 'The change will be saved to API and update the task card immediately.')
+        : window.CRM.i18n.t('js.pab.assign_hint_create_first', 'Create a task first, then assign an executor.');
     }
   }
 
@@ -3696,7 +3723,7 @@ window.CRM.pageApiBindings = (function () {
         var taskId = String((assignForm.querySelector('[name="task_public_id"]') || {}).value || '').trim();
         var assigneePublicId = String((assignForm.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim();
         if (!taskId) {
-          notify('Выберите задачу для назначения', 'warning');
+          notify(window.CRM.i18n.t('js.pab.select_task_for_assignment', 'Select task for assignment'), 'warning');
           return;
         }
 
@@ -3715,11 +3742,11 @@ window.CRM.pageApiBindings = (function () {
           if (assignModalEl && window.bootstrap && window.bootstrap.Modal) {
             window.bootstrap.Modal.getOrCreateInstance(assignModalEl).hide();
           }
-          notify('Исполнитель успешно обновлен');
+          notify(window.CRM.i18n.t('js.pab.assignee_updated', 'Assignee successfully updated'));
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось назначить исполнителя', 'error');
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_assign_executor', 'Failed to assign executor'), 'error');
         }
       });
       assignForm.dataset.bound = '1';
@@ -3787,8 +3814,8 @@ window.CRM.pageApiBindings = (function () {
         var emptyBox = document.createElement('div');
         emptyBox.className = 'crm-empty-state crm-empty-state-compact crm-dashboard-empty-state';
         emptyBox.textContent = denied
-          ? 'Раздел задач недоступен для вашей роли.'
-          : 'Актуальных задач на сегодня не найдено.';
+          ? window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.')
+          : window.CRM.i18n.t('js.pab.no_tasks_for_today', 'No relevant tasks found for today.');
         emptyTd.appendChild(emptyBox);
         emptyTr.appendChild(emptyTd);
         tbody.appendChild(emptyTr);
@@ -3800,7 +3827,7 @@ window.CRM.pageApiBindings = (function () {
         var titleTd = document.createElement('td');
         var titleLink = document.createElement('a');
         titleLink.href = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id);
-        titleLink.textContent = String(item.title || 'Задача');
+        titleLink.textContent = String(item.title || window.CRM.i18n.t('js.pab.task', 'Task'));
         titleTd.appendChild(titleLink);
         tr.appendChild(titleTd);
 
@@ -3833,8 +3860,8 @@ window.CRM.pageApiBindings = (function () {
         var emptyArticle = document.createElement('article');
         emptyArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state';
         emptyArticle.textContent = denied
-          ? 'Раздел задач недоступен для вашей роли.'
-          : 'Актуальных задач на сегодня не найдено.';
+          ? window.CRM.i18n.t('js.pab.tasks_section_denied', 'Tasks section unavailable for your role.')
+          : window.CRM.i18n.t('js.pab.no_tasks_for_today', 'No relevant tasks found for today.');
         container.appendChild(emptyArticle);
         return;
       }
@@ -3845,13 +3872,13 @@ window.CRM.pageApiBindings = (function () {
         var link = document.createElement('a');
         link.className = 'crm-dashboard-task-card-title';
         link.href = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id);
-        link.textContent = String(item.title || 'Задача');
+        link.textContent = String(item.title || window.CRM.i18n.t('js.pab.task', 'Task'));
         article.appendChild(link);
 
         [
-          'Проект: ' + String(item.project_title || '—'),
-          'Исполнитель: ' + String(item.assignee_full_name || item.assignee_login || '—'),
-          'Срок: ' + String(formatDate(item.due_at))
+          window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + String(item.project_title || '—'),
+          window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + String(item.assignee_full_name || item.assignee_login || '—'),
+          window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + String(formatDate(item.due_at))
         ].forEach(function (label) {
           var meta = document.createElement('div');
           meta.className = 'crm-dashboard-task-card-meta';
@@ -3888,8 +3915,8 @@ window.CRM.pageApiBindings = (function () {
 
     var subtitle = document.querySelector('[data-dashboard-subtitle]');
     if (subtitle) {
-      subtitle.textContent = 'Срез по задачам, рискам и загрузке команд на '
-        + new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+      subtitle.textContent = window.CRM.i18n.t('js.pab.dashboard_subtitle', 'Overview of tasks, risks and team load for')
+        + ' ' + new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
     }
 
     {
@@ -3898,27 +3925,27 @@ window.CRM.pageApiBindings = (function () {
       if (kpis[0]) kpis[0].textContent = String(summary.active_tasks || 0);
       if (kpis[1]) kpis[1].textContent = String(summary.overdue_tasks || 0);
       if (kpis[2]) kpis[2].textContent = String(summary.active_projects || 0);
-      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' мин';
-      if (kpiNotes[0]) kpiNotes[0].textContent = 'Задач к выполнению сегодня: ' + String(summary.tasks_today || 0) + '.';
-      if (kpiNotes[1]) kpiNotes[1].textContent = 'Просроченных задач в системе: ' + String(summary.overdue_tasks || 0) + '.';
-      if (kpiNotes[2]) kpiNotes[2].textContent = 'Активных проектов в работе: ' + String(summary.active_projects || 0) + '.';
-      if (kpiNotes[3]) kpiNotes[3].textContent = 'Учет времени за неделю: ' + String(summary.worklog_minutes_week || 0) + ' мин.';
+      if (kpis[3]) kpis[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + tp('min', 'min');
+      if (kpiNotes[0]) kpiNotes[0].textContent = window.CRM.i18n.t('js.pab.kpi_tasks_today', 'Tasks to do today:') + ' ' + String(summary.tasks_today || 0) + '.';
+      if (kpiNotes[1]) kpiNotes[1].textContent = window.CRM.i18n.t('js.pab.kpi_overdue', 'Overdue tasks in system:') + ' ' + String(summary.overdue_tasks || 0) + '.';
+      if (kpiNotes[2]) kpiNotes[2].textContent = window.CRM.i18n.t('js.pab.kpi_active_projects', 'Active projects in progress:') + ' ' + String(summary.active_projects || 0) + '.';
+      if (kpiNotes[3]) kpiNotes[3].textContent = window.CRM.i18n.t('js.pab.kpi_worklog_week', 'Time logged this week:') + ' ' + String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') + '.';
       var kpiBadges = document.querySelectorAll('.crm-dashboard-kpi .crm-badge');
       if (kpiBadges[0]) {
         kpiBadges[0].className = 'crm-badge active';
-        kpiBadges[0].textContent = Number(summary.tasks_today || 0) > 0 ? 'Есть фокус' : 'Нет задач';
+        kpiBadges[0].textContent = Number(summary.tasks_today || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_has_focus', 'Has focus') : window.CRM.i18n.t('js.pab.kpi_no_tasks', 'No tasks');
       }
       if (kpiBadges[1]) {
         kpiBadges[1].className = 'crm-badge ' + (Number(summary.overdue_tasks || 0) > 0 ? 'overdue' : 'success');
-        kpiBadges[1].textContent = Number(summary.overdue_tasks || 0) > 0 ? 'Требует внимания' : 'В норме';
+        kpiBadges[1].textContent = Number(summary.overdue_tasks || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_needs_attention', 'Needs attention') : window.CRM.i18n.t('js.pab.kpi_normal', 'Normal');
       }
       if (kpiBadges[2]) {
         kpiBadges[2].className = 'crm-badge active';
-        kpiBadges[2].textContent = Number(summary.active_projects || 0) > 0 ? 'В работе' : 'Нет активных';
+        kpiBadges[2].textContent = Number(summary.active_projects || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_in_progress', 'In progress') : window.CRM.i18n.t('js.pab.kpi_no_active', 'No active');
       }
       if (kpiBadges[3]) {
         kpiBadges[3].className = 'crm-badge active';
-        kpiBadges[3].textContent = Number(summary.worklog_minutes_week || 0) > 0 ? 'Есть учет' : 'Нет записей';
+        kpiBadges[3].textContent = Number(summary.worklog_minutes_week || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_has_logged', 'Has time logged') : window.CRM.i18n.t('js.pab.kpi_no_entries', 'No entries');
       }
     }
 
@@ -3967,25 +3994,25 @@ window.CRM.pageApiBindings = (function () {
     if (risksList) {
       var alerts = [];
       if (overdueTasks.length > 0 || Number(summary.overdue_tasks || 0) > 0) {
-        alerts.push('<div class="alert alert-danger mb-2">Просроченные задачи: '
-          + safeText(String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0))))
+        alerts.push('<div class="alert alert-danger mb-2">' + window.CRM.i18n.t('js.pab.overdue_tasks_alert', 'Overdue tasks:')
+          + ' ' + safeText(String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0))))
           + '.</div>');
       }
       if (blockedTasks.length > 0) {
-        alerts.push('<div class="alert alert-warning mb-2">Заблокированные задачи: '
-          + safeText(String(blockedTasks.length)) + '.</div>');
+        alerts.push('<div class="alert alert-warning mb-2">' + window.CRM.i18n.t('js.pab.blocked_tasks_alert', 'Blocked tasks:')
+          + ' ' + safeText(String(blockedTasks.length)) + '.</div>');
       }
       if (riskyProjects.length > 0) {
-        alerts.push('<div class="alert alert-warning mb-2">Проекты в риске/блоке: '
-          + safeText(String(riskyProjects.length)) + '.</div>');
+        alerts.push('<div class="alert alert-warning mb-2">' + window.CRM.i18n.t('js.pab.risky_projects_alert', 'Projects at risk/blocked:')
+          + ' ' + safeText(String(riskyProjects.length)) + '.</div>');
       }
       if (nearestDueTask) {
-        alerts.push('<div class="alert alert-info mb-2">Ближайший дедлайн: '
-          + safeText(nearestDueTask.title || nearestDueTask.public_id || 'задача')
+        alerts.push('<div class="alert alert-info mb-2">' + window.CRM.i18n.t('js.pab.nearest_deadline_alert', 'Nearest deadline:')
+          + ' ' + safeText(nearestDueTask.title || nearestDueTask.public_id || window.CRM.i18n.t('js.pab.task', 'task'))
           + ' (' + safeText(formatDate(nearestDueTask.due_at)) + ').</div>');
       }
       if (!alerts.length) {
-        alerts.push('<div class="alert alert-success mb-2">Критичных алертов не найдено.</div>');
+        alerts.push('<div class="alert alert-success mb-2">' + window.CRM.i18n.t('js.pab.no_critical_alerts', 'No critical alerts found.') + '</div>');
       }
       risksList.innerHTML = alerts.join('');
     }
@@ -3993,10 +4020,10 @@ window.CRM.pageApiBindings = (function () {
     var risksMetrics = document.querySelector('[data-dashboard-risks-metrics]');
     if (risksMetrics) {
       risksMetrics.innerHTML = '<div class="d-flex flex-wrap gap-2">'
-        + '<span class="crm-chip">Просрочено: ' + safeText(String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0)))) + '</span>'
-        + '<span class="crm-chip">Блокировано: ' + safeText(String(blockedTasks.length)) + '</span>'
-        + '<span class="crm-chip">Событий сегодня: ' + safeText(String(myDaySummary.events_count || summary.events_today || 0)) + '</span>'
-        + '<span class="crm-chip">Напоминаний due: ' + safeText(String(summary.reminders_due || reminders.length)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.overdue_label', 'Overdue:') + ' ' + safeText(String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0)))) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.blocked_label', 'Blocked:') + ' ' + safeText(String(blockedTasks.length)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.events_today_chip', 'Events today:') + ' ' + safeText(String(myDaySummary.events_count || summary.events_today || 0)) + '</span>'
+        + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.reminders_due_chip', 'Reminders due:') + ' ' + safeText(String(summary.reminders_due || reminders.length)) + '</span>'
         + '</div>';
     }
 
@@ -4026,33 +4053,33 @@ window.CRM.pageApiBindings = (function () {
         var route = normalizeActivityRoute(item);
         var code = String(item.event_type || item.result_code || item.action || item.channel || '').toLowerCase();
 
-        if (route.indexOf('/api/v1/tasks') >= 0 && method === 'GET') return 'Открыл список задач';
-        if (route.indexOf('/api/v1/tasks') >= 0 && (method === 'PATCH' || method === 'PUT')) return 'Обновил задачу';
-        if (route.indexOf('/api/v1/tasks') >= 0 && method === 'POST') return 'Создал задачу';
-        if (route.indexOf('/api/v1/projects') >= 0 && method === 'GET') return 'Открыл список проектов';
-        if (route.indexOf('/api/v1/projects') >= 0 && (method === 'PATCH' || method === 'PUT')) return 'Обновил проект';
-        if (route.indexOf('/api/v1/projects') >= 0 && method === 'POST') return 'Создал проект';
-        if (route.indexOf('/api/v1/statuses') >= 0 && method === 'GET') return 'Просмотрел статусы задач';
-        if (route.indexOf('/api/v1/notifications') >= 0 && method === 'GET') return 'Просмотрел уведомления';
-        if (route.indexOf('/api/v1/reminders') >= 0 && method === 'GET') return 'Просмотрел напоминания';
-        if (route.indexOf('/api/v1/comments') >= 0 && method === 'POST') return 'Добавил комментарий';
-        if (route.indexOf('/api/v1/worklogs') >= 0 && method === 'POST') return 'Добавил запись времени';
-        if (route.indexOf('/api/v1/files') >= 0 && method === 'POST') return 'Загрузил файл';
-        if (route.indexOf('/api/v1/files') >= 0 && method === 'GET') return 'Скачал файл';
-        if (code.indexOf('login') >= 0 || route.indexOf('/api/v1/auth/login') >= 0) return 'Выполнил вход в систему';
-        if (code.indexOf('logout') >= 0 || route.indexOf('/api/v1/auth/logout') >= 0) return 'Вышел из системы';
+        if (route.indexOf('/api/v1/tasks') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_opened_task_list', 'Opened task list');
+        if (route.indexOf('/api/v1/tasks') >= 0 && (method === 'PATCH' || method === 'PUT')) return window.CRM.i18n.t('js.pab.activity_updated_task', 'Updated task');
+        if (route.indexOf('/api/v1/tasks') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_created_task', 'Created task');
+        if (route.indexOf('/api/v1/projects') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_opened_project_list', 'Opened project list');
+        if (route.indexOf('/api/v1/projects') >= 0 && (method === 'PATCH' || method === 'PUT')) return window.CRM.i18n.t('js.pab.activity_updated_project', 'Updated project');
+        if (route.indexOf('/api/v1/projects') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_created_project', 'Created project');
+        if (route.indexOf('/api/v1/statuses') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_viewed_statuses', 'Viewed task statuses');
+        if (route.indexOf('/api/v1/notifications') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_viewed_notifications', 'Viewed notifications');
+        if (route.indexOf('/api/v1/reminders') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_viewed_reminders', 'Viewed reminders');
+        if (route.indexOf('/api/v1/comments') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_added_comment', 'Added comment');
+        if (route.indexOf('/api/v1/worklogs') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_added_worklog', 'Added time entry');
+        if (route.indexOf('/api/v1/files') >= 0 && method === 'POST') return window.CRM.i18n.t('js.pab.activity_uploaded_file', 'Uploaded file');
+        if (route.indexOf('/api/v1/files') >= 0 && method === 'GET') return window.CRM.i18n.t('js.pab.activity_downloaded_file', 'Downloaded file');
+        if (code.indexOf('login') >= 0 || route.indexOf('/api/v1/auth/login') >= 0) return window.CRM.i18n.t('js.pab.activity_logged_in', 'Logged in');
+        if (code.indexOf('logout') >= 0 || route.indexOf('/api/v1/auth/logout') >= 0) return window.CRM.i18n.t('js.pab.activity_logged_out', 'Logged out');
 
-        return 'Выполнено действие в системе';
+        return window.CRM.i18n.t('js.pab.activity_performed_action', 'Performed system action');
       }
 
       function humanActivityTail(item) {
         var route = normalizeActivityRoute(item);
         var method = normalizeActivityMethod(item);
         if (!route) return '';
-        if (route.indexOf('/api/v1/tasks/') >= 0) return 'Карточка задачи';
-        if (route.indexOf('/api/v1/projects/') >= 0) return 'Карточка проекта';
-        if (route.indexOf('/api/v1/notifications') >= 0) return method === 'GET' ? 'Уведомления' : '';
-        if (route.indexOf('/api/v1/reminders') >= 0) return 'Напоминания';
+        if (route.indexOf('/api/v1/tasks/') >= 0) return window.CRM.i18n.t('js.pab.activity_task_card', 'Task card');
+        if (route.indexOf('/api/v1/projects/') >= 0) return window.CRM.i18n.t('js.pab.activity_project_card', 'Project card');
+        if (route.indexOf('/api/v1/notifications') >= 0) return method === 'GET' ? window.CRM.i18n.t('js.pab.activity_notifications', 'Notifications') : '';
+        if (route.indexOf('/api/v1/reminders') >= 0) return window.CRM.i18n.t('js.pab.activity_reminders', 'Reminders');
         return '';
       }
 
@@ -4064,7 +4091,7 @@ window.CRM.pageApiBindings = (function () {
         activityList.textContent = '';
         var deniedActivity = document.createElement('div');
         deniedActivity.className = 'crm-timeline-item text-muted';
-        deniedActivity.textContent = 'Лента активности недоступна для вашей роли.';
+        deniedActivity.textContent = window.CRM.i18n.t('js.pab.activity_feed_denied', 'Activity feed unavailable for your role.');
         activityList.appendChild(deniedActivity);
       } else if (dashboardActivityItems.length) {
         activityList.innerHTML = dashboardActivityItems.map(function (item) {
@@ -4078,7 +4105,7 @@ window.CRM.pageApiBindings = (function () {
             + '</div>';
         }).join('');
       } else {
-        activityList.innerHTML = '<div class="crm-timeline-item">Пользовательских событий пока нет.</div>';
+        activityList.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.no_user_events', 'No user events yet.') + '</div>';
       }
     }
 
@@ -4093,11 +4120,11 @@ window.CRM.pageApiBindings = (function () {
         ? 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(lastProject.public_id)
         : '';
       overviewList.innerHTML = ''
-        + '<div class="crm-dashboard-overview-row"><span>Непрочитанные уведомления</span><strong>' + safeText(String(unreadCount)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row"><span>События на сегодня</span><strong>' + safeText(String(myDaySummary.events_count || summary.events_today || 0)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row"><span>Задачи к выполнению сегодня</span><strong>' + safeText(String(todayTasks.length || summary.tasks_today || 0)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row"><span>Напоминания</span><strong>' + safeText(String(myDayReminders.length || reminders.length || summary.reminders_due || 0)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row is-project"><span>Последний обновленный проект</span><strong>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.unread_notifications', 'Unread notifications') + '</span><strong>' + safeText(String(unreadCount)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.events_today', 'Events today') + '</span><strong>' + safeText(String(myDaySummary.events_count || summary.events_today || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.tasks_today', 'Tasks to do today') + '</span><strong>' + safeText(String(todayTasks.length || summary.tasks_today || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.reminders', 'Reminders') + '</span><strong>' + safeText(String(myDayReminders.length || reminders.length || summary.reminders_due || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.last_updated_project', 'Last updated project') + '</span><strong>'
         + (lastProjectHref
           ? '<a href="' + safeText(lastProjectHref) + '">' + safeText(lastProjectTitle) + '</a>'
           : safeText(lastProjectTitle))
@@ -4108,13 +4135,13 @@ window.CRM.pageApiBindings = (function () {
     var note1Body = document.querySelector('[data-dashboard-note-1-body]');
     if (note1Title && note1Body) {
       if (overdueTasks.length > 0 || Number(summary.overdue_tasks || 0) > 0) {
-        note1Title.textContent = 'Контроль просроченных задач';
-        note1Body.textContent = 'Просрочено задач: '
-          + String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0)))
-          + '. Приоритетно обработайте задачи с ближайшими дедлайнами и статусом blocked.';
+        note1Title.textContent = window.CRM.i18n.t('js.pab.note_overdue_title', 'Overdue task control');
+        note1Body.textContent = window.CRM.i18n.t('js.pab.note_overdue_body', 'Overdue tasks:')
+          + ' ' + String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0)))
+          + '. ' + window.CRM.i18n.t('js.pab.note_overdue_body2', 'Prioritize tasks with nearest deadlines and blocked status.');
       } else {
-        note1Title.textContent = 'Состояние сроков';
-        note1Body.textContent = 'Критичных просрочек не обнаружено. Рекомендуется держать фокус на задачах с дедлайном в ближайшие 24 часа.';
+        note1Title.textContent = window.CRM.i18n.t('js.pab.note_deadline_status', 'Deadline status');
+        note1Body.textContent = window.CRM.i18n.t('js.pab.note_deadline_ok', 'No critical overdue detected. Keep focus on tasks with deadlines within the next 24 hours.');
       }
     }
 
@@ -4123,19 +4150,19 @@ window.CRM.pageApiBindings = (function () {
     if (note2Title && note2Body) {
       var nextEvent = myDayEvents[0] || null;
       var nextReminder = reminders[0] || null;
-      note2Title.textContent = 'План на сегодня';
+      note2Title.textContent = window.CRM.i18n.t('js.pab.plan_for_today', 'Plan for today');
       if (nextEvent) {
-        note2Body.textContent = 'Ближайшее событие: '
-          + (nextEvent.title || nextEvent.public_id || 'событие')
-          + ' в ' + dateTimeLabel(nextEvent.starts_at) + '.';
+        note2Body.textContent = window.CRM.i18n.t('js.pab.nearest_event', 'Nearest event:')
+          + ' ' + (nextEvent.title || nextEvent.public_id || window.CRM.i18n.t('js.pab.event', 'event'))
+          + ' ' + window.CRM.i18n.t('js.pab.at', 'at') + ' ' + dateTimeLabel(nextEvent.starts_at) + '.';
       } else if (nextReminder) {
-        note2Body.textContent = 'Ближайшее напоминание: '
-          + (nextReminder.title || nextReminder.note || nextReminder.public_id || 'напоминание')
+        note2Body.textContent = window.CRM.i18n.t('js.pab.nearest_reminder', 'Nearest reminder:')
+          + ' ' + (nextReminder.title || nextReminder.note || nextReminder.public_id || window.CRM.i18n.t('js.pab.reminder', 'reminder'))
           + '.';
       } else if (myDayTasksDue.length > 0) {
-        note2Body.textContent = 'На сегодня запланировано задач с дедлайном: ' + String(myDayTasksDue.length) + '.';
+        note2Body.textContent = window.CRM.i18n.t('js.pab.tasks_scheduled_today', 'Tasks with deadlines scheduled for today:') + ' ' + String(myDayTasksDue.length) + '.';
       } else {
-        note2Body.textContent = 'Сегодня нет запланированных событий и напоминаний. Можно сфокусироваться на закрытии текущего бэклога.';
+        note2Body.textContent = window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today. Focus on closing the current backlog.');
       }
     }
 
@@ -4196,76 +4223,76 @@ window.CRM.pageApiBindings = (function () {
     var digestAgeMs = digestUpdatedAt ? (Date.now() - toTimestamp(digestUpdatedAt)) : 0;
     var digestIsStale = latestDigestSuggestion && digestAgeMs > 12 * 60 * 60 * 1000;
     var digestHighlights = [];
-    digestHighlights.push('Активные задачи: ' + String(summary.active_tasks || tasks.length || 0) + '.');
-    digestHighlights.push('Задачи на сегодня: ' + String(todayTasks.length || summary.tasks_today || 0) + '.');
-    digestHighlights.push('События сегодня: ' + String(myDaySummary.events_count || summary.events_today || myDayEvents.length || 0) + '.');
+    digestHighlights.push(window.CRM.i18n.t('js.pab.active_tasks_count', 'Active tasks:') + ' ' + String(summary.active_tasks || tasks.length || 0) + '.');
+    digestHighlights.push(window.CRM.i18n.t('js.pab.tasks_today_count', 'Tasks today:') + ' ' + String(todayTasks.length || summary.tasks_today || 0) + '.');
+    digestHighlights.push(window.CRM.i18n.t('js.pab.events_today_count', 'Events today:') + ' ' + String(myDaySummary.events_count || summary.events_today || myDayEvents.length || 0) + '.');
     if (nearestDueTask) {
-      digestHighlights.push('Ближайший дедлайн: ' + String(nearestDueTask.title || nearestDueTask.public_id || 'задача') + ' (' + formatDate(nearestDueTask.due_at) + ').');
+      digestHighlights.push(window.CRM.i18n.t('js.pab.nearest_deadline', 'Nearest deadline:') + ' ' + String(nearestDueTask.title || nearestDueTask.public_id || window.CRM.i18n.t('js.pab.task', 'task')) + ' (' + formatDate(nearestDueTask.due_at) + ').');
     }
 
     var fallbackRisks = [];
     if (overdueTasks.length > 0 || Number(summary.overdue_tasks || 0) > 0) {
-      fallbackRisks.push('Есть просроченные задачи: ' + String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0))) + '.');
+      fallbackRisks.push(window.CRM.i18n.t('js.pab.has_overdue_tasks', 'Has overdue tasks:') + ' ' + String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0))) + '.');
     }
     if (blockedTasks.length > 0) {
-      fallbackRisks.push('Есть заблокированные задачи: ' + String(blockedTasks.length) + '.');
+      fallbackRisks.push(window.CRM.i18n.t('js.pab.has_blocked_tasks', 'Has blocked tasks:') + ' ' + String(blockedTasks.length) + '.');
     }
     if (riskyProjects.length > 0) {
-      fallbackRisks.push('Есть проекты в риске или блоке: ' + String(riskyProjects.length) + '.');
+      fallbackRisks.push(window.CRM.i18n.t('js.pab.has_risky_projects', 'Has projects at risk or blocked:') + ' ' + String(riskyProjects.length) + '.');
     }
 
     var recommendedActions = [];
     if (Number(summary.overdue_tasks || overdueTasks.length || 0) > 0) {
       recommendedActions.push({
-        label: 'Открыть просроченные задачи',
+        label: window.CRM.i18n.t('js.pab.open_overdue_tasks', 'Open overdue tasks'),
         href: 'index.php?route=tasks&kpi=overdue',
         route: 'tasks',
-        reason: 'Сначала убрать просрочки и снять риски по срокам.'
+        reason: window.CRM.i18n.t('js.pab.resolve_overdue_reason', 'First clear overdue tasks and mitigate deadline risks.')
       });
     }
     if (blockedTasks.length > 0) {
       recommendedActions.push({
-        label: 'Открыть заблокированные задачи',
+        label: window.CRM.i18n.t('js.pab.open_blocked_tasks', 'Open blocked tasks'),
         href: 'index.php?route=tasks&status=blocked',
         route: 'tasks',
-        reason: 'Проверить блокеры и снять внешние зависимости.'
+        reason: window.CRM.i18n.t('js.pab.check_blockers_reason', 'Check blockers and resolve external dependencies.')
       });
     }
     if (riskyProjects.length > 0) {
       recommendedActions.push({
-        label: 'Проверить проекты в риске',
+        label: window.CRM.i18n.t('js.pab.check_risky_projects', 'Check risky projects'),
         href: 'index.php?route=projects&status=blocked',
         route: 'projects',
-        reason: 'Сфокусировать действия на рисковых проектах.'
+        reason: window.CRM.i18n.t('js.pab.focus_risky_projects_reason', 'Focus actions on risky projects.')
       });
     }
     if (myDayEvents.length === 0 && myDayTasksDue.length > 0) {
       recommendedActions.push({
-        label: 'Проверить календарь на день',
+        label: window.CRM.i18n.t('js.pab.check_calendar', 'Check calendar for today'),
         href: 'index.php?route=calendar',
         route: 'calendar',
-        reason: 'Синхронизировать дедлайны задач с календарем.'
+        reason: window.CRM.i18n.t('js.pab.sync_deadlines_reason', 'Synchronize task deadlines with calendar.')
       });
     }
     if (recommendedActions.length === 0) {
       recommendedActions.push({
-        label: 'Открыть план на день',
+        label: window.CRM.i18n.t('js.pab.open_plan_for_day', 'Open plan for the day'),
         href: 'index.php?route=my-day',
         route: 'my-day',
-        reason: 'Подтвердить фокус и распределение времени.'
+        reason: window.CRM.i18n.t('js.pab.confirm_focus_reason', 'Confirm focus and time allocation.')
       });
     }
     recommendedActions = recommendedActions.slice(0, 4);
 
     async function openDigestActionPreview(action) {
       if (!latestDigestSuggestion || !latestDigestSuggestion.public_id) {
-        notify('Сначала сформируйте AI-сводку дня', 'error');
+        notify(window.CRM.i18n.t('js.pab.generate_ai_digest_first', 'Generate AI daily digest first'), 'error');
         return;
       }
       if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(latestDigestSuggestion)) {
-        var blockedDigestMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
-          ? window.CRM.ai.suggestionPreviewPolicyMessage(latestDigestSuggestion)
-          : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+          var blockedDigestMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
+            ? window.CRM.ai.suggestionPreviewPolicyMessage(latestDigestSuggestion)
+            : window.CRM.i18n.t('js.pab.preview_temporarily_unavailable', 'Preview temporarily unavailable. Refresh AI result.');
         notify(blockedDigestMessage, 'warning');
         return;
       }
@@ -4282,7 +4309,7 @@ window.CRM.pageApiBindings = (function () {
         }
       } catch (previewError) {
         if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-          window.CRM.ai.renderAiError(previewError, 'Не удалось открыть предпросмотр AI-сводки');
+          window.CRM.ai.renderAiError(previewError, window.CRM.i18n.t('js.pab.failed_open_ai_preview', 'Failed to open AI preview'));
         }
       }
 
@@ -4291,7 +4318,7 @@ window.CRM.pageApiBindings = (function () {
         ? Object.assign({}, previewSuggestion.payload)
         : {};
       previewPayload.summary = (previewPayload.summary ? String(previewPayload.summary) + ' ' : '')
-        + 'Рекомендация: ' + String(action.label || 'Открыть раздел') + '.';
+        + window.CRM.i18n.t('js.pab.recommendation', 'Recommendation:') + ' ' + String(action.label || window.CRM.i18n.t('js.pab.open_section', 'Open section')) + '.';
       previewSuggestion.payload = previewPayload;
 
       if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
@@ -4300,11 +4327,11 @@ window.CRM.pageApiBindings = (function () {
             if (!window.CRM.ai || typeof window.CRM.ai.dismissSuggestion !== 'function') return;
             try {
               await window.CRM.ai.dismissSuggestion(latestDigestSuggestion.public_id);
-              notify('AI-сводка отмечена как отклоненная');
+              notify(window.CRM.i18n.t('js.pab.ai_digest_dismissed', 'AI digest marked as dismissed'));
               await renderDashboardPage();
             } catch (dismissError) {
               var envelopeError = dismissError && dismissError.envelope ? dismissError.envelope : null;
-              notify((envelopeError && envelopeError.message) || 'Не удалось отклонить AI-сводку', 'error');
+              notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_dismiss_ai_digest', 'Failed to dismiss AI digest'), 'error');
             }
           },
           onRefresh: async function () {
@@ -4316,7 +4343,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (aiDigestCard) {
       if (!aiCanUse) {
-        setDashboardAiState('hidden', 'Состояние: hidden');
+        setDashboardAiState('hidden', window.CRM.i18n.t('js.pab.state_label', 'State:') + ' hidden');
         if (aiDigestRefreshBtn) {
           aiDigestRefreshBtn.disabled = true;
           aiDigestRefreshBtn.classList.add('d-none');
@@ -4324,29 +4351,29 @@ window.CRM.pageApiBindings = (function () {
         if (aiDigestSummaryNode) {
           aiDigestSummaryNode.innerHTML = '';
         }
-        renderDashboardList(aiDigestRisksNode, fallbackRisks, 'Критичных рисков не обнаружено.');
-        renderDashboardList(aiDigestHighlightsNode, digestHighlights, 'Highlights появятся после загрузки данных.');
+        renderDashboardList(aiDigestRisksNode, fallbackRisks, window.CRM.i18n.t('js.pab.no_critical_risks', 'No critical risks found.'));
+        renderDashboardList(aiDigestHighlightsNode, digestHighlights, window.CRM.i18n.t('js.pab.highlights_after_load', 'Highlights will appear after data load.'));
         renderDashboardList(aiDigestActionsNode, [], '—');
       } else {
         setDashboardAiState(latestDigestSuggestion ? 'ready' : 'empty');
         if (aiDigestSummaryNode) {
           if (latestDigestSuggestion) {
-            aiDigestSummaryNode.innerHTML = '<strong>' + safeText(digestSummary || 'AI-сводка дня') + '</strong>'
-              + '<p class="mb-0 mt-1">Обновлено: ' + safeText(formatDate(digestUpdatedAt)) + (digestIsStale ? ' · <span class="crm-badge warning">устарела</span>' : '') + '</p>';
+            aiDigestSummaryNode.innerHTML = '<strong>' + safeText(digestSummary || window.CRM.i18n.t('js.pab.ai_daily_digest', 'AI daily digest')) + '</strong>'
+              + '<p class="mb-0 mt-1">' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(digestUpdatedAt)) + (digestIsStale ? ' · <span class="crm-badge warning">' + window.CRM.i18n.t('js.pab.stale', 'stale') + '</span>' : '') + '</p>';
           } else {
-            aiDigestSummaryNode.innerHTML = '<strong>AI-сводка не сформирована</strong>'
-              + '<p class="mb-0">Нажмите кнопку «Обновить AI-сводку», чтобы получить рекомендацию.</p>';
+            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_not_ready', 'AI digest not generated') + '</strong>'
+              + '<p class="mb-0">' + window.CRM.i18n.t('js.pab.click_refresh_digest', 'Click "Refresh AI digest" to get a recommendation.') + '</p>';
           }
         }
         renderDashboardList(
           aiDigestRisksNode,
           digestRisks.length ? digestRisks : fallbackRisks,
-          'Критичных рисков не обнаружено.'
+          window.CRM.i18n.t('js.pab.no_critical_risks', 'No critical risks found.')
         );
         renderDashboardList(
           aiDigestHighlightsNode,
           digestHighlights,
-          'Highlights появятся после загрузки данных.'
+          window.CRM.i18n.t('js.pab.highlights_after_load', 'Highlights will appear after data load.')
         );
         if (digestSections.length > 0 && aiDigestHighlightsNode) {
           aiDigestHighlightsNode.innerHTML = digestSections.map(function (section) {
@@ -4354,7 +4381,7 @@ window.CRM.pageApiBindings = (function () {
             var sectionItems = items.map(function (item) {
               return '<li><strong>' + safeText(String(item.label || '—')) + ':</strong> ' + safeText(String(item.value || '—')) + '</li>';
             }).join('');
-            return '<div class="mb-3"><div class="fw-semibold">' + safeText(String(section.title || 'Раздел')) + '</div><ul class="mb-0 ps-3">' + sectionItems + '</ul></div>';
+            return '<div class="mb-3"><div class="fw-semibold">' + safeText(String(section.title || window.CRM.i18n.t('js.pab.section', 'Section'))) + '</div><ul class="mb-0 ps-3">' + sectionItems + '</ul></div>';
           }).join('');
         }
         if (aiDigestActionsNode) {
@@ -4365,17 +4392,17 @@ window.CRM.pageApiBindings = (function () {
             var hasAccess = action.route ? routeAllowed(action.route) : true;
             if (!hasAccess) {
               return '<div class="small text-muted mb-2">'
-                + safeText(String(action.title || action.label || 'Действие')) + ' · доступ недоступен.'
+                + safeText(String(action.title || action.label || window.CRM.i18n.t('js.pab.action', 'Action'))) + ' · ' + window.CRM.i18n.t('js.pab.access_unavailable', 'access unavailable.')
                 + '</div>';
             }
             return '<div class="crm-dashboard-ai-action-item">'
               + '<button type="button" class="btn btn-sm text-start crm-dashboard-ai-action-btn" data-dashboard-ai-action-index="' + String(index) + '">'
-              + '<span class="crm-dashboard-ai-action-title">' + safeText(String(action.title || action.label || 'Действие')) + '</span>'
+              + '<span class="crm-dashboard-ai-action-title">' + safeText(String(action.title || action.label || window.CRM.i18n.t('js.pab.action', 'Action'))) + '</span>'
               + '<span class="crm-dashboard-ai-action-reason small text-muted">' + safeText(String(action.text || action.reason || '')) + '</span>'
               + '</button>'
-              + (action.href ? '<a class="btn btn-sm btn-outline-secondary crm-dashboard-ai-action-open" href="' + safeText(action.href) + '">Открыть</a>' : '')
+              + (action.href ? '<a class="btn btn-sm btn-outline-secondary crm-dashboard-ai-action-open" href="' + safeText(action.href) + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>' : '')
               + '</div>';
-          }).join('') || '<div class="text-muted">По текущим данным нет срочных действий.</div>';
+          }).join('') || '<div class="text-muted">' + window.CRM.i18n.t('js.pab.no_urgent_actions', 'No urgent actions based on current data.') + '</div>';
 
           Array.prototype.slice.call(aiDigestActionsNode.querySelectorAll('[data-dashboard-ai-action-index]')).forEach(function (btn) {
             if (btn.dataset.bound === '1') return;
@@ -4395,8 +4422,8 @@ window.CRM.pageApiBindings = (function () {
 
       if (aiDigestMeta) {
         aiDigestMeta.textContent = latestDigestSuggestion
-          ? 'Сводка по рискам и фокусу. Источник: AI suggestion `dashboard_daily_digest`' + (digestIsStale ? '. Данные старше 12 часов — обновите сводку.' : '.')
-          : 'Сводка по рискам и фокусу на основе текущих данных dashboard.';
+          ? window.CRM.i18n.t('js.pab.ai_digest_meta', 'Risk and focus summary. Source: AI suggestion `dashboard_daily_digest`') + (digestIsStale ? '. ' + window.CRM.i18n.t('js.pab.data_older_12h', 'Data older than 12 hours — refresh summary.') : '.')
+          : window.CRM.i18n.t('js.pab.ai_digest_meta_fallback', 'Risk and focus summary based on current dashboard data.');
       }
     }
 
@@ -4405,9 +4432,9 @@ window.CRM.pageApiBindings = (function () {
         if (aiDigestRefreshBtn.dataset.loading === '1') return;
         aiDigestRefreshBtn.dataset.loading = '1';
         aiDigestRefreshBtn.disabled = true;
-        setDashboardAiState('loading', 'Состояние: loading');
+        setDashboardAiState('loading', window.CRM.i18n.t('js.pab.state_label', 'State:') + ' loading');
         if (aiDigestSummaryNode) {
-          aiDigestSummaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Формируем AI-сводку...</span></div>';
+          aiDigestSummaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>' + window.CRM.i18n.t('js.pab.generating_ai_digest', 'Generating AI digest...') + '</span></div>';
         }
         try {
           if (window.CRM.ai && typeof window.CRM.ai.createDashboardDigest === 'function') {
@@ -4419,22 +4446,22 @@ window.CRM.pageApiBindings = (function () {
               body: {}
             });
           }
-          notify('AI-сводка дня обновлена');
+          notify(window.CRM.i18n.t('js.pab.ai_digest_updated', 'AI daily digest updated'));
           await renderDashboardPage();
         } catch (error) {
           var aiError = window.CRM.ai && typeof window.CRM.ai.toUiError === 'function'
-            ? window.CRM.ai.toUiError(error, 'Не удалось обновить AI-сводку дня')
+            ? window.CRM.ai.toUiError(error, window.CRM.i18n.t('js.pab.failed_update_ai_digest', 'Failed to update AI daily digest'))
             : null;
-          setDashboardAiState(resolveAiUiState(aiError || error), 'Состояние: ' + aiStateLabel(resolveAiUiState(aiError || error)));
+          setDashboardAiState(resolveAiUiState(aiError || error), window.CRM.i18n.t('js.pab.state_label', 'State:') + ' ' + aiStateLabel(resolveAiUiState(aiError || error)));
           var envelopeError = error && error.envelope ? error.envelope : null;
-          var message = aiError ? aiError.message : ((envelopeError && envelopeError.message) || 'Не удалось обновить AI-сводку дня');
+          var message = aiError ? aiError.message : ((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_update_ai_digest', 'Failed to update AI daily digest'));
           if (aiDigestSummaryNode) {
             var allowAdminAi = Boolean(window.CRM.api && typeof window.CRM.api.canAccessRoute === 'function' && window.CRM.api.canAccessRoute('admin-ai'));
             var code = String((aiError && aiError.code) || '');
             var adminLink = (allowAdminAi && (code === 'AI_PROVIDER_NOT_CONFIGURED' || code === 'AI_DISABLED' || code === 'AI_FEATURE_DISABLED'))
-              ? '<p class="mb-0 mt-1"><a href="index.php?route=admin-ai">Открыть AI-настройки</a></p>'
+              ? '<p class="mb-0 mt-1"><a href="index.php?route=admin-ai">' + window.CRM.i18n.t('js.pab.open_ai_settings', 'Open AI settings') + '</a></p>'
               : '';
-            aiDigestSummaryNode.innerHTML = '<strong>AI-сводка временно недоступна</strong><p class="mb-0">' + safeText(message) + '</p>' + adminLink;
+            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_temporarily_unavailable', 'AI digest temporarily unavailable') + '</strong><p class="mb-0">' + safeText(message) + '</p>' + adminLink;
           }
           notify(message, 'error');
         } finally {
@@ -4482,35 +4509,35 @@ window.CRM.pageApiBindings = (function () {
     var analyticsSubtitle = document.querySelector('[data-analytics-subtitle]');
     var cards = document.querySelectorAll('.crm-kpi-row .crm-card h2.h4');
     var badges = document.querySelectorAll('.crm-kpi-row .crm-card .crm-badge');
-    if (cards[0]) cards[0].textContent = (summary.total_tasks || 0) + ' задач';
+    if (cards[0]) cards[0].textContent = (summary.total_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks');
     if (cards[1]) cards[1].textContent = (summary.completion_rate_percent || 0) + '%';
     if (cards[2]) cards[2].textContent = String(summary.overdue_tasks || 0);
-    if (cards[3]) cards[3].textContent = String(summary.worklog_minutes_week || 0) + ' мин';
+    if (cards[3]) cards[3].textContent = String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min');
 
     if (badges[0]) {
       var generatedAtText = String(summary.generated_at || '').trim();
       if (!generatedAtText) {
         badges[0].className = 'crm-badge warning';
-        badges[0].textContent = 'Обновление: нет свежих данных';
+        badges[0].textContent = window.CRM.i18n.t('js.pab.update_no_fresh', 'Update: no fresh data');
       } else {
         var generatedMs = parseDateMs(generatedAtText);
         var ageHours = generatedMs ? Math.floor((Date.now() - generatedMs) / 3600000) : 0;
         var stale = ageHours >= 24;
         badges[0].className = stale ? 'crm-badge warning' : 'crm-badge active';
-        badges[0].textContent = 'Обновлено: ' + safeText(formatDate(generatedAtText)) + (stale ? ' · возможно устарело' : '');
+        badges[0].textContent = window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(generatedAtText)) + (stale ? ' · ' + window.CRM.i18n.t('js.pab.may_be_stale', 'may be stale') : '');
       }
     }
     if (badges[1]) {
       badges[1].className = 'crm-badge ' + ((Number(summary.completion_rate_percent || 0) >= 80) ? 'success' : 'overdue');
-      badges[1].textContent = (Number(summary.completion_rate_percent || 0) >= 80) ? 'Цель соблюдается' : 'Ниже целевого';
+      badges[1].textContent = (Number(summary.completion_rate_percent || 0) >= 80) ? window.CRM.i18n.t('js.pab.target_met', 'Target met') : window.CRM.i18n.t('js.pab.below_target', 'Below target');
     }
     if (badges[2]) {
       badges[2].className = 'crm-badge ' + ((Number(summary.overdue_tasks || 0) > 0) ? 'overdue' : 'success');
-      badges[2].textContent = (Number(summary.overdue_tasks || 0) > 0) ? 'Требует внимания' : 'Просрочек нет';
+      badges[2].textContent = (Number(summary.overdue_tasks || 0) > 0) ? window.CRM.i18n.t('js.pab.needs_attention', 'Needs attention') : window.CRM.i18n.t('js.pab.no_overdue', 'No overdue');
     }
     if (badges[3]) {
       badges[3].className = 'crm-badge active';
-      badges[3].textContent = 'Факт недели';
+      badges[3].textContent = window.CRM.i18n.t('js.pab.fact_of_week', 'Fact of the week');
     }
 
     function metricTile(title, value, muted) {
@@ -4601,12 +4628,12 @@ window.CRM.pageApiBindings = (function () {
     function describeAnalyticsFilters(state) {
       var parts = [];
       if (analyticsProjectFilter && state.projectId) {
-        parts.push('проект: ' + analyticsProjectFilter.options[analyticsProjectFilter.selectedIndex].textContent);
+        parts.push(window.CRM.i18n.t('js.pab.filter_project', 'project:') + ' ' + analyticsProjectFilter.options[analyticsProjectFilter.selectedIndex].textContent);
       }
       if (analyticsTeamFilter && state.userId) {
-        parts.push('исполнитель: ' + analyticsTeamFilter.options[analyticsTeamFilter.selectedIndex].textContent);
+        parts.push(window.CRM.i18n.t('js.pab.filter_assignee', 'assignee:') + ' ' + analyticsTeamFilter.options[analyticsTeamFilter.selectedIndex].textContent);
       }
-      return parts.length ? 'Срез: ' + parts.join(' · ') + '. KPI сверху остаются общими по доступным данным.' : 'Показан общий срез по доступным данным.';
+      return parts.length ? window.CRM.i18n.t('js.pab.filter_slice', 'Slice:') + ' ' + parts.join(' · ') + '. ' + window.CRM.i18n.t('js.pab.kpi_remain_global', 'KPIs above remain global based on available data.') : window.CRM.i18n.t('js.pab.showing_global_slice', 'Showing global slice based on available data.');
     }
 
     function renderAnalyticsLists() {
@@ -4614,16 +4641,16 @@ window.CRM.pageApiBindings = (function () {
       if (analyticsFilterNote) analyticsFilterNote.textContent = describeAnalyticsFilters(state);
       if (analyticsSubtitle) {
         analyticsSubtitle.textContent = state.projectId || state.userId
-          ? 'SLA, выполнение задач, загрузка команд и проектные риски с текущим фокусом.'
-          : 'SLA, выполнение задач, загрузка команд и проектные риски.';
+          ? window.CRM.i18n.t('js.pab.analytics_subtitle_filtered', 'SLA, task completion, team load and project risks with current focus.')
+          : window.CRM.i18n.t('js.pab.analytics_subtitle', 'SLA, task completion, team load and project risks.');
       }
 
       var trendNode = document.querySelector('[data-analytics-trend]');
       if (trendNode) {
         trendNode.textContent = '';
-        trendNode.appendChild(metricTile('Завершено', String(summary.completed_tasks || 0) + ' из ' + String(summary.total_tasks || 0) + ' задач'));
-        trendNode.appendChild(metricTile('Доля завершения', String(summary.completion_rate_percent || 0) + '%'));
-        trendNode.appendChild(metricTile('Учет времени за неделю', String(summary.worklog_minutes_week || 0) + ' мин'));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completed', 'Completed'), String(summary.completed_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + String(summary.total_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks')));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completion_rate', 'Completion rate'), String(summary.completion_rate_percent || 0) + '%'));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.weekly_time_logged', 'Weekly time logged'), String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min')));
       }
 
       var teamsNode = document.querySelector('[data-analytics-teams]');
@@ -4631,15 +4658,15 @@ window.CRM.pageApiBindings = (function () {
         renderMetricRows(teamsNode, state.users.slice(0, 5).map(function (row) {
           var overdue = analyticsNumber(row.assigned_overdue_tasks);
           return {
-            title: String(row.full_name || row.login || 'Пользователь'),
+            title: String(row.full_name || row.login || window.CRM.i18n.t('js.pab.user', 'User')),
             meta: String(row.login || row.public_id || ''),
             stats: [
-              { text: 'Активные ' + String(row.assigned_active_tasks || 0) },
-              { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
-              { text: 'Учет времени ' + String(row.worklog_minutes_week || 0) + ' мин' }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0) },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
+              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') }
             ]
           };
-        }), 'Пользовательская загрузка пока не рассчитана.');
+        }), window.CRM.i18n.t('js.pab.user_load_not_calculated', 'User load not calculated yet.'));
       }
 
       var projectsNode = document.querySelector('[data-analytics-projects]');
@@ -4647,18 +4674,18 @@ window.CRM.pageApiBindings = (function () {
         renderMetricRows(projectsNode, state.projects.slice(0, 6).map(function (row) {
           var overdue = analyticsNumber(row.overdue_tasks);
           var projectMeta = row.client_title
-            ? 'Клиент: ' + String(row.client_title)
-            : (row.team_title ? 'Команда: ' + String(row.team_title) : 'Проект без привязки к клиенту');
+            ? window.CRM.i18n.t('js.pab.client', 'Client:') + ' ' + String(row.client_title)
+            : (row.team_title ? window.CRM.i18n.t('js.pab.team', 'Team:') + ' ' + String(row.team_title) : window.CRM.i18n.t('js.pab.project_no_client', 'Project without client'));
           return {
-            title: String(row.title || row.public_id || 'Проект'),
+            title: String(row.title || row.public_id || window.CRM.i18n.t('js.pab.project', 'Project')),
             meta: projectMeta,
             stats: [
-              { text: 'Активные ' + String(row.active_tasks || 0) },
-              { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
-              { text: 'Всего ' + String(row.total_tasks || 0) }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.active_tasks || 0) },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
+              { text: window.CRM.i18n.t('js.pab.total_prefix', 'Total') + ' ' + String(row.total_tasks || 0) }
             ]
           };
-        }), 'Проектов под риском пока нет.');
+        }), window.CRM.i18n.t('js.pab.no_projects_at_risk', 'No projects at risk yet.'));
       }
 
       var usersNode = document.querySelector('[data-analytics-users]');
@@ -4666,15 +4693,15 @@ window.CRM.pageApiBindings = (function () {
         renderMetricRows(usersNode, state.users.slice(0, 8).map(function (row) {
           var overdue = analyticsNumber(row.assigned_overdue_tasks);
           return {
-            title: String(row.full_name || row.login || 'Пользователь'),
+            title: String(row.full_name || row.login || window.CRM.i18n.t('js.pab.user', 'User')),
             meta: String(row.login || row.public_id || ''),
             stats: [
-              { text: 'Активные ' + String(row.assigned_active_tasks || 0) },
-              { text: 'Просрочено ' + String(overdue), alert: overdue > 0 },
-              { text: 'Учет времени ' + String(row.worklog_minutes_week || 0) + ' мин' }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0) },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
+              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') }
             ]
           };
-        }), 'Исполнители пока не загружены.');
+        }), window.CRM.i18n.t('js.pab.assignees_not_loaded', 'Assignees not loaded yet.'));
       }
     }
 
@@ -4687,11 +4714,11 @@ window.CRM.pageApiBindings = (function () {
     function exportAnalyticsCsv() {
       var state = filterAnalyticsRows();
       var lines = [
-        ['Тип', 'Название', 'ID', 'Активные', 'Просрочено', 'Всего', 'Учет времени, минут'].map(analyticsCsvCell).join(',')
+        [window.CRM.i18n.t('js.pab.csv_type', 'Type'), window.CRM.i18n.t('js.pab.csv_name', 'Name'), 'ID', window.CRM.i18n.t('js.pab.csv_active', 'Active'), window.CRM.i18n.t('js.pab.csv_overdue', 'Overdue'), window.CRM.i18n.t('js.pab.csv_total', 'Total'), window.CRM.i18n.t('js.pab.csv_time_logged', 'Time logged, min')].map(analyticsCsvCell).join(',')
       ];
       state.projects.forEach(function (row) {
         lines.push([
-          'Проект',
+          window.CRM.i18n.t('js.pab.project', 'Project'),
           row.title || '',
           row.public_id || '',
           row.active_tasks || 0,
@@ -4702,7 +4729,7 @@ window.CRM.pageApiBindings = (function () {
       });
       state.users.forEach(function (row) {
         lines.push([
-          'Исполнитель',
+          window.CRM.i18n.t('js.pab.assignee', 'Assignee'),
           row.full_name || row.login || '',
           row.public_id || '',
           row.assigned_active_tasks || 0,
@@ -4720,15 +4747,15 @@ window.CRM.pageApiBindings = (function () {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      notify('Экспорт аналитики подготовлен');
+      notify(window.CRM.i18n.t('js.pab.analytics_export_ready', 'Analytics export prepared'));
     }
 
     populateAnalyticsFilter(analyticsProjectFilter, projectRows, 'public_id', function (row) {
-      return String(row.title || row.public_id || 'Проект');
-    }, 'Все проекты');
+      return String(row.title || row.public_id || window.CRM.i18n.t('js.pab.project', 'Project'));
+    }, window.CRM.i18n.t('js.pab.all_projects', 'All projects'));
     populateAnalyticsFilter(analyticsTeamFilter, userRows, 'public_id', function (row) {
-      return String(row.full_name || row.login || 'Исполнитель');
-    }, 'Все исполнители');
+      return String(row.full_name || row.login || window.CRM.i18n.t('js.pab.assignee', 'Assignee'));
+    }, window.CRM.i18n.t('js.pab.all_assignees', 'All assignees'));
 
     if (analyticsApplyBtn) analyticsApplyBtn.onclick = renderAnalyticsLists;
     if (analyticsProjectFilter) analyticsProjectFilter.onchange = renderAnalyticsLists;
@@ -4775,9 +4802,9 @@ window.CRM.pageApiBindings = (function () {
 
     function analyticsIntentLabel(intentCode) {
       var code = String(intentCode || '').trim();
-      if (code === 'analytics_risks_explanation') return 'Пояснение рисков';
-      if (code === 'analytics_team_workload_summary') return 'Сводка командной загрузки';
-      return 'Пояснение KPI';
+      if (code === 'analytics_risks_explanation') return window.CRM.i18n.t('js.pab.ai_analytics_risks', 'Risk explanation');
+      if (code === 'analytics_team_workload_summary') return window.CRM.i18n.t('js.pab.ai_analytics_team_load', 'Team load summary');
+      return window.CRM.i18n.t('js.pab.ai_analytics_kpi', 'KPI explanation');
     }
 
     function renderAnalyticsAiList(node, items, emptyText) {
@@ -4799,7 +4826,7 @@ window.CRM.pageApiBindings = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || window.CRM.i18n.t('js.pab.ai_request_failed', 'AI request failed'))
       };
     }
 
@@ -4811,17 +4838,17 @@ window.CRM.pageApiBindings = (function () {
     function renderAnalyticsAiCard(suggestion, preview) {
       if (!analyticsAiCard || !analyticsAiSummaryText) return;
       if (!aiCanUse) {
-        setAnalyticsAiState('hidden', 'AI-объяснение недоступно: требуется право ai.use.');
+        setAnalyticsAiState('hidden', window.CRM.i18n.t('js.pab.ai_unavailable_no_right', 'AI explanation unavailable: ai.use permission required.'));
         analyticsAiCard.classList.add('d-none');
         return;
       }
       analyticsAiCard.classList.remove('d-none');
 
       if (!suggestion) {
-        setAnalyticsAiState('empty', 'AI-объяснение пока не сформировано.');
-        analyticsAiSummaryText.textContent = 'Нажмите «Пояснить KPI», чтобы получить объяснение по текущим метрикам.';
-        renderAnalyticsAiList(analyticsAiFacts, [], 'Факты будут показаны после генерации.');
-        renderAnalyticsAiList(analyticsAiInferences, [], 'Риски/вопросы будут показаны после генерации.');
+        setAnalyticsAiState('empty', window.CRM.i18n.t('js.pab.ai_not_generated_yet', 'AI explanation not yet generated.'));
+        analyticsAiSummaryText.textContent = window.CRM.i18n.t('js.pab.ai_press_to_explain', 'Press "Explain KPI" to get an explanation for current metrics.');
+        renderAnalyticsAiList(analyticsAiFacts, [], window.CRM.i18n.t('js.pab.ai_facts_after_gen', 'Facts will be shown after generation.'));
+        renderAnalyticsAiList(analyticsAiInferences, [], window.CRM.i18n.t('js.pab.ai_risks_after_gen', 'Risks/questions will be shown after generation.'));
         if (analyticsAiPreviewBtn) analyticsAiPreviewBtn.disabled = true;
         if (analyticsAiDismissBtn) analyticsAiDismissBtn.disabled = true;
         return;
@@ -4840,11 +4867,11 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = analyticsIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · ' + window.CRM.i18n.t('js.pab.preview', 'preview:') + ' ' + String(previewChanges) + ' ' + window.CRM.i18n.t('js.pab.changes', 'changes');
       setAnalyticsAiState('ready', stateCopy);
-      analyticsAiSummaryText.textContent = summaryText || 'AI-предложение сформировано.';
-      renderAnalyticsAiList(analyticsAiFacts, facts, 'Факты/метрики не указаны.');
-      renderAnalyticsAiList(analyticsAiInferences, inferences, 'Риски и вопросы не обнаружены.');
+      analyticsAiSummaryText.textContent = summaryText || window.CRM.i18n.t('js.pab.ai_proposal_ready', 'AI proposal generated.');
+      renderAnalyticsAiList(analyticsAiFacts, facts, window.CRM.i18n.t('js.pab.ai_no_facts', 'Facts/metrics not specified.'));
+      renderAnalyticsAiList(analyticsAiInferences, inferences, window.CRM.i18n.t('js.pab.ai_no_risks', 'Risks and questions not detected.'));
       if (analyticsAiPreviewBtn) analyticsAiPreviewBtn.disabled = false;
       var isFinal = String(suggestion.status || '') === 'applied' || String(suggestion.status || '') === 'dismissed';
       if (analyticsAiDismissBtn) analyticsAiDismissBtn.disabled = isFinal;
@@ -4856,11 +4883,11 @@ window.CRM.pageApiBindings = (function () {
           aiError: aiError,
           controls: analyticsAiPrimaryButtons.concat([analyticsAiPreviewBtn, analyticsAiDismissBtn]),
           setState: setAnalyticsAiState,
-          fallbackMessage: 'AI-пояснения аналитики временно недоступны.'
+          fallbackMessage: window.CRM.i18n.t('js.pab.ai_analytics_temp_unavailable', 'AI analytics explanations temporarily unavailable.')
         });
         return;
       }
-      setAnalyticsAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || 'AI-пояснения аналитики временно недоступны.'));
+      setAnalyticsAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || window.CRM.i18n.t('js.pab.ai_analytics_temp_unavailable', 'AI analytics explanations temporarily unavailable.')));
     }
 
     async function requestAnalyticsIntent(intentPath, idemKey, successMessage, fallbackMessage) {
@@ -4885,8 +4912,8 @@ window.CRM.pageApiBindings = (function () {
       var intentPath = String(config.intentPath || '').trim();
       var idemKey = String(config.idempotencyKey || 'ai-analytics-intent').trim();
       var successMessage = String(config.successMessage || '').trim();
-      var fallbackMessage = String(config.fallbackMessage || 'Не удалось выполнить AI-действие').trim();
-      var loadingMessage = String(config.loadingMessage || 'Формируем AI-пояснение...').trim();
+      var fallbackMessage = String(config.fallbackMessage || window.CRM.i18n.t('js.pab.ai_action_failed', 'Failed to perform AI action')).trim();
+      var loadingMessage = String(config.loadingMessage || window.CRM.i18n.t('js.pab.ai_generating', 'Generating AI explanation...')).trim();
       if (!intentPath) return;
 
       if (aiUi && typeof aiUi.bindAiActionButton === 'function') {
@@ -4928,41 +4955,41 @@ window.CRM.pageApiBindings = (function () {
     bindAnalyticsIntentButton(analyticsAiKpiBtn, {
       intentPath: 'kpi-explanation',
       idempotencyKey: 'ai-analytics-kpi',
-      successMessage: 'AI-пояснение KPI сформировано',
-      fallbackMessage: 'Не удалось сформировать AI-пояснение KPI',
-      loadingMessage: 'Формируем AI-пояснение KPI...'
+      successMessage: window.CRM.i18n.t('js.pab.ai_kpi_ready', 'AI KPI explanation generated'),
+      fallbackMessage: window.CRM.i18n.t('js.pab.ai_kpi_failed', 'Failed to generate AI KPI explanation'),
+      loadingMessage: window.CRM.i18n.t('js.pab.ai_kpi_loading', 'Generating AI KPI explanation...')
     });
     bindAnalyticsIntentButton(analyticsAiRisksBtn, {
       intentPath: 'risks-explanation',
       idempotencyKey: 'ai-analytics-risks',
-      successMessage: 'AI-пояснение рисков сформировано',
-      fallbackMessage: 'Не удалось сформировать AI-пояснение рисков',
-      loadingMessage: 'Формируем AI-пояснение рисков...'
+      successMessage: window.CRM.i18n.t('js.pab.ai_risks_ready', 'AI risk explanation generated'),
+      fallbackMessage: window.CRM.i18n.t('js.pab.ai_risks_failed', 'Failed to generate AI risk explanation'),
+      loadingMessage: window.CRM.i18n.t('js.pab.ai_risks_loading', 'Generating AI risk explanation...')
     });
     bindAnalyticsIntentButton(analyticsAiWorkloadBtn, {
       intentPath: 'team-workload-summary',
       idempotencyKey: 'ai-analytics-workload',
-      successMessage: 'AI-сводка командной загрузки сформирована',
-      fallbackMessage: 'Не удалось сформировать AI-сводку командной загрузки',
-      loadingMessage: 'Формируем AI-сводку командной загрузки...'
+      successMessage: window.CRM.i18n.t('js.pab.ai_workload_ready', 'AI team load summary generated'),
+      fallbackMessage: window.CRM.i18n.t('js.pab.ai_workload_failed', 'Failed to generate AI team load summary'),
+      loadingMessage: window.CRM.i18n.t('js.pab.ai_workload_loading', 'Generating AI team load summary...')
     });
 
     if (analyticsAiPreviewBtn) {
       analyticsAiPreviewBtn.onclick = async function () {
         if (!currentAnalyticsSuggestion || !currentAnalyticsSuggestion.public_id) {
-          notify('Сначала сформируйте AI-пояснение', 'warning');
+          notify(window.CRM.i18n.t('js.pab.ai_generate_first', 'First generate an AI explanation'), 'warning');
           return;
         }
         if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(currentAnalyticsSuggestion)) {
           var blockedAnalyticsMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
             ? window.CRM.ai.suggestionPreviewPolicyMessage(currentAnalyticsSuggestion)
-            : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+            : window.CRM.i18n.t('js.pab.ai_preview_unavailable', 'Preview temporarily unavailable. Refresh AI result.');
           setAnalyticsAiState('ready', blockedAnalyticsMessage);
           notify(blockedAnalyticsMessage, 'warning');
           return;
         }
         analyticsAiPreviewBtn.disabled = true;
-        setAnalyticsAiState('loading', 'Подготавливаем предпросмотр AI-пояснения...');
+        setAnalyticsAiState('loading', window.CRM.i18n.t('js.pab.ai_preparing_preview', 'Preparing AI explanation preview...'));
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentAnalyticsSuggestion.public_id)
@@ -4978,7 +5005,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentAnalyticsSuggestion, currentAnalyticsPreview, {
               onApply: function () {
-                notify('Для аналитики действует только предпросмотр. Числовые метрики остаются первичными.', 'warning');
+                notify(window.CRM.i18n.t('js.pab.ai_preview_only', 'For analytics, only preview is available. Numeric metrics remain primary.'), 'warning');
               },
               onDismiss: function () {
                 if (analyticsAiDismissBtn) analyticsAiDismissBtn.click();
@@ -4989,12 +5016,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var previewError = toAnalyticsAiError(error, 'Не удалось открыть предпросмотр AI-пояснения');
-          setAnalyticsAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть предпросмотр AI-пояснения');
+          var previewError = toAnalyticsAiError(error, window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI explanation preview'));
+          setAnalyticsAiState(resolveAiUiState(previewError), previewError.message || window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI explanation preview'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр AI-пояснения');
+            window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI explanation preview'));
           }
-          notify(previewError.message || 'Не удалось открыть предпросмотр AI-пояснения', 'error');
+          notify(previewError.message || window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI explanation preview'), 'error');
         } finally {
           analyticsAiPreviewBtn.disabled = !currentAnalyticsSuggestion;
         }
@@ -5004,11 +5031,11 @@ window.CRM.pageApiBindings = (function () {
     if (analyticsAiDismissBtn) {
       analyticsAiDismissBtn.onclick = async function () {
         if (!currentAnalyticsSuggestion || !currentAnalyticsSuggestion.public_id) {
-          notify('AI-пояснение не выбрано', 'warning');
+          notify(window.CRM.i18n.t('js.pab.ai_no_explanation_selected', 'AI explanation not selected'), 'warning');
           return;
         }
         analyticsAiDismissBtn.disabled = true;
-        setAnalyticsAiState('loading', 'Отклоняем AI-пояснение...');
+        setAnalyticsAiState('loading', window.CRM.i18n.t('js.pab.ai_dismissing', 'Dismissing AI explanation...'));
         try {
           var dismissEnvelope = window.CRM.ai && typeof window.CRM.ai.dismissSuggestion === 'function'
             ? await window.CRM.ai.dismissSuggestion(currentAnalyticsSuggestion.public_id)
@@ -5022,15 +5049,15 @@ window.CRM.pageApiBindings = (function () {
             : currentAnalyticsSuggestion;
           currentAnalyticsPreview = null;
           renderAnalyticsAiCard(currentAnalyticsSuggestion, currentAnalyticsPreview);
-          setAnalyticsAiState('dismissed', 'AI-пояснение отклонено.');
-          notify('AI-пояснение отклонено');
+          setAnalyticsAiState('dismissed', window.CRM.i18n.t('js.pab.ai_explanation_dismissed', 'AI explanation dismissed.'));
+          notify(window.CRM.i18n.t('js.pab.ai_explanation_dismissed', 'AI explanation dismissed'));
         } catch (error) {
-          var dismissError = toAnalyticsAiError(error, 'Не удалось отклонить AI-пояснение');
-          setAnalyticsAiState(resolveAiUiState(dismissError), dismissError.message || 'Не удалось отклонить AI-пояснение');
+          var dismissError = toAnalyticsAiError(error, window.CRM.i18n.t('js.pab.ai_dismiss_failed', 'Failed to dismiss AI explanation'));
+          setAnalyticsAiState(resolveAiUiState(dismissError), dismissError.message || window.CRM.i18n.t('js.pab.ai_dismiss_failed', 'Failed to dismiss AI explanation'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось отклонить AI-пояснение');
+            window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.ai_dismiss_failed', 'Failed to dismiss AI explanation'));
           }
-          notify(dismissError.message || 'Не удалось отклонить AI-пояснение', 'error');
+          notify(dismissError.message || window.CRM.i18n.t('js.pab.ai_dismiss_failed', 'Failed to dismiss AI explanation'), 'error');
         } finally {
           var isFinal = currentAnalyticsSuggestion && String(currentAnalyticsSuggestion.status || '') === 'dismissed';
           analyticsAiDismissBtn.disabled = !currentAnalyticsSuggestion || isFinal;
@@ -5118,25 +5145,25 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function timeLabel(date) {
-      if (!date) return 'Весь день';
+      if (!date) return window.CRM.i18n.t('js.pab.all_day', 'All day');
       return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
 
     function dateTimeFullLabel(date) {
-      if (!date) return 'Не указано';
+      if (!date) return window.CRM.i18n.t('js.pab.not_specified', 'Not specified');
       return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
-        + ' в ' + timeLabel(date);
+        + ' ' + window.CRM.i18n.t('js.pab.at', 'at') + ' ' + timeLabel(date);
     }
 
     function eventTimeRange(item) {
       var start = parseEventDate(item);
       var end = eventEndDate(item);
-      if (!start) return 'Весь день';
+      if (!start) return window.CRM.i18n.t('js.pab.all_day', 'All day');
       return timeLabel(start) + (end ? ' - ' + timeLabel(end) : '');
     }
 
     function eventTitle(item) {
-      return safeText(item.title || item.name || item.public_id || 'Событие');
+      return safeText(item.title || item.name || item.public_id || window.CRM.i18n.t('js.pab.event', 'Event'));
     }
 
     function eventUid(item, index) {
@@ -5159,11 +5186,11 @@ window.CRM.pageApiBindings = (function () {
         var value = taskId
           ? '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(taskId) + '">' + label + '</a>'
           : label;
-        return '<div class="crm-calendar-detail-row"><span>Контекст</span><strong>Задача: ' + value + '</strong></div>';
+        return '<div class="crm-calendar-detail-row"><span>' + window.CRM.i18n.t('js.pab.context', 'Context') + '</span><strong>' + window.CRM.i18n.t('js.pab.task_label', 'Task:') + ' ' + value + '</strong></div>';
       }
 
       var meta = eventMeta(item);
-      return meta ? '<div class="crm-calendar-detail-row"><span>Контекст</span><strong>' + meta + '</strong></div>' : '';
+      return meta ? '<div class="crm-calendar-detail-row"><span>' + window.CRM.i18n.t('js.pab.context', 'Context') + '</span><strong>' + meta + '</strong></div>' : '';
     }
 
     function eventDescription(item) {
@@ -5180,9 +5207,9 @@ window.CRM.pageApiBindings = (function () {
       }
       var action = currentAction.cloneNode(true);
       currentAction.parentNode.replaceChild(action, currentAction);
-      if (title) title.textContent = String(options && options.title || 'Подтвердите действие');
-      if (body) body.textContent = String(options && options.body || 'Продолжить?');
-      action.textContent = String(options && options.actionText || 'Подтвердить');
+      if (title) title.textContent = String(options && options.title || window.CRM.i18n.t('js.pab.confirm_action', 'Confirm action'));
+      if (body) body.textContent = String(options && options.body || window.CRM.i18n.t('js.pab.continue_q', 'Continue?'));
+      action.textContent = String(options && options.actionText || window.CRM.i18n.t('js.pab.confirm', 'Confirm'));
       action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
       var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
       var previousZIndex = modal.style.zIndex;
@@ -5230,7 +5257,7 @@ window.CRM.pageApiBindings = (function () {
       var haystack = String((item && (item.type || item.status_code || item.priority_code || item.title)) || '').toLowerCase();
       if (haystack.indexOf('block') >= 0 || haystack.indexOf('urgent') >= 0 || haystack.indexOf('critical') >= 0) return 'danger';
       if (haystack.indexOf('done') >= 0 || haystack.indexOf('success') >= 0) return 'success';
-      if (haystack.indexOf('review') >= 0 || haystack.indexOf('meeting') >= 0 || haystack.indexOf('встреч') >= 0) return 'warning';
+      if (haystack.indexOf('review') >= 0 || haystack.indexOf('meeting') >= 0 || haystack.indexOf(tp('calendar.meeting_keyword', 'meeting').toLowerCase()) >= 0) return 'warning';
       return ['blue', 'teal', 'violet'][index % 3];
     }
 
@@ -5245,7 +5272,7 @@ window.CRM.pageApiBindings = (function () {
     function eventPill(item, index, compact) {
       var meta = eventMeta(item);
       var title = eventTitle(item);
-      return '<button class="crm-calendar-event is-' + eventTone(item, index) + (compact ? ' is-compact' : '') + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '" title="' + title + '" aria-label="Открыть событие: ' + title + '">'
+      return '<button class="crm-calendar-event is-' + eventTone(item, index) + (compact ? ' is-compact' : '') + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '" title="' + title + '" aria-label="' + window.CRM.i18n.t('js.pab.open_event', 'Open event:') + ' ' + title + '">'
         + '<span class="crm-calendar-event-time">' + safeText(eventTimeRange(item)) + '</span>'
         + '<span class="crm-calendar-event-title">' + title + '</span>'
         + (meta && !compact ? '<span class="crm-calendar-event-meta">' + meta + '</span>' : '')
@@ -5258,25 +5285,25 @@ window.CRM.pageApiBindings = (function () {
       document.body.insertAdjacentHTML('beforeend', '\
 <div class="modal fade" id="calendarEventDetailsModal" tabindex="-1" aria-hidden="true">\
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">\
-    <div class="modal-header"><h5 class="modal-title" data-calendar-event-details-title>Событие</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>\
+    <div class="modal-header"><h5 class="modal-title" data-calendar-event-details-title>' + window.CRM.i18n.t('js.pab.event', 'Event') + '</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.pab.close', 'Close') + '"></button></div>\
     <div class="modal-body">\
       <div data-calendar-event-details-body></div>\
       <div class="crm-metric-tile mt-3 d-none" data-calendar-ai-agenda-wrap>\
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">\
-          <div><strong>AI-повестка</strong><div class="small text-muted" data-calendar-ai-agenda-state>AI-повестка не сформирована.</div></div>\
+          <div><strong>' + window.CRM.i18n.t('js.pab.ai_agenda', 'AI agenda') + '</strong><div class="small text-muted" data-calendar-ai-agenda-state>' + window.CRM.i18n.t('js.pab.ai_agenda_empty', 'AI agenda not generated.') + '</div></div>\
         </div>\
-        <div class="small mb-2" data-calendar-ai-agenda-summary>Нажмите «Сформировать AI-повестку», чтобы получить структуру встречи.</div>\
-        <div class="small text-muted mb-1">Пункты повестки и вопросы</div>\
-        <div data-calendar-ai-agenda-items>—</div>\
+        <div class="small mb-2" data-calendar-ai-agenda-summary>' + window.CRM.i18n.t('js.pab.ai_agenda_prompt', 'Press "Generate AI agenda" to get a meeting structure.') + '</div>\
+        <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.ai_agenda_items_title', 'Agenda items and questions') + '</div>\
+        <div data-calendar-ai-agenda-items>&mdash;</div>\
       </div>\
     </div>\
     <div class="modal-footer">\
-      <button class="btn btn-sm crm-btn-secondary" type="button" data-calendar-event-edit-btn>Редактировать</button>\
-      <button class="btn btn-sm crm-btn-danger-soft" type="button" data-calendar-event-delete-btn>Удалить</button>\
-      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-generate-btn>Сформировать AI-повестку</button>\
-      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-preview-btn disabled>Открыть предпросмотр</button>\
-      <button class="btn btn-sm crm-btn-danger d-none" type="button" data-calendar-ai-dismiss-btn disabled>Отклонить</button>\
-      <button class="btn btn-light" type="button" data-bs-dismiss="modal">Закрыть</button>\
+      <button class="btn btn-sm crm-btn-secondary" type="button" data-calendar-event-edit-btn>' + window.CRM.i18n.t('js.pab.edit', 'Edit') + '</button>\
+      <button class="btn btn-sm crm-btn-danger-soft" type="button" data-calendar-event-delete-btn>' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button>\
+      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-generate-btn>' + window.CRM.i18n.t('js.pab.generate_ai_agenda', 'Generate AI agenda') + '</button>\
+      <button class="btn btn-sm btn-light d-none" type="button" data-calendar-ai-preview-btn disabled>' + window.CRM.i18n.t('js.pab.open_preview', 'Open preview') + '</button>\
+      <button class="btn btn-sm crm-btn-danger d-none" type="button" data-calendar-ai-dismiss-btn disabled>' + window.CRM.i18n.t('js.pab.dismiss', 'Dismiss') + '</button>\
+      <button class="btn btn-light" type="button" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.pab.close', 'Close') + '</button>\
     </div>\
   </div></div>\
 </div>');
@@ -5290,7 +5317,7 @@ window.CRM.pageApiBindings = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || window.CRM.i18n.t('js.pab.ai_request_failed', 'AI request failed'))
       };
     }
 
@@ -5319,7 +5346,7 @@ window.CRM.pageApiBindings = (function () {
       if (!wrap || !stateNode || !summaryNode || !itemsNode) return;
 
       if (!aiCanUse) {
-        setAiUiState(wrap, stateNode, 'hidden', 'AI-повестка недоступна: требуется право ai.use.');
+        setAiUiState(wrap, stateNode, 'hidden', window.CRM.i18n.t('js.pab.ai_agenda_no_right', 'AI agenda unavailable: ai.use permission required.'));
         wrap.classList.add('d-none');
         if (generateBtn) generateBtn.classList.add('d-none');
         if (previewBtn) previewBtn.classList.add('d-none');
@@ -5333,9 +5360,9 @@ window.CRM.pageApiBindings = (function () {
       if (dismissBtn) dismissBtn.classList.remove('d-none');
 
       if (!suggestion) {
-        setAiUiState(wrap, stateNode, 'empty', 'AI-повестка не сформирована.');
-        summaryNode.textContent = 'Нажмите «Сформировать AI-повестку», чтобы получить структуру встречи.';
-        renderCalendarAiAgendaList(itemsNode, [], 'AI-повестка пока пустая.');
+        setAiUiState(wrap, stateNode, 'empty', window.CRM.i18n.t('js.pab.ai_agenda_not_generated', 'AI agenda not generated.'));
+        summaryNode.textContent = window.CRM.i18n.t('js.pab.ai_agenda_prompt2', 'Press "Generate AI agenda" to get a meeting structure.');
+        renderCalendarAiAgendaList(itemsNode, [], window.CRM.i18n.t('js.pab.ai_agenda_empty_list', 'AI agenda is empty yet.'));
         if (previewBtn) previewBtn.disabled = true;
         if (dismissBtn) dismissBtn.disabled = true;
         return;
@@ -5347,16 +5374,16 @@ window.CRM.pageApiBindings = (function () {
       var questions = Array.isArray(payload.questions) ? payload.questions : [];
       var previewChanges = preview && Array.isArray(preview.changes) ? preview.changes.length : 0;
 
-      var stateCopy = 'Сформировано: ' + formatDate(suggestion.updated_at || suggestion.created_at || '')
-        + ' · Статус: ' + String(suggestion.status || 'draft')
-        + (previewChanges > 0 ? (' · предпросмотр: ' + String(previewChanges) + ' изм.') : '');
+      var stateCopy = window.CRM.i18n.t('js.pab.generated', 'Generated:') + ' ' + formatDate(suggestion.updated_at || suggestion.created_at || '')
+        + ' · ' + window.CRM.i18n.t('js.pab.status_prefix', 'Status:') + ' ' + String(suggestion.status || 'draft')
+        + (previewChanges > 0 ? (' · ' + window.CRM.i18n.t('js.pab.preview', 'preview:') + ' ' + String(previewChanges) + ' ' + window.CRM.i18n.t('js.pab.changes', 'changes')) : '');
       var suggestionStatus = String(suggestion.status || '').trim();
       var aiState = suggestionStatus === 'dismissed'
         ? 'dismissed'
         : (suggestionStatus === 'applied' ? 'applied' : 'ready');
       setAiUiState(wrap, stateNode, aiState, stateCopy);
-      summaryNode.textContent = summary || 'AI-повестка сформирована.';
-      renderCalendarAiAgendaList(itemsNode, checklist.concat(questions), 'AI-повестка не содержит пунктов.');
+      summaryNode.textContent = summary || window.CRM.i18n.t('js.pab.ai_agenda_ready', 'AI agenda generated.');
+      renderCalendarAiAgendaList(itemsNode, checklist.concat(questions), window.CRM.i18n.t('js.pab.ai_agenda_no_items', 'AI agenda contains no items.'));
 
       if (previewBtn) previewBtn.disabled = false;
       var isFinal = String(suggestion.status || '') === 'applied' || String(suggestion.status || '') === 'dismissed';
@@ -5368,12 +5395,12 @@ window.CRM.pageApiBindings = (function () {
       var end = eventEndDate(item);
       var description = eventDescription(item);
       var details = [
-        '<div class="crm-calendar-detail-row"><span>Дата начала</span><strong>' + safeText(dateTimeFullLabel(start)) + '</strong></div>',
-        '<div class="crm-calendar-detail-row"><span>Дата окончания</span><strong>' + safeText(dateTimeFullLabel(end || start)) + '</strong></div>'
+        '<div class="crm-calendar-detail-row"><span>' + window.CRM.i18n.t('js.pab.start_date', 'Start date') + '</span><strong>' + safeText(dateTimeFullLabel(start)) + '</strong></div>',
+        '<div class="crm-calendar-detail-row"><span>' + window.CRM.i18n.t('js.pab.end_date', 'End date') + '</span><strong>' + safeText(dateTimeFullLabel(end || start)) + '</strong></div>'
       ];
       var context = eventContextHtml(item);
       if (context) details.push(context);
-      details.push('<div class="crm-calendar-detail-description"><span>Описание</span><p>' + (description || 'Описание не заполнено') + '</p></div>');
+      details.push('<div class="crm-calendar-detail-description"><span>' + window.CRM.i18n.t('js.pab.description', 'Description') + '</span><p>' + (description || window.CRM.i18n.t('js.pab.description_empty', 'Description not filled')) + '</p></div>');
       return details.join('');
     }
 
@@ -5399,7 +5426,7 @@ window.CRM.pageApiBindings = (function () {
       var currentSuggestion = null;
       var currentPreview = null;
       if (title) title.innerHTML = eventTitle(item);
-      if (body) body.innerHTML = '<div class="crm-calendar-loading">Загрузка события...</div>';
+      if (body) body.innerHTML = '<div class="crm-calendar-loading">' + window.CRM.i18n.t('js.pab.loading_event', 'Loading event...') + '</div>';
       renderCalendarAiAgenda(modal, null, null);
       if (window.bootstrap && window.bootstrap.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -5412,7 +5439,7 @@ window.CRM.pageApiBindings = (function () {
       if (editBtn) {
         editBtn.onclick = function () {
           if (!window.CRM || typeof window.CRM.calendarOpenEventEditor !== 'function') {
-            notify('Редактирование события временно недоступно', 'warning');
+            notify(window.CRM.i18n.t('js.pab.event_edit_unavailable', 'Event editing temporarily unavailable'), 'warning');
             return;
           }
           if (window.bootstrap && window.bootstrap.Modal) {
@@ -5426,27 +5453,27 @@ window.CRM.pageApiBindings = (function () {
         deleteBtn.onclick = async function () {
           var eventPublicId = String(detailedItem.public_id || '').trim();
           if (!eventPublicId) {
-            notify('Невозможно удалить событие: событие не определено', 'error');
+            notify(window.CRM.i18n.t('js.pab.event_delete_no_id', 'Cannot delete event: event not defined'), 'error');
             return;
           }
           var confirmed = await confirmCalendarAction({
-            title: 'Удалить событие?',
-            body: 'Событие "' + String(detailedItem.title || detailedItem.name || eventPublicId) + '" будет удалено. Это действие нельзя отменить.',
-            actionText: 'Удалить',
+            title: window.CRM.i18n.t('js.pab.delete_event_q', 'Delete event?'),
+            body: window.CRM.i18n.t('js.pab.delete_event_confirm', 'Event will be deleted. This action cannot be undone.') + ' "' + String(detailedItem.title || detailedItem.name || eventPublicId) + '"',
+            actionText: window.CRM.i18n.t('js.pab.delete', 'Delete'),
             actionClass: 'crm-btn-danger-soft'
           });
           if (!confirmed) return;
           deleteBtn.disabled = true;
           try {
             await request('api/v1/calendar/events/' + encodeURIComponent(eventPublicId), { method: 'DELETE' });
-            notify('Событие удалено');
+            notify(window.CRM.i18n.t('js.pab.event_deleted', 'Event deleted'));
             if (window.bootstrap && window.bootstrap.Modal) {
               window.bootstrap.Modal.getOrCreateInstance(modal).hide();
             }
             await renderCalendarPage();
           } catch (deleteError) {
             var deleteEnvelope = deleteError && deleteError.envelope ? deleteError.envelope : null;
-            notify((deleteEnvelope && deleteEnvelope.message) || 'Не удалось удалить событие', 'error');
+            notify((deleteEnvelope && deleteEnvelope.message) || window.CRM.i18n.t('js.pab.event_delete_failed', 'Failed to delete event'), 'error');
           } finally {
             deleteBtn.disabled = false;
           }
@@ -5466,7 +5493,7 @@ window.CRM.pageApiBindings = (function () {
                 message
               );
             },
-            fallbackMessage: 'AI-повестка временно недоступна.'
+            fallbackMessage: window.CRM.i18n.t('js.pab.ai_agenda_temp_unavailable', 'AI agenda temporarily unavailable.')
           });
           return;
         }
@@ -5506,7 +5533,7 @@ window.CRM.pageApiBindings = (function () {
               if (!aiCanUse) return false;
               var eventPublicId = String(modal.getAttribute('data-calendar-event-public-id') || '').trim();
               if (!eventPublicId) {
-                notify('Невозможно сформировать AI-повестку: событие не определено', 'error');
+                notify(window.CRM.i18n.t('js.pab.ai_agenda_no_event', 'Cannot generate AI agenda: event not defined'), 'error');
                 return false;
               }
               return true;
@@ -5516,7 +5543,7 @@ window.CRM.pageApiBindings = (function () {
                 modal.querySelector('[data-calendar-ai-agenda-wrap]'),
                 modal.querySelector('[data-calendar-ai-agenda-state]'),
                 'loading',
-                'Формируем AI-повестку...'
+                window.CRM.i18n.t('js.pab.ai_agenda_generating', 'Generating AI agenda...')
               );
             },
             run: async function () {
@@ -5532,14 +5559,14 @@ window.CRM.pageApiBindings = (function () {
               currentPreview = null;
               renderCalendarAiAgenda(modal, currentSuggestion, currentPreview);
             },
-            successMessage: 'AI-повестка события сформирована',
-            fallbackMessage: 'Не удалось сформировать AI-повестку',
+            successMessage: window.CRM.i18n.t('js.pab.ai_agenda_generated', 'AI agenda generated'),
+            fallbackMessage: window.CRM.i18n.t('js.pab.ai_agenda_generate_failed', 'Failed to generate AI agenda'),
             onError: function (aiError, originalError) {
               applyAiSoftState(aiError);
               if (aiUi && typeof aiUi.renderAiError === 'function') {
-                aiUi.renderAiError(originalError, 'Не удалось сформировать AI-повестку');
+                aiUi.renderAiError(originalError, window.CRM.i18n.t('js.pab.ai_agenda_generate_failed', 'Failed to generate AI agenda'));
               }
-              notify(aiError.message || 'Не удалось сформировать AI-повестку', 'error');
+              notify(aiError.message || window.CRM.i18n.t('js.pab.ai_agenda_generate_failed', 'Failed to generate AI agenda'), 'error');
             }
           });
         } else {
@@ -5547,7 +5574,7 @@ window.CRM.pageApiBindings = (function () {
             if (!aiCanUse) return;
             var eventPublicId = String(modal.getAttribute('data-calendar-event-public-id') || '').trim();
             if (!eventPublicId) {
-              notify('Невозможно сформировать AI-повестку: событие не определено', 'error');
+              notify(window.CRM.i18n.t('js.pab.ai_agenda_no_event', 'Cannot generate AI agenda: event not defined'), 'error');
               return;
             }
             aiGenerateBtn.disabled = true;
@@ -5555,7 +5582,7 @@ window.CRM.pageApiBindings = (function () {
               modal.querySelector('[data-calendar-ai-agenda-wrap]'),
               modal.querySelector('[data-calendar-ai-agenda-state]'),
               'loading',
-              'Формируем AI-повестку...'
+              window.CRM.i18n.t('js.pab.ai_agenda_generating', 'Generating AI agenda...')
             );
             try {
               var envelope = await request('api/v1/ai/calendar/events/' + encodeURIComponent(eventPublicId) + '/agenda', {
@@ -5566,11 +5593,11 @@ window.CRM.pageApiBindings = (function () {
               currentSuggestion = envelope && envelope.data ? envelope.data.suggestion : null;
               currentPreview = null;
               renderCalendarAiAgenda(modal, currentSuggestion, currentPreview);
-              notify('AI-повестка события сформирована');
+              notify(window.CRM.i18n.t('js.pab.ai_agenda_generated', 'AI agenda generated'));
             } catch (error) {
-              var aiError = toCalendarAiError(error, 'Не удалось сформировать AI-повестку');
+              var aiError = toCalendarAiError(error, window.CRM.i18n.t('js.pab.ai_agenda_generate_failed', 'Failed to generate AI agenda'));
               applyAiSoftState(aiError);
-              notify(aiError.message || 'Не удалось сформировать AI-повестку', 'error');
+              notify(aiError.message || window.CRM.i18n.t('js.pab.ai_agenda_generate_failed', 'Failed to generate AI agenda'), 'error');
             } finally {
               if (aiCanUse) aiGenerateBtn.disabled = false;
             }
@@ -5581,13 +5608,13 @@ window.CRM.pageApiBindings = (function () {
       if (aiPreviewBtn) {
         aiPreviewBtn.onclick = async function () {
           if (!currentSuggestion || !currentSuggestion.public_id) {
-            notify('Сначала сформируйте AI-повестку', 'warning');
+            notify(window.CRM.i18n.t('js.pab.ai_generate_agenda_first', 'First generate AI agenda'), 'warning');
             return;
           }
           if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(currentSuggestion)) {
             var blockedCalendarMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
               ? window.CRM.ai.suggestionPreviewPolicyMessage(currentSuggestion)
-              : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+              : window.CRM.i18n.t('js.pab.ai_preview_unavailable', 'Preview temporarily unavailable. Refresh AI result.');
             setAiUiState(
               modal.querySelector('[data-calendar-ai-agenda-wrap]'),
               modal.querySelector('[data-calendar-ai-agenda-state]'),
@@ -5602,7 +5629,7 @@ window.CRM.pageApiBindings = (function () {
             modal.querySelector('[data-calendar-ai-agenda-wrap]'),
             modal.querySelector('[data-calendar-ai-agenda-state]'),
             'loading',
-            'Подготавливаем предпросмотр AI-повестки...'
+            window.CRM.i18n.t('js.pab.ai_preparing_preview', 'Preparing AI agenda preview...')
           );
           try {
             var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
@@ -5623,7 +5650,7 @@ window.CRM.pageApiBindings = (function () {
             if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
               window.CRM.ai.openSuggestionDrawer(currentSuggestion, currentPreview, {
                 onApply: function () {
-                  notify('AI-повестка работает в режиме предпросмотра и только для чтения. Автоприменение отключено.', 'warning');
+                  notify(window.CRM.i18n.t('js.pab.ai_agenda_preview_only', 'AI agenda is in preview/read-only mode. Auto-apply disabled.'), 'warning');
                 },
                 onDismiss: function () {
                   if (aiDismissBtn) aiDismissBtn.click();
@@ -5634,17 +5661,17 @@ window.CRM.pageApiBindings = (function () {
               });
             }
           } catch (error) {
-            var aiError = toCalendarAiError(error, 'Не удалось открыть предпросмотр AI-повестки');
+            var aiError = toCalendarAiError(error, window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI agenda preview'));
             setAiUiState(
               modal.querySelector('[data-calendar-ai-agenda-wrap]'),
               modal.querySelector('[data-calendar-ai-agenda-state]'),
               resolveAiUiState(aiError),
-              aiError.message || 'Не удалось открыть предпросмотр AI-повестки'
+              aiError.message || window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI agenda preview')
             );
             if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-              window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр AI-повестки');
+              window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI agenda preview'));
             }
-            notify(aiError.message || 'Не удалось открыть предпросмотр AI-повестки', 'error');
+            notify(aiError.message || window.CRM.i18n.t('js.pab.ai_preview_open_failed', 'Failed to open AI agenda preview'), 'error');
           } finally {
             aiPreviewBtn.disabled = !currentSuggestion;
           }
@@ -5654,7 +5681,7 @@ window.CRM.pageApiBindings = (function () {
       if (aiDismissBtn) {
         aiDismissBtn.onclick = async function () {
           if (!currentSuggestion || !currentSuggestion.public_id) {
-            notify('AI-повестка не выбрана', 'warning');
+            notify(window.CRM.i18n.t('js.pab.ai_agenda_not_selected', 'AI agenda not selected'), 'warning');
             return;
           }
           aiDismissBtn.disabled = true;
@@ -5662,7 +5689,7 @@ window.CRM.pageApiBindings = (function () {
             modal.querySelector('[data-calendar-ai-agenda-wrap]'),
             modal.querySelector('[data-calendar-ai-agenda-state]'),
             'loading',
-            'Отклоняем AI-повестку...'
+            window.CRM.i18n.t('js.pab.ai_agenda_dismissing', 'Dismissing AI agenda...')
           );
           try {
             var dismissEnvelope = window.CRM.ai && typeof window.CRM.ai.dismissSuggestion === 'function'
@@ -5681,21 +5708,21 @@ window.CRM.pageApiBindings = (function () {
               modal.querySelector('[data-calendar-ai-agenda-wrap]'),
               modal.querySelector('[data-calendar-ai-agenda-state]'),
               'dismissed',
-              'AI-повестка отклонена.'
+              window.CRM.i18n.t('js.pab.ai_agenda_dismissed', 'AI agenda dismissed.')
             );
-            notify('AI-повестка отклонена');
+            notify(window.CRM.i18n.t('js.pab.ai_agenda_dismissed', 'AI agenda dismissed'));
           } catch (error) {
-            var aiError = toCalendarAiError(error, 'Не удалось отклонить AI-повестку');
+            var aiError = toCalendarAiError(error, window.CRM.i18n.t('js.pab.ai_agenda_dismiss_failed', 'Failed to dismiss AI agenda'));
             setAiUiState(
               modal.querySelector('[data-calendar-ai-agenda-wrap]'),
               modal.querySelector('[data-calendar-ai-agenda-state]'),
               resolveAiUiState(aiError),
-              aiError.message || 'Не удалось отклонить AI-повестку'
+              aiError.message || window.CRM.i18n.t('js.pab.ai_agenda_dismiss_failed', 'Failed to dismiss AI agenda')
             );
             if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-              window.CRM.ai.renderAiError(error, 'Не удалось отклонить AI-повестку');
+              window.CRM.ai.renderAiError(error, window.CRM.i18n.t('js.pab.ai_agenda_dismiss_failed', 'Failed to dismiss AI agenda'));
             }
-            notify(aiError.message || 'Не удалось отклонить AI-повестку', 'error');
+            notify(aiError.message || window.CRM.i18n.t('js.pab.ai_agenda_dismiss_failed', 'Failed to dismiss AI agenda'), 'error');
           } finally {
             var isFinal = currentSuggestion && String(currentSuggestion.status || '') === 'dismissed';
             aiDismissBtn.disabled = !currentSuggestion || isFinal;
@@ -5709,15 +5736,15 @@ window.CRM.pageApiBindings = (function () {
     function renderAgenda(list) {
       if (!list.length) {
         return '<div class="crm-calendar-agenda-empty">'
-          + '<strong>Период свободен</strong>'
-          + '<span>В выбранном окне нет встреч, дедлайнов или событий. Можно быстро добавить событие кнопкой ниже.</span>'
+          + '<strong>' + window.CRM.i18n.t('js.pab.period_free', 'Period is free') + '</strong>'
+          + '<span>' + window.CRM.i18n.t('js.pab.period_free_desc', 'No meetings, deadlines or events in the selected window. You can quickly add an event with the button below.') + '</span>'
           + '</div>';
       }
       return list.slice(0, 14).map(function (item, index) {
         var start = parseEventDate(item);
         var dateText = start
           ? start.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' })
-          : 'Без даты';
+          : window.CRM.i18n.t('js.pab.no_date', 'No date');
         return '<button class="crm-calendar-agenda-item is-' + eventTone(item, index) + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '">'
           + '<div class="crm-calendar-agenda-date">' + safeText(dateText) + '</div>'
           + '<div><strong>' + eventTitle(item) + '</strong><span>' + safeText(eventTimeRange(item)) + '</span></div>'
@@ -5726,7 +5753,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function renderMonth(cells, eventsByDate, todayKey, anchorMonth) {
-      var weekHead = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(function (label) {
+      var weekHead = [window.CRM.i18n.t('js.pab.weekday_mon', 'Mon'), window.CRM.i18n.t('js.pab.weekday_tue', 'Tue'), window.CRM.i18n.t('js.pab.weekday_wed', 'Wed'), window.CRM.i18n.t('js.pab.weekday_thu', 'Thu'), window.CRM.i18n.t('js.pab.weekday_fri', 'Fri'), window.CRM.i18n.t('js.pab.weekday_sat', 'Sat'), window.CRM.i18n.t('js.pab.weekday_sun', 'Sun')].map(function (label) {
         return '<div class="crm-calendar-weekday">' + label + '</div>';
       }).join('');
       var body = cells.map(function (cellDate) {
@@ -5743,13 +5770,13 @@ window.CRM.pageApiBindings = (function () {
         return '<section class="' + classes + '">'
           + '<div class="crm-calendar-day-top">'
           + '<button class="crm-calendar-day-number" type="button" data-calendar-jump-date="' + safeText(key) + '">' + safeText(String(cellDate.getDate())) + '</button>'
-          + '<button class="crm-calendar-day-add" type="button"' + (isPast ? ' disabled title="Нельзя создать событие в прошлом"' : ' data-open-modal="calendarEventModal" data-calendar-date="' + safeText(key) + '" aria-label="Создать событие"') + '>+</button>'
+          + '<button class="crm-calendar-day-add" type="button"' + (isPast ? ' disabled title="' + window.CRM.i18n.t('js.pab.cannot_create_past', 'Cannot create event in the past') + '"' : ' data-open-modal="calendarEventModal" data-calendar-date="' + safeText(key) + '" aria-label="' + window.CRM.i18n.t('js.pab.create_event', 'Create event') + '"') + '>+</button>'
           + '</div>'
           + '<div class="crm-calendar-day-events">'
           + (cellEvents.length
             ? cellEvents.slice(0, 3).map(function (item, index) { return eventPill(item, index, true); }).join('')
             : '<span class="crm-calendar-empty-dot"></span>')
-          + (cellEvents.length > 3 ? '<button class="crm-calendar-more" type="button" data-calendar-jump-date="' + safeText(key) + '">+' + safeText(String(cellEvents.length - 3)) + ' еще</button>' : '')
+          + (cellEvents.length > 3 ? '<button class="crm-calendar-more" type="button" data-calendar-jump-date="' + safeText(key) + '">+' + safeText(String(cellEvents.length - 3)) + ' ' + window.CRM.i18n.t('js.pab.more', 'more') + '</button>' : '')
           + '</div></section>';
       }).join('');
       return '<div class="crm-calendar-month"><div class="crm-calendar-weekdays">' + weekHead + '</div><div class="crm-calendar-month-grid">' + body + '</div></div>';
@@ -5813,7 +5840,7 @@ window.CRM.pageApiBindings = (function () {
         return {
           start_at: startAt,
           end_at: endAt || startAt,
-          title: String(slot.title || slot.task_title || ('Фокус-блок #' + String(index + 1))).trim(),
+          title: String(slot.title || slot.task_title || (window.CRM.i18n.t('js.pab.focus_block', 'Focus block') + ' #' + String(index + 1))).trim(),
           reason: String(slot.reason || '').trim(),
           task_public_id: String(slot.task_public_id || '').trim()
         };
@@ -5872,18 +5899,18 @@ window.CRM.pageApiBindings = (function () {
 
     var title = document.querySelector('[data-calendar-title]');
     if (title) {
-      if (state.view === 'day') title.textContent = 'День: ' + dayLabel(state.anchor);
-      if (state.view === 'week') title.textContent = 'Неделя: ' + dayLabel(rangeStart) + ' - ' + dayLabel(rangeEnd);
-      if (state.view === 'month') title.textContent = 'Месяц: ' + monthLabel(state.anchor);
+      if (state.view === 'day') title.textContent = tp('calendar.day_prefix', 'Day: ') + dayLabel(state.anchor);
+      if (state.view === 'week') title.textContent = tp('calendar.week_prefix', 'Week: ') + dayLabel(rangeStart) + ' - ' + dayLabel(rangeEnd);
+      if (state.view === 'month') title.textContent = tp('calendar.month_prefix', 'Month: ') + monthLabel(state.anchor);
       if (title.matches('[data-calendar-nav="today"]')) {
-        title.setAttribute('aria-label', 'Перейти к текущему периоду');
-        title.setAttribute('title', 'Перейти к текущему периоду');
+        title.setAttribute('aria-label', tp('calendar.jump_current_period', 'Go to current period'));
+        title.setAttribute('title', tp('calendar.jump_current_period', 'Go to current period'));
       }
     }
 
     var subtitle = document.querySelector('[data-calendar-subtitle]');
     if (subtitle) {
-      subtitle.textContent = 'События, встречи и сроки команды в календарном виде.';
+      subtitle.textContent = tp('calendar.subtitle', 'Team events, meetings and deadlines in calendar view.');
     }
 
     var timeline = document.querySelector('[data-calendar-feed]');
@@ -5900,9 +5927,9 @@ window.CRM.pageApiBindings = (function () {
     if (summary) {
       var todayEvents = eventsByDate[dateKey(new Date())] || [];
       summary.innerHTML = '<span class="crm-chip">' + safeText(dayLabel(rangeStart)) + ' - ' + safeText(dayLabel(rangeEnd)) + '</span>'
-        + '<span class="crm-chip">' + safeText(String(events.length)) + ' событий</span>'
-        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' сегодня</span>'
-        + '<span class="crm-chip">' + safeText(state.view === 'month' ? 'Месяц' : (state.view === 'week' ? 'Неделя' : 'День')) + '</span>';
+        + '<span class="crm-chip">' + safeText(String(events.length)) + ' ' + tpPlural('calendar.event', events.length, { one: 'event', few: 'events', many: 'events' }) + '</span>'
+        + '<span class="crm-chip">' + safeText(String(todayEvents.length)) + ' ' + tp('calendar.today_short', 'today') + '</span>'
+        + '<span class="crm-chip">' + safeText(state.view === 'month' ? tp('calendar.view_month', 'Month') : (state.view === 'week' ? tp('calendar.view_week', 'Week') : tp('calendar.view_day', 'Day'))) + '</span>';
     }
 
     var aiDayPlanWrap = document.querySelector('[data-calendar-ai-day-plan]');
@@ -5937,8 +5964,8 @@ window.CRM.pageApiBindings = (function () {
       if (!aiDayPlanSummary || !aiDayPlanList) return;
       if (!suggestion || !suggestion.payload) {
         aiDayPlanSlots = [];
-        aiDayPlanSummary.innerHTML = '<strong>План не сформирован</strong><p class="mb-0">Нажмите «Сформировать предпросмотр», чтобы получить AI-предложение.</p>';
-        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">Слоты будут показаны после генерации.</div>';
+        aiDayPlanSummary.innerHTML = '<strong>' + tp('calendar.ai_plan_not_generated_title', 'Plan not generated') + '</strong><p class="mb-0">' + tp('calendar.ai_plan_not_generated_body', 'Click "Generate preview" to get an AI suggestion.') + '</p>';
+        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">' + tp('calendar.ai_slots_after_generation', 'Slots will appear after generation.') + '</div>';
         updateCalendarAiApplyButtonState(aiCanUse);
         return;
       }
@@ -5947,11 +5974,11 @@ window.CRM.pageApiBindings = (function () {
       var slots = normalizeCalendarAiSlots(payload);
       var risks = Array.isArray(payload.risks) ? payload.risks : [];
       aiDayPlanSlots = slots.slice();
-      aiDayPlanSummary.innerHTML = '<strong>' + safeText(String(payload.summary || suggestion.summary || 'AI-план дня')) + '</strong>'
-        + '<p class="mb-0 mt-1">Обновлено: ' + safeText(formatDate(suggestion.updated_at || suggestion.created_at || '')) + '</p>';
+      aiDayPlanSummary.innerHTML = '<strong>' + safeText(String(payload.summary || suggestion.summary || tp('calendar.ai_day_plan_title', 'AI day plan'))) + '</strong>'
+        + '<p class="mb-0 mt-1">' + tp('calendar.updated_at', 'Updated: ') + safeText(formatDate(suggestion.updated_at || suggestion.created_at || '')) + '</p>';
 
       if (!slots.length) {
-        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">AI не вернул слоты для календаря.</div>';
+        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">' + tp('calendar.ai_no_slots', 'AI returned no slots for the calendar.') + '</div>';
         updateCalendarAiApplyButtonState(aiCanUse);
         return;
       }
@@ -5967,17 +5994,17 @@ window.CRM.pageApiBindings = (function () {
           return overlapsRange(slot.start_at, slot.end_at, eventItem.starts_at, eventItem.ends_at || eventItem.starts_at);
         });
         var conflictHtml = conflicts.length
-          ? '<div class="small text-warning mt-1">Конфликт: ' + safeText(String(conflicts[0].title || conflicts[0].public_id || 'событие')) + '</div>'
+          ? '<div class="small text-warning mt-1">' + tp('calendar.conflict_prefix', 'Conflict: ') + safeText(String(conflicts[0].title || conflicts[0].public_id || tp('calendar.event_fallback', 'event'))) + '</div>'
           : '';
         var reason = slot.reason ? '<div class="small text-muted">' + safeText(slot.reason) + '</div>' : '';
         var warning = isPast
-          ? '<div class="small text-danger mt-1">Слот в прошлом: применение заблокировано.</div>'
-          : (hasInvalidRange ? '<div class="small text-danger mt-1">Некорректный диапазон времени.</div>' : '');
+          ? '<div class="small text-danger mt-1">' + tp('calendar.slot_in_past', 'Slot is in the past: applying is blocked.') + '</div>'
+          : (hasInvalidRange ? '<div class="small text-danger mt-1">' + tp('calendar.invalid_range', 'Invalid time range.') + '</div>' : '');
         var disabled = isPast || hasInvalidRange;
         return '<label class="form-check mb-2">'
           + '<input class="form-check-input" type="checkbox" data-calendar-ai-slot-index="' + String(index) + '"' + (disabled ? ' disabled' : '') + '>'
           + '<span class="form-check-label">'
-          + safeText(formatDate(slot.start_at || '')) + ' - ' + safeText(formatDate(slot.end_at || '')) + ' · ' + safeText(slot.title || 'Фокус-блок')
+          + safeText(formatDate(slot.start_at || '')) + ' - ' + safeText(formatDate(slot.end_at || '')) + ' · ' + safeText(slot.title || tp('calendar.focus_block', 'Focus block'))
           + reason
           + warning
           + conflictHtml
@@ -5986,7 +6013,7 @@ window.CRM.pageApiBindings = (function () {
       }).join('');
 
       if (risks.length) {
-        aiDayPlanList.insertAdjacentHTML('beforeend', '<div class="crm-metric-tile mt-2"><small class="text-muted">Риски</small><div class="mt-1">'
+        aiDayPlanList.insertAdjacentHTML('beforeend', '<div class="crm-metric-tile mt-2"><small class="text-muted">' + tp('calendar.risks', 'Risks') + '</small><div class="mt-1">'
           + risks.map(function (risk) { return '<div>' + safeText(String(risk || '')) + '</div>'; }).join('')
           + '</div></div>');
       }
@@ -6039,9 +6066,9 @@ window.CRM.pageApiBindings = (function () {
         }
         var regenerateRequested = !!(latestMyDaySuggestion && latestMyDaySuggestion.public_id);
         if (regenerateRequested && !await confirmCalendarAction({
-          title: 'Пересчитать AI-план дня?',
-          body: 'Будет создан новый предпросмотр AI-плана дня. Уже созданные события календаря не изменятся автоматически.',
-          actionText: 'Пересчитать',
+          title: tp('calendar.regenerate_title', 'Recalculate AI day plan?'),
+          body: tp('calendar.regenerate_body', 'A new AI day plan preview will be created. Existing calendar events will not change automatically.'),
+          actionText: tp('calendar.regenerate_action', 'Recalculate'),
           actionClass: 'crm-btn-primary'
         })) {
           return;
@@ -6060,13 +6087,13 @@ window.CRM.pageApiBindings = (function () {
             ? planEnvelope.data.suggestion
             : await loadLatestMyDaySuggestionForCurrentUser();
           renderCalendarAiDailyBlocks(latestMyDaySuggestion);
-          notify('Предпросмотр AI-плана дня обновлен');
+          notify(tp('calendar.preview_updated', 'AI day plan preview updated'));
         } catch (error) {
-          var aiError = toCalendarAiError(error, 'Не удалось сформировать AI-план дня');
+          var aiError = toCalendarAiError(error, tp('calendar.generate_fail', 'Failed to generate AI day plan'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось сформировать AI-план дня');
+            window.CRM.ai.renderAiError(error, tp('calendar.generate_fail', 'Failed to generate AI day plan'));
           }
-          notify(aiError.message || 'Не удалось сформировать AI-план дня', 'error');
+          notify(aiError.message || tp('calendar.generate_fail', 'Failed to generate AI day plan'), 'error');
         } finally {
           aiDayPlanGenerateBtn.disabled = !aiCanUse;
         }
@@ -6077,14 +6104,14 @@ window.CRM.pageApiBindings = (function () {
       aiDayPlanApplyBtn.onclick = async function () {
         var selectedIndexes = selectedCalendarAiSlotIndexes();
         if (!selectedIndexes.length) {
-          notify('Выберите хотя бы один слот для применения', 'warning');
+          notify(tp('calendar.select_one_slot', 'Select at least one slot to apply'), 'warning');
           updateCalendarAiApplyButtonState(aiCanUse);
           return;
         }
         if (!await confirmCalendarAction({
-          title: 'Создать события из AI-слотов?',
-          body: 'Будет создано событий: ' + String(selectedIndexes.length) + '. Проверьте выбранные слоты перед применением.',
-          actionText: 'Создать',
+          title: tp('calendar.create_events_title', 'Create events from AI slots?'),
+          body: tp('calendar.create_events_body_prefix', 'Events to be created: ') + String(selectedIndexes.length) + '. ' + tp('calendar.create_events_body_suffix', 'Review the selected slots before applying.'),
+          actionText: tp('calendar.create_events_action', 'Create'),
           actionClass: 'crm-btn-primary'
         })) {
           return;
@@ -6101,12 +6128,12 @@ window.CRM.pageApiBindings = (function () {
           var slotEndMs = toTimestamp(slot.end_at || slot.start_at);
           if (Number.isFinite(slotStartMs) && slotStartMs < Date.now()) {
             failCount += 1;
-            notify('Пропущен слот в прошлом: ' + String(slot.title || 'без названия'), 'warning');
+            notify(tp('calendar.skipped_past_slot', 'Skipped past slot: ') + String(slot.title || tp('calendar.untitled', 'untitled')), 'warning');
             continue;
           }
           if (Number.isFinite(slotStartMs) && Number.isFinite(slotEndMs) && slotEndMs <= slotStartMs) {
             failCount += 1;
-            notify('Пропущен слот с некорректным диапазоном времени: ' + String(slot.title || 'без названия'), 'warning');
+            notify(tp('calendar.skipped_invalid_slot', 'Skipped slot with invalid time range: ') + String(slot.title || tp('calendar.untitled', 'untitled')), 'warning');
             continue;
           }
           try {
@@ -6114,7 +6141,7 @@ window.CRM.pageApiBindings = (function () {
               method: 'POST',
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('calendar-ai-day-slot-event') },
               body: {
-                title: slot.title || 'Фокус-блок',
+                title: slot.title || tp('calendar.focus_block', 'Focus block'),
                 starts_at: slot.start_at,
                 ends_at: slot.end_at || slot.start_at,
                 task_public_id: slot.task_public_id || undefined,
@@ -6127,7 +6154,7 @@ window.CRM.pageApiBindings = (function () {
             var applyEnvelope = applyError && applyError.envelope ? applyError.envelope : null;
             var applyMessage = applyEnvelope && applyEnvelope.message
               ? applyEnvelope.message
-              : 'Не удалось создать одно из событий';
+              : tp('calendar.create_event_fail_one', 'Failed to create one of the events');
             notify(applyMessage, 'error');
           }
         }
@@ -6135,12 +6162,12 @@ window.CRM.pageApiBindings = (function () {
         updateCalendarAiApplyButtonState(aiCanUse);
 
         if (successCount > 0 && failCount === 0) {
-          notify('Создано событий: ' + String(successCount));
+          notify(tp('calendar.events_created_prefix', 'Created events: ') + String(successCount));
           await renderCalendarPage();
           return;
         }
         if (successCount > 0 && failCount > 0) {
-          notify('Создано событий: ' + String(successCount) + ', с ошибками: ' + String(failCount), 'warning');
+          notify(tp('calendar.events_created_prefix', 'Created events: ') + String(successCount) + tp('calendar.events_created_with_errors', ', with errors: ') + String(failCount), 'warning');
           await renderCalendarPage();
         }
       };
@@ -6209,35 +6236,35 @@ window.CRM.pageApiBindings = (function () {
 
   function notificationCategoryLabel(category) {
     var map = {
-      assignments: 'Назначения',
-      tasks: 'Задачи',
-      comments: 'Комментарии',
-      deadlines: 'Сроки',
-      teams: 'Команды',
-      projects: 'Проекты',
-      calendar: 'Календарь',
-      system: 'Система'
+      assignments: tp('notifications.categories.assignments', 'Assignments'),
+      tasks: tp('notifications.categories.tasks', 'Tasks'),
+      comments: tp('notifications.categories.comments', 'Comments'),
+      deadlines: tp('notifications.categories.deadlines', 'Deadlines'),
+      teams: tp('notifications.categories.teams', 'Teams'),
+      projects: tp('notifications.categories.projects', 'Projects'),
+      calendar: tp('notifications.categories.calendar', 'Calendar'),
+      system: tp('notifications.categories.system', 'System')
     };
     var key = String(category || 'system').trim();
-    return map[key] || key || 'Система';
+    return map[key] || key || tp('notifications.categories.system', 'System');
   }
 
   function notificationActionLabel(actionCode) {
     var map = {
-      task_created: 'Создана задача',
-      task_assigned: 'Назначение',
-      task_reassigned: 'Переназначение',
-      task_unassigned: 'Снятие исполнителя',
-      task_status_changed: 'Смена статуса',
-      task_due_changed: 'Изменение срока',
-      task_comment_created: 'Новый комментарий',
-      task_comment_reply: 'Новый ответ',
-      team_member_added: 'Добавление в команду',
-      project_member_added: 'Добавление в проект',
-      project_manager_assigned: 'Назначение менеджером',
-      calendar_event_assigned: 'Назначено событие',
-      calendar_event_updated: 'Событие изменено',
-      calendar_event_cancelled: 'Событие отменено'
+      task_created: tp('notifications.actions.task_created', 'Task created'),
+      task_assigned: tp('notifications.actions.task_assigned', 'Assigned'),
+      task_reassigned: tp('notifications.actions.task_reassigned', 'Reassigned'),
+      task_unassigned: tp('notifications.actions.task_unassigned', 'Assignee removed'),
+      task_status_changed: tp('notifications.actions.task_status_changed', 'Status changed'),
+      task_due_changed: tp('notifications.actions.task_due_changed', 'Deadline changed'),
+      task_comment_created: tp('notifications.actions.task_comment_created', 'New comment'),
+      task_comment_reply: tp('notifications.actions.task_comment_reply', 'New reply'),
+      team_member_added: tp('notifications.actions.team_member_added', 'Added to team'),
+      project_member_added: tp('notifications.actions.project_member_added', 'Added to project'),
+      project_manager_assigned: tp('notifications.actions.project_manager_assigned', 'Assigned as manager'),
+      calendar_event_assigned: tp('notifications.actions.calendar_event_assigned', 'Event assigned'),
+      calendar_event_updated: tp('notifications.actions.calendar_event_updated', 'Event updated'),
+      calendar_event_cancelled: tp('notifications.actions.calendar_event_cancelled', 'Event cancelled')
     };
     var key = String(actionCode || '').trim();
     return map[key] || '';
@@ -6296,7 +6323,7 @@ window.CRM.pageApiBindings = (function () {
     var body = document.getElementById('crmConfirmBody');
     var action = document.getElementById('crmConfirmActionBtn');
     if (!modal || !title || !body || !action) {
-      notify('Не удалось открыть окно подтверждения', 'error');
+      notify(tp('notifications.confirm_open_fail', 'Failed to open confirmation dialog'), 'error');
       return Promise.resolve(false);
     }
     return new Promise(function (resolve) {
@@ -6322,9 +6349,9 @@ window.CRM.pageApiBindings = (function () {
       function onCancel() { cleanup(false); }
       function onModalClick(event) { if (event.target === modal) cleanup(false); }
       function onKeydown(event) { if (event.key === 'Escape') cleanup(false); }
-      title.textContent = options.title || 'Подтвердите действие';
-      body.innerHTML = '<p>' + safeText(options.message || 'Продолжить?') + '</p>';
-      action.textContent = options.actionText || 'Подтвердить';
+      title.textContent = options.title || tp('common.confirm_title', 'Confirm action');
+      body.innerHTML = '<p>' + safeText(options.message || tp('common.confirm_body', 'Continue?')) + '</p>';
+      action.textContent = options.actionText || tp('common.confirm_action', 'Confirm');
       action.className = 'btn ' + (options.actionClass || 'crm-btn-primary');
       action.addEventListener('click', onConfirm);
       modal.addEventListener('click', onModalClick);
@@ -6382,10 +6409,10 @@ window.CRM.pageApiBindings = (function () {
 
     var payload = item && item.payload && typeof item.payload === 'object' ? item.payload : null;
     if (payload && payload.new_status_label) {
-      chips.push('<span class="badge rounded-pill text-bg-light">Статус: ' + safeText(payload.new_status_label) + '</span>');
+      chips.push('<span class="badge rounded-pill text-bg-light">' + tp('notifications.status_prefix', 'Status: ') + safeText(payload.new_status_label) + '</span>');
     }
     if (payload && payload.new_due_label) {
-      chips.push('<span class="badge rounded-pill text-bg-light">Срок: ' + safeText(payload.new_due_label) + '</span>');
+      chips.push('<span class="badge rounded-pill text-bg-light">' + tp('notifications.due_prefix', 'Due: ') + safeText(payload.new_due_label) + '</span>');
     }
 
     return chips.join('');
@@ -6396,8 +6423,8 @@ window.CRM.pageApiBindings = (function () {
     var link = notificationLink(item);
     var preview = notificationBodyPreview(item);
     var toggleAttr = item.is_read ? 'data-mark-unread' : 'data-mark-read';
-    var toggleLabel = item.is_read ? 'Вернуть в непрочитанные' : 'Отметить прочитанным';
-    var toggleBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + (item.title || 'уведомление')) + '">'
+    var toggleLabel = item.is_read ? tp('notifications.toggle_mark_unread', 'Mark as unread again') : tp('notifications.toggle_mark_read', 'Mark as read');
+    var toggleBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + (item.title || tp('notifications.notification_fallback', 'notification'))) + '">'
       + toggleLabel
       + '</button>';
 
@@ -6405,12 +6432,12 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">'
       + '<div class="crm-notification-main">'
       + '<div class="d-flex flex-wrap gap-2 mb-2">' + notificationContextChips(item) + '</div>'
-      + '<strong>' + safeText(item.title || 'Уведомление') + '</strong>'
+      + '<strong>' + safeText(item.title || tp('notifications.notification_title_fallback', 'Notification')) + '</strong>'
       + '<div class="text-muted small">' + safeText(notificationSecondaryLine(item)) + '</div>'
       + (preview ? '<div class="small mt-2">' + safeText(preview) + '</div>' : '')
       + '</div>'
       + '<div class="d-flex gap-2 flex-wrap crm-notification-actions">'
-      + '<a class="btn btn-sm crm-btn-primary crm-btn-compact" href="' + safeText(link) + '" aria-label="Открыть уведомление: ' + safeText(item.title || 'Уведомление') + '">Открыть</a>'
+      + '<a class="btn btn-sm crm-btn-primary crm-btn-compact" href="' + safeText(link) + '" aria-label="' + tp('notifications.open_aria_prefix', 'Open notification: ') + safeText(item.title || tp('notifications.notification_title_fallback', 'Notification')) + '">' + tp('notifications.open', 'Open') + '</a>'
       + toggleBtn
       + '</div>'
       + '</div>'
@@ -6470,14 +6497,14 @@ window.CRM.pageApiBindings = (function () {
           await refreshNotificationsCenterIfActive();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить уведомления', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.update_fail', 'Failed to update notifications'), 'error');
         }
       });
     }
 
     var bellButtons = Array.from(document.querySelectorAll('[data-global-notifications], [data-bs-toggle="popover"]')).filter(function (btn) {
       var label = (btn.getAttribute('aria-label') || '').toLowerCase();
-      return btn.hasAttribute('data-global-notifications') || label.indexOf('уведом') !== -1;
+      return btn.hasAttribute('data-global-notifications') || label.indexOf(tp('notifications.keyword', 'notif').toLowerCase()) !== -1;
     });
 
     function applyPopoverContent(html, unreadCount) {
@@ -6485,7 +6512,7 @@ window.CRM.pageApiBindings = (function () {
         btn.setAttribute('data-bs-html', 'true');
         btn.setAttribute('data-bs-content', html);
         if (typeof unreadCount === 'number') {
-          btn.setAttribute('aria-label', 'Уведомления (' + unreadCount + ')');
+          btn.setAttribute('aria-label', tp('notifications.aria_with_count_prefix', 'Notifications (') + unreadCount + ')');
         }
 
         if (window.bootstrap && window.bootstrap.Popover) {
@@ -6503,7 +6530,7 @@ window.CRM.pageApiBindings = (function () {
                 var tip = pop && typeof pop.getTipElement === 'function' ? pop.getTipElement() : null;
                 if (!tip) return;
                 tip.setAttribute('role', 'dialog');
-                tip.setAttribute('aria-label', 'Список уведомлений');
+                tip.setAttribute('aria-label', tp('notifications.list_aria', 'Notifications list'));
                 var firstFocusable = tip.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
                 if (firstFocusable && typeof firstFocusable.focus === 'function') {
                   firstFocusable.focus();
@@ -6530,7 +6557,7 @@ window.CRM.pageApiBindings = (function () {
     var loadingHtml = '<div class="crm-topbar-notify-popover">'
       + '<div class="small text-muted d-flex align-items-center gap-2">'
       + '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>'
-      + '<span>Загружаем уведомления…</span>'
+      + '<span>' + tp('notifications.loading', 'Loading notifications...') + '</span>'
       + '</div></div>';
     applyPopoverContent(loadingHtml);
 
@@ -6550,8 +6577,8 @@ window.CRM.pageApiBindings = (function () {
     var popoverHtml = '';
     if (hasError) {
       popoverHtml = '<div class="crm-topbar-notify-popover">'
-        + '<div class="small text-danger mb-2">Не удалось загрузить уведомления.</div>'
-        + '<a class="small text-decoration-none" href="index.php?route=notifications">Открыть центр уведомлений</a>'
+        + '<div class="small text-danger mb-2">' + tp('notifications.load_fail', 'Failed to load notifications.') + '</div>'
+        + '<a class="small text-decoration-none" href="index.php?route=notifications">' + tp('notifications.open_center', 'Open notification center') + '</a>'
         + '</div>';
     } else {
       var listHtml = items.length
@@ -6566,7 +6593,7 @@ window.CRM.pageApiBindings = (function () {
           var markReadButton = !item.is_read
             ? '<button class="btn btn-link btn-sm p-0 mt-1 text-decoration-none" '
               + 'type="button" data-popover-notification-action="mark-read" data-notification-id="' + safeText(item.public_id || '') + '">'
-              + 'Отметить прочитанным'
+              + tp('notifications.toggle_mark_read', 'Mark as read')
               + '</button>'
             : '';
 
@@ -6574,7 +6601,7 @@ window.CRM.pageApiBindings = (function () {
             + '<a href="' + safeText(href) + '" class="text-decoration-none d-block">'
             + '<div class="d-flex align-items-start justify-content-between gap-2">'
             + '<strong class="d-block">' + safeText(item.title || item.body || item.public_id) + '</strong>'
-            + (!item.is_read ? '<span class="badge text-bg-primary rounded-pill">новое</span>' : '')
+            + (!item.is_read ? '<span class="badge text-bg-primary rounded-pill">' + tp('notifications.badge_new', 'new') + '</span>' : '')
             + '</div>'
             + '<span class="small text-muted d-block">' + safeText(notificationSecondaryLine(item)) + '</span>'
             + (chips.length ? '<span class="small text-muted d-block">' + safeText(chips.join(' · ')) + '</span>' : '')
@@ -6582,27 +6609,27 @@ window.CRM.pageApiBindings = (function () {
             + markReadButton
             + '</a></li>';
         }).join('')
-        : '<li class="mb-2 text-muted">Уведомлений пока нет</li>';
+        : '<li class="mb-2 text-muted">' + tp('notifications.popover_empty', 'No notifications yet') + '</li>';
 
       popoverHtml = '<div class="crm-topbar-notify-popover">'
         + '<div class="small text-muted mb-2 d-flex justify-content-between">'
-        + '<span>Непрочитанных: ' + safeText(unread) + '</span>'
-        + '<span>Всего: ' + safeText(items.length) + '</span>'
+        + '<span>' + tp('notifications.unread_prefix', 'Unread: ') + safeText(unread) + '</span>'
+        + '<span>' + tp('notifications.total_prefix', 'Total: ') + safeText(items.length) + '</span>'
         + '</div>'
         + '<div class="small mb-2">'
         + (window.CRM.notificationsRealtime && typeof window.CRM.notificationsRealtime.isSoundEnabled === 'function' && window.CRM.notificationsRealtime.isSoundEnabled()
-          ? '<span class="badge text-bg-success">Звук: вкл</span>'
-          : '<span class="badge text-bg-secondary">Звук: выкл</span>')
+          ? '<span class="badge text-bg-success">' + tp('notifications.sound_on', 'Sound: on') + '</span>'
+          : '<span class="badge text-bg-secondary">' + tp('notifications.sound_off', 'Sound: off') + '</span>')
         + '</div>'
         + '<ul class="mb-2 ps-3">' + listHtml + '</ul>'
         + '<div class="d-flex justify-content-between gap-2">'
-        + '<button class="btn btn-link btn-sm p-0 text-decoration-none" type="button" data-popover-notification-action="mark-all-read">Прочитать все</button>'
-        + '<a class="small text-decoration-none" href="index.php?route=notifications">Открыть центр</a>'
+        + '<button class="btn btn-link btn-sm p-0 text-decoration-none" type="button" data-popover-notification-action="mark-all-read">' + tp('notifications.mark_all_read', 'Mark all as read') + '</button>'
+        + '<a class="small text-decoration-none" href="index.php?route=notifications">' + tp('notifications.open_center_short', 'Open center') + '</a>'
         + '</div></div>';
     }
 
     applyPopoverContent(popoverHtml, unread);
-    announceNotifications('Непрочитанных уведомлений: ' + String(unread));
+    announceNotifications(tp('notifications.unread_announce_prefix', 'Unread notifications: ') + String(unread));
 
     bellButtons.forEach(function (btn) {
       var badge = btn.querySelector('[data-notification-badge]');
@@ -6667,7 +6694,7 @@ window.CRM.pageApiBindings = (function () {
 
     var selectedCategoryValue = filter ? String(filter.value || '').trim() : '';
     if (filter) {
-      filter.innerHTML = '<option value="">Все категории</option>' + categories.map(function (category) {
+      filter.innerHTML = '<option value="">' + tp('notifications.all_categories', 'All categories') + '</option>' + categories.map(function (category) {
         return '<option value="' + safeText(category) + '"' + (category === selectedCategoryValue ? ' selected' : '') + '>'
           + safeText(notificationCategoryLabel(category))
           + '</option>';
@@ -6705,9 +6732,9 @@ window.CRM.pageApiBindings = (function () {
     if (categoriesEl) categoriesEl.textContent = String(categories.length);
     if (listSummary) {
       var summaryParts = [
-        'Показано ' + String(filtered.length) + ' из ' + String(items.length),
-        selectedCategory ? notificationCategoryLabel(selectedCategory) : 'все категории',
-        selectedReadState === 'unread' ? 'только непрочитанные' : selectedReadState === 'read' ? 'только прочитанные' : 'все состояния'
+        tp('notifications.summary_shown_prefix', 'Showing ') + String(filtered.length) + tp('notifications.summary_of', ' of ') + String(items.length),
+        selectedCategory ? notificationCategoryLabel(selectedCategory) : tp('notifications.all_categories', 'All categories'),
+        selectedReadState === 'unread' ? tp('notifications.summary_unread_only', 'Unread only') : selectedReadState === 'read' ? tp('notifications.summary_read_only', 'Read only') : tp('notifications.summary_all_states', 'All states')
       ];
       listSummary.textContent = summaryParts.join(' · ');
     }
@@ -6720,8 +6747,8 @@ window.CRM.pageApiBindings = (function () {
 
     if (!filtered.length) {
       list.innerHTML = '<div class="crm-card crm-empty-state">'
-        + '<strong>Уведомления не найдены</strong>'
-        + '<p class="mb-0">Для выбранной категории пока нет событий. Попробуйте снять фильтр или дождитесь новых уведомлений.</p>'
+        + '<strong>' + tp('notifications.empty_title', 'No notifications found') + '</strong>'
+        + '<p class="mb-0">' + tp('notifications.empty_body', 'There are no events for the selected category yet. Try clearing the filter or wait for new notifications.') + '</p>'
         + '</div>';
     } else {
       list.innerHTML = filtered.map(renderNotificationCard).join('');
@@ -6735,24 +6762,24 @@ window.CRM.pageApiBindings = (function () {
           ? counters.unread
           : items.filter(function (item) { return !item.is_read; }).length;
         if (unreadCount <= 0) {
-          notify('Непрочитанных уведомлений нет');
+          notify(tp('notifications.no_unread', 'There are no unread notifications'));
           return;
         }
         var confirmed = await confirmNotificationsAction({
-          title: 'Отметить все прочитанным?',
-          message: 'Будет отмечено прочитанным ' + unreadCount + ' уведомлений. Это действие можно частично отменить вручную у отдельных уведомлений.',
-          actionText: 'Отметить',
+          title: tp('notifications.mark_all_confirm_title', 'Mark all as read?'),
+          message: tp('notifications.mark_all_confirm_prefix', 'Notifications to mark as read: ') + unreadCount + '. ' + tp('notifications.mark_all_confirm_suffix', 'This can be partially undone manually for individual notifications.'),
+          actionText: tp('notifications.mark_all_confirm_action', 'Mark'),
           actionClass: 'crm-btn-primary'
         });
         if (!confirmed) return;
         try {
           await request('api/v1/notifications/mark-all-read', { method: 'POST', body: {} });
-          notify('Все уведомления отмечены как прочитанные');
+          notify(tp('notifications.mark_all_success', 'All notifications have been marked as read'));
           await renderNotificationsPopover();
           await renderNotificationsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить уведомления', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.update_fail', 'Failed to update notifications'), 'error');
         }
       };
     }
@@ -6769,7 +6796,7 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           btn.disabled = false;
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось отметить уведомление', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.mark_read_fail', 'Failed to mark notification'), 'error');
         }
       });
     });
@@ -6786,7 +6813,7 @@ window.CRM.pageApiBindings = (function () {
         } catch (error) {
           btn.disabled = false;
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось вернуть уведомление в непрочитанные', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.mark_unread_fail', 'Failed to return notification to unread'), 'error');
         }
       });
     });
@@ -6804,7 +6831,12 @@ window.CRM.pageApiBindings = (function () {
 
     var pushApi = window.CRM && window.CRM.notificationsPush ? window.CRM.notificationsPush : null;
     var hasPushApi = !!(pushApi && typeof pushApi.isEnabled === 'function' && typeof pushApi.setEnabled === 'function');
-    var permissionMap = { granted: 'разрешено', denied: 'запрещено', default: 'не запрошено', unsupported: 'не поддерживается в браузере' };
+    var permissionMap = {
+      granted: tp('notifications.push_permission_granted', 'granted'),
+      denied: tp('notifications.push_permission_denied', 'denied'),
+      default: tp('notifications.push_permission_default', 'not requested'),
+      unsupported: tp('notifications.push_permission_unsupported', 'not supported by this browser')
+    };
 
     function currentPermission() {
       if (typeof window.Notification === 'undefined' || !window.Notification) return 'unsupported';
@@ -6814,7 +6846,7 @@ window.CRM.pageApiBindings = (function () {
     function updatePermissionStatus() {
       if (!statusEl) return;
       var permission = currentPermission();
-      statusEl.textContent = 'Статус разрешения: ' + (permissionMap[permission] || permission);
+      statusEl.textContent = tp('notifications.push_permission_status_prefix', 'Permission status: ') + (permissionMap[permission] || permission);
     }
 
     function renderPushDevices(items) {
@@ -6828,15 +6860,15 @@ window.CRM.pageApiBindings = (function () {
         devicesEl.appendChild(div);
       }
       if (!list.length) {
-        appendMessage('Активные устройства не найдены', 'text-muted');
+        appendMessage(tp('notifications.push_devices_empty', 'No active devices found'), 'text-muted');
         if (subscriptionStatusEl) {
-          subscriptionStatusEl.textContent = 'Статус подписки: не подписан';
+          subscriptionStatusEl.textContent = tp('notifications.push_subscription_unsubscribed', 'Subscription status: not subscribed');
         }
         return;
       }
       list.forEach(function (item) {
         var publicId = String(item && item.public_id || '');
-        var label = String(item && item.device_label || item && item.user_agent || 'Устройство').trim();
+        var label = String(item && item.device_label || item && item.user_agent || tp('notifications.push_device_fallback', 'Device')).trim();
         var active = Number(item && item.is_active || 0) === 1;
         var seen = String(item && item.last_seen_at || item && item.updated_at || '').trim();
 
@@ -6857,27 +6889,27 @@ window.CRM.pageApiBindings = (function () {
         if (seen) {
           var seenRow = document.createElement('div');
           seenRow.className = 'text-muted';
-          seenRow.textContent = 'Последняя активность: ' + formatDate(seen);
+          seenRow.textContent = tp('notifications.push_last_seen_prefix', 'Last activity: ') + formatDate(seen);
           info.appendChild(seenRow);
         }
 
         var activeRow = document.createElement('div');
         activeRow.className = active ? 'text-success' : 'text-muted';
-        activeRow.textContent = active ? 'Активна' : 'Неактивна';
+        activeRow.textContent = active ? tp('notifications.push_device_active', 'Active') : tp('notifications.push_device_inactive', 'Inactive');
         info.appendChild(activeRow);
 
         var removeBtn = document.createElement('button');
         removeBtn.className = 'btn btn-sm btn-outline-danger';
         removeBtn.type = 'button';
         removeBtn.setAttribute('data-push-device-remove', publicId);
-        removeBtn.textContent = 'Отключить';
+        removeBtn.textContent = tp('notifications.push_disconnect', 'Disconnect');
 
         row.appendChild(info);
         row.appendChild(removeBtn);
         devicesEl.appendChild(row);
       });
       if (subscriptionStatusEl) {
-        subscriptionStatusEl.textContent = 'Статус подписки: подключено устройств — ' + String(list.length);
+        subscriptionStatusEl.textContent = tp('notifications.push_subscription_connected_prefix', 'Subscription status: connected devices — ') + String(list.length);
       }
     }
 
@@ -6886,7 +6918,7 @@ window.CRM.pageApiBindings = (function () {
       devicesEl.textContent = '';
       var loadingNode = document.createElement('div');
       loadingNode.className = 'text-muted';
-      loadingNode.textContent = 'Обновляем список устройств...';
+      loadingNode.textContent = tp('notifications.push_devices_refreshing', 'Refreshing device list...');
       devicesEl.appendChild(loadingNode);
       try {
         var envelope = await request('api/v1/notifications/push-subscriptions', { query: { limit: 50 } });
@@ -6895,10 +6927,10 @@ window.CRM.pageApiBindings = (function () {
         devicesEl.textContent = '';
         var errorNode = document.createElement('div');
         errorNode.className = 'text-danger';
-        errorNode.textContent = 'Не удалось загрузить устройства';
+        errorNode.textContent = tp('notifications.push_devices_load_fail', 'Failed to load devices');
         devicesEl.appendChild(errorNode);
         if (subscriptionStatusEl) {
-          subscriptionStatusEl.textContent = 'Статус подписки: ошибка получения списка';
+          subscriptionStatusEl.textContent = tp('notifications.push_subscription_load_error', 'Subscription status: list load error');
         }
       }
     }
@@ -6921,7 +6953,7 @@ window.CRM.pageApiBindings = (function () {
           if (enabled && typeof pushApi.requestPermissionAndEnable === 'function') {
             pushApi.requestPermissionAndEnable();
           }
-          notify(enabled ? 'Push-уведомления включены' : 'Push-уведомления выключены');
+          notify(enabled ? tp('notifications.push_enabled', 'Push notifications enabled') : tp('notifications.push_disabled', 'Push notifications disabled'));
           updatePermissionStatus();
           refreshPushDevices();
         });
@@ -6934,13 +6966,13 @@ window.CRM.pageApiBindings = (function () {
       if (permissionBtn.dataset.bound !== '1') {
         permissionBtn.addEventListener('click', function () {
           if (!hasPushApi || typeof pushApi.requestPermissionAndEnable !== 'function') {
-            notify('Push недоступен в текущем браузере', 'warning');
+            notify(tp('notifications.push_unavailable', 'Push is unavailable in this browser'), 'warning');
             return;
           }
           pushApi.requestPermissionAndEnable().then(function () {
             updatePermissionStatus();
             refreshPushDevices();
-            notify('Запрос разрешения push выполнен');
+            notify(tp('notifications.push_permission_requested', 'Push permission request completed'));
           });
         });
         permissionBtn.dataset.bound = '1';
@@ -6956,11 +6988,11 @@ window.CRM.pageApiBindings = (function () {
           var delivered = Number(dispatch.delivered || 0);
           var deactivated = Number(dispatch.deactivated || 0);
           var gateway = !!dispatch.gateway_configured;
-          notify('Push test: попыток ' + attempted + ', доставлено ' + delivered + ', деактивировано ' + deactivated + (gateway ? '' : ' (gateway не настроен)'));
+          notify(tp('notifications.push_test_prefix', 'Push test: attempts ') + attempted + tp('notifications.push_test_delivered', ', delivered ') + delivered + tp('notifications.push_test_deactivated', ', deactivated ') + deactivated + (gateway ? '' : tp('notifications.push_test_gateway_missing', ' (gateway not configured)')));
           await refreshPushDevices();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось отправить push-test', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.push_test_fail', 'Failed to send push test'), 'error');
         }
       });
       testBtn.dataset.bound = '1';
@@ -6981,21 +7013,21 @@ window.CRM.pageApiBindings = (function () {
         var publicId = String(btn.getAttribute('data-push-device-remove') || '').trim();
         if (!publicId) return;
         var confirmed = await confirmNotificationsAction({
-          title: 'Отключить push-устройство?',
-          message: 'Устройство перестанет получать push-уведомления. Подключить его снова можно будет через запрос разрешения в браузере.',
-          actionText: 'Отключить',
+          title: tp('notifications.push_disconnect_title', 'Disconnect push device?'),
+          message: tp('notifications.push_disconnect_message', 'The device will stop receiving push notifications. You can connect it again through the browser permission request.'),
+          actionText: tp('notifications.push_disconnect', 'Disconnect'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
         btn.disabled = true;
         try {
           await request('api/v1/notifications/push-subscriptions/' + encodeURIComponent(publicId), { method: 'DELETE' });
-          notify('Устройство отключено от push');
+          notify(tp('notifications.push_device_disconnected', 'Device disconnected from push'));
           await refreshPushDevices();
         } catch (error) {
           btn.disabled = false;
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось отключить устройство', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.push_disconnect_fail', 'Failed to disconnect device'), 'error');
         }
       });
     }
@@ -7053,15 +7085,15 @@ window.CRM.pageApiBindings = (function () {
     function updateStatus() {
       if (!statusEl) return;
       if (!canControl) {
-        statusEl.textContent = 'Статус звука: недоступно';
+        statusEl.textContent = tp('notifications.sound_status_unavailable', 'Sound status: unavailable');
         return;
       }
       var quiet = realtime.getQuietHours();
       var isQuietNow = typeof realtime.isWithinQuietHours === 'function' ? realtime.isWithinQuietHours() : false;
-      statusEl.textContent = 'Статус звука: '
-        + (realtime.isSoundEnabled() ? 'включен' : 'выключен')
+      statusEl.textContent = tp('notifications.sound_status_prefix', 'Sound status: ')
+        + (realtime.isSoundEnabled() ? tp('notifications.sound_enabled', 'enabled') : tp('notifications.sound_disabled', 'disabled'))
         + (quiet.enabled ? ('; quiet hours ' + quiet.start + '-' + quiet.end + (quiet.timezone ? (' (' + quiet.timezone + ')') : '')) : '')
-        + (isQuietNow ? '; сейчас в quiet hours' : '');
+        + (isQuietNow ? tp('notifications.sound_quiet_now_suffix', '; currently in quiet hours') : '');
     }
 
     if (saveBtn && saveBtn.dataset.bound !== '1') {
@@ -7089,10 +7121,10 @@ window.CRM.pageApiBindings = (function () {
           }
           updateStatus();
           await renderNotificationsPopover();
-          notify('Настройки звука уведомлений сохранены');
+          notify(tp('notifications.sound_saved', 'Notification sound settings saved'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось сохранить настройки звука', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.sound_save_fail', 'Failed to save sound settings'), 'error');
         }
       });
     }
@@ -7101,16 +7133,16 @@ window.CRM.pageApiBindings = (function () {
       testBtn.dataset.bound = '1';
       testBtn.addEventListener('click', function () {
         if (!canControl || typeof realtime.playTestSound !== 'function') {
-          notify('Тест звука недоступен', 'warning');
+          notify(tp('notifications.sound_test_unavailable', 'Sound test unavailable'), 'warning');
           return;
         }
         var played = realtime.playTestSound();
         updateStatus();
         if (played) {
-          notify('Тест звука воспроизведен');
+          notify(tp('notifications.sound_test_played', 'Sound test played'));
           return;
         }
-        notify('Звук не воспроизведен. Разрешите аудио (клик по странице) или проверьте quiet hours.', 'warning');
+        notify(tp('notifications.sound_test_blocked', 'Sound was not played. Allow audio (click the page) or check quiet hours.'), 'warning');
       });
     }
 
@@ -7143,15 +7175,15 @@ window.CRM.pageApiBindings = (function () {
     var pref = preferences && typeof preferences === 'object' ? preferences : {};
     var categories = notificationCategoryKeys();
     var labels = {
-      tasks: 'Задачи',
-      projects: 'Проекты',
-      comments: 'Комментарии',
-      mentions: 'Упоминания',
-      approvals: 'Согласования',
-      reminders: 'Напоминания',
-      sla: 'SLA/Overdue',
-      security: 'Security',
-      system: 'Система'
+      tasks: tp('notifications.matrix_tasks', 'Tasks'),
+      projects: tp('notifications.matrix_projects', 'Projects'),
+      comments: tp('notifications.matrix_comments', 'Comments'),
+      mentions: tp('notifications.matrix_mentions', 'Mentions'),
+      approvals: tp('notifications.matrix_approvals', 'Approvals'),
+      reminders: tp('notifications.matrix_reminders', 'Reminders'),
+      sla: tp('notifications.matrix_sla', 'SLA/Overdue'),
+      security: tp('notifications.matrix_security', 'Security'),
+      system: tp('notifications.matrix_system', 'System')
     };
 
     function rowDefault(category) {
@@ -7212,11 +7244,11 @@ window.CRM.pageApiBindings = (function () {
           input.checked = matrix[category][channel] !== false;
           input.setAttribute('data-matrix-category', category);
           input.setAttribute('data-matrix-channel', channel);
-          input.setAttribute('aria-label', (labels[category] || category) + ': ' + (channel === 'in_app' ? 'in-app' : channel === 'sound' ? 'звук' : 'push'));
+          input.setAttribute('aria-label', (labels[category] || category) + ': ' + (channel === 'in_app' ? tp('notifications.channel_in_app', 'in-app') : channel === 'sound' ? tp('notifications.channel_sound', 'sound') : 'push'));
           if (category === 'security' && channel === 'in_app') {
             input.checked = true;
             input.disabled = true;
-            input.title = 'Нельзя отключить';
+            input.title = tp('notifications.channel_required', 'Cannot be disabled');
           }
           td.appendChild(input);
           tr.appendChild(td);
@@ -7253,11 +7285,11 @@ window.CRM.pageApiBindings = (function () {
           if (realtime && typeof realtime.setChannelMatrix === 'function') {
             realtime.setChannelMatrix(matrix);
           }
-          notify('Матрица уведомлений сохранена');
+          notify(tp('notifications.matrix_saved', 'Notification matrix saved'));
           await renderNotificationsPopover();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось сохранить матрицу уведомлений', 'error');
+          notify((envelopeError && envelopeError.message) || tp('notifications.matrix_save_fail', 'Failed to save notification matrix'), 'error');
         }
       });
     }
@@ -7273,7 +7305,7 @@ window.CRM.pageApiBindings = (function () {
         if (realtime && typeof realtime.setChannelMatrix === 'function') {
           realtime.setChannelMatrix(matrix);
         }
-        notify('Матрица сброшена к значениям по умолчанию');
+        notify(tp('notifications.matrix_reset', 'Notification matrix reset to defaults'));
       });
     }
   }
@@ -7302,14 +7334,14 @@ window.CRM.pageApiBindings = (function () {
     var currentViewPublicId = String(query.get('view_public_id') || '').trim();
 
     var CLIENT_TYPE_LABELS = {
-      individual: 'Физлицо',
-      sole_proprietor: 'ИП',
-      legal_entity: 'Юрлицо'
+      individual: tp('clients.type_individual', 'Individual'),
+      sole_proprietor: tp('clients.type_sole_proprietor', 'Sole proprietor'),
+      legal_entity: tp('clients.type_legal_entity', 'Legal entity')
     };
     var CLIENT_STATUS_LABELS = {
-      active: 'Активен',
-      inactive: 'Неактивен',
-      archived: 'Архив'
+      active: tp('clients.status_active', 'Active'),
+      inactive: tp('clients.status_inactive', 'Inactive'),
+      archived: tp('clients.status_archived', 'Archived')
     };
     var CLIENT_FORM_FIELDS = [
       'title',
@@ -7344,7 +7376,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function resolveClientTitle(client) {
-      return String((client && (client.title || client.legal_name || client.email || client.phone || '')) || '').trim() || 'Клиент без названия';
+      return String((client && (client.title || client.legal_name || client.email || client.phone || '')) || '').trim() || tp('clients.untitled_client', 'Untitled client');
     }
 
     function clientStatusLabel(value) {
@@ -7534,31 +7566,31 @@ window.CRM.pageApiBindings = (function () {
         errors[field].push(message);
       }
 
-      if (isBlank(payload.title)) push('title', 'Укажите название клиента');
-      if (!isValidWebsite(payload.website)) push('website', 'Сайт должен быть валидным URL (http/https)');
+      if (isBlank(payload.title)) push('title', tp('clients.validation_title_required', 'Enter client name'));
+      if (!isValidWebsite(payload.website)) push('website', tp('clients.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       var type = normalizeType(payload.client_type);
       if (type === 'sole_proprietor' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', 'Укажите юридическое наименование / ФИО ИП');
+        if (isBlank(payload.legal_name)) push('legal_name', tp('clients.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
       }
       if (type === 'sole_proprietor') {
-        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', 'ИНН ИП должен содержать 12 цифр');
-        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', 'ОГРНИП должен содержать 15 цифр');
+        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', tp('clients.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits'));
+        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', tp('clients.validation_ogrnip', 'OGRNIP must contain 15 digits'));
       }
       if (type === 'legal_entity') {
-        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', 'ИНН юрлица должен содержать 10 цифр');
-        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', 'КПП должен содержать 9 цифр');
-        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', 'ОГРН должен содержать 13 цифр');
+        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', tp('clients.validation_inn_legal', 'Legal entity TIN must contain 10 digits'));
+        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', tp('clients.validation_kpp', 'KPP must contain 9 digits'));
+        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', tp('clients.validation_ogrn', 'OGRN must contain 13 digits'));
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {
         var value = String(payload[field] || '').trim();
         if (!value) return;
-        if (normalizeDigits(value).length !== 20 || value.length !== 20) push(field, 'Поле должно содержать 20 цифр');
+        if (normalizeDigits(value).length !== 20 || value.length !== 20) push(field, tp('clients.validation_20_digits', 'Field must contain 20 digits'));
       });
       if (!isBlank(payload.bank_bik)) {
         var bik = String(payload.bank_bik || '').trim();
-        if (normalizeDigits(bik).length !== 9 || bik.length !== 9) push('bank_bik', 'БИК должен содержать 9 цифр');
+        if (normalizeDigits(bik).length !== 9 || bik.length !== 9) push('bank_bik', tp('clients.validation_bik', 'BIC must contain 9 digits'));
       }
 
       return errors;
@@ -7595,7 +7627,7 @@ window.CRM.pageApiBindings = (function () {
     var tableBody = document.getElementById('clientsTableBody');
     if (tableBody) {
       if (!clients.length) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-muted">Клиенты не найдены.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
       } else {
         tableBody.innerHTML = clients.map(function (client) {
           var id = String(client.public_id || '').trim();
@@ -7610,7 +7642,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><span class="crm-badge ' + clientStatusClass(statusCode) + '">' + safeText(clientStatusLabel(statusCode || '—')) + '</span></td>'
             + '<td>' + safeText(formatDate(client.updated_at)) + '</td>'
             + '<td><div class="crm-client-actions">'
-            + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-client-delete="' + safeText(id) + '" aria-label="Удалить клиента" title="Удалить клиента">'
+            + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-client-delete="' + safeText(id) + '" aria-label="' + safeText(tp('clients.delete_client', 'Delete client')) + '" title="' + safeText(tp('clients.delete_client', 'Delete client')) + '">'
             + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
             + '</button>'
             + '</div></td>'
@@ -7658,7 +7690,7 @@ window.CRM.pageApiBindings = (function () {
         if (!next) return;
         var ids = selectedClientIds();
         if (!ids.length) {
-          notify('Выберите хотя бы одного клиента', 'warning');
+          notify(tp('clients.select_one', 'Select at least one client'), 'warning');
           clientsBulkStatus.value = '';
           return;
         }
@@ -7672,7 +7704,7 @@ window.CRM.pageApiBindings = (function () {
             skipped += 1;
           }
         }));
-        var summary = 'Статус клиентов обновлен: ' + updated + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+        var summary = tp('clients.bulk_status_updated_prefix', 'Client statuses updated: ') + updated + tp('clients.of', ' of ') + ids.length + (skipped ? (tp('clients.skipped_prefix', ', skipped ') + skipped) : '');
         if (clientsBulkResult) {
           clientsBulkResult.textContent = summary;
           clientsBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -7687,10 +7719,10 @@ window.CRM.pageApiBindings = (function () {
       clientsBulkDeleteBtn.addEventListener('click', async function () {
         var ids = selectedClientIds();
         if (!ids.length) {
-          notify('Выберите хотя бы одного клиента', 'warning');
+          notify(tp('clients.select_one', 'Select at least one client'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить выбранных клиентов (' + ids.length + ')?')) return;
+        if (!window.confirm(tp('clients.bulk_delete_confirm_prefix', 'Delete selected clients (') + ids.length + ')?')) return;
         var deleted = 0;
         var skipped = 0;
         await Promise.all(ids.map(async function (id) {
@@ -7701,7 +7733,7 @@ window.CRM.pageApiBindings = (function () {
             skipped += 1;
           }
         }));
-        var result = 'Удалено клиентов: ' + deleted + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+        var result = tp('clients.bulk_deleted_prefix', 'Clients deleted: ') + deleted + tp('clients.of', ' of ') + ids.length + (skipped ? (tp('clients.skipped_prefix', ', skipped ') + skipped) : '');
         if (clientsBulkResult) {
           clientsBulkResult.textContent = result;
           clientsBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -7737,7 +7769,7 @@ window.CRM.pageApiBindings = (function () {
     if (sortDirInput) sortDirInput.value = sortDir;
     if (compactBtn) {
       compactBtn.classList.toggle('btn-primary', compact);
-      compactBtn.textContent = compact ? 'Обычный вид' : 'Компактный вид';
+      compactBtn.textContent = compact ? tp('clients.normal_view', 'Normal view') : tp('clients.compact_view', 'Compact view');
     }
     function updateCounterpartiesSavedViewUi() {
       if (deleteViewBtn && savedViewSelect) {
@@ -7767,7 +7799,7 @@ window.CRM.pageApiBindings = (function () {
       savedViewSelect.textContent = '';
       var defaultOpt = document.createElement('option');
       defaultOpt.value = '';
-      defaultOpt.textContent = 'Вид по умолчанию';
+      defaultOpt.textContent = tp('clients.default_view', 'Default view');
       savedViewSelect.appendChild(defaultOpt);
       clientViews.forEach(function (item) {
         var opt = document.createElement('option');
@@ -7878,11 +7910,11 @@ window.CRM.pageApiBindings = (function () {
     if (saveViewBtn && saveViewBtn.dataset.bound !== '1') {
       saveViewBtn.dataset.bound = '1';
       saveViewBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название вида клиентов', '');
+        var title = window.prompt(tp('clients.view_name_prompt', 'Client view name'), '');
         if (title === null) return;
         var trimmedTitle = String(title || '').trim();
         if (!trimmedTitle) {
-          notify('Название вида не может быть пустым', 'warning');
+          notify(tp('clients.view_name_required', 'View name cannot be empty'), 'warning');
           return;
         }
         try {
@@ -7905,7 +7937,7 @@ window.CRM.pageApiBindings = (function () {
             }
           });
           var createdId = String(envelope && envelope.data && envelope.data.view && envelope.data.view.public_id || '').trim();
-          notify('Вид клиентов сохранен');
+          notify(tp('clients.view_saved', 'Client view saved'));
           if (createdId) {
             currentViewPublicId = createdId;
             navigateClients({
@@ -7921,7 +7953,7 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var createSavedViewError = window.CRM.api.normalizeError(error, 'Не удалось сохранить вид клиентов');
+          var createSavedViewError = window.CRM.api.normalizeError(error, tp('clients.view_save_fail', 'Failed to save client view'));
           notify(window.CRM.api.formatErrorMessage(createSavedViewError, { withRequestId: true }), 'error');
         }
       });
@@ -7932,13 +7964,13 @@ window.CRM.pageApiBindings = (function () {
       deleteViewBtn.addEventListener('click', async function () {
         var selectedId = String(savedViewSelect && savedViewSelect.value || '').trim();
         if (!selectedId) {
-          notify('Выберите сохраненный вид', 'warning');
+          notify(tp('clients.select_saved_view', 'Select a saved view'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить выбранный сохраненный вид клиентов?')) return;
+        if (!window.confirm(tp('clients.delete_saved_view_confirm', 'Delete selected saved client view?'))) return;
         try {
           await request('api/v1/views/' + encodeURIComponent(selectedId), { method: 'DELETE' });
-          notify('Сохраненный вид удален');
+          notify(tp('clients.saved_view_deleted', 'Saved view deleted'));
           currentViewPublicId = '';
           navigateClients({
             search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
@@ -7952,7 +7984,7 @@ window.CRM.pageApiBindings = (function () {
             compact: compact ? '1' : ''
           });
         } catch (error) {
-          var deleteSavedViewError = window.CRM.api.normalizeError(error, 'Не удалось удалить вид клиентов');
+          var deleteSavedViewError = window.CRM.api.normalizeError(error, tp('clients.view_delete_fail', 'Failed to delete client view'));
           notify(window.CRM.api.formatErrorMessage(deleteSavedViewError, { withRequestId: true }), 'error');
         }
       });
@@ -7973,15 +8005,15 @@ window.CRM.pageApiBindings = (function () {
 
     async function deleteById(clientId, clientTitle) {
       if (!clientId) return;
-      var title = String(clientTitle || '').trim() || 'без названия';
-      if (!window.confirm('Удалить клиента "' + title + '"?')) return;
+      var title = String(clientTitle || '').trim() || tp('clients.untitled', 'untitled');
+      if (!window.confirm(tp('clients.delete_confirm_prefix', 'Delete client "') + title + '"?')) return;
       try {
         await request('api/v1/clients/' + encodeURIComponent(clientId), { method: 'DELETE' });
-        notify('Клиент удалён');
+        notify(tp('clients.deleted', 'Client deleted'));
         await refreshCurrentPage();
       } catch (error) {
         var envelope = error && error.envelope ? error.envelope : null;
-        notify((envelope && envelope.message) || 'Не удалось удалить клиента', 'error');
+        notify((envelope && envelope.message) || tp('clients.delete_fail', 'Failed to delete client'), 'error');
       }
     }
 
@@ -7990,26 +8022,26 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var payload = collectFormPayload(createForm, 'create');
         if (payload && payload.__error) {
-          showFormErrors(createForm, { extra_attributes_text: ['Поле extra_attributes должно быть валидным JSON'] });
+          showFormErrors(createForm, { extra_attributes_text: [tp('clients.extra_json_invalid', 'extra_attributes field must be valid JSON')] });
           return;
         }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(createForm, localErrors);
-          notify('Исправьте ошибки формы', 'warning');
+          notify(tp('clients.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(createForm);
         try {
           await request('api/v1/clients', { method: 'POST', body: payload });
-          notify('Клиент добавлен');
+          notify(tp('clients.created', 'Client added'));
           if (createModal) createModal.hide();
           fillForm(createForm, { client_type: 'individual', status: 'active' });
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось добавить клиента', 'error');
+          notify((envelope && envelope.message) || tp('clients.create_fail', 'Failed to add client'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -8020,30 +8052,30 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var clientId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!clientId) {
-          notify('Сначала выберите клиента', 'warning');
+          notify(tp('clients.select_client_first', 'Select a client first'), 'warning');
           return;
         }
         var payload = collectFormPayload(editForm, 'update');
         if (payload && payload.__error) {
-          showFormErrors(editForm, { extra_attributes_text: ['Поле extra_attributes должно быть валидным JSON'] });
+          showFormErrors(editForm, { extra_attributes_text: [tp('clients.extra_json_invalid', 'extra_attributes field must be valid JSON')] });
           return;
         }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(editForm, localErrors);
-          notify('Исправьте ошибки формы', 'warning');
+          notify(tp('clients.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(editForm);
         try {
           await request('api/v1/clients/' + encodeURIComponent(clientId), { method: 'PATCH', body: payload });
-          notify('Клиент обновлён');
+          notify(tp('clients.updated', 'Client updated'));
           if (editModal) editModal.hide();
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(editForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось обновить клиента', 'error');
+          notify((envelope && envelope.message) || tp('clients.update_fail', 'Failed to update client'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -8090,7 +8122,7 @@ window.CRM.pageApiBindings = (function () {
         if (editIdInput) editIdInput.value = editClientPublicId;
         editModal.show();
       } else if (!preselectedClient) {
-        notify('Клиент для редактирования не найден в текущем списке', 'warning');
+        notify(tp('clients.edit_not_found', 'Client for editing was not found in the current list'), 'warning');
       }
     }
   }
@@ -8110,15 +8142,15 @@ window.CRM.pageApiBindings = (function () {
     var currentViewPublicId = String(query.get('view_public_id') || '').trim();
 
     var COUNTERPARTY_TYPE_LABELS = {
-      organization: 'Организация',
-      individual: 'Физлицо',
-      sole_proprietor: 'ИП',
-      legal_entity: 'Юрлицо'
+      organization: tp('counterparties.type_organization', 'Organization'),
+      individual: tp('counterparties.type_individual', 'Individual'),
+      sole_proprietor: tp('counterparties.type_sole_proprietor', 'Sole proprietor'),
+      legal_entity: tp('counterparties.type_legal_entity', 'Legal entity')
     };
     var COUNTERPARTY_STATUS_LABELS = {
-      active: 'Активен',
-      inactive: 'Неактивен',
-      archived: 'Архив'
+      active: tp('counterparties.status_active', 'Active'),
+      inactive: tp('counterparties.status_inactive', 'Inactive'),
+      archived: tp('counterparties.status_archived', 'Archived')
     };
     var COUNTERPARTY_FORM_FIELDS = [
       'title',
@@ -8153,7 +8185,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function resolveCounterpartyTitle(cp) {
-      return String((cp && (cp.title || cp.legal_name || cp.email || cp.phone || '')) || '').trim() || 'Контрагент без названия';
+      return String((cp && (cp.title || cp.legal_name || cp.email || cp.phone || '')) || '').trim() || tp('counterparties.untitled_counterparty', 'Untitled counterparty');
     }
 
     function counterpartyStatusLabel(value) {
@@ -8311,31 +8343,31 @@ window.CRM.pageApiBindings = (function () {
         errors[field].push(message);
       }
 
-      if (isBlank(payload.title)) push('title', 'Укажите название контрагента');
-      if (!isValidWebsite(payload.website)) push('website', 'Сайт должен быть валидным URL (http/https)');
+      if (isBlank(payload.title)) push('title', tp('counterparties.validation_title_required', 'Enter counterparty name'));
+      if (!isValidWebsite(payload.website)) push('website', tp('counterparties.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       var type = normalizeType(payload.counterparty_type);
       if (type === 'sole_proprietor' || type === 'organization' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', 'Укажите юридическое наименование / ФИО ИП');
+        if (isBlank(payload.legal_name)) push('legal_name', tp('counterparties.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
       }
       if (type === 'sole_proprietor') {
-        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', 'ИНН ИП должен содержать 12 цифр');
-        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', 'ОГРНИП должен содержать 15 цифр');
+        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', tp('counterparties.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits'));
+        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', tp('counterparties.validation_ogrnip', 'OGRNIP must contain 15 digits'));
       }
       if (type === 'organization' || type === 'legal_entity') {
-        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', 'ИНН юрлица должен содержать 10 цифр');
-        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', 'КПП должен содержать 9 цифр');
-        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', 'ОГРН должен содержать 13 цифр');
+        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', tp('counterparties.validation_inn_legal', 'Legal entity TIN must contain 10 digits'));
+        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', tp('counterparties.validation_kpp', 'KPP must contain 9 digits'));
+        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', tp('counterparties.validation_ogrn', 'OGRN must contain 13 digits'));
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {
         var value = String(payload[field] || '').trim();
         if (!value) return;
-        if (normalizeDigits(value).length !== 20 || value.length !== 20) push(field, 'Поле должно содержать 20 цифр');
+        if (normalizeDigits(value).length !== 20 || value.length !== 20) push(field, tp('counterparties.validation_20_digits', 'Field must contain 20 digits'));
       });
       if (!isBlank(payload.bank_bik)) {
         var bik = String(payload.bank_bik || '').trim();
-        if (normalizeDigits(bik).length !== 9 || bik.length !== 9) push('bank_bik', 'БИК должен содержать 9 цифр');
+        if (normalizeDigits(bik).length !== 9 || bik.length !== 9) push('bank_bik', tp('counterparties.validation_bik', 'BIC must contain 9 digits'));
       }
 
       return errors;
@@ -8354,9 +8386,9 @@ window.CRM.pageApiBindings = (function () {
       if (!modal || !action || !window.bootstrap || !window.bootstrap.Modal) {
         return Promise.resolve(false);
       }
-      if (title) title.textContent = String(options && options.title || 'Подтвердите действие');
-      if (body) body.textContent = String(options && options.body || 'Продолжить?');
-      action.textContent = String(options && options.actionText || 'Подтвердить');
+      if (title) title.textContent = String(options && options.title || tp('common.confirm_title', 'Confirm action'));
+      if (body) body.textContent = String(options && options.body || tp('common.confirm_body', 'Continue?'));
+      action.textContent = String(options && options.actionText || tp('common.confirm_action', 'Confirm'));
       action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
       var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
       return new Promise(function (resolve) {
@@ -8400,13 +8432,13 @@ window.CRM.pageApiBindings = (function () {
     var tableBody = document.getElementById('counterpartiesTableBody');
     if (tableBody) {
       if (!counterparties.length) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="text-muted">Контрагенты не найдены.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
       } else {
         tableBody.innerHTML = counterparties.map(function (cp) {
           var id = String(cp.public_id || '').trim();
           var statusCode = String(cp.status || '').trim();
           return '<tr>'
-            + '<td><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="Выбрать контрагента ' + safeText(resolveCounterpartyTitle(cp)) + '"></td>'
+            + '<td><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + resolveCounterpartyTitle(cp)) + '"></td>'
             + '<td><a class="fw-semibold text-decoration-none crm-counterparty-name-link" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(resolveCounterpartyTitle(cp)) + '</a></td>'
             + '<td><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span></td>'
             + '<td>' + safeText(cp.tax_inn || '—') + '</td>'
@@ -8415,10 +8447,10 @@ window.CRM.pageApiBindings = (function () {
             + '<td><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></td>'
             + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
             + '<td><div class="crm-counterparty-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="Редактировать контрагента" title="Редактировать контрагента">'
+            + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-counterparty-edit="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '" title="' + safeText(tp('counterparties.edit_counterparty', 'Edit counterparty')) + '">'
             + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square"></i></span>'
             + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="Удалить контрагента" title="Удалить контрагента">'
+            + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-counterparty-delete="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '" title="' + safeText(tp('counterparties.delete_counterparty', 'Delete counterparty')) + '">'
             + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
             + '</button>'
             + '</div></td>'
@@ -8430,7 +8462,7 @@ window.CRM.pageApiBindings = (function () {
     var mobileList = document.getElementById('counterpartiesMobileList');
     if (mobileList) {
       if (!counterparties.length) {
-        mobileList.innerHTML = '<div class="crm-empty-state"><strong>Контрагенты не найдены</strong><p class="mb-0">Измените фильтры или создайте нового контрагента.</p></div>';
+        mobileList.innerHTML = '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
       } else {
         mobileList.innerHTML = counterparties.map(function (cp) {
           var id = String(cp.public_id || '').trim();
@@ -8438,19 +8470,19 @@ window.CRM.pageApiBindings = (function () {
           var statusCode = String(cp.status || '').trim();
           return '<article class="crm-counterparty-mobile-card">'
             + '<div class="crm-counterparty-mobile-head">'
-            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="Выбрать контрагента ' + safeText(title) + '"></label>'
+            + '<label class="crm-counterparty-mobile-check"><input class="form-check-input" type="checkbox" data-counterparty-bulk-id="' + safeText(id) + '" aria-label="' + safeText(tp('counterparties.select_counterparty_prefix', 'Select counterparty ') + title) + '"></label>'
             + '<div><a class="crm-counterparty-mobile-title" href="index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(id) + '">' + safeText(title) + '</a>'
             + '<div class="crm-counterparty-mobile-meta"><span class="crm-chip">' + safeText(typeLabel(cp.counterparty_type)) + '</span><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></div></div>'
             + '</div>'
             + '<dl class="crm-counterparty-mobile-details">'
-            + '<div><dt>ИНН</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
+            + '<div><dt>' + tp('counterparties.inn', 'TIN') + '</dt><dd>' + safeText(cp.tax_inn || '—') + '</dd></div>'
             + '<div><dt>Email</dt><dd>' + safeText(cp.email || '—') + '</dd></div>'
-            + '<div><dt>Телефон</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
-            + '<div><dt>Обновлен</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
+            + '<div><dt>' + tp('counterparties.phone', 'Phone') + '</dt><dd>' + safeText(cp.phone || '—') + '</dd></div>'
+            + '<div><dt>' + tp('counterparties.updated', 'Updated') + '</dt><dd>' + safeText(formatDate(cp.updated_at)) + '</dd></div>'
             + '</dl>'
             + '<div class="crm-counterparty-mobile-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">Редактировать</button>'
-            + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">Удалить</button>'
+            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-counterparty-edit="' + safeText(id) + '">' + tp('counterparties.edit', 'Edit') + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger-soft" type="button" data-counterparty-delete="' + safeText(id) + '">' + tp('counterparties.delete', 'Delete') + '</button>'
             + '</div>'
             + '</article>';
         }).join('');
@@ -8517,7 +8549,7 @@ window.CRM.pageApiBindings = (function () {
         if (!next) return;
         var ids = selectedCounterpartyIds();
         if (!ids.length) {
-          notify('Выберите хотя бы одного контрагента', 'warning');
+          notify(tp('counterparties.select_one', 'Select at least one counterparty'), 'warning');
           counterpartiesBulkStatus.value = '';
           return;
         }
@@ -8531,7 +8563,7 @@ window.CRM.pageApiBindings = (function () {
             skipped += 1;
           }
         }));
-        var summary = 'Статус контрагентов обновлен: ' + updated + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+        var summary = tp('counterparties.bulk_status_updated_prefix', 'Counterparty statuses updated: ') + updated + tp('counterparties.of', ' of ') + ids.length + (skipped ? (tp('counterparties.skipped_prefix', ', skipped ') + skipped) : '');
         if (counterpartiesBulkResult) {
           counterpartiesBulkResult.textContent = summary;
           counterpartiesBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -8546,13 +8578,13 @@ window.CRM.pageApiBindings = (function () {
       counterpartiesBulkDeleteBtn.addEventListener('click', async function () {
         var ids = selectedCounterpartyIds();
         if (!ids.length) {
-          notify('Выберите хотя бы одного контрагента', 'warning');
+          notify(tp('counterparties.select_one', 'Select at least one counterparty'), 'warning');
           return;
         }
         var confirmed = await confirmCounterpartiesAction({
-          title: 'Удалить выбранных контрагентов?',
-          body: 'Будет удалено контрагентов: ' + ids.length + '. Это действие нельзя отменить.',
-          actionText: 'Удалить',
+          title: tp('counterparties.bulk_delete_title', 'Delete selected counterparties?'),
+          body: tp('counterparties.bulk_delete_body_prefix', 'Counterparties to delete: ') + ids.length + tp('counterparties.delete_irreversible_suffix', '. This action cannot be undone.'),
+          actionText: tp('counterparties.delete', 'Delete'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
@@ -8566,7 +8598,7 @@ window.CRM.pageApiBindings = (function () {
             skipped += 1;
           }
         }));
-        var result = 'Удалено контрагентов: ' + deleted + ' из ' + ids.length + (skipped ? (', пропущено ' + skipped) : '');
+        var result = tp('counterparties.bulk_deleted_prefix', 'Counterparties deleted: ') + deleted + tp('counterparties.of', ' of ') + ids.length + (skipped ? (tp('counterparties.skipped_prefix', ', skipped ') + skipped) : '');
         if (counterpartiesBulkResult) {
           counterpartiesBulkResult.textContent = result;
           counterpartiesBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
@@ -8606,7 +8638,7 @@ window.CRM.pageApiBindings = (function () {
     if (sortDirInput) sortDirInput.value = sortDir;
     if (compactBtn) {
       compactBtn.classList.toggle('btn-primary', compact);
-      compactBtn.textContent = compact ? 'Обычный вид' : 'Компактный вид';
+      compactBtn.textContent = compact ? tp('counterparties.normal_view', 'Normal view') : tp('counterparties.compact_view', 'Compact view');
     }
 
     function applyFilters() {
@@ -8631,7 +8663,7 @@ window.CRM.pageApiBindings = (function () {
       savedViewSelect.textContent = '';
       var defaultOpt = document.createElement('option');
       defaultOpt.value = '';
-      defaultOpt.textContent = 'Вид по умолчанию';
+      defaultOpt.textContent = tp('counterparties.default_view', 'Default view');
       savedViewSelect.appendChild(defaultOpt);
       cpViews.forEach(function (item) {
         var opt = document.createElement('option');
@@ -8757,7 +8789,7 @@ window.CRM.pageApiBindings = (function () {
         var trimmedTitle = String(saveViewTitleInput && saveViewTitleInput.value || '').trim();
         if (!trimmedTitle) {
           if (saveViewTitleInput) saveViewTitleInput.classList.add('is-invalid');
-          notify('Название вида не может быть пустым', 'warning');
+          notify(tp('counterparties.view_name_required', 'View name cannot be empty'), 'warning');
           return;
         }
         if (saveViewTitleInput) saveViewTitleInput.classList.remove('is-invalid');
@@ -8781,7 +8813,7 @@ window.CRM.pageApiBindings = (function () {
             }
           });
           var createdId = String(envelope && envelope.data && envelope.data.view && envelope.data.view.public_id || '').trim();
-          notify('Вид контрагентов сохранен');
+          notify(tp('counterparties.view_saved', 'Counterparty view saved'));
           if (saveViewModal) saveViewModal.hide();
           if (createdId) {
             currentViewPublicId = createdId;
@@ -8798,7 +8830,7 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var createSavedViewError = window.CRM.api.normalizeError(error, 'Не удалось сохранить вид контрагентов');
+          var createSavedViewError = window.CRM.api.normalizeError(error, tp('counterparties.view_save_fail', 'Failed to save counterparty view'));
           notify(window.CRM.api.formatErrorMessage(createSavedViewError, { withRequestId: true }), 'error');
         }
       });
@@ -8809,22 +8841,22 @@ window.CRM.pageApiBindings = (function () {
       deleteViewBtn.addEventListener('click', async function () {
         var selectedId = String(savedViewSelect && savedViewSelect.value || '').trim();
         if (!selectedId) {
-          notify('Выберите сохраненный вид', 'warning');
+          notify(tp('counterparties.select_saved_view', 'Select a saved view'), 'warning');
           return;
         }
         var selectedTitle = savedViewSelect && savedViewSelect.options[savedViewSelect.selectedIndex]
           ? savedViewSelect.options[savedViewSelect.selectedIndex].textContent
-          : 'выбранный вид';
+          : tp('counterparties.selected_view', 'selected view');
         var confirmed = await confirmCounterpartiesAction({
-          title: 'Удалить сохраненный вид?',
-          body: 'Вид "' + selectedTitle + '" будет удален. Данные контрагентов не изменятся.',
-          actionText: 'Удалить',
+          title: tp('counterparties.delete_saved_view_title', 'Delete saved view?'),
+          body: tp('counterparties.delete_saved_view_body_prefix', 'View "') + selectedTitle + tp('counterparties.delete_saved_view_body_suffix', '" will be deleted. Counterparty data will not change.'),
+          actionText: tp('counterparties.delete', 'Delete'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
         try {
           await request('api/v1/views/' + encodeURIComponent(selectedId), { method: 'DELETE' });
-          notify('Сохраненный вид удален');
+          notify(tp('counterparties.saved_view_deleted', 'Saved view deleted'));
           currentViewPublicId = '';
           navigateCounterparties({
             search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
@@ -8838,7 +8870,7 @@ window.CRM.pageApiBindings = (function () {
             compact: compact ? '1' : ''
           });
         } catch (error) {
-          var deleteSavedViewError = window.CRM.api.normalizeError(error, 'Не удалось удалить вид контрагентов');
+          var deleteSavedViewError = window.CRM.api.normalizeError(error, tp('counterparties.view_delete_fail', 'Failed to delete counterparty view'));
           notify(window.CRM.api.formatErrorMessage(deleteSavedViewError, { withRequestId: true }), 'error');
         }
       });
@@ -8859,21 +8891,21 @@ window.CRM.pageApiBindings = (function () {
 
     async function deleteById(cpId, cpTitle) {
       if (!cpId) return;
-      var title = String(cpTitle || '').trim() || 'без названия';
+      var title = String(cpTitle || '').trim() || tp('counterparties.untitled', 'untitled');
       var confirmed = await confirmCounterpartiesAction({
-        title: 'Удалить контрагента?',
-        body: 'Контрагент "' + title + '" будет удален. Это действие нельзя отменить.',
-        actionText: 'Удалить',
+        title: tp('counterparties.delete_title', 'Delete counterparty?'),
+        body: tp('counterparties.delete_body_prefix', 'Counterparty "') + title + tp('counterparties.delete_body_suffix', '" will be deleted. This action cannot be undone.'),
+        actionText: tp('counterparties.delete', 'Delete'),
         actionClass: 'crm-btn-danger-soft'
       });
       if (!confirmed) return;
       try {
         await request('api/v1/counterparties/' + encodeURIComponent(cpId), { method: 'DELETE' });
-        notify('Контрагент удалён');
+        notify(tp('counterparties.deleted', 'Counterparty deleted'));
         await refreshCurrentPage();
       } catch (error) {
         var envelope = error && error.envelope ? error.envelope : null;
-        notify((envelope && envelope.message) || 'Не удалось удалить контрагента', 'error');
+        notify((envelope && envelope.message) || tp('counterparties.delete_fail', 'Failed to delete counterparty'), 'error');
       }
     }
 
@@ -8884,20 +8916,20 @@ window.CRM.pageApiBindings = (function () {
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(createForm, localErrors);
-          notify('Исправьте ошибки формы', 'warning');
+          notify(tp('counterparties.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(createForm);
         try {
           await request('api/v1/counterparties', { method: 'POST', body: payload });
-          notify('Контрагент добавлен');
+          notify(tp('counterparties.created', 'Counterparty added'));
           if (createModal) createModal.hide();
           fillForm(createForm, { counterparty_type: 'individual', status: 'active' });
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось добавить контрагента', 'error');
+          notify((envelope && envelope.message) || tp('counterparties.create_fail', 'Failed to add counterparty'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -8908,26 +8940,26 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var cpId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!cpId) {
-          notify('Сначала выберите контрагента', 'warning');
+          notify(tp('counterparties.select_counterparty_first', 'Select a counterparty first'), 'warning');
           return;
         }
         var payload = collectFormPayload(editForm, 'update');
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(editForm, localErrors);
-          notify('Исправьте ошибки формы', 'warning');
+          notify(tp('counterparties.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(editForm);
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpId), { method: 'PATCH', body: payload });
-          notify('Контрагент обновлён');
+          notify(tp('counterparties.updated_success', 'Counterparty updated'));
           if (editModal) editModal.hide();
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(editForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось обновить контрагента', 'error');
+          notify((envelope && envelope.message) || tp('counterparties.update_fail', 'Failed to update counterparty'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -8973,7 +9005,7 @@ window.CRM.pageApiBindings = (function () {
         if (editIdInput) editIdInput.value = editCounterpartyPublicId;
         editModal.show();
       } else if (!preselectedCp) {
-        notify('Контрагент для редактирования не найден в текущем списке', 'warning');
+        notify(tp('counterparties.edit_not_found', 'Counterparty for editing was not found in the current list'), 'warning');
       }
     }
   }
@@ -8982,19 +9014,19 @@ window.CRM.pageApiBindings = (function () {
     var query = pageQuery();
     var clientPublicId = String(query.get('client_public_id') || '').trim();
     if (!clientPublicId) {
-      setErrorState('Клиент не выбран');
-      notify('Клиент не выбран', 'error');
+      setErrorState(tp('client_detail.not_selected', 'Client not selected'));
+      notify(tp('client_detail.not_selected', 'Client not selected'), 'error');
       return;
     }
 
     var clientEnvelope = await tryRequest('api/v1/clients/' + encodeURIComponent(clientPublicId));
     if (!clientEnvelope || !clientEnvelope.success) {
-      setErrorState('Не удалось загрузить карточку клиента');
+      setErrorState(tp('client_detail.load_fail', 'Failed to load client card'));
       return;
     }
     var client = clientEnvelope && clientEnvelope.data ? clientEnvelope.data.client : null;
     if (!client || typeof client !== 'object') {
-      setErrorState('Клиент не найден');
+      setErrorState(tp('client_detail.not_found', 'Client not found'));
       return;
     }
 
@@ -9018,8 +9050,8 @@ window.CRM.pageApiBindings = (function () {
     var titleNode = document.getElementById('clientDetailTitle');
     var subtitleNode = document.getElementById('clientDetailSubtitle');
     var editLink = document.getElementById('clientDetailEditBtn');
-    if (titleNode) titleNode.textContent = String(client.title || client.legal_name || client.email || client.phone || 'Клиент без названия');
-    if (subtitleNode) subtitleNode.textContent = 'Тип клиента: ' + String(client.client_type === 'legal_entity' ? 'Юрлицо' : (client.client_type === 'sole_proprietor' ? 'ИП' : 'Физлицо'));
+    if (titleNode) titleNode.textContent = String(client.title || client.legal_name || client.email || client.phone || tp('clients.untitled_client', 'Untitled client'));
+    if (subtitleNode) subtitleNode.textContent = tp('client_detail.type_prefix', 'Client type: ') + String(client.client_type === 'legal_entity' ? tp('clients.type_legal_entity', 'Legal entity') : (client.client_type === 'sole_proprietor' ? tp('clients.type_sole_proprietor', 'Sole proprietor') : tp('clients.type_individual', 'Individual')));
     var editModalNode = document.getElementById('clientDetailEditModal');
     var editForm = document.getElementById('clientDetailEditForm');
     var editModal = editModalNode && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(editModalNode) : null;
@@ -9051,7 +9083,7 @@ window.CRM.pageApiBindings = (function () {
             notes: String((editForm.querySelector('[name="notes"]') || {}).value || '').trim()
           };
           if (!payload.title) {
-            notify('Укажите название клиента', 'warning');
+            notify(tp('clients.validation_title_required', 'Enter client name'), 'warning');
             return;
           }
           try {
@@ -9059,12 +9091,12 @@ window.CRM.pageApiBindings = (function () {
               method: 'PATCH',
               body: payload
             });
-            notify('Клиент обновлён');
+            notify(tp('clients.updated', 'Client updated'));
             editModal.hide();
             await refreshCurrentPage();
           } catch (error) {
             var envelope = error && error.envelope ? error.envelope : null;
-            notify((envelope && envelope.message) || 'Не удалось обновить клиента', 'error');
+            notify((envelope && envelope.message) || tp('clients.update_fail', 'Failed to update client'), 'error');
           }
         });
         editForm.dataset.bound = '1';
@@ -9083,9 +9115,9 @@ window.CRM.pageApiBindings = (function () {
 
     function clientTypeLabel(value) {
       var normalized = String(value || '').trim();
-      if (normalized === 'legal_entity') return 'Юрлицо';
-      if (normalized === 'sole_proprietor') return 'ИП';
-      if (normalized === 'individual') return 'Физлицо';
+      if (normalized === 'legal_entity') return tp('clients.type_legal_entity', 'Legal entity');
+      if (normalized === 'sole_proprietor') return tp('clients.type_sole_proprietor', 'Sole proprietor');
+      if (normalized === 'individual') return tp('clients.type_individual', 'Individual');
       return normalized;
     }
 
@@ -9096,31 +9128,31 @@ window.CRM.pageApiBindings = (function () {
     var profile = document.getElementById('clientDetailProfile');
     if (profile) {
       var profileFields = [
-        ['Тип клиента', clientTypeLabel(client.client_type)],
-        ['Юридическое наименование', client.legal_name],
-        ['ИНН', client.tax_inn],
-        ['КПП', client.tax_kpp],
-        ['ОГРН', client.tax_ogrn],
-        ['ОГРНИП', client.tax_ogrnip],
-        ['Расчетный счет', client.bank_account],
-        ['БИК', client.bank_bik],
-        ['Корр. счет', client.bank_corr_account],
-        ['Банк', client.bank_name],
+        [tp('client_detail.field_type', 'Client type'), clientTypeLabel(client.client_type)],
+        [tp('client_detail.field_legal_name', 'Legal name'), client.legal_name],
+        [tp('client_detail.field_inn', 'TIN'), client.tax_inn],
+        [tp('client_detail.field_kpp', 'KPP'), client.tax_kpp],
+        [tp('client_detail.field_ogrn', 'OGRN'), client.tax_ogrn],
+        [tp('client_detail.field_ogrnip', 'OGRNIP'), client.tax_ogrnip],
+        [tp('client_detail.field_bank_account', 'Bank account'), client.bank_account],
+        [tp('client_detail.field_bik', 'BIC'), client.bank_bik],
+        [tp('client_detail.field_corr_account', 'Correspondent account'), client.bank_corr_account],
+        [tp('client_detail.field_bank_name', 'Bank'), client.bank_name],
         ['Email', client.email],
-        ['Телефон', client.phone || client.phone_number],
-        ['Сайт', client.website],
-        ['Мессенджер', client.messenger],
-        ['Юридический адрес', client.address_legal],
-        ['Почтовый адрес', client.address_postal],
-        ['Статус', client.status],
-        ['Комментарий', client.notes]
+        [tp('client_detail.field_phone', 'Phone'), client.phone || client.phone_number],
+        [tp('client_detail.field_website', 'Website'), client.website],
+        [tp('client_detail.field_messenger', 'Messenger'), client.messenger],
+        [tp('client_detail.field_address_legal', 'Legal address'), client.address_legal],
+        [tp('client_detail.field_address_postal', 'Postal address'), client.address_postal],
+        [tp('client_detail.field_status', 'Status'), client.status],
+        [tp('client_detail.field_notes', 'Comment'), client.notes]
       ].filter(function (entry) {
         return hasDisplayValue(entry[1]);
       });
 
       profile.innerHTML = profileFields.length
         ? profileFields.map(function (entry) { return metric(entry[0], entry[1]); }).join('')
-        : '<div class="text-muted">В профиле клиента пока нет заполненных полей.</div>';
+        : '<div class="text-muted">' + tp('client_detail.profile_empty', 'No filled fields in the client profile yet.') + '</div>';
     }
 
     var doneCount = tasks.filter(function (task) {
@@ -9130,20 +9162,20 @@ window.CRM.pageApiBindings = (function () {
     var summaryNode = document.getElementById('clientDetailSummary');
     if (summaryNode) {
       summaryNode.innerHTML = ''
-        + metric('Всего задач', String(tasks.length))
-        + metric('Завершено', String(doneCount))
-        + metric('Сайт', client.website ? 'Да' : 'Нет')
-        + metric('Обновлен', formatDate(client.updated_at));
+        + metric(tp('client_detail.total_tasks', 'Total tasks'), String(tasks.length))
+        + metric(tp('client_detail.completed', 'Completed'), String(doneCount))
+        + metric(tp('client_detail.website', 'Website'), client.website ? tp('common.yes', 'Yes') : tp('common.no', 'No'))
+        + metric(tp('client_detail.updated', 'Updated'), formatDate(client.updated_at));
     }
 
     var tasksBody = document.getElementById('clientDetailTasksBody');
     if (tasksBody) {
       if (!tasks.length) {
-        tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">По клиенту пока нет задач.</td></tr>';
+        tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + tp('client_detail.tasks_empty', 'There are no tasks for this client yet.') + '</td></tr>';
       } else {
         tasksBody.innerHTML = tasks.slice(0, 50).map(function (task) {
-          var taskTitle = String(task.title || '').trim() || 'Задача без названия';
-          var projectTitle = String(task.project_title || '').trim() || 'Проект не указан';
+          var taskTitle = String(task.title || '').trim() || tp('client_detail.untitled_task', 'Untitled task');
+          var projectTitle = String(task.project_title || '').trim() || tp('client_detail.project_not_set', 'Project not specified');
           return '<tr>'
             + '<td><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(task.public_id || '')) + '">' + safeText(taskTitle) + '</a></td>'
             + '<td>' + safeText(statusLabel(task.status_code || task.status || 'new')) + '</td>'
@@ -9158,7 +9190,7 @@ window.CRM.pageApiBindings = (function () {
     if (extraNode) {
       var extra = client.extra_attributes && typeof client.extra_attributes === 'object'
         ? JSON.stringify(client.extra_attributes, null, 2)
-        : 'Нет дополнительных атрибутов';
+        : tp('client_detail.extra_empty', 'No extra attributes');
       extraNode.textContent = String(extra);
     }
 
@@ -9219,11 +9251,11 @@ window.CRM.pageApiBindings = (function () {
 
     function baselineClientFacts() {
       var facts = [];
-      facts.push('Тип клиента: ' + clientTypeLabel(client.client_type || ''));
-      if (hasDisplayValue(client.status)) facts.push('Статус: ' + String(client.status));
+      facts.push(tp('client_detail.fact_type_prefix', 'Client type: ') + clientTypeLabel(client.client_type || ''));
+      if (hasDisplayValue(client.status)) facts.push(tp('client_detail.fact_status_prefix', 'Status: ') + String(client.status));
       if (hasDisplayValue(client.email)) facts.push('Email: ' + String(client.email));
-      if (hasDisplayValue(client.phone || client.phone_number)) facts.push('Телефон: ' + String(client.phone || client.phone_number));
-      facts.push('Связанных задач: ' + String(tasks.length));
+      if (hasDisplayValue(client.phone || client.phone_number)) facts.push(tp('client_detail.fact_phone_prefix', 'Phone: ') + String(client.phone || client.phone_number));
+      facts.push(tp('client_detail.fact_tasks_prefix', 'Related tasks: ') + String(tasks.length));
       return facts;
     }
 
@@ -9234,7 +9266,7 @@ window.CRM.pageApiBindings = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || tp('client_detail.ai_request_failed', 'Failed to perform AI request'))
       };
     }
 
@@ -9246,18 +9278,18 @@ window.CRM.pageApiBindings = (function () {
 
     function clientAiIntentLabel(intentCode) {
       var code = String(intentCode || '').trim();
-      if (code === 'client_meeting_prep') return 'Подготовка к встрече';
-      if (code === 'client_data_quality') return 'Качество данных клиента';
-      if (code === 'client_safe_report') return 'Client-safe отчет';
-      return 'Сводка клиента';
+      if (code === 'client_meeting_prep') return tp('client_detail.ai_meeting_prep', 'Meeting prep');
+      if (code === 'client_data_quality') return tp('client_detail.ai_data_quality', 'Client data quality');
+      if (code === 'client_safe_report') return tp('client_detail.ai_safe_report', 'Client-safe report');
+      return tp('client_detail.ai_summary', 'Client summary');
     }
 
     function renderClientAiCard(suggestion, preview) {
       if (!clientAiCard || !clientAiSummaryText) return;
       if (!aiCanUse) {
-        setClientAiState('hidden', 'Состояние: hidden');
+        setClientAiState('hidden', tp('client_detail.ai_state_hidden', 'State: hidden'));
         clientAiSummaryText.textContent = '';
-        renderClientAiList(clientAiFacts, baselineClientFacts(), 'Факты отсутствуют.');
+        renderClientAiList(clientAiFacts, baselineClientFacts(), tp('client_detail.ai_facts_missing', 'Facts are missing.'));
         renderClientAiList(clientAiInferences, [], '—');
         if (clientAiSummaryBtn) clientAiSummaryBtn.disabled = true;
         if (clientAiMeetingPrepBtn) clientAiMeetingPrepBtn.disabled = true;
@@ -9270,10 +9302,10 @@ window.CRM.pageApiBindings = (function () {
       }
 
       if (!suggestion) {
-        setClientAiState('empty', 'AI-сводка клиента не сформирована.');
-        clientAiSummaryText.textContent = 'Нажмите «AI-сводка», чтобы получить AI-предложение.';
-        renderClientAiList(clientAiFacts, baselineClientFacts(), 'Факты из CRM отсутствуют.');
-        renderClientAiList(clientAiInferences, [], 'AI-инференсы пока не сформированы.');
+        setClientAiState('empty', tp('client_detail.ai_not_generated', 'AI client summary has not been generated.'));
+        clientAiSummaryText.textContent = tp('client_detail.ai_press_summary', 'Press "AI summary" to get an AI proposal.');
+        renderClientAiList(clientAiFacts, baselineClientFacts(), tp('client_detail.ai_crm_facts_missing', 'CRM facts are missing.'));
+        renderClientAiList(clientAiInferences, [], tp('client_detail.ai_inferences_not_generated', 'AI inferences have not been generated yet.'));
         if (clientAiPreviewBtn) clientAiPreviewBtn.disabled = true;
         if (clientAiDismissBtn) clientAiDismissBtn.disabled = true;
         if (clientAiReportDraftWrap) clientAiReportDraftWrap.classList.add('d-none');
@@ -9293,12 +9325,12 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = clientAiIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · ' + tp('client_detail.preview_prefix', 'preview: ') + String(previewChanges) + ' ' + tp('client_detail.changes_short', 'changes');
 
       setClientAiState('ready', stateCopy);
-      clientAiSummaryText.textContent = summary || 'AI-предложение сформировано.';
-      renderClientAiList(clientAiFacts, payloadFacts.length ? payloadFacts : baselineClientFacts(), 'Факты из CRM не указаны.');
-      renderClientAiList(clientAiInferences, inferred, 'AI-инференсы отсутствуют.');
+      clientAiSummaryText.textContent = summary || tp('client_detail.ai_proposal_ready', 'AI proposal generated.');
+      renderClientAiList(clientAiFacts, payloadFacts.length ? payloadFacts : baselineClientFacts(), tp('client_detail.ai_crm_facts_not_specified', 'CRM facts are not specified.'));
+      renderClientAiList(clientAiInferences, inferred, tp('client_detail.ai_inferences_missing', 'AI inferences are missing.'));
       if (clientAiReportDraftWrap && clientAiReportDraftText) {
         if (reportDraft !== '') {
           clientAiReportDraftWrap.classList.remove('d-none');
@@ -9319,11 +9351,11 @@ window.CRM.pageApiBindings = (function () {
           aiError: aiError,
           controls: clientAiPrimaryButtons.concat([clientAiPreviewBtn, clientAiDismissBtn]),
           setState: setClientAiState,
-          fallbackMessage: 'AI-сводка клиента временно недоступна.'
+          fallbackMessage: tp('client_detail.ai_temp_unavailable', 'AI client summary is temporarily unavailable.')
         });
         return;
       }
-      setClientAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || 'AI-сводка клиента временно недоступна.'));
+      setClientAiState(resolveAiUiState(aiError), String((aiError && aiError.message) || tp('client_detail.ai_temp_unavailable', 'AI client summary is temporarily unavailable.')));
     }
 
     renderClientAiCard(currentClientAiSuggestion, currentClientAiPreview);
@@ -9350,8 +9382,8 @@ window.CRM.pageApiBindings = (function () {
       var intentPath = String(config.intentPath || '').trim();
       var idemKey = String(config.idempotencyKey || 'ai-client-intent').trim();
       var successMessage = String(config.successMessage || '').trim();
-      var fallbackMessage = String(config.fallbackMessage || 'Не удалось выполнить AI-действие').trim();
-      var loadingMessage = String(config.loadingMessage || 'Формируем AI-предложение...').trim();
+      var fallbackMessage = String(config.fallbackMessage || tp('client_detail.ai_action_failed', 'Failed to perform AI action')).trim();
+      var loadingMessage = String(config.loadingMessage || tp('client_detail.ai_generating', 'Generating AI proposal...')).trim();
       if (!intentPath) return;
 
       if (aiUi && typeof aiUi.bindAiActionButton === 'function') {
@@ -9391,48 +9423,48 @@ window.CRM.pageApiBindings = (function () {
     bindClientIntentButton(clientAiSummaryBtn, {
       intentPath: 'summary',
       idempotencyKey: 'ai-client-summary',
-      successMessage: 'AI-сводка клиента сформирована',
-      fallbackMessage: 'Не удалось сформировать AI-сводку клиента',
-      loadingMessage: 'Формируем AI-сводку клиента...'
+      successMessage: tp('client_detail.ai_summary_ready', 'AI client summary generated'),
+      fallbackMessage: tp('client_detail.ai_summary_fail', 'Failed to generate AI client summary'),
+      loadingMessage: tp('client_detail.ai_summary_loading', 'Generating AI client summary...')
     });
     bindClientIntentButton(clientAiMeetingPrepBtn, {
       intentPath: 'meeting-prep',
       idempotencyKey: 'ai-client-meeting-prep',
-      successMessage: 'AI-подготовка к встрече сформирована',
-      fallbackMessage: 'Не удалось сформировать подготовку к встрече',
-      loadingMessage: 'Формируем подготовку к встрече...'
+      successMessage: tp('client_detail.ai_meeting_ready', 'AI meeting prep generated'),
+      fallbackMessage: tp('client_detail.ai_meeting_fail', 'Failed to generate meeting prep'),
+      loadingMessage: tp('client_detail.ai_meeting_loading', 'Generating meeting prep...')
     });
     bindClientIntentButton(clientAiDataQualityBtn, {
       intentPath: 'data-quality',
       idempotencyKey: 'ai-client-data-quality',
-      successMessage: 'AI-проверка качества данных сформирована',
-      fallbackMessage: 'Не удалось сформировать AI-проверку качества данных',
-      loadingMessage: 'Формируем AI-проверку качества данных...'
+      successMessage: tp('client_detail.ai_data_quality_ready', 'AI data quality check generated'),
+      fallbackMessage: tp('client_detail.ai_data_quality_fail', 'Failed to generate AI data quality check'),
+      loadingMessage: tp('client_detail.ai_data_quality_loading', 'Generating AI data quality check...')
     });
     bindClientIntentButton(clientAiSafeReportBtn, {
       intentPath: 'client-safe-report',
       idempotencyKey: 'ai-client-safe-report',
-      successMessage: 'Client-safe AI-отчет сформирован',
-      fallbackMessage: 'Не удалось сформировать client-safe AI-отчет',
-      loadingMessage: 'Формируем client-safe AI-отчет...'
+      successMessage: tp('client_detail.ai_safe_report_ready', 'Client-safe AI report generated'),
+      fallbackMessage: tp('client_detail.ai_safe_report_fail', 'Failed to generate client-safe AI report'),
+      loadingMessage: tp('client_detail.ai_safe_report_loading', 'Generating client-safe AI report...')
     });
 
     if (clientAiPreviewBtn) {
       clientAiPreviewBtn.onclick = async function () {
         if (!currentClientAiSuggestion || !currentClientAiSuggestion.public_id) {
-          notify('Сначала сформируйте AI-сводку клиента', 'warning');
+          notify(tp('client_detail.ai_generate_first', 'Generate an AI client summary first'), 'warning');
           return;
         }
         if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(currentClientAiSuggestion)) {
           var blockedClientMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
             ? window.CRM.ai.suggestionPreviewPolicyMessage(currentClientAiSuggestion)
-            : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+            : tp('client_detail.ai_preview_unavailable', 'Preview is temporarily unavailable. Refresh the AI result.');
           setClientAiState('ready', blockedClientMessage);
           notify(blockedClientMessage, 'warning');
           return;
         }
         clientAiPreviewBtn.disabled = true;
-        setClientAiState('loading', 'Подготавливаем предпросмотр AI-сводки клиента...');
+        setClientAiState('loading', tp('client_detail.ai_preview_loading', 'Preparing AI client summary preview...'));
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentClientAiSuggestion.public_id)
@@ -9449,7 +9481,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentClientAiSuggestion, currentClientAiPreview, {
               onApply: function () {
-                notify('Для карточки клиента действует только предпросмотр. Прямое авто-применение отключено.', 'warning');
+                notify(tp('client_detail.ai_preview_only', 'Only preview is available for the client card. Direct auto-apply is disabled.'), 'warning');
               },
               onDismiss: function () {
                 if (clientAiDismissBtn) clientAiDismissBtn.click();
@@ -9460,12 +9492,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var previewError = toClientAiError(error, 'Не удалось открыть предпросмотр AI-сводки клиента');
-          setClientAiState(resolveAiUiState(previewError), previewError.message || 'Не удалось открыть предпросмотр AI-сводки клиента');
+          var previewError = toClientAiError(error, tp('client_detail.ai_preview_open_fail', 'Failed to open AI client summary preview'));
+          setClientAiState(resolveAiUiState(previewError), previewError.message || tp('client_detail.ai_preview_open_fail', 'Failed to open AI client summary preview'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр AI-сводки клиента');
+            window.CRM.ai.renderAiError(error, tp('client_detail.ai_preview_open_fail', 'Failed to open AI client summary preview'));
           }
-          notify(previewError.message || 'Не удалось открыть предпросмотр AI-сводки клиента', 'error');
+          notify(previewError.message || tp('client_detail.ai_preview_open_fail', 'Failed to open AI client summary preview'), 'error');
         } finally {
           clientAiPreviewBtn.disabled = !currentClientAiSuggestion;
         }
@@ -9475,11 +9507,11 @@ window.CRM.pageApiBindings = (function () {
     if (clientAiDismissBtn) {
       clientAiDismissBtn.onclick = async function () {
         if (!currentClientAiSuggestion || !currentClientAiSuggestion.public_id) {
-          notify('AI-сводка клиента не выбрана', 'warning');
+          notify(tp('client_detail.ai_not_selected', 'AI client summary is not selected'), 'warning');
           return;
         }
         clientAiDismissBtn.disabled = true;
-        setClientAiState('loading', 'Отклоняем AI-сводку клиента...');
+        setClientAiState('loading', tp('client_detail.ai_dismissing', 'Dismissing AI client summary...'));
         try {
           var dismissEnvelope = window.CRM.ai && typeof window.CRM.ai.dismissSuggestion === 'function'
             ? await window.CRM.ai.dismissSuggestion(currentClientAiSuggestion.public_id)
@@ -9493,15 +9525,15 @@ window.CRM.pageApiBindings = (function () {
             : currentClientAiSuggestion;
           currentClientAiPreview = null;
           renderClientAiCard(currentClientAiSuggestion, currentClientAiPreview);
-          setClientAiState('dismissed', 'AI-сводка клиента отклонена.');
-          notify('AI-сводка клиента отклонена');
+          setClientAiState('dismissed', tp('client_detail.ai_dismissed', 'AI client summary dismissed.'));
+          notify(tp('client_detail.ai_dismissed', 'AI client summary dismissed'));
         } catch (error) {
-          var dismissError = toClientAiError(error, 'Не удалось отклонить AI-сводку клиента');
-          setClientAiState(resolveAiUiState(dismissError), dismissError.message || 'Не удалось отклонить AI-сводку клиента');
+          var dismissError = toClientAiError(error, tp('client_detail.ai_dismiss_fail', 'Failed to dismiss AI client summary'));
+          setClientAiState(resolveAiUiState(dismissError), dismissError.message || tp('client_detail.ai_dismiss_fail', 'Failed to dismiss AI client summary'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось отклонить AI-сводку клиента');
+            window.CRM.ai.renderAiError(error, tp('client_detail.ai_dismiss_fail', 'Failed to dismiss AI client summary'));
           }
-          notify(dismissError.message || 'Не удалось отклонить AI-сводку клиента', 'error');
+          notify(dismissError.message || tp('client_detail.ai_dismiss_fail', 'Failed to dismiss AI client summary'), 'error');
         } finally {
           var isFinal = currentClientAiSuggestion && String(currentClientAiSuggestion.status || '') === 'dismissed';
           clientAiDismissBtn.disabled = !currentClientAiSuggestion || isFinal;
@@ -9529,9 +9561,9 @@ window.CRM.pageApiBindings = (function () {
     if (!selectedClientId && clients.length) selectedClientId = String(clients[0].public_id || '').trim();
 
     var CLIENT_TYPE_LABELS = {
-      individual: 'Физлицо',
-      sole_proprietor: 'ИП',
-      legal_entity: 'Юрлицо'
+      individual: tp('clients.type_individual', 'Individual'),
+      sole_proprietor: tp('clients.type_sole_proprietor', 'Sole proprietor'),
+      legal_entity: tp('clients.type_legal_entity', 'Legal entity')
     };
     var CLIENT_FORM_FIELDS = [
       'title',
@@ -9579,8 +9611,8 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function resolveClientTitle(client) {
-      if (!client) return 'Клиент';
-      return String(client.title || client.legal_name || client.name || client.company_name || client.email || client.public_id || 'Клиент');
+      if (!client) return tp('client_cabinet.client', 'Client');
+      return String(client.title || client.legal_name || client.name || client.company_name || client.email || client.public_id || tp('client_cabinet.client', 'Client'));
     }
 
     function parseExtraAttributes(textValue) {
@@ -9772,54 +9804,54 @@ window.CRM.pageApiBindings = (function () {
       var updateMode = mode === 'update';
       var type = normalizeClientType(payload.client_type);
       var title = String(payload.title || '').trim();
-      if (!title) push('title', 'Укажите название клиента');
+      if (!title) push('title', tp('clients.validation_title_required', 'Enter client name'));
 
       var website = String(payload.website || '').trim();
-      if (website && !normalizeWebsite(website)) push('website', 'Сайт должен быть валидным URL (http/https)');
+      if (website && !normalizeWebsite(website)) push('website', tp('clients.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       if (payload.extra_attributes !== undefined && payload.extra_attributes !== null && typeof payload.extra_attributes !== 'object') {
-        push('extra_attributes_text', 'extra_attributes должен быть JSON-объектом или массивом');
+        push('extra_attributes_text', tp('client_cabinet.extra_json_object', 'extra_attributes must be a JSON object or array'));
       }
 
       function checkDigits(field, expectedLength, required, label) {
         var raw = String(payload[field] || '').trim();
         if (!raw) {
-          if (required) push(field, 'Укажите ' + label);
+          if (required) push(field, tp('client_cabinet.required_prefix', 'Enter ') + label);
           return;
         }
         var digits = normalizeDigits(raw);
         if (digits.length !== expectedLength || digits !== raw) {
-          push(field, label + ' должен содержать ' + expectedLength + ' цифр');
+          push(field, label + tp('client_cabinet.digits_suffix', ' must contain ') + expectedLength + tp('client_cabinet.digits_word_suffix', ' digits'));
         }
       }
 
       if (type === 'sole_proprietor' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', 'Укажите юридическое наименование / ФИО ИП');
+        if (isBlank(payload.legal_name)) push('legal_name', tp('clients.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
       }
       if (type === 'sole_proprietor') {
-        checkDigits('tax_inn', 12, true, 'ИНН');
-        checkDigits('tax_ogrnip', 15, true, 'ОГРНИП');
+        checkDigits('tax_inn', 12, true, tp('client_detail.field_inn', 'TIN'));
+        checkDigits('tax_ogrnip', 15, true, tp('client_detail.field_ogrnip', 'OGRNIP'));
       }
       if (type === 'legal_entity') {
-        checkDigits('tax_inn', 10, true, 'ИНН');
-        checkDigits('tax_kpp', 9, true, 'КПП');
-        checkDigits('tax_ogrn', 13, true, 'ОГРН');
+        checkDigits('tax_inn', 10, true, tp('client_detail.field_inn', 'TIN'));
+        checkDigits('tax_kpp', 9, true, tp('client_detail.field_kpp', 'KPP'));
+        checkDigits('tax_ogrn', 13, true, tp('client_detail.field_ogrn', 'OGRN'));
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {
         var value = String(payload[field] || '').trim();
         if (!value) return;
         var digits = normalizeDigits(value);
-        if (digits.length !== 20 || digits !== value) push(field, 'Поле должно содержать 20 цифр');
+        if (digits.length !== 20 || digits !== value) push(field, tp('clients.validation_20_digits', 'Field must contain 20 digits'));
       });
       if (!isBlank(payload.bank_bik)) {
         var bik = String(payload.bank_bik || '').trim();
-        if (normalizeDigits(bik) !== bik || bik.length !== 9) push('bank_bik', 'БИК должен содержать 9 цифр');
+        if (normalizeDigits(bik) !== bik || bik.length !== 9) push('bank_bik', tp('clients.validation_bik', 'BIC must contain 9 digits'));
       }
 
       if (updateMode && !isBlank(payload.person_birth_date)) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.person_birth_date || '').trim())) {
-          push('person_birth_date', 'Дата рождения должна быть в формате YYYY-MM-DD');
+          push('person_birth_date', tp('client_cabinet.birth_date_format', 'Birth date must be in YYYY-MM-DD format'));
         }
       }
 
@@ -9897,7 +9929,7 @@ window.CRM.pageApiBindings = (function () {
 
     var title = document.querySelector('.crm-topbar strong');
     if (title) {
-      title.textContent = selectedClient ? ('Клиентский кабинет: ' + resolveClientTitle(selectedClient)) : 'Клиентский кабинет';
+      title.textContent = selectedClient ? (tp('client_cabinet.title_prefix', 'Client cabinet: ') + resolveClientTitle(selectedClient)) : tp('client_cabinet.title', 'Client cabinet');
     }
 
     var totalClientsNode = document.getElementById('clientCabinetKpiTotal');
@@ -9976,7 +10008,7 @@ window.CRM.pageApiBindings = (function () {
     var clientsBody = document.getElementById('clientCabinetClientsBody');
     if (clientsBody) {
       if (!filteredClients.length) {
-        clientsBody.innerHTML = '<tr><td colspan="7" class="text-muted">Клиенты не найдены.</td></tr>';
+        clientsBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
       } else {
         clientsBody.innerHTML = filteredClients.map(function (client) {
           var clientId = String(client.public_id || '').trim();
@@ -9986,8 +10018,8 @@ window.CRM.pageApiBindings = (function () {
           var taxInn = String(client.tax_inn || '').trim();
           var website = String(client.website || '').trim();
           var requisites = '';
-          if (taxInn) requisites += '<div><small class="text-muted">ИНН</small><div>' + safeText(taxInn) + '</div></div>';
-          if (website) requisites += '<div><small class="text-muted">Сайт</small><div>' + safeText(website) + '</div></div>';
+          if (taxInn) requisites += '<div><small class="text-muted">' + tp('client_detail.field_inn', 'TIN') + '</small><div>' + safeText(taxInn) + '</div></div>';
+          if (website) requisites += '<div><small class="text-muted">' + tp('client_detail.field_website', 'Website') + '</small><div>' + safeText(website) + '</div></div>';
           if (!requisites) requisites = '—';
 
           return '<tr' + (isActive ? ' class="is-selected"' : '') + '>'
@@ -9998,10 +10030,10 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + requisites + '</td>'
             + '<td>' + safeText(String(rowTasksCount)) + '</td>'
             + '<td><div class="d-flex gap-1 flex-wrap justify-content-end">'
-            + '<a class="btn btn-sm btn-light" href="' + openLink + '">Открыть кабинет</a>'
-            + '<button class="btn btn-sm ' + (isActive ? 'crm-btn-primary' : 'btn-light') + '" data-client-select="' + safeText(clientId) + '">' + (isActive ? 'Выбран' : 'Выбрать') + '</button>'
-            + '<button class="btn btn-sm btn-light" data-client-edit="' + safeText(clientId) + '">Редактировать</button>'
-            + '<button class="btn btn-sm crm-btn-danger" data-client-delete="' + safeText(clientId) + '">Удалить</button>'
+            + '<a class="btn btn-sm btn-light" href="' + openLink + '">' + tp('client_cabinet.open_cabinet', 'Open cabinet') + '</a>'
+            + '<button class="btn btn-sm ' + (isActive ? 'crm-btn-primary' : 'btn-light') + '" data-client-select="' + safeText(clientId) + '">' + (isActive ? tp('client_cabinet.selected', 'Selected') : tp('client_cabinet.select', 'Select')) + '</button>'
+            + '<button class="btn btn-sm btn-light" data-client-edit="' + safeText(clientId) + '">' + tp('client_cabinet.edit', 'Edit') + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger" data-client-delete="' + safeText(clientId) + '">' + tp('client_cabinet.delete', 'Delete') + '</button>'
             + '</div></td>'
             + '</tr>';
         }).join('');
@@ -10025,42 +10057,42 @@ window.CRM.pageApiBindings = (function () {
       if (selectedClient) {
         if (idInput) idInput.value = String(selectedClient.public_id || '');
         fillClientForm(editForm, selectedClient);
-        if (editHint) editHint.textContent = 'Редактирование клиента: ' + resolveClientTitle(selectedClient);
+        if (editHint) editHint.textContent = tp('client_cabinet.editing_prefix', 'Editing client: ') + resolveClientTitle(selectedClient);
       } else {
         if (idInput) idInput.value = '';
         fillClientForm(editForm, { client_type: 'individual', status: 'active' });
-        if (editHint) editHint.textContent = 'Выберите клиента в таблице слева.';
+        if (editHint) editHint.textContent = tp('client_cabinet.select_left_hint', 'Select a client in the table on the left.');
       }
     }
 
     var selectedClientWrap = document.getElementById('clientCabinetSelectedClient');
     if (selectedClientWrap) {
       if (!selectedClient) {
-        selectedClientWrap.innerHTML = '<div class="text-muted">Клиент не выбран.</div>';
+        selectedClientWrap.innerHTML = '<div class="text-muted">' + tp('client_detail.not_selected', 'Client not selected') + '.</div>';
       } else {
         var personName = [selectedClient.person_last_name || '', selectedClient.person_first_name || '', selectedClient.person_middle_name || '']
           .map(function (part) { return String(part || '').trim(); }).filter(Boolean).join(' ');
         var fields = [
-          { label: 'Клиент', value: resolveClientTitle(selectedClient) },
-          { label: 'Тип', value: clientTypeLabel(selectedClient.client_type) },
-          { label: 'Юр. наименование', value: selectedClient.legal_name },
-          { label: 'ФИО', value: personName },
-          { label: 'ИНН', value: selectedClient.tax_inn },
-          { label: 'КПП', value: selectedClient.tax_kpp },
-          { label: 'ОГРН', value: selectedClient.tax_ogrn },
-          { label: 'ОГРНИП', value: selectedClient.tax_ogrnip },
+          { label: tp('client_cabinet.client', 'Client'), value: resolveClientTitle(selectedClient) },
+          { label: tp('client_cabinet.type', 'Type'), value: clientTypeLabel(selectedClient.client_type) },
+          { label: tp('client_cabinet.legal_short', 'Legal name'), value: selectedClient.legal_name },
+          { label: tp('client_cabinet.full_name', 'Full name'), value: personName },
+          { label: tp('client_detail.field_inn', 'TIN'), value: selectedClient.tax_inn },
+          { label: tp('client_detail.field_kpp', 'KPP'), value: selectedClient.tax_kpp },
+          { label: tp('client_detail.field_ogrn', 'OGRN'), value: selectedClient.tax_ogrn },
+          { label: tp('client_detail.field_ogrnip', 'OGRNIP'), value: selectedClient.tax_ogrnip },
           { label: 'Email', value: selectedClient.email },
-          { label: 'Телефон', value: selectedClient.phone || selectedClient.phone_number },
-          { label: 'Сайт', value: selectedClient.website },
-          { label: 'Мессенджер', value: selectedClient.messenger },
-          { label: 'Расчетный счет', value: selectedClient.bank_account },
-          { label: 'БИК', value: selectedClient.bank_bik },
-          { label: 'Корр. счет', value: selectedClient.bank_corr_account },
-          { label: 'Банк', value: selectedClient.bank_name },
-          { label: 'Юридический адрес', value: selectedClient.address_legal },
-          { label: 'Почтовый адрес', value: selectedClient.address_postal },
-          { label: 'Статус', value: selectedClient.status },
-          { label: 'Комментарий', value: selectedClient.notes }
+          { label: tp('client_detail.field_phone', 'Phone'), value: selectedClient.phone || selectedClient.phone_number },
+          { label: tp('client_detail.field_website', 'Website'), value: selectedClient.website },
+          { label: tp('client_detail.field_messenger', 'Messenger'), value: selectedClient.messenger },
+          { label: tp('client_detail.field_bank_account', 'Bank account'), value: selectedClient.bank_account },
+          { label: tp('client_detail.field_bik', 'BIC'), value: selectedClient.bank_bik },
+          { label: tp('client_detail.field_corr_account', 'Correspondent account'), value: selectedClient.bank_corr_account },
+          { label: tp('client_detail.field_bank_name', 'Bank'), value: selectedClient.bank_name },
+          { label: tp('client_detail.field_address_legal', 'Legal address'), value: selectedClient.address_legal },
+          { label: tp('client_detail.field_address_postal', 'Postal address'), value: selectedClient.address_postal },
+          { label: tp('client_detail.field_status', 'Status'), value: selectedClient.status },
+          { label: tp('client_detail.field_notes', 'Comment'), value: selectedClient.notes }
         ];
 
         selectedClientWrap.innerHTML = fields.filter(function (item) { return !isBlank(item.value); })
@@ -10073,9 +10105,9 @@ window.CRM.pageApiBindings = (function () {
     var tasksList = document.getElementById('clientCabinetTasksList');
     if (tasksList) {
       tasksList.innerHTML = clientTasks.slice(0, 10).map(function (item) {
-        return '<li><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id) + '">' + safeText(item.title || item.public_id || 'Задача') + '</a> — ' + safeText(statusLabel(item.status_code || 'new')) + '</li>';
+        return '<li><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id) + '">' + safeText(item.title || item.public_id || tp('client_detail.untitled_task', 'Untitled task')) + '</a> — ' + safeText(statusLabel(item.status_code || 'new')) + '</li>';
       }).join('');
-      if (!clientTasks.length) tasksList.innerHTML = '<li class="text-muted">По выбранному клиенту задач пока нет.</li>';
+      if (!clientTasks.length) tasksList.innerHTML = '<li class="text-muted">' + tp('client_cabinet.selected_tasks_empty', 'There are no tasks for the selected client yet.') + '</li>';
     }
 
     var progressBar = document.querySelector('.crm-progress-card .progress .progress-bar');
@@ -10088,7 +10120,7 @@ window.CRM.pageApiBindings = (function () {
       var percent = clientTasks.length ? Math.round((done / clientTasks.length) * 100) : 0;
       progressBar.style.width = percent + '%';
       progressBar.textContent = percent + '%';
-      if (progressText) progressText.textContent = clientTasks.length ? ('Завершено задач: ' + done + ' из ' + clientTasks.length) : 'Нет данных по задачам клиента.';
+      if (progressText) progressText.textContent = clientTasks.length ? (tp('client_cabinet.completed_tasks_prefix', 'Completed tasks: ') + done + tp('clients.of', ' of ') + clientTasks.length) : tp('client_cabinet.no_task_data', 'No task data for the client.');
     }
 
     var timeline = document.getElementById('clientCabinetTimeline');
@@ -10096,19 +10128,19 @@ window.CRM.pageApiBindings = (function () {
       var timelineSource = clientTasks.slice(0, 6);
       timeline.innerHTML = timelineSource.length
         ? timelineSource.map(function (item) {
-          return '<div class="crm-timeline-item">' + safeText(formatDate(item.updated_at || item.created_at)) + ' · ' + safeText(item.title || item.public_id || 'Задача') + ' · ' + safeText(statusLabel(item.status_code || 'new')) + '</div>';
+          return '<div class="crm-timeline-item">' + safeText(formatDate(item.updated_at || item.created_at)) + ' · ' + safeText(item.title || item.public_id || tp('client_detail.untitled_task', 'Untitled task')) + ' · ' + safeText(statusLabel(item.status_code || 'new')) + '</div>';
         }).join('')
-        : '<div class="crm-timeline-item">Событий по выбранному клиенту пока нет.</div>';
+        : '<div class="crm-timeline-item">' + tp('client_cabinet.timeline_empty', 'There are no events for the selected client yet.') + '</div>';
     }
 
     var commentsWrap = document.getElementById('clientCabinetComments');
     if (commentsWrap) {
       commentsWrap.innerHTML = clientTasks.length
         ? clientTasks.slice(0, 3).map(function (item) {
-          var text = item.description ? String(item.description) : ('Обновлена задача: ' + (item.title || item.public_id || ''));
+          var text = item.description ? String(item.description) : (tp('client_cabinet.task_updated_prefix', 'Task updated: ') + (item.title || item.public_id || ''));
           return '<div class="crm-comment mb-2">' + safeText(text) + '</div>';
         }).join('')
-        : '<div class="crm-comment text-muted">Комментариев по выбранному клиенту пока нет.</div>';
+        : '<div class="crm-comment text-muted">' + tp('client_cabinet.comments_empty', 'There are no comments for the selected client yet.') + '</div>';
     }
 
     function extractApiErrors(errorEnvelope) {
@@ -10121,21 +10153,21 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var createBody = buildClientPayloadFromForm(createForm, 'create');
         if (createBody && createBody.__error) {
-          renderFormErrors(createForm, { extra_attributes_text: ['Поле extra_attributes должно содержать валидный JSON-объект или массив'] });
+          renderFormErrors(createForm, { extra_attributes_text: [tp('client_cabinet.extra_json_valid', 'extra_attributes field must contain a valid JSON object or array')] });
           return;
         }
 
         var clientValidationErrors = validateClientPayload(createBody, 'create');
         if (Object.keys(clientValidationErrors).length > 0) {
           renderFormErrors(createForm, clientValidationErrors);
-          notify('Исправьте ошибки в форме клиента', 'warning');
+          notify(tp('client_cabinet.fix_client_form', 'Fix errors in the client form'), 'warning');
           return;
         }
         clearFormErrors(createForm);
 
         try {
           await request('api/v1/clients', { method: 'POST', body: createBody });
-          notify('Клиент добавлен');
+          notify(tp('clients.created', 'Client added'));
           createForm.reset();
           fillClientForm(createForm, { client_type: 'individual', status: 'active' });
           await refreshCurrentPage();
@@ -10143,7 +10175,7 @@ window.CRM.pageApiBindings = (function () {
           var createEnvelopeError = error && error.envelope ? error.envelope : null;
           var fieldErrors = extractApiErrors(createEnvelopeError);
           if (Object.keys(fieldErrors).length > 0) renderFormErrors(createForm, fieldErrors);
-          notify((createEnvelopeError && createEnvelopeError.message) || 'Не удалось добавить клиента', 'error');
+          notify((createEnvelopeError && createEnvelopeError.message) || tp('clients.create_fail', 'Failed to add client'), 'error');
         }
       };
     }
@@ -10153,46 +10185,46 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var editId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!editId) {
-          notify('Сначала выберите клиента', 'warning');
+          notify(tp('clients.select_client_first', 'Select a client first'), 'warning');
           return;
         }
         var editBody = buildClientPayloadFromForm(editForm, 'update');
         if (editBody && editBody.__error) {
-          renderFormErrors(editForm, { extra_attributes_text: ['Поле extra_attributes должно содержать валидный JSON-объект или массив'] });
+          renderFormErrors(editForm, { extra_attributes_text: [tp('client_cabinet.extra_json_valid', 'extra_attributes field must contain a valid JSON object or array')] });
           return;
         }
 
         var editValidationErrors = validateClientPayload(editBody, 'update');
         if (Object.keys(editValidationErrors).length > 0) {
           renderFormErrors(editForm, editValidationErrors);
-          notify('Исправьте ошибки в форме клиента', 'warning');
+          notify(tp('client_cabinet.fix_client_form', 'Fix errors in the client form'), 'warning');
           return;
         }
         clearFormErrors(editForm);
 
         try {
           await request('api/v1/clients/' + encodeURIComponent(editId), { method: 'PATCH', body: editBody });
-          notify('Клиент обновлен');
+          notify(tp('clients.updated', 'Client updated'));
           await refreshCurrentPage();
         } catch (error) {
           var editEnvelopeError = error && error.envelope ? error.envelope : null;
           var editFieldErrors = extractApiErrors(editEnvelopeError);
           if (Object.keys(editFieldErrors).length > 0) renderFormErrors(editForm, editFieldErrors);
-          notify((editEnvelopeError && editEnvelopeError.message) || 'Не удалось обновить клиента', 'error');
+          notify((editEnvelopeError && editEnvelopeError.message) || tp('clients.update_fail', 'Failed to update client'), 'error');
         }
       };
     }
 
     async function deleteClientById(clientId) {
       if (!clientId) return;
-      if (!window.confirm('Удалить клиента ' + clientId + '?')) return;
+      if (!window.confirm(tp('client_cabinet.delete_confirm_prefix', 'Delete client ') + clientId + '?')) return;
       try {
         await request('api/v1/clients/' + encodeURIComponent(clientId), { method: 'DELETE' });
-        notify('Клиент удалён');
+        notify(tp('clients.deleted', 'Client deleted'));
         await refreshCurrentPage();
       } catch (error) {
         var deleteEnvelopeError = error && error.envelope ? error.envelope : null;
-        notify((deleteEnvelopeError && deleteEnvelopeError.message) || 'Не удалось удалить клиента', 'error');
+        notify((deleteEnvelopeError && deleteEnvelopeError.message) || tp('clients.delete_fail', 'Failed to delete client'), 'error');
       }
     }
 
@@ -10200,7 +10232,7 @@ window.CRM.pageApiBindings = (function () {
       deleteBtn.onclick = function () {
         var editId = String(((editForm && editForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!editId) {
-          notify('Сначала выберите клиента', 'warning');
+          notify(tp('clients.select_client_first', 'Select a client first'), 'warning');
           return;
         }
         deleteClientById(editId);
@@ -10241,7 +10273,7 @@ window.CRM.pageApiBindings = (function () {
     if (profileSaveButton) {
       profileSaveButton.disabled = true;
       profileSaveButton.classList.remove('is-dirty');
-      profileSaveButton.textContent = 'Загрузка...';
+      profileSaveButton.textContent = tp('profile.loading', 'Loading...');
     }
     profileEditableControls.forEach(function (control) {
       if (control) control.disabled = true;
@@ -10284,7 +10316,7 @@ window.CRM.pageApiBindings = (function () {
       if (control) control.disabled = false;
     });
     if (profileSaveButton) {
-      profileSaveButton.textContent = 'Сохранить изменения';
+      profileSaveButton.textContent = tp('profile.save_changes', 'Save changes');
       profileSaveButton.disabled = true;
       profileSaveButton.classList.remove('is-dirty');
     }
@@ -10321,23 +10353,23 @@ window.CRM.pageApiBindings = (function () {
     }
 
     if (lastLoginTile) {
-      lastLoginTile.textContent = 'Последний вход: ' + safeText(profile && profile.last_login_at ? formatDate(profile.last_login_at) : '—');
+      lastLoginTile.textContent = tp('profile.last_login_prefix', 'Last login: ') + safeText(profile && profile.last_login_at ? formatDate(profile.last_login_at) : '—');
     }
     if (sessionsTile) {
-      sessionsTile.textContent = 'Активные устройства: ' + safeText(String(sessions.length));
+      sessionsTile.textContent = tp('profile.active_devices_prefix', 'Active devices: ') + safeText(String(sessions.length));
     }
     if (twoFactorTile) {
       twoFactorTile.textContent = twoFactorEnabled
-        ? '2FA: включена (резервных кодов: ' + safeText(String(((twoFactorData.two_factor || {}).backup_codes_remaining || 0))) + ')'
-        : '2FA: выключена';
+        ? tp('profile.two_factor_enabled_prefix', '2FA: enabled (backup codes: ') + safeText(String(((twoFactorData.two_factor || {}).backup_codes_remaining || 0))) + ')'
+        : tp('profile.two_factor_disabled', '2FA: disabled');
     }
     if (securityLogTile) {
       if (!hasPermission('logs.view')) {
-        securityLogTile.textContent = 'Журнал безопасности: недостаточно прав для просмотра';
+        securityLogTile.textContent = tp('profile.security_log_no_permission', 'Security log: insufficient permissions to view');
       } else {
         securityLogTile.textContent = securityLogs.length
-          ? 'Журнал безопасности: событий в последних записях — ' + String(securityLogs.length)
-          : 'Журнал безопасности: записей нет';
+          ? tp('profile.security_log_events_prefix', 'Security log: events in recent entries — ') + String(securityLogs.length)
+          : tp('profile.security_log_empty', 'Security log: no entries');
       }
     }
 
@@ -10381,7 +10413,7 @@ window.CRM.pageApiBindings = (function () {
       var body = document.getElementById('crmConfirmBody');
       var action = document.getElementById('crmConfirmActionBtn');
       if (!modal || !title || !body || !action) {
-        notify('Не удалось открыть окно подтверждения', 'error');
+        notify(tp('profile.confirm_open_fail', 'Failed to open confirmation dialog'), 'error');
         return Promise.resolve(false);
       }
       return new Promise(function (resolve) {
@@ -10407,9 +10439,9 @@ window.CRM.pageApiBindings = (function () {
         function onCancel() { cleanup(false); }
         function onModalClick(event) { if (event.target === modal) cleanup(false); }
         function onKeydown(event) { if (event.key === 'Escape') cleanup(false); }
-        title.textContent = options.title || 'Подтвердите действие';
-        body.innerHTML = '<p>' + safeText(options.message || 'Продолжить?') + '</p>';
-        action.textContent = options.actionText || 'Подтвердить';
+        title.textContent = options.title || tp('common.confirm_title', 'Confirm action');
+        body.innerHTML = '<p>' + safeText(options.message || tp('common.confirm_body', 'Continue?')) + '</p>';
+        action.textContent = options.actionText || tp('common.confirm_action', 'Confirm');
         action.className = 'btn ' + (options.actionClass || 'crm-btn-danger-soft');
         action.addEventListener('click', onConfirm);
         modal.addEventListener('click', onModalClick);
@@ -10470,7 +10502,7 @@ window.CRM.pageApiBindings = (function () {
 
           if (updatedUser && window.CRM.api && typeof window.CRM.api.setUser === 'function') {
             window.CRM.api.setUser(updatedUser);
-            var displayName = updatedUser.full_name || updatedUser.login || 'Пользователь';
+            var displayName = updatedUser.full_name || updatedUser.login || tp('profile.user_fallback', 'User');
             document.querySelectorAll('.crm-btn-ghost.dropdown-toggle').forEach(function (el) {
               if (el.textContent && el.textContent.trim()) {
                 el.textContent = displayName;
@@ -10478,11 +10510,11 @@ window.CRM.pageApiBindings = (function () {
             });
           }
 
-          notify('Профиль обновлен');
+          notify(tp('profile.updated', 'Profile updated'));
           await renderProfilePage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось сохранить профиль', 'error');
+          notify((envelopeError && envelopeError.message) || tp('profile.save_fail', 'Failed to save profile'), 'error');
         }
       });
       saveButton.dataset.bound = '1';
@@ -10492,19 +10524,19 @@ window.CRM.pageApiBindings = (function () {
     if (revokeButton && revokeButton.dataset.bound !== '1') {
       revokeButton.addEventListener('click', async function () {
         var confirmed = await confirmProfileAction({
-          title: 'Завершить другие сессии?',
-          message: 'Все устройства кроме текущего будут выведены из аккаунта.',
-          actionText: 'Завершить',
+          title: tp('profile.revoke_sessions_title', 'End other sessions?'),
+          message: tp('profile.revoke_sessions_message', 'All devices except the current one will be signed out.'),
+          actionText: tp('profile.revoke_sessions_action', 'End sessions'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
         try {
           await request('api/v1/security/sessions/revoke-others', { method: 'POST', body: {} });
-          notify('Другие сессии завершены');
+          notify(tp('profile.sessions_revoked', 'Other sessions ended'));
           await renderProfilePage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось завершить сессии', 'error');
+          notify((envelopeError && envelopeError.message) || tp('profile.sessions_revoke_fail', 'Failed to end sessions'), 'error');
         }
       });
       revokeButton.dataset.bound = '1';
@@ -10535,11 +10567,11 @@ window.CRM.pageApiBindings = (function () {
         var repeatPassword = repeatPasswordInput ? repeatPasswordInput.value : '';
         setProfileInlineError(passwordError, '');
         if (String(newPassword).length < 8) {
-          setProfileInlineError(passwordError, 'Новый пароль должен содержать минимум 8 символов.');
+          setProfileInlineError(passwordError, tp('profile.password_min_length', 'New password must contain at least 8 characters.'));
           return;
         }
         if (newPassword !== repeatPassword) {
-          setProfileInlineError(passwordError, 'Пароли не совпадают.');
+          setProfileInlineError(passwordError, tp('profile.password_mismatch', 'Passwords do not match.'));
           return;
         }
         if (passwordSubmit) passwordSubmit.disabled = true;
@@ -10553,10 +10585,10 @@ window.CRM.pageApiBindings = (function () {
           });
           passwordForm.reset();
           closeProfileModal('profilePasswordModal');
-          notify('Пароль успешно изменен');
+          notify(tp('profile.password_changed', 'Password changed successfully'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          setProfileInlineError(passwordError, (envelopeError && envelopeError.message) || 'Не удалось изменить пароль');
+          setProfileInlineError(passwordError, (envelopeError && envelopeError.message) || tp('profile.password_change_fail', 'Failed to change password'));
         } finally {
           if (passwordSubmit) passwordSubmit.disabled = false;
         }
@@ -10567,7 +10599,7 @@ window.CRM.pageApiBindings = (function () {
     var toggleTwoFactorBtn = document.getElementById('profileToggleTwoFactorBtn');
     if (toggleTwoFactorBtn) {
       toggleTwoFactorBtn.setAttribute('data-two-factor-enabled', twoFactorEnabled ? '1' : '0');
-      toggleTwoFactorBtn.textContent = twoFactorEnabled ? 'Отключить 2FA' : 'Включить 2FA';
+      toggleTwoFactorBtn.textContent = twoFactorEnabled ? tp('profile.disable_2fa', 'Disable 2FA') : tp('profile.enable_2fa', 'Enable 2FA');
     }
     if (toggleTwoFactorBtn && toggleTwoFactorBtn.dataset.bound !== '1') {
       toggleTwoFactorBtn.addEventListener('click', function () {
@@ -10583,12 +10615,12 @@ window.CRM.pageApiBindings = (function () {
         var title = document.getElementById('profileTwoFactorModalTitle');
         var note = document.getElementById('profileTwoFactorModalNote');
         var submit = document.getElementById('profileTwoFactorSubmitBtn');
-        if (title) title.textContent = enabledNow ? 'Отключить 2FA' : 'Включить 2FA';
+        if (title) title.textContent = enabledNow ? tp('profile.disable_2fa', 'Disable 2FA') : tp('profile.enable_2fa', 'Enable 2FA');
         if (note) note.textContent = enabledNow
-          ? 'Введите текущий пароль, чтобы отключить двухфакторную защиту.'
-          : 'Введите текущий пароль, чтобы включить двухфакторную защиту. После включения сохраните резервные коды.';
+          ? tp('profile.disable_2fa_note', 'Enter your current password to disable two-factor protection.')
+          : tp('profile.enable_2fa_note', 'Enter your current password to enable two-factor protection. Save the backup codes after enabling.');
         if (submit) {
-          submit.textContent = enabledNow ? 'Отключить 2FA' : 'Включить 2FA';
+          submit.textContent = enabledNow ? tp('profile.disable_2fa', 'Disable 2FA') : tp('profile.enable_2fa', 'Enable 2FA');
           submit.className = 'btn ' + (enabledNow ? 'crm-btn-danger-soft' : 'crm-btn-primary');
         }
         if (form) form.setAttribute('data-two-factor-action', enabledNow ? 'disable' : 'enable');
@@ -10609,7 +10641,7 @@ window.CRM.pageApiBindings = (function () {
         var action = twoFactorForm.getAttribute('data-two-factor-action') || 'enable';
         setProfileInlineError(twoFactorError, '');
         if (String(currentPassword).trim() === '') {
-          setProfileInlineError(twoFactorError, 'Текущий пароль обязателен.');
+          setProfileInlineError(twoFactorError, tp('profile.current_password_required', 'Current password is required.'));
           return;
         }
         if (twoFactorSubmit) twoFactorSubmit.disabled = true;
@@ -10620,7 +10652,7 @@ window.CRM.pageApiBindings = (function () {
               body: { current_password: currentPassword }
             });
             closeProfileModal('profileTwoFactorModal');
-            notify('2FA отключена');
+            notify(tp('profile.two_factor_disabled_notice', '2FA disabled'));
           } else {
             var enabled = await request('api/v1/security/2fa/enable', {
               method: 'POST',
@@ -10631,21 +10663,21 @@ window.CRM.pageApiBindings = (function () {
               ? enabled.data.recovery_codes
               : [];
             if (twoFactorResult) {
-              var resultHtml = '<div class="fw-semibold mb-1">2FA включена</div>';
-              resultHtml += '<div class="small mb-2">Сохраните данные настройки и резервные коды до закрытия окна.</div>';
-              resultHtml += '<div class="small"><strong>Код настройки:</strong> <code>' + safeText(setupCode || 'не получен') + '</code></div>';
+              var resultHtml = '<div class="fw-semibold mb-1">' + tp('profile.two_factor_enabled_notice', '2FA enabled') + '</div>';
+              resultHtml += '<div class="small mb-2">' + tp('profile.two_factor_save_codes_note', 'Save setup data and backup codes before closing the window.') + '</div>';
+              resultHtml += '<div class="small"><strong>' + tp('profile.setup_code', 'Setup code') + ':</strong> <code>' + safeText(setupCode || tp('profile.setup_code_missing', 'not received')) + '</code></div>';
               if (backupCodes.length) {
-                resultHtml += '<div class="small mt-2"><strong>Резервные коды:</strong><br><code>' + backupCodes.map(function (code) { return safeText(code); }).join('</code><br><code>') + '</code></div>';
+                resultHtml += '<div class="small mt-2"><strong>' + tp('profile.backup_codes', 'Backup codes') + ':</strong><br><code>' + backupCodes.map(function (code) { return safeText(code); }).join('</code><br><code>') + '</code></div>';
               }
               twoFactorResult.innerHTML = resultHtml;
               twoFactorResult.classList.remove('d-none');
             }
-            notify('2FA включена');
+            notify(tp('profile.two_factor_enabled_notice', '2FA enabled'));
           }
           await renderProfilePage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          setProfileInlineError(twoFactorError, (envelopeError && envelopeError.message) || 'Не удалось изменить состояние 2FA');
+          setProfileInlineError(twoFactorError, (envelopeError && envelopeError.message) || tp('profile.two_factor_change_fail', 'Failed to change 2FA state'));
         } finally {
           if (twoFactorSubmit) twoFactorSubmit.disabled = false;
         }
@@ -10659,7 +10691,7 @@ window.CRM.pageApiBindings = (function () {
     var filterSearch = String(query.get('search') || '').trim().toLowerCase();
     var filterType = String(query.get('team_type') || '').trim();
 
-    var TEAM_TYPE_LABELS = { department: 'Отдел', team: 'Команда' };
+    var TEAM_TYPE_LABELS = { department: tp('teams.type_department', 'Department'), team: tp('teams.type_team', 'Team') };
     function teamTypeLabel(value) { return TEAM_TYPE_LABELS[String(value || '').trim()] || String(value || '—'); }
 
     function clearFormErrors(form) {
@@ -10798,8 +10830,8 @@ window.CRM.pageApiBindings = (function () {
           var metaCreated = editForm.querySelector('[data-edit-meta-created]');
           var metaCount = editForm.querySelector('[data-edit-meta-count]');
           if (metaId) metaId.textContent = teamId;
-          if (metaCreated) metaCreated.textContent = 'Создана ' + formatDateShort(team.created_at);
-          if (metaCount) metaCount.textContent = memberIds.length + ' участник' + (memberIds.length === 1 ? '' : memberIds.length < 5 ? 'а' : 'ов');
+          if (metaCreated) metaCreated.textContent = tp('teams.created_prefix', 'Created ') + formatDateShort(team.created_at);
+          if (metaCount) metaCount.textContent = memberIds.length + ' ' + tpPlural('teams.participant', memberIds.length, { one: 'participant', few: 'participants', many: 'participants' });
 
           setTimeout(function() {
             editFormOriginalState = captureEditFormState();
@@ -10815,12 +10847,12 @@ window.CRM.pageApiBindings = (function () {
         btn.addEventListener('click', function () {
           var teamId = String(btn.getAttribute('data-team-delete') || '').trim();
           if (!teamId) return;
-          if (!window.confirm('Удалить команду? Это действие нельзя отменить.')) return;
+          if (!window.confirm(tp('teams.delete_confirm', 'Delete team? This action cannot be undone.'))) return;
           request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'DELETE' })
-            .then(function () { notify('Команда удалена'); return refreshCurrentPage(); })
+            .then(function () { notify(tp('teams.deleted', 'Team deleted')); return refreshCurrentPage(); })
             .catch(function (error) {
               var envelope = error && error.envelope ? error.envelope : null;
-              notify((envelope && envelope.message) || 'Не удалось удалить команду', 'error');
+              notify((envelope && envelope.message) || tp('teams.delete_fail', 'Failed to delete team'), 'error');
             });
         });
         btn.dataset.bound = '1';
@@ -10874,7 +10906,7 @@ window.CRM.pageApiBindings = (function () {
       walk(treeInfo.roots, 0);
 
       if (!flat.length) {
-        container.innerHTML = '<div class="crm-tree-empty">Команды не найдены.</div>';
+        container.innerHTML = '<div class="crm-tree-empty">' + tp('teams.empty', 'Teams not found.') + '</div>';
         return;
       }
 
@@ -10897,7 +10929,7 @@ window.CRM.pageApiBindings = (function () {
 
         var titleHtml = '';
         if (hasChildren) {
-          titleHtml += '<button class="crm-tree-toggle" type="button" data-toggle-id="' + safeText(id) + '" aria-label="' + (isExpanded ? 'Свернуть' : 'Развернуть') + '">';
+          titleHtml += '<button class="crm-tree-toggle" type="button" data-toggle-id="' + safeText(id) + '" aria-label="' + (isExpanded ? tp('teams.collapse', 'Collapse') : tp('teams.expand', 'Expand')) + '">';
           titleHtml += '<span class="crm-tree-toggle-icon"><i class="fa-solid fa-chevron-' + (isExpanded ? 'down' : 'right') + '"></i></span>';
           titleHtml += '</button>';
         } else {
@@ -10918,10 +10950,10 @@ window.CRM.pageApiBindings = (function () {
         var typeBadge = '<span class="crm-type-badge ' + (isDepartment ? 'badge-department' : 'badge-team') + '">' + safeText(typeLabel) + '</span>';
 
         var actionsHtml = '<div class="crm-team-actions">'
-          + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-edit="' + safeText(id) + '" aria-label="Редактировать команду" title="Редактировать команду">'
+          + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-edit="' + safeText(id) + '" aria-label="' + safeText(tp('teams.edit_team', 'Edit team')) + '" title="' + safeText(tp('teams.edit_team', 'Edit team')) + '">'
           + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square"></i></span>'
           + '</button>'
-          + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-team-delete="' + safeText(id) + '" aria-label="Удалить команду" title="Удалить команду">'
+          + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-team-delete="' + safeText(id) + '" aria-label="' + safeText(tp('teams.delete_team', 'Delete team')) + '" title="' + safeText(tp('teams.delete_team', 'Delete team')) + '">'
           + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
           + '</button>'
           + '</div>';
@@ -11023,7 +11055,7 @@ window.CRM.pageApiBindings = (function () {
     // Populate parent selects
     function populateParentSelect(select, teams) {
       if (!select) return;
-      select.innerHTML = '<option value="">Без родителя</option>';
+      select.innerHTML = '<option value="">' + tp('teams.no_parent', 'No parent') + '</option>';
       teams.forEach(function (t) {
         var opt = document.createElement('option');
         opt.value = String(t.public_id || '');
@@ -11091,8 +11123,8 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="team-participant-name">' + safeText(p.full_name || p.login || p.public_id) + '</div>'
             + '<div class="team-participant-detail">' + safeText(p.login || '') + '</div>'
             + '</div>'
-            + (isManager ? '<span class="team-participant-badge team-badge-manager">Менеджер</span>' : '')
-            + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="Удалить"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
+            + (isManager ? '<span class="team-participant-badge team-badge-manager">' + safeText(tp('teams.manager_badge', 'Manager')) + '</span>' : '')
+            + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="' + safeText(tp('teams.remove', 'Remove')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span></button>'
             + '</div>';
         }).join('');
         updateCount();
@@ -11150,7 +11182,7 @@ window.CRM.pageApiBindings = (function () {
       function showSearchDropdown(items, searchQuery) {
         if (!searchResults) return;
         if (!items.length) {
-          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>Ничего не найдено по запросу «' + safeText(searchQuery) + '»</div>';
+          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>' + safeText(tp('teams.search_empty_prefix', 'Nothing found for "')) + safeText(searchQuery) + safeText(tp('teams.search_empty_suffix', '"')) + '</div>';
           searchResults.hidden = false;
           return;
         }
@@ -11164,7 +11196,7 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="team-search-item-detail">' + safeText(u.login || '') + '</div>'
             + '</div>'
             + '<div class="team-search-item-action">'
-            + (added ? '<span class="crm-chip">Добавлен</span>' : '<button type="button" class="btn crm-btn-primary crm-btn-compact" data-add-user="' + safeText(u.public_id) + '">+ Добавить</button>')
+            + (added ? '<span class="crm-chip">' + safeText(tp('teams.added', 'Added')) + '</span>' : '<button type="button" class="btn crm-btn-primary crm-btn-compact" data-add-user="' + safeText(u.public_id) + '">' + safeText(tp('teams.add', '+ Add')) + '</button>')
             + '</div>'
             + '</div>';
         }).join('');
@@ -11268,7 +11300,7 @@ window.CRM.pageApiBindings = (function () {
     var createForm = document.getElementById('teamCreateForm');
     if (createForm) {
       populateParentSelect(createForm.querySelector('[name="parent_public_id"]'), teams);
-      populateManagerSelect(createForm.querySelector('[name="manager_user_public_id"]'), users, 'По умолчанию текущий пользователь');
+      populateManagerSelect(createForm.querySelector('[name="manager_user_public_id"]'), users, tp('teams.default_current_user', 'Current user by default'));
       initSegmentedControl(createForm.querySelector('[data-field="team_type"]'), createForm.querySelector('[name="team_type"]'));
 
       var createPM = createParticipantManager('create', users, '');
@@ -11293,8 +11325,8 @@ window.CRM.pageApiBindings = (function () {
             member_user_public_ids: createPM.getParticipantIds()
           };
           if (!payload.title) {
-            showFormErrors(createForm, { title: ['Укажите название'] });
-            notify('Исправьте ошибки формы', 'warning');
+            showFormErrors(createForm, { title: [tp('teams.validation_title_required', 'Enter a name')] });
+            notify(tp('teams.fix_form_errors', 'Fix form errors'), 'warning');
             return;
           }
           clearFormErrors(createForm);
@@ -11303,12 +11335,12 @@ window.CRM.pageApiBindings = (function () {
           var saveText = createForm.querySelector('[data-create-save-text]');
           var saveSpinner = createForm.querySelector('[data-create-save-spinner]');
           if (saveBtn) saveBtn.disabled = true;
-          if (saveText) saveText.textContent = 'Создание...';
+          if (saveText) saveText.textContent = tp('teams.creating', 'Creating...');
           if (saveSpinner) saveSpinner.hidden = false;
 
           try {
             await request('api/v1/teams', { method: 'POST', body: payload });
-            notify('Команда создана');
+            notify(tp('teams.created', 'Team created'));
             if (createModal) createModal.hide();
             createForm.reset();
             createPM.setParticipants([], {});
@@ -11316,10 +11348,10 @@ window.CRM.pageApiBindings = (function () {
           } catch (error) {
             var envelope = error && error.envelope ? error.envelope : null;
             showFormErrors(createForm, mapApiErrors(envelope));
-            notify((envelope && envelope.message) || 'Не удалось создать команду', 'error');
+            notify((envelope && envelope.message) || tp('teams.create_fail', 'Failed to create team'), 'error');
           } finally {
             if (saveBtn) saveBtn.disabled = false;
-            if (saveText) saveText.textContent = 'Создать';
+            if (saveText) saveText.textContent = tp('teams.create', 'Create');
             if (saveSpinner) saveSpinner.hidden = true;
           }
         });
@@ -11364,7 +11396,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (editForm) {
       populateParentSelect(editForm.querySelector('[name="parent_public_id"]'), teams);
-      populateManagerSelect(editForm.querySelector('[name="manager_user_public_id"]'), users, 'Не назначен');
+      populateManagerSelect(editForm.querySelector('[name="manager_user_public_id"]'), users, tp('teams.not_assigned', 'Not assigned'));
       initSegmentedControl(editForm.querySelector('[data-field="team_type"]'), editForm.querySelector('[name="team_type"]'));
 
       var editPM = createParticipantManager('edit', users, '');
@@ -11381,7 +11413,7 @@ window.CRM.pageApiBindings = (function () {
         editForm.addEventListener('submit', async function (e) {
           e.preventDefault();
           var teamId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
-          if (!teamId) { notify('Сначала выберите команду', 'warning'); return; }
+          if (!teamId) { notify(tp('teams.select_first', 'Select a team first'), 'warning'); return; }
           var payload = {
             title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
             team_type: String((editForm.querySelector('[name="team_type"]') || {}).value || 'team'),
@@ -11391,8 +11423,8 @@ window.CRM.pageApiBindings = (function () {
             member_user_public_ids: editPM.getParticipantIds()
           };
           if (!payload.title) {
-            showFormErrors(editForm, { title: ['Укажите название'] });
-            notify('Исправьте ошибки формы', 'warning');
+            showFormErrors(editForm, { title: [tp('teams.validation_title_required', 'Enter a name')] });
+            notify(tp('teams.fix_form_errors', 'Fix form errors'), 'warning');
             return;
           }
           clearFormErrors(editForm);
@@ -11401,22 +11433,22 @@ window.CRM.pageApiBindings = (function () {
           var saveText = editForm.querySelector('[data-edit-save-text]');
           var saveSpinner = editForm.querySelector('[data-edit-save-spinner]');
           if (saveBtn) saveBtn.disabled = true;
-          if (saveText) saveText.textContent = 'Сохранение...';
+          if (saveText) saveText.textContent = tp('teams.saving', 'Saving...');
           if (saveSpinner) saveSpinner.hidden = false;
 
           try {
             await request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'PATCH', body: payload });
             editFormOriginalState = null;
-            notify('Команда обновлена');
+            notify(tp('teams.updated', 'Team updated'));
             if (editModal) editModal.hide();
             await refreshCurrentPage();
           } catch (error) {
             var envelope = error && error.envelope ? error.envelope : null;
             showFormErrors(editForm, mapApiErrors(envelope));
-            notify((envelope && envelope.message) || 'Не удалось обновить команду', 'error');
+            notify((envelope && envelope.message) || tp('teams.update_fail', 'Failed to update team'), 'error');
           } finally {
             if (saveBtn) saveBtn.disabled = false;
-            if (saveText) saveText.textContent = 'Сохранить';
+            if (saveText) saveText.textContent = tp('teams.save', 'Save');
             if (saveSpinner) saveSpinner.hidden = true;
           }
         });
@@ -11429,12 +11461,12 @@ window.CRM.pageApiBindings = (function () {
         deleteBtn.addEventListener('click', function () {
           var teamId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
           if (!teamId) return;
-          if (!window.confirm('Удалить команду? Это действие нельзя отменить.')) return;
+          if (!window.confirm(tp('teams.delete_confirm', 'Delete team? This action cannot be undone.'))) return;
           request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'DELETE' })
-            .then(function () { notify('Команда удалена'); if (editModal) editModal.hide(); return refreshCurrentPage(); })
+            .then(function () { notify(tp('teams.deleted', 'Team deleted')); if (editModal) editModal.hide(); return refreshCurrentPage(); })
             .catch(function (error) {
               var envelope = error && error.envelope ? error.envelope : null;
-              notify((envelope && envelope.message) || 'Не удалось удалить команду', 'error');
+              notify((envelope && envelope.message) || tp('teams.delete_fail', 'Failed to delete team'), 'error');
             });
         });
         deleteBtn.dataset.bound = '1';
@@ -11448,7 +11480,7 @@ window.CRM.pageApiBindings = (function () {
         // Confirm before close if there are unsaved changes
         editModalNode.addEventListener('hide.bs.modal', function (e) {
           var hasChanges = checkEditFormChanges();
-          if (hasChanges && !window.confirm('Есть несохраненные изменения. Закрыть без сохранения?')) {
+          if (hasChanges && !window.confirm(tp('teams.unsaved_close_confirm', 'There are unsaved changes. Close without saving?'))) {
             e.preventDefault();
           }
         });
@@ -11574,7 +11606,7 @@ window.CRM.pageApiBindings = (function () {
     function renderPermissionList(container, selectedCodes, inputName, idPrefix) {
       if (!container) return;
       if (!permissions.length) {
-        container.innerHTML = '<div class="text-muted">Не удалось получить список доступов.</div>';
+        container.innerHTML = '<div class="text-muted">' + safeText(tp('admin.permissions_load_fail', 'Failed to load permissions list.')) + '</div>';
         return;
       }
 
@@ -11610,11 +11642,11 @@ window.CRM.pageApiBindings = (function () {
 
         return '<tr>'
           + '<td><strong>' + safeText(role.title || role.code || roleId) + '</strong><div class="small text-muted">' + safeText(role.code || '—') + '</div></td>'
-          + '<td>' + (chips || '<span class="text-muted">Нет доступов</span>') + (rest ? ' ' + rest : '') + '</td>'
-          + '<td><span class="crm-badge ' + (canDelete ? 'active' : 'archived') + '">' + (canDelete ? 'Кастомная' : 'Системная') + '</span></td>'
+          + '<td>' + (chips || '<span class="text-muted">' + safeText(tp('admin.no_permissions', 'No permissions')) + '</span>') + (rest ? ' ' + rest : '') + '</td>'
+          + '<td><span class="crm-badge ' + (canDelete ? 'active' : 'archived') + '">' + safeText(canDelete ? tp('admin.role_custom', 'Custom') : tp('admin.role_system', 'System')) + '</span></td>'
           + '<td>' + safeText(formatDate(role.updated_at || role.created_at)) + '</td>'
-          + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(roleId) + '">Редактировать</button>'
-          + '<button class="btn btn-sm crm-btn-danger" data-role-delete="' + safeText(roleId) + '"' + (canDelete ? '' : ' disabled') + '>Удалить</button></div></td>'
+          + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(roleId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger" data-role-delete="' + safeText(roleId) + '"' + (canDelete ? '' : ' disabled') + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
           + '</tr>';
       }).join('');
     }
@@ -11652,7 +11684,7 @@ window.CRM.pageApiBindings = (function () {
         var code = codeInput ? String(codeInput.value || '').trim() : '';
         var title = titleInput ? String(titleInput.value || '').trim() : '';
         if (!code || !title) {
-          notify('Укажите код и название роли', 'warning');
+          notify(tp('admin.role_code_title_required', 'Enter role code and title'), 'warning');
           return;
         }
 
@@ -11674,11 +11706,11 @@ window.CRM.pageApiBindings = (function () {
 
           var createModal = modalInstance('roleCreateModal');
           if (createModal) createModal.hide();
-          notify('Роль успешно добавлена');
+          notify(tp('admin.role_created', 'Role added successfully'));
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось добавить роль', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.role_create_fail', 'Failed to add role'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -11702,7 +11734,7 @@ window.CRM.pageApiBindings = (function () {
         renderPermissionList(editList, role.permission_codes || [], 'edit_permission_codes', 'role_edit_perm');
 
         if (Number(role.is_system || 0) === 1) {
-          notify('Системная роль: изменяйте осторожно', 'warning');
+          notify(tp('admin.role_system_warning', 'System role: edit carefully'), 'warning');
         }
 
         var modal = modalInstance('roleEditModal');
@@ -11718,7 +11750,7 @@ window.CRM.pageApiBindings = (function () {
         var titleInput = editForm.querySelector('[name="title"]');
         var rolePublicId = rolePublicIdInput ? String(rolePublicIdInput.value || '').trim() : '';
         if (!rolePublicId) {
-          notify('Не выбран объект роли для редактирования', 'error');
+          notify(tp('admin.role_not_selected_for_edit', 'No role selected for editing'), 'error');
           return;
         }
 
@@ -11738,11 +11770,11 @@ window.CRM.pageApiBindings = (function () {
 
           var editModal = modalInstance('roleEditModal');
           if (editModal) editModal.hide();
-          notify('Роль обновлена');
+          notify(tp('admin.role_updated', 'Role updated'));
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить роль', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.role_update_fail', 'Failed to update role'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -11761,8 +11793,8 @@ window.CRM.pageApiBindings = (function () {
         if (deletePublicIdNode) deletePublicIdNode.value = roleId;
         if (deleteText) {
           deleteText.textContent = role
-            ? ('Вы действительно хотите удалить роль "' + (role.title || role.code || roleId) + '"?')
-            : 'Роль будет удалена без возможности восстановления.';
+            ? (tp('admin.role_delete_confirm_prefix', 'Delete role "') + (role.title || role.code || roleId) + tp('admin.role_delete_confirm_suffix', '"?'))
+            : tp('admin.role_delete_confirm_default', 'The role will be deleted permanently.');
         }
         var modal = modalInstance('roleDeleteModal');
         if (modal) modal.show();
@@ -11778,11 +11810,11 @@ window.CRM.pageApiBindings = (function () {
           await request('api/v1/roles/' + roleId, { method: 'DELETE' });
           var deleteModal = modalInstance('roleDeleteModal');
           if (deleteModal) deleteModal.hide();
-          notify('Роль удалена');
+          notify(tp('admin.role_deleted', 'Role deleted'));
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить роль', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.role_delete_fail', 'Failed to delete role'), 'error');
         }
       });
       deleteBtn.dataset.bound = '1';
@@ -11840,9 +11872,9 @@ window.CRM.pageApiBindings = (function () {
     var tbody = document.getElementById('adminStatusesTableBody') || document.querySelector('table.crm-table tbody');
     if (tbody) {
       if (!envelope.success) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">Не удалось загрузить статусы: ' + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
       } else if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Статусы не найдены.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.statuses_empty', 'No statuses found.')) + '</td></tr>';
       } else {
         tbody.innerHTML = items.map(function (item) {
           var statusId = statusIdOf(item);
@@ -11853,7 +11885,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
             + '<td>' + safeText(item.scope || 'task') + '</td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-status-edit="' + safeText(statusId) + '"' + disabled + '>Редактировать</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>Удалить</button></div></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -11935,13 +11967,13 @@ window.CRM.pageApiBindings = (function () {
           sort_order: Number((createForm.querySelector('[name="sort_order"]') || {}).value || 100)
         };
         if (!body.title || !body.code || !body.scope) {
-          notify('Заполните обязательные поля статуса', 'warning');
+          notify(tp('admin.status_required_fields', 'Fill required status fields'), 'warning');
           return;
         }
 
         try {
           await createStatus(body);
-          notify('Статус создан');
+          notify(tp('admin.status_created', 'Status created'));
           if (window.bootstrap) {
             var createModal = document.getElementById('statusCreateModal');
             if (createModal) window.bootstrap.Modal.getOrCreateInstance(createModal).hide();
@@ -11951,7 +11983,7 @@ window.CRM.pageApiBindings = (function () {
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать статус', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.status_create_fail', 'Failed to create status'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -11978,7 +12010,7 @@ window.CRM.pageApiBindings = (function () {
         };
         try {
           await updateStatus(statusId, body);
-          notify('Статус обновлен');
+          notify(tp('admin.status_updated', 'Status updated'));
           if (window.bootstrap) {
             var editModal = document.getElementById('statusEditModal');
             if (editModal) window.bootstrap.Modal.getOrCreateInstance(editModal).hide();
@@ -11986,7 +12018,7 @@ window.CRM.pageApiBindings = (function () {
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить статус', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.status_update_fail', 'Failed to update status'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -12002,7 +12034,7 @@ window.CRM.pageApiBindings = (function () {
 
         try {
           await deleteStatus(statusId, remapTo || null);
-          notify('Статус удален');
+          notify(tp('admin.status_deleted', 'Status deleted'));
           if (window.bootstrap) {
             var deleteModal = document.getElementById('statusDeleteModal');
             if (deleteModal) window.bootstrap.Modal.getOrCreateInstance(deleteModal).hide();
@@ -12010,7 +12042,7 @@ window.CRM.pageApiBindings = (function () {
           await refreshCurrentPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить статус', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.status_delete_fail', 'Failed to delete status'), 'error');
         }
       });
       deleteForm.dataset.bound = '1';
@@ -12045,10 +12077,10 @@ window.CRM.pageApiBindings = (function () {
         if (!status || !deleteForm) return;
         (deleteForm.querySelector('[name="public_id"]') || {}).value = statusIdOf(status);
         var text = document.getElementById('statusDeleteText');
-        if (text) text.textContent = 'Удалить статус "' + (status.title || status.code || status.public_id) + '"?';
+        if (text) text.textContent = tp('admin.status_delete_confirm_prefix', 'Delete status "') + (status.title || status.code || status.public_id) + tp('admin.status_delete_confirm_suffix', '"?');
         var remapSelect = deleteForm.querySelector('[name="remap_to_public_id"]');
         if (remapSelect) {
-          remapSelect.innerHTML = '<option value="">Без remap</option>' + items
+          remapSelect.innerHTML = '<option value="">' + safeText(tp('admin.no_remap', 'No remap')) + '</option>' + items
             .filter(function (row) { return String(row.scope || '') === String(status.scope || '') && statusIdOf(row) !== statusIdOf(status); })
             .map(function (row) {
               var rowId = statusIdOf(row);
@@ -12184,16 +12216,16 @@ window.CRM.pageApiBindings = (function () {
 
     if (clientsTableBody) {
       if (!clients.length) {
-        clientsTableBody.innerHTML = '<tr><td colspan="3" class="text-muted">API-клиенты не найдены.</td></tr>';
+        clientsTableBody.innerHTML = '<tr><td colspan="3" class="text-muted">' + safeText(tp('admin.api_clients_empty', 'API clients not found.')) + '</td></tr>';
       } else {
         clientsTableBody.innerHTML = clients.map(function (client) {
           var id = String(client.public_id || '');
           var selected = id === String(state.selectedClientId || '');
           return '<tr' + (selected ? ' class="table-active"' : '') + ' data-apc-row="' + safeText(id) + '">'
             + '<td><strong>' + safeText(client.title || id) + '</strong><span class="crm-entity-id">' + safeText(id) + '</span>'
-            + renderScopeTokens(client.scopes, 'Без отдельных прав') + '</td>'
-            + '<td><span class="crm-badge ' + (Number(client.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(client.is_active || 0) === 1 ? 'Активен' : 'Не активен') + '</span></td>'
-            + '<td><button class="btn btn-sm btn-light" data-apc-select="' + safeText(id) + '">' + (selected ? 'Выбран' : 'Выбрать') + '</button></td>'
+            + renderScopeTokens(client.scopes, tp('admin.no_individual_permissions', 'No individual permissions')) + '</td>'
+            + '<td><span class="crm-badge ' + (Number(client.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(client.is_active || 0) === 1 ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
+            + '<td><button class="btn btn-sm btn-light" data-apc-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -12221,8 +12253,8 @@ window.CRM.pageApiBindings = (function () {
       }
       if (selectedClientHint) {
         selectedClientHint.textContent = selectedClient
-          ? ('Выбран клиент: ' + String(selectedClient.title || selectedClient.public_id || '—'))
-          : 'Выберите клиента в таблице слева.';
+          ? (tp('admin.selected_client_prefix', 'Selected client: ') + String(selectedClient.title || selectedClient.public_id || '—'))
+          : tp('admin.select_client_left', 'Select a client in the table on the left.');
       }
       if (deleteClientBtn) deleteClientBtn.disabled = !selectedClient;
     }
@@ -12236,17 +12268,17 @@ window.CRM.pageApiBindings = (function () {
           is_active: String((createForm.querySelector('[name="is_active"]') || {}).value || '1')
         };
         if (!body.title) {
-          notify('Укажите название API-клиента', 'warning');
+          notify(tp('admin.api_client_title_required', 'Enter API client title'), 'warning');
           return;
         }
         try {
           await request('api/v1/api-clients', { method: 'POST', body: body });
-          notify('API-клиент создан');
+          notify(tp('admin.api_client_created', 'API client created'));
           createForm.reset();
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать API-клиент', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.api_client_create_fail', 'Failed to create API client'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -12257,7 +12289,7 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var clientId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!clientId) {
-          notify('Сначала выберите клиента', 'warning');
+          notify(tp('admin.select_client_first', 'Select a client first'), 'warning');
           return;
         }
         var body = {
@@ -12267,11 +12299,11 @@ window.CRM.pageApiBindings = (function () {
         };
         try {
           await request('api/v1/api-clients/' + encodeURIComponent(clientId), { method: 'PATCH', body: body });
-          notify('API-клиент обновлён');
+          notify(tp('admin.api_client_updated', 'API client updated'));
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить API-клиент', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.api_client_update_fail', 'Failed to update API client'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -12279,10 +12311,10 @@ window.CRM.pageApiBindings = (function () {
 
     async function deleteClientById(clientId) {
       if (!clientId) return;
-      if (!window.confirm('Удалить API-клиент ' + clientId + '?')) return;
+      if (!window.confirm(tp('admin.api_client_delete_confirm_prefix', 'Delete API client ') + clientId + tp('admin.confirm_question_suffix', '?'))) return;
       try {
         await request('api/v1/api-clients/' + encodeURIComponent(clientId), { method: 'DELETE' });
-        notify('API-клиент удалён');
+        notify(tp('admin.api_client_deleted', 'API client deleted'));
         if (String(state.selectedClientId || '') === String(clientId)) {
           state.selectedClientId = '';
           state.selectedKeyId = '';
@@ -12290,7 +12322,7 @@ window.CRM.pageApiBindings = (function () {
         await renderAdminApiClientsPage();
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось удалить API-клиент', 'error');
+        notify((envelopeError && envelopeError.message) || tp('admin.api_client_delete_fail', 'Failed to delete API client'), 'error');
       }
     }
 
@@ -12355,7 +12387,7 @@ window.CRM.pageApiBindings = (function () {
         var emptyCell = document.createElement('td');
         emptyCell.colSpan = 3;
         emptyCell.className = 'text-muted';
-        emptyCell.textContent = 'Вебхуки не найдены.';
+        emptyCell.textContent = tp('admin.webhooks_empty', 'Webhooks not found.');
         emptyRow.appendChild(emptyCell);
         whTableBody.appendChild(emptyRow);
         return;
@@ -12365,9 +12397,9 @@ window.CRM.pageApiBindings = (function () {
         var selected = id === String(whState.selectedWebhookId || '');
         return '<tr' + (selected ? ' class="table-active"' : '') + '>'
           + '<td><strong>' + safeText(wh.title || id) + '</strong><span class="crm-entity-id">' + safeText(wh.endpoint || '—') + '</span>'
-          + renderScopeTokens(wh.events, 'События не заданы') + '</td>'
-          + '<td><span class="crm-badge ' + (Number(wh.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(wh.is_active || 0) === 1 ? 'Активен' : 'Не активен') + '</span></td>'
-          + '<td><button class="btn btn-sm btn-light" data-wh-select="' + safeText(id) + '">' + (selected ? 'Выбран' : 'Выбрать') + '</button></td>'
+          + renderScopeTokens(wh.events, tp('admin.events_not_set', 'Events are not set')) + '</td>'
+          + '<td><span class="crm-badge ' + (Number(wh.is_active || 0) === 1 ? 'success' : 'archived') + '">' + safeText(Number(wh.is_active || 0) === 1 ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
+          + '<td><button class="btn btn-sm btn-light" data-wh-select="' + safeText(id) + '">' + safeText(selected ? tp('common.selected', 'Selected') : tp('common.select', 'Select')) + '</button></td>'
           + '</tr>';
       }).join('');
     }
@@ -12386,8 +12418,8 @@ window.CRM.pageApiBindings = (function () {
       (whEditForm.querySelector('[name="is_active"]') || {}).value = selectedWebhook && Number(selectedWebhook.is_active || 0) === 1 ? '1' : '0';
       if (whSelectedHint) {
         whSelectedHint.textContent = selectedWebhook
-          ? ('Выбран webhook: ' + String(selectedWebhook.title || selectedWebhook.public_id || '—'))
-          : 'Выберите webhook в таблице слева.';
+          ? (tp('admin.selected_webhook_prefix', 'Selected webhook: ') + String(selectedWebhook.title || selectedWebhook.public_id || '—'))
+          : tp('admin.select_webhook_left', 'Select a webhook in the table on the left.');
       }
       if (whDeleteBtn) whDeleteBtn.disabled = !selectedWebhook;
       if (whTestBtn) whTestBtn.disabled = !selectedWebhook;
@@ -12398,13 +12430,13 @@ window.CRM.pageApiBindings = (function () {
       if (!whDeliveriesBody) return;
       var webhookId = String(whState.selectedWebhookId || '').trim();
       if (!webhookId) {
-        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">Выберите webhook, чтобы увидеть доставки.</td></tr>';
+        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.select_webhook_for_deliveries', 'Select a webhook to see deliveries.')) + '</td></tr>';
         return;
       }
       var deliveriesEnvelope = await tryRequest('api/v1/webhooks/' + encodeURIComponent(webhookId) + '/deliveries', { query: { limit: 100 } });
       var deliveries = mapItems(deliveriesEnvelope);
       if (!deliveries.length) {
-        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">Доставок пока нет.</td></tr>';
+        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.deliveries_empty', 'No deliveries yet.')) + '</td></tr>';
         return;
       }
       whDeliveriesBody.innerHTML = deliveries.slice(0, 100).map(function (row) {
@@ -12463,17 +12495,17 @@ window.CRM.pageApiBindings = (function () {
           is_active: String((whCreateForm.querySelector('[name="is_active"]') || {}).value || '1')
         };
         if (!body.title || !body.endpoint) {
-          notify('Укажите title и endpoint webhook', 'warning');
+          notify(tp('admin.webhook_title_endpoint_required', 'Enter webhook title and endpoint'), 'warning');
           return;
         }
         try {
           await request('api/v1/webhooks', { method: 'POST', body: body });
-          notify('Webhook создан');
+          notify(tp('admin.webhook_created', 'Webhook created'));
           whCreateForm.reset();
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать webhook', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.webhook_create_fail', 'Failed to create webhook'), 'error');
         }
       });
       whCreateForm.dataset.bound = '1';
@@ -12484,7 +12516,7 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var webhookId = String((whEditForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!webhookId) {
-          notify('Сначала выберите webhook', 'warning');
+          notify(tp('admin.select_webhook_first', 'Select a webhook first'), 'warning');
           return;
         }
         var body = {
@@ -12497,11 +12529,11 @@ window.CRM.pageApiBindings = (function () {
         if (secret) body.secret = secret;
         try {
           await request('api/v1/webhooks/' + encodeURIComponent(webhookId), { method: 'PATCH', body: body });
-          notify('Webhook обновлён');
+          notify(tp('admin.webhook_updated', 'Webhook updated'));
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить webhook', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.webhook_update_fail', 'Failed to update webhook'), 'error');
         }
       });
       whEditForm.dataset.bound = '1';
@@ -12509,10 +12541,10 @@ window.CRM.pageApiBindings = (function () {
 
     async function whDeleteById(webhookId) {
       if (!webhookId) return;
-      if (!window.confirm('Удалить webhook ' + webhookId + '?')) return;
+      if (!window.confirm(tp('admin.webhook_delete_confirm_prefix', 'Delete webhook ') + webhookId + tp('admin.confirm_question_suffix', '?'))) return;
       try {
         await request('api/v1/webhooks/' + encodeURIComponent(webhookId), { method: 'DELETE' });
-        notify('Webhook удалён');
+        notify(tp('admin.webhook_deleted', 'Webhook deleted'));
         if (String(whState.selectedWebhookId || '') === String(webhookId)) {
           whState.selectedWebhookId = '';
           window.CRM.__adminWebhooksState = whState;
@@ -12520,7 +12552,7 @@ window.CRM.pageApiBindings = (function () {
         await renderAdminApiClientsPage();
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
-        notify((envelopeError && envelopeError.message) || 'Не удалось удалить webhook', 'error');
+        notify((envelopeError && envelopeError.message) || tp('admin.webhook_delete_fail', 'Failed to delete webhook'), 'error');
       }
     }
 
@@ -12536,18 +12568,18 @@ window.CRM.pageApiBindings = (function () {
       whTestBtn.addEventListener('click', async function () {
         var webhookId = String((whEditForm && (whEditForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!webhookId) {
-          notify('Сначала выберите webhook', 'warning');
+          notify(tp('admin.select_webhook_first', 'Select a webhook first'), 'warning');
           return;
         }
         try {
           var envelope = await request('api/v1/webhooks/' + encodeURIComponent(webhookId) + '/test', { method: 'POST' });
           var delivery = envelope && envelope.data ? envelope.data.delivery : null;
           var status = delivery && delivery.status ? String(delivery.status) : 'unknown';
-          notify('Test webhook отправлен: ' + status);
+          notify(tp('admin.webhook_test_sent_prefix', 'Test webhook sent: ') + status);
           await whLoadDeliveries();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось отправить test webhook', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.webhook_test_fail', 'Failed to send test webhook'), 'error');
         }
       });
       whTestBtn.dataset.bound = '1';
@@ -12573,8 +12605,8 @@ window.CRM.pageApiBindings = (function () {
     await whLoadDeliveries();
 
     if (!selectedClient) {
-      if (keysTitle) keysTitle.textContent = 'Ключи клиента';
-      if (keysTableBody) keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">Сначала выберите API-клиент.</td></tr>';
+      if (keysTitle) keysTitle.textContent = tp('admin.client_keys_title', 'Client keys');
+      if (keysTableBody) keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.select_api_client_first', 'Select an API client first.')) + '</td></tr>';
       if (selectedKeysNode) selectedKeysNode.textContent = '0';
       if (selectedActiveKeysNode) selectedActiveKeysNode.textContent = '0';
       if (issueKeyForm) issueKeyForm.classList.add('opacity-50');
@@ -12583,7 +12615,7 @@ window.CRM.pageApiBindings = (function () {
       return;
     }
     if (issueKeyForm) issueKeyForm.classList.remove('opacity-50');
-    if (keysTitle) keysTitle.textContent = 'Ключи клиента: ' + String(selectedClient.title || selectedClient.public_id || '—');
+    if (keysTitle) keysTitle.textContent = tp('admin.client_keys_title_prefix', 'Client keys: ') + String(selectedClient.title || selectedClient.public_id || '—');
 
     var keysEnvelope = await tryRequest('api/v1/api-clients/' + encodeURIComponent(selectedClient.public_id), { method: 'GET' });
     var selectedClientFromApi = keysEnvelope && keysEnvelope.data && keysEnvelope.data.api_client ? keysEnvelope.data.api_client : selectedClient;
@@ -12604,18 +12636,18 @@ window.CRM.pageApiBindings = (function () {
 
     if (keysTableBody) {
       if (!keys.length) {
-        keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">У выбранного API-клиента пока нет ключей.</td></tr>';
+        keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.api_keys_empty', 'The selected API client has no keys yet.')) + '</td></tr>';
       } else {
         keysTableBody.innerHTML = keys.map(function (key) {
           var keyId = String(key.public_id || '');
           var selected = keyId === String(state.selectedKeyId || '');
           return '<tr' + (selected ? ' class="table-active"' : '') + '>'
             + '<td><span class="crm-entity-id">' + safeText(keyId) + '</span></td>'
-            + '<td>' + renderScopeTokens(key.scopes, 'Права клиента') + '</td>'
+            + '<td>' + renderScopeTokens(key.scopes, tp('admin.client_permissions', 'Client permissions')) + '</td>'
             + '<td>' + safeText(formatDate(key.expires_at)) + '</td>'
             + '<td>' + safeText(formatDate(key.revoked_at)) + '</td>'
             + '<td>' + safeText(formatDate(key.created_at)) + '</td>'
-            + '<td><button class="btn btn-sm btn-light" data-apc-key-usage="' + safeText(keyId) + '">Использование</button></td>'
+            + '<td><button class="btn btn-sm btn-light" data-apc-key-usage="' + safeText(keyId) + '">' + safeText(tp('admin.usage', 'Usage')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -12629,7 +12661,7 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var clientId = String((window.CRM.__adminApiClientsState && window.CRM.__adminApiClientsState.selectedClientId) || '').trim();
         if (!clientId) {
-          notify('Сначала выберите API-клиент', 'warning');
+          notify(tp('admin.select_api_client_first', 'Select an API client first.'), 'warning');
           return;
         }
         var body = {};
@@ -12642,14 +12674,14 @@ window.CRM.pageApiBindings = (function () {
           var plainKey = envelope && envelope.data ? envelope.data.plain_key : '';
           if (plainKeyWrap) {
             plainKeyWrap.classList.remove('d-none');
-            plainKeyWrap.innerHTML = '<strong>Новый ключ (показывается один раз):</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
+            plainKeyWrap.innerHTML = '<strong>' + safeText(tp('admin.new_key_once', 'New key (shown once):')) + '</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
           }
-          notify('API-ключ выпущен');
+          notify(tp('admin.api_key_issued', 'API key issued'));
           issueKeyForm.reset();
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось выпустить ключ', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.api_key_issue_fail', 'Failed to issue key'), 'error');
         }
       });
       issueKeyForm.dataset.bound = '1';
@@ -12666,13 +12698,13 @@ window.CRM.pageApiBindings = (function () {
         usageAudit.innerHTML = auditRows.length ? auditRows.slice(0, 20).map(function (item) {
           return '<div class="crm-timeline-item"><strong>' + safeText(formatDate(item.created_at)) + '</strong> · '
             + safeText(item.action || item.public_id || 'audit') + '</div>';
-        }).join('') : '<div class="text-muted">Audit-логи не найдены.</div>';
+        }).join('') : '<div class="text-muted">' + safeText(tp('admin.audit_logs_empty', 'Audit logs not found.')) + '</div>';
       }
       if (usageSecurity) {
         usageSecurity.innerHTML = securityRows.length ? securityRows.slice(0, 20).map(function (item) {
           return '<div class="crm-timeline-item"><strong>' + safeText(formatDate(item.created_at)) + '</strong> · '
             + safeText(item.event_type || item.public_id || 'security') + '</div>';
-        }).join('') : '<div class="text-muted">Security-логи не найдены.</div>';
+        }).join('') : '<div class="text-muted">' + safeText(tp('admin.security_logs_empty', 'Security logs not found.')) + '</div>';
       }
     }
 
@@ -12692,7 +12724,7 @@ window.CRM.pageApiBindings = (function () {
       rotateKeyBtn.addEventListener('click', async function () {
         var keyId = String((window.CRM.__adminApiClientsState && window.CRM.__adminApiClientsState.selectedKeyId) || '').trim();
         if (!keyId) {
-          notify('Сначала выберите ключ', 'warning');
+          notify(tp('admin.select_key_first', 'Select a key first'), 'warning');
           return;
         }
         var body = {};
@@ -12707,13 +12739,13 @@ window.CRM.pageApiBindings = (function () {
           var plainKey = envelope && envelope.data ? envelope.data.plain_key : '';
           if (plainKeyWrap) {
             plainKeyWrap.classList.remove('d-none');
-            plainKeyWrap.innerHTML = '<strong>Новый ключ после rotate (показывается один раз):</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
+            plainKeyWrap.innerHTML = '<strong>' + safeText(tp('admin.rotated_key_once', 'New key after rotate (shown once):')) + '</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
           }
-          notify('Ключ ротирован');
+          notify(tp('admin.key_rotated', 'Key rotated'));
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось выполнить rotate ключа', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.key_rotate_fail', 'Failed to rotate key'), 'error');
         }
       });
       rotateKeyBtn.dataset.bound = '1';
@@ -12723,17 +12755,17 @@ window.CRM.pageApiBindings = (function () {
       revokeKeyBtn.addEventListener('click', async function () {
         var keyId = String((window.CRM.__adminApiClientsState && window.CRM.__adminApiClientsState.selectedKeyId) || '').trim();
         if (!keyId) {
-          notify('Сначала выберите ключ', 'warning');
+          notify(tp('admin.select_key_first', 'Select a key first'), 'warning');
           return;
         }
-        if (!window.confirm('Отозвать ключ ' + keyId + '?')) return;
+        if (!window.confirm(tp('admin.revoke_key_confirm_prefix', 'Revoke key ') + keyId + tp('admin.confirm_question_suffix', '?'))) return;
         try {
           await request('api/v1/api-keys/' + encodeURIComponent(keyId) + '/revoke', { method: 'POST' });
-          notify('Ключ отозван');
+          notify(tp('admin.key_revoked', 'Key revoked'));
           await renderAdminApiClientsPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось отозвать ключ', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin.key_revoke_fail', 'Failed to revoke key'), 'error');
         }
       });
       revokeKeyBtn.dataset.bound = '1';
@@ -12742,8 +12774,8 @@ window.CRM.pageApiBindings = (function () {
     if (state.selectedKeyId) {
       await loadKeyUsage(state.selectedKeyId);
     } else {
-      if (usageAudit) usageAudit.innerHTML = '<div class="text-muted">Выберите ключ, чтобы увидеть usage (audit).</div>';
-      if (usageSecurity) usageSecurity.innerHTML = '<div class="text-muted">Выберите ключ, чтобы увидеть usage (security).</div>';
+      if (usageAudit) usageAudit.innerHTML = '<div class="text-muted">' + safeText(tp('admin.select_key_usage_audit', 'Select a key to see usage (audit).')) + '</div>';
+      if (usageSecurity) usageSecurity.innerHTML = '<div class="text-muted">' + safeText(tp('admin.select_key_usage_security', 'Select a key to see usage (security).')) + '</div>';
     }
 
     if (selectedClientFromApi && selectedClientFromApi.public_id && editForm) {
@@ -12832,7 +12864,7 @@ window.CRM.pageApiBindings = (function () {
           id: String(item.public_id || ''),
           at: item.logged_at || item.created_at,
           user: resolveUserLabel(item.user_full_name || item.user_login || '', item.user_public_id || '', 'system'),
-          event: 'worklog (' + String(item.minutes_spent || 0) + ' мин)',
+          event: 'worklog (' + String(item.minutes_spent || 0) + ' ' + tp('min', 'min') + ')',
           target: item.task_public_id || item.task_title || '—',
           side: '—',
           ip: '',
@@ -12869,7 +12901,7 @@ window.CRM.pageApiBindings = (function () {
       currentRows = items.map(function (item) { return toRowModel(source, item); });
 
       if (!currentRows.length) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">По выбранным фильтрам логи не найдены.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.logs_empty', 'No logs found for selected filters.')) + '</td></tr>';
       } else {
         tableBody.innerHTML = currentRows.slice(0, 120).map(function (row) {
           return '<tr>'
@@ -12878,7 +12910,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(row.event) + '</td>'
             + '<td>' + safeText(row.target) + '</td>'
             + '<td>' + safeText(row.ip || row.side || '—') + '</td>'
-            + '<td><button class="btn btn-sm btn-light" data-log-open="' + safeText(row.id) + '">Открыть</button></td>'
+            + '<td><button class="btn btn-sm btn-light" data-log-open="' + safeText(row.id) + '">' + safeText(tp('notifications.open', 'Open')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -12908,11 +12940,11 @@ window.CRM.pageApiBindings = (function () {
         if (!body) return;
         var rawPretty = safeText(JSON.stringify(row.raw || {}, null, 2));
         body.innerHTML = ''
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">Пользователь</small><div>' + safeText(row.user) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">Событие</small><div>' + safeText(row.event) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">Объект / маршрут</small><div>' + safeText(row.target) + '</div></div>'
-          + '<div class="crm-metric-tile mb-2"><small class="text-muted">Время</small><div>' + safeText(formatDate(row.at)) + '</div></div>'
-          + '<div class="crm-metric-tile"><small class="text-muted">Технические детали</small><pre class="mb-0 small" style="white-space:pre-wrap">' + rawPretty + '</pre></div>';
+          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_user', 'User')) + '</small><div>' + safeText(row.user) + '</div></div>'
+          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_event', 'Event')) + '</small><div>' + safeText(row.event) + '</div></div>'
+          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_target', 'Object / route')) + '</small><div>' + safeText(row.target) + '</div></div>'
+          + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + safeText(tp('admin.log_time', 'Time')) + '</small><div>' + safeText(formatDate(row.at)) + '</div></div>'
+          + '<div class="crm-metric-tile"><small class="text-muted">' + safeText(tp('admin.log_raw', 'Technical details')) + '</small><pre class="mb-0 small" style="white-space:pre-wrap">' + rawPretty + '</pre></div>';
         if (window.bootstrap && window.bootstrap.Offcanvas) {
           window.bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
         }
@@ -12925,7 +12957,7 @@ window.CRM.pageApiBindings = (function () {
       var userPublicId = String(activityInput.value || '').trim();
       if (!userPublicId) {
         activitySummary.className = 'text-muted mt-2';
-        activitySummary.textContent = 'Введите user_public_id, чтобы увидеть request/security/audit активность пользователя.';
+        activitySummary.textContent = tp('admin.user_activity_hint', 'Enter user_public_id to see request/security/audit user activity.');
         return;
       }
       var envelope = await tryRequest('api/v1/users/' + encodeURIComponent(userPublicId) + '/activity', {
@@ -12977,18 +13009,18 @@ window.CRM.pageApiBindings = (function () {
     if (summaryEnvelope && summaryEnvelope.data) {
       var summary = summaryEnvelope.data;
       document.getElementById('adminKpiServicesValue').textContent = summary.services_online || '0';
-      document.getElementById('adminKpiServicesBadge').textContent = summary.services_online ? 'Онлайн' : 'Проблемы';
+      document.getElementById('adminKpiServicesBadge').textContent = summary.services_online ? tp('admin.online', 'Online') : tp('admin.has_problems', 'Problems');
       document.getElementById('adminKpiServicesBadge').className = 'crm-badge ' + (summary.services_online ? 'success' : 'danger');
 
       document.getElementById('adminKpiErrorsValue').textContent = summary.errors_24h || '0';
-      document.getElementById('adminKpiErrorsBadge').textContent = (summary.errors_24h > 0) ? 'Есть ошибки' : 'Без ошибок';
+      document.getElementById('adminKpiErrorsBadge').textContent = (summary.errors_24h > 0) ? tp('admin.has_errors', 'Has errors') : tp('admin.no_errors', 'No errors');
       document.getElementById('adminKpiErrorsBadge').className = 'crm-badge ' + (summary.errors_24h > 0 ? 'danger' : 'success');
 
       document.getElementById('adminKpiKeysValue').textContent = summary.active_api_keys || '0';
-      document.getElementById('adminKpiKeysBadge').textContent = 'Активно';
+      document.getElementById('adminKpiKeysBadge').textContent = tp('admin.active_state', 'Active');
 
       document.getElementById('adminKpiUsersValue').textContent = summary.users_online || '0';
-      document.getElementById('adminKpiUsersBadge').textContent = 'Онлайн';
+      document.getElementById('adminKpiUsersBadge').textContent = tp('admin.online', 'Online');
     }
 
     // Load logs preview
@@ -12996,9 +13028,9 @@ window.CRM.pageApiBindings = (function () {
     if (logsEnvelope) {
       var logs = mapItems(logsEnvelope);
       var logsHtml = logs.map(function (log) {
-        return '<div class="crm-metric-tile mb-2"><small>' + safeText(log.created_at) + '</small><div>' + safeText(log.message || 'Событие') + '</div></div>';
+        return '<div class="crm-metric-tile mb-2"><small>' + safeText(log.created_at) + '</small><div>' + safeText(log.message || tp('admin.event_fallback', 'Event')) + '</div></div>';
       }).join('');
-      document.getElementById('adminLogsPreview').innerHTML = logsHtml || '<div class="crm-metric-tile mb-2 text-muted">Нет событий аудита</div>';
+      document.getElementById('adminLogsPreview').innerHTML = logsHtml || '<div class="crm-metric-tile mb-2 text-muted">' + safeText(tp('admin.audit_events_empty', 'No audit events')) + '</div>';
     }
 
     // Load users roles preview
@@ -13013,14 +13045,14 @@ window.CRM.pageApiBindings = (function () {
       var tbody = document.getElementById('adminUsersRolesPreviewBody');
       if (tbody) {
         tbody.innerHTML = users.map(function (user) {
-          var roleTitles = (user.role_public_ids || []).map(function (rid) { return roleMap[rid] || 'Неизвестная'; }).join(', ');
-          return '<tr><td>' + safeText(user.full_name || user.login) + '</td><td>' + safeText(roleTitles || 'Без ролей') + '</td><td>' + (user.is_active ? 'Активен' : 'Неактивен') + '</td></tr>';
+          var roleTitles = (user.role_public_ids || []).map(function (rid) { return roleMap[rid] || tp('admin.unknown_role', 'Unknown'); }).join(', ');
+          return '<tr><td>' + safeText(user.full_name || user.login) + '</td><td>' + safeText(roleTitles || tp('admin.no_roles', 'No roles')) + '</td><td>' + safeText(user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</td></tr>';
         }).join('');
       }
     }
 
     // Load integrations preview (placeholder)
-    document.getElementById('adminIntegrationsPreview').innerHTML = '<div class="crm-metric-tile mb-2"><small>API-сервисы</small><div>Все системы работают</div></div><div class="crm-metric-tile mb-2"><small>База данных</small><div>Соединение активно</div></div>';
+    document.getElementById('adminIntegrationsPreview').innerHTML = '<div class="crm-metric-tile mb-2"><small>' + safeText(tp('admin.api_services', 'API services')) + '</small><div>' + safeText(tp('admin.all_systems_ok', 'All systems are operational')) + '</div></div><div class="crm-metric-tile mb-2"><small>' + safeText(tp('admin.database', 'Database')) + '</small><div>' + safeText(tp('admin.connection_active', 'Connection active')) + '</div></div>';
   }
 
   async function renderAdminUsersPage() {
@@ -13048,12 +13080,13 @@ window.CRM.pageApiBindings = (function () {
     if (!tbody) tbody = document.querySelector('.crm-table tbody'); // fallback
     if (tbody) {
       tbody.innerHTML = users.map(function (user) {
-        var roleTitles = (user.role_public_ids || []).map(function (rid) { return roleMap[rid] || 'Неизвестная'; }).join(', ');
-        var teamTitle = teamMap[user.team_public_id] || 'Без команды';
-        var statusBadge = user.is_active ? '<span class="crm-badge success">Активен</span>' : '<span class="crm-badge archived">Неактивен</span>';
+        var roleTitles = (user.role_public_ids || []).map(function (rid) { return roleMap[rid] || tp('admin.unknown_role', 'Unknown'); }).join(', ');
+        var teamTitle = teamMap[user.team_public_id] || tp('admin.no_team', 'No team');
+        var statusText = user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive');
+        var statusBadge = user.is_active ? '<span class="crm-badge success">' + safeText(statusText) + '</span>' : '<span class="crm-badge archived">' + safeText(statusText) + '</span>';
         var lastLogin = user.last_login_at ? formatDate(user.last_login_at) : '—';
-        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-user-edit="' + safeText(user.public_id) + '">Изменить</button><button class="btn btn-sm btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" title="Войти как пользователь">👤</button><button class="btn btn-sm btn-danger" data-user-delete="' + safeText(user.public_id) + '">Удалить</button></div>';
-        return '<tr><td><input class="form-check-input" type="checkbox" data-select-user="' + safeText(user.public_id) + '" data-admin-user-bulk-id="' + safeText(user.public_id) + '"></td><td><strong>' + safeText(user.full_name || user.login) + '</strong><small class="text-muted d-block">' + safeText(user.login) + '</small></td><td>' + safeText(user.email || '—') + '</td><td>' + safeText(roleTitles || 'Без ролей') + '</td><td>' + safeText(teamTitle) + '</td><td>' + lastLogin + '</td><td>' + statusBadge + '</td><td>' + actions + '</td></tr>';
+        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '">👤</button><button class="btn btn-sm btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
+        return '<tr><td><input class="form-check-input" type="checkbox" data-select-user="' + safeText(user.public_id) + '" data-admin-user-bulk-id="' + safeText(user.public_id) + '"></td><td><strong>' + safeText(user.full_name || user.login) + '</strong><small class="text-muted d-block">' + safeText(user.login) + '</small></td><td>' + safeText(user.email || '—') + '</td><td>' + safeText(roleTitles || tp('admin.no_roles', 'No roles')) + '</td><td>' + safeText(teamTitle) + '</td><td>' + lastLogin + '</td><td>' + statusBadge + '</td><td>' + actions + '</td></tr>';
       }).join('');
     }
 
@@ -13098,7 +13131,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (saveViewBtn && saveViewBtn.dataset.bound !== '1') {
       saveViewBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название сохраненного вида', 'Пользователи');
+        var title = window.prompt(tp('admin.saved_view_prompt', 'Saved view name'), tp('admin.users_view_default', 'Users'));
         if (!title || !String(title).trim()) return;
         var payload = {
           entity_type: 'admin_user',
@@ -13107,7 +13140,7 @@ window.CRM.pageApiBindings = (function () {
         };
         var result = await request('api/v1/views', { method: 'POST', body: payload });
         if (result && result.success) {
-          notify('Вид сохранен');
+          notify(tp('admin.view_saved', 'View saved'));
           renderAdminUsersPage();
         }
       });
@@ -13118,14 +13151,14 @@ window.CRM.pageApiBindings = (function () {
       deleteViewBtn.addEventListener('click', async function () {
         var selectedId = savedViewSelect ? String(savedViewSelect.value || '').trim() : '';
         if (!selectedId) {
-          notify('Выберите сохраненный вид для удаления', 'warning');
+          notify(tp('admin.select_saved_view_delete', 'Select a saved view to delete'), 'warning');
           return;
         }
-        var ok = window.confirm('Удалить сохраненный вид?');
+        var ok = window.confirm(tp('admin.delete_saved_view_confirm', 'Delete saved view?'));
         if (!ok) return;
         var result = await request('api/v1/views/' + encodeURIComponent(selectedId), { method: 'DELETE' });
         if (result && result.success) {
-          notify('Сохраненный вид удален');
+          notify(tp('admin.saved_view_deleted', 'Saved view deleted'));
           renderAdminUsersPage();
         }
       });
@@ -13143,9 +13176,9 @@ window.CRM.pageApiBindings = (function () {
     }
 
     if (savedViewSelect) {
-      var options = ['<option value="">Сохраненные виды</option>'];
+      var options = ['<option value="">' + safeText(tp('admin.saved_views', 'Saved views')) + '</option>'];
       options = options.concat(savedViews.map(function (item) {
-        return '<option value="' + safeText(item.public_id || '') + '">' + safeText(item.title || 'Без названия') + '</option>';
+        return '<option value="' + safeText(item.public_id || '') + '">' + safeText(item.title || tp('admin.untitled', 'Untitled')) + '</option>';
       }));
       savedViewSelect.innerHTML = options.join('');
     }
@@ -13153,7 +13186,7 @@ window.CRM.pageApiBindings = (function () {
     // Fill role selects in modals
     var roleSelects = document.querySelectorAll('[name="role_public_ids"], [name="role_public_id"]');
     roleSelects.forEach(function (select) {
-      select.innerHTML = '<option value="">Без роли</option>' + roles.map(function (role) {
+      select.innerHTML = '<option value="">' + safeText(tp('admin.no_role', 'No role')) + '</option>' + roles.map(function (role) {
         return '<option value="' + safeText(role.public_id) + '">' + safeText(role.title) + '</option>';
       }).join('');
     });
@@ -13161,7 +13194,7 @@ window.CRM.pageApiBindings = (function () {
     // Fill team selects
     var teamSelects = document.querySelectorAll('[name="team_public_id"]');
     teamSelects.forEach(function (select) {
-      select.innerHTML = '<option value="">Без команды</option>' + teams.map(function (team) {
+      select.innerHTML = '<option value="">' + safeText(tp('admin.no_team', 'No team')) + '</option>' + teams.map(function (team) {
         return '<option value="' + safeText(team.public_id) + '">' + safeText(team.title) + '</option>';
       }).join('');
     });
@@ -13183,7 +13216,7 @@ window.CRM.pageApiBindings = (function () {
         };
         var result = await tryRequest('api/v1/users', { method: 'POST', body: data });
         if (result && result.success) {
-          notify('Пользователь создан');
+          notify(tp('admin.user_created', 'User created'));
           bootstrap.Modal.getInstance(document.getElementById('userCreateModal')).hide();
           createForm.reset();
           renderAdminUsersPage(); // Reload
@@ -13218,8 +13251,8 @@ window.CRM.pageApiBindings = (function () {
     // Inject rate fields into edit form if not already present
     var editFormRow = document.querySelector('#adminUserEditForm .row.g-3');
     if (editFormRow && !editFormRow.querySelector('[name="cost_rate"]')) {
-      var rateHtml = '<div class="col-md-6"><label class="form-label">Ставка себестоимости (в час)</label><input class="form-control" name="cost_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>'
-        + '<div class="col-md-6"><label class="form-label">Ставка продажи (в час)</label><input class="form-control" name="bill_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>';
+      var rateHtml = '<div class="col-md-6"><label class="form-label">' + safeText(tp('admin.cost_rate_label', 'Cost rate (per hour)')) + '</label><input class="form-control" name="cost_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+        + '<div class="col-md-6"><label class="form-label">' + safeText(tp('admin.bill_rate_label', 'Bill rate (per hour)')) + '</label><input class="form-control" name="bill_rate" type="number" min="0" step="0.01" placeholder="0.00"></div>';
       editFormRow.insertAdjacentHTML('beforeend', rateHtml);
     }
 
@@ -13245,7 +13278,7 @@ window.CRM.pageApiBindings = (function () {
         }
         var result = await tryRequest('api/v1/users/' + publicId, { method: 'PATCH', body: data });
         if (result && result.success) {
-          notify('Пользователь обновлен');
+          notify(tp('admin.user_updated', 'User updated'));
           bootstrap.Modal.getInstance(document.getElementById('userEditModal')).hide();
           renderAdminUsersPage(); // Reload
         }
@@ -13259,10 +13292,10 @@ window.CRM.pageApiBindings = (function () {
         var publicId = btn.getAttribute('data-user-delete');
         var user = users.find(function (u) { return u.public_id === publicId; });
         if (!user) return;
-        if (confirm('Удалить пользователя ' + user.full_name + '?')) {
+        if (confirm(tp('admin.user_delete_confirm_prefix', 'Delete user ') + (user.full_name || user.login || publicId) + tp('admin.confirm_question_suffix', '?'))) {
           tryRequest('api/v1/users/' + publicId, { method: 'DELETE' }).then(function (result) {
             if (result && result.success) {
-              notify('Пользователь удален');
+              notify(tp('admin.user_deleted', 'User deleted'));
               renderAdminUsersPage();
             }
           });
@@ -13276,7 +13309,7 @@ window.CRM.pageApiBindings = (function () {
         var publicId = btn.getAttribute('data-user-impersonate');
         var user = users.find(function (u) { return u.public_id === publicId; });
         if (!user) return;
-        if (!confirm('Войти как пользователь ' + (user.full_name || user.login) + '?')) return;
+        if (!confirm(tp('admin.impersonate_confirm_prefix', 'Log in as user ') + (user.full_name || user.login) + tp('admin.confirm_question_suffix', '?'))) return;
         try {
           var result = await request('api/v1/security/impersonation/start', {
             method: 'POST',
@@ -13288,12 +13321,12 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.api && typeof window.CRM.api.activateImpersonationSession === 'function') {
             window.CRM.api.activateImpersonationSession(result.data || {});
           }
-          notify('Вы вошли как ' + (user.full_name || user.login));
+          notify(tp('admin.impersonated_as_prefix', 'You logged in as ') + (user.full_name || user.login));
           window.location.href = window.CRM.api && typeof window.CRM.api.buildWebUrl === 'function'
             ? window.CRM.api.buildWebUrl('dashboard')
             : 'index.php?route=dashboard';
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось начать имперсонацию');
+          var normalized = window.CRM.api.normalizeError(error, tp('admin.impersonation_start_fail', 'Failed to start impersonation'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -13303,12 +13336,12 @@ window.CRM.pageApiBindings = (function () {
     try {
       var impStatus = await tryRequest('api/v1/security/impersonation/status', { silent: true });
       if (impStatus && impStatus.data && impStatus.data.is_impersonating) {
-        var originalUser = impStatus.data.original_user_name || impStatus.data.original_user_login || 'администратор';
-        var impersonatedUser = impStatus.data.impersonated_user_name || impStatus.data.impersonated_user_login || 'пользователь';
+        var originalUser = impStatus.data.original_user_name || impStatus.data.original_user_login || tp('admin.admin_user_fallback', 'administrator');
+        var impersonatedUser = impStatus.data.impersonated_user_name || impStatus.data.impersonated_user_login || tp('admin.user_fallback', 'user');
         var indicator = document.createElement('div');
         indicator.id = 'impersonationIndicator';
         indicator.className = 'alert alert-warning py-2 px-3 mb-2';
-        indicator.innerHTML = '<strong>Имперсонация:</strong> вы вошли как ' + safeText(impersonatedUser) + '. <button class="btn btn-sm btn-danger ms-2" id="stopImpersonationBtn">Вернуться как ' + safeText(originalUser) + '</button>';
+        indicator.innerHTML = '<strong>' + safeText(tp('admin.impersonation_label', 'Impersonation:')) + '</strong> ' + safeText(tp('admin.impersonation_current_prefix', 'you logged in as ')) + safeText(impersonatedUser) + '. <button class="btn btn-sm btn-danger ms-2" id="stopImpersonationBtn">' + safeText(tp('admin.return_as_prefix', 'Return as ')) + safeText(originalUser) + '</button>';
         var pageHead = document.querySelector('.crm-page-head');
         if (pageHead) {
           pageHead.parentNode.insertBefore(indicator, pageHead);
@@ -13318,10 +13351,10 @@ window.CRM.pageApiBindings = (function () {
           stopBtn.addEventListener('click', async function () {
             try {
               await request('api/v1/security/impersonation/stop', { method: 'POST' });
-              notify('Имперсонация завершена');
+              notify(tp('admin.impersonation_stopped', 'Impersonation ended'));
               window.location.reload();
             } catch (error) {
-              var normalized = window.CRM.api.normalizeError(error, 'Не удалось завершить имперсонацию');
+              var normalized = window.CRM.api.normalizeError(error, tp('admin.impersonation_stop_fail', 'Failed to stop impersonation'));
               notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
             }
           });
@@ -13342,9 +13375,9 @@ window.CRM.pageApiBindings = (function () {
           if (activeFilter) {
             var activeValue = String(activeFilter.value || '');
             if (activeValue === '1') {
-              activePass = row.textContent.indexOf('Активен') >= 0;
+              activePass = row.textContent.indexOf(tp('common.active', 'Active')) >= 0;
             } else if (activeValue === '0') {
-              activePass = row.textContent.indexOf('Неактивен') >= 0;
+              activePass = row.textContent.indexOf(tp('common.inactive', 'Inactive')) >= 0;
             }
           }
           row.style.display = text.includes(query) && activePass ? '' : 'none';
@@ -13387,13 +13420,13 @@ window.CRM.pageApiBindings = (function () {
         var perm = permissions.find(function (p) { return p.code === permCode; });
         return perm ? perm.title : permCode;
       }).join(', ');
-      var typeLabel = role.is_system ? 'Системная' : 'Кастомная';
-      var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(role.public_id) + '">Изменить</button>' +
-        (role.is_system ? '' : '<button class="btn btn-sm btn-danger" data-role-delete="' + safeText(role.public_id) + '">Удалить</button>') +
+      var typeLabel = role.is_system ? tp('admin.role_system', 'System') : tp('admin.role_custom', 'Custom');
+      var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(role.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>' +
+        (role.is_system ? '' : '<button class="btn btn-sm btn-danger" data-role-delete="' + safeText(role.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>') +
         '</div>';
       return '<tr>' +
         '<td><strong>' + safeText(role.title) + '</strong><small class="text-muted d-block">' + safeText(role.code) + '</small></td>' +
-        '<td>' + safeText(permissionsList || 'Нет доступов') + '</td>' +
+        '<td>' + safeText(permissionsList || tp('admin.no_permissions', 'No permissions')) + '</td>' +
         '<td>' + typeLabel + '</td>' +
         '<td>' + safeText(formatDate(role.updated_at)) + '</td>' +
         '<td>' + actions + '</td>' +
@@ -13434,7 +13467,7 @@ window.CRM.pageApiBindings = (function () {
         var role = roles.find(function (r) { return r.public_id === publicId; });
         if (!role) return;
         document.getElementById('roleDeletePublicId').value = role.public_id;
-        document.getElementById('roleDeleteText').textContent = 'Удалить роль "' + role.title + '"? Это действие нельзя отменить.';
+        document.getElementById('roleDeleteText').textContent = tp('admin.role_delete_confirm_prefix', 'Delete role "') + role.title + tp('admin.role_delete_confirm_suffix', '"?');
         var modal = new bootstrap.Modal(document.getElementById('roleDeleteModal'));
         modal.show();
       });
@@ -13453,7 +13486,7 @@ window.CRM.pageApiBindings = (function () {
         };
         var result = await tryRequest('api/v1/roles', { method: 'POST', body: data });
         if (result && result.success) {
-          notify('Роль создана');
+          notify(tp('admin.role_created_short', 'Role created'));
           bootstrap.Modal.getInstance(document.getElementById('roleCreateModal')).hide();
           renderAdminRolesPage(); // Reload
         }
@@ -13475,7 +13508,7 @@ window.CRM.pageApiBindings = (function () {
         if (result && result.success) {
           var permCodes = Array.from(editForm.querySelectorAll('[name="permissions"]:checked')).map(function (cb) { return cb.value; });
           await tryRequest('api/v1/roles/' + publicId + '/permissions', { method: 'PUT', body: { permission_codes: permCodes } });
-          notify('Роль обновлена');
+          notify(tp('admin.role_updated', 'Role updated'));
           bootstrap.Modal.getInstance(document.getElementById('roleEditModal')).hide();
           renderAdminRolesPage(); // Reload
         }
@@ -13489,7 +13522,7 @@ window.CRM.pageApiBindings = (function () {
         var publicId = document.getElementById('roleDeletePublicId').value;
         var result = await tryRequest('api/v1/roles/' + publicId, { method: 'DELETE' });
         if (result && result.success) {
-          notify('Роль удалена');
+          notify(tp('admin.role_deleted', 'Role deleted'));
           bootstrap.Modal.getInstance(document.getElementById('roleDeleteModal')).hide();
           renderAdminRolesPage(); // Reload
         }
@@ -13542,7 +13575,7 @@ window.CRM.pageApiBindings = (function () {
         return {
           order: Number(source.order || source.recommended_order || index + 1),
           task_public_id: String(source.task_public_id || ''),
-          title: String(source.title || 'Задача'),
+          title: String(source.title || _t('my_day.chip_task', 'Task')),
           project_title: String(source.project_title || ''),
           minutes: Number(source.recommended_minutes || source.effort_minutes || slot.minutes || 0),
           reason: String(source.business_reason || source.reason || source.priority_reason || slot.reason || ''),
@@ -13579,14 +13612,14 @@ window.CRM.pageApiBindings = (function () {
         + items.map(function (item) {
           var time = shortTime(item.start_at);
           var end = shortTime(item.end_at);
-          var timeLabel = time ? (time + (end ? '–' + end : '')) : (item.minutes ? item.minutes + ' мин' : '');
+          var timeLabel = time ? (time + (end ? '–' + end : '')) : (item.minutes ? item.minutes + ' ' + _t('js.pab.min', 'min') : '');
           var title = item.task_public_id
             ? '<a href="' + taskLink(item.task_public_id) + '">' + safeText(item.title) + '</a>'
             : safeText(item.title);
           var meta = [];
           if (timeLabel) meta.push(timeLabel);
           if (item.project_title) meta.push(item.project_title);
-          if (item.due_at) meta.push('срок ' + formatDate(item.due_at));
+          if (item.due_at) meta.push(_t('my_day.due_prefix', 'due ') + formatDate(item.due_at));
           return '<li class="crm-day-plan-item">'
             + '<div class="crm-day-plan-index">' + safeText(String(item.order)) + '</div>'
             + '<div class="crm-day-plan-body">'
@@ -13607,7 +13640,7 @@ window.CRM.pageApiBindings = (function () {
           if (!myDayCurrentSuggestion || !myDayCurrentSuggestion.public_id) return;
           if (!window.CRM.ai || typeof window.CRM.ai.dismissSuggestion !== 'function') return;
           await window.CRM.ai.dismissSuggestion(myDayCurrentSuggestion.public_id);
-          notify('AI-план дня отмечен как отклоненный');
+          notify(_t('my_day.ai_dismissed_pending', 'AI day plan marked as dismissed'));
           await renderMyDayPage();
         },
         onRefresh: async function () {
@@ -13783,7 +13816,7 @@ window.CRM.pageApiBindings = (function () {
       document.getElementById('myDayMeetingsList').innerHTML = eventsHtml;
       var reminders = Array.isArray(eventsEnvelope.data.reminders) ? eventsEnvelope.data.reminders : [];
       document.getElementById('myDayRemindersList').innerHTML = reminders.map(function (reminder) {
-        return '<div class="crm-day-list-row"><small>' + safeText(shortTime(reminder.remind_at || reminder.due_at || reminder.created_at)) + '</small><div>' + safeText(reminder.title || reminder.message || 'Напоминание') + '</div></div>';
+        return '<div class="crm-day-list-row"><small>' + safeText(shortTime(reminder.remind_at || reminder.due_at || reminder.created_at)) + '</small><div>' + safeText(reminder.title || reminder.message || _t('my_day.reminder_fallback', 'Reminder')) + '</div></div>';
       }).join('') || '<div class="crm-empty-state crm-empty-state-compact">' + _t('my_day.reminders_empty', 'На сегодня нет напоминаний') + '</div>';
     }
 
@@ -13954,7 +13987,7 @@ window.CRM.pageApiBindings = (function () {
         return '<section class="crm-week-plan-day">'
           + '<div class="crm-week-plan-day-head">'
           + '<strong>' + safeText(dayData.label || dayData.date || _t('my_week.no_date', 'Без даты')) + '</strong>'
-          + '<span>' + safeText((tasks.length ? tasks.length + ' задач' : 'без задач') + (minutes ? ' · ' + minutes + ' мин' : '') + (eventsCount ? ' · ' + eventsCount + ' событий' : '')) + '</span>'
+          + '<span>' + safeText((tasks.length ? tasks.length + ' ' + _t('my_week.tasks_word', 'tasks') : _t('my_week.no_tasks_short', 'no tasks')) + (minutes ? ' · ' + minutes + ' ' + _t('js.pab.min', 'min') : '') + (eventsCount ? ' · ' + eventsCount + ' ' + _t('my_week.events_word', 'events') : '')) + '</span>'
           + '</div>'
           + (tasks.length
             ? '<ol class="crm-week-plan-list">' + tasks.slice(0, 5).map(function (task, index) {
@@ -13963,8 +13996,8 @@ window.CRM.pageApiBindings = (function () {
                 ? '<a href="' + taskLink(taskData.task_public_id) + '">' + safeText(taskData.title || _t('my_week.ai_focus_block', 'Фокус-блок')) + '</a>'
                 : safeText(taskData.title || _t('my_week.ai_focus_block', 'Фокус-блок'));
               var meta = [];
-              if (taskData.recommended_minutes) meta.push(taskData.recommended_minutes + ' мин');
-              if (taskData.due_at) meta.push('срок ' + formatDate(taskData.due_at));
+              if (taskData.recommended_minutes) meta.push(taskData.recommended_minutes + ' ' + _t('js.pab.min', 'min'));
+              if (taskData.due_at) meta.push(_t('my_week.due_prefix', 'due ') + formatDate(taskData.due_at));
               if (taskData.reason) meta.push(taskData.reason);
               return '<li class="crm-week-plan-item">'
                 + '<span class="crm-day-plan-index">' + safeText(String(index + 1)) + '</span>'
@@ -14389,7 +14422,7 @@ window.CRM.pageApiBindings = (function () {
       projectId: task.project_id || '',
       projectTitle: task.project_title || task.project_name || '',
       statusCode: task.status_code || 'new',
-      statusLabel: statusLabel(task.status_code) || 'Новый',
+      statusLabel: statusLabel(task.status_code) || tp('gantt.status_new', 'New'),
       statusKind: getGanttStatusKind(task),
       assignee: task.assignee_name || task.assigned_to || '',
       start: start,
@@ -14422,7 +14455,7 @@ window.CRM.pageApiBindings = (function () {
       if (!groups[pid]) {
         groups[pid] = {
           projectId: pid,
-          projectTitle: item.projectTitle || 'Без проекта',
+          projectTitle: item.projectTitle || tp('gantt.no_project', 'No project'),
           tasks: [],
           minStart: null,
           maxEnd: null
@@ -14581,7 +14614,7 @@ window.CRM.pageApiBindings = (function () {
 
       renderGanttPage().catch(function (error) {
         console.error('[GANTT] KPI filter render failed', error);
-        if (typeof notify === 'function') notify('Не удалось применить фильтр диаграммы', 'error');
+        if (typeof notify === 'function') notify(tp('gantt.filter_apply_fail', 'Failed to apply chart filter'), 'error');
       });
     });
 
@@ -14692,7 +14725,7 @@ window.CRM.pageApiBindings = (function () {
 
         renderGanttPage().catch(function (error) {
           console.error('Gantt render failed', error);
-          if (typeof notify === 'function') notify('Не удалось перестроить диаграмму Ганта', 'error');
+          if (typeof notify === 'function') notify(tp('gantt.render_fail', 'Failed to rebuild Gantt chart'), 'error');
         });
       });
 
@@ -14794,10 +14827,7 @@ window.CRM.pageApiBindings = (function () {
     var mod10 = count % 10;
     var mod100 = count % 100;
 
-    if (mod10 === 1 && mod100 !== 11) return count + ' задача';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return count + ' задачи';
-
-    return count + ' задач';
+    return count + ' ' + tpPlural('gantt.task', count, { one: 'task', few: 'tasks', many: 'tasks' });
   }
 
   function crmGanttFormatShortDateValue(value) {
@@ -14809,7 +14839,7 @@ window.CRM.pageApiBindings = (function () {
       return '';
     }
 
-    return date.toLocaleDateString('ru-RU', {
+    return date.toLocaleDateString(tpLocale('ru-RU'), {
       day: 'numeric',
       month: 'short'
     }).replace('.', '');
@@ -14897,13 +14927,13 @@ window.CRM.pageApiBindings = (function () {
       end = tmp;
     }
 
-    var projectTitle = String(task.project_title || task.project_name || 'Без проекта');
+    var projectTitle = String(task.project_title || task.project_name || tp('gantt.no_project', 'No project'));
     var projectId = String(task.project_public_id || projectTitle);
 
     return {
       task: task,
       id: String(task.public_id || ''),
-      title: String(task.title || task.name || task.public_id || 'Без названия'),
+      title: String(task.title || task.name || task.public_id || tp('gantt.untitled_task', 'Untitled')),
       projectId: projectId,
       projectTitle: projectTitle,
       statusCode: String(task.status_code || task.status || 'new'),
@@ -15006,13 +15036,12 @@ window.CRM.pageApiBindings = (function () {
 
   function crmGanttFormatScaleLabel(timestamp, zoomMode) {
     var date = new Date(timestamp);
-    var months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
     if (zoomMode === 'months') {
-      return date.toLocaleDateString('ru-RU', {
+      return date.toLocaleDateString(tpLocale('ru-RU'), {
         month: 'short',
         year: 'numeric'
-      });
+      }).replace('.', '');
     }
 
     if (zoomMode === 'weeks') {
@@ -15021,8 +15050,8 @@ window.CRM.pageApiBindings = (function () {
       var endDate = new Date(weekEnd);
       var startDay = startDate.getDate();
       var endDay = endDate.getDate();
-      var startMonth = months[startDate.getMonth()];
-      var endMonth = months[endDate.getMonth()];
+      var startMonth = startDate.toLocaleDateString(tpLocale('ru-RU'), { month: 'short' }).replace('.', '');
+      var endMonth = endDate.toLocaleDateString(tpLocale('ru-RU'), { month: 'short' }).replace('.', '');
       var label = startDate.getMonth() === endDate.getMonth()
         ? startDay + '–' + endDay + ' ' + startMonth
         : startDay + ' ' + startMonth + ' – ' + endDay + ' ' + endMonth;
@@ -15031,7 +15060,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (zoomMode === 'days') {
       var day = date.getDate();
-      var weekday = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'][date.getDay()];
+      var weekday = date.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '');
       return day + '<br><small>' + weekday + '</small>';
     }
 
@@ -15130,9 +15159,9 @@ window.CRM.pageApiBindings = (function () {
     bar.setAttribute('data-bs-toggle', 'tooltip');
     bar.setAttribute('data-bs-placement', 'top');
     bar.setAttribute('title', item.title + '\n'
-      + 'Проект: ' + item.projectTitle + '\n'
-      + 'Статус: ' + statusLabel(item.statusCode) + '\n'
-      + 'Срок: ' + formatDate(crmGanttDateIso(item.start)) + ' — ' + formatDate(crmGanttDateIso(item.end)));
+      + tp('gantt.tooltip_project', 'Project: ') + item.projectTitle + '\n'
+      + tp('gantt.tooltip_status', 'Status: ') + statusLabel(item.statusCode) + '\n'
+      + tp('gantt.tooltip_dates', 'Dates: ') + formatDate(crmGanttDateIso(item.start)) + ' — ' + formatDate(crmGanttDateIso(item.end)));
 
     var title = document.createElement('span');
     title.className = 'crm-gantt-bar-title';
@@ -15211,9 +15240,9 @@ window.CRM.pageApiBindings = (function () {
     bar.setAttribute('data-bs-toggle', 'tooltip');
     bar.setAttribute('data-bs-placement', 'top');
     bar.setAttribute('title', item.title + '\n'
-      + 'Проект: ' + item.projectTitle + '\n'
-      + 'Статус: ' + statusLabel(item.statusCode) + '\n'
-      + 'Срок: ' + formatDate(crmGanttDateIso(item.start)) + ' — ' + formatDate(crmGanttDateIso(item.end)));
+      + tp('gantt.tooltip_project', 'Project: ') + item.projectTitle + '\n'
+      + tp('gantt.tooltip_status', 'Status: ') + statusLabel(item.statusCode) + '\n'
+      + tp('gantt.tooltip_dates', 'Dates: ') + formatDate(crmGanttDateIso(item.start)) + ' — ' + formatDate(crmGanttDateIso(item.end)));
 
     var title = document.createElement('span');
     title.className = 'crm-gantt-bar-title';
@@ -15359,7 +15388,7 @@ window.CRM.pageApiBindings = (function () {
     if (today >= windowInfo.start && today <= windowInfo.end) {
       var todayLabel = document.createElement('div');
       todayLabel.className = 'crm-gantt-today-scale-label';
-      todayLabel.textContent = 'Сегодня';
+      todayLabel.textContent = tp('gantt.today', 'Today');
       todayLabel.style.left = crmGanttPercent(today, windowInfo) + '%';
       scaleTrack.appendChild(todayLabel);
     }
@@ -15397,7 +15426,7 @@ window.CRM.pageApiBindings = (function () {
         + '<span class="crm-chip-dot crm-chip-dot--' + kind + '"></span>'
         + safeText(statusLabel(code)) + ' (' + counts[code] + ')'
         + '</span>';
-    }).join('') || '<span class="crm-chip">Нет задач</span>';
+    }).join('') || '<span class="crm-chip">' + safeText(tp('gantt.no_tasks', 'No tasks')) + '</span>';
   }
 
   function applyGanttFilter(items, filter) {
@@ -15442,34 +15471,34 @@ window.CRM.pageApiBindings = (function () {
 
     tilesEl.innerHTML = ''
       + '<div class="crm-gantt-kpi-card' + (currentFilter === 'all' ? ' active' : '') + '" data-gantt-filter="all">'
-      + '<small>Всего задач</small>'
+      + '<small>' + safeText(tp('gantt.kpi_total_tasks', 'Total tasks')) + '</small>'
       + '<strong>' + items.length + '</strong>'
-      + '<span>Общий список</span>'
+      + '<span>' + safeText(tp('gantt.kpi_total_note', 'Full list')) + '</span>'
       + '</div>'
       + '<div class="crm-gantt-kpi-card' + (currentFilter === 'active' ? ' active' : '') + '" data-gantt-filter="active">'
-      + '<small>Активные задачи</small>'
+      + '<small>' + safeText(tp('gantt.kpi_active_tasks', 'Active tasks')) + '</small>'
       + '<strong>' + active + '</strong>'
-      + '<span>В работе и ожидании</span>'
+      + '<span>' + safeText(tp('gantt.kpi_active_note', 'In progress and waiting')) + '</span>'
       + '</div>'
       + '<div class="crm-gantt-kpi-card is-warning' + (currentFilter === 'overdue' ? ' active' : '') + '" data-gantt-filter="overdue">'
-      + '<small>Риски по срокам</small>'
+      + '<small>' + safeText(tp('gantt.kpi_deadline_risks', 'Deadline risks')) + '</small>'
       + '<strong>' + overdue + '</strong>'
-      + '<span>Просрочено относительно дедлайна</span>'
+      + '<span>' + safeText(tp('gantt.kpi_overdue_note', 'Overdue against deadline')) + '</span>'
       + '</div>'
       + '<div class="crm-gantt-kpi-card is-danger' + (currentFilter === 'blocked' ? ' active' : '') + '" data-gantt-filter="blocked">'
-      + '<small>Блокировки</small>'
+      + '<small>' + safeText(tp('gantt.kpi_blocks', 'Blocks')) + '</small>'
       + '<strong>' + blocked + '</strong>'
-      + '<span>Требуют внимания</span>'
+      + '<span>' + safeText(tp('gantt.kpi_blocks_note', 'Need attention')) + '</span>'
       + '</div>'
       + '<div class="crm-gantt-kpi-card is-success' + (currentFilter === 'completed' ? ' active' : '') + '" data-gantt-filter="completed">'
-      + '<small>Завершено</small>'
+      + '<small>' + safeText(tp('gantt.kpi_completed', 'Completed')) + '</small>'
       + '<strong>' + done + '</strong>'
-      + '<span>Готово или закрыто</span>'
+      + '<span>' + safeText(tp('gantt.kpi_completed_note', 'Done or closed')) + '</span>'
       + '</div>'
       + '<div class="crm-gantt-kpi-card' + (currentFilter === 'without_dates' ? ' active' : '') + '" data-gantt-filter="without_dates">'
-      + '<small>Без дат</small>'
+      + '<small>' + safeText(tp('gantt.kpi_without_dates', 'Without dates')) + '</small>'
       + '<strong>' + (withoutDates || 0) + '</strong>'
-      + '<span>Не запланировано</span>'
+      + '<span>' + safeText(tp('gantt.kpi_without_dates_note', 'Not scheduled')) + '</span>'
       + '</div>';
   }
 
@@ -15477,7 +15506,6 @@ window.CRM.pageApiBindings = (function () {
     if (!milestonesEl) return;
 
     var now = crmGanttStartOfDay(Date.now());
-    var months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
     var upcoming = items
       .filter(function (item) {
         return item.kind !== 'success' && item.kind !== 'archived';
@@ -15490,20 +15518,20 @@ window.CRM.pageApiBindings = (function () {
       .slice(0, 6);
 
     if (!upcoming.length) {
-      milestonesEl.innerHTML = '<div class="crm-gantt-deadline-card" style="justify-content:center;color:#64748b;font-size:0.82rem;">Нет ближайших сроков</div>';
+      milestonesEl.innerHTML = '<div class="crm-gantt-deadline-card" style="justify-content:center;color:#64748b;font-size:0.82rem;">' + safeText(tp('gantt.no_upcoming_deadlines', 'No upcoming deadlines')) + '</div>';
       return;
     }
 
     milestonesEl.innerHTML = upcoming.map(function (item) {
       var days = Math.ceil((crmGanttStartOfDay(item.end) - now) / (24 * 3600 * 1000));
-      var stateLabel = days < 0 ? 'Просрочено' : (days === 0 ? 'Сегодня' : days + ' дн.');
+      var stateLabel = days < 0 ? tp('gantt.overdue', 'Overdue') : (days === 0 ? tp('gantt.today', 'Today') : days + ' ' + tp('gantt.days_short', 'd'));
       var stateKind = days < 0 ? 'blocked' : (days === 0 ? 'active' : 'review');
       var endDate = new Date(item.end);
 
       return '<a class="crm-gantt-deadline-card crm-gantt-deadline-card--' + stateKind + '" href="' + taskLink(item.id) + '">'
         + '<span class="crm-gantt-deadline-date">'
         + '<strong>' + safeText(String(endDate.getDate())) + '</strong>'
-        + '<small>' + safeText(months[endDate.getMonth()]) + '</small>'
+        + '<small>' + safeText(endDate.toLocaleDateString(tpLocale('ru-RU'), { month: 'short' }).replace('.', '')) + '</small>'
         + '</span>'
         + '<span class="crm-gantt-deadline-main">'
         + '<strong>' + safeText(item.title) + '</strong>'
@@ -15518,7 +15546,7 @@ window.CRM.pageApiBindings = (function () {
     if (!summaryEl) return;
 
     if (!items.length) {
-      summaryEl.innerHTML = '<div class="crm-metric-tile">Нет данных для сводки.</div>';
+      summaryEl.innerHTML = '<div class="crm-metric-tile">' + safeText(tp('gantt.summary_empty', 'No data for summary.')) + '</div>';
       return;
     }
 
@@ -15534,19 +15562,19 @@ window.CRM.pageApiBindings = (function () {
     summaryEl.innerHTML = ''
       + '<div class="crm-gantt-summary-grid">'
       + '<div class="crm-metric-tile">'
-      + '<small>Проекты</small>'
+      + '<small>' + safeText(tp('gantt.summary_projects', 'Projects')) + '</small>'
       + '<strong>' + Object.keys(projects).length + '</strong>'
       + '</div>'
       + '<div class="crm-metric-tile">'
-      + '<small>Задачи с датами</small>'
+      + '<small>' + safeText(tp('gantt.summary_tasks_with_dates', 'Tasks with dates')) + '</small>'
       + '<strong>' + items.length + '</strong>'
       + '</div>'
       + '<div class="crm-metric-tile">'
-      + '<small>Просрочено</small>'
+      + '<small>' + safeText(tp('gantt.summary_overdue', 'Overdue')) + '</small>'
       + '<strong class="is-danger">' + items.filter(function (it) { return it.end < now; }).length + '</strong>'
       + '</div>'
       + '<div class="crm-metric-tile">'
-      + '<small>Диапазон</small>'
+      + '<small>' + safeText(tp('gantt.summary_range', 'Range')) + '</small>'
       + '<strong>' + safeText(crmGanttFormatShortDateValue(minStart)) + ' — ' + safeText(crmGanttFormatShortDateValue(maxEnd)) + '</strong>'
       + '</div>'
       + '</div>';
@@ -15600,12 +15628,12 @@ window.CRM.pageApiBindings = (function () {
     }).length;
 
     var cards = [
-      { key: 'all', label: 'Всего задач', value: total, tone: 'new' },
-      { key: 'active', label: 'Активные', value: active, tone: 'active' },
-      { key: 'overdue', label: 'Просрочено', value: overdue, tone: 'overdue' },
-      { key: 'blocked', label: 'Заблокировано', value: blocked, tone: 'blocked' },
-      { key: 'completed', label: 'Завершено', value: completed, tone: 'success' },
-      { key: 'without_dates', label: 'Без дат', value: withoutDates.length, tone: 'paused' }
+      { key: 'all', label: tp('gantt.kpi_total_tasks', 'Total tasks'), value: total, tone: 'new' },
+      { key: 'active', label: tp('gantt.kpi_active_short', 'Active'), value: active, tone: 'active' },
+      { key: 'overdue', label: tp('gantt.overdue', 'Overdue'), value: overdue, tone: 'overdue' },
+      { key: 'blocked', label: tp('gantt.blocked', 'Blocked'), value: blocked, tone: 'blocked' },
+      { key: 'completed', label: tp('gantt.kpi_completed', 'Completed'), value: completed, tone: 'success' },
+      { key: 'without_dates', label: tp('gantt.kpi_without_dates', 'Without dates'), value: withoutDates.length, tone: 'paused' }
     ];
 
     root.innerHTML = cards.map(function (card) {
@@ -15657,9 +15685,9 @@ window.CRM.pageApiBindings = (function () {
     var board       = document.querySelector('.crm-gantt-board');
 
     if (!tasksEnvelope || tasksEnvelope.success === false) {
-      if (legendEl) legendEl.innerHTML = '<span class="crm-chip text-danger">Ошибка загрузки</span>';
-      if (milestonesEl) milestonesEl.innerHTML = '<p class="text-danger mb-0">Ошибка загрузки задач</p>';
-      if (summaryEl) summaryEl.innerHTML = '<div class="crm-metric-tile text-danger">Не удалось загрузить график.</div>';
+      if (legendEl) legendEl.innerHTML = '<span class="crm-chip text-danger">' + safeText(tp('gantt.load_error', 'Load error')) + '</span>';
+      if (milestonesEl) milestonesEl.innerHTML = '<p class="text-danger mb-0">' + safeText(tp('gantt.tasks_load_error', 'Failed to load tasks')) + '</p>';
+      if (summaryEl) summaryEl.innerHTML = '<div class="crm-metric-tile text-danger">' + safeText(tp('gantt.chart_load_error', 'Failed to load schedule.')) + '</div>';
       return;
     }
 
@@ -15738,9 +15766,9 @@ window.CRM.pageApiBindings = (function () {
 
     if (!items.length) {
       var hasScopedFilter = Boolean(state.searchQuery || state.projectFilter || activeFilter !== 'all' || (state.statusFilters && state.statusFilters.length));
-      scaleTrack.innerHTML = '<span class="text-muted small px-3">Нет задач</span>';
-      rowsContainer.innerHTML  = '<div class="crm-gantt-row crm-gantt-row--empty"><strong>' + (hasScopedFilter ? 'Нет задач по выбранным фильтрам' : 'Нет задач для отображения') + '</strong></div>';
-      lanesContainer.innerHTML = '<div class="crm-gantt-lane crm-gantt-lane--empty"><span class="crm-chip">' + (hasScopedFilter ? 'Очистите поиск или фильтры, чтобы вернуть задачи' : 'Создайте задачу с датами начала и завершения') + '</span></div>';
+      scaleTrack.innerHTML = '<span class="text-muted small px-3">' + safeText(tp('gantt.no_tasks', 'No tasks')) + '</span>';
+      rowsContainer.innerHTML  = '<div class="crm-gantt-row crm-gantt-row--empty"><strong>' + safeText(hasScopedFilter ? tp('gantt.no_tasks_for_filters', 'No tasks for selected filters') : tp('gantt.no_tasks_to_show', 'No tasks to display')) + '</strong></div>';
+      lanesContainer.innerHTML = '<div class="crm-gantt-lane crm-gantt-lane--empty"><span class="crm-chip">' + safeText(hasScopedFilter ? tp('gantt.clear_filters_hint', 'Clear search or filters to bring tasks back') : tp('gantt.create_task_with_dates_hint', 'Create a task with start and end dates')) + '</span></div>';
       // Still populate project filter with all projects
       var allGroups = crmGanttGroupItems(allItems);
       crmGanttPopulateProjectFilter(allGroups);
@@ -15788,11 +15816,11 @@ window.CRM.pageApiBindings = (function () {
         + '</button>'
         + '<div class="crm-gantt-row-meta">'
         + safeText(crmGanttPluralTasks(group.items.length))
-        + (group.overdueCount ? ' · <span class="text-danger">' + group.overdueCount + ' просрочено</span>' : '')
+        + (group.overdueCount ? ' · <span class="text-danger">' + group.overdueCount + ' ' + safeText(tp('gantt.overdue_lower', 'overdue')) + '</span>' : '')
         + ' · ' + progressPct + '%'
         + '</div>'
         + '</div>'
-        + '<span class="crm-gantt-status-pill">' + progressPct + '% готово</span>';
+        + '<span class="crm-gantt-status-pill">' + progressPct + '% ' + safeText(tp('gantt.ready_lower', 'ready')) + '</span>';
 
       // Project lane
       var projectLane = document.createElement('div');
@@ -15840,7 +15868,7 @@ window.CRM.pageApiBindings = (function () {
 
         var dateRange = item.start && item.end
           ? crmGanttFormatShortDateValue(item.start) + ' — ' + crmGanttFormatShortDateValue(item.end)
-          : 'Даты не заданы';
+          : tp('gantt.no_dates', 'Dates are not set');
 
         row.innerHTML = ''
           + '<div class="crm-gantt-row-main">'
@@ -16009,7 +16037,7 @@ window.CRM.pageApiBindings = (function () {
     if (!select) return;
 
     var currentValue = select.value;
-    var options = '<option value="all">Все проекты</option>';
+    var options = '<option value="all">' + safeText(tp('gantt.all_projects', 'All projects')) + '</option>';
     groups.forEach(function (group) {
       var selected = group.id === currentValue ? ' selected' : '';
       options += '<option value="' + safeText(group.id) + '"' + selected + '>' + safeText(group.title) + '</option>';
@@ -16143,7 +16171,7 @@ window.CRM.pageApiBindings = (function () {
       diamond.style.top = yPos + 'px';
       diamond.setAttribute('data-bs-toggle', 'tooltip');
       diamond.setAttribute('data-bs-placement', 'top');
-      diamond.setAttribute('title', milestone.title || 'Веха');
+      diamond.setAttribute('title', milestone.title || tp('gantt.milestone', 'Milestone'));
 
       var label = document.createElement('span');
       label.className = 'crm-gantt-milestone-label';
@@ -16238,13 +16266,13 @@ window.CRM.pageApiBindings = (function () {
         tryRequest('PUT', 'api/v1/tasks/' + dragState.taskId, updateData)
           .then(function (result) {
             if (result && result.success !== false) {
-              if (typeof notify === 'function') notify('Даты задачи обновлены', 'success');
+              if (typeof notify === 'function') notify(tp('gantt.task_dates_updated', 'Task dates updated'), 'success');
             } else {
-              if (typeof notify === 'function') notify('Ошибка сохранения дат', 'error');
+              if (typeof notify === 'function') notify(tp('gantt.task_dates_save_error', 'Failed to save dates'), 'error');
             }
           })
           .catch(function () {
-            if (typeof notify === 'function') notify('Ошибка сети', 'error');
+            if (typeof notify === 'function') notify(tp('gantt.network_error', 'Network error'), 'error');
           });
       }
 
@@ -16263,7 +16291,7 @@ window.CRM.pageApiBindings = (function () {
       if (!board) return;
 
       if (typeof notify === 'function') {
-        notify('Подготовка экспорта...', 'info');
+        notify(tp('gantt.export_preparing', 'Preparing export...'), 'info');
       }
 
       // Use html2canvas if available, otherwise fallback to simple approach
@@ -16278,10 +16306,10 @@ window.CRM.pageApiBindings = (function () {
           link.download = 'gantt-' + new Date().toISOString().slice(0, 10) + '.png';
           link.href = canvas.toDataURL('image/png');
           link.click();
-          if (typeof notify === 'function') notify('Диаграмма экспортирована', 'success');
+          if (typeof notify === 'function') notify(tp('gantt.export_done', 'Chart exported'), 'success');
         }).catch(function (err) {
           console.error('[GANTT] Export failed', err);
-          if (typeof notify === 'function') notify('Ошибка экспорта', 'error');
+          if (typeof notify === 'function') notify(tp('gantt.export_error', 'Export error'), 'error');
         });
       } else {
         // Fallback: open print dialog
@@ -16721,7 +16749,7 @@ window.CRM.pageApiBindings = (function () {
         if (options && options.tag) {
           tagName = options.tag[activeTagId] || activeTagId;
         }
-        tagChipContainer.innerHTML = '<span class="crm-kanban-tag-chip-filter">Тег: ' + safeText(tagName)
+        tagChipContainer.innerHTML = '<span class="crm-kanban-tag-chip-filter">' + safeText(kanbanT('kanban.filters.tag_prefix', 'Tag: ')) + safeText(tagName)
           + '<span class="task-tag-remove" data-clear-tag-filter>×</span></span>';
       } else {
         tagChipContainer.innerHTML = '';
@@ -17317,7 +17345,7 @@ window.CRM.pageApiBindings = (function () {
         },
         ollama: {
           provider_code: 'ollama',
-          title: 'Ollama (локально)',
+          title: 'Ollama (' + tp('admin_ai.local', 'local') + ')',
           base_url: 'http://localhost:11434',
           api_path: '/v1/chat/completions',
           default_model: 'llama3.1:8b',
@@ -17341,7 +17369,7 @@ window.CRM.pageApiBindings = (function () {
         },
         lmstudio: {
           provider_code: 'lmstudio',
-          title: 'LM Studio (локально)',
+          title: 'LM Studio (' + tp('admin_ai.local', 'local') + ')',
           base_url: 'http://localhost:1234',
           api_path: '/v1/chat/completions',
           default_model: 'local-model',
@@ -17365,7 +17393,7 @@ window.CRM.pageApiBindings = (function () {
         },
         generic: {
           provider_code: 'openai_compatible',
-          title: 'AI-сервис',
+          title: tp('admin_ai.ai_service', 'AI service'),
           base_url: '',
           api_path: '/v1/chat/completions',
           default_model: '',
@@ -17435,7 +17463,7 @@ window.CRM.pageApiBindings = (function () {
       }
       normalizeProviderFormInputs(form);
       if (!silent) {
-        notify('Применен пресет: ' + (code || 'generic'));
+        notify(tp('admin_ai.preset_applied_prefix', 'Preset applied: ') + (code || 'generic'));
       }
     }
 
@@ -17481,7 +17509,8 @@ window.CRM.pageApiBindings = (function () {
       });
       var toggleBtn = document.getElementById(normalizedMode === 'create' ? 'adminAiCreateAdvancedToggle' : 'adminAiEditAdvancedToggle');
       if (toggleBtn) {
-        toggleBtn.textContent = expanded ? 'Режим: расширенный' : 'Режим: базовый';
+        toggleBtn.dataset.expanded = expanded ? '1' : '0';
+        toggleBtn.textContent = expanded ? tp('admin_ai.mode_advanced', 'Mode: advanced') : tp('admin_ai.mode_basic', 'Mode: basic');
       }
     }
 
@@ -17531,33 +17560,33 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function validateProviderConfiguration(form, requireSecret) {
-      if (!form) return 'Форма подключения не найдена.';
+      if (!form) return tp('admin_ai.form_not_found', 'Connection form not found.');
       var baseUrl = String((form.querySelector('[name="base_url"]') || {}).value || '').trim();
       var apiPath = String((form.querySelector('[name="api_path"]') || {}).value || '').trim();
       var embeddingsPath = String((form.querySelector('[name="embeddings_endpoint"]') || {}).value || '').trim();
       var defaultModel = String((form.querySelector('[name="default_model"]') || {}).value || '').trim();
       var title = String((form.querySelector('[name="title"]') || {}).value || '').trim();
-      if (!title) return 'Заполните название подключения.';
-      if (!defaultModel) return 'Заполните модель по умолчанию.';
-      if (!baseUrl) return 'Заполните адрес API.';
-      if (/\s/.test(baseUrl)) return 'Адрес API не должен содержать пробелы.';
+      if (!title) return tp('admin_ai.validation_title_required', 'Enter connection title.');
+      if (!defaultModel) return tp('admin_ai.validation_default_model_required', 'Enter default model.');
+      if (!baseUrl) return tp('admin_ai.validation_base_url_required', 'Enter API URL.');
+      if (/\s/.test(baseUrl)) return tp('admin_ai.validation_base_url_no_spaces', 'API URL must not contain spaces.');
       if (/\/v\d+\/chat\/completions\/?$/i.test(baseUrl) || /\/chat\/completions\/?$/i.test(baseUrl)) {
-        return 'Адрес API не должен заканчиваться на /chat/completions. Укажите этот путь в поле «Путь API».';
+        return tp('admin_ai.validation_base_url_not_chat_completions', 'API URL must not end with /chat/completions. Put that path into the API path field.');
       }
       try {
         var parsed = new URL(baseUrl);
         if (!parsed.protocol || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) {
-          return 'Адрес API должен начинаться с http:// или https://.';
+          return tp('admin_ai.validation_base_url_protocol', 'API URL must start with http:// or https://.');
         }
       } catch (e) {
-        return 'Адрес API имеет некорректный формат.';
+        return tp('admin_ai.validation_base_url_invalid', 'API URL has invalid format.');
       }
-      if (!apiPath) return 'Заполните API path.';
-      if (apiPath.charAt(0) !== '/') return 'API path должен начинаться с /.';
-      if (embeddingsPath && embeddingsPath.charAt(0) !== '/') return 'Embeddings endpoint должен начинаться с /.';
+      if (!apiPath) return tp('admin_ai.validation_api_path_required', 'Enter API path.');
+      if (apiPath.charAt(0) !== '/') return tp('admin_ai.validation_api_path_slash', 'API path must start with /.');
+      if (embeddingsPath && embeddingsPath.charAt(0) !== '/') return tp('admin_ai.validation_embeddings_path_slash', 'Embeddings endpoint must start with /.');
       if (requireSecret) {
         var secret = String((form.querySelector('[name="create_secret"]') || {}).value || '').trim();
-        if (!secret) return 'Ключ доступа обязателен при создании подключения.';
+        if (!secret) return tp('admin_ai.validation_secret_required', 'Access key is required when creating a connection.');
       }
       return '';
     }
@@ -17565,27 +17594,27 @@ window.CRM.pageApiBindings = (function () {
     function providerTestFailureHint(errorCode) {
       var code = String(errorCode || '').trim();
       if (code === 'AI_PROVIDER_AUTH_FAILED') {
-        return 'Авторизация не прошла. Проверьте ключ доступа и схему авторизации.';
+        return tp('admin_ai.test_auth_failed', 'Authorization failed. Check access key and authorization scheme.');
       }
       if (code === 'AI_PROVIDER_INSUFFICIENT_CREDITS') {
-        return 'Недостаточно кредитов на аккаунте OpenRouter. Пополните баланс в настройках OpenRouter.';
+        return tp('admin_ai.test_insufficient_credits', 'Not enough credits on OpenRouter account. Top up the balance in OpenRouter settings.');
       }
       if (code === 'AI_PROVIDER_UNAVAILABLE' || code === 'AI_PROVIDER_TIMEOUT') {
-        return 'Адрес API недоступен. Проверьте адрес и сетевое подключение.';
+        return tp('admin_ai.test_unavailable', 'API URL is unavailable. Check address and network connection.');
       }
       if (code === 'AI_PROVIDER_NOT_CONFIGURED') {
-        return 'Подключение не настроено. Заполните обязательные поля и ключ доступа.';
+        return tp('admin_ai.test_not_configured', 'Connection is not configured. Fill required fields and access key.');
       }
       if (code === 'AI_PROVIDER_RATE_LIMITED') {
-        return 'Лимит запросов превышен на стороне провайдера AI. Подождите и повторите проверку.';
+        return tp('admin_ai.test_provider_rate_limited', 'AI provider request limit exceeded. Wait and test again.');
       }
       if (code === 'HTTP_404' || code === 'NOT_FOUND') {
-        return 'Адрес проверки не найден. Проверьте адрес API и путь API.';
+        return tp('admin_ai.test_endpoint_not_found', 'Test endpoint not found. Check API URL and API path.');
       }
       if (code === 'HTTP_429' || code === 'AI_RATE_LIMITED') {
-        return 'Лимит запросов превышен. Снизьте Rate / min или выберите fallback model.';
+        return tp('admin_ai.test_rate_limited', 'Request limit exceeded. Lower Rate / min or choose fallback model.');
       }
-      return 'Проверьте настройки подключения и повторите проверку.';
+      return tp('admin_ai.test_generic_fail', 'Check connection settings and test again.');
     }
 
     function parseDateMs(value) {
@@ -17705,7 +17734,7 @@ window.CRM.pageApiBindings = (function () {
       tr.innerHTML = ''
         + '<td><input class="form-control form-control-sm" data-ai-header-key value="' + safeText(String(key || '')) + '" placeholder="Header name (optional)"></td>'
         + '<td><input class="form-control form-control-sm" data-ai-header-value value="' + safeText(String(value || '')) + '" placeholder="Value"></td>'
-        + '<td><button class="btn btn-sm crm-btn-danger" type="button" data-ai-header-remove>Удалить</button></td>';
+        + '<td><button class="btn btn-sm crm-btn-danger" type="button" data-ai-header-remove>' + safeText(tp('common.delete', 'Delete')) + '</button></td>';
       tbody.appendChild(tr);
     }
 
@@ -17795,7 +17824,7 @@ window.CRM.pageApiBindings = (function () {
       var envelope = error && error.envelope ? error.envelope : null;
       return {
         code: String((envelope && envelope.code) || 'AI_REQUEST_FAILED'),
-        message: String((envelope && envelope.message) || fallbackMessage || 'Не удалось выполнить AI-запрос')
+        message: String((envelope && envelope.message) || fallbackMessage || tp('admin_ai.request_failed', 'Failed to perform AI request'))
       };
     }
 
@@ -17803,7 +17832,7 @@ window.CRM.pageApiBindings = (function () {
       if (!node) return;
       var list = Array.isArray(items) ? items : [];
       if (!list.length) {
-        node.innerHTML = '<li class="text-muted">' + safeText(emptyText || 'Нет данных.') + '</li>';
+        node.innerHTML = '<li class="text-muted">' + safeText(emptyText || tp('admin_ai.no_data', 'No data.')) + '</li>';
         return;
       }
       node.innerHTML = list.slice(0, 10).map(function (item) {
@@ -17834,12 +17863,12 @@ window.CRM.pageApiBindings = (function () {
 
     function adminReviewIntentLabel(intentCode) {
       var code = String(intentCode || '').trim();
-      if (code === 'admin_log_review') return 'Обзор логов';
-      if (code === 'webhook_health_review') return 'Проверка обмена данными';
-      if (code === 'workflow_rule_audit') return 'Аудит сценариев';
-      if (code === 'daily_work_plan') return 'План рабочих задач на день';
-      if (code === 'security_log_review') return 'Проверка журнала безопасности';
-      return 'Административный AI-обзор';
+      if (code === 'admin_log_review') return tp('admin_ai.intent_admin_log_review', 'Log review');
+      if (code === 'webhook_health_review') return tp('admin_ai.intent_webhook_health_review', 'Data exchange check');
+      if (code === 'workflow_rule_audit') return tp('admin_ai.intent_workflow_rule_audit', 'Workflow audit');
+      if (code === 'daily_work_plan') return tp('admin_ai.intent_daily_work_plan', 'Daily work plan');
+      if (code === 'security_log_review') return tp('admin_ai.intent_security_log_review', 'Security log review');
+      return tp('admin_ai.intent_admin_review', 'Administrative AI review');
     }
 
     async function requestGenericAdminAiAction(actionType, successMessage) {
@@ -17862,10 +17891,10 @@ window.CRM.pageApiBindings = (function () {
         adminAiReviewSummaryNode.textContent = summary || successMessage;
       }
       if (adminAiReviewFactsNode) {
-        renderAdminReviewList(adminAiReviewFactsNode, result && Array.isArray(result.facts) ? result.facts : [], 'Нет данных.');
+        renderAdminReviewList(adminAiReviewFactsNode, result && Array.isArray(result.facts) ? result.facts : [], tp('admin_ai.no_data', 'No data.'));
       }
       if (adminAiReviewRisksNode) {
-        renderAdminReviewList(adminAiReviewRisksNode, result && Array.isArray(result.risks) ? result.risks : [], 'Нет данных.');
+        renderAdminReviewList(adminAiReviewRisksNode, result && Array.isArray(result.risks) ? result.risks : [], tp('admin_ai.no_data', 'No data.'));
       }
       return envelope;
     }
@@ -17875,10 +17904,10 @@ window.CRM.pageApiBindings = (function () {
         return;
       }
       if (!suggestion) {
-        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'empty', 'AI review ещё не сформирован.');
-        adminAiReviewSummaryNode.textContent = 'Выберите сценарий и нажмите кнопку запуска.';
-        renderAdminReviewList(adminAiReviewFactsNode, [], 'Нет данных.');
-        renderAdminReviewList(adminAiReviewRisksNode, [], 'Нет данных.');
+        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'empty', tp('admin_ai.review_not_generated', 'AI review has not been generated yet.'));
+        adminAiReviewSummaryNode.textContent = tp('admin_ai.review_choose_scenario', 'Choose a scenario and click run.');
+        renderAdminReviewList(adminAiReviewFactsNode, [], tp('admin_ai.no_data', 'No data.'));
+        renderAdminReviewList(adminAiReviewRisksNode, [], tp('admin_ai.no_data', 'No data.'));
         if (adminAiReviewPreviewBtn) adminAiReviewPreviewBtn.disabled = true;
         if (adminAiReviewDismissBtn) adminAiReviewDismissBtn.disabled = true;
         return;
@@ -17894,15 +17923,15 @@ window.CRM.pageApiBindings = (function () {
       var stateCopy = adminReviewIntentLabel(suggestion.intent_code)
         + ' · ' + String(suggestion.status || 'draft')
         + ' · ' + formatDate(suggestion.updated_at || suggestion.created_at || '');
-      if (previewChanges > 0) stateCopy += ' · предпросмотр: ' + String(previewChanges) + ' изм.';
+      if (previewChanges > 0) stateCopy += ' · ' + tp('admin_ai.preview_prefix', 'preview: ') + String(previewChanges) + ' ' + tp('admin_ai.changes_short', 'changes');
       var suggestionStatus = String(suggestion.status || '').trim();
       var aiState = suggestionStatus === 'dismissed'
         ? 'dismissed'
         : (suggestionStatus === 'applied' ? 'applied' : 'ready');
       setAiUiState(adminAiReviewCard, adminAiReviewStateNode, aiState, stateCopy);
-      adminAiReviewSummaryNode.textContent = String((payload.summary || suggestion.summary || 'AI review сформирован.'));
-      renderAdminReviewList(adminAiReviewFactsNode, facts, 'Факты не указаны.');
-      renderAdminReviewList(adminAiReviewRisksNode, risks, 'Риски и вопросы не обнаружены.');
+      adminAiReviewSummaryNode.textContent = String((payload.summary || suggestion.summary || tp('admin_ai.review_generated', 'AI review generated.')));
+      renderAdminReviewList(adminAiReviewFactsNode, facts, tp('admin_ai.facts_empty', 'Facts are not specified.'));
+      renderAdminReviewList(adminAiReviewRisksNode, risks, tp('admin_ai.risks_empty', 'Risks and questions were not found.'));
       if (adminAiReviewPreviewBtn) adminAiReviewPreviewBtn.disabled = false;
       var isFinal = String(suggestion.status || '') === 'applied' || String(suggestion.status || '') === 'dismissed';
       if (adminAiReviewDismissBtn) adminAiReviewDismissBtn.disabled = isFinal;
@@ -18009,9 +18038,9 @@ window.CRM.pageApiBindings = (function () {
     var aiSettingsData = aiSettingsEnvelope && aiSettingsEnvelope.data ? aiSettingsEnvelope.data : {};
     var runtimeMode = String(((aiSettingsData.settings || {}).runtime_mode || 'staged') || 'staged').toLowerCase();
     function runtimeModeLabel(mode) {
-      if (mode === 'mock') return 'Имитация';
-      if (mode === 'real') return 'Боевой режим';
-      return 'Тестовый режим';
+      if (mode === 'mock') return tp('admin_ai.runtime_mock', 'Mock');
+      if (mode === 'real') return tp('admin_ai.runtime_real', 'Production mode');
+      return tp('admin_ai.runtime_staged', 'Staged mode');
     }
     var adminReviewSuggestions = mapItems(adminSuggestionsEnvelope).filter(function (item) {
       var code = String(item && item.intent_code ? item.intent_code : '').trim();
@@ -18097,20 +18126,20 @@ window.CRM.pageApiBindings = (function () {
       if (!provider) {
         return {
           code: 'missing',
-          label: 'Не настроен',
+          label: tp('admin_ai.health_not_configured', 'Not configured'),
           badgeClass: 'archived',
-          title: 'AI ещё не подключён',
-          description: 'Добавьте AI-сервис и ключ доступа, чтобы использовать AI в CRM.',
+          title: tp('admin_ai.health_ai_not_connected', 'AI is not connected yet'),
+          description: tp('admin_ai.health_add_service_key', 'Add AI service and access key to use AI in CRM.'),
           isProblem: true
         };
       }
       if (!provider.credential_is_configured) {
         return {
           code: 'no_key',
-          label: 'Не настроен',
+          label: tp('admin_ai.health_not_configured', 'Not configured'),
           badgeClass: 'archived',
-          title: 'AI ещё не подключён',
-          description: 'Добавьте ключ доступа, чтобы использовать AI в CRM.',
+          title: tp('admin_ai.health_ai_not_connected', 'AI is not connected yet'),
+          description: tp('admin_ai.health_add_key', 'Add an access key to use AI in CRM.'),
           isProblem: true
         };
       }
@@ -18124,29 +18153,29 @@ window.CRM.pageApiBindings = (function () {
       if (lastOk && !health.needs_recheck) {
         return {
           code: 'ok',
-          label: 'Работает',
+          label: tp('admin_ai.health_ok', 'Working'),
           badgeClass: 'active',
-          title: 'AI подключён и работает',
-          description: 'Основное подключение готово к работе.',
+          title: tp('admin_ai.health_ok_title', 'AI is connected and working'),
+          description: tp('admin_ai.health_ok_desc', 'Main connection is ready to work.'),
           isProblem: false
         };
       }
       if (lastFailed || (health.status && health.status !== 'ok')) {
         return {
           code: 'error',
-          label: 'Есть проблема',
+          label: tp('admin_ai.health_problem', 'Has problem'),
           badgeClass: 'danger',
-          title: 'AI требует внимания',
-          description: 'Не удалось проверить основное подключение. Проверьте ключ доступа или выбранную модель.',
+          title: tp('admin_ai.health_problem_title', 'AI needs attention'),
+          description: tp('admin_ai.health_problem_desc', 'Failed to check main connection. Check access key or selected model.'),
           isProblem: true
         };
       }
       return {
         code: 'unchecked',
-        label: 'Требуется проверка',
+        label: tp('admin_ai.health_needs_check', 'Needs check'),
         badgeClass: 'warning',
-        title: 'AI подключён, но ещё не проверен',
-        description: 'Запустите проверку, чтобы убедиться, что сервис готов к работе.',
+        title: tp('admin_ai.health_unchecked_title', 'AI is connected but not checked yet'),
+        description: tp('admin_ai.health_unchecked_desc', 'Run a check to make sure the service is ready.'),
         isProblem: true
       };
     }
@@ -18207,9 +18236,9 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function secretLabel(provider) {
-      if (!provider || !provider.credential_is_configured) return 'не добавлен';
+      if (!provider || !provider.credential_is_configured) return tp('admin_ai.secret_not_added', 'not added');
       var masked = String(provider.credential_masked_value || '').trim();
-      return masked || 'добавлен';
+      return masked || tp('admin_ai.secret_added', 'added');
     }
 
     var defaultProvider = providers.find(function (item) {
@@ -18267,15 +18296,15 @@ window.CRM.pageApiBindings = (function () {
           setState: function (stateCode, message) {
             setAiUiState(adminAiReviewCard, adminAiReviewStateNode, stateCode, message);
           },
-          fallbackMessage: 'Административный AI-обзор временно недоступен.'
+          fallbackMessage: tp('admin_ai.review_temp_unavailable', 'Administrative AI review is temporarily unavailable.')
         });
       }
     }
 
     function bindAdminReviewAction(button, config) {
       if (!button || !config || typeof config !== 'object') return;
-      var loadingMessage = String(config.loadingMessage || 'Формируем AI-обзор...').trim();
-      var fallbackMessage = String(config.fallbackMessage || 'Не удалось выполнить AI-обзор').trim();
+      var loadingMessage = String(config.loadingMessage || tp('admin_ai.review_generating', 'Generating AI review...')).trim();
+      var fallbackMessage = String(config.fallbackMessage || tp('admin_ai.review_action_fail', 'Failed to perform AI review')).trim();
       var successMessage = String(config.successMessage || '').trim();
       var runFn = typeof config.run === 'function' ? config.run : null;
       if (!runFn) return;
@@ -18300,52 +18329,52 @@ window.CRM.pageApiBindings = (function () {
     }
 
     bindAdminReviewAction(adminAiLogReviewBtn, {
-      loadingMessage: 'Формируем AI-обзор логов...',
-      fallbackMessage: 'Не удалось сформировать AI-обзор логов',
-      successMessage: 'AI-обзор логов сформирован',
-      run: function () { return requestAdminReviewIntent('log-review', 'ai-admin-log-review', 'AI-обзор логов сформирован'); }
+      loadingMessage: tp('admin_ai.log_review_generating', 'Generating AI log review...'),
+      fallbackMessage: tp('admin_ai.log_review_fail', 'Failed to generate AI log review'),
+      successMessage: tp('admin_ai.log_review_ready', 'AI log review generated'),
+      run: function () { return requestAdminReviewIntent('log-review', 'ai-admin-log-review', tp('admin_ai.log_review_ready', 'AI log review generated')); }
     });
     bindAdminReviewAction(adminAiWebhookHealthBtn, {
-      loadingMessage: 'Формируем AI-обзор webhook health...',
-      fallbackMessage: 'Не удалось сформировать AI-обзор webhook health',
-      successMessage: 'AI-обзор webhook health сформирован',
-      run: function () { return requestAdminReviewIntent('webhook-health', 'ai-admin-webhook-health', 'AI-обзор webhook health сформирован'); }
+      loadingMessage: tp('admin_ai.webhook_health_generating', 'Generating webhook health AI review...'),
+      fallbackMessage: tp('admin_ai.webhook_health_fail', 'Failed to generate webhook health AI review'),
+      successMessage: tp('admin_ai.webhook_health_ready', 'Webhook health AI review generated'),
+      run: function () { return requestAdminReviewIntent('webhook-health', 'ai-admin-webhook-health', tp('admin_ai.webhook_health_ready', 'Webhook health AI review generated')); }
     });
     bindAdminReviewAction(adminAiWorkflowAuditBtn, {
-      loadingMessage: 'Формируем AI-аудит workflow...',
-      fallbackMessage: 'Не удалось сформировать AI-аудит workflow',
-      successMessage: 'AI-аудит workflow сформирован',
-      run: function () { return requestAdminReviewIntent('workflow-audit', 'ai-admin-workflow-audit', 'AI-аудит workflow сформирован'); }
+      loadingMessage: tp('admin_ai.workflow_audit_generating', 'Generating workflow AI audit...'),
+      fallbackMessage: tp('admin_ai.workflow_audit_fail', 'Failed to generate workflow AI audit'),
+      successMessage: tp('admin_ai.workflow_audit_ready', 'Workflow AI audit generated'),
+      run: function () { return requestAdminReviewIntent('workflow-audit', 'ai-admin-workflow-audit', tp('admin_ai.workflow_audit_ready', 'Workflow AI audit generated')); }
     });
     bindAdminReviewAction(adminAiDailyPlanBtn, {
-      loadingMessage: 'Формируем план рабочих задач на день...',
-      fallbackMessage: 'Не удалось сформировать план рабочих задач на день',
-      successMessage: 'План рабочих задач на день сформирован',
-      run: function () { return requestGenericAdminAiAction('daily_work_plan', 'План рабочих задач на день сформирован'); }
+      loadingMessage: tp('admin_ai.daily_plan_generating', 'Generating daily work plan...'),
+      fallbackMessage: tp('admin_ai.daily_plan_fail', 'Failed to generate daily work plan'),
+      successMessage: tp('admin_ai.daily_plan_ready', 'Daily work plan generated'),
+      run: function () { return requestGenericAdminAiAction('daily_work_plan', tp('admin_ai.daily_plan_ready', 'Daily work plan generated')); }
     });
     bindAdminReviewAction(adminAiSecurityLogBtn, {
-      loadingMessage: 'Проверяем журнал безопасности...',
-      fallbackMessage: 'Не удалось проверить журнал безопасности',
-      successMessage: 'Проверка журнала безопасности сформирована',
-      run: function () { return requestGenericAdminAiAction('security_log_review', 'Проверка журнала безопасности сформирована'); }
+      loadingMessage: tp('admin_ai.security_log_checking', 'Checking security log...'),
+      fallbackMessage: tp('admin_ai.security_log_fail', 'Failed to check security log'),
+      successMessage: tp('admin_ai.security_log_ready', 'Security log review generated'),
+      run: function () { return requestGenericAdminAiAction('security_log_review', tp('admin_ai.security_log_ready', 'Security log review generated')); }
     });
 
     if (adminAiReviewPreviewBtn) {
       adminAiReviewPreviewBtn.onclick = async function () {
         if (!currentAdminReviewSuggestion || !currentAdminReviewSuggestion.public_id) {
-          notify('Сначала сформируйте AI review', 'warning');
+          notify(tp('admin_ai.generate_review_first', 'Generate AI review first'), 'warning');
           return;
         }
         if (window.CRM.ai && typeof window.CRM.ai.canPreviewSuggestion === 'function' && !window.CRM.ai.canPreviewSuggestion(currentAdminReviewSuggestion)) {
           var blockedAdminMessage = typeof window.CRM.ai.suggestionPreviewPolicyMessage === 'function'
             ? window.CRM.ai.suggestionPreviewPolicyMessage(currentAdminReviewSuggestion)
-            : 'Предпросмотр временно недоступен. Обновите AI-результат.';
+            : tp('admin_ai.preview_unavailable', 'Preview is temporarily unavailable. Refresh the AI result.');
           setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'ready', blockedAdminMessage);
           notify(blockedAdminMessage, 'warning');
           return;
         }
         adminAiReviewPreviewBtn.disabled = true;
-        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'loading', 'Подготавливаем предпросмотр административного AI-обзора...');
+        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'loading', tp('admin_ai.preview_preparing', 'Preparing administrative AI review preview...'));
         try {
           var previewEnvelope = window.CRM.ai && typeof window.CRM.ai.previewSuggestion === 'function'
             ? await window.CRM.ai.previewSuggestion(currentAdminReviewSuggestion.public_id)
@@ -18361,7 +18390,7 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.ai && typeof window.CRM.ai.openSuggestionDrawer === 'function') {
             window.CRM.ai.openSuggestionDrawer(currentAdminReviewSuggestion, currentAdminReviewPreview, {
               onApply: function () {
-                notify('Для административного AI-обзора доступен только предпросмотр. Бизнес-изменения не применяются автоматически.', 'warning');
+                notify(tp('admin_ai.preview_only', 'Only preview is available for administrative AI review. Business changes are not applied automatically.'), 'warning');
               },
               onDismiss: function () {
                 if (adminAiReviewDismissBtn) adminAiReviewDismissBtn.click();
@@ -18372,12 +18401,12 @@ window.CRM.pageApiBindings = (function () {
             });
           }
         } catch (error) {
-          var previewError = toAdminAiError(error, 'Не удалось открыть предпросмотр административного AI-обзора');
-          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, resolveAiUiState(previewError), previewError.message || 'Не удалось открыть предпросмотр административного AI-обзора');
+          var previewError = toAdminAiError(error, tp('admin_ai.preview_open_fail', 'Failed to open administrative AI review preview'));
+          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, resolveAiUiState(previewError), previewError.message || tp('admin_ai.preview_open_fail', 'Failed to open administrative AI review preview'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось открыть предпросмотр административного AI-обзора');
+            window.CRM.ai.renderAiError(error, tp('admin_ai.preview_open_fail', 'Failed to open administrative AI review preview'));
           }
-          notify(previewError.message || 'Не удалось открыть предпросмотр административного AI-обзора', 'error');
+          notify(previewError.message || tp('admin_ai.preview_open_fail', 'Failed to open administrative AI review preview'), 'error');
         } finally {
           adminAiReviewPreviewBtn.disabled = !currentAdminReviewSuggestion;
         }
@@ -18387,11 +18416,11 @@ window.CRM.pageApiBindings = (function () {
     if (adminAiReviewDismissBtn) {
       adminAiReviewDismissBtn.onclick = async function () {
         if (!currentAdminReviewSuggestion || !currentAdminReviewSuggestion.public_id) {
-          notify('AI-обзор не выбран', 'warning');
+          notify(tp('admin_ai.review_not_selected', 'AI review is not selected'), 'warning');
           return;
         }
         adminAiReviewDismissBtn.disabled = true;
-        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'loading', 'Отклоняем административный AI-обзор...');
+        setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'loading', tp('admin_ai.review_dismissing', 'Dismissing administrative AI review...'));
         try {
           var dismissEnvelope = window.CRM.ai && typeof window.CRM.ai.dismissSuggestion === 'function'
             ? await window.CRM.ai.dismissSuggestion(currentAdminReviewSuggestion.public_id)
@@ -18405,15 +18434,15 @@ window.CRM.pageApiBindings = (function () {
             : currentAdminReviewSuggestion;
           currentAdminReviewPreview = null;
           renderAdminReviewCard(currentAdminReviewSuggestion, currentAdminReviewPreview);
-          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'dismissed', 'Административный AI-обзор отклонен.');
-          notify('Административный AI-обзор отклонен');
+          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, 'dismissed', tp('admin_ai.review_dismissed', 'Administrative AI review dismissed.'));
+          notify(tp('admin_ai.review_dismissed', 'Administrative AI review dismissed.'));
         } catch (error) {
-          var dismissError = toAdminAiError(error, 'Не удалось отклонить административный AI-обзор');
-          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, resolveAiUiState(dismissError), dismissError.message || 'Не удалось отклонить административный AI-обзор');
+          var dismissError = toAdminAiError(error, tp('admin_ai.review_dismiss_fail', 'Failed to dismiss administrative AI review'));
+          setAiUiState(adminAiReviewCard, adminAiReviewStateNode, resolveAiUiState(dismissError), dismissError.message || tp('admin_ai.review_dismiss_fail', 'Failed to dismiss administrative AI review'));
           if (window.CRM.ai && typeof window.CRM.ai.renderAiError === 'function') {
-            window.CRM.ai.renderAiError(error, 'Не удалось отклонить административный AI-обзор');
+            window.CRM.ai.renderAiError(error, tp('admin_ai.review_dismiss_fail', 'Failed to dismiss administrative AI review'));
           }
-          notify(dismissError.message || 'Не удалось отклонить административный AI-обзор', 'error');
+          notify(dismissError.message || tp('admin_ai.review_dismiss_fail', 'Failed to dismiss administrative AI review'), 'error');
         } finally {
           var isDismissed = currentAdminReviewSuggestion && String(currentAdminReviewSuggestion.status || '') === 'dismissed';
           adminAiReviewDismissBtn.disabled = !currentAdminReviewSuggestion || isDismissed;
@@ -18424,7 +18453,7 @@ window.CRM.pageApiBindings = (function () {
     var actionTypesList = document.getElementById('adminAiActionTypesList');
     if (actionTypesList) {
       if (!actionTypes.length) {
-        actionTypesList.innerHTML = '<span class="text-muted">Список действий недоступен.</span>';
+        actionTypesList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.allowed_actions_unavailable', 'Allowed actions list is unavailable.')) + '</span>';
       } else {
         actionTypesList.innerHTML = actionTypes.map(function (actionType) {
           return '<span class="crm-chip">' + safeText(actionType) + '</span>';
@@ -18441,14 +18470,18 @@ window.CRM.pageApiBindings = (function () {
     var usageBody = document.getElementById('adminAiUsageBody');
     var providerHealthBody = document.getElementById('adminAiProviderHealthBody');
     var usageRangeSummaryNode = document.getElementById('adminAiUsageRangeSummary');
-    var usageRangeLabel = usageRangeDays === 1 ? 'сегодня' : (usageRangeDays + ' дней');
+    var usageRangeLabel = usageRangeDays === 1
+      ? tp('admin_ai.range_today', 'today')
+      : (String(usageRangeDays) + ' ' + tp('admin_ai.days_word', 'days'));
     var usageTotalErrors = usageItems.filter(function (item) { return hasUsageError(item); }).length;
     if (usageRangeSummaryNode) {
-      usageRangeSummaryNode.textContent = 'Период: ' + usageRangeLabel + '. Запросов: ' + String(usageItems.length) + ', ошибок: ' + String(usageTotalErrors) + '.';
+      usageRangeSummaryNode.textContent = tp('admin_ai.usage_period', 'Period: ') + usageRangeLabel + '. '
+        + tp('admin_ai.usage_requests', 'Requests: ') + String(usageItems.length) + ', '
+        + tp('admin_ai.usage_errors', 'errors: ') + String(usageTotalErrors) + '.';
     }
     if (usageBody) {
       if (!usageItems.length) {
-        usageBody.innerHTML = '<tr><td colspan="4" class="text-muted">Usage summary недоступен.</td></tr>';
+        usageBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.usage_unavailable', 'Usage summary is unavailable.')) + '</td></tr>';
       } else {
         var usageStatsMap = {};
         usageItems.forEach(function (item) {
@@ -18488,7 +18521,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (providerHealthBody) {
       if (!usageItems.length) {
-        renderMutedTableMessage(providerHealthBody, 5, 'Метрики подключений недоступны.');
+        renderMutedTableMessage(providerHealthBody, 5, tp('admin_ai.connection_metrics_unavailable', 'Connection metrics are unavailable.'));
       } else {
         var providerStatsMap = {};
         usageItems.forEach(function (item) {
@@ -18566,9 +18599,9 @@ window.CRM.pageApiBindings = (function () {
     state.auditItemsByPublicId = {};
     if (auditBody) {
       if (!auditItems.length) {
-        renderMutedTableMessage(auditBody, 4, 'Журнал AI-аудита недоступен.');
-        if (auditDetailTitle) auditDetailTitle.textContent = 'Очищенные детали AI-аудита';
-        if (auditDetailPre) auditDetailPre.textContent = 'Нет данных для просмотра.';
+        renderMutedTableMessage(auditBody, 4, tp('admin_ai.audit_unavailable', 'AI audit log is unavailable.'));
+        if (auditDetailTitle) auditDetailTitle.textContent = tp('admin_ai.audit_clean_details', 'Sanitized AI audit details');
+        if (auditDetailPre) auditDetailPre.textContent = tp('admin_ai.no_preview_data', 'No data to preview.');
       } else {
         auditBody.innerHTML = auditItems.slice(0, 20).map(function (item) {
           var publicId = String(item.public_id || '').trim();
@@ -18581,7 +18614,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(action) + '</td>'
             + '<td>' + safeText(entity || '—') + '</td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-audit-detail="' + safeText(publicId) + '">Открыть</button></td>'
+            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-audit-detail="' + safeText(publicId) + '">' + safeText(tp('common.open', 'Open')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -18595,7 +18628,7 @@ window.CRM.pageApiBindings = (function () {
         if (!row) return;
         var detail = sanitizeAuditDetailForUi(row.details || {});
         if (auditDetailTitle) {
-          auditDetailTitle.textContent = 'Очищенные детали AI-аудита: ' + (String(row.action || 'ai_event'));
+          auditDetailTitle.textContent = tp('admin_ai.audit_clean_details_prefix', 'Sanitized AI audit details: ') + (String(row.action || 'ai_event'));
         }
         if (auditDetailPre) {
           auditDetailPre.textContent = JSON.stringify(detail, null, 2);
@@ -18616,7 +18649,7 @@ window.CRM.pageApiBindings = (function () {
         return bMs - aMs;
       }).slice(0, 20);
       if (!failedRuns.length) {
-        renderMutedTableMessage(failedJobsBody, 4, 'Ошибочных AI-задач не найдено.');
+        renderMutedTableMessage(failedJobsBody, 4, tp('admin_ai.failed_jobs_empty', 'No failed AI jobs found.'));
       } else {
         failedJobsBody.innerHTML = failedRuns.map(function (item) {
           var intent = String(item.intent_code || item.action_type || 'unknown').trim() || 'unknown';
@@ -18635,15 +18668,15 @@ window.CRM.pageApiBindings = (function () {
     var retentionBody = document.getElementById('adminAiRetentionBody');
     if (retentionBody) {
       if (!retentionItems.length) {
-        renderMutedTableMessage(retentionBody, 3, 'Политика хранения не найдена.');
+        renderMutedTableMessage(retentionBody, 3, tp('admin_ai.retention_empty', 'No retention policy found.'));
       } else {
         retentionBody.innerHTML = retentionItems.map(function (item) {
           var code = String(item.policy_code || '');
           var days = Number(item.retention_days || 0);
           return '<tr>'
-            + '<td><strong>' + safeText(code) + '</strong><div class="small text-muted">обновлено: ' + safeText(formatDate(item.updated_at || '')) + '</div></td>'
+            + '<td><strong>' + safeText(code) + '</strong><div class="small text-muted">' + safeText(tp('admin_ai.updated_prefix', 'updated: ')) + safeText(formatDate(item.updated_at || '')) + '</div></td>'
             + '<td><input class="form-control form-control-sm" type="number" min="1" step="1" data-ai-retention-days="' + safeText(code) + '" value="' + safeText(String(days > 0 ? days : 30)) + '"></td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-retention-save="' + safeText(code) + '">Сохранить</button></td>'
+            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-retention-save="' + safeText(code) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -18665,25 +18698,25 @@ window.CRM.pageApiBindings = (function () {
     var providersBody = document.getElementById('adminAiProvidersBody');
     if (providersBody) {
       if (!providers.length) {
-        providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">Пока нет подключений. Добавьте AI-сервис, чтобы начать работу.</div>';
+        providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">' + safeText(tp('admin_ai.providers_empty', 'No connections yet. Add an AI service to get started.')) + '</div>';
       } else {
         var additionalProviders = providers.filter(function (provider) {
           return String(provider.public_id || '') !== selectedProviderId;
         }).slice(0, 5);
         if (!additionalProviders.length) {
-          providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">Других подключений пока нет. Основное подключение уже показано выше.</div>';
+          providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">' + safeText(tp('admin_ai.providers_no_other', 'No other connections yet. The primary connection is already shown above.')) + '</div>';
         } else {
           providersBody.innerHTML = additionalProviders.map(function (provider) {
           var providerId = String(provider.public_id || '');
           var info = providerHealthInfo(provider);
-          var rowSubtitle = info.code === 'ok' && !provider.is_default ? 'Не используется' : info.label;
-          var rowBadgeLabel = info.code === 'ok' && !provider.is_default ? 'Не используется' : (info.code === 'ok' ? 'Активно' : info.label);
+          var rowSubtitle = info.code === 'ok' && !provider.is_default ? tp('admin_ai.not_used', 'Not used') : info.label;
+          var rowBadgeLabel = info.code === 'ok' && !provider.is_default ? tp('admin_ai.not_used', 'Not used') : (info.code === 'ok' ? tp('common.active', 'Active') : info.label);
           var rowBadgeClass = info.code === 'ok' && !provider.is_default ? 'archived' : info.badgeClass;
           var rowAction = info.code === 'ok'
-            ? '<button class="btn btn-sm btn-light" type="button" data-ai-provider-edit="' + safeText(providerId) + '">Настроить</button>'
-            : '<button class="btn btn-sm btn-light" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + (provider.credential_is_configured ? '' : ' disabled title="Сначала добавьте ключ доступа"') + '>Проверить</button>';
-          var defaultAction = provider.is_default ? '' : '<li><button class="dropdown-item" type="button" data-ai-provider-make-default="' + safeText(providerId) + '">Сделать основным</button></li>';
-          var testDisabled = provider.credential_is_configured ? '' : ' disabled title="Сначала добавьте ключ доступа"';
+            ? '<button class="btn btn-sm btn-light" type="button" data-ai-provider-edit="' + safeText(providerId) + '">' + safeText(tp('admin_ai.btn_configure', 'Configure')) + '</button>'
+            : '<button class="btn btn-sm btn-light" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + (provider.credential_is_configured ? '' : ' disabled title="' + safeText(tp('admin_ai.add_secret_first', 'Add the access key first')) + '"') + '>' + safeText(tp('admin_ai.btn_check', 'Check')) + '</button>';
+          var defaultAction = provider.is_default ? '' : '<li><button class="dropdown-item" type="button" data-ai-provider-make-default="' + safeText(providerId) + '">' + safeText(tp('admin_ai.make_default', 'Make primary')) + '</button></li>';
+          var testDisabled = provider.credential_is_configured ? '' : ' disabled title="' + safeText(tp('admin_ai.add_secret_first', 'Add the access key first')) + '"';
           return '<article class="crm-admin-ai-provider-row">'
             + '<div class="crm-admin-ai-provider-row-icon" aria-hidden="true">' + providerIconMarkup(provider, 'fa-regular fa-file-lines') + '</div>'
             + '<div class="crm-admin-ai-provider-row-main">'
@@ -18694,15 +18727,15 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="crm-admin-ai-provider-row-actions">'
               + rowAction
               + '<div class="dropdown">'
-                + '<button class="btn btn-sm btn-light crm-admin-ai-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Дополнительные действия"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
+                + '<button class="btn btn-sm btn-light crm-admin-ai-icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + safeText(tp('admin_ai.aria_actions', 'More actions')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
                 + '<ul class="dropdown-menu dropdown-menu-end">'
                   + defaultAction
-                  + '<li><button class="dropdown-item" type="button" data-ai-provider-edit="' + safeText(providerId) + '">Настроить</button></li>'
-                  + '<li><button class="dropdown-item" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + testDisabled + '>Проверить подключение</button></li>'
-                  + '<li><button class="dropdown-item" type="button" data-ai-provider-sync-models="' + safeText(providerId) + '">Управлять моделями</button></li>'
-                  + '<li><button class="dropdown-item" type="button" data-ai-provider-tech="' + safeText(providerId) + '" data-bs-toggle="modal" data-bs-target="#adminAiTechnicalModal">Показать технические данные</button></li>'
+                  + '<li><button class="dropdown-item" type="button" data-ai-provider-edit="' + safeText(providerId) + '">' + safeText(tp('admin_ai.btn_configure', 'Configure')) + '</button></li>'
+                  + '<li><button class="dropdown-item" type="button" data-ai-provider-test-row="' + safeText(providerId) + '"' + testDisabled + '>' + safeText(tp('admin_ai.hero_btn_test', 'Test connection')) + '</button></li>'
+                  + '<li><button class="dropdown-item" type="button" data-ai-provider-sync-models="' + safeText(providerId) + '">' + safeText(tp('admin_ai.menu_manage_models', 'Manage models')) + '</button></li>'
+                  + '<li><button class="dropdown-item" type="button" data-ai-provider-tech="' + safeText(providerId) + '" data-bs-toggle="modal" data-bs-target="#adminAiTechnicalModal">' + safeText(tp('admin_ai.menu_technical_data', 'Show technical data')) + '</button></li>'
                   + '<li><hr class="dropdown-divider"></li>'
-                  + '<li><button class="dropdown-item text-danger" type="button" data-ai-provider-delete="' + safeText(providerId) + '">Удалить</button></li>'
+                  + '<li><button class="dropdown-item text-danger" type="button" data-ai-provider-delete="' + safeText(providerId) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></li>'
                 + '</ul>'
               + '</div>'
             + '</div>'
@@ -18738,20 +18771,20 @@ window.CRM.pageApiBindings = (function () {
     }
     if (defaultProviderHintNode) {
       if (!defaultProvider) {
-        defaultProviderHintNode.textContent = 'Основное подключение не выбрано. Назначьте его через меню подключения.';
+        defaultProviderHintNode.textContent = tp('admin_ai.default_not_selected_hint', 'Primary connection is not selected. Assign it from the connection menu.');
       } else {
         var defaultProviderTitle = String(defaultProvider.title || defaultProvider.provider_code || defaultProvider.public_id || '—');
         var defaultProviderModel = String(defaultProvider.default_model || '—');
-        defaultProviderHintNode.innerHTML = 'Основное подключение: <strong>' + safeText(defaultProviderTitle) + '</strong> · модель: ' + safeText(defaultProviderModel) + '.';
+        defaultProviderHintNode.innerHTML = safeText(tp('admin_ai.default_connection_prefix', 'Primary connection: ')) + '<strong>' + safeText(defaultProviderTitle) + '</strong> · ' + safeText(tp('admin_ai.model_prefix', 'model: ')) + safeText(defaultProviderModel) + '.';
       }
     }
 
     if (!selectedProvider) {
-      if (selectedHint) selectedHint.textContent = 'Выберите подключение в списке.';
-      if (selectedDefaultHintNode) selectedDefaultHintNode.textContent = 'Основное подключение: —';
-      if (providerStatusSummaryNode) providerStatusSummaryNode.textContent = 'Статус подключения отобразится после выбора.';
-      if (selectedModelsSummaryNode) selectedModelsSummaryNode.textContent = 'Модели выбранного подключения отобразятся после загрузки.';
-      if (secretState) secretState.textContent = 'Ключ доступа не добавлен.';
+      if (selectedHint) selectedHint.textContent = tp('admin_ai.select_connection_hint', 'Select a connection from the list.');
+      if (selectedDefaultHintNode) selectedDefaultHintNode.textContent = tp('admin_ai.default_connection_dash', 'Primary connection: —');
+      if (providerStatusSummaryNode) providerStatusSummaryNode.textContent = tp('admin_ai.status_after_select', 'Connection status will appear after selection.');
+      if (selectedModelsSummaryNode) selectedModelsSummaryNode.textContent = tp('admin_ai.models_after_load', 'Selected connection models will appear after loading.');
+      if (secretState) secretState.textContent = tp('admin_ai.secret_not_added', 'Access key is not added.');
       if (editForm) editForm.reset();
       if (editForm) fillHeadersToForm(editForm, {});
       if (editForm) updateProviderEndpointsPreview(editForm, 'edit');
@@ -18764,10 +18797,10 @@ window.CRM.pageApiBindings = (function () {
     } else if (editForm) {
       var selectedTitle = String(selectedProvider.title || selectedProvider.provider_code || selectedProvider.public_id || '');
       if (selectedHint) {
-        selectedHint.textContent = 'Редактируется: ' + selectedTitle + (selectedProvider.is_default ? ' • основной' : '');
+        selectedHint.textContent = tp('admin_ai.editing_prefix', 'Editing: ') + selectedTitle + (selectedProvider.is_default ? ' • ' + tp('admin_ai.primary_lower', 'primary') : '');
       }
       if (selectedDefaultHintNode) {
-        selectedDefaultHintNode.textContent = 'Основное подключение: ' + String(defaultProvider ? (defaultProvider.title || defaultProvider.provider_code || defaultProvider.public_id || '—') : 'не выбрано');
+        selectedDefaultHintNode.textContent = tp('admin_ai.default_connection_prefix', 'Primary connection: ') + String(defaultProvider ? (defaultProvider.title || defaultProvider.provider_code || defaultProvider.public_id || '—') : tp('admin_ai.not_selected', 'not selected'));
       }
       (editForm.querySelector('[name="public_id"]') || {}).value = String(selectedProvider.public_id || '');
       (editForm.querySelector('[name="provider_code"]') || {}).value = String(selectedProvider.provider_code || '');
@@ -18792,8 +18825,8 @@ window.CRM.pageApiBindings = (function () {
       if (secretState) {
         var secretLast4 = String(selectedProvider.credential_last4 || '').trim();
         secretState.textContent = selectedProvider.credential_is_configured
-          ? ('Ключ доступа добавлен' + (secretLast4 ? (': ••••••••' + secretLast4) : ''))
-          : 'Ключ доступа не добавлен.';
+          ? (tp('admin_ai.secret_added', 'Access key added') + (secretLast4 ? (': ••••••••' + secretLast4) : ''))
+          : tp('admin_ai.secret_not_added', 'Access key is not added.');
       }
       if (providerStatusSummaryNode) {
         var providerLastTestForSummary = providerLastTestAtByPublicId[String(selectedProvider.public_id || '')] || null;
@@ -18807,18 +18840,18 @@ window.CRM.pageApiBindings = (function () {
           ? formatDate(providerLastTestForSummary.created_at || '')
           : (providerHealth.last_checked_at ? formatDate(providerHealth.last_checked_at) : '');
         var lastReal = providerHealth.last_real_ai_success_at ? formatDate(providerHealth.last_real_ai_success_at) : '';
-        var health = '⚠️ Не проверен/ошибка';
+        var health = tp('admin_ai.health_not_checked_error', '⚠️ Not checked/error');
         if (providerHealth.status === 'ok') {
-          health = providerHealth.needs_recheck ? '⚠️ Требуется повторная проверка' : '✅ Работает';
+          health = providerHealth.needs_recheck ? tp('admin_ai.health_needs_recheck_short', '⚠️ Needs recheck') : tp('admin_ai.health_works_short', '✅ Working');
         } else if (providerLastTestForSummary && String(providerLastTestForSummary.action || '') === 'ai_provider_test_success') {
-          health = '✅ Работает';
+          health = tp('admin_ai.health_works_short', '✅ Working');
         }
-        var checkedLabel = checkedAt || lastReal || 'никогда';
+        var checkedLabel = checkedAt || lastReal || tp('admin_ai.never', 'never');
         providerStatusSummaryNode.innerHTML = ''
-          + '<span class="crm-admin-ai-provider-summary-line">Статус: ' + safeText(health) + '</span>'
-          + '<span class="crm-admin-ai-provider-summary-line">Модель для ответов: ' + safeText(String(selectedProvider.default_model || '—')) + '</span>'
-          + '<span class="crm-admin-ai-provider-summary-line">Модель для поиска: ' + safeText(embedModel) + '</span>'
-          + '<span class="crm-admin-ai-provider-summary-line">Последняя проверка: ' + safeText(checkedLabel) + '</span>';
+          + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.status_prefix', 'Status: ')) + safeText(health) + '</span>'
+          + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.answer_model_prefix', 'Answer model: ')) + safeText(String(selectedProvider.default_model || '—')) + '</span>'
+          + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.search_model_prefix', 'Search model: ')) + safeText(embedModel) + '</span>'
+          + '<span class="crm-admin-ai-provider-summary-line">' + safeText(tp('admin_ai.last_check_prefix', 'Last check: ')) + safeText(checkedLabel) + '</span>';
       }
     }
     var testProviderBtn = document.getElementById('adminAiTestProviderBtn');
@@ -18829,34 +18862,34 @@ window.CRM.pageApiBindings = (function () {
       var canTestProvider = Boolean(selectedProvider && selectedProvider.credential_is_configured);
       testProviderBtn.disabled = !canTestProvider;
       if (!selectedProvider) {
-        testProviderBtn.title = 'Сначала выберите подключение.';
+        testProviderBtn.title = tp('admin_ai.select_connection_first', 'Select a connection first.');
       } else if (!selectedProvider.credential_is_configured) {
-        testProviderBtn.title = 'Сначала добавьте ключ доступа.';
+        testProviderBtn.title = tp('admin_ai.add_secret_first_dot', 'Add the access key first.');
       } else {
         testProviderBtn.title = '';
       }
     }
     if (testStateNode && selectedProvider && !selectedProvider.credential_is_configured) {
-      testStateNode.textContent = 'Сначала добавьте ключ доступа, затем запустите проверку подключения.';
+      testStateNode.textContent = tp('admin_ai.add_secret_then_test', 'Add the access key first, then run the connection test.');
       if (testChecklistNode) testChecklistNode.innerHTML = '';
     } else if (testStateNode && selectedProvider && lastTest) {
-      var testStatus = String(lastTest.action || '') === 'ai_provider_test_success' ? 'успешно' : 'ошибка';
-      testStateNode.textContent = 'Последняя проверка: ' + formatDate(lastTest.created_at || '') + ' • Статус: ' + testStatus;
+      var testStatus = String(lastTest.action || '') === 'ai_provider_test_success' ? tp('admin_ai.test_success', 'success') : tp('admin_ai.test_error', 'error');
+      testStateNode.textContent = tp('admin_ai.last_check_prefix', 'Last check: ') + formatDate(lastTest.created_at || '') + ' • ' + tp('admin_ai.status_prefix', 'Status: ') + testStatus;
       if (testChecklistNode) testChecklistNode.innerHTML = '';
     } else if (testStateNode && selectedProvider) {
-      testStateNode.textContent = 'Проверка подключения еще не запускалась.';
+      testStateNode.textContent = tp('admin_ai.test_not_run', 'Connection test has not been run yet.');
       if (testChecklistNode) testChecklistNode.innerHTML = '';
     }
 
     if (quickStateNode) {
       if (!selectedProvider) {
-        quickStateNode.textContent = 'Добавьте подключение';
+        quickStateNode.textContent = tp('admin_ai.quick_add_connection', 'Add connection');
       } else if (!selectedProvider.credential_is_configured) {
-        quickStateNode.textContent = 'Добавьте ключ доступа';
+        quickStateNode.textContent = tp('admin_ai.quick_add_secret', 'Add access key');
       } else if (!lastTest || String(lastTest.action || '') !== 'ai_provider_test_success') {
-        quickStateNode.textContent = 'Требуется проверка';
+        quickStateNode.textContent = tp('admin_ai.quick_needs_test', 'Needs test');
       } else {
-        quickStateNode.textContent = 'Подключение работает';
+        quickStateNode.textContent = tp('admin_ai.quick_working', 'Connection works');
       }
     }
 
@@ -18892,8 +18925,8 @@ window.CRM.pageApiBindings = (function () {
     if (heroProviderNode) heroProviderNode.textContent = selectedProvider ? String(selectedProvider.title || selectedProvider.provider_code || '—') : '—';
     if (heroModelNode) heroModelNode.textContent = selectedProvider ? String(selectedProvider.default_model || '—') : '—';
     if (heroLastCheckNode) heroLastCheckNode.textContent = providerLastCheckLabel(selectedProvider);
-    if (heroSecretNode) heroSecretNode.textContent = selectedProvider && selectedProvider.credential_is_configured ? 'добавлен' : 'не добавлен';
-    if (heroScenariosNode) heroScenariosNode.textContent = String(enabledIntents) + ' ' + pluralRu(enabledIntents, 'сценарии', 'сценариях', 'сценариях');
+    if (heroSecretNode) heroSecretNode.textContent = selectedProvider && selectedProvider.credential_is_configured ? tp('admin_ai.added_lower', 'added') : tp('admin_ai.not_added_lower', 'not added');
+    if (heroScenariosNode) heroScenariosNode.textContent = String(enabledIntents) + ' ' + tpPlural('admin_ai.scenario', enabledIntents, { one: 'scenario', few: 'scenarios', many: 'scenarios' });
     if (heroDescriptionNode) heroDescriptionNode.textContent = selectedInfo.description;
     if (heroStatusNode) {
       heroStatusNode.textContent = String(heroStatusNode.textContent || '—') + ' · ' + runtimeModeLabel(runtimeMode);
@@ -18902,7 +18935,7 @@ window.CRM.pageApiBindings = (function () {
     setBadgeNode(primaryStatusBadgeNode, selectedInfo);
     if (primaryDefaultBadgeNode) primaryDefaultBadgeNode.classList.toggle('d-none', !(selectedProvider && selectedProvider.is_default));
     if (primaryHostNode) primaryHostNode.textContent = providerHostLabel(selectedProvider);
-    if (primarySecretNode) primarySecretNode.textContent = selectedProvider && selectedProvider.credential_is_configured ? 'Ключ доступа добавлен' : 'Ключ доступа не добавлен';
+    if (primarySecretNode) primarySecretNode.textContent = selectedProvider && selectedProvider.credential_is_configured ? tp('admin_ai.secret_added', 'Access key added') : tp('admin_ai.secret_not_added_plain', 'Access key is not added');
     if (primaryAnswerModelNode) primaryAnswerModelNode.textContent = selectedProvider ? String(selectedProvider.default_model || '—') : '—';
     if (primarySearchModelNode) primarySearchModelNode.textContent = providerEmbeddingModel(selectedProvider);
     if (attentionStateNode) {
@@ -18910,14 +18943,14 @@ window.CRM.pageApiBindings = (function () {
       if (issueCount > 0) {
         attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-warning">'
           + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>'
-          + '<div><strong>Есть ' + safeText(String(issueCount)) + ' ' + pluralRu(issueCount, 'вопрос', 'вопроса', 'вопросов') + ', требующих внимания</strong>'
-          + '<p class="mb-0">Рекомендуем проверить подключения перед использованием.</p></div>'
+          + '<div><strong>' + safeText(tp('admin_ai.attention_has_prefix', 'There are ')) + safeText(String(issueCount)) + ' ' + safeText(tpPlural('admin_ai.issue', issueCount, { one: 'issue', few: 'issues', many: 'issues' })) + safeText(tp('admin_ai.attention_has_suffix', ' that need attention')) + '</strong>'
+          + '<p class="mb-0">' + safeText(tp('admin_ai.attention_check_connections', 'We recommend checking connections before use.')) + '</p></div>'
           + '</div>';
       } else {
         attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-success">'
           + '<span class="crm-admin-ai-attention-icon" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>'
-          + '<div><strong>Всё в порядке</strong>'
-          + '<p class="mb-0">Подключения работают, дополнительных действий не требуется.</p></div>'
+          + '<div><strong>' + safeText(tp('admin_ai.attention_ok_title', 'Everything is fine')) + '</strong>'
+          + '<p class="mb-0">' + safeText(tp('admin_ai.attention_ok_desc', 'Connections are working; no additional action is required.')) + '</p></div>'
           + '</div>';
       }
     }
@@ -18926,7 +18959,7 @@ window.CRM.pageApiBindings = (function () {
     if (deleteSecretBtnState) {
       var canDeleteSecret = Boolean(selectedProvider && selectedProvider.credential_is_configured);
       deleteSecretBtnState.disabled = !canDeleteSecret;
-      deleteSecretBtnState.title = canDeleteSecret ? '' : 'Ключ доступа еще не добавлен';
+      deleteSecretBtnState.title = canDeleteSecret ? '' : tp('admin_ai.secret_not_added_yet', 'Access key is not added yet');
     }
 
     var modelsList = document.getElementById('adminAiModelsList');
@@ -18944,12 +18977,12 @@ window.CRM.pageApiBindings = (function () {
     if (modelsList) {
       var modelItems = modelsEnvelope ? mapItems(modelsEnvelope) : [];
       if (!selectedProviderId) {
-        modelsList.innerHTML = '<span class="text-muted">Сначала выберите подключение.</span>';
+        modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.select_connection_first', 'Select a connection first.')) + '</span>';
       } else if (!modelsEnvelope || modelsEnvelope.success === false) {
-        var modelError = modelsEnvelope && modelsEnvelope.message ? String(modelsEnvelope.message) : 'Список моделей недоступен.';
+        var modelError = modelsEnvelope && modelsEnvelope.message ? String(modelsEnvelope.message) : tp('admin_ai.models_unavailable', 'Model list is unavailable.');
         modelsList.innerHTML = '<span class="text-muted">' + safeText(modelError) + '</span>';
       } else if (!modelItems.length) {
-        modelsList.innerHTML = '<span class="text-muted">Модели не получены.</span>';
+        modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.models_not_received', 'No models received.')) + '</span>';
       } else {
         modelItems.forEach(function (item) {
           var modelId = modelIdFromItem(item);
@@ -18962,7 +18995,7 @@ window.CRM.pageApiBindings = (function () {
           }
         });
         if (!knownModelIdsForSummary.length) {
-          renderMutedInlineMessage(modelsList, 'API вернул модели без читаемого идентификатора. Нажмите «Синхронизировать модели» или проверьте endpoint подключения.');
+          renderMutedInlineMessage(modelsList, tp('admin_ai.models_without_id_hint', 'The API returned models without a readable identifier. Click “Sync models” or check the connection endpoint.'));
         } else {
           var hiddenKnownModels = Math.max(knownModelIdsForSummary.length - 24, 0);
           var renderedModels = knownModelIdsForSummary.slice(0, 24).map(function (modelId) {
@@ -18972,7 +19005,7 @@ window.CRM.pageApiBindings = (function () {
             renderedModels.push('<span class="crm-chip">+' + safeText(String(hiddenKnownModels)) + '</span>');
           }
           if (unknownModelsCountForSummary > 0) {
-            renderedModels.push('<span class="crm-chip crm-chip-muted">без id: ' + safeText(String(unknownModelsCountForSummary)) + '</span>');
+            renderedModels.push('<span class="crm-chip crm-chip-muted">' + safeText(tp('admin_ai.without_id_prefix', 'without id: ')) + safeText(String(unknownModelsCountForSummary)) + '</span>');
           }
           modelsList.innerHTML = renderedModels.join('');
         }
@@ -18980,22 +19013,22 @@ window.CRM.pageApiBindings = (function () {
     }
     if (selectedModelsSummaryNode) {
       if (!selectedProviderId) {
-        selectedModelsSummaryNode.textContent = 'Выберите подключение, чтобы увидеть модели.';
+        selectedModelsSummaryNode.textContent = tp('admin_ai.select_connection_to_view_models', 'Select a connection to view models.');
       } else if (!modelsEnvelope || modelsEnvelope.success === false) {
-        selectedModelsSummaryNode.textContent = 'Модели не загружены: проверьте адрес подключения или синхронизируйте список моделей.';
+        selectedModelsSummaryNode.textContent = tp('admin_ai.models_not_loaded_hint', 'Models are not loaded: check the connection address or sync the model list.');
       } else if (knownModelIdsForSummary.length) {
         var selectedDefaultModel = selectedProvider ? String(selectedProvider.default_model || '').trim() : '';
         var defaultModelFound = selectedDefaultModel !== '' && knownModelIdsForSummary.indexOf(selectedDefaultModel) >= 0;
         selectedModelsSummaryNode.innerHTML = (selectedDefaultModel && !defaultModelFound
-          ? '<div class="text-warning mb-1">Модель для ответов не найдена в списке подключения: <strong>' + safeText(selectedDefaultModel) + '</strong>.</div>'
+          ? '<div class="text-warning mb-1">' + safeText(tp('admin_ai.answer_model_not_found_prefix', 'Answer model was not found in the connection list: ')) + '<strong>' + safeText(selectedDefaultModel) + '</strong>.</div>'
           : '')
-          + 'Модели: ' + knownModelIdsForSummary.slice(0, 5).map(function (modelId) {
+          + safeText(tp('admin_ai.models_prefix', 'Models: ')) + knownModelIdsForSummary.slice(0, 5).map(function (modelId) {
           return '<span class="crm-chip">' + safeText(modelId) + '</span>';
         }).join(' ') + (knownModelIdsForSummary.length > 5 ? ' <span class="crm-chip">+' + safeText(String(knownModelIdsForSummary.length - 5)) + '</span>' : '');
       } else if (unknownModelsCountForSummary > 0) {
-        selectedModelsSummaryNode.textContent = 'Сервис вернул ' + String(unknownModelsCountForSummary) + ' моделей без идентификатора. Проверьте технические данные подключения.';
+        selectedModelsSummaryNode.textContent = tp('admin_ai.service_returned_prefix', 'The service returned ') + String(unknownModelsCountForSummary) + tp('admin_ai.service_returned_models_without_id_suffix', ' models without an identifier. Check the connection technical data.');
       } else {
-        selectedModelsSummaryNode.textContent = 'Модели не получены. Нажмите «Модели» в строке таблицы для синхронизации.';
+        selectedModelsSummaryNode.textContent = tp('admin_ai.models_empty_sync_hint', 'No models received. Click “Models” in the table row to sync.');
       }
     }
 
@@ -19059,19 +19092,19 @@ window.CRM.pageApiBindings = (function () {
       var node = document.getElementById('adminAiTechnicalDetails');
       if (!node) return;
       if (!provider) {
-        node.textContent = 'Подключение не выбрано.';
+        node.textContent = tp('admin_ai.connection_not_selected', 'Connection is not selected.');
         return;
       }
       var rows = [
-        ['Название', provider.title || '—'],
-        ['Внутренний код', provider.provider_code || '—'],
-        ['ID подключения', provider.public_id || '—'],
-        ['Адрес API', provider.base_url || '—'],
-        ['Путь API', provider.api_path || '—'],
-        ['Модель для ответов', provider.default_model || '—'],
-        ['Модель для поиска', providerEmbeddingModel(provider)],
-        ['Последняя проверка', providerLastCheckLabel(provider)],
-        ['Ключ доступа', provider.credential_is_configured ? 'добавлен' : 'не добавлен']
+        [tp('admin_ai.label_title', 'Title'), provider.title || '—'],
+        [tp('admin_ai.label_code', 'Internal code'), provider.provider_code || '—'],
+        [tp('admin_ai.connection_id', 'Connection ID'), provider.public_id || '—'],
+        [tp('admin_ai.label_base_url', 'API address'), provider.base_url || '—'],
+        [tp('admin_ai.label_api_path', 'API path'), provider.api_path || '—'],
+        [tp('admin_ai.label_answer_model', 'Answer model'), provider.default_model || '—'],
+        [tp('admin_ai.label_search_model', 'Search model'), providerEmbeddingModel(provider)],
+        [tp('admin_ai.hero_label_last_check', 'Last check'), providerLastCheckLabel(provider)],
+        [tp('admin_ai.label_secret', 'API key'), provider.credential_is_configured ? tp('admin_ai.added_lower', 'added') : tp('admin_ai.not_added_lower', 'not added')]
       ];
       node.innerHTML = rows.map(function (row) {
         return '<div class="d-flex justify-content-between gap-3 border-bottom py-2">'
@@ -19084,26 +19117,26 @@ window.CRM.pageApiBindings = (function () {
     async function testProviderById(providerId, button) {
       var normalizedId = String(providerId || '').trim();
       if (!normalizedId) {
-        notify('Сначала выберите подключение', 'warning');
+        notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
         return;
       }
       var originalHtml = button ? button.innerHTML : '';
       if (button) {
         button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-1">Проверяем...</span>';
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-1">' + safeText(tp('admin_ai.checking', 'Checking...')) + '</span>';
       }
       try {
         await request('api/v1/ai/providers/' + encodeURIComponent(normalizedId) + '/test', {
           method: 'POST',
           headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-provider-test') }
         });
-        notify('Подключение работает');
+        notify(tp('admin_ai.connection_works', 'Connection works'));
         window.CRM.__adminAiState = window.CRM.__adminAiState || {};
         window.CRM.__adminAiState.selectedProviderId = normalizedId;
         await renderAdminAiPage();
       } catch (error) {
         var envelope = error && error.envelope ? error.envelope : null;
-        notify((envelope && envelope.message) || 'Не удалось проверить подключение. Проверьте ключ доступа или выбранную модель.', 'error');
+        notify((envelope && envelope.message) || tp('admin_ai.connection_test_fail_full', 'Failed to test the connection. Check the access key or selected model.'), 'error');
         if (button) {
           button.disabled = false;
           button.innerHTML = originalHtml;
@@ -19168,24 +19201,24 @@ window.CRM.pageApiBindings = (function () {
     if (primaryDeleteBtn) {
       primaryDeleteBtn.onclick = async function () {
         if (!selectedProvider || !selectedProvider.public_id) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         if (selectedProvider.is_default) {
-          notify('Нельзя удалить основное подключение. Сначала выберите другое подключение по умолчанию.', 'warning');
+          notify(tp('admin_ai.cannot_delete_default', 'You cannot delete the primary connection. Choose another default connection first.'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить подключение? Это действие нельзя отменить.')) return;
+        if (!window.confirm(tp('admin_ai.delete_connection_confirm', 'Delete connection? This action cannot be undone.'))) return;
         try {
           await request('api/v1/ai/providers/' + encodeURIComponent(selectedProvider.public_id), {
             method: 'DELETE',
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-provider-delete') }
           });
-          notify('Подключение удалено');
+          notify(tp('admin_ai.connection_deleted', 'Connection deleted'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить подключение', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_delete_fail', 'Failed to delete connection'), 'error');
         }
       };
     }
@@ -19241,13 +19274,13 @@ window.CRM.pageApiBindings = (function () {
               method: 'POST',
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-provider-test-row') }
             });
-            notify('Проверка подключения выполнена');
+            notify(tp('admin_ai.connection_test_done', 'Connection test completed'));
             window.CRM.__adminAiState = window.CRM.__adminAiState || {};
             window.CRM.__adminAiState.selectedProviderId = testProviderId;
             await renderAdminAiPage();
           } catch (error) {
             var rowTestEnvelope = error && error.envelope ? error.envelope : null;
-            notify((rowTestEnvelope && rowTestEnvelope.message) || 'Не удалось проверить подключение', 'error');
+            notify((rowTestEnvelope && rowTestEnvelope.message) || tp('admin_ai.connection_test_fail', 'Failed to test connection'), 'error');
             rowTestBtn.disabled = false;
           }
           return;
@@ -19266,11 +19299,11 @@ window.CRM.pageApiBindings = (function () {
             });
             window.CRM.__adminAiState = window.CRM.__adminAiState || {};
             window.CRM.__adminAiState.selectedProviderId = syncProviderId;
-            notify('Список моделей синхронизирован');
+            notify(tp('admin_ai.models_synced', 'Model list synced'));
             await renderAdminAiPage();
           } catch (error) {
             var syncEnvelope = error && error.envelope ? error.envelope : null;
-            notify((syncEnvelope && syncEnvelope.message) || 'Не удалось синхронизировать модели', 'error');
+            notify((syncEnvelope && syncEnvelope.message) || tp('admin_ai.models_sync_fail', 'Failed to sync models'), 'error');
             syncModelsRowBtn.disabled = false;
           }
           return;
@@ -19284,14 +19317,14 @@ window.CRM.pageApiBindings = (function () {
             return String(item && item.public_id || '') === makeDefaultProviderId;
           }) || null;
           if (!providerForDefault) {
-            notify('Подключение не найдено', 'warning');
+            notify(tp('admin_ai.connection_not_found', 'Connection not found'), 'warning');
             return;
           }
           var willActivate = !providerForDefault.is_active;
           if (willActivate) {
-            var activateConfirm = window.confirm('Подключение сейчас выключено. Активировать и назначить его основным?');
+            var activateConfirm = window.confirm(tp('admin_ai.activate_and_make_default_confirm', 'This connection is currently disabled. Activate it and make it primary?'));
             if (!activateConfirm) return;
-          } else if (!window.confirm('Сделать это подключение основным для AI-помощника?')) {
+          } else if (!window.confirm(tp('admin_ai.make_default_confirm', 'Make this connection primary for the AI assistant?'))) {
             return;
           }
 
@@ -19306,11 +19339,11 @@ window.CRM.pageApiBindings = (function () {
             });
             window.CRM.__adminAiState = window.CRM.__adminAiState || {};
             window.CRM.__adminAiState.selectedProviderId = makeDefaultProviderId;
-            notify('Подключение назначено основным');
+            notify(tp('admin_ai.connection_made_default', 'Connection made primary'));
             await renderAdminAiPage();
           } catch (error) {
             var defaultEnvelopeError = error && error.envelope ? error.envelope : null;
-            notify((defaultEnvelopeError && defaultEnvelopeError.message) || 'Не удалось назначить подключение основным', 'error');
+            notify((defaultEnvelopeError && defaultEnvelopeError.message) || tp('admin_ai.make_default_fail', 'Failed to make connection primary'), 'error');
           }
           return;
         }
@@ -19323,10 +19356,10 @@ window.CRM.pageApiBindings = (function () {
           return String(item && item.public_id || '') === deleteProviderId;
         }) || null;
         if (providerToDelete && providerToDelete.is_default) {
-          notify('Нельзя удалить основное подключение. Сначала выберите другое подключение по умолчанию.', 'warning');
+          notify(tp('admin_ai.cannot_delete_default', 'You cannot delete the primary connection. Choose another default connection first.'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить подключение? Это действие нельзя отменить.')) return;
+        if (!window.confirm(tp('admin_ai.delete_connection_confirm', 'Delete connection? This action cannot be undone.'))) return;
         try {
           await request('api/v1/ai/providers/' + encodeURIComponent(deleteProviderId), {
             method: 'DELETE',
@@ -19335,11 +19368,11 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.__adminAiState && window.CRM.__adminAiState.selectedProviderId === deleteProviderId) {
             window.CRM.__adminAiState.selectedProviderId = '';
           }
-          notify('Подключение удалено');
+          notify(tp('admin_ai.connection_deleted', 'Connection deleted'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить подключение', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_delete_fail', 'Failed to delete connection'), 'error');
         }
       };
     }
@@ -19380,7 +19413,7 @@ window.CRM.pageApiBindings = (function () {
     var createAdvancedToggleBtn = document.getElementById('adminAiCreateAdvancedToggle');
     if (createAdvancedToggleBtn && createAdvancedToggleBtn.dataset.bound !== '1') {
       createAdvancedToggleBtn.addEventListener('click', function () {
-        var expanded = createAdvancedToggleBtn.textContent.indexOf('расширенный') >= 0;
+        var expanded = createAdvancedToggleBtn.dataset.expanded === '1';
         setAdminAiAdvancedVisibility('create', !expanded);
       });
       createAdvancedToggleBtn.dataset.bound = '1';
@@ -19419,7 +19452,7 @@ window.CRM.pageApiBindings = (function () {
         normalizeProviderFormInputs(createForm);
         var createHeaders = collectHeadersFromForm(createForm);
         if (createHeaders.hasForbidden) {
-          notify('Обнаружены запрещенные headers: Authorization, X-API-Key, Cookie, Set-Cookie.', 'warning');
+          notify(tp('admin_ai.forbidden_headers_detected', 'Forbidden headers detected: Authorization, X-API-Key, Cookie, Set-Cookie.'), 'warning');
           return;
         }
         var validationError = validateProviderConfiguration(createForm, true);
@@ -19443,11 +19476,11 @@ window.CRM.pageApiBindings = (function () {
           is_default: String((createForm.querySelector('[name="is_default"]') || {}).value || '0')
         };
         if (payload.provider_payload && payload.provider_payload.tls_verify === false && !isLocalDevBaseUrl(payload.base_url)) {
-          notify('Отключать проверку TLS можно только для локального self-hosted адреса разработки.', 'warning');
+          notify(tp('admin_ai.tls_disable_local_only', 'TLS verification can only be disabled for a local self-hosted development address.'), 'warning');
           return;
         }
         if (!payload.provider_code || !payload.title || !payload.base_url || !payload.default_model) {
-          notify('Заполните обязательные поля: код, название, адрес API и модель для ответов.', 'warning');
+          notify(tp('admin_ai.required_provider_fields', 'Fill required fields: code, title, API address and answer model.'), 'warning');
           return;
         }
 
@@ -19476,11 +19509,11 @@ window.CRM.pageApiBindings = (function () {
           }
           if (createProviderTypeSelect) createProviderTypeSelect.value = providerTypeFromPreset(String(createPresetSelect && createPresetSelect.value || 'openai'));
           updateProviderEndpointsPreview(createForm, 'create');
-          notify('Подключение создано');
+          notify(tp('admin_ai.connection_created', 'Connection created'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать подключение', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_create_fail', 'Failed to create connection'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -19497,12 +19530,12 @@ window.CRM.pageApiBindings = (function () {
         }
         var editHeaders = collectHeadersFromForm(editForm);
         if (editHeaders.hasForbidden) {
-          notify('Обнаружены запрещенные headers: Authorization, X-API-Key, Cookie, Set-Cookie.', 'warning');
+          notify(tp('admin_ai.forbidden_headers_detected', 'Forbidden headers detected: Authorization, X-API-Key, Cookie, Set-Cookie.'), 'warning');
           return;
         }
         var providerId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         var normalizedEditBaseUrl = String((editForm.querySelector('[name="base_url"]') || {}).value || '').trim();
@@ -19522,7 +19555,7 @@ window.CRM.pageApiBindings = (function () {
           is_default: String((editForm.querySelector('[name="is_default"]') || {}).value || '0')
         };
         if (payload.provider_payload && payload.provider_payload.tls_verify === false && !isLocalDevBaseUrl(payload.base_url)) {
-          notify('Отключать проверку TLS можно только для локального self-hosted адреса разработки.', 'warning');
+          notify(tp('admin_ai.tls_disable_local_only', 'TLS verification can only be disabled for a local self-hosted development address.'), 'warning');
           return;
         }
 
@@ -19531,18 +19564,18 @@ window.CRM.pageApiBindings = (function () {
             || payload.base_url !== normalizeBaseUrl(String(selectedProvider.base_url || ''))
             || payload.api_path !== String(selectedProvider.api_path || '').trim();
           var modelChanged = payload.default_model !== String(selectedProvider.default_model || '').trim();
-          if ((providerChanged || modelChanged) && !window.confirm('Изменение подключения или модели влияет на связанные AI-сценарии. Продолжить?')) {
+          if ((providerChanged || modelChanged) && !window.confirm(tp('admin_ai.provider_model_change_confirm', 'Changing the connection or model affects linked AI intents. Continue?'))) {
             return;
           }
 
           var providerDisabled = Boolean(selectedProvider.is_active) && payload.is_active !== '1';
-          if (providerDisabled && !window.confirm('Выключить выбранное подключение? Это может отключить часть AI-сценариев. Продолжить?')) {
+          if (providerDisabled && !window.confirm(tp('admin_ai.disable_provider_confirm', 'Disable the selected connection? This may disable some AI intents. Continue?'))) {
             return;
           }
 
           var turningOffDefaultProvider = Boolean(selectedProvider.is_default)
             && (payload.is_default !== '1' || payload.is_active !== '1');
-          if (turningOffDefaultProvider && !window.confirm('Вы отключаете основное подключение. Часть сценариев может остаться без активного AI-сервиса. Продолжить?')) {
+          if (turningOffDefaultProvider && !window.confirm(tp('admin_ai.disable_default_provider_confirm', 'You are disabling the primary connection. Some intents may remain without an active AI service. Continue?'))) {
             return;
           }
         }
@@ -19553,11 +19586,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-provider-update') },
             body: payload
           });
-          notify('Настройки подключения обновлены');
+          notify(tp('admin_ai.connection_settings_updated', 'Connection settings updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить подключение', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_update_fail', 'Failed to update connection'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -19567,7 +19600,7 @@ window.CRM.pageApiBindings = (function () {
         var presetCode = String(editPresetSelect.value || 'custom').trim();
         if (presetCode === 'custom') return;
         if (!editForm || !String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim()) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         applyProviderPreset(editForm, presetCode, false);
@@ -19592,7 +19625,7 @@ window.CRM.pageApiBindings = (function () {
     var editAdvancedToggleBtn = document.getElementById('adminAiEditAdvancedToggle');
     if (editAdvancedToggleBtn && editAdvancedToggleBtn.dataset.bound !== '1') {
       editAdvancedToggleBtn.addEventListener('click', function () {
-        var expanded = editAdvancedToggleBtn.textContent.indexOf('расширенный') >= 0;
+        var expanded = editAdvancedToggleBtn.dataset.expanded === '1';
         setAdminAiAdvancedVisibility('edit', !expanded);
       });
       editAdvancedToggleBtn.dataset.bound = '1';
@@ -19632,10 +19665,10 @@ window.CRM.pageApiBindings = (function () {
       deleteProviderBtn.addEventListener('click', async function () {
         var providerId = String((editForm && (editForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить подключение? Это действие нельзя отменить.')) return;
+        if (!window.confirm(tp('admin_ai.delete_connection_confirm', 'Delete connection? This action cannot be undone.'))) return;
         try {
           await request('api/v1/ai/providers/' + encodeURIComponent(providerId), {
             method: 'DELETE',
@@ -19644,11 +19677,11 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.__adminAiState && window.CRM.__adminAiState.selectedProviderId === providerId) {
             window.CRM.__adminAiState.selectedProviderId = '';
           }
-          notify('Подключение удалено');
+          notify(tp('admin_ai.connection_deleted', 'Connection deleted'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить подключение', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.connection_delete_fail', 'Failed to delete connection'), 'error');
         }
       });
       deleteProviderBtn.dataset.bound = '1';
@@ -19658,7 +19691,7 @@ window.CRM.pageApiBindings = (function () {
       testProviderBtn.addEventListener('click', async function () {
         var providerId = String((editForm && (editForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         var validationError = validateProviderConfiguration(editForm, false);
@@ -19689,33 +19722,33 @@ window.CRM.pageApiBindings = (function () {
           var embeddingsPath = String((editForm.querySelector('[name="embeddings_endpoint"]') || {}).value || '').trim();
           var embeddingsConfigured = embeddingsPath === '' || embeddingsPath.charAt(0) === '/';
           var lines = [
-            '✅ Адрес API: доступен',
-            '✅ Ключ доступа: авторизация успешна',
-            (availableModelIds.length ? '✅ Список моделей: получено ' + String(availableModelIds.length) : '⚠️ Список моделей: API не вернул читаемые id моделей'),
-            (modelExists ? '✅ Модель по умолчанию: найдена' : '⚠️ Модель по умолчанию не найдена: ' + model),
-            (embeddingsConfigured ? '✅ Embeddings: endpoint настроен' : '❌ Embeddings: endpoint должен начинаться с `/`'),
-            (payload.capabilities && payload.capabilities.streaming ? '✅ Потоковые ответы: включены' : '⚠️ Потоковые ответы: выключены'),
-            (payload.capabilities && payload.capabilities.vision ? '✅ Работа с изображениями: включена' : '⚠️ Работа с изображениями может не поддерживаться моделью'),
-            (payload.capabilities && payload.capabilities.tools ? '✅ Инструменты: включены' : '❌ Инструменты выключены в настройках подключения')
+            tp('admin_ai.check_api_available', '✅ API address: available'),
+            tp('admin_ai.check_secret_ok', '✅ Access key: authorization successful'),
+            (availableModelIds.length ? tp('admin_ai.check_models_received_prefix', '✅ Model list: received ') + String(availableModelIds.length) : tp('admin_ai.check_models_no_ids', '⚠️ Model list: API did not return readable model ids')),
+            (modelExists ? tp('admin_ai.check_default_model_found', '✅ Default model: found') : tp('admin_ai.check_default_model_missing_prefix', '⚠️ Default model not found: ') + model),
+            (embeddingsConfigured ? tp('admin_ai.check_embeddings_ok', '✅ Embeddings: endpoint configured') : tp('admin_ai.check_embeddings_bad', '❌ Embeddings: endpoint must start with `/`')),
+            (payload.capabilities && payload.capabilities.streaming ? tp('admin_ai.check_streaming_on', '✅ Streaming responses: enabled') : tp('admin_ai.check_streaming_off', '⚠️ Streaming responses: disabled')),
+            (payload.capabilities && payload.capabilities.vision ? tp('admin_ai.check_vision_on', '✅ Image support: enabled') : tp('admin_ai.check_vision_warn', '⚠️ Image support may not be supported by the model')),
+            (payload.capabilities && payload.capabilities.tools ? tp('admin_ai.check_tools_on', '✅ Tools: enabled') : tp('admin_ai.check_tools_off', '❌ Tools are disabled in connection settings'))
           ];
           if (testStateNode) {
-            testStateNode.textContent = 'Статус: ' + status + ' • Задержка: ' + latency + ' • Модель: ' + model
-              + (modelExists ? '' : ' • Требуется выбрать модель из списка подключения');
+            testStateNode.textContent = tp('admin_ai.status_prefix', 'Status: ') + status + ' • ' + tp('admin_ai.latency_prefix', 'Latency: ') + latency + ' • ' + tp('admin_ai.model_cap_prefix', 'Model: ') + model
+              + (modelExists ? '' : ' • ' + tp('admin_ai.choose_model_from_list', 'Select a model from the connection list'));
           }
           if (testChecklistNode) {
             testChecklistNode.innerHTML = lines.map(function (line) {
               return '<div>' + safeText(line) + '</div>';
             }).join('');
           }
-          notify('Проверка подключения выполнена');
+          notify(tp('admin_ai.connection_test_done', 'Connection test completed'));
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
           var errorCode = String((envelopeError && envelopeError.code) || 'AI_PROVIDER_TEST_FAILED');
-          var errorMessage = String((envelopeError && envelopeError.message) || 'Не удалось проверить подключение').trim();
+          var errorMessage = String((envelopeError && envelopeError.message) || tp('admin_ai.connection_test_fail', 'Failed to test connection')).trim();
           var hint = providerTestFailureHint(errorCode);
-          if (testStateNode) testStateNode.textContent = 'Статус: ошибка • Код: ' + errorCode + ' • ' + hint;
+          if (testStateNode) testStateNode.textContent = tp('admin_ai.status_error_code_prefix', 'Status: error • Code: ') + errorCode + ' • ' + hint;
           if (testChecklistNode) {
-            testChecklistNode.innerHTML = '<div>❌ Проверка подключения не прошла</div><div class="text-muted">' + safeText(errorMessage) + '</div><div class="text-muted">' + safeText(hint) + '</div>';
+            testChecklistNode.innerHTML = '<div>' + safeText(tp('admin_ai.connection_test_failed_line', '❌ Connection test failed')) + '</div><div class="text-muted">' + safeText(errorMessage) + '</div><div class="text-muted">' + safeText(hint) + '</div>';
           }
           notify(hint, 'error');
         }
@@ -19728,7 +19761,7 @@ window.CRM.pageApiBindings = (function () {
       syncModelsBtn.addEventListener('click', async function () {
         var providerId = String((editForm && (editForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+        notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         try {
@@ -19737,11 +19770,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-models-sync') },
             body: { provider_public_id: providerId }
           });
-          notify('Список моделей синхронизирован');
+          notify(tp('admin_ai.models_synced', 'Model list synced'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось синхронизировать модели', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.models_sync_fail', 'Failed to sync models'), 'error');
         }
       });
       syncModelsBtn.dataset.bound = '1';
@@ -19754,11 +19787,11 @@ window.CRM.pageApiBindings = (function () {
         var secretInput = secretForm.querySelector('[name="secret"]');
         var secret = String((secretInput || {}).value || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
         if (!secret) {
-          notify('Введите ключ доступа', 'warning');
+          notify(tp('admin_ai.enter_secret', 'Enter the access key'), 'warning');
           return;
         }
         try {
@@ -19768,11 +19801,11 @@ window.CRM.pageApiBindings = (function () {
             body: { secret: secret }
           });
           if (secretInput) secretInput.value = '';
-          notify('Ключ доступа обновлен');
+          notify(tp('admin_ai.secret_updated', 'Access key updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить ключ доступа', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.secret_update_fail', 'Failed to update access key'), 'error');
         }
       });
       secretForm.dataset.bound = '1';
@@ -19783,20 +19816,20 @@ window.CRM.pageApiBindings = (function () {
       deleteSecretBtn.addEventListener('click', async function () {
         var providerId = String((editForm && (editForm.querySelector('[name="public_id"]') || {}).value) || '').trim();
         if (!providerId) {
-          notify('Сначала выберите подключение', 'warning');
+          notify(tp('admin_ai.select_connection_first_no_dot', 'Select a connection first'), 'warning');
           return;
         }
-        if (!window.confirm('Удалить ключ доступа у выбранного подключения?')) return;
+        if (!window.confirm(tp('admin_ai.delete_secret_confirm', 'Delete the access key from the selected connection?'))) return;
         try {
           await request('api/v1/ai/providers/' + encodeURIComponent(providerId) + '/secret', {
             method: 'DELETE',
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-provider-secret-delete') }
           });
-          notify('Ключ доступа удален');
+          notify(tp('admin_ai.secret_deleted', 'Access key deleted'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось удалить ключ доступа', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.secret_delete_fail', 'Failed to delete access key'), 'error');
         }
       });
       deleteSecretBtn.dataset.bound = '1';
@@ -19819,7 +19852,7 @@ window.CRM.pageApiBindings = (function () {
         var input = retentionBody.querySelector('[data-ai-retention-days="' + policyCode.replace(/"/g, '\\"') + '"]');
         var days = Number((input && input.value) || 0);
         if (!Number.isFinite(days) || days <= 0) {
-          notify('Укажите корректное количество дней', 'warning');
+          notify(tp('admin_ai.valid_days_required', 'Enter a valid number of days'), 'warning');
           return;
         }
 
@@ -19829,11 +19862,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-retention-update') },
             body: { days: days }
           });
-          notify('Политика хранения обновлена');
+          notify(tp('admin_ai.retention_updated', 'Retention policy updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить retention policy', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.retention_update_fail', 'Failed to update retention policy'), 'error');
         }
       });
       retentionBody.dataset.bound = '1';
@@ -19842,7 +19875,7 @@ window.CRM.pageApiBindings = (function () {
     var intentsBody = document.getElementById('adminAiIntentsBody');
     if (intentsBody) {
       if (!intentSettings.length) {
-        intentsBody.innerHTML = '<tr><td colspan="6" class="text-muted">Сценарии пока не настроены.</td></tr>';
+        intentsBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_ai.intents_empty', 'No intents are configured yet.')) + '</td></tr>';
       } else {
         var providerByPublicId = {};
         providers.forEach(function (item) {
@@ -19933,7 +19966,7 @@ window.CRM.pageApiBindings = (function () {
             var effectiveProvider = effectiveProviderPublicId ? (providerByPublicId[effectiveProviderPublicId] || null) : null;
             var providerTitle = effectiveProvider
               ? String(effectiveProvider.title || effectiveProvider.provider_code || effectiveProviderPublicId)
-              : (effectiveProviderPublicId || 'не выбран');
+              : (effectiveProviderPublicId || tp('admin_ai.not_selected', 'not selected'));
             var requiredPermission = String(item.required_permission || '').trim();
             var maxTokens = Number(item.max_tokens || 0);
             var isEnabled = item.is_enabled ? '1' : '0';
@@ -19941,20 +19974,20 @@ window.CRM.pageApiBindings = (function () {
             var requiresSensitivePermission = requiredPermission === 'ai.use_sensitive_context';
             var permissionMeta = safeText(requiredPermission || 'ai.use');
             var lastLog = intentLastLogByIntent[intentCode] || null;
-            var lastMeta = 'last: нет данных';
+            var lastMeta = tp('admin_ai.last_no_data', 'last: no data');
             if (lastLog) {
               var statusLabel = lastLog.is_error
                 ? ('error' + (lastLog.error_code ? (' (' + lastLog.error_code + ')') : ''))
                 : 'success';
-              lastMeta = 'last: ' + statusLabel + ' • ' + formatDate(lastLog.created_at || '');
+              lastMeta = tp('admin_ai.last_prefix', 'last: ') + statusLabel + ' • ' + formatDate(lastLog.created_at || '');
             }
             if (requiresSensitivePermission) {
               permissionMeta += ' <span class="crm-chip">requires ai.use_sensitive_context</span>';
             }
             permissionMeta += '<div class="small text-muted">' + safeText(lastMeta) + '</div>';
 
-            var promptLabel = activePromptByIntent[intentCode] || 'не задан';
-            var schemaLabel = activeSchemaByIntent[intentCode] || 'не задана';
+            var promptLabel = activePromptByIntent[intentCode] || tp('admin_ai.not_set_m', 'not set');
+            var schemaLabel = activeSchemaByIntent[intentCode] || tp('admin_ai.not_set_f', 'not set');
             var policiesMeta = 'masking: ' + (sensitive === '1' ? 'sensitive ON' : 'default')
               + (retentionSummary ? ('; retention: ' + retentionSummary) : '');
 
@@ -19967,11 +20000,11 @@ window.CRM.pageApiBindings = (function () {
               + '<td><input class="form-control form-control-sm" data-ai-intent-feature-flag="' + safeText(intentCode) + '" value="' + safeText(featureFlag || '') + '" maxlength="128" placeholder="ai.task"></td>'
               + '<td><div class="d-flex gap-2 align-items-center flex-wrap">'
                 + '<input class="form-control form-control-sm" class="form-control form-control-sm crm-field-w-120" type="number" min="1" step="1" data-ai-intent-max-tokens="' + safeText(intentCode) + '" value="' + safeText(String(maxTokens > 0 ? maxTokens : 2000)) + '">'
-                + '<select class="form-select form-select-sm" class="form-select form-select-sm crm-field-w-140" data-ai-intent-enabled="' + safeText(intentCode) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>Включен</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>Выключен</option></select>'
-                + '<select class="form-select form-select-sm" class="form-select form-select-sm crm-field-w-180" data-ai-intent-sensitive="' + safeText(intentCode) + '"><option value="0"' + (sensitive === '0' ? ' selected' : '') + '>Без чувствительных данных</option><option value="1"' + (sensitive === '1' ? ' selected' : '') + '>Разрешены чувствительные данные</option></select>'
+                + '<select class="form-select form-select-sm" class="form-select form-select-sm crm-field-w-140" data-ai-intent-enabled="' + safeText(intentCode) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.enabled', 'Enabled')) + '</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.disabled', 'Disabled')) + '</option></select>'
+                + '<select class="form-select form-select-sm" class="form-select form-select-sm crm-field-w-180" data-ai-intent-sensitive="' + safeText(intentCode) + '"><option value="0"' + (sensitive === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.no_sensitive_data', 'No sensitive data')) + '</option><option value="1"' + (sensitive === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.sensitive_data_allowed', 'Sensitive data allowed')) + '</option></select>'
                 + '<div class="small text-muted w-100">' + safeText(policiesMeta) + '</div>'
               + '</div></td>'
-              + '<td><button class="btn btn-sm btn-light" type="button" data-ai-intent-save="' + safeText(intentCode) + '">Сохранить</button></td>'
+              + '<td><button class="btn btn-sm btn-light" type="button" data-ai-intent-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
               + '</tr>');
           });
         });
@@ -20032,7 +20065,7 @@ window.CRM.pageApiBindings = (function () {
         if (!flag) {
           return '<tr>'
             + '<td><strong>' + safeText(entry.code) + '</strong></td>'
-            + '<td><span class="crm-badge archived">не найден</span></td>'
+            + '<td><span class="crm-badge archived">' + safeText(tp('admin_ai.not_found', 'not found')) + '</span></td>'
             + '<td><span class="text-muted small">—</span></td>'
             + '</tr>';
         }
@@ -20040,8 +20073,8 @@ window.CRM.pageApiBindings = (function () {
         var isEnabled = flag.is_enabled ? '1' : '0';
         return '<tr>'
           + '<td><strong>' + safeText(entry.code) + '</strong></td>'
-          + '<td><select class="form-select form-select-sm" data-ai-flag-enabled="' + safeText(publicId) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>Включен</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>Выключен</option></select></td>'
-          + '<td><button class="btn btn-sm btn-light" type="button" data-ai-flag-save="' + safeText(publicId) + '">Сохранить</button></td>'
+          + '<td><select class="form-select form-select-sm" data-ai-flag-enabled="' + safeText(publicId) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.enabled', 'Enabled')) + '</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.disabled', 'Disabled')) + '</option></select></td>'
+          + '<td><button class="btn btn-sm btn-light" type="button" data-ai-flag-save="' + safeText(publicId) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
           + '</tr>';
       }).join('');
     }
@@ -20057,7 +20090,7 @@ window.CRM.pageApiBindings = (function () {
       });
 
       if (!cronItems.length) {
-        cronBody.innerHTML = '<tr><td colspan="5" class="text-muted">Фоновые сценарии не найдены.</td></tr>';
+        cronBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin_ai.cron_empty', 'No background intents found.')) + '</td></tr>';
       } else {
         cronBody.innerHTML = cronItems.map(function (item) {
           var intentCode = String(item.intent_code || '').trim();
@@ -20068,8 +20101,8 @@ window.CRM.pageApiBindings = (function () {
             + '<td><strong>' + safeText(intentCode || '—') + '</strong></td>'
             + '<td><span class="crm-chip">' + safeText(featureFlag || 'ai.cron.*') + '</span></td>'
             + '<td>' + safeText(model || 'default') + '</td>'
-            + '<td><select class="form-select form-select-sm" data-ai-cron-enabled="' + safeText(intentCode) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>Включен</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>Выключен</option></select></td>'
-            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-cron-save="' + safeText(intentCode) + '">Сохранить</button></td>'
+            + '<td><select class="form-select form-select-sm" data-ai-cron-enabled="' + safeText(intentCode) + '"><option value="1"' + (isEnabled === '1' ? ' selected' : '') + '>' + safeText(tp('admin_ai.enabled', 'Enabled')) + '</option><option value="0"' + (isEnabled === '0' ? ' selected' : '') + '>' + safeText(tp('admin_ai.disabled', 'Disabled')) + '</option></select></td>'
+            + '<td><button class="btn btn-sm btn-light" type="button" data-ai-cron-save="' + safeText(intentCode) + '">' + safeText(tp('common.save', 'Save')) + '</button></td>'
             + '</tr>';
         }).join('');
       }
@@ -20098,11 +20131,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-cron-intent-update') },
             body: { is_enabled: isEnabled }
           });
-          notify('Фоновый сценарий обновлен');
+          notify(tp('admin_ai.cron_updated', 'Background intent updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить фоновый сценарий', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.cron_update_fail', 'Failed to update background intent'), 'error');
         }
       });
       cronBody.dataset.bound = '1';
@@ -20126,11 +20159,11 @@ window.CRM.pageApiBindings = (function () {
         var isEnabled = String((enabledSelect && enabledSelect.value) || '0') === '1';
         try {
           await updateFeatureFlag(publicId, isEnabled);
-          notify('Функция AI обновлена');
+          notify(tp('admin_ai.ai_feature_updated', 'AI feature updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить функцию AI', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.ai_feature_update_fail', 'Failed to update AI feature'), 'error');
         }
       });
       aiFlagsBody.dataset.bound = '1';
@@ -20196,7 +20229,7 @@ window.CRM.pageApiBindings = (function () {
         };
 
         if (!Number.isFinite(payload.max_tokens) || payload.max_tokens <= 0) {
-          notify('Укажите корректный max_tokens', 'warning');
+          notify(tp('admin_ai.valid_max_tokens_required', 'Enter a valid max_tokens value'), 'warning');
           return;
         }
         if (payload.is_enabled) {
@@ -20210,7 +20243,7 @@ window.CRM.pageApiBindings = (function () {
               && Boolean(item && item.is_active);
           });
           if (!hasActiveProvider || !hasActivePrompt || !hasActiveSchema) {
-          notify('Нельзя включить сценарий без активного подключения, инструкции и формата ответа.', 'warning');
+          notify(tp('admin_ai.intent_enable_requirements', 'Cannot enable an intent without an active connection, prompt and response format.'), 'warning');
             return;
           }
         }
@@ -20221,11 +20254,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-intent-update') },
             body: payload
           });
-          notify('Сценарий обновлен');
+          notify(tp('admin_ai.intent_updated', 'Intent updated'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось обновить сценарий', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.intent_update_fail', 'Failed to update intent'), 'error');
         }
       });
       intentsBody.dataset.bound = '1';
@@ -20234,7 +20267,7 @@ window.CRM.pageApiBindings = (function () {
     var promptsBody = document.getElementById('adminAiPromptsBody');
     if (promptsBody) {
       if (!promptTemplates.length) {
-        promptsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Инструкции пока не созданы.</td></tr>';
+        promptsBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.prompts_empty', 'No prompts have been created yet.')) + '</td></tr>';
       } else {
         promptsBody.innerHTML = promptTemplates.map(function (item) {
           var publicId = String(item.public_id || '').trim();
@@ -20247,8 +20280,8 @@ window.CRM.pageApiBindings = (function () {
           return '<tr>'
             + '<td><strong>' + safeText(intentCode || '—') + '</strong><div class="small text-muted">' + safeText(locale || 'ru-ru') + '</div><div class="small text-muted">' + safeText(preview) + '</div></td>'
             + '<td>' + safeText(String(version)) + '</td>'
-            + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + (isActive === '1' ? 'Активный' : 'Неактивный') + '</span></td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-prompt-edit="' + safeText(publicId) + '">Редакт.</button><button class="btn btn-sm btn-light" type="button" data-ai-prompt-activate="' + safeText(publicId) + '">Активировать</button></div></td>'
+            + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + safeText(isActive === '1' ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive')) + '</span></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-prompt-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" type="button" data-ai-prompt-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -20257,7 +20290,7 @@ window.CRM.pageApiBindings = (function () {
     var schemasBody = document.getElementById('adminAiSchemasBody');
     if (schemasBody) {
       if (!jsonSchemas.length) {
-        schemasBody.innerHTML = '<tr><td colspan="4" class="text-muted">Форматы ответа пока не созданы.</td></tr>';
+        schemasBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.schemas_empty', 'No response formats have been created yet.')) + '</td></tr>';
       } else {
         schemasBody.innerHTML = jsonSchemas.map(function (item) {
           var publicId = String(item.public_id || '').trim();
@@ -20276,8 +20309,8 @@ window.CRM.pageApiBindings = (function () {
           return '<tr>'
             + '<td><strong>' + safeText(intentCode || '—') + '</strong><div class="small text-muted">' + safeText(schemaPreview) + '</div></td>'
             + '<td>' + safeText(schemaVersion) + '</td>'
-            + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + (isActive === '1' ? 'Активная' : 'Неактивная') + '</span></td>'
-            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-schema-edit="' + safeText(publicId) + '">Редакт.</button><button class="btn btn-sm btn-light" type="button" data-ai-schema-activate="' + safeText(publicId) + '">Активировать</button></div></td>'
+            + '<td><span class="crm-badge ' + (isActive === '1' ? 'success' : 'archived') + '">' + safeText(isActive === '1' ? tp('admin_ai.active_f', 'Active') : tp('admin_ai.inactive_f', 'Inactive')) + '</span></td>'
+            + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" type="button" data-ai-schema-edit="' + safeText(publicId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" type="button" data-ai-schema-activate="' + safeText(publicId) + '">' + safeText(tp('admin_ai.activate', 'Activate')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
@@ -20311,11 +20344,11 @@ window.CRM.pageApiBindings = (function () {
           is_active: String((promptCreateForm.querySelector('[name="is_active"]') || {}).value || '1') === '1'
         };
         if (!payload.intent_code || !payload.locale || !payload.template_text) {
-          notify('Заполните код сценария, язык и текст инструкции', 'warning');
+          notify(tp('admin_ai.prompt_required_fields', 'Fill intent code, locale and prompt text'), 'warning');
           return;
         }
         if (!Number.isFinite(payload.version) || payload.version <= 0) {
-          notify('Версия должна быть больше 0', 'warning');
+          notify(tp('admin_ai.version_positive_required', 'Version must be greater than 0'), 'warning');
           return;
         }
 
@@ -20329,11 +20362,11 @@ window.CRM.pageApiBindings = (function () {
           (promptCreateForm.querySelector('[name="locale"]') || {}).value = 'ru-ru';
           (promptCreateForm.querySelector('[name="version"]') || {}).value = '1';
           (promptCreateForm.querySelector('[name="is_active"]') || {}).value = '1';
-          notify('Инструкция создана');
+          notify(tp('admin_ai.prompt_created', 'Prompt created'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать инструкцию', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.prompt_create_fail', 'Failed to create prompt'), 'error');
         }
       });
       promptCreateForm.dataset.bound = '1';
@@ -20348,7 +20381,7 @@ window.CRM.pageApiBindings = (function () {
         var rawSchemaJson = String((schemaCreateForm.querySelector('[name="schema_json"]') || {}).value || '').trim();
         var isActive = String((schemaCreateForm.querySelector('[name="is_active"]') || {}).value || '1') === '1';
         if (!intentCode || !schemaVersion || !rawSchemaJson) {
-          notify('Заполните код сценария, версию и JSON формата', 'warning');
+          notify(tp('admin_ai.schema_required_fields', 'Fill intent code, version and schema JSON'), 'warning');
           return;
         }
 
@@ -20356,11 +20389,11 @@ window.CRM.pageApiBindings = (function () {
         try {
           parsedSchema = JSON.parse(rawSchemaJson);
         } catch (e) {
-          notify('JSON формата содержит ошибку синтаксиса', 'warning');
+          notify(tp('admin_ai.schema_json_syntax_error', 'Schema JSON contains a syntax error'), 'warning');
           return;
         }
         if (!parsedSchema || typeof parsedSchema !== 'object' || Array.isArray(parsedSchema)) {
-          notify('JSON формата должен быть объектом', 'warning');
+          notify(tp('admin_ai.schema_json_object_required', 'Schema JSON must be an object'), 'warning');
           return;
         }
 
@@ -20378,11 +20411,11 @@ window.CRM.pageApiBindings = (function () {
           schemaCreateForm.reset();
           (schemaCreateForm.querySelector('[name="schema_version"]') || {}).value = 'v1';
           (schemaCreateForm.querySelector('[name="is_active"]') || {}).value = '1';
-          notify('Формат ответа создан');
+          notify(tp('admin_ai.schema_created', 'Response format created'));
           await renderAdminAiPage();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать формат ответа', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_ai.schema_create_fail', 'Failed to create response format'), 'error');
         }
       });
       schemaCreateForm.dataset.bound = '1';
@@ -20400,11 +20433,11 @@ window.CRM.pageApiBindings = (function () {
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-prompt-activate') },
               body: { is_active: true }
             });
-            notify('Инструкция активирована');
+            notify(tp('admin_ai.prompt_activated', 'Prompt activated'));
             await renderAdminAiPage();
           } catch (error) {
             var activateError = error && error.envelope ? error.envelope : null;
-            notify((activateError && activateError.message) || 'Не удалось активировать инструкцию', 'error');
+            notify((activateError && activateError.message) || tp('admin_ai.prompt_activate_fail', 'Failed to activate prompt'), 'error');
           }
           return;
         }
@@ -20418,11 +20451,11 @@ window.CRM.pageApiBindings = (function () {
         }) || null;
         if (!promptItem) return;
 
-        var nextTemplate = window.prompt('Обновите текст инструкции', String(promptItem.template_text || ''));
+        var nextTemplate = window.prompt(tp('admin_ai.prompt_update_text', 'Update prompt text'), String(promptItem.template_text || ''));
         if (nextTemplate === null) return;
         nextTemplate = String(nextTemplate).trim();
         if (!nextTemplate) {
-          notify('Инструкция не может быть пустой', 'warning');
+          notify(tp('admin_ai.prompt_not_empty', 'Prompt cannot be empty'), 'warning');
           return;
         }
 
@@ -20432,11 +20465,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-prompt-update') },
             body: { template_text: nextTemplate }
           });
-          notify('Инструкция обновлена');
+          notify(tp('admin_ai.prompt_updated', 'Prompt updated'));
           await renderAdminAiPage();
         } catch (error) {
           var editError = error && error.envelope ? error.envelope : null;
-          notify((editError && editError.message) || 'Не удалось обновить инструкцию', 'error');
+          notify((editError && editError.message) || tp('admin_ai.prompt_update_fail', 'Failed to update prompt'), 'error');
         }
       });
       promptsBody.dataset.bound = '1';
@@ -20454,11 +20487,11 @@ window.CRM.pageApiBindings = (function () {
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-schema-activate') },
               body: { is_active: true }
             });
-            notify('Формат ответа активирован');
+            notify(tp('admin_ai.schema_activated', 'Response format activated'));
             await renderAdminAiPage();
           } catch (error) {
             var activateError = error && error.envelope ? error.envelope : null;
-            notify((activateError && activateError.message) || 'Не удалось активировать формат ответа', 'error');
+            notify((activateError && activateError.message) || tp('admin_ai.schema_activate_fail', 'Failed to activate response format'), 'error');
           }
           return;
         }
@@ -20478,18 +20511,18 @@ window.CRM.pageApiBindings = (function () {
         } catch (e) {
           currentJsonText = '{}';
         }
-        var nextJsonText = window.prompt('Обновите schema_json', currentJsonText);
+        var nextJsonText = window.prompt(tp('admin_ai.schema_update_json', 'Update schema_json'), currentJsonText);
         if (nextJsonText === null) return;
 
         var parsed = null;
         try {
           parsed = JSON.parse(String(nextJsonText));
         } catch (e) {
-          notify('JSON формата содержит ошибку синтаксиса', 'warning');
+          notify(tp('admin_ai.schema_json_syntax_error', 'Schema JSON contains a syntax error'), 'warning');
           return;
         }
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          notify('JSON формата должен быть объектом', 'warning');
+          notify(tp('admin_ai.schema_json_object_required', 'Schema JSON must be an object'), 'warning');
           return;
         }
 
@@ -20499,11 +20532,11 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('ai-schema-update') },
             body: { schema_json: parsed }
           });
-          notify('Формат ответа обновлен');
+          notify(tp('admin_ai.schema_updated', 'Response format updated'));
           await renderAdminAiPage();
         } catch (error) {
           var editError = error && error.envelope ? error.envelope : null;
-          notify((editError && editError.message) || 'Не удалось обновить формат ответа', 'error');
+          notify((editError && editError.message) || tp('admin_ai.schema_update_fail', 'Failed to update response format'), 'error');
         }
       });
       schemasBody.dataset.bound = '1';
@@ -20530,8 +20563,8 @@ window.CRM.pageApiBindings = (function () {
 
     function jobKindLabel(kind) {
       var value = String(kind || '').trim().toLowerCase();
-      if (value === 'import') return 'Импорт';
-      if (value === 'export') return 'Экспорт';
+      if (value === 'import') return tp('admin_jobs.kind_import', 'Import');
+      if (value === 'export') return tp('admin_jobs.kind_export', 'Export');
       if (value === 'ai') return 'AI';
       return value || '—';
     }
@@ -20539,26 +20572,26 @@ window.CRM.pageApiBindings = (function () {
     function jobStatusLabel(status) {
       var value = String(status || '').trim().toLowerCase();
       var labels = {
-        queued: 'В очереди',
-        pending: 'Ожидает',
-        processing: 'Выполняется',
-        running: 'Выполняется',
-        completed: 'Готово',
-        done: 'Готово',
-        success: 'Успешно',
-        failed: 'Ошибка',
-        error: 'Ошибка',
-        cancelled: 'Отменено',
-        canceled: 'Отменено',
-        retrying: 'Повтор'
+        queued: tp('admin_jobs.status_queued', 'Queued'),
+        pending: tp('admin_jobs.status_pending', 'Pending'),
+        processing: tp('admin_jobs.status_processing', 'Processing'),
+        running: tp('admin_jobs.status_running', 'Running'),
+        completed: tp('admin_jobs.status_completed', 'Completed'),
+        done: tp('admin_jobs.status_done', 'Done'),
+        success: tp('admin_jobs.status_success', 'Success'),
+        failed: tp('admin_jobs.status_failed', 'Failed'),
+        error: tp('admin_jobs.status_error', 'Error'),
+        cancelled: tp('admin_jobs.status_cancelled', 'Cancelled'),
+        canceled: tp('admin_jobs.status_cancelled', 'Cancelled'),
+        retrying: tp('admin_jobs.status_retrying', 'Retrying')
       };
-      return labels[value] || value || 'Неизвестно';
+      return labels[value] || value || tp('admin_jobs.status_unknown', 'Unknown');
     }
 
     function entityTypeLabel(type) {
       var value = String(type || '').trim().toLowerCase();
-      if (value === 'tasks') return 'Задачи';
-      if (value === 'projects') return 'Проекты';
+      if (value === 'tasks') return tp('admin_jobs.entity_tasks', 'Tasks');
+      if (value === 'projects') return tp('admin_jobs.entity_projects', 'Projects');
       return value || '—';
     }
 
@@ -20586,16 +20619,16 @@ window.CRM.pageApiBindings = (function () {
 
       var title = document.createElement('div');
       title.className = 'crm-job-details-title';
-      title.textContent = 'Детали задания';
+      title.textContent = tp('admin_jobs.details_title', 'Job details');
       detailsPanel.appendChild(title);
 
       var grid = document.createElement('div');
       grid.className = 'crm-job-details-grid';
       [
-        ['Тип', jobKindLabel(kind || job.kind || job.type)],
+        [tp('admin_jobs.th_type', 'Type'), jobKindLabel(kind || job.kind || job.type)],
         ['ID', String(job.public_id || '—')],
-        ['Статус', jobStatusLabel(job.status || '')],
-        ['Обновлено', formatDate(job.updated_at || job.created_at)]
+        [tp('admin_jobs.th_status', 'Status'), jobStatusLabel(job.status || '')],
+        [tp('admin_jobs.th_updated', 'Updated'), formatDate(job.updated_at || job.created_at)]
       ].forEach(function (pair) {
         var item = document.createElement('div');
         item.className = 'crm-job-details-item';
@@ -20618,7 +20651,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     async function loadJobs() {
-      if (stateEl) stateEl.textContent = 'Загрузка заданий...';
+      if (stateEl) stateEl.textContent = tp('admin_jobs.loading_jobs', 'Loading jobs...');
       var importList = hasPermission('import.manage')
         ? await tryRequest('api/v1/import/jobs', { query: { limit: 20 } })
         : null;
@@ -20645,7 +20678,7 @@ window.CRM.pageApiBindings = (function () {
           var emptyTd = document.createElement('td');
           emptyTd.colSpan = 5;
           emptyTd.className = 'text-muted';
-          emptyTd.textContent = 'Задачи не найдены или недоступны по правам.';
+          emptyTd.textContent = tp('admin_jobs.jobs_empty_or_forbidden', 'Jobs were not found or are not available with your permissions.');
           emptyTr.appendChild(emptyTd);
           jobsBody.appendChild(emptyTr);
         } else {
@@ -20686,7 +20719,7 @@ window.CRM.pageApiBindings = (function () {
             var detailBtn = document.createElement('button');
             detailBtn.type = 'button';
             detailBtn.className = 'btn btn-sm crm-btn-secondary';
-            detailBtn.textContent = 'Детали';
+            detailBtn.textContent = tp('admin_jobs.btn_details', 'Details');
             detailBtn.setAttribute('data-job-detail', detailRoute);
             tdActions.appendChild(detailBtn);
 
@@ -20695,7 +20728,7 @@ window.CRM.pageApiBindings = (function () {
               var retryBtn = document.createElement('button');
               retryBtn.type = 'button';
               retryBtn.className = 'btn btn-sm crm-btn-secondary';
-              retryBtn.textContent = 'Повторить';
+              retryBtn.textContent = tp('admin_jobs.btn_retry', 'Retry');
               retryBtn.setAttribute('data-job-retry', detailRoute + '/retry');
               tdActions.appendChild(retryBtn);
             }
@@ -20705,7 +20738,7 @@ window.CRM.pageApiBindings = (function () {
               var cancelBtn = document.createElement('button');
               cancelBtn.type = 'button';
               cancelBtn.className = 'btn btn-sm crm-btn-danger';
-              cancelBtn.textContent = 'Отменить';
+              cancelBtn.textContent = tp('admin_jobs.btn_cancel', 'Cancel');
               cancelBtn.setAttribute('data-job-cancel', detailRoute + '/cancel');
               tdActions.appendChild(cancelBtn);
             }
@@ -20718,7 +20751,7 @@ window.CRM.pageApiBindings = (function () {
               dl.href = String(item.result.file.download_url || '');
               dl.target = '_blank';
               dl.rel = 'noopener noreferrer';
-              dl.textContent = 'Скачать';
+              dl.textContent = tp('admin_jobs.btn_download', 'Download');
               tdActions.appendChild(dl);
             }
 
@@ -20729,7 +20762,7 @@ window.CRM.pageApiBindings = (function () {
               var dl2 = document.createElement('button');
               dl2.type = 'button';
               dl2.className = 'btn btn-sm crm-btn-secondary';
-              dl2.textContent = 'Скачать';
+              dl2.textContent = tp('admin_jobs.btn_download', 'Download');
               dl2.setAttribute('data-export-download', id);
               tdActions.appendChild(dl2);
             }
@@ -20747,7 +20780,7 @@ window.CRM.pageApiBindings = (function () {
           var aiEmptyTd = document.createElement('td');
           aiEmptyTd.colSpan = 5;
           aiEmptyTd.className = 'text-muted';
-          aiEmptyTd.textContent = 'AI-задания недоступны или отсутствуют.';
+          aiEmptyTd.textContent = tp('admin_jobs.ai_jobs_empty', 'AI jobs are unavailable or absent.');
           aiEmptyTr.appendChild(aiEmptyTd);
           aiJobsBody.appendChild(aiEmptyTr);
         } else {
@@ -20787,9 +20820,9 @@ window.CRM.pageApiBindings = (function () {
       }
 
       if (stateEl) {
-        stateEl.textContent = 'Задания импорта: ' + String(mapItems(importList).length)
-          + ', задания экспорта: ' + String(mapItems(exportList).length)
-          + ', AI-задания: ' + String(aiItems.length);
+        stateEl.textContent = tp('admin_jobs.summary_import', 'Import jobs: ') + String(mapItems(importList).length)
+          + ', ' + tp('admin_jobs.summary_export', 'export jobs: ') + String(mapItems(exportList).length)
+          + ', ' + tp('admin_jobs.summary_ai', 'AI jobs: ') + String(aiItems.length);
       }
 
       document.querySelectorAll('[data-job-detail]').forEach(function (btn) {
@@ -20807,7 +20840,7 @@ window.CRM.pageApiBindings = (function () {
             renderJobDetails(job, route.indexOf('/import/') >= 0 ? 'import' : 'export');
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || 'Не удалось получить детали задания', 'error');
+            notify((envelopeError && envelopeError.message) || tp('admin_jobs.details_fail', 'Failed to load job details'), 'error');
           }
         });
       });
@@ -20820,11 +20853,11 @@ window.CRM.pageApiBindings = (function () {
             if (!route) return;
             try {
               await request(route, { method: 'POST' });
-            notify('Задание поставлено на повтор');
+            notify(tp('admin_jobs.retry_queued', 'Job queued for retry'));
             await loadJobs();
           } catch (error) {
             var retryError = error && error.envelope ? error.envelope : null;
-            notify((retryError && retryError.message) || 'Не удалось повторить задание', 'error');
+            notify((retryError && retryError.message) || tp('admin_jobs.retry_fail', 'Failed to retry job'), 'error');
           }
         });
       });
@@ -20835,14 +20868,14 @@ window.CRM.pageApiBindings = (function () {
         btn.addEventListener('click', async function () {
           var route = String(btn.getAttribute('data-job-cancel') || '').trim();
           if (!route) return;
-          if (!window.confirm('Отменить выполнение задания?')) return;
+          if (!window.confirm(tp('admin_jobs.cancel_confirm', 'Cancel job execution?'))) return;
           try {
             await request(route, { method: 'POST' });
-            notify('Задание отменено');
+            notify(tp('admin_jobs.cancelled', 'Job cancelled'));
             await loadJobs();
           } catch (error) {
             var cancelError = error && error.envelope ? error.envelope : null;
-            notify((cancelError && cancelError.message) || 'Не удалось отменить задание', 'error');
+            notify((cancelError && cancelError.message) || tp('admin_jobs.cancel_fail', 'Failed to cancel job'), 'error');
           }
         });
       });
@@ -20859,7 +20892,7 @@ window.CRM.pageApiBindings = (function () {
               credentials: 'same-origin'
             });
             if (!response.ok) {
-              notify('Не удалось скачать файл', 'error');
+              notify(tp('admin_jobs.download_fail', 'Failed to download file'), 'error');
               return;
             }
             var blob = await response.blob();
@@ -20871,9 +20904,9 @@ window.CRM.pageApiBindings = (function () {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            notify('Файл скачан');
+            notify(tp('admin_jobs.downloaded', 'File downloaded'));
           } catch (error) {
-            notify('Ошибка скачивания: ' + (error.message || 'неизвестная ошибка'), 'error');
+            notify(tp('admin_jobs.download_error_prefix', 'Download error: ') + (error.message || tp('admin_jobs.unknown_error', 'unknown error')), 'error');
           }
         });
       });
@@ -20891,23 +20924,23 @@ window.CRM.pageApiBindings = (function () {
           if (format === 'json_rows') {
             var parsed = JSON.parse(payloadRaw || '[]');
             if (!Array.isArray(parsed) || !parsed.length) {
-              notify('Для импорта требуется непустой JSON-массив строк', 'warning');
+              notify(tp('admin_jobs.json_rows_required', 'Import requires a non-empty JSON array of rows'), 'warning');
               return;
             }
             body.rows = parsed;
           } else {
             if (!payloadRaw) {
-              notify('Для CSV-импорта требуется текст CSV в поле данных', 'warning');
+              notify(tp('admin_jobs.csv_required', 'CSV import requires CSV text in the data field'), 'warning');
               return;
             }
             body.content_base64 = window.btoa(unescape(encodeURIComponent(payloadRaw)));
           }
           await request('api/v1/import/jobs', { method: 'POST', body: body });
-          notify('Задание импорта создано: ' + entityTypeLabel(type));
+          notify(tp('admin_jobs.import_created_prefix', 'Import job created: ') + entityTypeLabel(type));
           await loadJobs();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать задание импорта', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_jobs.import_create_fail', 'Failed to create import job'), 'error');
         }
       });
     }
@@ -20922,11 +20955,11 @@ window.CRM.pageApiBindings = (function () {
         if (search) body.filters = { search: search };
         try {
           await request('api/v1/export/jobs', { method: 'POST', body: body });
-          notify('Задание экспорта создано: ' + entityTypeLabel(type));
+          notify(tp('admin_jobs.export_created_prefix', 'Export job created: ') + entityTypeLabel(type));
           await loadJobs();
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || 'Не удалось создать задание экспорта', 'error');
+          notify((envelopeError && envelopeError.message) || tp('admin_jobs.export_create_fail', 'Failed to create export job'), 'error');
         }
       });
     }
@@ -20953,22 +20986,22 @@ window.CRM.pageApiBindings = (function () {
 
     var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl'];
     var settingLabels = {
-      max_requests_per_minute: 'Лимит запросов в минуту',
-      api_file_cache_enabled: 'Кэш API (включён/выключен)',
-      api_file_cache_ttl: 'Время хранения кэша (сек)'
+      max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
+      api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
+      api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)')
     };
     var retentionLabels = {
-      request_logs_days: 'Журнал запросов',
-      security_logs_days: 'Журнал безопасности',
-      audit_logs_days: 'Журнал аудита',
-      recycle_bin_days: 'Корзина',
-      orphan_files_days: 'Файлы без привязки',
-      backup_metadata_days: 'Метаданные резервных копий'
+      request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
+      security_logs_days: tp('admin_settings.retention_security_logs', 'Security logs'),
+      audit_logs_days: tp('admin_settings.retention_audit_logs', 'Audit log'),
+      recycle_bin_days: tp('admin_settings.retention_recycle_bin', 'Recycle bin'),
+      orphan_files_days: tp('admin_settings.retention_orphan_files', 'Unlinked files'),
+      backup_metadata_days: tp('admin_settings.retention_backup_metadata', 'Backup metadata')
     };
 
     function formatSettingValue(value) {
       if (value === null || value === undefined || value === '') return '—';
-      if (typeof value === 'boolean') return value ? 'Да' : 'Нет';
+      if (typeof value === 'boolean') return value ? tp('common.yes', 'Yes') : tp('common.no', 'No');
       if (typeof value === 'object') {
         try {
           return JSON.stringify(value);
@@ -20981,18 +21014,18 @@ window.CRM.pageApiBindings = (function () {
 
     function retentionLabel(field) {
       var key = String(field || '').trim();
-      return retentionLabels[key] || key || 'Поле';
+      return retentionLabels[key] || key || tp('admin_settings.field_fallback', 'Field');
     }
 
     function settingLabel(name) {
       var key = String(name || '').trim();
-      return settingLabels[key] || key || 'Настройка';
+      return settingLabels[key] || key || tp('admin_settings.setting_fallback', 'Setting');
     }
 
     async function loadPage() {
-      if (userPrefsState) userPrefsState.textContent = 'Загрузка...';
-      if (retentionState) retentionState.textContent = 'Загрузка политики хранения...';
-      if (auditState) auditState.textContent = 'Загрузка журнала аудита...';
+      if (userPrefsState) userPrefsState.textContent = tp('admin_settings.loading', 'Loading...');
+      if (retentionState) retentionState.textContent = tp('admin_settings.loading_retention', 'Loading retention policy...');
+      if (auditState) auditState.textContent = tp('admin_settings.loading_audit', 'Loading audit log...');
 
       var requests = [
         tryRequest('api/v1/profile/preferences'),
@@ -21018,9 +21051,9 @@ window.CRM.pageApiBindings = (function () {
         var sound = Boolean(preferences.notification_sound_enabled);
         var push = Boolean(preferences.notification_push_enabled);
         var quiet = Boolean(preferences.notification_quiet_hours_enabled);
-        userPrefsState.textContent = 'Звук: ' + (sound ? 'включен' : 'выключен')
-          + ', push-уведомления: ' + (push ? 'включены' : 'выключены')
-          + ', тихие часы: ' + (quiet ? 'включены' : 'выключены');
+        userPrefsState.textContent = tp('admin_settings.sound_prefix', 'Sound: ') + (sound ? tp('admin_settings.enabled_lower', 'enabled') : tp('admin_settings.disabled_lower', 'disabled'))
+          + ', ' + tp('admin_settings.push_prefix', 'push notifications: ') + (push ? tp('admin_settings.enabled_plural', 'enabled') : tp('admin_settings.disabled_plural', 'disabled'))
+          + ', ' + tp('admin_settings.quiet_hours_prefix', 'quiet hours: ') + (quiet ? tp('admin_settings.enabled_plural', 'enabled') : tp('admin_settings.disabled_plural', 'disabled'));
       }
 
       if (systemBody) {
@@ -21033,7 +21066,7 @@ window.CRM.pageApiBindings = (function () {
           var emptyCol = document.createElement('td');
           emptyCol.colSpan = 3;
           emptyCol.className = 'text-muted';
-          emptyCol.textContent = 'Системные настройки не найдены.';
+          emptyCol.textContent = tp('admin_settings.system_empty', 'System settings were not found.');
           emptyRow.appendChild(emptyCol);
           systemBody.appendChild(emptyRow);
         } else {
@@ -21060,10 +21093,10 @@ window.CRM.pageApiBindings = (function () {
               editBtn.className = 'btn btn-sm crm-btn-secondary';
               editBtn.type = 'button';
               editBtn.setAttribute('data-setting-edit', name);
-              editBtn.textContent = 'Изменить';
+              editBtn.textContent = tp('admin_settings.btn_edit', 'Edit');
               actionTd.appendChild(editBtn);
             } else {
-              actionTd.textContent = 'Только чтение';
+              actionTd.textContent = tp('admin_settings.read_only', 'Read only');
             }
             tr.appendChild(actionTd);
             systemBody.appendChild(tr);
@@ -21106,7 +21139,7 @@ window.CRM.pageApiBindings = (function () {
           dryRunBtn.className = 'btn btn-sm crm-btn-secondary';
           dryRunBtn.type = 'button';
           dryRunBtn.setAttribute('data-retention-dry-run', field);
-          dryRunBtn.textContent = 'Проверить';
+          dryRunBtn.textContent = tp('admin_settings.btn_check', 'Check');
           actionTd.appendChild(dryRunBtn);
           actionTd.appendChild(document.createTextNode(' '));
 
@@ -21114,14 +21147,14 @@ window.CRM.pageApiBindings = (function () {
           saveBtn.className = 'btn btn-sm btn-primary';
           saveBtn.type = 'button';
           saveBtn.setAttribute('data-retention-save', field);
-          saveBtn.textContent = 'Сохранить';
+          saveBtn.textContent = tp('common.save', 'Save');
           actionTd.appendChild(saveBtn);
           tr.appendChild(actionTd);
 
           retentionBody.appendChild(tr);
         });
         if (retentionState) {
-          retentionState.textContent = 'Политика хранения: ' + (Boolean(retention.enabled) ? 'включена' : 'выключена');
+          retentionState.textContent = tp('admin_settings.retention_policy_prefix', 'Retention policy: ') + (Boolean(retention.enabled) ? tp('admin_settings.enabled_f', 'enabled') : tp('admin_settings.disabled_f', 'disabled'));
         }
       }
 
@@ -21132,20 +21165,20 @@ window.CRM.pageApiBindings = (function () {
           var empty = document.createElement('li');
           empty.className = 'list-group-item text-muted';
           empty.textContent = hasPermission('logs.view')
-            ? 'События настроек не найдены.'
-            : 'Недостаточно прав для просмотра журнала аудита (нужно logs.view + root).';
+            ? tp('admin_settings.audit_empty', 'No settings events found.')
+            : tp('admin_settings.audit_forbidden', 'Not enough permissions to view the audit log (requires logs.view + root).');
           auditList.appendChild(empty);
-          if (auditState) auditState.textContent = 'Событий аудита: 0';
+          if (auditState) auditState.textContent = tp('admin_settings.audit_count_prefix', 'Audit events: ') + '0';
         } else {
           auditItems.forEach(function (item) {
             var row = document.createElement('li');
             row.className = 'list-group-item';
             var action = String(item.action || 'setting.update');
-            var actor = String(item.actor_public_id || item.user_public_id || 'неизвестно');
-            row.textContent = action + ' · автор: ' + actor + ' · ' + formatDate(item.created_at);
+            var actor = String(item.actor_public_id || item.user_public_id || tp('admin_settings.actor_unknown', 'unknown'));
+            row.textContent = action + ' · ' + tp('admin_settings.actor_prefix', 'actor: ') + actor + ' · ' + formatDate(item.created_at);
             auditList.appendChild(row);
           });
-          if (auditState) auditState.textContent = 'Событий аудита: ' + String(auditItems.length);
+          if (auditState) auditState.textContent = tp('admin_settings.audit_count_prefix', 'Audit events: ') + String(auditItems.length);
         }
       }
 
@@ -21163,18 +21196,18 @@ window.CRM.pageApiBindings = (function () {
 
       var html = '<div class="row g-3">';
       html += '<div class="col-12"><div class="row g-3 align-items-center">';
-      html += '<div class="col-auto"><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="adminCacheToggle" ' + (enabled ? 'checked' : '') + '><label class="form-check-label fw-semibold" for="adminCacheToggle">Кэширование API</label></div></div>';
-      html += '<div class="col-auto"><span class="badge ' + (enabled ? 'bg-success' : 'bg-secondary') + '">' + (enabled ? 'Включён' : 'Выключен') + '</span></div>';
+      html += '<div class="col-auto"><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="adminCacheToggle" ' + (enabled ? 'checked' : '') + '><label class="form-check-label fw-semibold" for="adminCacheToggle">' + safeText(tp('admin_settings.api_cache_label', 'API caching')) + '</label></div></div>';
+      html += '<div class="col-auto"><span class="badge ' + (enabled ? 'bg-success' : 'bg-secondary') + '">' + safeText(enabled ? tp('admin_settings.enabled_cap', 'Enabled') : tp('admin_settings.disabled_cap', 'Disabled')) + '</span></div>';
       html += '</div></div>';
 
       html += '<div class="col-md-3">';
-      html += '<label class="form-label small text-muted mb-1">Время хранения (сек)</label>';
-      html += '<div class="input-group input-group-sm"><input type="number" class="form-control form-control-sm" id="adminCacheTtlInput" min="1" max="86400" value="' + ttl + '"><button class="btn btn-sm btn-outline-primary" id="adminCacheTtlSaveBtn" type="button">Применить</button></div>';
+      html += '<label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_ttl_label', 'Storage time (sec)')) + '</label>';
+      html += '<div class="input-group input-group-sm"><input type="number" class="form-control form-control-sm" id="adminCacheTtlInput" min="1" max="86400" value="' + ttl + '"><button class="btn btn-sm btn-outline-primary" id="adminCacheTtlSaveBtn" type="button">' + safeText(tp('admin_settings.btn_apply', 'Apply')) + '</button></div>';
       html += '</div>';
 
-      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Файлов кэша</label><div class="fw-semibold">' + fileCount + '</div></div>';
-      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Объём на диске</label><div class="fw-semibold">' + formatBytes(sizeBytes) + '</div></div>';
-      html += '<div class="col-md-3 d-flex align-items-end"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">Очистить кэш</button></div>';
+      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_files_label', 'Cache files')) + '</label><div class="fw-semibold">' + fileCount + '</div></div>';
+      html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">' + safeText(tp('admin_settings.cache_size_label', 'Disk size')) + '</label><div class="fw-semibold">' + formatBytes(sizeBytes) + '</div></div>';
+      html += '<div class="col-md-3 d-flex align-items-end"><button id="adminCacheClearBtn" class="btn btn-sm btn-outline-danger" type="button">' + safeText(tp('admin_settings.btn_clear_cache', 'Clear cache')) + '</button></div>';
       html += '</div>';
       section.innerHTML = html;
 
@@ -21183,7 +21216,7 @@ window.CRM.pageApiBindings = (function () {
         toggle.dataset.bound = '1';
         toggle.addEventListener('change', async function () {
           var newValue = this.checked;
-          if (!window.confirm((newValue ? 'Включить' : 'Выключить') + ' кэширование API?')) {
+          if (!window.confirm((newValue ? tp('admin_settings.enable_action', 'Enable') : tp('admin_settings.disable_action', 'Disable')) + ' ' + tp('admin_settings.api_cache_confirm_suffix', 'API caching?'))) {
             this.checked = !newValue;
             return;
           }
@@ -21193,11 +21226,11 @@ window.CRM.pageApiBindings = (function () {
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('cache-toggle') },
               body: { scope: 'system', value: newValue }
             });
-            notify('Кэш API ' + (newValue ? 'включён' : 'выключен'));
+            notify(tp('admin_settings.api_cache_prefix', 'API cache ') + (newValue ? tp('admin_settings.enabled_lower', 'enabled') : tp('admin_settings.disabled_lower', 'disabled')));
             await loadPage();
           } catch (error) {
             this.checked = !newValue;
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось изменить настройку кэша');
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.cache_setting_update_fail', 'Failed to change cache setting'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
         });
@@ -21210,20 +21243,20 @@ window.CRM.pageApiBindings = (function () {
           var input = document.getElementById('adminCacheTtlInput');
           var newTtl = Number(input && input.value || 60);
           if (!Number.isFinite(newTtl) || newTtl < 1 || newTtl > 86400) {
-            notify('TTL должен быть от 1 до 86400 секунд', 'warning');
+            notify(tp('admin_settings.ttl_range_error', 'TTL must be between 1 and 86400 seconds'), 'warning');
             return;
           }
-          if (!window.confirm('Изменить время хранения кэша на ' + newTtl + ' секунд?')) return;
+          if (!window.confirm(tp('admin_settings.ttl_confirm_prefix', 'Change cache storage time to ') + newTtl + tp('admin_settings.ttl_confirm_suffix', ' seconds?'))) return;
           try {
             await request('api/v1/settings/api_file_cache_ttl', {
               method: 'PATCH',
               headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('cache-ttl') },
               body: { scope: 'system', value: newTtl }
             });
-            notify('Время хранения кэша изменено');
+            notify(tp('admin_settings.ttl_updated', 'Cache storage time changed'));
             await loadPage();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось изменить TTL');
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.ttl_update_fail', 'Failed to change TTL'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
         });
@@ -21233,13 +21266,13 @@ window.CRM.pageApiBindings = (function () {
       if (clearBtn && clearBtn.dataset.bound !== '1') {
         clearBtn.dataset.bound = '1';
         clearBtn.addEventListener('click', async function () {
-          if (!window.confirm('Очистить весь файловый кэш API?')) return;
+          if (!window.confirm(tp('admin_settings.clear_cache_confirm', 'Clear the entire API file cache?'))) return;
           try {
             await request('api/v1/admin/cache/clear', { method: 'POST' });
-            notify('Кэш API очищен');
+            notify(tp('admin_settings.cache_cleared', 'API cache cleared'));
             await loadPage();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось очистить кэш');
+            var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.cache_clear_fail', 'Failed to clear cache'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
         });
@@ -21253,19 +21286,19 @@ window.CRM.pageApiBindings = (function () {
         if (!editBtn) return;
         var settingName = String(editBtn.getAttribute('data-setting-edit') || '').trim();
         if (!settingName) return;
-        var nextValue = window.prompt('Новое значение для ' + settingName, '');
+        var nextValue = window.prompt(tp('admin_settings.new_value_prefix', 'New value for ') + settingName, '');
         if (nextValue === null) return;
-        if (!window.confirm('Подтвердите изменение системной настройки ' + settingName + '.')) return;
+        if (!window.confirm(tp('admin_settings.confirm_setting_change_prefix', 'Confirm system setting change for ') + settingName + '.')) return;
         try {
           await request('api/v1/settings/' + encodeURIComponent(settingName), {
             method: 'PATCH',
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('admin-settings-update') },
             body: { scope: 'system', value: String(nextValue).trim() }
           });
-          notify('Системная настройка обновлена');
+          notify(tp('admin_settings.setting_updated', 'System setting updated'));
           await loadPage();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось обновить системную настройку');
+          var normalized = window.CRM.api.normalizeError(error, tp('admin_settings.setting_update_fail', 'Failed to update system setting'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -21283,18 +21316,18 @@ window.CRM.pageApiBindings = (function () {
         var input = retentionBody.querySelector('[data-retention-input="' + field.replace(/"/g, '\\"') + '"]');
         var value = Number(input && input.value || 0);
         if (!Number.isFinite(value) || value < 1) {
-          notify('Укажите значение дней больше 0', 'warning');
+          notify(tp('admin_settings.days_positive_required', 'Enter a day value greater than 0'), 'warning');
           return;
         }
 
         if (dryRunBtn) {
           if (retentionState) {
-            retentionState.textContent = 'Проверка: «' + retentionLabel(field) + '» будет установлено на ' + String(value) + ' дней (без сохранения).';
+            retentionState.textContent = tp('admin_settings.dry_run_prefix', 'Check: “') + retentionLabel(field) + tp('admin_settings.dry_run_middle', '” will be set to ') + String(value) + tp('admin_settings.dry_run_suffix', ' days (without saving).');
           }
           return;
         }
 
-        if (!window.confirm('Применить изменение политики хранения для «' + retentionLabel(field) + '»?')) return;
+        if (!window.confirm(tp('admin_settings.apply_retention_confirm_prefix', 'Apply retention policy change for “') + retentionLabel(field) + '”?')) return;
         try {
           var body = {};
           body[field] = value;
@@ -21303,10 +21336,10 @@ window.CRM.pageApiBindings = (function () {
             headers: { 'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('retention-update') },
             body: body
           });
-          notify('Политика хранения обновлена');
+          notify(tp('admin_settings.retention_updated', 'Retention policy updated'));
           await loadPage();
         } catch (error) {
-          var retentionError = window.CRM.api.normalizeError(error, 'Не удалось обновить политику хранения');
+          var retentionError = window.CRM.api.normalizeError(error, tp('admin_settings.retention_update_fail', 'Failed to update retention policy'));
           notify(window.CRM.api.formatErrorMessage(retentionError, { withRequestId: true }), 'error');
         }
       });
@@ -21343,7 +21376,7 @@ window.CRM.pageApiBindings = (function () {
         section.style.display = 'block';
         document.getElementById('systemInfoPhpVersion').textContent = safeText(app.version ? ('API ' + app.version) : (data.php_version || '—'));
         document.getElementById('systemInfoEnv').textContent = safeText(app.timezone || data.environment || data.app_env || '—');
-        document.getElementById('systemInfoDb').textContent = Boolean(database.connected) ? 'Подключена' : 'Нет подключения';
+        document.getElementById('systemInfoDb').textContent = Boolean(database.connected) ? tp('admin_settings.db_connected', 'Connected') : tp('admin_settings.db_disconnected', 'No connection');
         document.getElementById('systemInfoUptime').textContent = safeText(formatDate(system.generated_at || data.generated_at || ''));
         document.getElementById('systemInfoStorage').textContent = safeText(formatDirectoryStatus(directories.uploads));
         document.getElementById('systemInfoCache').textContent = safeText(formatDirectoryStatus(directories.temp));
@@ -21362,17 +21395,22 @@ window.CRM.pageApiBindings = (function () {
 
     function formatDirectoryStatus(directory) {
       if (!directory || !directory.configured) {
-        return 'Не настроено';
+        return tp('admin_settings.not_configured', 'Not configured');
       }
       var exists = Boolean(directory.exists);
       var size = Number(directory.size_bytes || 0);
-      return (exists ? 'Доступно' : 'Недоступно') + ' · ' + formatBytes(size);
+      return (exists ? tp('admin_settings.available', 'Available') : tp('admin_settings.unavailable', 'Unavailable')) + ' · ' + formatBytes(size);
     }
 
     function formatBytes(bytes) {
       var value = Number(bytes || 0);
-      if (!Number.isFinite(value) || value <= 0) return '0 Б';
-      var units = ['Б', 'КБ', 'МБ', 'ГБ'];
+      if (!Number.isFinite(value) || value <= 0) return '0 ' + tp('admin_settings.bytes_b', 'B');
+      var units = [
+        tp('admin_settings.bytes_b', 'B'),
+        tp('admin_settings.bytes_kb', 'KB'),
+        tp('admin_settings.bytes_mb', 'MB'),
+        tp('admin_settings.bytes_gb', 'GB')
+      ];
       var unitIndex = 0;
       while (value >= 1024 && unitIndex < units.length - 1) {
         value /= 1024;
@@ -21390,28 +21428,28 @@ window.CRM.pageApiBindings = (function () {
     var query = pageQuery();
     var cpPublicId = String(query.get('counterparty_public_id') || '').trim();
     if (!cpPublicId) {
-      setErrorState('Контрагент не выбран');
-      notify('Контрагент не выбран', 'error');
+      setErrorState(tp('counterparty_detail.not_selected', 'Counterparty is not selected'));
+      notify(tp('counterparty_detail.not_selected', 'Counterparty is not selected'), 'error');
       return;
     }
 
     var cpResult = await tryRequest('api/v1/counterparties/' + encodeURIComponent(cpPublicId));
     if (!cpResult) {
-      setErrorState('Нет доступа к контрагенту или он не найден');
-      notify('Контрагент не найден или нет прав доступа', 'error');
+      setErrorState(tp('counterparty_detail.not_found_or_forbidden_state', 'No access to the counterparty or it was not found'));
+      notify(tp('counterparty_detail.not_found_or_forbidden', 'Counterparty not found or access denied'), 'error');
       return;
     }
     if (!cpResult.success) {
       var errCode = (cpResult && cpResult.code) ? cpResult.code : 'UNKNOWN';
       var errMsg = (cpResult && cpResult.message) ? cpResult.message : '';
-      setErrorState('Ошибка: ' + errCode + (errMsg ? ' — ' + errMsg : ''));
-      notify('Не удалось загрузить контрагента: ' + errCode, 'error');
+      setErrorState(tp('counterparty_detail.error_prefix', 'Error: ') + errCode + (errMsg ? ' — ' + errMsg : ''));
+      notify(tp('counterparty_detail.load_fail_prefix', 'Failed to load counterparty: ') + errCode, 'error');
       return;
     }
     var cp = cpResult && cpResult.data ? cpResult.data.counterparty : null;
     if (!cp || typeof cp !== 'object') {
-      setErrorState('Контрагент не найден');
-      notify('Контрагент не найден', 'error');
+      setErrorState(tp('counterparty_detail.not_found', 'Counterparty not found'));
+      notify(tp('counterparty_detail.not_found', 'Counterparty not found'), 'error');
       return;
     }
 
@@ -21439,8 +21477,8 @@ window.CRM.pageApiBindings = (function () {
 
     var titleNode = document.getElementById('counterpartyDetailTitle');
     var subtitleNode = document.getElementById('counterpartyDetailSubtitle');
-    if (titleNode) titleNode.textContent = String(cp.title || cp.legal_name || cp.email || cp.phone || 'Контрагент без названия');
-    if (subtitleNode) subtitleNode.textContent = 'Тип: ' + cpTypeLabel(cp.counterparty_type);
+    if (titleNode) titleNode.textContent = String(cp.title || cp.legal_name || cp.email || cp.phone || tp('counterparty_detail.untitled', 'Untitled counterparty'));
+    if (subtitleNode) subtitleNode.textContent = tp('counterparty_detail.type_prefix', 'Type: ') + cpTypeLabel(cp.counterparty_type);
 
     setupMainEditModal(cp, cpPublicId);
     setupProfileEditModal(cp, cpPublicId);
@@ -21457,16 +21495,22 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function cpTypeLabel(value) {
-    var currentLocale = document.documentElement.lang || 'ru-ru';
-    var isRu = String(currentLocale).indexOf('ru') === 0;
-    var labelsRu = { organization: 'Организация', individual: 'Физлицо', sole_proprietor: 'ИП', legal_entity: 'Юрлицо' };
-    var labelsEn = { organization: 'Organization', individual: 'Individual', sole_proprietor: 'Sole Proprietor', legal_entity: 'Legal Entity' };
-    var labels = isRu ? labelsRu : labelsEn;
+    var labels = {
+      organization: tp('counterparty_detail.type_organization', 'Organization'),
+      individual: tp('counterparty_detail.type_individual', 'Individual'),
+      sole_proprietor: tp('counterparty_detail.type_sole_proprietor', 'Sole Proprietor'),
+      legal_entity: tp('counterparty_detail.type_legal_entity', 'Legal Entity')
+    };
     return labels[String(value || '').trim()] || String(value || '—');
   }
 
   function contactRoleLabel(value) {
-    var labels = { decision_maker: 'ЛПР', influencer: 'Влияющий', user: 'Пользователь', technical: 'Технический' };
+    var labels = {
+      decision_maker: tp('counterparty_detail.role_decision_maker', 'Decision maker'),
+      influencer: tp('counterparty_detail.role_influencer', 'Influencer'),
+      user: tp('counterparty_detail.role_user', 'User'),
+      technical: tp('counterparty_detail.role_technical', 'Technical')
+    };
     return labels[String(value || '').trim()] || '—';
   }
 
@@ -21478,9 +21522,9 @@ window.CRM.pageApiBindings = (function () {
     if (!modal || !action || !window.bootstrap || !window.bootstrap.Modal) {
       return Promise.resolve(false);
     }
-    if (title) title.textContent = String(options && options.title || 'Подтвердите действие');
-    if (body) body.textContent = String(options && options.body || 'Продолжить?');
-    action.textContent = String(options && options.actionText || 'Подтвердить');
+      if (title) title.textContent = String(options && options.title || window.CRM.i18n.t('js.pab.confirm_action', 'Confirm action'));
+      if (body) body.textContent = String(options && options.body || window.CRM.i18n.t('js.pab.continue_question', 'Continue?'));
+      action.textContent = String(options && options.actionText || window.CRM.i18n.t('js.pab.confirm', 'Confirm'));
     action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
     var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
     return new Promise(function (resolve) {
@@ -21514,14 +21558,14 @@ window.CRM.pageApiBindings = (function () {
       editForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var payload = extractFormPayload(editForm, ['title', 'counterparty_type', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'email', 'phone', 'website', 'messenger', 'address_legal', 'address_postal', 'status', 'notes']);
-        if (!payload.title) { notify('Укажите название контрагента', 'warning'); return; }
+        if (!payload.title) { notify(tp('counterparty_detail.title_required', 'Enter counterparty name'), 'warning'); return; }
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
-          notify('Контрагент обновлён');
+          notify(tp('counterparty_detail.updated', 'Counterparty updated'));
           editModal.hide();
           await refreshCurrentPage();
         } catch (error) {
-          notify((error && error.envelope && error.envelope.message) || 'Не удалось обновить контрагента', 'error');
+          notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.update_fail', 'Failed to update counterparty'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -21543,14 +21587,14 @@ window.CRM.pageApiBindings = (function () {
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         var payload = extractFormPayload(form, ['title', 'counterparty_type', 'email', 'phone', 'website', 'messenger', 'status', 'notes']);
-        if (!payload.title) { notify('Укажите название контрагента', 'warning'); return; }
+        if (!payload.title) { notify(tp('counterparty_detail.title_required', 'Enter counterparty name'), 'warning'); return; }
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
-          notify('Профиль обновлён');
+          notify(tp('counterparty_detail.profile_updated', 'Profile updated'));
           modal.hide();
           await refreshCurrentPage();
         } catch (error) {
-          notify((error && error.envelope && error.envelope.message) || 'Не удалось обновить профиль', 'error');
+          notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.profile_update_fail', 'Failed to update profile'), 'error');
         }
       });
       form.dataset.bound = '1';
@@ -21568,7 +21612,7 @@ window.CRM.pageApiBindings = (function () {
       form.reset();
       form.querySelector('[name="public_id"]').value = '';
       form.querySelector('[name="counterparty_public_id"]').value = cpPublicId;
-      document.getElementById('counterpartyContactModalTitle').textContent = 'Добавить контакт';
+      document.getElementById('counterpartyContactModalTitle').textContent = tp('counterparty_detail.contact_add_title', 'Add contact');
       modal.show();
     };
     if (form.dataset.bound !== '1') {
@@ -21581,20 +21625,20 @@ window.CRM.pageApiBindings = (function () {
           email: String(form.querySelector('[name="email"]').value || '').trim() || null,
           phone: String(form.querySelector('[name="phone"]').value || '').trim() || null
         };
-        if (!payload.full_name) { notify('Укажите ФИО контакта', 'warning'); return; }
+        if (!payload.full_name) { notify(tp('counterparty_detail.contact_name_required', 'Enter contact full name'), 'warning'); return; }
         try {
           if (contactId) {
             await request('api/v1/contacts/' + encodeURIComponent(contactId), { method: 'PATCH', body: payload });
-            notify('Контакт обновлён');
+            notify(tp('counterparty_detail.contact_updated', 'Contact updated'));
           } else {
             payload.counterparty_public_id = cpPublicId;
             await request('api/v1/contacts', { method: 'POST', body: payload });
-            notify('Контакт добавлен');
+            notify(tp('counterparty_detail.contact_added', 'Contact added'));
           }
           modal.hide();
           await refreshCurrentPage();
         } catch (error) {
-          notify((error && error.envelope && error.envelope.message) || 'Не удалось сохранить контакт', 'error');
+          notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.contact_save_fail', 'Failed to save contact'), 'error');
         }
       });
       form.dataset.bound = '1';
@@ -21611,21 +21655,21 @@ window.CRM.pageApiBindings = (function () {
     if (!contact) return;
     fillFormFields(data.form, contact, String(contact.public_id || ''), ['public_id', 'full_name', 'role', 'email', 'phone']);
     data.form.querySelector('[name="counterparty_public_id"]').value = data.cpPublicId;
-    document.getElementById('counterpartyContactModalTitle').textContent = 'Редактировать контакт';
+    document.getElementById('counterpartyContactModalTitle').textContent = tp('counterparty_detail.contact_edit_title', 'Edit contact');
     data.modal.show();
   };
 
   window._deleteContact = async function(contactPublicId) {
     var confirmed = await confirmCounterpartyDetailAction({
-      title: 'Удалить контакт?',
-      body: 'Контакт будет удален из карточки контрагента. Это действие нельзя отменить.',
-      actionText: 'Удалить',
+      title: tp('counterparty_detail.contact_delete_title', 'Delete contact?'),
+      body: tp('counterparty_detail.contact_delete_body', 'The contact will be removed from the counterparty card. This action cannot be undone.'),
+      actionText: tp('common.delete', 'Delete'),
       actionClass: 'crm-btn-danger-soft'
     });
     if (!confirmed) return;
     request('api/v1/contacts/' + encodeURIComponent(contactPublicId), { method: 'DELETE' })
-      .then(function () { notify('Контакт удалён'); refreshCurrentPage(); })
-      .catch(function () { notify('Не удалось удалить контакт', 'error'); });
+      .then(function () { notify(tp('counterparty_detail.contact_deleted', 'Contact deleted')); refreshCurrentPage(); })
+      .catch(function () { notify(tp('counterparty_detail.contact_delete_fail', 'Failed to delete contact'), 'error'); });
   };
 
   function setupRequisitesEditModal(cp, cpPublicId) {
@@ -21650,11 +21694,11 @@ window.CRM.pageApiBindings = (function () {
         var payload = extractFormPayload(form, ['legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal']);
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
-          notify('Реквизиты обновлены');
+          notify(tp('counterparty_detail.requisites_updated', 'Requisites updated'));
           modal.hide();
           await refreshCurrentPage();
         } catch (error) {
-          notify((error && error.envelope && error.envelope.message) || 'Не удалось обновить реквизиты', 'error');
+          notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.requisites_update_fail', 'Failed to update requisites'), 'error');
         }
       });
       form.dataset.bound = '1';
@@ -21806,11 +21850,11 @@ window.CRM.pageApiBindings = (function () {
         var extra = collectExtraFields();
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(data.cpPublicId), { method: 'PATCH', body: { extra_attributes: extra } });
-          notify('Дополнительные поля обновлены');
+          notify(tp('counterparty_detail.extra_updated', 'Extra fields updated'));
           modal.hide();
           await refreshCurrentPage();
         } catch (error) {
-          notify((error && error.envelope && error.envelope.message) || 'Не удалось обновить дополнительные поля', 'error');
+          notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.extra_update_fail', 'Failed to update extra fields'), 'error');
         }
       });
       form.dataset.bound = '1';
@@ -21826,7 +21870,7 @@ window.CRM.pageApiBindings = (function () {
     var extra = cp.extra_attributes && typeof cp.extra_attributes === 'object' ? cp.extra_attributes : {};
     var keys = Object.keys(extra);
     if (!keys.length) {
-      container.innerHTML = '<div class="text-muted">Нет дополнительных полей. Нажмите «Добавить поле».</div>';
+      container.innerHTML = '<div class="text-muted">' + safeText(tp('counterparty_detail.extra_fields_empty_hint', 'No extra fields. Click “Add field”.')) + '</div>';
       return;
     }
     container.innerHTML = '';
@@ -21843,8 +21887,8 @@ window.CRM.pageApiBindings = (function () {
 
     var row = document.createElement('div');
     row.className = 'row g-2 mb-2 align-items-center';
-    row.innerHTML = '<div class="col-5"><input class="form-control extra-field-key" placeholder="Название поля" value="' + safeAttr(key || '') + '" maxlength="128"></div>'
-      + '<div class="col-5"><input class="form-control extra-field-value" placeholder="Значение" value="' + safeAttr(value || '') + '" maxlength="512"></div>'
+    row.innerHTML = '<div class="col-5"><input class="form-control extra-field-key" placeholder="' + safeAttr(tp('counterparty_detail.extra_key_placeholder', 'Field name')) + '" value="' + safeAttr(key || '') + '" maxlength="128"></div>'
+      + '<div class="col-5"><input class="form-control extra-field-value" placeholder="' + safeAttr(tp('counterparty_detail.extra_value_placeholder', 'Value')) + '" value="' + safeAttr(value || '') + '" maxlength="512"></div>'
       + '<div class="col-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-extra-field"><span class="crm-icon"><i class="fa-solid fa-trash"></i></span></button></div>';
     row.querySelector('.btn-remove-extra-field').addEventListener('click', function () { row.remove(); });
     container.appendChild(row);
@@ -21911,42 +21955,35 @@ window.CRM.pageApiBindings = (function () {
   function renderProfile(cp) {
     var profile = document.getElementById('counterpartyDetailProfile');
     if (!profile) return;
-    var currentLocale = document.documentElement.lang || 'ru-ru';
-    var isRu = String(currentLocale).indexOf('ru') === 0;
-
-    var STATUS_LABELS_RU = { active: 'Активен', inactive: 'Неактивен', blocked: 'Заблокирован' };
-    var STATUS_LABELS_EN = { active: 'Active', inactive: 'Inactive', blocked: 'Blocked' };
-    var STATUS_LABELS = isRu ? STATUS_LABELS_RU : STATUS_LABELS_EN;
+    var STATUS_LABELS = {
+      active: tp('counterparty_detail.status_active', 'Active'),
+      inactive: tp('counterparty_detail.status_inactive', 'Inactive'),
+      blocked: tp('counterparty_detail.status_blocked', 'Blocked')
+    };
     function statusLabel(value) { return STATUS_LABELS[String(value || '').trim()] || String(value || '—'); }
 
-    var TYPE_LABELS_RU = { organization: 'Организация', individual: 'Физлицо', sole_proprietor: 'ИП', legal_entity: 'Юрлицо' };
-    var TYPE_LABELS_EN = { organization: 'Organization', individual: 'Individual', sole_proprietor: 'Sole Proprietor', legal_entity: 'Legal Entity' };
-    var TYPE_LABELS = isRu ? TYPE_LABELS_RU : TYPE_LABELS_EN;
+    var TYPE_LABELS = {
+      organization: tp('counterparty_detail.type_organization', 'Organization'),
+      individual: tp('counterparty_detail.type_individual', 'Individual'),
+      sole_proprietor: tp('counterparty_detail.type_sole_proprietor', 'Sole Proprietor'),
+      legal_entity: tp('counterparty_detail.type_legal_entity', 'Legal Entity')
+    };
     function typeLabel(value) { return TYPE_LABELS[String(value || '').trim()] || String(value || '—'); }
 
-    var profileFields = isRu ? [
-      ['Тип контрагента', typeLabel(cp.counterparty_type)],
-      ['Название', cp.title],
+    var profileFields = [
+      [tp('counterparty_detail.field_type', 'Counterparty type'), typeLabel(cp.counterparty_type)],
+      [tp('counterparty_detail.field_title', 'Name'), cp.title],
       ['Email', cp.email],
-      ['Телефон', cp.phone],
-      ['Сайт', cp.website],
-      ['Мессенджер', cp.messenger],
-      ['Статус', statusLabel(cp.status)],
-      ['Комментарий', cp.notes]
-    ] : [
-      ['Type', typeLabel(cp.counterparty_type)],
-      ['Name', cp.title],
-      ['Email', cp.email],
-      ['Phone', cp.phone],
-      ['Website', cp.website],
-      ['Messenger', cp.messenger],
-      ['Status', statusLabel(cp.status)],
-      ['Notes', cp.notes]
+      [tp('counterparty_detail.field_phone', 'Phone'), cp.phone],
+      [tp('counterparty_detail.field_website', 'Website'), cp.website],
+      [tp('counterparty_detail.field_messenger', 'Messenger'), cp.messenger],
+      [tp('counterparty_detail.field_status', 'Status'), statusLabel(cp.status)],
+      [tp('counterparty_detail.field_notes', 'Notes'), cp.notes]
     ].filter(function (entry) { return hasDisplayValue(entry[1]); });
 
     profile.innerHTML = profileFields.length
       ? profileFields.map(function (entry) { return metric(entry[0], entry[1]); }).join('')
-      : '<div class="text-muted">' + (isRu ? 'В профиле контрагента пока нет заполненных полей.' : 'No profile fields filled yet.') + '</div>';
+      : '<div class="text-muted">' + safeText(tp('counterparty_detail.profile_empty', 'No profile fields filled yet.')) + '</div>';
   }
 
   function renderContacts(contacts) {
@@ -21955,7 +21992,7 @@ window.CRM.pageApiBindings = (function () {
     window._counterpartyContactsCache = contacts;
 
     if (!contacts.length) {
-      contactsBody.innerHTML = '<tr><td colspan="5" class="text-muted">Нет контактов.</td></tr>';
+      contactsBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('counterparty_detail.contacts_empty', 'No contacts.')) + '</td></tr>';
     } else {
       contactsBody.innerHTML = contacts.map(function (contact) {
         var id = String(contact.public_id || '').trim();
@@ -21965,8 +22002,8 @@ window.CRM.pageApiBindings = (function () {
           + '<td>' + safeText(contact.email || '—') + '</td>'
           + '<td>' + safeText(contact.phone || '—') + '</td>'
           + '<td>'
-          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-edit="' + safeAttr(id) + '" aria-label="Редактировать контакт"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button>'
-          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-delete="' + safeAttr(id) + '" aria-label="Удалить контакт"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash"></i></span></button>'
+          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-edit="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_edit_title', 'Edit contact')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button>'
+          + '<button type="button" class="btn btn-sm crm-inline-icon-btn" data-contact-delete="' + safeAttr(id) + '" aria-label="' + safeAttr(tp('counterparty_detail.contact_delete_title', 'Delete contact?')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-trash"></i></span></button>'
           + '</td>'
           + '</tr>';
       }).join('');
@@ -21992,11 +22029,11 @@ window.CRM.pageApiBindings = (function () {
     var summaryNode = document.getElementById('counterpartyDetailSummary');
     if (summaryNode) {
       summaryNode.innerHTML = ''
-        + metric('Всего задач', String(tasks.length))
-        + metric('Завершено', String(doneCount))
-        + metric('Контактов', String(contacts.length))
-        + metric('Сайт', cp.website ? 'Да' : 'Нет')
-        + metric('Обновлен', formatDate(cp.updated_at));
+        + metric(tp('counterparty_detail.metric_tasks_total', 'Total tasks'), String(tasks.length))
+        + metric(tp('counterparty_detail.metric_done', 'Done'), String(doneCount))
+        + metric(tp('counterparty_detail.metric_contacts', 'Contacts'), String(contacts.length))
+        + metric(tp('counterparty_detail.metric_website', 'Website'), cp.website ? tp('common.yes', 'Yes') : tp('common.no', 'No'))
+        + metric(tp('counterparty_detail.metric_updated', 'Updated'), formatDate(cp.updated_at));
     }
   }
 
@@ -22004,11 +22041,11 @@ window.CRM.pageApiBindings = (function () {
     var tasksBody = document.getElementById('counterpartyDetailTasksBody');
     if (!tasksBody) return;
     if (!tasks.length) {
-      tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">По контрагенту пока нет задач.</td></tr>';
+      tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('counterparty_detail.tasks_empty', 'No tasks for this counterparty yet.')) + '</td></tr>';
     } else {
       tasksBody.innerHTML = tasks.slice(0, 50).map(function (task) {
-        var taskTitle = String(task.title || '').trim() || 'Задача без названия';
-        var projectTitle = String(task.project_title || '').trim() || 'Проект не указан';
+        var taskTitle = String(task.title || '').trim() || tp('counterparty_detail.task_untitled', 'Untitled task');
+        var projectTitle = String(task.project_title || '').trim() || tp('counterparty_detail.project_empty', 'Project not specified');
         return '<tr>'
           + '<td><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(String(task.public_id || '')) + '">' + safeText(taskTitle) + '</a></td>'
           + '<td>' + safeText(statusLabel(task.status_code || task.status || 'new')) + '</td>'
@@ -22022,40 +22059,27 @@ window.CRM.pageApiBindings = (function () {
   function renderRequisites(cp) {
     var requisitesNode = document.getElementById('counterpartyDetailRequisites');
     if (!requisitesNode) return;
-    var currentLocale = document.documentElement.lang || 'ru-ru';
-    var isRu = String(currentLocale).indexOf('ru') === 0;
     var isOrg = String(cp.counterparty_type || '').indexOf('organization') >= 0 || String(cp.counterparty_type || '').indexOf('legal_entity') >= 0;
     var isSP = String(cp.counterparty_type || '') === 'sole_proprietor';
 
-    var reqFields = isRu ? [
-      ['Юридическое наименование', cp.legal_name],
-      ['ИНН', cp.tax_inn],
-      ['КПП', cp.tax_kpp],
-      isOrg ? ['ОГРН', cp.tax_ogrn] : null,
-      isSP ? ['ОГРНИП', cp.tax_ogrnip] : null,
-      ['Расчетный счет', cp.bank_account],
-      ['БИК', cp.bank_bik],
-      ['Корр. счет', cp.bank_corr_account],
-      ['Банк', cp.bank_name],
-      ['Юридический адрес', cp.address_legal],
-      ['Почтовый адрес', cp.address_postal]
-    ] : [
-      ['Legal Name', cp.legal_name],
-      ['Tax ID / VAT', cp.tax_inn],
-      ['Registration No.', cp.tax_kpp],
-      isOrg ? ['Registration Number', cp.tax_ogrn] : null,
-      ['Account No.', cp.bank_account],
-      ['SWIFT / BIC', cp.bank_bik],
-      ['IBAN', cp.bank_corr_account],
-      ['Bank', cp.bank_name],
-      ['Legal Address', cp.address_legal],
-      ['Postal Address', cp.address_postal]
+    var reqFields = [
+      [tp('counterparty_detail.req_legal_name', 'Legal name'), cp.legal_name],
+      [tp('counterparty_detail.req_tax_inn', 'Tax ID'), cp.tax_inn],
+      [tp('counterparty_detail.req_tax_kpp', 'Tax registration code'), cp.tax_kpp],
+      isOrg ? [tp('counterparty_detail.req_ogrn', 'Registration number'), cp.tax_ogrn] : null,
+      isSP ? [tp('counterparty_detail.req_ogrnip', 'Sole proprietor registration number'), cp.tax_ogrnip] : null,
+      [tp('counterparty_detail.req_bank_account', 'Account no.'), cp.bank_account],
+      [tp('counterparty_detail.req_bank_bik', 'SWIFT / BIC'), cp.bank_bik],
+      [tp('counterparty_detail.req_corr_account', 'Correspondent account / IBAN'), cp.bank_corr_account],
+      [tp('counterparty_detail.req_bank_name', 'Bank'), cp.bank_name],
+      [tp('counterparty_detail.req_address_legal', 'Legal address'), cp.address_legal],
+      [tp('counterparty_detail.req_address_postal', 'Postal address'), cp.address_postal]
     ];
 
     var filtered = reqFields.filter(function (entry) { return entry && hasDisplayValue(entry[1]); });
     requisitesNode.innerHTML = filtered.length
       ? filtered.map(function (entry) { return metric(entry[0], entry[1]); }).join('')
-      : '<div class="text-muted">' + (isRu ? 'Реквизиты не заполнены.' : 'Requisites not filled.') + '</div>';
+      : '<div class="text-muted">' + safeText(tp('counterparty_detail.requisites_empty', 'Requisites not filled.')) + '</div>';
   }
 
   function renderExtra(cp) {
@@ -22064,7 +22088,7 @@ window.CRM.pageApiBindings = (function () {
     var extra = cp.extra_attributes && typeof cp.extra_attributes === 'object' ? cp.extra_attributes : {};
     var keys = Object.keys(extra);
     if (!keys.length) {
-      extraNode.innerHTML = '<div class="text-muted">Нет дополнительных атрибутов</div>';
+      extraNode.innerHTML = '<div class="text-muted">' + safeText(tp('counterparty_detail.extra_empty', 'No extra attributes')) + '</div>';
       return;
     }
     extraNode.innerHTML = keys.map(function (key) {
@@ -22095,7 +22119,7 @@ window.CRM.pageApiBindings = (function () {
       table.className = 'table table-sm align-middle';
       var thead = document.createElement('thead');
       var hr = document.createElement('tr');
-      ['Название', 'ИНН', 'Email', 'Статус', ''].forEach(function (head) {
+      [tp('companies.th_title', 'Name'), tp('companies.th_tax', 'Tax ID'), 'Email', tp('companies.th_status', 'Status'), ''].forEach(function (head) {
         var th = document.createElement('th');
         th.textContent = head;
         hr.appendChild(th);
@@ -22129,7 +22153,7 @@ window.CRM.pageApiBindings = (function () {
         var editBtn = document.createElement('button');
         editBtn.className = 'btn btn-sm crm-btn-secondary';
         editBtn.setAttribute('data-company-edit', '1');
-        editBtn.textContent = 'Редакт.';
+        editBtn.textContent = tp('common.edit', 'Edit');
         actionTd.appendChild(editBtn);
 
         actionTd.appendChild(document.createTextNode(' '));
@@ -22137,7 +22161,7 @@ window.CRM.pageApiBindings = (function () {
         var deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn btn-sm crm-btn-danger';
         deleteBtn.setAttribute('data-company-delete', '1');
-        deleteBtn.textContent = 'Удалить';
+        deleteBtn.textContent = tp('common.delete', 'Delete');
         actionTd.appendChild(deleteBtn);
 
         tr.appendChild(actionTd);
@@ -22149,17 +22173,17 @@ window.CRM.pageApiBindings = (function () {
     }
 
     async function loadCompanies() {
-      setListMessage('Загрузка...', false);
+      setListMessage(tp('companies.loading', 'Loading...'), false);
       try {
         var envelope = await tryRequest('api/v1/companies', { query: { limit: 100 } });
         var items = Array.isArray(envelope && envelope.data && envelope.data.items) ? envelope.data.items : [];
         if (items.length === 0) {
-          setListMessage('Компании не найдены.', false);
+          setListMessage(tp('companies.empty', 'Companies not found.'), false);
           return;
         }
         renderCompaniesTable(items);
       } catch (error) {
-        setListMessage('Не удалось загрузить компании', true);
+        setListMessage(tp('companies.load_fail', 'Failed to load companies'), true);
       }
     }
 
@@ -22182,10 +22206,10 @@ window.CRM.pageApiBindings = (function () {
         try {
           await request('api/v1/companies', { method: 'POST', body: payload });
           createForm.reset();
-          notify('Компания создана');
+          notify(tp('companies.created', 'Company created'));
           await loadCompanies();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать компанию');
+          var normalized = window.CRM.api.normalizeError(error, tp('companies.create_fail', 'Failed to create company'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -22200,13 +22224,13 @@ window.CRM.pageApiBindings = (function () {
         if (!id) return;
 
         if (event.target.closest('[data-company-delete]')) {
-          if (!window.confirm('Удалить компанию?')) return;
+          if (!window.confirm(tp('companies.delete_confirm', 'Delete company?'))) return;
           try {
             await request('api/v1/companies/' + encodeURIComponent(id), { method: 'DELETE' });
-            notify('Компания удалена');
+            notify(tp('companies.deleted', 'Company deleted'));
             await loadCompanies();
           } catch (error) {
-            var delErr = window.CRM.api.normalizeError(error, 'Не удалось удалить компанию');
+            var delErr = window.CRM.api.normalizeError(error, tp('companies.delete_fail', 'Failed to delete company'));
             notify(window.CRM.api.formatErrorMessage(delErr, { withRequestId: true }), 'error');
           }
           return;
@@ -22215,19 +22239,19 @@ window.CRM.pageApiBindings = (function () {
         if (event.target.closest('[data-company-edit]')) {
           var titleCell = row.children[0];
           var statusCell = row.children[3];
-          var nextTitle = window.prompt('Название компании', String(titleCell ? titleCell.textContent || '' : '').trim());
+          var nextTitle = window.prompt(tp('companies.prompt_title', 'Company name'), String(titleCell ? titleCell.textContent || '' : '').trim());
           if (nextTitle === null) return;
-          var nextStatus = window.prompt('Статус', String(statusCell ? statusCell.textContent || '' : '').trim());
+          var nextStatus = window.prompt(tp('companies.prompt_status', 'Status'), String(statusCell ? statusCell.textContent || '' : '').trim());
           if (nextStatus === null) return;
           try {
             await request('api/v1/companies/' + encodeURIComponent(id), {
               method: 'PATCH',
               body: { title: String(nextTitle).trim(), status: String(nextStatus).trim() }
             });
-            notify('Компания обновлена');
+            notify(tp('companies.updated', 'Company updated'));
             await loadCompanies();
           } catch (error) {
-            var updErr = window.CRM.api.normalizeError(error, 'Не удалось обновить компанию');
+            var updErr = window.CRM.api.normalizeError(error, tp('companies.update_fail', 'Failed to update company'));
             notify(window.CRM.api.formatErrorMessage(updErr, { withRequestId: true }), 'error');
           }
         }
@@ -22245,10 +22269,10 @@ window.CRM.pageApiBindings = (function () {
     var filterPrimary = String(query.get('is_primary') || '').trim();
 
     var ROLE_LABELS = {
-      decision_maker: 'ЛПР',
-      influencer: 'Влияющий',
-      user: 'Пользователь',
-      technical: 'Технический'
+      decision_maker: tp('contacts.role_decision_maker', 'Decision maker'),
+      influencer: tp('contacts.role_influencer', 'Influencer'),
+      user: tp('contacts.role_user', 'User'),
+      technical: tp('contacts.role_technical', 'Technical')
     };
 
     function roleLabel(value) {
@@ -22317,7 +22341,7 @@ window.CRM.pageApiBindings = (function () {
     var tableBody = document.getElementById('contactsTableBody');
     if (tableBody) {
       if (!contacts.length) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">Контакты не найдены.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + safeText(tp('contacts.empty', 'Contacts not found.')) + '</td></tr>';
       } else {
         tableBody.innerHTML = contacts.map(function (contact) {
           var id = String(contact.public_id || '').trim();
@@ -22335,10 +22359,10 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(roleLabel(contact.role)) + '</td>'
             + '<td>' + safeText(contact.email || '—') + '</td>'
             + '<td>' + safeText(contact.phone || '—') + '</td>'
-            + '<td>' + (contact.is_primary ? '<span class="crm-badge success">Да</span>' : '<span class="text-muted">Нет</span>') + '</td>'
+            + '<td>' + (contact.is_primary ? '<span class="crm-badge success">' + safeText(tp('common.yes', 'Yes')) + '</span>' : '<span class="text-muted">' + safeText(tp('common.no', 'No')) + '</span>') + '</td>'
             + '<td><div class="crm-contact-actions">'
-            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-contact-edit="' + safeText(id) + '">Редакт.</button> '
-            + '<button class="btn btn-sm crm-btn-danger" type="button" data-contact-delete="' + safeText(id) + '">Удалить</button>'
+            + '<button class="btn btn-sm crm-btn-secondary" type="button" data-contact-edit="' + safeText(id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button> '
+            + '<button class="btn btn-sm crm-btn-danger" type="button" data-contact-delete="' + safeText(id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>'
             + '</div></td>'
             + '</tr>';
         }).join('');
@@ -22356,7 +22380,7 @@ window.CRM.pageApiBindings = (function () {
     if (filterPrimaryInput) filterPrimaryInput.value = filterPrimary;
 
     if (filterCounterpartyInput) {
-      filterCounterpartyInput.textContent = '<option value="">Все контрагенты</option>';
+      filterCounterpartyInput.innerHTML = '<option value="">' + safeText(tp('contacts.all_counterparties', 'All counterparties')) + '</option>';
       counterparties.forEach(function (cp) {
         var opt = document.createElement('option');
         opt.value = String(cp.public_id || '');
@@ -22408,7 +22432,7 @@ window.CRM.pageApiBindings = (function () {
 
     function populateCounterpartySelect(select) {
       if (!select) return;
-      select.textContent = '<option value="">Выберите контрагента</option>';
+      select.innerHTML = '<option value="">' + safeText(tp('contacts.select_counterparty', 'Select counterparty')) + '</option>';
       counterparties.forEach(function (cp) {
         var opt = document.createElement('option');
         opt.value = String(cp.public_id || '');
@@ -22440,21 +22464,21 @@ window.CRM.pageApiBindings = (function () {
           is_primary: Boolean((createForm.querySelector('[name="is_primary"]') || {}).checked)
         };
         if (!payload.full_name) {
-          showFormErrors(createForm, { full_name: ['Укажите ФИО'] });
-          notify('Исправьте ошибки формы', 'warning');
+          showFormErrors(createForm, { full_name: [tp('contacts.full_name_required', 'Enter full name')] });
+          notify(tp('contacts.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(createForm);
         try {
           await request('api/v1/contacts', { method: 'POST', body: payload });
-          notify('Контакт создан');
+          notify(tp('contacts.created', 'Contact created'));
           if (createModal) createModal.hide();
           createForm.reset();
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось создать контакт', 'error');
+          notify((envelope && envelope.message) || tp('contacts.create_fail', 'Failed to create contact'), 'error');
         }
       });
       createForm.dataset.bound = '1';
@@ -22465,7 +22489,7 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         var contactId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!contactId) {
-          notify('Сначала выберите контакт', 'warning');
+          notify(tp('contacts.select_contact_first', 'Select a contact first'), 'warning');
           return;
         }
         var payload = {
@@ -22477,20 +22501,20 @@ window.CRM.pageApiBindings = (function () {
           is_primary: Boolean((editForm.querySelector('[name="is_primary"]') || {}).checked)
         };
         if (!payload.full_name) {
-          showFormErrors(editForm, { full_name: ['Укажите ФИО'] });
-          notify('Исправьте ошибки формы', 'warning');
+          showFormErrors(editForm, { full_name: [tp('contacts.full_name_required', 'Enter full name')] });
+          notify(tp('contacts.fix_form_errors', 'Fix form errors'), 'warning');
           return;
         }
         clearFormErrors(editForm);
         try {
           await request('api/v1/contacts/' + encodeURIComponent(contactId), { method: 'PATCH', body: payload });
-          notify('Контакт обновлён');
+          notify(tp('contacts.updated', 'Contact updated'));
           if (editModal) editModal.hide();
           await refreshCurrentPage();
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(editForm, mapApiErrors(envelope));
-          notify((envelope && envelope.message) || 'Не удалось обновить контакт', 'error');
+          notify((envelope && envelope.message) || tp('contacts.update_fail', 'Failed to update contact'), 'error');
         }
       });
       editForm.dataset.bound = '1';
@@ -22500,16 +22524,16 @@ window.CRM.pageApiBindings = (function () {
       deleteInModalBtn.addEventListener('click', function () {
         var contactId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
         if (!contactId) return;
-        if (!window.confirm('Удалить контакт?')) return;
+        if (!window.confirm(tp('contacts.delete_confirm', 'Delete contact?'))) return;
         request('api/v1/contacts/' + encodeURIComponent(contactId), { method: 'DELETE' })
           .then(function () {
-            notify('Контакт удалён');
+            notify(tp('contacts.deleted', 'Contact deleted'));
             if (editModal) editModal.hide();
             return refreshCurrentPage();
           })
           .catch(function (error) {
             var envelope = error && error.envelope ? error.envelope : null;
-            notify((envelope && envelope.message) || 'Не удалось удалить контакт', 'error');
+            notify((envelope && envelope.message) || tp('contacts.delete_fail', 'Failed to delete contact'), 'error');
           });
       });
       deleteInModalBtn.dataset.bound = '1';
@@ -22542,15 +22566,15 @@ window.CRM.pageApiBindings = (function () {
       btn.addEventListener('click', function () {
         var contactId = String(btn.getAttribute('data-contact-delete') || '').trim();
         if (!contactId) return;
-        if (!window.confirm('Удалить контакт?')) return;
+        if (!window.confirm(tp('contacts.delete_confirm', 'Delete contact?'))) return;
         request('api/v1/contacts/' + encodeURIComponent(contactId), { method: 'DELETE' })
           .then(function () {
-            notify('Контакт удалён');
+            notify(tp('contacts.deleted', 'Contact deleted'));
             return refreshCurrentPage();
           })
           .catch(function (error) {
             var envelope = error && error.envelope ? error.envelope : null;
-            notify((envelope && envelope.message) || 'Не удалось удалить контакт', 'error');
+            notify((envelope && envelope.message) || tp('contacts.delete_fail', 'Failed to delete contact'), 'error');
           });
       });
       btn.dataset.bound = '1';
@@ -22568,7 +22592,7 @@ window.CRM.pageApiBindings = (function () {
       list.textContent = '';
       var denied = document.createElement('div');
       denied.className = 'alert alert-warning';
-      denied.textContent = 'Недостаточно прав для управления департаментами (нужно permission: department.manage).';
+      denied.textContent = tp('departments.manage_forbidden', 'Not enough permissions to manage departments (requires permission: department.manage).');
       list.appendChild(denied);
       if (createForm) createForm.classList.add('d-none');
       if (refreshBtn) refreshBtn.disabled = true;
@@ -22591,7 +22615,7 @@ window.CRM.pageApiBindings = (function () {
       table.className = 'table table-sm align-middle';
       var thead = document.createElement('thead');
       var hr = document.createElement('tr');
-      ['Название', 'Код', 'Статус', ''].forEach(function (head) {
+      [tp('departments.th_title', 'Name'), tp('departments.th_code', 'Code'), tp('departments.th_status', 'Status'), ''].forEach(function (head) {
         var th = document.createElement('th');
         th.textContent = head;
         hr.appendChild(th);
@@ -22621,14 +22645,14 @@ window.CRM.pageApiBindings = (function () {
         var editBtn = document.createElement('button');
         editBtn.className = 'btn btn-sm crm-btn-secondary';
         editBtn.setAttribute('data-department-edit', '1');
-        editBtn.textContent = 'Редакт.';
+        editBtn.textContent = tp('common.edit', 'Edit');
         actionTd.appendChild(editBtn);
         actionTd.appendChild(document.createTextNode(' '));
 
         var deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn btn-sm crm-btn-danger';
         deleteBtn.setAttribute('data-department-delete', '1');
-        deleteBtn.textContent = 'Удалить';
+        deleteBtn.textContent = tp('common.delete', 'Delete');
         actionTd.appendChild(deleteBtn);
 
         tr.appendChild(actionTd);
@@ -22640,17 +22664,17 @@ window.CRM.pageApiBindings = (function () {
     }
 
     async function loadDepartments() {
-      setListMessage('Загрузка...', false);
+      setListMessage(tp('departments.loading', 'Loading...'), false);
       try {
         var envelope = await tryRequest('api/v1/departments', { query: { limit: 100 } });
         var items = Array.isArray(envelope && envelope.data && envelope.data.items) ? envelope.data.items : [];
         if (items.length === 0) {
-          setListMessage('Департаменты не найдены.', false);
+          setListMessage(tp('departments.empty', 'Departments not found.'), false);
           return;
         }
         renderDepartmentsTable(items);
       } catch (error) {
-        setListMessage('Не удалось загрузить департаменты', true);
+        setListMessage(tp('departments.load_fail', 'Failed to load departments'), true);
       }
     }
 
@@ -22672,10 +22696,10 @@ window.CRM.pageApiBindings = (function () {
         try {
           await request('api/v1/departments', { method: 'POST', body: payload });
           createForm.reset();
-          notify('Департамент создан');
+          notify(tp('departments.created', 'Department created'));
           await loadDepartments();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать департамент');
+          var normalized = window.CRM.api.normalizeError(error, tp('departments.create_fail', 'Failed to create department'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -22690,13 +22714,13 @@ window.CRM.pageApiBindings = (function () {
         if (!id) return;
 
         if (event.target.closest('[data-department-delete]')) {
-          if (!window.confirm('Удалить департамент?')) return;
+          if (!window.confirm(tp('departments.delete_confirm', 'Delete department?'))) return;
           try {
             await request('api/v1/departments/' + encodeURIComponent(id), { method: 'DELETE' });
-            notify('Департамент удален');
+            notify(tp('departments.deleted', 'Department deleted'));
             await loadDepartments();
           } catch (error) {
-            var delErr = window.CRM.api.normalizeError(error, 'Не удалось удалить департамент');
+            var delErr = window.CRM.api.normalizeError(error, tp('departments.delete_fail', 'Failed to delete department'));
             notify(window.CRM.api.formatErrorMessage(delErr, { withRequestId: true }), 'error');
           }
           return;
@@ -22705,19 +22729,19 @@ window.CRM.pageApiBindings = (function () {
         if (event.target.closest('[data-department-edit]')) {
           var titleCell = row.children[0];
           var statusCell = row.children[2];
-          var nextTitle = window.prompt('Название департамента', String(titleCell ? titleCell.textContent || '' : '').trim());
+          var nextTitle = window.prompt(tp('departments.prompt_title', 'Department name'), String(titleCell ? titleCell.textContent || '' : '').trim());
           if (nextTitle === null) return;
-          var nextStatus = window.prompt('Статус', String(statusCell ? statusCell.textContent || '' : '').trim());
+          var nextStatus = window.prompt(tp('departments.prompt_status', 'Status'), String(statusCell ? statusCell.textContent || '' : '').trim());
           if (nextStatus === null) return;
           try {
             await request('api/v1/departments/' + encodeURIComponent(id), {
               method: 'PATCH',
               body: { title: String(nextTitle).trim(), status: String(nextStatus).trim() }
             });
-            notify('Департамент обновлен');
+            notify(tp('departments.updated', 'Department updated'));
             await loadDepartments();
           } catch (error) {
-            var updErr = window.CRM.api.normalizeError(error, 'Не удалось обновить департамент');
+            var updErr = window.CRM.api.normalizeError(error, tp('departments.update_fail', 'Failed to update department'));
             notify(window.CRM.api.formatErrorMessage(updErr, { withRequestId: true }), 'error');
           }
         }
@@ -22792,27 +22816,27 @@ window.CRM.pageApiBindings = (function () {
 
   async function renderAdminWorkflowPage() {
     var workflowTriggerLabels = {
-      task_created: 'Задача создана',
-      task_updated: 'Задача изменена',
-      task_status_changed: 'Статус задачи изменен'
+      task_created: tp('workflow.trigger_task_created', 'Task created'),
+      task_updated: tp('workflow.trigger_task_updated', 'Task updated'),
+      task_status_changed: tp('workflow.trigger_task_status_changed', 'Task status changed')
     };
     var workflowActionLabels = {
-      change_status: 'Изменить статус задачи',
-      assign_user: 'Назначить исполнителя',
-      create_comment: 'Добавить комментарий',
-      send_notification: 'Отправить уведомление',
-      create_follow_up_task: 'Создать follow-up подзадачу',
-      call_webhook: 'Вызвать вебхук',
-      escalate_sla: 'Эскалировать SLA',
-      create_reminder: 'Создать напоминание'
+      change_status: tp('workflow.action_change_status', 'Change task status'),
+      assign_user: tp('workflow.action_assign_user', 'Assign assignee'),
+      create_comment: tp('workflow.action_create_comment', 'Add comment'),
+      send_notification: tp('workflow.action_send_notification', 'Send notification'),
+      create_follow_up_task: tp('workflow.action_create_follow_up_task', 'Create follow-up subtask'),
+      call_webhook: tp('workflow.action_call_webhook', 'Call webhook'),
+      escalate_sla: tp('workflow.action_escalate_sla', 'Escalate SLA'),
+      create_reminder: tp('workflow.action_create_reminder', 'Create reminder')
     };
     var workflowRules = [];
     var workflowUsers = [];
     var workflowStatuses = [
-      { code: 'new', title: 'Новая' },
-      { code: 'in_progress', title: 'В работе' },
-      { code: 'blocked', title: 'Заблокирована' },
-      { code: 'done', title: 'Готово' }
+      { code: 'new', title: tp('workflow.status_new', 'New') },
+      { code: 'in_progress', title: tp('workflow.status_in_progress', 'In progress') },
+      { code: 'blocked', title: tp('workflow.status_blocked', 'Blocked') },
+      { code: 'done', title: tp('workflow.status_done', 'Done') }
     ];
     var workflowTasks = [];
 
@@ -22828,7 +22852,7 @@ window.CRM.pageApiBindings = (function () {
     function userLabel(publicId) {
       var id = String(publicId || '').trim();
       var found = workflowUsers.find(function (user) { return String(user.public_id || '') === id; });
-      return found ? String(found.full_name || found.login || found.public_id || 'Пользователь') : id;
+      return found ? String(found.full_name || found.login || found.public_id || tp('workflow.user_fallback', 'User')) : id;
     }
     function statusLabel(code) {
       var key = String(code || '').trim();
@@ -22837,20 +22861,20 @@ window.CRM.pageApiBindings = (function () {
     }
     function summarizePayload(actionCode, payload) {
       payload = payload && typeof payload === 'object' ? payload : {};
-      if (actionCode === 'change_status') return payload.status_code ? ('Статус: ' + statusLabel(payload.status_code)) : 'Статус не выбран';
-      if (actionCode === 'assign_user') return payload.assignee_user_public_id ? ('Исполнитель: ' + userLabel(payload.assignee_user_public_id)) : 'Исполнитель не выбран';
+      if (actionCode === 'change_status') return payload.status_code ? (tp('workflow.summary_status_prefix', 'Status: ') + statusLabel(payload.status_code)) : tp('workflow.summary_status_empty', 'Status not selected');
+      if (actionCode === 'assign_user') return payload.assignee_user_public_id ? (tp('workflow.summary_assignee_prefix', 'Assignee: ') + userLabel(payload.assignee_user_public_id)) : tp('workflow.summary_assignee_empty', 'Assignee not selected');
       if (actionCode === 'create_comment') {
         var commentText = payload.comment_text || payload.comment || payload.message || '';
-        return commentText ? ('Комментарий: ' + String(commentText).slice(0, 60)) : 'Комментарий не задан';
+        return commentText ? (tp('workflow.summary_comment_prefix', 'Comment: ') + String(commentText).slice(0, 60)) : tp('workflow.summary_comment_empty', 'Comment is not set');
       }
       if (actionCode === 'send_notification') {
         var users = Array.isArray(payload.recipient_user_public_ids) ? payload.recipient_user_public_ids : [];
-        return users.length ? ('Получателей: ' + users.length) : 'Получатели не выбраны';
+        return users.length ? (tp('workflow.summary_recipients_prefix', 'Recipients: ') + users.length) : tp('workflow.summary_recipients_empty', 'Recipients not selected');
       }
-      if (actionCode === 'create_follow_up_task') return payload.task_title ? ('Подзадача: ' + payload.task_title) : 'Название не задано';
-      if (actionCode === 'create_reminder') return payload.remind_at ? ('Напомнить: ' + payload.remind_at) : 'Через 1 час';
-      if (actionCode === 'call_webhook') return payload.url ? String(payload.url) : 'URL не указан';
-      if (actionCode === 'escalate_sla') return 'Отметить нарушение SLA';
+      if (actionCode === 'create_follow_up_task') return payload.task_title ? (tp('workflow.summary_subtask_prefix', 'Subtask: ') + payload.task_title) : tp('workflow.summary_title_empty', 'Title is not set');
+      if (actionCode === 'create_reminder') return payload.remind_at ? (tp('workflow.summary_remind_prefix', 'Remind: ') + payload.remind_at) : tp('workflow.summary_one_hour', 'In 1 hour');
+      if (actionCode === 'call_webhook') return payload.url ? String(payload.url) : tp('workflow.summary_url_empty', 'URL is not set');
+      if (actionCode === 'escalate_sla') return tp('workflow.summary_escalate_sla', 'Mark SLA breach');
       return '—';
     }
     function optionHtml(value, label, selected) {
@@ -22887,28 +22911,28 @@ window.CRM.pageApiBindings = (function () {
         var tagsResponse = await tryRequest('api/v1/tags', { query: { limit: 200 }, silent: true });
         var workflowTags = tagsResponse && tagsResponse.success !== false ? mapItems(tagsResponse) : [];
         fillSelect(document.getElementById('workflowConditionTag'), workflowTags, 'public_id', function (tag) {
-          return (tag.title || tag.code || tag.public_id || 'Тег');
-        }, 'Любой тег');
+          return (tag.title || tag.code || tag.public_id || tp('workflow.tag_fallback', 'Tag'));
+        }, tp('workflow.any_tag', 'Any tag'));
       } catch(e) {}
 
       ['workflowAssigneeUser', 'workflowFollowupAssignee', 'workflowReminderUser'].forEach(function (id) {
         fillSelect(document.getElementById(id), workflowUsers, 'public_id', function (user) {
-          return user.full_name || user.login || user.public_id || 'Пользователь';
-        }, id === 'workflowAssigneeUser' ? 'Выберите исполнителя' : 'Текущий пользователь');
+          return user.full_name || user.login || user.public_id || tp('workflow.user_fallback', 'User');
+        }, id === 'workflowAssigneeUser' ? tp('workflow.select_assignee', 'Select assignee') : tp('workflow.current_user', 'Current user'));
       });
       fillSelect(document.getElementById('workflowNotificationUsers'), workflowUsers, 'public_id', function (user) {
-        return user.full_name || user.login || user.public_id || 'Пользователь';
+        return user.full_name || user.login || user.public_id || tp('workflow.user_fallback', 'User');
       }, '');
       fillSelect(document.getElementById('workflowStatusCode'), workflowStatuses, 'code', function (status) {
         return status.title || status.code;
-      }, 'Выберите статус');
+      }, tp('workflow.select_status', 'Select status'));
       fillSelect(document.getElementById('workflowTestTask'), workflowTasks, 'public_id', function (task) {
-        return task.title || task.public_id || 'Задача';
-      }, 'Выберите задачу');
+        return task.title || task.public_id || tp('workflow.task_fallback', 'Task');
+      }, tp('workflow.select_task', 'Select task'));
       ['workflowFromStatus', 'workflowToStatus'].forEach(function (sfId) {
         fillSelect(document.getElementById(sfId), workflowStatuses, 'code', function (status) {
           return status.title || status.code;
-        }, 'Любой статус');
+        }, tp('workflow.any_status', 'Any status'));
       });
     }
     function setMultiSelectValues(select, values) {
@@ -22943,7 +22967,7 @@ window.CRM.pageApiBindings = (function () {
         var selected = Array.prototype.slice.call((form.querySelector('[name="recipient_user_public_ids"]') || {}).selectedOptions || []).map(function (option) { return option.value; }).filter(Boolean);
         return {
           recipient_user_public_ids: selected,
-          title: String((form.querySelector('[name="notification_title"]') || {}).value || '').trim() || 'Уведомление автоматизации',
+          title: String((form.querySelector('[name="notification_title"]') || {}).value || '').trim() || tp('workflow.default_notification_title', 'Automation notification'),
           body: String((form.querySelector('[name="notification_body"]') || {}).value || '').trim()
         };
       }
@@ -22965,14 +22989,14 @@ window.CRM.pageApiBindings = (function () {
       return {};
     }
     function validateWorkflowForm(data) {
-      if (!data.title || !data.trigger_code || !data.action_code) return 'Заполните обязательные поля';
+      if (!data.title || !data.trigger_code || !data.action_code) return tp('workflow.validation_required', 'Fill required fields');
       var payload = data.payload || {};
-      if (data.action_code === 'change_status' && !payload.status_code) return 'Выберите новый статус';
-      if (data.action_code === 'assign_user' && !payload.assignee_user_public_id) return 'Выберите исполнителя';
-      if (data.action_code === 'create_comment' && !payload.comment_text) return 'Введите текст комментария';
-      if (data.action_code === 'send_notification' && (!Array.isArray(payload.recipient_user_public_ids) || !payload.recipient_user_public_ids.length)) return 'Выберите получателя уведомления';
-      if (data.action_code === 'create_follow_up_task' && !payload.task_title) return 'Введите название follow-up подзадачи';
-      if (data.action_code === 'call_webhook' && !/^https?:\/\//i.test(String(payload.url || ''))) return 'Укажите корректный http/https URL вебхука';
+      if (data.action_code === 'change_status' && !payload.status_code) return tp('workflow.validation_status', 'Select a new status');
+      if (data.action_code === 'assign_user' && !payload.assignee_user_public_id) return tp('workflow.validation_assignee', 'Select assignee');
+      if (data.action_code === 'create_comment' && !payload.comment_text) return tp('workflow.validation_comment', 'Enter comment text');
+      if (data.action_code === 'send_notification' && (!Array.isArray(payload.recipient_user_public_ids) || !payload.recipient_user_public_ids.length)) return tp('workflow.validation_recipient', 'Select notification recipient');
+      if (data.action_code === 'create_follow_up_task' && !payload.task_title) return tp('workflow.validation_subtask', 'Enter follow-up subtask title');
+      if (data.action_code === 'call_webhook' && !/^https?:\/\//i.test(String(payload.url || ''))) return tp('workflow.validation_webhook', 'Enter a valid http/https webhook URL');
       return '';
     }
     function resetWorkflowForm(rule) {
@@ -23004,8 +23028,8 @@ window.CRM.pageApiBindings = (function () {
       showFilterPanel(form.querySelector('[name="trigger_code"]').value);
       var title = document.getElementById('adminWorkflowModalTitle');
       var submit = document.getElementById('adminWorkflowSubmitBtn');
-      if (title) title.textContent = rule ? 'Изменить правило автоматизации' : 'Создать правило автоматизации';
-      if (submit) submit.textContent = rule ? 'Сохранить изменения' : 'Создать правило';
+      if (title) title.textContent = rule ? tp('workflow.modal_edit_title', 'Edit automation rule') : tp('workflow.modal_create_title', 'Create automation rule');
+      if (submit) submit.textContent = rule ? tp('workflow.btn_save_changes', 'Save changes') : tp('workflow.btn_create_rule', 'Create rule');
     }
     async function loadRules() {
       var body = document.getElementById('adminWorkflowRulesBody');
@@ -23015,7 +23039,7 @@ window.CRM.pageApiBindings = (function () {
         var items = mapItems(envelope);
         workflowRules = items;
         if (!items.length) {
-          body.innerHTML = automationEmptyRow(6, 'Правил пока нет', 'Создайте первое правило, чтобы CRM сама реагировала на события в задачах и проектах.');
+          body.innerHTML = automationEmptyRow(6, tp('workflow.rules_empty_title', 'No rules yet'), tp('workflow.rules_empty_text', 'Create the first rule so CRM can react to task and project events automatically.'));
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -23023,29 +23047,29 @@ window.CRM.pageApiBindings = (function () {
           var isEnabled = item.is_enabled === true || String(item.is_enabled) === '1'
             || (typeof item.is_enabled === 'undefined' && (String(item.is_active || item.status) === '1' || item.is_active === true));
           var statusClass = isEnabled ? 'crm-badge-active' : 'crm-badge-archived';
-          var statusLabel = isEnabled ? 'Активно' : 'Неактивно';
+          var statusLabel = isEnabled ? tp('workflow.enabled_state', 'Active') : tp('workflow.disabled_state', 'Inactive');
           var triggerCode = item.trigger_code || item.event_type || item.event || '';
           var actionCode = item.action_code || item.action_type || item.action || '';
           return '<tr data-rule-id="' + safeText(id) + '">'
-            + '<td data-label="Название">' + safeText(item.title || item.name || id) + '</td>'
-            + '<td data-label="Когда">' + safeText(labelFrom(workflowTriggerLabels, triggerCode)) + '</td>'
-            + '<td data-label="Что сделать">' + safeText(labelFrom(workflowActionLabels, actionCode)) + '</td>'
-            + '<td data-label="Параметры" class="crm-muted-cell">' + safeText(summarizePayload(actionCode, item.payload)) + '</td>'
-            + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-            + '<td data-label="Действия" class="crm-table-actions">'
+            + '<td data-label="' + safeText(tp('workflow.col_title', 'Title')) + '">' + safeText(item.title || item.name || id) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_when', 'When')) + '">' + safeText(labelFrom(workflowTriggerLabels, triggerCode)) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_action', 'Action')) + '">' + safeText(labelFrom(workflowActionLabels, actionCode)) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_params', 'Parameters')) + '" class="crm-muted-cell">' + safeText(summarizePayload(actionCode, item.payload)) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_status', 'Status')) + '"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
+            + '<td data-label="' + safeText(tp('workflow.col_actions', 'Actions')) + '" class="crm-table-actions">'
             + '<div class="crm-action-list">'
-            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-test="' + safeText(id) + '">Тест</button>'
-            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-edit="' + safeText(id) + '">Изменить</button>'
-            + '<button class="btn btn-sm ' + (isEnabled ? 'crm-btn-warning' : 'crm-btn-success') + ' crm-btn-compact" data-rule-toggle="' + safeText(id) + '" data-rule-enabled="' + (isEnabled ? '1' : '0') + '">' + (isEnabled ? 'Отключить' : 'Включить') + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-rule-delete="' + safeText(id) + '">Удалить</button>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-test="' + safeText(id) + '">' + safeText(tp('workflow.btn_test', 'Test')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-rule-edit="' + safeText(id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>'
+            + '<button class="btn btn-sm ' + (isEnabled ? 'crm-btn-warning' : 'crm-btn-success') + ' crm-btn-compact" data-rule-toggle="' + safeText(id) + '" data-rule-enabled="' + (isEnabled ? '1' : '0') + '">' + safeText(isEnabled ? tp('workflow.btn_disable', 'Disable') : tp('workflow.btn_enable', 'Enable')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-rule-delete="' + safeText(id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>'
             + '</div>'
             + '</td>'
             + '</tr>';
         }).join('');
         var countEl = document.getElementById('adminWorkflowRulesCount');
-        if (countEl) countEl.textContent = items.length + ' правил';
+        if (countEl) countEl.textContent = String(items.length) + ' ' + tp('workflow.rules_count_word', 'rules');
       } catch (error) {
-        body.innerHTML = automationEmptyRow(6, 'Не удалось загрузить правила', 'Проверьте доступ к API и повторите обновление страницы.');
+        body.innerHTML = automationEmptyRow(6, tp('workflow.rules_load_fail_title', 'Failed to load rules'), tp('workflow.rules_load_fail_text', 'Check API access and refresh the page.'));
       }
     }
 
@@ -23056,32 +23080,32 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/workflow/runs', { query: { limit: 20 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = automationEmptyRow(5, 'Запусков пока нет', 'После теста или реального события здесь появится история выполнения правил.');
+          body.innerHTML = automationEmptyRow(5, tp('workflow.runs_empty_title', 'No runs yet'), tp('workflow.runs_empty_text', 'After a test or real event, rule execution history will appear here.'));
           return;
         }
         body.innerHTML = items.map(function (item) {
           var resultLabel = String(item.status || item.result || '—');
           var resultClass = resultLabel === 'success' ? 'crm-badge-active' : (resultLabel === 'error' || resultLabel === 'failed' ? 'crm-badge-error' : 'crm-badge-archived');
-          var resultText = resultLabel === 'success' ? 'Успешно' : (resultLabel === 'error' || resultLabel === 'failed' ? 'Ошибка' : resultLabel);
+          var resultText = resultLabel === 'success' ? tp('workflow.result_success', 'Success') : (resultLabel === 'error' || resultLabel === 'failed' ? tp('workflow.result_error', 'Error') : resultLabel);
           var detail = String(item.error_message || item.detail || item.message || '');
-          if (!detail && resultLabel === 'success') detail = 'Действие выполнено без ошибок';
+          if (!detail && resultLabel === 'success') detail = tp('workflow.result_success_detail', 'Action completed without errors');
           if (!detail && item.output) {
             try { var out = typeof item.output === 'string' ? JSON.parse(item.output) : item.output; detail = JSON.stringify(out, null, 2); } catch (_) { detail = String(item.output || ''); }
           }
           var detailHtml = detail
-            ? '<details class="crm-automation-detail"><summary>Показать</summary><p>' + safeText(detail) + '</p></details>'
-            : '<span class="text-muted small">Нет подробностей</span>';
+            ? '<details class="crm-automation-detail"><summary>' + safeText(tp('workflow.show_details', 'Show')) + '</summary><p>' + safeText(detail) + '</p></details>'
+            : '<span class="text-muted small">' + safeText(tp('workflow.no_details', 'No details')) + '</span>';
           return '<tr>'
-            + '<td data-label="Правило">' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
-            + '<td data-label="Событие">' + safeText(labelFrom(workflowTriggerLabels, item.trigger_code)) + '</td>'
-            + '<td data-label="Действие">' + safeText(labelFrom(workflowActionLabels, item.action_code)) + '</td>'
-            + '<td data-label="Результат"><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
-            + '<td data-label="Подробности" class="crm-muted-cell">' + detailHtml + '</td>'
-            + '<td data-label="Дата">' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_rule', 'Rule')) + '">' + safeText(item.rule_title || item.rule_name || item.rule_public_id || '—') + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_event', 'Event')) + '">' + safeText(labelFrom(workflowTriggerLabels, item.trigger_code)) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_action', 'Action')) + '">' + safeText(labelFrom(workflowActionLabels, item.action_code)) + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_result', 'Result')) + '"><span class="crm-badge ' + resultClass + '">' + safeText(resultText) + '</span></td>'
+            + '<td data-label="' + safeText(tp('workflow.col_details', 'Details')) + '" class="crm-muted-cell">' + detailHtml + '</td>'
+            + '<td data-label="' + safeText(tp('workflow.col_date', 'Date')) + '">' + safeText(formatDate(item.created_at || item.run_at || '')) + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = automationEmptyRow(5, 'Не удалось загрузить логи', 'Попробуйте обновить список позднее.');
+        body.innerHTML = automationEmptyRow(5, tp('workflow.logs_load_fail_title', 'Failed to load logs'), tp('workflow.logs_load_fail_text', 'Try refreshing the list later.'));
       }
     }
 
@@ -23143,17 +23167,17 @@ window.CRM.pageApiBindings = (function () {
         try {
           if (ruleId) {
             await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'PATCH', body: data });
-            notify('Правило обновлено');
+            notify(tp('workflow.rule_updated', 'Rule updated'));
           } else {
             await request('api/v1/workflow/rules', { method: 'POST', body: data });
-            notify('Правило создано');
+            notify(tp('workflow.rule_created', 'Rule created'));
           }
           var modal = document.getElementById('adminWorkflowCreateModal');
           hideCrmPageModal(modal);
           workflowForm.reset();
           await loadRules();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать правило');
+          var normalized = window.CRM.api.normalizeError(error, tp('workflow.rule_save_fail', 'Failed to save rule'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         } finally {
           if (submitBtn) submitBtn.disabled = false;
@@ -23211,10 +23235,10 @@ window.CRM.pageApiBindings = (function () {
           if (!toggleRuleId) return;
           try {
             await request('api/v1/workflow/rules/' + encodeURIComponent(toggleRuleId), { method: 'PATCH', body: { is_enabled: enabled ? 0 : 1 } });
-            notify(enabled ? 'Правило отключено' : 'Правило включено');
+            notify(enabled ? tp('workflow.rule_disabled', 'Rule disabled') : tp('workflow.rule_enabled', 'Rule enabled'));
             await loadRules();
           } catch (error) {
-            var toggleError = window.CRM.api.normalizeError(error, 'Не удалось изменить статус правила');
+            var toggleError = window.CRM.api.normalizeError(error, tp('workflow.rule_toggle_fail', 'Failed to change rule status'));
             notify(window.CRM.api.formatErrorMessage(toggleError, { withRequestId: true }), 'error');
           }
         }
@@ -23232,10 +23256,10 @@ window.CRM.pageApiBindings = (function () {
           await request('api/v1/workflow/rules/' + encodeURIComponent(ruleId), { method: 'DELETE' });
           var delModal = document.getElementById('adminWorkflowDeleteModal');
           hideCrmPageModal(delModal);
-          notify('Правило удалено');
+          notify(tp('workflow.rule_deleted', 'Rule deleted'));
           await loadRules();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить правило');
+          var normalized = window.CRM.api.normalizeError(error, tp('workflow.rule_delete_fail', 'Failed to delete rule'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -23271,7 +23295,7 @@ window.CRM.pageApiBindings = (function () {
         var ruleId = String(testForm.querySelector('[name="rule_public_id"]').value || '').trim();
         var taskPublicId = String(testForm.querySelector('[name="task_public_id"]').value || '').trim();
         if (!ruleId || !taskPublicId) {
-          notify('Выберите задачу для проверки', 'warning');
+          notify(tp('workflow.select_task_for_test', 'Select a task for testing'), 'warning');
           return;
         }
         var task = workflowTasks.find(function (item) { return String(item.public_id || '') === taskPublicId; }) || {};
@@ -23285,13 +23309,13 @@ window.CRM.pageApiBindings = (function () {
               project_public_id: String(task.project_public_id || '')
             }
           });
-          notify('Тест правила выполнен');
+          notify(tp('workflow.test_done', 'Rule test completed'));
           var modal = document.getElementById('adminWorkflowTestModal');
           hideCrmPageModal(modal);
           await loadLogs();
           await loadRules();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить тест');
+          var normalized = window.CRM.api.normalizeError(error, tp('workflow.test_fail', 'Failed to run test'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -23310,14 +23334,14 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/sla/policies', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="6" class="text-muted">Нет политик</td></tr>';
+          body.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('sla.empty', 'No policies')) + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
           var id = item.public_id || '';
           var isActive = String(item.is_active || item.status) === '1' || item.is_active === true;
           var statusClass = isActive ? 'crm-badge-active' : 'crm-badge-archived';
-          var statusLabel = isActive ? 'Активна' : 'Неактивна';
+          var statusLabel = isActive ? tp('sla.active_f', 'Active') : tp('sla.inactive_f', 'Inactive');
           return '<tr data-sla-id="' + safeText(id) + '">'
             + '<td>' + safeText(item.title || item.name || id) + '</td>'
             + '<td>' + safeText(item.priority || item.priority_code || '—') + '</td>'
@@ -23325,13 +23349,13 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(item.resolution_hours || item.resolution_time || '—') + '</td>'
             + '<td><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
             + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-sla&edit=' + encodeURIComponent(id) + '">Изменить</a>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-sla-delete="' + safeText(id) + '">Удалить</button>'
+            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-sla&edit=' + encodeURIComponent(id) + '">' + safeText(tp('common.edit', 'Edit')) + '</a>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-sla-delete="' + safeText(id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>'
             + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="6" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('sla.load_error', 'Loading error')) + '</td></tr>';
       }
     }
 
@@ -23340,7 +23364,7 @@ window.CRM.pageApiBindings = (function () {
       var metricsNode = document.getElementById('adminSlaReportMetrics');
       if (!stateNode) return;
       try {
-        stateNode.textContent = 'Загрузка отчёта...';
+        stateNode.textContent = tp('sla.report_loading', 'Loading report...');
         var envelope = await request('api/v1/sla/report', { query: { period_days: 30 } });
         var data = envelope && envelope.data ? envelope.data : {};
         var total = Number(data.total_tasks || data.total || 0);
@@ -23355,9 +23379,9 @@ window.CRM.pageApiBindings = (function () {
           document.getElementById('slaReportBreached').textContent = breached;
           document.getElementById('slaReportRate').textContent = rate;
         }
-        stateNode.textContent = 'Отчёт за последние 30 дней.';
+        stateNode.textContent = tp('sla.report_30_days', 'Report for the last 30 days.');
       } catch (error) {
-        stateNode.textContent = 'Ошибка загрузки отчёта.';
+        stateNode.textContent = tp('sla.report_load_error', 'Report loading error.');
         if (metricsNode) metricsNode.style.display = 'none';
       }
     }
@@ -23374,18 +23398,18 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название политики SLA', '');
+        var title = window.prompt(tp('sla.prompt_title', 'SLA policy name'), '');
         if (title === null) return;
         var trimmedTitle = String(title || '').trim();
         if (!trimmedTitle) {
-          notify('Название политики не может быть пустым', 'warning');
+          notify(tp('sla.title_required', 'Policy name cannot be empty'), 'warning');
           return;
         }
-        var priority = window.prompt('Приоритет (low, normal, high, urgent)', 'normal');
+        var priority = window.prompt(tp('sla.prompt_priority', 'Priority (low, normal, high, urgent)'), 'normal');
         if (priority === null) return;
-        var responseHours = window.prompt('Время реакции (часы)', '4');
+        var responseHours = window.prompt(tp('sla.prompt_response_hours', 'Response time (hours)'), '4');
         if (responseHours === null) return;
-        var resolutionHours = window.prompt('Время разрешения (часы)', '24');
+        var resolutionHours = window.prompt(tp('sla.prompt_resolution_hours', 'Resolution time (hours)'), '24');
         if (resolutionHours === null) return;
         try {
           await request('api/v1/sla/policies', {
@@ -23398,10 +23422,10 @@ window.CRM.pageApiBindings = (function () {
               is_active: true
             }
           });
-          notify('Политика SLA создана');
+          notify(tp('sla.created', 'SLA policy created'));
           await loadPolicies();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать политику SLA');
+          var normalized = window.CRM.api.normalizeError(error, tp('sla.create_fail', 'Failed to create SLA policy'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -23423,13 +23447,13 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var slaId = String(deleteBtn.getAttribute('data-sla-delete') || '').trim();
           if (!slaId) return;
-          if (!window.confirm('Удалить политику SLA?')) return;
+          if (!window.confirm(tp('sla.delete_confirm', 'Delete SLA policy?'))) return;
           try {
             await request('api/v1/sla/policies/' + encodeURIComponent(slaId), { method: 'DELETE' });
-            notify('Политика SLA удалена');
+            notify(tp('sla.deleted', 'SLA policy deleted'));
             await loadPolicies();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить политику SLA');
+            var normalized = window.CRM.api.normalizeError(error, tp('sla.delete_fail', 'Failed to delete SLA policy'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -23441,7 +23465,8 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderApprovalsPage() {
-    var approvalEntityLabels = { task: 'Задача', project: 'Проект' };
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var approvalEntityLabels = { task: _t('approval.entity_task', 'Задача'), project: _t('approval.entity_project', 'Проект') };
     var approvalData = []; // cached items
     var activeFilter = 'all';
     var approvalUsers = [];
@@ -23465,7 +23490,7 @@ window.CRM.pageApiBindings = (function () {
       var subEl = document.getElementById('approvalsDetailSubtitle');
       var bodyEl = document.getElementById('approvalsDetailBody');
       if (titleEl) titleEl.textContent = item.title || item.subject || approvalId;
-      if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает решения');
+      if (subEl) subEl.textContent = approvalEntityLabel(item.entity_type) + ' — ' + (String(item.status) === 'approved' ? _t('approval.status_approved', 'Одобрено') : String(item.status) === 'rejected' ? _t('approval.status_rejected', 'Отклонено') : _t('approval.status_pending_decision', 'Ожидает решения'));
       if (bodyEl) {
         var reqName = (item.requester && item.requester.full_name) || item.requester_name || (item.requester && item.requester.login) || item.requester_login || '—';
         var steps = Array.isArray(item.steps) ? item.steps : [];
@@ -23473,22 +23498,22 @@ window.CRM.pageApiBindings = (function () {
           + steps.map(function (step) {
             var stepStatus = String(step.status || 'pending');
             var stepClass = stepStatus === 'approved' ? 'crm-badge-active' : (stepStatus === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
-            var stepLabel = stepStatus === 'approved' ? 'Одобрено' : (stepStatus === 'rejected' ? 'Отклонено' : 'Ожидает');
+            var stepLabel = stepStatus === 'approved' ? _t('approval.status_approved', 'Одобрено') : (stepStatus === 'rejected' ? _t('approval.status_rejected', 'Отклонено') : _t('approval.status_pending', 'Ожидает'));
             var reviewer = step.reviewer || {};
             return '<div class="crm-approval-step">'
-              + '<div><strong>' + safeText(reviewer.full_name || reviewer.login || reviewer.public_id || 'Согласующий') + '</strong>'
-              + '<small>' + safeText(step.comment || 'Комментарий не указан') + '</small></div>'
+              + '<div><strong>' + safeText(reviewer.full_name || reviewer.login || reviewer.public_id || _t('approval.reviewer', 'Согласующий')) + '</strong>'
+              + '<small>' + safeText(step.comment || _t('approval.no_comment', 'Комментарий не указан')) + '</small></div>'
               + '<span class="crm-badge ' + stepClass + '">' + safeText(stepLabel) + '</span>'
               + '</div>';
           }).join('')
-          + '</div>' : '<div class="crm-empty-state crm-empty-state-compact">Шаги согласования пока не найдены.</div>';
-        bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">Название</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
-          + '<dt class="col-sm-3">Запросил</dt><dd class="col-sm-9">' + safeText(reqName) + '</dd>'
-          + '<dt class="col-sm-3">Сущность</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
-          + '<dt class="col-sm-3">Комментарий</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
-          + '<dt class="col-sm-3">Дата</dt><dd class="col-sm-9">' + safeText(formatDate(item.created_at || '')) + '</dd>'
-          + '<dt class="col-sm-3">Статус</dt><dd class="col-sm-9">' + safeText(String(item.status) === 'approved' ? 'Одобрено' : String(item.status) === 'rejected' ? 'Отклонено' : 'Ожидает') + '</dd>'
-          + '</dl><h6 class="mt-3 mb-2">Ход согласования</h6>' + stepRows;
+          + '</div>' : '<div class="crm-empty-state crm-empty-state-compact">' + _t('approval.no_steps', 'Шаги согласования пока не найдены.') + '</div>';
+        bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">' + _t('approval.label_name', 'Название') + '</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
+          + '<dt class="col-sm-3">' + _t('approval.label_requested_by', 'Запросил') + '</dt><dd class="col-sm-9">' + safeText(reqName) + '</dd>'
+          + '<dt class="col-sm-3">' + _t('approval.label_entity', 'Сущность') + '</dt><dd class="col-sm-9">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></dd>'
+          + '<dt class="col-sm-3">' + _t('approval.label_comment', 'Комментарий') + '</dt><dd class="col-sm-9">' + safeText(item.comment || '—') + '</dd>'
+          + '<dt class="col-sm-3">' + _t('approval.label_date', 'Дата') + '</dt><dd class="col-sm-9">' + safeText(formatDate(item.created_at || '')) + '</dd>'
+          + '<dt class="col-sm-3">' + _t('approval.label_status', 'Статус') + '</dt><dd class="col-sm-9">' + safeText(String(item.status) === 'approved' ? _t('approval.status_approved', 'Одобрено') : String(item.status) === 'rejected' ? _t('approval.status_rejected', 'Отклонено') : _t('approval.status_pending', 'Ожидает')) + '</dd>'
+          + '</dl><h6 class="mt-3 mb-2">' + _t('approval.progress_heading', 'Ход согласования') + '</h6>' + stepRows;
       }
 
       var modal = document.getElementById('approvalsDetailModal');
@@ -23502,7 +23527,7 @@ window.CRM.pageApiBindings = (function () {
         approvalUsers = mapItems(envelope);
         var select = document.getElementById('approvalsReviewersSelect');
         if (select) {
-          select.innerHTML = '<option value="" disabled>Выберите согласующих</option>'
+          select.innerHTML = '<option value="" disabled>' + _t('approval.select_reviewers', 'Выберите согласующих') + '</option>'
             + approvalUsers.map(function (u) {
               return '<option value="' + safeText(u.public_id || '') + '">' + safeText(u.full_name || u.login || u.public_id || '') + '</option>';
             }).join('');
@@ -23515,12 +23540,12 @@ window.CRM.pageApiBindings = (function () {
       var picker = document.getElementById('approvalsReviewersPicker');
       if (!picker) return;
       if (!approvalUsers.length) {
-        picker.innerHTML = '<div class="crm-empty-state crm-empty-state-compact">Нет активных пользователей для согласования.</div>';
+        picker.innerHTML = '<div class="crm-empty-state crm-empty-state-compact">' + _t('approval.no_active_reviewers', 'Нет активных пользователей для согласования.') + '</div>';
         return;
       }
       picker.innerHTML = approvalUsers.map(function (u) {
         var id = String(u.public_id || '');
-        var label = String(u.full_name || u.login || u.public_id || 'Пользователь');
+        var label = String(u.full_name || u.login || u.public_id || _t('approval.user_fallback', 'Пользователь'));
         var meta = String(u.login || u.email || '');
         return '<label class="crm-check-picker-item">'
           + '<input type="checkbox" value="' + safeText(id) + '" data-approval-reviewer-check>'
@@ -23556,25 +23581,25 @@ window.CRM.pageApiBindings = (function () {
       if (!summary) return;
       var checked = Array.prototype.slice.call(document.querySelectorAll('[data-approval-reviewer-check]:checked'));
       var count = checked.length;
-      var text = count ? ('Выбрано согласующих: ' + count) : 'Выберите одного или нескольких пользователей.';
+      var text = count ? (_t('approval.selected_reviewers_prefix', 'Выбрано согласующих: ') + count) : _t('approval.select_users_hint', 'Выберите одного или нескольких пользователей.');
       summary.innerHTML = '<i class="fa-solid fa-users" aria-hidden="true"></i><span>' + safeText(text) + '</span>';
     }
 
     function approvalActionHint(item, status) {
-      if (status !== 'pending') return 'Решение уже принято';
-      if (item.viewer_review_status === 'approved') return 'Вы уже одобрили';
-      if (item.viewer_review_status === 'rejected') return 'Вы уже отклонили';
-      if (item.viewer_is_requester) return 'Ожидает согласующих';
-      if (item.viewer_is_reviewer === false || item.viewer_is_reviewer === 0) return 'Вы не согласующий';
-      return 'Нет доступных действий';
+      if (status !== 'pending') return _t('approval.hint_already_decided', 'Решение уже принято');
+      if (item.viewer_review_status === 'approved') return _t('approval.hint_already_approved', 'Вы уже одобрили');
+      if (item.viewer_review_status === 'rejected') return _t('approval.hint_already_rejected', 'Вы уже отклонили');
+      if (item.viewer_is_requester) return _t('approval.hint_waiting_for_reviewers', 'Ожидает согласующих');
+      if (item.viewer_is_reviewer === false || item.viewer_is_reviewer === 0) return _t('approval.hint_not_reviewer', 'Вы не согласующий');
+      return _t('approval.hint_no_actions', 'Нет доступных действий');
     }
 
     function approvalErrorMessage(error) {
-      var normalized = window.CRM.api.normalizeError(error, 'Не удалось выполнить действие');
+      var normalized = window.CRM.api.normalizeError(error, _t('approval.action_failed', 'Не удалось выполнить действие'));
       var code = String(normalized.code || normalized.error || '').trim();
-      if (code === 'APPROVAL_REVIEWER_FORBIDDEN') return 'Вы не являетесь согласующим этого запроса';
-      if (code === 'APPROVAL_FINALIZED') return 'Запрос уже обработан';
-      if (code === 'APPROVAL_STEP_ALREADY_PROCESSED') return 'Ваше решение по этому запросу уже зафиксировано';
+      if (code === 'APPROVAL_REVIEWER_FORBIDDEN') return _t('approval.APPROVAL_REVIEWER_FORBIDDEN', 'Вы не являетесь согласующим этого запроса');
+      if (code === 'APPROVAL_FINALIZED') return _t('approval.APPROVAL_FINALIZED', 'Запрос уже обработан');
+      if (code === 'APPROVAL_STEP_ALREADY_PROCESSED') return _t('approval.APPROVAL_STEP_ALREADY_PROCESSED', 'Ваше решение по этому запросу уже зафиксировано');
       return window.CRM.api.formatErrorMessage(normalized, { withRequestId: true });
     }
 
@@ -23588,18 +23613,18 @@ window.CRM.pageApiBindings = (function () {
       var total = approvalData.length;
       var buttons = document.querySelectorAll('#approvalsStatusFilter button');
       if (buttons.length >= 4) {
-        buttons[0].textContent = 'Все (' + total + ')';
-        buttons[1].textContent = 'Ожидают (' + pend + ')';
-        buttons[2].textContent = 'Одобрено (' + appr + ')';
-        buttons[3].textContent = 'Отклонено (' + rej + ')';
+        buttons[0].textContent = _t('approval.filter_all', 'Все') + ' (' + total + ')';
+        buttons[1].textContent = _t('approval.filter_pending', 'Ожидают') + ' (' + pend + ')';
+        buttons[2].textContent = _t('approval.filter_approved', 'Одобрено') + ' (' + appr + ')';
+        buttons[3].textContent = _t('approval.filter_rejected', 'Отклонено') + ' (' + rej + ')';
       }
       if (!items.length) {
         var currentSearch = String((document.getElementById('approvalsSearchInput') || {}).value || '').trim();
-        var msg = currentSearch ? 'Ничего не найдено' : (activeFilter === 'all' ? 'Запросов пока нет' : 'Нет запросов с таким статусом');
-        var detail = currentSearch ? 'Измените поисковый запрос или очистите фильтр.' : (activeFilter === 'all' ? 'Создайте согласование для задачи или проекта.' : 'Измените фильтр или создайте новый запрос.');
+        var msg = currentSearch ? _t('approval.empty_search', 'Ничего не найдено') : (activeFilter === 'all' ? _t('approval.empty_no_requests', 'Запросов пока нет') : _t('approval.empty_no_status', 'Нет запросов с таким статусом'));
+        var detail = currentSearch ? _t('approval.empty_search_hint', 'Измените поисковый запрос или очистите фильтр.') : (activeFilter === 'all' ? _t('approval.empty_create_hint', 'Создайте согласование для задачи или проекта.') : _t('approval.empty_filter_hint', 'Измените фильтр или создайте новый запрос.'));
         body.innerHTML = approvalsEmptyRow(6, msg, detail);
         var countEl = document.getElementById('approvalsCountBadge');
-        if (countEl) countEl.textContent = total > 0 ? '0 запросов по текущему фильтру' : '0 запросов';
+        if (countEl) countEl.textContent = total > 0 ? _t('approval.empty_filtered', '0 запросов по текущему фильтру') : _t('approval.empty_zero', '0 запросов');
         return;
       }
       var countEl = document.getElementById('approvalsCountBadge');
@@ -23607,29 +23632,29 @@ window.CRM.pageApiBindings = (function () {
         var pend = items.filter(function (i) { return String(i.status) === 'pending'; }).length;
         var appr = items.filter(function (i) { return String(i.status) === 'approved'; }).length;
         var rej = items.filter(function (i) { return String(i.status) === 'rejected'; }).length;
-        countEl.textContent = items.length + ' запросов (ожидают: ' + pend + ', одобрено: ' + appr + ', отклонено: ' + rej + ')';
+        countEl.textContent = items.length + ' ' + _t('approval.count_requests', 'запросов') + ' (' + _t('approval.count_awaiting', 'ожидают') + ': ' + pend + ', ' + _t('approval.count_approved', 'одобрено') + ': ' + appr + ', ' + _t('approval.count_rejected', 'отклонено') + ': ' + rej + ')';
       }
       body.innerHTML = items.map(function (item) {
         var id = item.public_id || '';
         var status = String(item.status || 'pending');
         var statusClass = status === 'approved' ? 'crm-badge-active' : (status === 'rejected' ? 'crm-badge-error' : 'crm-badge-archived');
-        var statusLabel = status === 'approved' ? 'Одобрено' : (status === 'rejected' ? 'Отклонено' : 'Ожидает');
+        var statusLabel = status === 'approved' ? _t('approval.status_approved', 'Одобрено') : (status === 'rejected' ? _t('approval.status_rejected', 'Отклонено') : _t('approval.status_pending', 'Ожидает'));
         var progress = Number(item.reviewers_total || 0) > 0
-          ? '<span class="crm-approval-progress"><strong>' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</strong> согласовано</span>'
+          ? '<span class="crm-approval-progress"><strong>' + safeText(String(item.approved_steps || 0)) + '/' + safeText(String(item.reviewers_total || 0)) + '</strong> ' + _t('approval.approved_count_label', 'согласовано') + '</span>'
           : '';
         var canReview = item.viewer_can_review === true || item.viewer_can_review === 1 || String(item.viewer_can_review) === '1';
         var actionsHtml = status === 'pending' && canReview
-          ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">Одобрить</button>'
-              + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">Отклонить</button>'
-          : '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-approval-detail="' + safeText(id) + '">Открыть</button>'
+          ? '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-approval-approve="' + safeText(id) + '">' + _t('approval.btn_approve', 'Одобрить') + '</button>'
+              + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-approval-reject="' + safeText(id) + '">' + _t('approval.btn_reject', 'Отклонить') + '</button>'
+          : '<button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" data-approval-detail="' + safeText(id) + '">' + _t('approval.btn_open', 'Открыть') + '</button>'
               + '<span class="crm-action-note">' + safeText(approvalActionHint(item, status)) + '</span>';
         return '<tr data-approval-id="' + safeText(id) + '" data-approval-status="' + safeText(status) + '">'
-          + '<td data-label="Запрос"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
-          + '<td data-label="Сущность">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
-          + '<td data-label="Запросил">' + safeText((item.requester && item.requester.full_name) || item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
-          + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
-          + '<td data-label="Дата">' + safeText(formatDate(item.created_at || '')) + '</td>'
-          + '<td data-label="Действия" class="crm-table-actions">'
+          + '<td data-label="' + _t('approval.th_request', 'Запрос') + '"><button type="button" class="crm-approval-detail-link" data-approval-detail="' + safeText(id) + '">' + safeText(item.title || item.subject || id) + '</button>' + progress + '</td>'
+          + '<td data-label="' + _t('approval.th_entity', 'Сущность') + '">' + safeText(approvalEntityLabel(item.entity_type)) + ' <code>' + safeText(item.entity_public_id || '—') + '</code></td>'
+          + '<td data-label="' + _t('approval.th_requested_by', 'Запросил') + '">' + safeText((item.requester && item.requester.full_name) || item.requester_name || item.requester_login || item.requester_public_id || '—') + '</td>'
+          + '<td data-label="' + _t('approval.th_status', 'Статус') + '"><span class="crm-badge ' + statusClass + '">' + safeText(statusLabel) + '</span></td>'
+          + '<td data-label="' + _t('approval.th_date', 'Дата') + '">' + safeText(formatDate(item.created_at || '')) + '</td>'
+          + '<td data-label="' + _t('approval.th_actions', 'Действия') + '" class="crm-table-actions">'
           + '<div class="crm-action-list">'
           + actionsHtml
           + '</div>'
@@ -23650,7 +23675,7 @@ window.CRM.pageApiBindings = (function () {
         applyFiltersAndRender();
       } catch (error) {
         var body = document.getElementById('approvalsListBody');
-        if (body) body.innerHTML = approvalsEmptyRow(6, 'Не удалось загрузить', 'Проверьте доступ к API.');
+        if (body) body.innerHTML = approvalsEmptyRow(6, _t('approval.load_error', 'Не удалось загрузить'), _t('approval.load_error_hint', 'Проверьте доступ к API.'));
       }
     }
 
@@ -23713,8 +23738,8 @@ window.CRM.pageApiBindings = (function () {
           form.querySelector('[name="action"]').value = action;
           var titleEl = document.getElementById('approvalsDecisionTitle');
           var submitEl = document.getElementById('approvalsDecisionSubmitBtn');
-          if (titleEl) titleEl.textContent = action === 'approve' ? 'Одобрить запрос?' : 'Отклонить запрос?';
-          if (submitEl) { submitEl.textContent = action === 'approve' ? 'Одобрить' : 'Отклонить'; submitEl.className = 'btn ' + (action === 'approve' ? 'crm-btn-success' : 'crm-btn-danger'); }
+          if (titleEl) titleEl.textContent = action === 'approve' ? _t('approval.decision_approve_title', 'Одобрить запрос?') : _t('approval.decision_reject_title', 'Отклонить запрос?');
+          if (submitEl) { submitEl.textContent = action === 'approve' ? _t('approval.btn_approve', 'Одобрить') : _t('approval.btn_reject', 'Отклонить'); submitEl.className = 'btn ' + (action === 'approve' ? 'crm-btn-success' : 'crm-btn-danger'); }
           document.getElementById('approvalsDecisionComment').value = '';
           var modal2 = document.getElementById('approvalsDecisionModal');
           showCrmPageModal(modal2);
@@ -23738,7 +23763,7 @@ window.CRM.pageApiBindings = (function () {
         try {
           var endpoint = 'api/v1/approvals/' + encodeURIComponent(approvalId) + '/' + (action === 'approve' ? 'approve' : 'reject');
           await request(endpoint, { method: 'POST', body: { comment: comment } });
-          notify(action === 'approve' ? 'Запрос одобрен' : 'Запрос отклонен');
+          notify(action === 'approve' ? _t('approval.request_approved', 'Запрос одобрен') : _t('approval.request_rejected', 'Запрос отклонен'));
           var modal3 = document.getElementById('approvalsDecisionModal');
           hideCrmPageModal(modal3);
           await loadApprovals();
@@ -23783,7 +23808,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         if (entityDropdown) {
-          entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Поиск...</div>';
+          entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.searching', 'Поиск...') + '</div>';
           entityDropdown.classList.remove('d-none');
         }
         try {
@@ -23792,7 +23817,7 @@ window.CRM.pageApiBindings = (function () {
           var envelope = await request(endpoint, { query: { limit: 20, search: query }, silent: true });
           var items = mapItems(envelope);
           if (!items.length) {
-            if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ничего не найдено</div>';
+            if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.no_results', 'Ничего не найдено') + '</div>';
             return;
           }
           entityDropdown.innerHTML = items.map(function (item) {
@@ -23803,7 +23828,7 @@ window.CRM.pageApiBindings = (function () {
               + '</div>';
           }).join('');
         } catch (_) {
-          if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка поиска</div>';
+          if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.search_error', 'Ошибка поиска') + '</div>';
         }
       });
       // Click outside closes dropdown
@@ -23853,13 +23878,13 @@ window.CRM.pageApiBindings = (function () {
           Array.prototype.forEach.call(reviewerSelect.selectedOptions, function (opt) { if (opt.value) selectedReviewers.push(opt.value); });
         }
         if (!entityType || !entityPublicId || !selectedReviewers.length) {
-          var errMsg = !entityPublicId ? 'Выберите задачу или проект' : !selectedReviewers.length ? 'Выберите хотя бы одного согласующего' : 'Заполните все обязательные поля';
+          var errMsg = !entityPublicId ? _t('approval.validate_select_entity', 'Выберите задачу или проект') : !selectedReviewers.length ? _t('approval.validate_select_reviewers', 'Выберите хотя бы одного согласующего') : _t('approval.validate_fill_required', 'Заполните все обязательные поля');
           notify(errMsg, 'warning');
           return;
         }
         var titleVal = String(approvalsForm.querySelector('[name="title"]')?.value || '').trim();
         if (!titleVal) {
-          notify('Укажите название запроса', 'warning');
+          notify(_t('approval.validate_title_required', 'Укажите название запроса'), 'warning');
           return;
         }
         var submitCreate = document.getElementById('approvalsCreateSubmitBtn');
@@ -23873,7 +23898,7 @@ window.CRM.pageApiBindings = (function () {
         };
         try {
           await request('api/v1/approvals', { method: 'POST', body: data });
-          notify('Запрос на согласование создан');
+          notify(_t('approval.created', 'Запрос на согласование создан'));
           var modal = document.getElementById('approvalsCreateModal');
           hideCrmPageModal(modal);
           approvalsForm.reset();
@@ -23891,7 +23916,7 @@ window.CRM.pageApiBindings = (function () {
           }
           await loadApprovals();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать запрос');
+          var normalized = window.CRM.api.normalizeError(error, _t('approval.create_failed', 'Не удалось создать запрос'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         } finally {
           if (submitCreate) submitCreate.disabled = false;
@@ -23914,6 +23939,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderRecycleBinPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadItems() {
       var body = document.getElementById('recycleBinBody');
       if (!body) return;
@@ -23921,7 +23947,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/recycle-bin', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="5" class="text-muted">Корзина пуста</td></tr>';
+          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('recycle_bin.empty', 'Корзина пуста') + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -23932,13 +23958,13 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(formatDate(item.deleted_at || '')) + '</td>'
             + '<td>' + safeText(item.deleted_by_name || item.deleted_by_login || '—') + '</td>'
             + '<td>'
-            + '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recycle-restore="' + safeText(id) + '">Восстановить</button>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recycle-purge="' + safeText(id) + '">Удалить навсегда</button>'
+            + '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recycle-restore="' + safeText(id) + '">' + _t('recycle_bin.btn_restore', 'Восстановить') + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recycle-purge="' + safeText(id) + '">' + _t('recycle_bin.btn_purge', 'Удалить навсегда') + '</button>'
             + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="5" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('recycle_bin.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -23958,13 +23984,13 @@ window.CRM.pageApiBindings = (function () {
         if (restoreBtn) {
           var itemId = String(restoreBtn.getAttribute('data-recycle-restore') || '').trim();
           if (!itemId) return;
-          if (!window.confirm('Восстановить элемент?')) return;
+          if (!window.confirm(_t('recycle_bin.confirm_restore', 'Восстановить элемент?'))) return;
           try {
             await request('api/v1/recycle-bin/' + encodeURIComponent(itemId) + '/restore', { method: 'POST' });
-            notify('Элемент восстановлен');
+            notify(_t('recycle_bin.restored_notify', 'Элемент восстановлен'));
             await loadItems();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось восстановить элемент');
+            var normalized = window.CRM.api.normalizeError(error, _t('recycle_bin.restore_failed', 'Не удалось восстановить элемент'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -23974,13 +24000,13 @@ window.CRM.pageApiBindings = (function () {
         if (purgeBtn) {
           var itemId = String(purgeBtn.getAttribute('data-recycle-purge') || '').trim();
           if (!itemId) return;
-          if (!window.confirm('Удалить элемент навсегда? Это действие нельзя отменить.')) return;
+          if (!window.confirm(_t('recycle_bin.confirm_purge', 'Удалить элемент навсегда? Это действие нельзя отменить.'))) return;
           try {
             await request('api/v1/recycle-bin/' + encodeURIComponent(itemId) + '/purge', { method: 'DELETE' });
-            notify('Элемент удалён навсегда');
+            notify(_t('recycle_bin.purged_notify', 'Элемент удалён навсегда'));
             await loadItems();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить элемент');
+            var normalized = window.CRM.api.normalizeError(error, _t('recycle_bin.purge_failed', 'Не удалось удалить элемент'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -23992,6 +24018,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminCustomFieldsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadFields() {
       var body = document.getElementById('adminCustomFieldsBody');
       if (!body) return;
@@ -23999,7 +24026,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/custom-fields', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="5" class="text-muted">Нет полей</td></tr>';
+          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('custom_field.empty', 'Нет полей') + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24010,15 +24037,15 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(item.title || item.name || item.label || id) + '</td>'
             + '<td>' + safeText(typeLabel) + '</td>'
             + '<td>' + safeText(item.entity_type || '—') + '</td>'
-            + '<td>' + (isRequired ? '<span class="crm-badge crm-badge-active">Да</span>' : '<span class="crm-badge crm-badge-archived">Нет</span>') + '</td>'
+            + '<td>' + (isRequired ? '<span class="crm-badge crm-badge-active">' + _t('custom_field.badge_yes', 'Да') + '</span>' : '<span class="crm-badge crm-badge-archived">' + _t('custom_field.badge_no', 'Нет') + '</span>') + '</td>'
             + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-custom-fields&edit=' + encodeURIComponent(id) + '">Изменить</a>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-field-delete="' + safeText(id) + '">Удалить</button>'
+            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-custom-fields&edit=' + encodeURIComponent(id) + '">' + _t('custom_field.btn_edit', 'Изменить') + '</a>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-field-delete="' + safeText(id) + '">' + _t('custom_field.btn_delete', 'Удалить') + '</button>'
             + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="5" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('custom_field.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -24034,18 +24061,18 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название поля', '');
+        var title = window.prompt(_t('custom_field.prompt_title', 'Название поля'), '');
         if (title === null) return;
         var trimmedTitle = String(title || '').trim();
         if (!trimmedTitle) {
-          notify('Название поля не может быть пустым', 'warning');
+          notify(_t('custom_field.title_empty', 'Название поля не может быть пустым'), 'warning');
           return;
         }
-        var fieldType = window.prompt('Тип поля (text, number, date, select, checkbox)', 'text');
+        var fieldType = window.prompt(_t('custom_field.prompt_type', 'Тип поля (text, number, date, select, checkbox)'), 'text');
         if (fieldType === null) return;
-        var entityType = window.prompt('Тип сущности (task, project, client, contact)', 'task');
+        var entityType = window.prompt(_t('custom_field.prompt_entity', 'Тип сущности (task, project, client, contact)'), 'task');
         if (entityType === null) return;
-        var isRequired = window.confirm('Поле обязательное?');
+        var isRequired = window.confirm(_t('custom_field.prompt_required', 'Поле обязательное?'));
         try {
           await request('api/v1/custom-fields', {
             method: 'POST',
@@ -24056,10 +24083,10 @@ window.CRM.pageApiBindings = (function () {
               is_required: isRequired
             }
           });
-          notify('Поле создано');
+          notify(_t('custom_field.created_notify', 'Поле создано'));
           await loadFields();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать поле');
+          var normalized = window.CRM.api.normalizeError(error, _t('custom_field.create_failed', 'Не удалось создать поле'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -24073,13 +24100,13 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var fieldId = String(deleteBtn.getAttribute('data-field-delete') || '').trim();
           if (!fieldId) return;
-          if (!window.confirm('Удалить поле?')) return;
+          if (!window.confirm(_t('custom_field.confirm_delete', 'Удалить поле?'))) return;
           try {
             await request('api/v1/custom-fields/' + encodeURIComponent(fieldId), { method: 'DELETE' });
-            notify('Поле удалено');
+            notify(_t('custom_field.deleted_notify', 'Поле удалено'));
             await loadFields();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить поле');
+            var normalized = window.CRM.api.normalizeError(error, _t('custom_field.delete_failed', 'Не удалось удалить поле'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -24091,6 +24118,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderRecurringPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var recurringData = [];
     var activeFilter = 'all';
 
@@ -24101,31 +24129,31 @@ window.CRM.pageApiBindings = (function () {
     function formatRruleLabel(value) {
       var rrule = String(value || '').trim();
       var labels = {
-        'FREQ=DAILY': 'Каждый день', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': 'По будням',
-        'FREQ=WEEKLY;BYDAY=MO': 'Каждый понедельник',
-        'FREQ=WEEKLY;BYDAY=TU': 'Каждый вторник',
-        'FREQ=WEEKLY;BYDAY=WE': 'Каждую среду',
-        'FREQ=WEEKLY;BYDAY=TH': 'Каждый четверг',
-        'FREQ=WEEKLY;BYDAY=FR': 'Каждую пятницу',
-        'FREQ=WEEKLY;BYDAY=MO,WE,FR': 'Пн, ср, пт', 'FREQ=WEEKLY;INTERVAL=2': 'Раз в 2 недели',
-        'FREQ=MONTHLY;BYMONTHDAY=1': '1-го числа', 'FREQ=MONTHLY;BYMONTHDAY=15': '15-го числа'
+        'FREQ=DAILY': _t('recurring.rrule_daily', 'Каждый день'), 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR': _t('recurring.rrule_weekdays', 'По будням'),
+        'FREQ=WEEKLY;BYDAY=MO': _t('recurring.rrule_monday', 'Каждый понедельник'),
+        'FREQ=WEEKLY;BYDAY=TU': _t('recurring.rrule_tuesday', 'Каждый вторник'),
+        'FREQ=WEEKLY;BYDAY=WE': _t('recurring.rrule_wednesday', 'Каждую среду'),
+        'FREQ=WEEKLY;BYDAY=TH': _t('recurring.rrule_thursday', 'Каждый четверг'),
+        'FREQ=WEEKLY;BYDAY=FR': _t('recurring.rrule_friday', 'Каждую пятницу'),
+        'FREQ=WEEKLY;BYDAY=MO,WE,FR': _t('recurring.rrule_mon_wed_fri', 'Пн, ср, пт'), 'FREQ=WEEKLY;INTERVAL=2': _t('recurring.rrule_biweekly', 'Раз в 2 недели'),
+        'FREQ=MONTHLY;BYMONTHDAY=1': _t('recurring.rrule_monthly_1', '1-го числа'), 'FREQ=MONTHLY;BYMONTHDAY=15': _t('recurring.rrule_monthly_15', '15-го числа')
       };
       return labels[rrule] || rrule || '—';
     }
-    var entityLabels = { task: 'Задача', project: 'Проект', reminder: 'Напоминание', calendar_event: 'Событие' };
+    var entityLabels = { task: _t('recurring.entity_task', 'Задача'), project: _t('recurring.entity_project', 'Проект'), reminder: _t('recurring.entity_reminder', 'Напоминание'), calendar_event: _t('recurring.entity_calendar_event', 'Событие') };
     function entityLabel(v) { return entityLabels[String(v || '').trim()] || v || '—'; }
     function entitySearchMeta(entityType) {
       var type = String(entityType || 'task');
-      if (type === 'project') return { endpoint: 'api/v1/projects', label: 'Поиск проекта', empty: 'Проекты не найдены' };
-      if (type === 'reminder') return { endpoint: 'api/v1/reminders', label: 'Поиск напоминания', empty: 'Напоминания не найдены' };
-      if (type === 'calendar_event') return { endpoint: 'api/v1/calendar/events', label: 'Поиск события календаря', empty: 'События не найдены' };
-      return { endpoint: 'api/v1/tasks', label: 'Поиск задачи', empty: 'Задачи не найдены' };
+      if (type === 'project') return { endpoint: 'api/v1/projects', label: _t('recurring.search_project', 'Поиск проекта'), empty: _t('recurring.not_found_project', 'Проекты не найдены') };
+      if (type === 'reminder') return { endpoint: 'api/v1/reminders', label: _t('recurring.search_reminder', 'Поиск напоминания'), empty: _t('recurring.not_found_reminder', 'Напоминания не найдены') };
+      if (type === 'calendar_event') return { endpoint: 'api/v1/calendar/events', label: _t('recurring.search_event', 'Поиск события календаря'), empty: _t('recurring.not_found_event', 'События не найдены') };
+      return { endpoint: 'api/v1/tasks', label: _t('recurring.search_task', 'Поиск задачи'), empty: _t('recurring.not_found_task', 'Задачи не найдены') };
     }
     function recurringItemTitle(item, entityType) {
       if (!item) return '';
-      if (entityType === 'reminder' && item.task_title) return 'Напоминание по задаче: ' + String(item.task_title);
+      if (entityType === 'reminder' && item.task_title) return _t('recurring.reminder_for_task', 'Напоминание по задаче: ') + String(item.task_title);
       if (item.title) return String(item.title);
-      if (entityType === 'reminder') return 'Напоминание на ' + formatDate(item.remind_at || '');
+      if (entityType === 'reminder') return _t('recurring.reminder_on', 'Напоминание на ') + formatDate(item.remind_at || '');
       if (entityType === 'calendar_event') return String(item.title || item.name || item.public_id || '');
       return String(item.name || item.public_id || '');
     }
@@ -24135,11 +24163,11 @@ window.CRM.pageApiBindings = (function () {
         return title;
       }
       var type = String((item && item.entity_type) || '').trim();
-      if (type === 'task') return 'Повторяющаяся задача';
-      if (type === 'project') return 'Повторяющийся проект';
-      if (type === 'reminder') return 'Повторяющееся напоминание';
-      if (type === 'calendar_event') return 'Повторяющееся событие';
-      return title || 'Повторяющийся шаблон';
+      if (type === 'task') return _t('recurring.recurring_task', 'Повторяющаяся задача');
+      if (type === 'project') return _t('recurring.recurring_project', 'Повторяющийся проект');
+      if (type === 'reminder') return _t('recurring.recurring_reminder', 'Повторяющееся напоминание');
+      if (type === 'calendar_event') return _t('recurring.recurring_event', 'Повторяющееся событие');
+      return title || _t('recurring.recurring_template', 'Повторяющийся шаблон');
     }
     function recurringSelectedEntityLabel(item) {
       if (!item) return '';
@@ -24154,8 +24182,8 @@ window.CRM.pageApiBindings = (function () {
       var meta = entitySearchMeta(type);
       if (label) label.textContent = meta.label;
       if (input) input.placeholder = type === 'reminder'
-        ? 'Введите дату или название задачи...'
-        : 'Введите название задачи или проекта...';
+        ? _t('recurring.placeholder_reminder', 'Введите дату или название задачи...')
+        : _t('recurring.placeholder_entity', 'Введите название задачи или проекта...');
     }
 
     function renderRecurringTable(items) {
@@ -24164,13 +24192,13 @@ window.CRM.pageApiBindings = (function () {
       var active = recurringData.filter(function (i) { return String(i.is_active || i.status) === '1' || i.is_active === true; }).length;
       var paused = recurringData.length - active;
       var buttons = document.querySelectorAll('#recurringStatusFilter button');
-      if (buttons.length >= 3) { buttons[0].textContent = 'Все (' + recurringData.length + ')'; buttons[1].textContent = 'Активные (' + active + ')'; buttons[2].textContent = 'Приостановлены (' + paused + ')'; }
+      if (buttons.length >= 3) { buttons[0].textContent = _t('recurring.filter_all', 'Все') + ' (' + recurringData.length + ')'; buttons[1].textContent = _t('recurring.filter_active', 'Активные') + ' (' + active + ')'; buttons[2].textContent = _t('recurring.filter_paused', 'Приостановлены') + ' (' + paused + ')'; }
       var countEl = document.getElementById('recurringCountBadge');
-      if (countEl) countEl.textContent = recurringData.length + ' шаблонов (активных: ' + active + ', приостановлено: ' + paused + ')';
+      if (countEl) countEl.textContent = recurringData.length + ' ' + _t('recurring.count_templates', 'шаблонов') + ' (' + _t('recurring.count_active', 'активных') + ': ' + active + ', ' + _t('recurring.count_paused', 'приостановлено') + ': ' + paused + ')';
       if (!items.length) {
         var currentSearch = String((document.getElementById('recurringSearchInput') || {}).value || '').trim();
-        var msg = currentSearch ? 'Ничего не найдено' : (activeFilter === 'all' ? 'Шаблонов пока нет' : 'Нет шаблонов с таким статусом');
-        var detail = currentSearch ? 'Измените поисковый запрос или очистите фильтр.' : (activeFilter === 'all' ? 'Создайте первый шаблон для автосоздания задач.' : 'Измените фильтр.');
+        var msg = currentSearch ? _t('recurring.empty_search', 'Ничего не найдено') : (activeFilter === 'all' ? _t('recurring.empty', 'Шаблонов пока нет') : _t('recurring.empty_no_status', 'Нет шаблонов с таким статусом'));
+        var detail = currentSearch ? _t('recurring.empty_search_hint', 'Измените поисковый запрос или очистите фильтр.') : (activeFilter === 'all' ? _t('recurring.empty_create_hint', 'Создайте первый шаблон для автосоздания задач.') : _t('recurring.empty_filter_hint', 'Измените фильтр.'));
         body.innerHTML = recurringEmptyRow(6, msg, detail);
         return;
       }
@@ -24183,16 +24211,16 @@ window.CRM.pageApiBindings = (function () {
         var entityTitle = recurringSelectedEntityLabel(item);
         var secondaryTitle = formatDate(item.updated_at || item.created_at || '') || formatRruleLabel(rrule);
         return '<tr data-recurring-id="' + safeText(id) + '">'
-          + '<td data-label="Шаблон"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(secondaryTitle) + '</span></td>'
-          + '<td data-label="Сущность"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span><strong class="crm-muted-title">' + safeText(entityTitle || '—') + '</strong></td>'
-          + '<td data-label="Расписание"><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule) + '</span></td>'
-          + '<td data-label="След. запуск">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
-          + '<td data-label="Статус"><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? 'Активен' : 'Приостановлен') + '</span></td>'
-          + '<td data-label="Действия" class="crm-table-actions">'
+          + '<td data-label="' + _t('recurring.th_template', 'Шаблон') + '"><strong>' + safeText(displayTitle) + '</strong><span class="crm-muted-block">' + safeText(secondaryTitle) + '</span></td>'
+          + '<td data-label="' + _t('recurring.th_entity', 'Сущность') + '"><span class="crm-entity-kind">' + safeText(entityLabel(item.entity_type)) + '</span><strong class="crm-muted-title">' + safeText(entityTitle || '—') + '</strong></td>'
+          + '<td data-label="' + _t('recurring.th_schedule', 'Расписание') + '"><span class="crm-rrule-label">' + safeText(formatRruleLabel(rrule)) + '</span><span class="crm-rrule-code">' + safeText(rrule) + '</span></td>'
+          + '<td data-label="' + _t('recurring.th_next_run', 'След. запуск') + '">' + safeText(formatDate(item.next_run_at || item.next_run || '')) + '</td>'
+          + '<td data-label="' + _t('recurring.th_status', 'Статус') + '"><span class="crm-badge ' + statusClass + '">' + safeText(isActive ? _t('recurring.status_active', 'Активен') : _t('recurring.status_paused', 'Приостановлен')) + '</span></td>'
+          + '<td data-label="' + _t('recurring.th_actions', 'Действия') + '" class="crm-table-actions">'
           + '<div class="crm-action-list">'
-          + (isActive ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">Приостановить</button>' : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">Возобновить</button>')
-          + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-recurring-edit="' + safeText(id) + '">Изменить</button>'
-          + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">Удалить</button>'
+          + (isActive ? '<button class="btn btn-sm crm-btn-warning crm-btn-compact" data-recurring-pause="' + safeText(id) + '">' + _t('recurring.btn_pause', 'Приостановить') + '</button>' : '<button class="btn btn-sm crm-btn-success crm-btn-compact" data-recurring-resume="' + safeText(id) + '">' + _t('recurring.btn_resume', 'Возобновить') + '</button>')
+          + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-recurring-edit="' + safeText(id) + '">' + _t('recurring.btn_edit', 'Изменить') + '</button>'
+          + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-recurring-delete="' + safeText(id) + '">' + _t('recurring.btn_delete', 'Удалить') + '</button>'
           + '</div>'
           + '</td></tr>';
       }).join('');
@@ -24205,7 +24233,7 @@ window.CRM.pageApiBindings = (function () {
         applyRecurringFilters();
       } catch (error) {
         var body = document.getElementById('recurringBody');
-        if (body) body.innerHTML = recurringEmptyRow(6, 'Не удалось загрузить', 'Проверьте доступ к API.');
+        if (body) body.innerHTML = recurringEmptyRow(6, _t('recurring.load_error', 'Не удалось загрузить'), _t('recurring.load_error_hint', 'Проверьте доступ к API.'));
       }
     }
 
@@ -24263,8 +24291,8 @@ window.CRM.pageApiBindings = (function () {
         form.querySelector('[name="public_id"]').value = '';
         form.querySelector('[name="rrule"]').value = 'FREQ=DAILY';
         form.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', String(btn.getAttribute('data-rrule-preset') || '') === 'FREQ=DAILY'); });
-        if (modalTitle) modalTitle.textContent = 'Создать шаблон';
-        if (submitBtn2) submitBtn2.textContent = 'Создать шаблон';
+        if (modalTitle) modalTitle.textContent = _t('recurring.create_title', 'Создать шаблон');
+        if (submitBtn2) submitBtn2.textContent = _t('recurring.create_title', 'Создать шаблон');
         resetRecurringSearch();
         var modal = document.getElementById('recurringCreateModal');
         showCrmPageModal(modal);
@@ -24292,7 +24320,7 @@ window.CRM.pageApiBindings = (function () {
       entitySearch.addEventListener('input', async function () {
         var query = String(entitySearch.value || '').trim();
         if (query.length < 2) { if (entityDropdown) entityDropdown.classList.add('d-none'); return; }
-        if (entityDropdown) { entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Поиск...</div>'; entityDropdown.classList.remove('d-none'); }
+        if (entityDropdown) { entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('recurring.searching', 'Поиск...') + '</div>'; entityDropdown.classList.remove('d-none'); }
         try {
           var entityType = String((document.getElementById('recurringEntityType') || {}).value || 'task').trim();
           var meta = entitySearchMeta(entityType);
@@ -24311,7 +24339,7 @@ window.CRM.pageApiBindings = (function () {
             var optionId = recurringEntityOptionId(item, entityType);
             return '<div class="crm-autocomplete-item" data-entity-id="' + safeText(optionId) + '" data-entity-title="' + safeText(title || item.public_id || '') + '"><strong>' + safeText(title || item.public_id || '') + '</strong><span class="crm-autocomplete-meta">' + safeText(sub || '') + '</span></div>';
           }).join('');
-        } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">Ошибка</div>'; }
+        } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('recurring.search_error', 'Ошибка') + '</div>'; }
       });
       document.addEventListener('click', function (event) { if (entityDropdown && entitySearch && !entityDropdown.classList.contains('d-none') && !entitySearch.contains(event.target) && !entityDropdown.contains(event.target)) entityDropdown.classList.add('d-none'); });
       if (entityDropdown) { entityDropdown.addEventListener('click', function (event) {
@@ -24349,28 +24377,28 @@ window.CRM.pageApiBindings = (function () {
           rrule: String(recurringForm.querySelector('[name="rrule"]').value || '').trim()
         };
         if (!data.title || !data.entity_type || !data.entity_public_id || !data.rrule) {
-          var errMsg = !data.title ? 'Укажите название' : !data.entity_public_id ? 'Выберите исходную сущность' : !data.rrule ? 'Укажите расписание' : 'Заполните все поля';
+          var errMsg = !data.title ? _t('recurring.validate_title', 'Укажите название') : !data.entity_public_id ? _t('recurring.validate_entity', 'Выберите исходную сущность') : !data.rrule ? _t('recurring.validate_rrule', 'Укажите расписание') : _t('recurring.validate_fill', 'Заполните все поля');
           notify(errMsg, 'warning'); return;
         }
         if (!/^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(;|$)/i.test(data.rrule)) {
-          notify('Расписание должно начинаться с FREQ=DAILY, WEEKLY, MONTHLY или YEARLY', 'warning'); return;
+          notify(_t('recurring.validate_rrule_format', 'Расписание должно начинаться с FREQ=DAILY, WEEKLY, MONTHLY или YEARLY'), 'warning'); return;
         }
         var recurringSubmit = document.getElementById('recurringSubmitBtn');
         if (recurringSubmit) recurringSubmit.disabled = true;
         try {
           if (editId) {
             await request('api/v1/recurring/' + encodeURIComponent(editId), { method: 'PATCH', body: data });
-            notify('Шаблон обновлён');
+            notify(_t('recurring.updated_notify', 'Шаблон обновлён'));
           } else {
             await request('api/v1/recurring', { method: 'POST', body: data });
-            notify('Шаблон создан');
+            notify(_t('recurring.created_notify', 'Шаблон создан'));
           }
           var modal = document.getElementById('recurringCreateModal');
           hideCrmPageModal(modal);
           recurringForm.reset(); resetRecurringSearch();
           await loadRecurring();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось сохранить');
+          var normalized = window.CRM.api.normalizeError(error, _t('recurring.save_failed', 'Не удалось сохранить'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         } finally {
           if (recurringSubmit) recurringSubmit.disabled = false;
@@ -24384,10 +24412,10 @@ window.CRM.pageApiBindings = (function () {
       recurringBody.addEventListener('click', async function (event) {
         var pauseBtn = event.target.closest('[data-recurring-pause]');
         if (pauseBtn) { var pid = String(pauseBtn.getAttribute('data-recurring-pause')||'').trim(); if (!pid) return;
-          try { await request('api/v1/recurring/'+encodeURIComponent(pid)+'/pause',{method:'POST'}); notify('Приостановлен'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); } return; }
+          try { await request('api/v1/recurring/'+encodeURIComponent(pid)+'/pause',{method:'POST'}); notify(_t('recurring.paused_notify', 'Приостановлен')); await loadRecurring(); } catch(e){ notify(_t('recurring.error_notify', 'Ошибка'),'error'); } return; }
         var resumeBtn = event.target.closest('[data-recurring-resume]');
         if (resumeBtn) { var rid = String(resumeBtn.getAttribute('data-recurring-resume')||'').trim(); if (!rid) return;
-          try { await request('api/v1/recurring/'+encodeURIComponent(rid)+'/resume',{method:'POST'}); notify('Возобновлён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); } return; }
+          try { await request('api/v1/recurring/'+encodeURIComponent(rid)+'/resume',{method:'POST'}); notify(_t('recurring.resumed_notify', 'Возобновлён')); await loadRecurring(); } catch(e){ notify(_t('recurring.error_notify', 'Ошибка'),'error'); } return; }
         // Edit
         var editBtn = event.target.closest('[data-recurring-edit]'); if (editBtn) {
           var eid = String(editBtn.getAttribute('data-recurring-edit')||'').trim(); if (!eid) return;
@@ -24401,15 +24429,15 @@ window.CRM.pageApiBindings = (function () {
           updateRecurringEntityLabel();
           form.querySelectorAll('[data-rrule-preset]').forEach(function (btn) { btn.classList.toggle('is-active', String(btn.getAttribute('data-rrule-preset') || '') === String(item.rrule || '')); });
           if (entitySearch) entitySearch.value = recurringSelectedEntityLabel(item);
-          if (modalTitle) modalTitle.textContent = 'Изменить шаблон';
-          if (submitBtn2) submitBtn2.textContent = 'Сохранить';
+          if (modalTitle) modalTitle.textContent = _t('recurring.edit_title', 'Изменить шаблон');
+          if (submitBtn2) submitBtn2.textContent = _t('recurring.save', 'Сохранить');
           var modal = document.getElementById('recurringCreateModal'); showCrmPageModal(modal);
           return; }
         // Delete
         var deleteBtn = event.target.closest('[data-recurring-delete]');
         if (deleteBtn) { var did = String(deleteBtn.getAttribute('data-recurring-delete')||'').trim(); if (!did) return;
           var ditem = recurringData.find(function(i){return String(i.public_id||'')===did;});
-          var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? recurringRuleDisplayTitle(ditem) : 'Выбранный шаблон';
+          var titleEl = document.getElementById('recurringDeleteTemplateTitle'); if (titleEl) titleEl.textContent = ditem ? recurringRuleDisplayTitle(ditem) : _t('recurring.selected_template', 'Выбранный шаблон');
           var confirmBtn = document.getElementById('recurringDeleteConfirmBtn'); if (confirmBtn) confirmBtn.dataset.templateId = did;
           var delModal = document.getElementById('recurringDeleteModal'); showCrmPageModal(delModal);
           return; }
@@ -24421,7 +24449,7 @@ window.CRM.pageApiBindings = (function () {
     if (deleteConfirm && deleteConfirm.dataset.bound !== '1') { deleteConfirm.dataset.bound = '1';
       deleteConfirm.addEventListener('click', async function () {
         var tid = String(deleteConfirm.dataset.templateId||'').trim(); if (!tid) return;
-        try { await request('api/v1/recurring/'+encodeURIComponent(tid),{method:'DELETE'}); var dm=document.getElementById('recurringDeleteModal'); hideCrmPageModal(dm); notify('Шаблон удалён'); await loadRecurring(); } catch(e){ notify('Ошибка','error'); }
+        try { await request('api/v1/recurring/'+encodeURIComponent(tid),{method:'DELETE'}); var dm=document.getElementById('recurringDeleteModal'); hideCrmPageModal(dm); notify(_t('recurring.deleted_notify', 'Шаблон удалён')); await loadRecurring(); } catch(e){ notify(_t('recurring.error_notify', 'Ошибка'),'error'); }
       });
     }
 
@@ -24429,6 +24457,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderOrganizationsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadOrganizations() {
       var body = document.getElementById('organizationsBody');
       if (!body) return;
@@ -24436,7 +24465,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/organizations', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="4" class="text-muted">Нет организаций</td></tr>';
+          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('organization.empty', 'Нет организаций') + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24447,14 +24476,14 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(String(memberCount)) + '</td>'
             + '<td>' + safeText(formatDate(item.created_at || '')) + '</td>'
             + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=organizations&edit=' + encodeURIComponent(id) + '">Изменить</a>'
-            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">Участники</button>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">Удалить</button>'
+            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=organizations&edit=' + encodeURIComponent(id) + '">' + _t('organization.btn_edit', 'Изменить') + '</a>'
+            + '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" data-org-members="' + safeText(id) + '">' + _t('organization.btn_members', 'Участники') + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-org-delete="' + safeText(id) + '">' + _t('organization.btn_delete', 'Удалить') + '</button>'
             + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="4" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="text-danger">' + _t('organization.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -24470,11 +24499,11 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название организации', '');
+        var title = window.prompt(_t('organization.prompt_title', 'Название организации'), '');
         if (title === null) return;
         var trimmedTitle = String(title || '').trim();
         if (!trimmedTitle) {
-          notify('Название организации не может быть пустым', 'warning');
+          notify(_t('organization.title_empty', 'Название организации не может быть пустым'), 'warning');
           return;
         }
         try {
@@ -24484,10 +24513,10 @@ window.CRM.pageApiBindings = (function () {
               title: trimmedTitle
             }
           });
-          notify('Организация создана');
+          notify(_t('organization.created_notify', 'Организация создана'));
           await loadOrganizations();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать организацию');
+          var normalized = window.CRM.api.normalizeError(error, _t('organization.create_failed', 'Не удалось создать организацию'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -24507,9 +24536,9 @@ window.CRM.pageApiBindings = (function () {
             var memberList = members.map(function (m) {
               return '- ' + safeText(m.full_name || m.login || m.public_id || '—');
             }).join('\n');
-            window.alert('Участники организации:\n\n' + (memberList || 'Нет участников'));
+            window.alert(_t('organization.members_title', 'Участники организации:') + '\n\n' + (memberList || _t('organization.no_members', 'Нет участников')));
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось загрузить участников');
+            var normalized = window.CRM.api.normalizeError(error, _t('organization.load_members_error', 'Не удалось загрузить участников'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -24519,13 +24548,13 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var orgId = String(deleteBtn.getAttribute('data-org-delete') || '').trim();
           if (!orgId) return;
-          if (!window.confirm('Удалить организацию?')) return;
+          if (!window.confirm(_t('organization.confirm_delete', 'Удалить организацию?'))) return;
           try {
             await request('api/v1/organizations/' + encodeURIComponent(orgId), { method: 'DELETE' });
-            notify('Организация удалена');
+            notify(_t('organization.deleted_notify', 'Организация удалена'));
             await loadOrganizations();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить организацию');
+            var normalized = window.CRM.api.normalizeError(error, _t('organization.delete_failed', 'Не удалось удалить организацию'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -24537,6 +24566,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminPrioritiesPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadPriorities() {
       var body = document.getElementById('adminPrioritiesBody');
       if (!body) return;
@@ -24544,7 +24574,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/priorities', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="5" class="text-muted">Нет приоритетов</td></tr>';
+          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('priority.empty', 'Нет приоритетов') + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24556,13 +24586,13 @@ window.CRM.pageApiBindings = (function () {
             + '<td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background-color:' + safeText(color) + '"></span> ' + safeText(color) + '</td>'
             + '<td>' + safeText(String(item.sort_order || item.order || item.position || '—')) + '</td>'
             + '<td>'
-            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-priorities&edit=' + encodeURIComponent(id) + '">Изменить</a>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-priority-delete="' + safeText(id) + '">Удалить</button>'
+            + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="index.php?route=admin-priorities&edit=' + encodeURIComponent(id) + '">' + _t('priority.btn_edit', 'Изменить') + '</a>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-priority-delete="' + safeText(id) + '">' + _t('priority.btn_delete', 'Удалить') + '</button>'
             + '</td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="5" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('priority.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -24578,18 +24608,18 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
-        var title = window.prompt('Название приоритета', '');
+        var title = window.prompt(_t('priority.prompt_title', 'Название приоритета'), '');
         if (title === null) return;
         var trimmedTitle = String(title || '').trim();
         if (!trimmedTitle) {
-          notify('Название приоритета не может быть пустым', 'warning');
+          notify(_t('priority.title_empty', 'Название приоритета не может быть пустым'), 'warning');
           return;
         }
-        var code = window.prompt('Код приоритета (например: high, urgent)', trimmedTitle.toLowerCase());
+        var code = window.prompt(_t('priority.prompt_code', 'Код приоритета (например: high, urgent)'), trimmedTitle.toLowerCase());
         if (code === null) return;
-        var color = window.prompt('Цвет (hex, например: #ef4444)', '#6b7280');
+        var color = window.prompt(_t('priority.prompt_color', 'Цвет (hex, например: #ef4444)'), '#6b7280');
         if (color === null) return;
-        var sortOrder = window.prompt('Порядок сортировки (число)', '0');
+        var sortOrder = window.prompt(_t('priority.prompt_sort', 'Порядок сортировки (число)'), '0');
         if (sortOrder === null) return;
         try {
           await request('api/v1/priorities', {
@@ -24601,10 +24631,10 @@ window.CRM.pageApiBindings = (function () {
               sort_order: Number(sortOrder) || 0
             }
           });
-          notify('Приоритет создан');
+          notify(_t('priority.created_notify', 'Приоритет создан'));
           await loadPriorities();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось создать приоритет');
+          var normalized = window.CRM.api.normalizeError(error, _t('priority.create_failed', 'Не удалось создать приоритет'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -24618,13 +24648,13 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var priorityId = String(deleteBtn.getAttribute('data-priority-delete') || '').trim();
           if (!priorityId) return;
-          if (!window.confirm('Удалить приоритет?')) return;
+          if (!window.confirm(_t('priority.confirm_delete', 'Удалить приоритет?'))) return;
           try {
             await request('api/v1/priorities/' + encodeURIComponent(priorityId), { method: 'DELETE' });
-            notify('Приоритет удален');
+            notify(_t('priority.deleted_notify', 'Приоритет удален'));
             await loadPriorities();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить приоритет');
+            var normalized = window.CRM.api.normalizeError(error, _t('priority.delete_failed', 'Не удалось удалить приоритет'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -24636,6 +24666,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminCalendarPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadCalendars() {
       var body = document.getElementById('adminCalendarsBody');
       if (!body) return '';
@@ -24643,7 +24674,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/calendar/business', { query: { limit: 50 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="2" class="text-muted">Нет календарей</td></tr>';
+          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_calendars', 'Нет календарей') + '</td></tr>';
           return '';
         }
         body.innerHTML = items.map(function (item) {
@@ -24655,7 +24686,7 @@ window.CRM.pageApiBindings = (function () {
         }).join('');
         return String((items[0] && items[0].public_id) || '');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="2" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
         return '';
       }
     }
@@ -24664,21 +24695,21 @@ window.CRM.pageApiBindings = (function () {
       var body = document.getElementById('adminHolidaysBody');
       if (!body) return;
       if (!calendarPublicId) {
-        body.innerHTML = '<tr><td colspan="2" class="text-muted">Сначала создайте бизнес-календарь</td></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.create_calendar_first', 'Сначала создайте бизнес-календарь') + '</td></tr>';
         return;
       }
       try {
         var envelope = await request('api/v1/calendar/holidays', { query: { limit: 50, calendar_public_id: calendarPublicId } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="2" class="text-muted">Нет праздников</td></tr>';
+          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_holidays', 'Нет праздников') + '</td></tr>';
           return;
         }
         body.innerHTML = items.map(function (item) {
           return '<tr><td>' + safeText(formatDate(item.holiday_date || item.date || '')) + '</td><td>' + safeText(item.title || item.name || '—') + '</td></tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="2" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -24686,17 +24717,17 @@ window.CRM.pageApiBindings = (function () {
       var body = document.getElementById('adminWorkingHoursBody');
       if (!body) return;
       if (!calendarPublicId) {
-        body.innerHTML = '<tr><td colspan="2" class="text-muted">Сначала создайте бизнес-календарь</td></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.create_calendar_first', 'Сначала создайте бизнес-календарь') + '</td></tr>';
         return;
       }
       try {
         var envelope = await request('api/v1/calendar/working-hours', { query: { limit: 50, calendar_public_id: calendarPublicId } });
         var items = mapItems(envelope);
         if (!items.length) {
-          body.innerHTML = '<tr><td colspan="2" class="text-muted">Нет записей</td></tr>';
+          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_working_hours', 'Нет записей') + '</td></tr>';
           return;
         }
-        var dayLabels = { 1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 7: 'Вс' };
+        var dayLabels = { 1: _t('calendar.day_mon', 'Пн'), 2: _t('calendar.day_tue', 'Вт'), 3: _t('calendar.day_wed', 'Ср'), 4: _t('calendar.day_thu', 'Чт'), 5: _t('calendar.day_fri', 'Пт'), 6: _t('calendar.day_sat', 'Сб'), 7: _t('calendar.day_sun', 'Вс') };
         body.innerHTML = items.map(function (item) {
           var day = Number(item.weekday || item.day_of_week || item.day || 0);
           var start = String(item.start_time || item.start || '09:00');
@@ -24704,7 +24735,7 @@ window.CRM.pageApiBindings = (function () {
           return '<tr><td>' + safeText(dayLabels[day] || day) + '</td><td>' + safeText(start) + '–' + safeText(end) + '</td></tr>';
         }).join('');
       } catch (error) {
-        body.innerHTML = '<tr><td colspan="2" class="text-danger">Ошибка загрузки</td></tr>';
+        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
       }
     }
 
@@ -24724,6 +24755,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderMentionsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadMentions() {
       var body = document.getElementById('mentionsBody');
       if (!body) return;
@@ -24732,7 +24764,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/mentions', { query: { limit: 50 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          renderTableState(body, 'empty', { colSpan: 4, emptyText: 'Нет упоминаний' });
+          renderTableState(body, 'empty', { colSpan: 4, emptyText: _t('page.mentions_empty', 'Нет упоминаний') });
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24753,7 +24785,7 @@ window.CRM.pageApiBindings = (function () {
           return '<tr><td>' + safeText(entityType) + ': ' + entityDisplay + '</td><td class="small">' + safeText(context) + '</td><td>' + safeText(mentionedBy) + '</td><td>' + safeText(date) + '</td></tr>';
         }).join('');
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка загрузки');
+        var normalized = window.CRM.api.normalizeError(error, _t('page.mentions_load_error', 'Ошибка загрузки'));
         renderTableState(body, 'error', { colSpan: 4, errorText: normalized.message });
       }
     }
@@ -24770,6 +24802,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminTemplatesPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadTaskTemplates() {
       var body = document.getElementById('taskTemplatesBody');
       if (!body) return;
@@ -24778,7 +24811,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/template/tasks', { query: { limit: 50 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          renderTableState(body, 'empty', { colSpan: 3, emptyText: 'Нет шаблонов задач' });
+          renderTableState(body, 'empty', { colSpan: 3, emptyText: _t('template.empty_tasks', 'Нет шаблонов задач') });
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24788,11 +24821,11 @@ window.CRM.pageApiBindings = (function () {
           return '<tr data-template-id="' + safeText(publicId) + '">'
             + '<td><a href="#" data-template-edit-task="' + safeText(publicId) + '">' + safeText(title) + '</a></td>'
             + '<td class="small">' + safeText(description) + '</td>'
-            + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-task="' + safeText(publicId) + '">Удалить</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-task="' + safeText(publicId) + '">' + _t('template.btn_delete', 'Удалить') + '</button></td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        renderTableState(body, 'error', { colSpan: 3, errorText: 'Ошибка загрузки шаблонов задач' });
+        renderTableState(body, 'error', { colSpan: 3, errorText: _t('template.load_error_tasks', 'Ошибка загрузки шаблонов задач') });
       }
     }
 
@@ -24804,7 +24837,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/template/projects', { query: { limit: 50 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          renderTableState(body, 'empty', { colSpan: 3, emptyText: 'Нет шаблонов проектов' });
+          renderTableState(body, 'empty', { colSpan: 3, emptyText: _t('template.empty_projects', 'Нет шаблонов проектов') });
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24814,21 +24847,21 @@ window.CRM.pageApiBindings = (function () {
           return '<tr data-template-id="' + safeText(publicId) + '">'
             + '<td><a href="#" data-template-edit-project="' + safeText(publicId) + '">' + safeText(title) + '</a></td>'
             + '<td class="small">' + safeText(description) + '</td>'
-            + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-project="' + safeText(publicId) + '">Удалить</button></td>'
+            + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-project="' + safeText(publicId) + '">' + _t('template.btn_delete', 'Удалить') + '</button></td>'
             + '</tr>';
         }).join('');
       } catch (error) {
-        renderTableState(body, 'error', { colSpan: 3, errorText: 'Ошибка загрузки шаблонов проектов' });
+        renderTableState(body, 'error', { colSpan: 3, errorText: _t('template.load_error_projects', 'Ошибка загрузки шаблонов проектов') });
       }
     }
 
     async function createTaskTemplate(data) {
       try {
         await request('api/v1/template/tasks', { method: 'POST', body: data });
-        notify('Шаблон задачи создан', 'success');
+        notify(_t('template.created_task_notify', 'Шаблон задачи создан'), 'success');
         await loadTaskTemplates();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка создания');
+        var normalized = window.CRM.api.normalizeError(error, _t('template.error_create', 'Ошибка создания'));
         notify(normalized.message, 'error');
       }
     }
@@ -24836,34 +24869,34 @@ window.CRM.pageApiBindings = (function () {
     async function createProjectTemplate(data) {
       try {
         await request('api/v1/template/projects', { method: 'POST', body: data });
-        notify('Шаблон проекта создан', 'success');
+        notify(_t('template.created_project_notify', 'Шаблон проекта создан'), 'success');
         await loadProjectTemplates();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка создания');
+        var normalized = window.CRM.api.normalizeError(error, _t('template.error_create', 'Ошибка создания'));
         notify(normalized.message, 'error');
       }
     }
 
     async function deleteTaskTemplate(publicId) {
-      if (!confirm('Удалить шаблон задачи?')) return;
+      if (!confirm(_t('template.confirm_delete_task', 'Удалить шаблон задачи?'))) return;
       try {
         await request('api/v1/template/tasks/' + encodeURIComponent(publicId), { method: 'DELETE' });
-        notify('Шаблон задачи удален', 'success');
+        notify(_t('template.deleted_task_notify', 'Шаблон задачи удален'), 'success');
         await loadTaskTemplates();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка удаления');
+        var normalized = window.CRM.api.normalizeError(error, _t('template.error_delete', 'Ошибка удаления'));
         notify(normalized.message, 'error');
       }
     }
 
     async function deleteProjectTemplate(publicId) {
-      if (!confirm('Удалить шаблон проекта?')) return;
+      if (!confirm(_t('template.confirm_delete_project', 'Удалить шаблон проекта?'))) return;
       try {
         await request('api/v1/template/projects/' + encodeURIComponent(publicId), { method: 'DELETE' });
-        notify('Шаблон проекта удален', 'success');
+        notify(_t('template.deleted_project_notify', 'Шаблон проекта удален'), 'success');
         await loadProjectTemplates();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка удаления');
+        var normalized = window.CRM.api.normalizeError(error, _t('template.error_delete', 'Ошибка удаления'));
         notify(normalized.message, 'error');
       }
     }
@@ -24897,7 +24930,7 @@ window.CRM.pageApiBindings = (function () {
           status_code: String(createTaskForm.querySelector('[name="status_code"]').value || 'new'),
           priority_code: String(createTaskForm.querySelector('[name="priority_code"]').value || 'normal')
         };
-        if (!data.title) { notify('Укажите название', 'warning'); return; }
+        if (!data.title) { notify(_t('recurring.validate_title', 'Укажите название'), 'warning'); return; }
         createTaskTemplate(data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('createTaskTemplateModal')).hide();
           createTaskForm.reset();
@@ -24923,7 +24956,7 @@ window.CRM.pageApiBindings = (function () {
           title: String(createProjectForm.querySelector('[name="title"]').value || '').trim(),
           description: String(createProjectForm.querySelector('[name="description"]').value || '').trim()
         };
-        if (!data.title) { notify('Укажите название', 'warning'); return; }
+        if (!data.title) { notify(_t('recurring.validate_title', 'Укажите название'), 'warning'); return; }
         createProjectTemplate(data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('createProjectTemplateModal')).hide();
           createProjectForm.reset();
@@ -24943,6 +24976,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminTagsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadTags() {
       var body = document.getElementById('adminTagsBody');
       if (!body) return;
@@ -24951,9 +24985,9 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/tags', { query: { limit: 100 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          renderTableState(body, 'empty', { colSpan: 5, emptyText: 'Нет тегов' });
+          renderTableState(body, 'empty', { colSpan: 5, emptyText: _t('tag.empty', 'Нет тегов') });
           var stats = document.getElementById('adminTagsStats');
-          if (stats) stats.innerHTML = '<div class="text-muted">Теги не созданы.</div>';
+          if (stats) stats.innerHTML = '<div class="text-muted">' + _t('tag.not_created', 'Теги не созданы.') + '</div>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -24968,29 +25002,29 @@ window.CRM.pageApiBindings = (function () {
             + '<td class="small">' + safeText(description) + '</td>'
             + '<td>' + safeText(String(usageCount)) + '</td>'
             + '<td><div class="d-flex gap-1">'
-            + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" data-tag-edit="' + safeText(publicId) + '">Изменить</button>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-tag-delete="' + safeText(publicId) + '">Удалить</button>'
+            + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" data-tag-edit="' + safeText(publicId) + '">' + _t('tag.btn_edit', 'Изменить') + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-tag-delete="' + safeText(publicId) + '">' + _t('tag.btn_delete', 'Удалить') + '</button>'
             + '</div></td>'
             + '</tr>';
         }).join('');
         var stats = document.getElementById('adminTagsStats');
         if (stats) {
           var totalUsage = items.reduce(function (sum, item) { return sum + Number(item.usage_count || 0); }, 0);
-          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">Всего тегов</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
-            + '<div class="crm-info-panel"><small class="text-muted">Всего использований</small><div class="fw-semibold">' + safeText(String(totalUsage)) + '</div></div>';
+          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">' + _t('tag.stat_total', 'Всего тегов') + '</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
+            + '<div class="crm-info-panel"><small class="text-muted">' + _t('tag.stat_used', 'Всего использований') + '</small><div class="fw-semibold">' + safeText(String(totalUsage)) + '</div></div>';
         }
       } catch (error) {
-        renderTableState(body, 'error', { colSpan: 5, errorText: 'Ошибка загрузки тегов' });
+        renderTableState(body, 'error', { colSpan: 5, errorText: _t('tag.load_error', 'Ошибка загрузки тегов') });
       }
     }
 
     async function createTag(data) {
       try {
         await request('api/v1/tags', { method: 'POST', body: data });
-        notify('Тег создан', 'success');
+        notify(_t('tag.created', 'Тег создан'), 'success');
         await loadTags();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка создания');
+        var normalized = window.CRM.api.normalizeError(error, _t('tag.error_create', 'Ошибка создания'));
         notify(normalized.message, 'error');
       }
     }
@@ -24998,22 +25032,22 @@ window.CRM.pageApiBindings = (function () {
     async function updateTag(publicId, data) {
       try {
         await request('api/v1/tags/' + encodeURIComponent(publicId), { method: 'PATCH', body: data });
-        notify('Тег обновлен', 'success');
+        notify(_t('tag.updated', 'Тег обновлен'), 'success');
         await loadTags();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка обновления');
+        var normalized = window.CRM.api.normalizeError(error, _t('tag.error_update', 'Ошибка обновления'));
         notify(normalized.message, 'error');
       }
     }
 
     async function deleteTag(publicId) {
-      if (!confirm('Удалить тег?')) return;
+      if (!confirm(_t('tag.confirm_delete', 'Удалить тег?'))) return;
       try {
         await request('api/v1/tags/' + encodeURIComponent(publicId), { method: 'DELETE' });
-        notify('Тег удален', 'success');
+        notify(_t('tag.deleted', 'Тег удален'), 'success');
         await loadTags();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка удаления');
+        var normalized = window.CRM.api.normalizeError(error, _t('tag.error_delete', 'Ошибка удаления'));
         notify(normalized.message, 'error');
       }
     }
@@ -25045,7 +25079,7 @@ window.CRM.pageApiBindings = (function () {
           color: String(createForm.querySelector('[name="color"]').value || '#3b82f6'),
           description: String(createForm.querySelector('[name="description"]').value || '').trim()
         };
-        if (!data.name) { notify('Укажите название', 'warning'); return; }
+        if (!data.name) { notify(_t('tag.validate_title', 'Укажите название'), 'warning'); return; }
         createTag(data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('createTagModal')).hide();
           createForm.reset();
@@ -25064,7 +25098,7 @@ window.CRM.pageApiBindings = (function () {
           color: String(editForm.querySelector('[name="color"]').value || '#3b82f6'),
           description: String(editForm.querySelector('[name="description"]').value || '').trim()
         };
-        if (!data.name) { notify('Укажите название', 'warning'); return; }
+        if (!data.name) { notify(_t('tag.validate_title', 'Укажите название'), 'warning'); return; }
         updateTag(publicId, data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('editTagModal')).hide();
         });
@@ -25095,6 +25129,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function renderAdminWebhooksPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     async function loadWebhooks() {
       var body = document.getElementById('adminWebhooksBody');
       if (!body) return;
@@ -25103,9 +25138,9 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/webhooks', { query: { limit: 50 } });
         var items = mapItems(envelope);
         if (!items.length) {
-          renderTableState(body, 'empty', { colSpan: 5, emptyText: 'Нет вебхуков' });
+          renderTableState(body, 'empty', { colSpan: 5, emptyText: _t('webhook.empty', 'Нет вебхуков') });
           var stats = document.getElementById('adminWebhooksStats');
-          if (stats) stats.innerHTML = '<div class="text-muted">Вебхуки не настроены.</div>';
+          if (stats) stats.innerHTML = '<div class="text-muted">' + _t('webhook.not_configured', 'Вебхуки не настроены.') + '</div>';
           return;
         }
         body.innerHTML = items.map(function (item) {
@@ -25114,36 +25149,36 @@ window.CRM.pageApiBindings = (function () {
           var isActive = Boolean(item.is_active || item.active);
           var lastDelivery = item.last_delivery_at ? formatDate(item.last_delivery_at) : '—';
           var publicId = String(item.public_id || '');
-          var statusLabel = isActive ? '<span class="crm-badge active">Активен</span>' : '<span class="crm-badge inactive">Отключен</span>';
+          var statusLabel = isActive ? '<span class="crm-badge active">' + _t('webhook.status_active', 'Активен') + '</span>' : '<span class="crm-badge inactive">' + _t('webhook.status_inactive', 'Отключен') + '</span>';
           return '<tr data-webhook-id="' + safeText(publicId) + '">'
             + '<td class="small"><code>' + safeText(url) + '</code></td>'
             + '<td class="small">' + safeText(events) + '</td>'
             + '<td>' + statusLabel + '</td>'
             + '<td class="small">' + safeText(lastDelivery) + '</td>'
             + '<td><div class="d-flex gap-1">'
-            + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" data-webhook-toggle="' + safeText(publicId) + '">' + (isActive ? 'Отключить' : 'Включить') + '</button>'
-            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-webhook-delete="' + safeText(publicId) + '">Удалить</button>'
+            + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" data-webhook-toggle="' + safeText(publicId) + '">' + (isActive ? _t('webhook.btn_disable', 'Отключить') : _t('webhook.btn_enable', 'Включить')) + '</button>'
+            + '<button class="btn btn-sm crm-btn-danger crm-btn-compact" data-webhook-delete="' + safeText(publicId) + '">' + _t('webhook.btn_delete', 'Удалить') + '</button>'
             + '</div></td>'
             + '</tr>';
         }).join('');
         var stats = document.getElementById('adminWebhooksStats');
         if (stats) {
           var activeCount = items.filter(function (item) { return Boolean(item.is_active || item.active); }).length;
-          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">Всего вебхуков</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
-            + '<div class="crm-info-panel"><small class="text-muted">Активных</small><div class="fw-semibold">' + safeText(String(activeCount)) + '</div></div>';
+          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">' + _t('webhook.stat_total', 'Всего вебхуков') + '</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
+            + '<div class="crm-info-panel"><small class="text-muted">' + _t('webhook.stat_active', 'Активных') + '</small><div class="fw-semibold">' + safeText(String(activeCount)) + '</div></div>';
         }
       } catch (error) {
-        renderTableState(body, 'error', { colSpan: 5, errorText: 'Ошибка загрузки вебхуков' });
+        renderTableState(body, 'error', { colSpan: 5, errorText: _t('webhook.load_error', 'Ошибка загрузки вебхуков') });
       }
     }
 
     async function createWebhook(data) {
       try {
         await request('api/v1/webhooks', { method: 'POST', body: data });
-        notify('Вебхук создан', 'success');
+        notify(_t('webhook.created_notify', 'Вебхук создан'), 'success');
         await loadWebhooks();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка создания');
+        var normalized = window.CRM.api.normalizeError(error, _t('webhook.create_failed', 'Ошибка создания'));
         notify(normalized.message, 'error');
       }
     }
@@ -25151,22 +25186,22 @@ window.CRM.pageApiBindings = (function () {
     async function toggleWebhook(publicId, isActive) {
       try {
         await request('api/v1/webhooks/' + encodeURIComponent(publicId), { method: 'PATCH', body: { is_active: !isActive } });
-        notify('Статус вебхука обновлен', 'success');
+        notify(_t('webhook.status_updated_notify', 'Статус вебхука обновлен'), 'success');
         await loadWebhooks();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка обновления');
+        var normalized = window.CRM.api.normalizeError(error, _t('webhook.update_failed', 'Ошибка обновления'));
         notify(normalized.message, 'error');
       }
     }
 
     async function deleteWebhook(publicId) {
-      if (!confirm('Удалить вебхук?')) return;
+      if (!confirm(_t('webhook.confirm_delete', 'Удалить вебхук?'))) return;
       try {
         await request('api/v1/webhooks/' + encodeURIComponent(publicId), { method: 'DELETE' });
-        notify('Вебхук удален', 'success');
+        notify(_t('webhook.deleted_notify', 'Вебхук удален'), 'success');
         await loadWebhooks();
       } catch (error) {
-        var normalized = window.CRM.api.normalizeError(error, 'Ошибка удаления');
+        var normalized = window.CRM.api.normalizeError(error, _t('webhook.delete_failed', 'Ошибка удаления'));
         notify(normalized.message, 'error');
       }
     }
@@ -25204,8 +25239,8 @@ window.CRM.pageApiBindings = (function () {
           description: String(createForm.querySelector('[name="description"]').value || '').trim(),
           is_active: Boolean(createForm.querySelector('[name="is_active"]').checked)
         };
-        if (!data.url) { notify('Укажите URL', 'warning'); return; }
-        if (!data.events.length) { notify('Выберите хотя бы одно событие', 'warning'); return; }
+        if (!data.url) { notify(_t('webhook.validate_url', 'Укажите URL'), 'warning'); return; }
+        if (!data.events.length) { notify(_t('webhook.validate_events', 'Выберите хотя бы одно событие'), 'warning'); return; }
         createWebhook(data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('createWebhookModal')).hide();
           createForm.reset();
@@ -25231,6 +25266,7 @@ window.CRM.pageApiBindings = (function () {
 
   function bindTaskDependencies(taskPublicId) {
     if (!taskPublicId) return;
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
 
     async function loadDependencies() {
       var container = document.getElementById('dependenciesList');
@@ -25239,7 +25275,7 @@ window.CRM.pageApiBindings = (function () {
         var envelope = await request('api/v1/dependency/list', { query: { task_public_id: taskPublicId }, silent: true });
         var items = mapItems(envelope);
         if (!items.length) {
-          container.innerHTML = '<div class="text-muted small">Нет зависимостей</div>';
+          container.innerHTML = '<div class="text-muted small">' + _t('dependency.empty', 'Нет зависимостей') + '</div>';
           var counter = document.getElementById('detailDependenciesCounter');
           if (counter) { counter.textContent = '0'; counter.classList.add('d-none'); }
           return;
@@ -25247,23 +25283,23 @@ window.CRM.pageApiBindings = (function () {
         var counter = document.getElementById('detailDependenciesCounter');
         if (counter) { counter.textContent = String(items.length); counter.classList.remove('d-none'); }
 
-        container.innerHTML = '<table class="table table-sm crm-table mb-0"><thead><tr><th>Тип</th><th>Задача</th><th></th></tr></thead><tbody>'
+        container.innerHTML = '<table class="table table-sm crm-table mb-0"><thead><tr><th>' + _t('dependency.th_type', 'Тип') + '</th><th>' + _t('dependency.th_task', 'Задача') + '</th><th></th></tr></thead><tbody>'
           + items.map(function (item) {
             var depId = item.public_id || '';
             var depType = String(item.dependency_type || item.type || 'FS');
-            var typeLabels = { FS: 'Финиш-Старт', SS: 'Старт-Старт', FF: 'Финиш-Финиш', SF: 'Старт-Финиш' };
+            var typeLabels = { FS: _t('dependency.type_fs', 'Финиш-Старт'), SS: _t('dependency.type_ss', 'Старт-Старт'), FF: _t('dependency.type_ff', 'Финиш-Финиш'), SF: _t('dependency.type_sf', 'Старт-Финиш') };
             var depTaskTitle = String(item.dependent_task_title || item.target_task_title || item.task_title || '—');
             var depTaskId = String(item.dependent_task_public_id || item.target_task_public_id || item.task_public_id || '');
             var depTaskLink = depTaskId ? 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(depTaskId) : '#';
             return '<tr data-dependency-id="' + safeText(depId) + '">'
               + '<td><span class="crm-chip">' + safeText(typeLabels[depType] || depType) + '</span></td>'
               + '<td><a href="' + depTaskLink + '">' + safeText(depTaskTitle) + '</a></td>'
-              + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-dependency-delete="' + safeText(depId) + '">Удалить</button></td>'
+              + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-dependency-delete="' + safeText(depId) + '">' + _t('dependency.btn_delete', 'Удалить') + '</button></td>'
               + '</tr>';
           }).join('')
           + '</tbody></table>';
       } catch (error) {
-        container.innerHTML = '<div class="text-danger small">Ошибка загрузки зависимостей</div>';
+        container.innerHTML = '<div class="text-danger small">' + _t('dependency.load_error', 'Ошибка загрузки зависимостей') + '</div>';
       }
     }
 
@@ -25271,14 +25307,14 @@ window.CRM.pageApiBindings = (function () {
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.dataset.bound = '1';
       createBtn.addEventListener('click', async function () {
-        var targetTaskId = window.prompt('ID задачи (public_id)', '');
+        var targetTaskId = window.prompt(_t('dependency.prompt_task_id', 'ID задачи (public_id)'), '');
         if (targetTaskId === null) return;
         var trimmedId = String(targetTaskId || '').trim();
         if (!trimmedId) {
-          notify('ID задачи не может быть пустым', 'warning');
+          notify(_t('dependency.task_id_empty', 'ID задачи не может быть пустым'), 'warning');
           return;
         }
-        var depType = window.prompt('Тип зависимости (FS, SS, FF, SF)', 'FS');
+        var depType = window.prompt(_t('dependency.prompt_dep_type', 'Тип зависимости (FS, SS, FF, SF)'), 'FS');
         if (depType === null) return;
         try {
           await request('api/v1/dependency/create', {
@@ -25289,10 +25325,10 @@ window.CRM.pageApiBindings = (function () {
               dependency_type: String(depType || '').trim()
             }
           });
-          notify('Зависимость добавлена');
+          notify(_t('dependency.created_notify', 'Зависимость добавлена'));
           loadDependencies();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, 'Не удалось добавить зависимость');
+          var normalized = window.CRM.api.normalizeError(error, _t('dependency.create_failed', 'Не удалось добавить зависимость'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
       });
@@ -25306,13 +25342,13 @@ window.CRM.pageApiBindings = (function () {
         if (deleteBtn) {
           var depId = String(deleteBtn.getAttribute('data-dependency-delete') || '').trim();
           if (!depId) return;
-          if (!window.confirm('Удалить зависимость?')) return;
+          if (!window.confirm(_t('dependency.confirm_delete', 'Удалить зависимость?'))) return;
           try {
             await request('api/v1/dependency/delete/' + encodeURIComponent(depId), { method: 'DELETE' });
-            notify('Зависимость удалена');
+            notify(_t('dependency.deleted_notify', 'Зависимость удалена'));
             loadDependencies();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, 'Не удалось удалить зависимость');
+            var normalized = window.CRM.api.normalizeError(error, _t('dependency.delete_failed', 'Не удалось удалить зависимость'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
           return;
@@ -25334,11 +25370,12 @@ window.CRM.pageApiBindings = (function () {
       window.console.warn('[CRM] Renderer is not defined: ' + functionName);
     }
 
-    setErrorState(fallbackMessage || 'Страница пока не подключена');
+    setErrorState(fallbackMessage || _t('page.page_not_connected', 'Страница пока не подключена'));
     return null;
   }
 
   async function renderTimeAnalyticsPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     setLoadingState(true);
     try {
       var now = new Date();
@@ -25370,7 +25407,7 @@ window.CRM.pageApiBindings = (function () {
       var users = (usersEnv && usersEnv.data && usersEnv.data.items) || [];
 
       var userSelects = ['timeAnalyticsUserFilter', 'timeAnalyticsEarningsUserFilter', 'timeAnalyticsMatrixUserFilter'];
-      var allUsersHtml = '<option value="">Все пользователи</option>';
+      var allUsersHtml = '<option value="">' + _t('page.all_users', 'Все пользователи') + '</option>';
       users.forEach(function (u) {
         allUsersHtml += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
       });
@@ -25387,7 +25424,7 @@ window.CRM.pageApiBindings = (function () {
       try {
         var teamsEnv = await window.CRM.api.request('api/v1/teams', { query: { limit: 100 } });
         var teams = (teamsEnv.data?.items || []);
-        var allTeamsHtml = '<option value="">Все команды</option>';
+        var allTeamsHtml = '<option value="">' + _t('page.all_teams', 'Все команды') + '</option>';
         teams.forEach(function(t) {
           allTeamsHtml += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
         });
@@ -25401,7 +25438,7 @@ window.CRM.pageApiBindings = (function () {
       try {
         var projEnv = await window.CRM.api.request('api/v1/projects', { query: { limit: 200 } });
         var projects = (projEnv.data?.items || []);
-        var allProjectsHtml = '<option value="">Все проекты</option>';
+        var allProjectsHtml = '<option value="">' + _t('page.all_projects', 'Все проекты') + '</option>';
         projects.forEach(function(p) {
           allProjectsHtml += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
         });
@@ -25532,7 +25569,7 @@ window.CRM.pageApiBindings = (function () {
         });
       }
     } catch (e) {
-      setErrorState('Ошибка загрузки аналитики времени');
+      setErrorState(_t('page.time_load_error', 'Ошибка загрузки аналитики времени'));
     } finally {
       setLoadingState(false);
     }
@@ -25541,7 +25578,7 @@ window.CRM.pageApiBindings = (function () {
   async function loadTimeSummary(from, to, teamId, projectId, userPublicId) {
     var tbody = document.getElementById('timeAnalyticsTimeBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Загрузка...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
@@ -25550,7 +25587,7 @@ window.CRM.pageApiBindings = (function () {
       var env = await window.CRM.api.request('api/v1/worklogs/summary', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Нет данных за выбранный период</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         return;
       }
       var rows = [];
@@ -25561,7 +25598,7 @@ window.CRM.pageApiBindings = (function () {
         var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
-        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        var dayNames = [_t('page.day_sun', 'Вс'), _t('page.day_mon', 'Пн'), _t('page.day_tue', 'Вт'), _t('page.day_wed', 'Ср'), _t('page.day_thu', 'Чт'), _t('page.day_fri', 'Пт'), _t('page.day_sat', 'Сб')];
         formattedDay += ', ' + dayNames[dayOfWeek];
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
@@ -25578,14 +25615,14 @@ window.CRM.pageApiBindings = (function () {
       });
       bindTimeCells(tbody);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-danger">Ошибка загрузки</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
     }
   }
 
   async function loadEarningsSummary(from, to, teamId, projectId, userPublicId) {
     var tbody = document.getElementById('timeAnalyticsEarningsBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Загрузка...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
@@ -25594,7 +25631,7 @@ window.CRM.pageApiBindings = (function () {
       var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Нет данных за выбранный период</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         return;
       }
       var html = '';
@@ -25605,7 +25642,7 @@ window.CRM.pageApiBindings = (function () {
         var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
-        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        var dayNames = [_t('page.day_sun', 'Вс'), _t('page.day_mon', 'Пн'), _t('page.day_tue', 'Вт'), _t('page.day_wed', 'Ср'), _t('page.day_thu', 'Чт'), _t('page.day_fri', 'Пт'), _t('page.day_sat', 'Сб')];
         formattedDay += ', ' + dayNames[dayOfWeek];
         var mins = Number(row.total_minutes || 0);
         var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
@@ -25628,7 +25665,7 @@ window.CRM.pageApiBindings = (function () {
       });
       bindTimeCells(tbody);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">Ошибка загрузки</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
     }
   }
 
@@ -25636,11 +25673,12 @@ window.CRM.pageApiBindings = (function () {
 
   function formatMinutesShort(mins) {
     if (!mins || mins <= 0) return '0';
+    var _tf = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var h = Math.floor(mins / 60);
     var m = mins % 60;
-    if (h > 0 && m > 0) return h + 'ч ' + m + 'м';
-    if (h > 0) return h + 'ч';
-    return m + 'м';
+    if (h > 0 && m > 0) return h + _tf('page.time_hour_short', 'ч') + ' ' + m + _tf('page.time_min_short', 'м');
+    if (h > 0) return h + _tf('page.time_hour_short', 'ч');
+    return m + _tf('page.time_min_short', 'м');
   }
 
   function bindTimeCells(container) {
@@ -25681,7 +25719,7 @@ window.CRM.pageApiBindings = (function () {
     var userFilter = document.getElementById('timeAnalyticsMatrixUserFilter').value;
     var wrap = document.getElementById('timeAnalyticsMatrixWrap');
     if (!wrap) return;
-    wrap.innerHTML = '<p class="text-muted p-3 mb-0">Загрузка...</p>';
+    wrap.innerHTML = '<p class="text-muted p-3 mb-0">' + _t('page.loading', 'Загрузка...') + '</p>';
     try {
       var q = { from: from, to: to };
       if (userFilter) q.user_public_id = userFilter;
@@ -25696,18 +25734,18 @@ window.CRM.pageApiBindings = (function () {
       var userTotals = data.user_totals || {};
 
       if (dates.length === 0) {
-        wrap.innerHTML = '<p class="text-muted p-3 mb-0">Нет данных за выбранный период.</p>';
+        wrap.innerHTML = '<p class="text-muted p-3 mb-0">' + _t('page.no_data_period_dot', 'Нет данных за выбранный период.') + '</p>';
         return;
       }
 
       // Build table
       var html = '<table class="table table-hover align-middle mb-0 crm-table crm-matrix-table">';
       // Header
-      html += '<thead><tr><th class="crm-matrix-date-col">Дата</th>';
+      html += '<thead><tr><th class="crm-matrix-date-col">' + _t('page.th_date', 'Дата') + '</th>';
       users.forEach(function (u) {
         html += '<th class="crm-matrix-user-col">' + safeText(u.full_name || u.login) + '</th>';
       });
-      html += '<th class="crm-matrix-total-col">Итого</th></tr></thead><tbody>';
+      html += '<th class="crm-matrix-total-col">' + _t('page.th_total', 'Итого') + '</th></tr></thead><tbody>';
 
       // Rows
       var grandTotal = 0;
@@ -25718,7 +25756,7 @@ window.CRM.pageApiBindings = (function () {
         var isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         var rowClass = isWeekend ? ' class="crm-matrix-weekend-row"' : '';
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
-        var dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        var dayNames = [_t('page.day_sun', 'Вс'), _t('page.day_mon', 'Пн'), _t('page.day_tue', 'Вт'), _t('page.day_wed', 'Ср'), _t('page.day_thu', 'Чт'), _t('page.day_fri', 'Пт'), _t('page.day_sat', 'Сб')];
         formattedDay += ', ' + dayNames[dayOfWeek];
 
         html += '<tr' + rowClass + '><td class="crm-matrix-date-col">' + formattedDay + '</td>';
@@ -25736,7 +25774,7 @@ window.CRM.pageApiBindings = (function () {
       });
 
       // Footer row
-      html += '</tbody><tfoot><tr class="crm-matrix-footer-row"><td class="crm-matrix-date-col">Итого</td>';
+      html += '</tbody><tfoot><tr class="crm-matrix-footer-row"><td class="crm-matrix-date-col">' + _t('page.th_total', 'Итого') + '</td>';
       users.forEach(function (u) {
         var uTotal = userTotals[u.public_id] || 0;
         html += '<td class="crm-matrix-total-col">' + formatMinutesShort(uTotal) + '</td>';
@@ -25750,11 +25788,12 @@ window.CRM.pageApiBindings = (function () {
       });
       bindTimeCells(wrap);
     } catch (e) {
-      wrap.innerHTML = '<p class="text-danger p-3 mb-0">Ошибка загрузки сводки.</p>';
+      wrap.innerHTML = '<p class="text-danger p-3 mb-0">' + _t('page.load_error', 'Ошибка загрузки') + ' ' + _t('page.th_total', 'сводки').toLowerCase() + '.</p>';
     }
   }
 
   async function updateFilterOptions(teamSel, projectSel, userSel, from, to) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     if (!from || !to) return;
     var teamVal = teamSel ? teamSel.value : '';
     var projectVal = projectSel ? projectSel.value : '';
@@ -25771,7 +25810,7 @@ window.CRM.pageApiBindings = (function () {
       // Update team options
       if (teamSel && !teamVal) {
         var teams = data.teams || [];
-        teamSel.innerHTML = '<option value="">Все команды</option>';
+        teamSel.innerHTML = '<option value="">' + _t('page.all_teams', 'Все команды') + '</option>';
         teams.forEach(function(t) {
           teamSel.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
         });
@@ -25779,7 +25818,7 @@ window.CRM.pageApiBindings = (function () {
       // Update project options
       if (projectSel && !projectVal) {
         var projects = data.projects || [];
-        projectSel.innerHTML = '<option value="">Все проекты</option>';
+        projectSel.innerHTML = '<option value="">' + _t('page.all_projects', 'Все проекты') + '</option>';
         projects.forEach(function(p) {
           projectSel.innerHTML += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
         });
@@ -25787,7 +25826,7 @@ window.CRM.pageApiBindings = (function () {
       // Update user options
       if (userSel && !userVal) {
         var users = data.users || [];
-        userSel.innerHTML = '<option value="">Все пользователи</option>';
+        userSel.innerHTML = '<option value="">' + _t('page.all_users', 'Все пользователи') + '</option>';
         users.forEach(function(u) {
           userSel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
         });
@@ -25796,10 +25835,11 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function openTimeDetailModal(day, userPublicId, userName, projectPublicId) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var modal = document.getElementById('timeDetailModal');
     var body = document.getElementById('timeDetailModalBody');
     if (!modal || !body) return;
-    body.innerHTML = '<p class="text-muted">Загрузка...</p>';
+    body.innerHTML = '<p class="text-muted">' + _t('page.detail_loading', 'Загрузка...') + '</p>';
     var bsModal = new bootstrap.Modal(modal);
     bsModal.show();
 
@@ -25813,14 +25853,14 @@ window.CRM.pageApiBindings = (function () {
       var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
 
       var html = '<p class="mb-2"><strong>' + safeText(userName) + '</strong> · <span class="text-muted">' + formattedDay + '</span></p>'
-        + '<p class="mb-3"><strong>Всего: ' + formatMinutesShort(totalMinutes) + '</strong></p>';
+        + '<p class="mb-3"><strong>' + _t('page.detail_total', 'Всего: ') + formatMinutesShort(totalMinutes) + '</strong></p>';
 
       if (items.length === 0) {
-        html += '<p class="text-muted">Нет записей.</p>';
+        html += '<p class="text-muted">' + _t('page.detail_no_records', 'Нет записей.') + '</p>';
       } else {
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0 crm-table"><thead><tr><th>Задача</th><th>Время</th><th>Комментарий</th></tr></thead><tbody>';
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0 crm-table"><thead><tr><th>' + _t('page.detail_th_task', 'Задача') + '</th><th>' + _t('page.detail_th_time', 'Время') + '</th><th>' + _t('page.detail_th_comment', 'Комментарий') + '</th></tr></thead><tbody>';
         items.forEach(function (item) {
-          var taskTitle = item.task_title ? safeText(item.task_title) : 'Задача недоступна';
+          var taskTitle = item.task_title ? safeText(item.task_title) : _t('page.detail_task_unavailable', 'Задача недоступна');
           var taskLink = item.task_public_id
             ? '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.task_public_id) + '" target="_blank" rel="noopener noreferrer">' + safeText(taskTitle) + '</a>'
             : safeText(taskTitle);
@@ -25832,11 +25872,12 @@ window.CRM.pageApiBindings = (function () {
 
       body.innerHTML = html;
     } catch (e) {
-      body.innerHTML = '<p class="text-danger">Ошибка загрузки детализации.</p>';
+      body.innerHTML = '<p class="text-danger">' + _t('page.detail_load_error', 'Ошибка загрузки детализации.') + '</p>';
     }
   }
 
   async function renderGlobalSearchPage() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     setLoadingState(true);
     var container = document.getElementById('globalSearchResults');
     var form = document.getElementById('globalSearchForm');
@@ -25851,7 +25892,7 @@ window.CRM.pageApiBindings = (function () {
       var results = data && data.results;
       var counts = data && data.counts;
       if (!results) {
-        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Нет результатов.</div></div></div>';
+        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_no_results', 'Нет результатов.') + '</div></div></div>';
         return;
       }
 
@@ -25860,39 +25901,39 @@ window.CRM.pageApiBindings = (function () {
       if (results.tasks && results.tasks.length) {
         var tasksHtml = results.tasks.slice(0, 10).map(function(task) {
           var link = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
-          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(task.title || 'Без названия') + '</a>'
-            + '<div class="crm-search-item-meta">Задача · ' + escapeHtml(task.project_title || '—') + '</div></div>';
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(task.title || _t('page.search_untitled', 'Без названия')) + '</a>'
+            + '<div class="crm-search-item-meta">' + _t('page.search_meta_task', 'Задача') + ' · ' + escapeHtml(task.project_title || '—') + '</div></div>';
         }).join('');
-        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Задачи</h2><span class="crm-chip">' + (counts?.tasks || results.tasks.length) + '</span></div><div class="crm-search-list">' + tasksHtml + '</div></div></div>');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_tasks', 'Задачи') + '</h2><span class="crm-chip">' + (counts?.tasks || results.tasks.length) + '</span></div><div class="crm-search-list">' + tasksHtml + '</div></div></div>');
       }
 
       if (results.projects && results.projects.length) {
         var projHtml = results.projects.slice(0, 10).map(function(proj) {
           var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(proj.public_id || '');
-          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(proj.title || 'Без названия') + '</a>'
-            + '<div class="crm-search-item-meta">Проект · ' + escapeHtml(statusLabel(proj.status_code)) + '</div></div>';
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(proj.title || _t('page.search_untitled', 'Без названия')) + '</a>'
+            + '<div class="crm-search-item-meta">' + _t('page.search_meta_project', 'Проект') + ' · ' + escapeHtml(statusLabel(proj.status_code)) + '</div></div>';
         }).join('');
-        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Проекты</h2><span class="crm-chip">' + (counts?.projects || results.projects.length) + '</span></div><div class="crm-search-list">' + projHtml + '</div></div></div>');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_projects', 'Проекты') + '</h2><span class="crm-chip">' + (counts?.projects || results.projects.length) + '</span></div><div class="crm-search-list">' + projHtml + '</div></div></div>');
       }
 
       if (results.counterparties && results.counterparties.length) {
         var cpHtml = results.counterparties.slice(0, 10).map(function(cp) {
           return '<div class="crm-search-item"><span class="crm-search-item-title">' + escapeHtml(cp.title || cp.name || cp.company_name || '—') + '</span>'
-            + '<div class="crm-search-item-meta">Контрагент</div></div>';
+            + '<div class="crm-search-item-meta">' + _t('page.search_meta_counterparty', 'Контрагент') + '</div></div>';
         }).join('');
-        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Контрагенты</h2><span class="crm-chip">' + (counts?.counterparties || results.counterparties.length) + '</span></div><div class="crm-search-list">' + cpHtml + '</div></div></div>');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_counterparties', 'Контрагенты') + '</h2><span class="crm-chip">' + (counts?.counterparties || results.counterparties.length) + '</span></div><div class="crm-search-list">' + cpHtml + '</div></div></div>');
       }
 
       if (results.contacts && results.contacts.length) {
         var contactHtml = results.contacts.slice(0, 10).map(function(c) {
           return '<div class="crm-search-item"><span class="crm-search-item-title">' + escapeHtml(c.full_name || c.name || c.email || '—') + '</span>'
-            + '<div class="crm-search-item-meta">Контакт · ' + escapeHtml(c.email || '') + '</div></div>';
+            + '<div class="crm-search-item-meta">' + _t('page.search_meta_contact', 'Контакт') + ' · ' + escapeHtml(c.email || '') + '</div></div>';
         }).join('');
-        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">Контакты</h2><span class="crm-chip">' + (counts?.contacts || results.contacts.length) + '</span></div><div class="crm-search-list">' + contactHtml + '</div></div></div>');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_contacts', 'Контакты') + '</h2><span class="crm-chip">' + (counts?.contacts || results.contacts.length) + '</span></div><div class="crm-search-list">' + contactHtml + '</div></div></div>');
       }
 
       if (sections.length === 0) {
-        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Ничего не найдено по запросу «' + escapeHtml(queryInput ? queryInput.value : '') + '».</div></div></div>';
+        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_no_results_query', 'Ничего не найдено по запросу «') + escapeHtml(queryInput ? queryInput.value : '') + '».</div></div></div>';
         return;
       }
 
@@ -25907,10 +25948,10 @@ window.CRM.pageApiBindings = (function () {
         var env = await window.CRM.api.request('api/v1/search/global', { query: { q: query, limit: 10 } });
         renderResults(env && env.data ? env.data : null);
       } catch (e) {
-        if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">Ошибка поиска.</div></div></div>';
+        if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">' + _t('page.search_error', 'Ошибка поиска.') + '</div></div></div>';
       }
     } else {
-      if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">Введите минимум 2 символа для поиска.</div></div></div>';
+      if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_min_chars', 'Введите минимум 2 символа для поиска.') + '</div></div></div>';
     }
 
     if (form) {
@@ -25930,6 +25971,7 @@ window.CRM.pageApiBindings = (function () {
     if (!select || select.dataset.searchable) return;
     select.dataset.searchable = '1';
     select.style.display = 'none';
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
 
     var isMultiple = select.multiple;
     var wrapper = document.createElement('div');
@@ -25945,7 +25987,7 @@ window.CRM.pageApiBindings = (function () {
     var input = document.createElement('input');
     input.type = 'text';
     input.className = 'form-control crm-searchable-input' + (isMultiple ? ' crm-searchable-input-multi' : '');
-    input.placeholder = 'Выбрать';
+    input.placeholder = _t('page.select_placeholder', 'Выбрать');
     input.autocomplete = 'off';
 
     var dropdown = document.createElement('div');
@@ -25993,7 +26035,7 @@ window.CRM.pageApiBindings = (function () {
           chipsRow.insertBefore(tag, input);
         }
       }
-      input.placeholder = hasSelected ? '' : 'Выбрать';
+      input.placeholder = hasSelected ? '' : _t('page.select_placeholder', 'Выбрать');
     }
 
     function renderOptions(filter) {
@@ -26040,7 +26082,7 @@ window.CRM.pageApiBindings = (function () {
       if (!hasVisible) {
         var empty = document.createElement('div');
         empty.className = 'crm-searchable-empty';
-        empty.textContent = 'Ничего не найдено';
+        empty.textContent = _t('page.select_empty', 'Ничего не найдено');
         dropdown.appendChild(empty);
       }
     }
@@ -26060,7 +26102,7 @@ window.CRM.pageApiBindings = (function () {
       clearBtn = document.createElement('span');
       clearBtn.innerHTML = '&times;';
       clearBtn.className = 'crm-searchable-clear';
-      clearBtn.title = 'Очистить';
+      clearBtn.title = _t('page.clear', 'Очистить');
       wrapper.style.position = 'relative';
       clearBtn.style.display = 'none';
       wrapper.appendChild(clearBtn);
@@ -26247,6 +26289,7 @@ window.CRM.pageApiBindings = (function () {
 
   async function refreshCurrentPage() {
     if (!window.CRM.api || !isProtectedPage()) return;
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
 
     var route = routeName();
 
@@ -26273,7 +26316,7 @@ window.CRM.pageApiBindings = (function () {
           crmGanttBindLegendStatusFilters();
         } catch (error) {
           console.error('[CRM] Gantt render failed', error);
-          setErrorState('Не удалось загрузить диаграмму Ганта');
+          setErrorState(_t('page.gantt_load_error', 'Не удалось загрузить диаграмму Ганта'));
           return;
         }
         // Fire-and-forget secondary loads (users, notifications) — not blocking Gantt first render
@@ -26339,15 +26382,15 @@ window.CRM.pageApiBindings = (function () {
 
     return refreshCurrentPage().catch(function (error) {
     var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
-      ? window.CRM.api.normalizeError(error, 'Ошибка загрузки данных API')
-      : { message: error && error.message ? String(error.message) : 'Ошибка загрузки данных API' };
+      ? window.CRM.api.normalizeError(error, _t('page.api_load_error', 'Ошибка загрузки данных API'))
+      : { message: error && error.message ? String(error.message) : _t('page.api_load_error', 'Ошибка загрузки данных API') };
 
     var message = window.CRM.api && typeof window.CRM.api.formatErrorMessage === 'function'
       ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: true })
-      : String(normalized.message || 'Ошибка загрузки данных API');
+      : String(normalized.message || _t('page.api_load_error', 'Ошибка загрузки данных API'));
 
     if (window.console && typeof window.console.error === 'function') {
-      window.console.error('[CRM] Ошибка загрузки страницы через API', {
+      window.console.error('[CRM] Error loading page via API', {
         route: routeName(),
         message: message,
         error: error,
@@ -26356,7 +26399,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     setErrorState(message);
-    notify(message || 'Часть данных не удалось загрузить', 'warning');
+    notify(message || _t('page.api_partial_load_error', 'Часть данных не удалось загрузить'), 'warning');
   }).finally(function () {
       try {
         document.dispatchEvent(new CustomEvent('crm:page-data-ready', {

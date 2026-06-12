@@ -4,12 +4,21 @@ declare(strict_types=1);
 namespace Api\Model\Recurring;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Language\LanguageManager;
 use PDO;
 
 final class RecurringRepository
 {
-    public function __construct(private readonly PDO $pdo)
+    private LanguageManager $lang;
+
+    public function __construct(private readonly PDO $pdo, ?LanguageManager $lang = null)
     {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
+    }
+
+    private function t(string $key, string $default = ''): string
+    {
+        return $this->lang->get($key, $default !== '' ? $default : $key);
     }
 
     public function list(array $filters): array
@@ -115,19 +124,19 @@ final class RecurringRepository
 
         if ($entityType === 'reminder') {
             $title = $this->fetchSingleTitle(
-                'SELECT CONCAT(\'Напоминание: \', COALESCE(t.title, r.public_id)) AS title
+                'SELECT CONCAT(?, COALESCE(t.title, r.public_id)) AS title
                  FROM reminders r
                  LEFT JOIN tasks t ON t.id = r.task_id
                  WHERE r.public_id = ?
                  LIMIT 1',
-                [$entityPublicId]
+                [$this->t('recurring/messages.entity_reminder') . ': ', $entityPublicId]
             );
             if ($title !== null) {
                 return $title;
             }
 
             $taskTitle = $this->fetchSingleTitle('SELECT title FROM tasks WHERE public_id = ? LIMIT 1', [$entityPublicId]);
-            return $taskTitle !== null ? 'Напоминание по задаче: ' . $taskTitle : null;
+            return $taskTitle !== null ? $this->t('recurring/messages.entity_reminder') . ': ' . $taskTitle : null;
         }
 
         return null;

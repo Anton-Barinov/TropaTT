@@ -1,0 +1,21 @@
+<?php
+return [
+    'dashboard' => '首页',
+    'ideas' => '创意',
+    'tasks' => '任务',
+    'day' => '我的日',
+    'week' => '我的周',
+    'kanban' => '看板',
+    'gantt' => '甘特图',
+    'projects' => '项目',
+    'calendar' => '日历',
+    'counterparties' => '交易方',
+    'teams' => '团队',
+    'analytics' => '分析',
+    'notifications' => '通知',
+    'admin' => '管理',
+    'admin_modules' => '模块',
+    'chat' => '聊天',
+    'api' => '帮助',
+    'menu_loaded' => '菜单已加载',
+];
