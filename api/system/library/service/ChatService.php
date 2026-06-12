@@ -4,13 +4,19 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use PDO;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 
 final class ChatService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly PDO $pdo,
-        private readonly ?NotificationService $notifications = null
+        private readonly ?NotificationService $notifications = null,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function ensureDirectChat(int $actorUserId, int $withUserId): array
@@ -73,7 +79,7 @@ final class ChatService
         }
 
         $actorUserId = (int)($actor['id'] ?? 0);
-        $title = trim((string)($project['title'] ?? '')) ?: 'Проект';
+        $title = trim((string)($project['title'] ?? '')) ?: $this->t('chat/messages.project_fallback_title');
         $participantIds = $this->projectParticipantIds($project);
         $adminIds = $this->projectAdminIds($project);
         if ($participantIds === []) {
@@ -101,7 +107,7 @@ final class ChatService
         }
 
         $actorUserId = (int)($actor['id'] ?? 0);
-        $title = trim((string)($team['title'] ?? '')) ?: 'Команда';
+        $title = trim((string)($team['title'] ?? '')) ?: $this->t('chat/messages.team_fallback_title');
         $participantIds = $this->teamParticipantIds($team);
         $adminIds = $this->teamAdminIds($team);
         if ($participantIds === []) {
@@ -304,16 +310,16 @@ final class ChatService
         $priorityIds = array_values(array_unique(array_filter(array_map('intval', $options['priority_user_ids'] ?? []), static fn(int $id): bool => $id > 0)));
         $participantIds = array_values(array_unique(array_merge($participantIds, $priorityIds)));
         $chatTitle = $this->chatTitle($chat);
-        $actorName = trim((string)($actor['full_name'] ?? '')) ?: trim((string)($actor['login'] ?? 'Пользователь'));
+        $actorName = trim((string)($actor['full_name'] ?? '')) ?: trim((string)($actor['login'] ?? $this->t('chat/messages.default_user_name')));
         $text = trim((string)($message['text'] ?? ''));
         $snippet = mb_substr($text, 0, 160);
         $action = (string)($options['action_code'] ?? 'chat_message_created');
-        $title = (string)($options['title'] ?? 'Новое сообщение в чате');
+        $title = (string)($options['title'] ?? $this->t('chat/messages.new_chat_message'));
 
         return $this->notifications->notifyUsers($participantIds, [
             'category' => 'chat',
             'title' => $title,
-            'body' => $actorName . ' написал в "' . $chatTitle . '": ' . $snippet,
+            'body' => $actorName . ' ' . $this->t('chat/messages.wrote_in_chat') . ' "' . $chatTitle . '": ' . $snippet,
             'entity_type' => 'chat_message',
             'entity_public_id' => $messagePublicId,
             'action_code' => $action,
@@ -542,8 +548,8 @@ final class ChatService
             return $title;
         }
         if (($chat['type'] ?? '') === 'direct') {
-            return 'Личный чат';
+            return $this->t('chat/messages.direct_chat_title');
         }
-        return 'Чат';
+        return $this->t('chat/messages.default_chat_title');
     }
 }

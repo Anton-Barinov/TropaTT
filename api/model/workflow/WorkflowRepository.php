@@ -261,14 +261,14 @@ final class WorkflowRepository
         ]);
     }
 
-    public function createFollowUpTask(string $title, ?int $assigneeId, ?int $projectId, string $sourceTaskPublicId, ?int $creatorUserId): void
+    public function createFollowUpTask(string $title, ?int $assigneeId, ?int $projectId, string $sourceTaskPublicId, ?int $creatorUserId, string $description = ''): void
     {
         $pid = 'tsk_' . bin2hex(random_bytes(8));
         $now = gmdate('Y-m-d H:i:s');
         (new QueryBuilder($this->pdo))->from('tasks')->insert([
             'public_id' => $pid,
             'title' => $title,
-            'description' => $sourceTaskPublicId !== '' ? 'Создано правилом автоматизации из задачи ' . $sourceTaskPublicId : '',
+            'description' => $description,
             'status_code' => 'new',
             'priority_code' => 'normal',
             'assignee_user_id' => $assigneeId,

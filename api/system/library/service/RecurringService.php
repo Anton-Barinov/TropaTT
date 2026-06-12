@@ -4,12 +4,17 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Recurring\RecurringRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Support\Ulid;
 
 final class RecurringService
 {
-    public function __construct(private readonly RecurringRepository $recurring)
+    use TranslatableTrait;
+
+    public function __construct(private readonly RecurringRepository $recurring, LanguageManager $lang)
     {
+        $this->lang = $lang;
     }
 
     public function list(array $filters): array
@@ -140,7 +145,7 @@ final class RecurringService
             (string)($item['entity_public_id'] ?? '')
         );
         $item['title'] = trim((string)($item['title'] ?? ''));
-        if ($item['title'] === '' || preg_match('/^Повтор:\s*(task|project|reminder|calendar_event)\s+/i', $item['title'])) {
+        if ($item['title'] === '' || preg_match('/^' . preg_quote($this->t('recurring/messages.title_prefix'), '/') . ':\s*(task|project|reminder|calendar_event)\s+/i', $item['title'])) {
             $item['title'] = $this->normalizeTitle($item);
         }
         $item['next_run_at'] = $this->nextRunAt($item);
@@ -155,7 +160,7 @@ final class RecurringService
             return mb_substr($title, 0, 255);
         }
 
-        $entityType = trim((string)($input['entity_type'] ?? 'сущность'));
+        $entityType = trim((string)($input['entity_type'] ?? $this->t('recurring/messages.entity_fallback')));
         $entityPublicId = trim((string)($input['entity_public_id'] ?? ''));
         $entityTitle = trim((string)($input['entity_title'] ?? ''));
         if ($entityTitle === '' && $entityPublicId !== '') {
@@ -169,17 +174,17 @@ final class RecurringService
             return mb_substr($entityLabel . ': ' . $entityTitle, 0, 255);
         }
 
-        return mb_substr('Повторяющийся шаблон', 0, 255);
+        return mb_substr($this->t('recurring/messages.default_title'), 0, 255);
     }
 
     private function entityTypeLabel(string $entityType): string
     {
         return match (trim($entityType)) {
-            'task' => 'Задача',
-            'project' => 'Проект',
-            'reminder' => 'Напоминание',
-            'calendar_event' => 'Событие',
-            default => 'Шаблон',
+            'task' => $this->t('recurring/messages.entity_task'),
+            'project' => $this->t('recurring/messages.entity_project'),
+            'reminder' => $this->t('recurring/messages.entity_reminder'),
+            'calendar_event' => $this->t('recurring/messages.entity_calendar_event'),
+            default => $this->t('recurring/messages.entity_template'),
         };
     }
 

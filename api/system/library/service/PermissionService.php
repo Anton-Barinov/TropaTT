@@ -6,52 +6,58 @@ namespace Api\System\Library\Service;
 use Api\Model\Permission\PermissionRepository;
 use Api\Model\Permission\RolePermissionRepository;
 use Api\Model\Role\RoleRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 
 final class PermissionService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly PermissionRepository $permissions,
         private readonly RolePermissionRepository $rolePermissions,
         private readonly RoleRepository $roles,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        LanguageManager $lang
     )
     {
+        $this->lang = $lang;
     }
 
     public function list(): array
     {
         $registry = [
-            'user.view' => 'Просмотр пользователей',
-            'user.manage' => 'Управление пользователями',
-            'role.view' => 'Просмотр ролей',
-            'role.manage' => 'Управление ролями',
-            'project.manage' => 'Управление проектами',
-            'task.manage' => 'Управление задачами',
-            'team.manage' => 'Управление командами',
-            'department.manage' => 'Управление департаментами',
-            'company.manage' => 'Управление компаниями',
-            'client.manage' => 'Управление клиентами',
-            'counterparty.manage' => 'Управление контрагентами',
-            'contact.manage' => 'Управление контактами',
-            'logs.view' => 'Просмотр логов',
-            'settings.manage' => 'Управление настройками',
-            'approval.manage' => 'Управление согласованиями',
-            'recycle_bin.manage' => 'Управление корзиной и восстановлением',
-            'import.manage' => 'Управление импортом данных',
-            'export.manage' => 'Управление экспортом данных',
-            'api_client.view' => 'Просмотр API-клиентов и ключей',
-            'api_client.manage' => 'Управление API-клиентами и ключами',
-            'webhook.manage' => 'Управление webhooks и доставками',
-            'feature_flag.manage' => 'Управление feature flags',
-            'organization.manage' => 'Управление организациями/рабочими пространствами',
-            'ai.use' => 'Использование AI-действий',
-            'ai.admin' => 'Управление AI-настройками и провайдерами',
-            'ai.use_sensitive_context' => 'Использование AI с чувствительным контекстом',
-            'ai.manage_prompts' => 'Управление AI prompt templates',
-            'ai.view_audit' => 'Просмотр AI usage/audit',
-            'ai.view_cron_results' => 'Просмотр результатов AI cron jobs',
-            'ai.manage_cron_jobs' => 'Управление AI cron jobs',
+            'user.view' => $this->t('permission/messages.perm_user_view'),
+            'user.manage' => $this->t('permission/messages.perm_user_manage'),
+            'role.view' => $this->t('permission/messages.perm_role_view'),
+            'role.manage' => $this->t('permission/messages.perm_role_manage'),
+            'project.manage' => $this->t('permission/messages.perm_project_manage'),
+            'task.manage' => $this->t('permission/messages.perm_task_manage'),
+            'team.manage' => $this->t('permission/messages.perm_team_manage'),
+            'department.manage' => $this->t('permission/messages.perm_department_manage'),
+            'company.manage' => $this->t('permission/messages.perm_company_manage'),
+            'client.manage' => $this->t('permission/messages.perm_client_manage'),
+            'counterparty.manage' => $this->t('permission/messages.perm_counterparty_manage'),
+            'contact.manage' => $this->t('permission/messages.perm_contact_manage'),
+            'logs.view' => $this->t('permission/messages.perm_logs_view'),
+            'settings.manage' => $this->t('permission/messages.perm_settings_manage'),
+            'approval.manage' => $this->t('permission/messages.perm_approval_manage'),
+            'recycle_bin.manage' => $this->t('permission/messages.perm_recycle_bin_manage'),
+            'import.manage' => $this->t('permission/messages.perm_import_manage'),
+            'export.manage' => $this->t('permission/messages.perm_export_manage'),
+            'api_client.view' => $this->t('permission/messages.perm_api_client_view'),
+            'api_client.manage' => $this->t('permission/messages.perm_api_client_manage'),
+            'webhook.manage' => $this->t('permission/messages.perm_webhook_manage'),
+            'feature_flag.manage' => $this->t('permission/messages.perm_feature_flag_manage'),
+            'organization.manage' => $this->t('permission/messages.perm_organization_manage'),
+            'ai.use' => $this->t('permission/messages.perm_ai_use'),
+            'ai.admin' => $this->t('permission/messages.perm_ai_admin'),
+            'ai.use_sensitive_context' => $this->t('permission/messages.perm_ai_use_sensitive'),
+            'ai.manage_prompts' => $this->t('permission/messages.perm_ai_manage_prompts'),
+            'ai.view_audit' => $this->t('permission/messages.perm_ai_view_audit'),
+            'ai.view_cron_results' => $this->t('permission/messages.perm_ai_view_cron'),
+            'ai.manage_cron_jobs' => $this->t('permission/messages.perm_ai_manage_cron'),
         ];
 
         $this->permissions->ensureRegistry($registry);

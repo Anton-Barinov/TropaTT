@@ -6,17 +6,23 @@ namespace Api\System\Library\Service;
 use Api\Model\Notification\PushSubscriptionRepository;
 use Api\Model\Notification\PushDispatchQueueRepository;
 use Api\System\Library\Config;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\Ulid;
 
 final class NotificationPushService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly PushSubscriptionRepository $subscriptions,
         private readonly PushDispatchQueueRepository $queue,
         private readonly JsonLogger $logger,
-        private readonly Config $config
+        private readonly Config $config,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function list(array $filters, array $actor): array
@@ -285,8 +291,8 @@ final class NotificationPushService
         $maxSubscriptions = max(1, (int)$this->config->get('notifications.push.max_subscriptions_per_dispatch', 100));
         $now = gmdate('Y-m-d H:i:s');
         $payload = [
-            'title' => 'Тест push-уведомления',
-            'body' => 'Канал push подключен и готов к работе.',
+            'title' => $this->t('notification/messages.test_push_title'),
+            'body' => $this->t('notification/messages.test_push_body'),
             'link' => 'index.php?route=notifications',
             'notification_public_id' => '',
             'category' => 'system',
@@ -353,7 +359,7 @@ final class NotificationPushService
     private function buildPushPayload(array $notification): array
     {
         return [
-            'title' => trim((string)($notification['title'] ?? 'Новое уведомление')) ?: 'Новое уведомление',
+            'title' => trim((string)($notification['title'] ?? $this->t('notification/messages.new_notification'))) ?: $this->t('notification/messages.new_notification'),
             'body' => trim((string)($notification['body'] ?? '')),
             'link' => trim((string)($notification['link'] ?? 'index.php?route=notifications')) ?: 'index.php?route=notifications',
             'notification_public_id' => (string)($notification['public_id'] ?? ''),

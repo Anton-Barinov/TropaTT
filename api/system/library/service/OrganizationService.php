@@ -5,17 +5,23 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Common\UserRepository;
 use Api\Model\Organization\OrganizationRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\Ulid;
 
 final class OrganizationService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly OrganizationRepository $organizations,
         private readonly UserRepository $users,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        ?LanguageManager $lang = null
     )
     {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function list(array $filters, array $actor): array
@@ -277,7 +283,7 @@ final class OrganizationService
         $publicId = Ulid::generate('org');
         $this->organizations->create([
             'public_id' => $publicId,
-            'title' => 'Основное рабочее пространство',
+            'title' => $this->t('organization/messages.default_workspace_title'),
             'slug' => 'main-workspace',
             'created_at' => $now,
             'updated_at' => $now,

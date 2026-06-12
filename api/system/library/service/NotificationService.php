@@ -6,27 +6,24 @@ namespace Api\System\Library\Service;
 use Api\Model\Notification\NotificationRepository;
 use Api\Model\Common\UserRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Support\Ulid;
 
 final class NotificationService
 {
-    private const STATUS_LABELS = [
-        'new' => 'Новая',
-        'in_progress' => 'В работе',
-        'blocked' => 'Заблокирована',
-        'done' => 'Завершена',
-        'completed' => 'Завершена',
-        'archived' => 'В архиве',
-    ];
+    use TranslatableTrait;
 
     public function __construct(
         private readonly NotificationRepository $notifications,
         private readonly UserRepository $users,
         private readonly JsonLogger $logger,
         private readonly ?TaskRepository $tasks = null,
-        private readonly ?NotificationPushService $push = null
+        private readonly ?NotificationPushService $push = null,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function list(array $filters, array $actor): array
@@ -124,8 +121,8 @@ final class NotificationService
         if ($assigneeUserId > 0 && $assigneeUserId !== $actorUserId) {
             $created += $this->notifyUsers([$assigneeUserId], [
                 'category' => 'assignments',
-                'title' => 'Вам назначена новая задача',
-                'body' => $actorName . ' назначил вам задачу "' . $taskTitle . '".',
+                'title' => $this->t('notification/messages.task_assigned_to_you'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.assigned_task_to_you') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => 'task_assigned',
@@ -149,8 +146,8 @@ final class NotificationService
         if ($otherStakeholders !== []) {
             $created += $this->notifyUsers($otherStakeholders, [
                 'category' => 'tasks',
-                'title' => 'Создана новая задача',
-                'body' => $actorName . ' создал задачу "' . $taskTitle . '".',
+                'title' => $this->t('notification/messages.task_created'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.created_task') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => 'task_created',
@@ -192,8 +189,8 @@ final class NotificationService
 
         return $this->notifyUsers($this->taskStakeholderUserIds($after !== [] ? $after : $before), [
             'category' => 'tasks',
-            'title' => 'Статус задачи изменен',
-            'body' => $actorName . ' изменил статус задачи "' . $taskTitle . '" с "' . $this->statusLabel($oldStatus) . '" на "' . $this->statusLabel($newStatus) . '".',
+            'title' => $this->t('notification/messages.task_status_changed'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.changed_task_status') . ' "' . $taskTitle . '" ' . $this->t('notification/messages.from') . ' "' . $this->statusLabel($oldStatus) . '" ' . $this->t('notification/messages.to') . ' "' . $this->statusLabel($newStatus) . '".',
             'entity_type' => 'task',
             'entity_public_id' => $taskPublicId,
             'action_code' => 'task_status_changed',
@@ -236,8 +233,8 @@ final class NotificationService
         if ($afterAssigneeId > 0) {
             $created += $this->notifyUsers([$afterAssigneeId], [
                 'category' => 'assignments',
-                'title' => $beforeAssigneeId > 0 ? 'Задача переназначена вам' : 'Вам назначили задачу',
-                'body' => $actorName . ' назначил вам задачу "' . $taskTitle . '".',
+                'title' => $beforeAssigneeId > 0 ? $this->t('notification/messages.task_reassigned_to_you') : $this->t('notification/messages.task_assigned_to_you'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.assigned_task_to_you') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => $beforeAssigneeId > 0 ? 'task_reassigned' : 'task_assigned',
@@ -256,8 +253,8 @@ final class NotificationService
         if ($beforeAssigneeId > 0) {
             $created += $this->notifyUsers([$beforeAssigneeId], [
                 'category' => 'assignments',
-                'title' => $afterAssigneeId > 0 ? 'Вас сняли с задачи' : 'У задачи снят исполнитель',
-                'body' => $actorName . ' убрал вас из задачи "' . $taskTitle . '".',
+                'title' => $afterAssigneeId > 0 ? $this->t('notification/messages.unassigned_from_task') : $this->t('notification/messages.task_assignee_removed'),
+                'body' => $actorName . ' ' . $this->t('notification.messages.removed_from_task') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => $afterAssigneeId > 0 ? 'task_reassigned' : 'task_unassigned',
@@ -281,8 +278,8 @@ final class NotificationService
         if ($watchers !== []) {
             $created += $this->notifyUsers($watchers, [
                 'category' => 'tasks',
-                'title' => 'Исполнитель задачи изменен',
-                'body' => $actorName . ' изменил исполнителя задачи "' . $taskTitle . '".',
+                'title' => $this->t('notification/messages.task_assignee_changed'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.changed_task_assignee') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => $afterAssigneeId > 0 ? ($beforeAssigneeId > 0 ? 'task_reassigned' : 'task_assigned') : 'task_unassigned',
@@ -323,8 +320,8 @@ final class NotificationService
 
         return $this->notifyUsers($this->taskStakeholderUserIds($after !== [] ? $after : $before), [
             'category' => 'deadlines',
-            'title' => 'Срок задачи изменен',
-            'body' => $actorName . ' изменил срок задачи "' . $taskTitle . '" с ' . $this->dateLabel($beforeDueAt) . ' на ' . $this->dateLabel($afterDueAt) . '.',
+            'title' => $this->t('notification/messages.task_due_changed'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.changed_task_due') . ' "' . $taskTitle . '" ' . $this->t('notification/messages.from') . ' ' . $this->dateLabel($beforeDueAt) . ' ' . $this->t('notification/messages.to') . ' ' . $this->dateLabel($afterDueAt) . '.',
             'entity_type' => 'task',
             'entity_public_id' => $taskPublicId,
             'action_code' => 'task_due_changed',
@@ -369,8 +366,8 @@ final class NotificationService
         if ($threadParticipantIds !== []) {
             $created += $this->notifyUsers($threadParticipantIds, [
                 'category' => 'comments',
-                'title' => 'Новый ответ в обсуждении задачи',
-                'body' => $actorName . ' ответил в обсуждении задачи "' . $taskTitle . '": ' . $snippet,
+                'title' => $this->t('notification/messages.new_comment_reply'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.replied_in_task') . ' "' . $taskTitle . '": ' . $snippet,
                 'entity_type' => 'comment',
                 'entity_public_id' => $commentPublicId !== '' ? $commentPublicId : $taskPublicId,
                 'action_code' => 'task_comment_reply',
@@ -395,8 +392,8 @@ final class NotificationService
         if ($stakeholders !== []) {
             $created += $this->notifyUsers($stakeholders, [
                 'category' => 'comments',
-                'title' => 'Новый комментарий в задаче',
-                'body' => $actorName . ' добавил комментарий к задаче "' . $taskTitle . '": ' . $snippet,
+                'title' => $this->t('notification/messages.new_task_comment'),
+                'body' => $actorName . ' ' . $this->t('notification/messages.added_comment_to_task') . ' "' . $taskTitle . '": ' . $snippet,
                 'entity_type' => 'comment',
                 'entity_public_id' => $commentPublicId !== '' ? $commentPublicId : $taskPublicId,
                 'action_code' => 'task_comment_created',
@@ -520,8 +517,8 @@ final class NotificationService
 
         return $this->notifyUsers($addedUserIds, [
             'category' => 'teams',
-            'title' => 'Вас добавили в команду',
-            'body' => $actorName . ' добавил вас в команду "' . $teamTitle . '".',
+            'title' => $this->t('notification/messages.added_to_team'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.added_you_to_team') . ' "' . $teamTitle . '".',
             'entity_type' => 'team',
             'entity_public_id' => $teamPublicId,
             'action_code' => 'team_member_added',
@@ -551,8 +548,8 @@ final class NotificationService
 
         return $this->notifyUsers($addedUserIds, [
             'category' => 'projects',
-            'title' => 'Вас добавили в проект',
-            'body' => $actorName . ' добавил вас в проект "' . $projectTitle . '".',
+            'title' => $this->t('notification/messages.added_to_project'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.added_you_to_project') . ' "' . $projectTitle . '".',
             'entity_type' => 'project',
             'entity_public_id' => $projectPublicId,
             'action_code' => 'project_member_added',
@@ -581,8 +578,8 @@ final class NotificationService
 
         return $this->notifyUsers([$managerUserId], [
             'category' => 'projects',
-            'title' => 'Вы назначены менеджером проекта',
-            'body' => $actorName . ' назначил вас менеджером проекта "' . $projectTitle . '".',
+            'title' => $this->t('notification/messages.assigned_project_manager'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.assigned_you_project_manager') . ' "' . $projectTitle . '".',
             'entity_type' => 'project',
             'entity_public_id' => $projectPublicId,
             'action_code' => 'project_manager_assigned',
@@ -613,8 +610,8 @@ final class NotificationService
 
         return $this->notifyUsers($targetUserIds, [
             'category' => 'calendar',
-            'title' => 'Вам назначили событие',
-            'body' => $actorName . ' добавил событие "' . $eventTitle . '" в календарь.',
+            'title' => $this->t('notification/messages.calendar_event_assigned'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.added_event_to_calendar') . ' "' . $eventTitle . '".',
             'entity_type' => 'calendar_event',
             'entity_public_id' => $eventPublicId,
             'action_code' => 'calendar_event_assigned',
@@ -648,8 +645,8 @@ final class NotificationService
 
         return $this->notifyUsers($targetUserIds, [
             'category' => 'calendar',
-            'title' => 'Событие календаря обновлено',
-            'body' => $actorName . ' обновил событие "' . $eventTitle . '".',
+            'title' => $this->t('notification/messages.calendar_event_updated'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.updated_event') . ' "' . $eventTitle . '".',
             'entity_type' => 'calendar_event',
             'entity_public_id' => $eventPublicId,
             'action_code' => 'calendar_event_updated',
@@ -683,8 +680,8 @@ final class NotificationService
 
         return $this->notifyUsers($targetUserIds, [
             'category' => 'calendar',
-            'title' => 'Событие календаря отменено',
-            'body' => $actorName . ' отменил событие "' . $eventTitle . '".',
+            'title' => $this->t('notification/messages.calendar_event_cancelled'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.cancelled_event') . ' "' . $eventTitle . '".',
             'entity_type' => 'calendar_event',
             'entity_public_id' => $eventPublicId,
             'action_code' => 'calendar_event_cancelled',
@@ -724,8 +721,8 @@ final class NotificationService
 
         return $this->notifyUsers([$mentionedUserId], [
             'category' => 'mentions',
-            'title' => 'Вас упомянули',
-            'body' => $actorName . ' упомянул вас в обсуждении.',
+            'title' => $this->t('notification/messages.mentioned_you'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.mentioned_you_in_discussion') . '.',
             'entity_type' => $entityType,
             'entity_public_id' => $entityPublicId,
             'action_code' => 'mention_added',
@@ -758,8 +755,8 @@ final class NotificationService
 
         return $this->notifyUsers($reviewerUserIds, [
             'category' => 'approvals',
-            'title' => 'Новый запрос на согласование',
-            'body' => $actorName . ' запросил ваше согласование.',
+            'title' => $this->t('notification/messages.new_approval_request'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.requested_your_approval') . '.',
             'entity_type' => 'approval_request',
             'entity_public_id' => $approvalPublicId,
             'action_code' => 'approval_requested',
@@ -787,7 +784,7 @@ final class NotificationService
 
         $normalizedDecision = $decision === 'rejected' ? 'rejected' : 'approved';
         $actionCode = $normalizedDecision === 'rejected' ? 'approval_step_rejected' : 'approval_step_approved';
-        $title = $normalizedDecision === 'rejected' ? 'Согласование отклонено участником' : 'Согласование одобрено участником';
+        $title = $normalizedDecision === 'rejected' ? $this->t('notification/messages.approval_rejected_by_participant') : $this->t('notification/messages.approval_approved_by_participant');
         $actorUserId = (int)($actor['id'] ?? 0);
         $actorName = $this->actorName($actor);
         $entityType = trim((string)($approval['entity_type'] ?? ''));
@@ -796,7 +793,7 @@ final class NotificationService
         return $this->notifyUsers($targetUserIds, [
             'category' => 'approvals',
             'title' => $title,
-            'body' => $actorName . ($normalizedDecision === 'rejected' ? ' отклонил' : ' одобрил') . ' шаг согласования.',
+            'body' => $actorName . ' ' . ($normalizedDecision === 'rejected' ? $this->t('notification/messages.rejected_approval_step') : $this->t('notification/messages.approved_approval_step')) . '.',
             'entity_type' => 'approval_request',
             'entity_public_id' => $approvalPublicId,
             'action_code' => $actionCode,
@@ -831,10 +828,10 @@ final class NotificationService
 
         return $this->notifyUsers($targetUserIds, [
             'category' => 'approvals',
-            'title' => $status === 'rejected' ? 'Согласование отклонено' : 'Согласование завершено',
+            'title' => $status === 'rejected' ? $this->t('notification/messages.approval_rejected') : $this->t('notification/messages.approval_completed'),
             'body' => $status === 'rejected'
-                ? $actorName . ' завершил согласование со статусом "Отклонено".'
-                : $actorName . ' завершил согласование со статусом "Одобрено".',
+                ? $actorName . ' ' . $this->t('notification.messages.completed_approval_rejected') . '.'
+                : $actorName . ' ' . $this->t('notification.messages.completed_approval_approved') . '.',
             'entity_type' => 'approval_request',
             'entity_public_id' => $approvalPublicId,
             'action_code' => 'approval_finalized',
@@ -864,8 +861,8 @@ final class NotificationService
         }
 
         $taskTitle = trim((string)($reminder['task_title'] ?? ''));
-        $title = 'Напоминание';
-        $body = $taskTitle !== '' ? 'Сработало напоминание по задаче "' . $taskTitle . '".' : 'Сработало запланированное напоминание.';
+        $title = $this->t('notification/messages.reminder');
+        $body = $taskTitle !== '' ? $this->t('notification/messages.reminder_fired_for_task') . ' "' . $taskTitle . '".' : $this->t('notification.messages.reminder_fired_scheduled') . '.';
 
         return $this->notifyUsers([$ownerUserId], [
             'category' => 'reminders',
@@ -904,8 +901,8 @@ final class NotificationService
 
         return $this->notifyUsers([$ownerUserId], [
             'category' => 'reminders',
-            'title' => 'Напоминание перенесено',
-            'body' => $actorName . ' перенес напоминание на ' . $this->dateLabel($afterAt) . '.',
+            'title' => $this->t('notification/messages.reminder_rescheduled'),
+            'body' => $actorName . ' ' . $this->t('notification/messages.rescheduled_reminder_to') . ' ' . $this->dateLabel($afterAt) . '.',
             'entity_type' => 'reminder',
             'entity_public_id' => $reminderPublicId,
             'action_code' => 'reminder_rescheduled',
@@ -935,8 +932,8 @@ final class NotificationService
 
         return $this->notifyUsers([$ownerUserId], [
             'category' => 'reminders',
-            'title' => 'Напоминание выполнено',
-            'body' => $actorName . ' отметил напоминание как выполненное.',
+            'title' => $this->t('notification/messages.reminder_completed'),
+            'body' => $actorName . ' ' . $this->t('notification.messages.marked_reminder_completed') . '.',
             'entity_type' => 'reminder',
             'entity_public_id' => $reminderPublicId,
             'action_code' => 'reminder_completed',
@@ -972,8 +969,8 @@ final class NotificationService
 
             $created += $this->notifyUsers([$userId], [
                 'category' => 'deadlines',
-                'title' => 'Задача просрочена',
-                'body' => 'Задача "' . $this->taskTitle($task) . '" вышла за срок.',
+                'title' => $this->t('notification/messages.task_overdue'),
+                'body' => $this->t('notification/messages.task_overdue_body') . ' "' . $this->taskTitle($task) . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => 'task_overdue_assignee',
@@ -994,8 +991,8 @@ final class NotificationService
             if (!$this->notifiedRecently($userId, 'task_overdue_manager_digest', 'user', $digestEntityPublicId, 43200)) {
                 $created += $this->notifyUsers([$userId], [
                     'category' => 'deadlines',
-                    'title' => 'Сводка по просроченным задачам',
-                    'body' => 'У вас ' . $overdueTotal . ' просроченных задач в управляемых проектах/командах.',
+                    'title' => $this->t('notification/messages.overdue_tasks_digest'),
+                    'body' => $this->t('notification/messages.overdue_tasks_digest_body', '{count}', strval($overdueTotal)),
                     'entity_type' => 'user',
                     'entity_public_id' => $digestEntityPublicId,
                     'action_code' => 'task_overdue_manager_digest',
@@ -1046,7 +1043,7 @@ final class NotificationService
             'public_id' => $publicId,
             'user_id' => $userId,
             'category' => trim((string)($input['category'] ?? 'system')),
-            'title' => trim((string)($input['title'] ?? 'Уведомление')),
+            'title' => trim((string)($input['title'] ?? $this->t('notification/messages.default_title'))),
             'body' => trim((string)($input['body'] ?? '')),
             'entity_type' => $this->nullableString($input['entity_type'] ?? null),
             'entity_public_id' => $this->nullableString($input['entity_public_id'] ?? null),
@@ -1095,7 +1092,7 @@ final class NotificationService
         }
 
         $publicId = trim((string)($task['public_id'] ?? ''));
-        return $publicId !== '' ? $publicId : 'Задача';
+        return $publicId !== '' ? $publicId : $this->t('notification/messages.default_task_title');
     }
 
     /** @param array<string,mixed> $actor */
@@ -1111,7 +1108,7 @@ final class NotificationService
             return $login;
         }
 
-        return 'Система';
+        return $this->t('notification/messages.system_actor');
     }
 
     private function taskLink(string $taskPublicId): string
@@ -1162,17 +1159,26 @@ final class NotificationService
     {
         $normalized = trim($statusCode);
         if ($normalized === '') {
-            return 'Без статуса';
+            return $this->t('notification/messages.status_no_status');
         }
 
-        return self::STATUS_LABELS[$normalized] ?? $normalized;
+        $labels = [
+            'new' => $this->t('notification/messages.status_new'),
+            'in_progress' => $this->t('notification/messages.status_in_progress'),
+            'blocked' => $this->t('notification/messages.status_blocked'),
+            'done' => $this->t('notification/messages.status_done'),
+            'completed' => $this->t('notification/messages.status_completed'),
+            'archived' => $this->t('notification/messages.status_archived'),
+        ];
+
+        return $labels[$normalized] ?? $normalized;
     }
 
     private function dateLabel(?string $value): string
     {
         $normalized = trim((string)$value);
         if ($normalized === '') {
-            return 'без срока';
+            return $this->t('notification/messages.no_due_date');
         }
 
         $timestamp = strtotime($normalized);
@@ -1187,7 +1193,7 @@ final class NotificationService
     {
         $normalized = trim(preg_replace('/\s+/', ' ', $value) ?? $value);
         if ($normalized === '') {
-            return 'Без текста';
+            return $this->t('notification/messages.no_text');
         }
 
         if (function_exists('mb_strlen') && function_exists('mb_substr')) {

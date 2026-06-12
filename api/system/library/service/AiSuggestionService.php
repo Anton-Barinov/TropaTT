@@ -7,11 +7,15 @@ use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\Model\Ai\AiIntentSettingRepository;
 use Api\System\Library\Config;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 use Throwable;
 
 final class AiSuggestionService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly AiProviderRepository $providers,
         private readonly AiRuntimeRepository $runtime,
@@ -30,8 +34,10 @@ final class AiSuggestionService
         private readonly AiProviderService $aiProviderService,
         private readonly FeatureFlagService $featureFlags,
         private readonly JsonLogger $logger,
-        private readonly Config $config
+        private readonly Config $config,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function createTaskSummary(string $taskPublicId, array $input, array $actor): array
@@ -1469,7 +1475,7 @@ final class AiSuggestionService
                 $preview['changes'][] = [
                     'type' => 'update_task_description',
                     'field' => 'task.description',
-                    'label' => 'Обновить описание задачи',
+                    'label' => $this->t('ai_suggestion/messages.update_task_description'),
                     'value' => $improvedDescription,
                     'risk_level' => 'high',
                     'requires_row_version' => true,
@@ -1491,7 +1497,7 @@ final class AiSuggestionService
                 $preview['changes'][] = [
                     'type' => 'create_comment_draft',
                     'field' => 'task_comment_draft.body',
-                    'label' => 'Сохранить AI-черновик комментария',
+                    'label' => $this->t('ai_suggestion/messages.save_ai_comment_draft'),
                     'value' => $commentDraft,
                     'risk_level' => 'low',
                 ];
@@ -1529,7 +1535,7 @@ final class AiSuggestionService
                 $preview['changes'][] = [
                     'type' => 'create_subtask',
                     'field' => 'subtask.title',
-                    'label' => 'Создать подзадачу #' . (string)($index + 1),
+                    'label' => $this->t('ai_suggestion/messages.create_subtask') . ' #' . (string)($index + 1),
                     'value' => $title,
                     'risk_level' => 'medium',
                     'meta' => [
@@ -1564,7 +1570,7 @@ final class AiSuggestionService
                     $preview['changes'][] = [
                         'type' => 'create_checklist_item',
                         'field' => 'task.checklist_item',
-                        'label' => 'Добавить пункт #' . (string)($index + 1),
+                        'label' => $this->t('ai_suggestion/messages.add_checklist_item') . ' #' . (string)($index + 1),
                         'value' => $title,
                         'risk_level' => 'low',
                         'meta' => [
@@ -1592,7 +1598,7 @@ final class AiSuggestionService
                 $preview['changes'][] = [
                     'type' => 'create_comment_draft',
                     'field' => 'task_comment_draft.body',
-                    'label' => 'Сохранить следующий шаг в черновик комментария',
+                    'label' => $this->t('ai_suggestion/messages.save_next_step_to_comment_draft'),
                     'value' => $summary,
                     'risk_level' => 'low',
                 ];
@@ -1606,7 +1612,7 @@ final class AiSuggestionService
                     $preview['changes'][] = [
                         'type' => 'create_follow_up_task',
                         'field' => 'subtask.title',
-                        'label' => 'Создать follow-up подзадачу',
+                        'label' => $this->t('ai_suggestion/messages.create_follow_up_subtask'),
                         'value' => $title,
                         'risk_level' => 'high',
                         'requires_explicit_selection' => true,
@@ -1756,11 +1762,11 @@ final class AiSuggestionService
 
     private function buildTaskSummarySuggestion(array $context): array
     {
-        $title = (string)($context['title'] ?? 'Задача');
+        $title = (string)($context['title'] ?? $this->t('ai_suggestion/messages.default_task_title'));
         $status = (string)($context['status'] ?? 'new');
         $priority = (string)($context['priority'] ?? 'normal');
         $dueAt = trim((string)($context['due_at'] ?? ''));
-        $dueLabel = $dueAt !== '' ? $dueAt : 'без срока';
+        $dueLabel = $dueAt !== '' ? $dueAt : $this->t('ai_suggestion/messages.no_due_date');
 
         $shortDescription = trim((string)($context['description'] ?? ''));
         if (strlen($shortDescription) > 280) {
@@ -1772,7 +1778,7 @@ final class AiSuggestionService
         if ($isDescriptionImprovePrompt) {
             $improvedDescription = $this->buildImprovedTaskDescription($title, $shortDescription, $dueLabel);
             return [
-                'summary' => 'Подготовлен вариант улучшенного описания задачи.',
+                'summary' => $this->t('ai_suggestion/messages.description_improvement_prepared'),
                 'improved_description' => $improvedDescription,
                 'risks' => [],
                 'suggested_tasks' => [],
@@ -1787,14 +1793,14 @@ final class AiSuggestionService
             ];
         }
 
-        $summary = sprintf('Кратко по задаче "%s": статус "%s", приоритет "%s", срок: %s.', $title, $status, $priority, $dueLabel);
+        $summary = sprintf($this->t('ai_suggestion/messages.task_summary_brief'), $title, $status, $priority, $dueLabel);
         if ($shortDescription !== '') {
-            $summary .= ' Контекст: ' . $shortDescription;
+            $summary .= ' ' . $this->t('ai_suggestion/messages.context_label') . $shortDescription;
         }
 
         return [
             'summary' => $summary,
-            'risks' => $dueAt === '' ? ['У задачи не задан срок.'] : [],
+            'risks' => $dueAt === '' ? [$this->t('ai_suggestion/messages.task_no_due_date_risk')] : [],
             'suggested_tasks' => [],
             'checklist_items' => [],
             'calendar_slots' => [],
@@ -1810,15 +1816,15 @@ final class AiSuggestionService
     {
         $normalizedDescription = trim($description);
         if ($normalizedDescription === '') {
-            $normalizedDescription = 'Добавьте текущий контекст и ограничения выполнения.';
+            $normalizedDescription = $this->t('ai_suggestion/messages.add_current_context');
         }
 
-        return 'Цель: выполнить задачу "' . $title . "\" в срок (" . $dueLabel . ").\n"
-            . "Контекст: " . $normalizedDescription . "\n"
-            . "Критерии готовности:\n"
-            . "- Результат проверен и соответствует ожидаемому эффекту.\n"
-            . "- Изменения документированы в комментарии к задаче.\n"
-            . "- Следующий шаг для команды зафиксирован.";
+        return sprintf($this->t('ai_suggestion/messages.goal_line'), $title, $dueLabel) . "\n"
+            . $this->t('ai_suggestion/messages.context_line_prefix') . $normalizedDescription . "\n"
+            . $this->t('ai_suggestion/messages.readiness_criteria')
+            . $this->t('ai_suggestion/messages.result_checked')
+            . $this->t('ai_suggestion/messages.changes_documented')
+            . $this->t('ai_suggestion/messages.next_step_fixed');
     }
 
     /** @param array<int,array<string,mixed>> $candidateTasks */
@@ -1880,7 +1886,7 @@ final class AiSuggestionService
 
             $workItems[] = [
                 'task_public_id' => (string)($task['public_id'] ?? ''),
-                'title' => trim((string)($task['title'] ?? 'Задача')),
+                'title' => trim((string)($task['title'] ?? $this->t('ai_suggestion/messages.default_task_title'))),
                 'project_title' => trim((string)($task['project_title'] ?? '')),
                 'priority_code' => $priority,
                 'status_code' => $status,
@@ -1899,15 +1905,15 @@ final class AiSuggestionService
         foreach ($workItems as $index => $item) {
             $reason = [];
             if (in_array((string)$item['priority_code'], ['urgent', 'critical', 'high'], true)) {
-                $reason[] = 'высокий приоритет';
+                $reason[] = $this->t('ai_suggestion/messages.high_priority');
             }
             if ((string)$item['due_at'] !== '') {
-                $reason[] = 'есть срок';
+                $reason[] = $this->t('ai_suggestion/messages.has_due_date');
             } else {
-                $reason[] = 'без срока, но важна регулярная работа';
+                $reason[] = $this->t('ai_suggestion/messages.no_due_regular_work');
             }
             if ((string)$item['status_code'] === 'blocked') {
-                $reason[] = 'нужна разблокировка';
+                $reason[] = $this->t('ai_suggestion/messages.needs_unblock');
             }
 
             $suggestedTasks[] = [
@@ -1940,7 +1946,7 @@ final class AiSuggestionService
         $bufferMinutes = max(0, $availableMinutes - $plannedMinutes);
         $overloadWarnings = [];
         if ($demandMinutes > $planningBudgetMinutes) {
-            $overloadWarnings[] = 'Перегруз: спрос на ' . $demandMinutes . ' мин. превышает плановый бюджет ' . $planningBudgetMinutes . ' мин.';
+            $overloadWarnings[] = sprintf($this->t('ai_suggestion/messages.overload_demand_exceeds_budget'), $demandMinutes, $planningBudgetMinutes);
         }
 
         foreach ($plannedTasks as $index => &$plannedTask) {
@@ -1950,16 +1956,16 @@ final class AiSuggestionService
         }
         unset($plannedTask);
 
-        $summary = 'План дня: ' . count($plannedTasks) . ' задач в рабочем порядке, фокусное время около ' . $plannedMinutes . ' минут.';
+        $summary = sprintf($this->t('ai_suggestion/messages.day_plan_summary'), count($plannedTasks), $plannedMinutes);
         if ($bufferMinutes > 0) {
-            $summary .= ' Оставлен буфер ' . $bufferMinutes . ' минут для форс-мажоров.';
+            $summary .= ' ' . sprintf($this->t('ai_suggestion/messages.buffer_left'), $bufferMinutes);
         }
         if (count($calendarSlots) > 0) {
-            $summary .= ' Слоты распределены с учетом текущих событий дня.';
+            $summary .= ' ' . $this->t('ai_suggestion/messages.slots_distributed');
         }
         if ($suggestedDeferrals !== []) {
-            $summary .= ' Часть задач перенесена на другой день.';
-            $overloadWarnings[] = 'Часть задач рекомендовано перенести: не хватает доступных рабочих минут.';
+            $summary .= ' ' . $this->t('ai_suggestion/messages.tasks_deferred');
+            $overloadWarnings[] = $this->t('ai_suggestion/messages.tasks_deferred_reason');
         }
 
         return [
@@ -1974,9 +1980,9 @@ final class AiSuggestionService
             'overload_warnings' => $overloadWarnings,
             'suggested_deferrals' => $suggestedDeferrals,
             'checklist_items' => [
-                'Сверить приоритеты перед началом дня.',
-                'Запланировать перерывы между фокус-сессиями.',
-                'В конце дня отметить прогресс и перенести хвосты.',
+                $this->t('ai_suggestion/messages.check_priorities_before_day'),
+                $this->t('ai_suggestion/messages.plan_breaks'),
+                $this->t('ai_suggestion/messages.mark_progress_end_of_day'),
             ],
             'calendar_slots' => $calendarSlots,
             'questions' => [],
@@ -2056,21 +2062,21 @@ final class AiSuggestionService
 
             $reason = [];
             if (in_array($priority, ['urgent', 'critical', 'high'], true)) {
-                $reason[] = 'высокий приоритет';
+                $reason[] = $this->t('ai_suggestion/messages.high_priority');
             }
             if ($dueAt !== '') {
-                $reason[] = 'есть срок';
+                $reason[] = $this->t('ai_suggestion/messages.has_due_date');
             }
             if ($status === 'blocked') {
-                $reason[] = 'есть блокировка';
+                $reason[] = $this->t('ai_suggestion/messages.has_blocker');
             }
             if ($reason === []) {
-                $reason[] = 'плановое выполнение';
+                $reason[] = $this->t('ai_suggestion/messages.planned_execution');
             }
 
             $days[$dayKey]['tasks'][] = [
                 'task_public_id' => (string)($task['public_id'] ?? ''),
-                'title' => trim((string)($task['title'] ?? 'Задача')),
+                'title' => trim((string)($task['title'] ?? $this->t('ai_suggestion/messages.default_task_title'))),
                 'priority_code' => $priority,
                 'status_code' => $status,
                 'due_at' => $dueAt,
@@ -2115,10 +2121,10 @@ final class AiSuggestionService
             $eventsCount = (int)($dayData['events_count'] ?? 0);
             $totalPlannedMinutes += $plannedMinutes;
             if ($plannedMinutes > 360) {
-                $overloadWarnings[] = 'Перегруз на ' . $dayData['label'] . ': задач на ' . $plannedMinutes . ' мин.';
+                $overloadWarnings[] = sprintf($this->t('ai_suggestion/messages.overload_on_day'), $dayData['label'], $plannedMinutes);
             }
             if ($eventsCount >= 4) {
-                $risks[] = $dayData['label'] . ': плотный календарь (' . $eventsCount . ' событий), может не хватить фокуса.';
+                $risks[] = sprintf($this->t('ai_suggestion/messages.dense_calendar'), $dayData['label'], $eventsCount);
             }
             if ($tasksForDay !== []) {
                 $focusStartHour = $eventsCount >= 3 ? 14 : 10;
@@ -2126,11 +2132,11 @@ final class AiSuggestionService
                 $slotEnd = $dayKey . ' ' . str_pad((string)($focusStartHour + 1), 2, '0', STR_PAD_LEFT) . ':00:00';
                 $firstTask = $tasksForDay[0];
                 $suggestedEvents[] = [
-                    'title' => 'Фокус: ' . (string)($firstTask['title'] ?? 'Ключевая задача'),
+                    'title' => $this->t('ai_suggestion/messages.focus_prefix') . (string)($firstTask['title'] ?? $this->t('ai_suggestion/messages.key_task_fallback')),
                     'starts_at' => $slotStart,
                     'ends_at' => $slotEnd,
                     'task_public_id' => (string)($firstTask['task_public_id'] ?? ''),
-                    'reason' => 'Рекомендуемый недельный фокус-блок',
+                    'reason' => $this->t('ai_suggestion/messages.recommended_weekly_focus'),
                 ];
             }
 
@@ -2144,12 +2150,12 @@ final class AiSuggestionService
         }
 
         if ($risks === []) {
-            $risks[] = 'Критичных рисков недели не выявлено.';
+            $risks[] = $this->t('ai_suggestion/messages.no_critical_week_risks');
         }
 
-        $summary = 'План недели: задач в фокусе ' . array_reduce($tasksByDay, static function (int $carry, array $item): int {
+        $summary = sprintf($this->t('ai_suggestion/messages.week_plan_summary'), array_reduce($tasksByDay, static function (int $carry, array $item): int {
             return $carry + count((array)($item['tasks'] ?? []));
-        }, 0) . ', суммарно ' . $totalPlannedMinutes . ' мин.';
+        }, 0), $totalPlannedMinutes);
 
         return [
             'summary' => $summary,
@@ -2169,13 +2175,13 @@ final class AiSuggestionService
     private function weekDayLabel(\DateTimeImmutable $date): string
     {
         $map = [
-            'Mon' => 'Пн',
-            'Tue' => 'Вт',
-            'Wed' => 'Ср',
-            'Thu' => 'Чт',
-            'Fri' => 'Пт',
-            'Sat' => 'Сб',
-            'Sun' => 'Вс',
+            'Mon' => $this->t('ai_suggestion/messages.weekday_mon'),
+            'Tue' => $this->t('ai_suggestion/messages.weekday_tue'),
+            'Wed' => $this->t('ai_suggestion/messages.weekday_wed'),
+            'Thu' => $this->t('ai_suggestion/messages.weekday_thu'),
+            'Fri' => $this->t('ai_suggestion/messages.weekday_fri'),
+            'Sat' => $this->t('ai_suggestion/messages.weekday_sat'),
+            'Sun' => $this->t('ai_suggestion/messages.weekday_sun'),
         ];
 
         $code = $date->format('D');
@@ -2234,25 +2240,25 @@ final class AiSuggestionService
             $score = $priorityScore + $dueScore + $statusPenalty;
             $reasonParts = [];
             if (in_array($priorityCode, ['critical', 'urgent', 'high'], true)) {
-                $reasonParts[] = 'высокий приоритет';
+                $reasonParts[] = $this->t('ai_suggestion/messages.high_priority');
             }
             if ($dueAt !== '') {
-                $reasonParts[] = 'есть срок';
+                $reasonParts[] = $this->t('ai_suggestion/messages.has_due_date');
             }
             if ($dueTs !== false && is_int($dueTs) && $dueTs < $nowTs) {
-                $reasonParts[] = 'задача просрочена';
+                $reasonParts[] = $this->t('ai_suggestion/messages.task_overdue');
             }
             if ($statusCode === 'blocked') {
-                $reasonParts[] = 'нужна разблокировка';
+                $reasonParts[] = $this->t('ai_suggestion/messages.needs_unblock');
                 $score += 40;
             }
             if ($reasonParts === []) {
-                $reasonParts[] = 'плановый фокус';
+                $reasonParts[] = $this->t('ai_suggestion/messages.planned_focus');
             }
 
             $taskMap[$taskPublicId] = [
                 'task_public_id' => $taskPublicId,
-                'title' => trim((string)($task['title'] ?? 'Задача')),
+                'title' => trim((string)($task['title'] ?? $this->t('ai_suggestion/messages.default_task_title'))),
                 'status_code' => $statusCode,
                 'priority_code' => $priorityCode,
                 'due_at' => $dueAt,
@@ -2306,10 +2312,10 @@ final class AiSuggestionService
             }
             $rankedTasks[] = [
                 'task_public_id' => $taskPublicId,
-                'title' => (string)($item['title'] ?? 'Задача'),
+                'title' => (string)($item['title'] ?? $this->t('ai_suggestion/messages.default_task_title')),
                 'recommended_order' => $index + 1,
                 'priority_score' => (int)($scores[$taskPublicId] ?? 0),
-                'reason' => (string)($reasons[$taskPublicId] ?? 'плановый фокус'),
+                'reason' => (string)($reasons[$taskPublicId] ?? $this->t('ai_suggestion/messages.planned_focus')),
                 'status_code' => (string)($item['status_code'] ?? ''),
                 'priority_code' => (string)($item['priority_code'] ?? ''),
                 'due_at' => (string)($item['due_at'] ?? ''),
@@ -2319,7 +2325,7 @@ final class AiSuggestionService
         }
 
         $selectionCount = count($rankedTasks);
-        $summary = 'AI-приоритет рассчитан для ' . $selectionCount . ' ' . ($selectionCount === 1 ? 'задачи' : 'задач')
+        $summary = sprintf($this->t('ai_suggestion/messages.ai_priority_calculated'), $selectionCount, $selectionCount === 1 ? $this->t('ai_suggestion/messages.task_count_singular') : $this->t('ai_suggestion/messages.task_count_plural'))
             . ' (view: ' . ($viewMode !== '' ? $viewMode : 'list') . ').';
 
         return [
@@ -3082,14 +3088,14 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildTaskDecompositionSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Задача'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_task_title')));
         return [
-            'summary' => 'Декомпозиция задачи "' . $title . '" подготовлена.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.decomposition_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => [
-                ['title' => 'Уточнить критерии готовности', 'recommended_minutes' => 20],
-                ['title' => 'Разбить реализацию на 2-3 шага', 'recommended_minutes' => 40],
-                ['title' => 'Проверить результат и оформить заметки', 'recommended_minutes' => 20],
+                ['title' => $this->t('ai_suggestion/messages.clarify_readiness_criteria'), 'recommended_minutes' => 20],
+                ['title' => $this->t('ai_suggestion/messages.split_implementation'), 'recommended_minutes' => 40],
+                ['title' => $this->t('ai_suggestion/messages.check_result_and_notes'), 'recommended_minutes' => 20],
             ],
             'checklist_items' => [],
             'calendar_slots' => [],
@@ -3101,16 +3107,16 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildTaskChecklistSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Задача'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_task_title')));
         return [
-            'summary' => 'Чеклист по задаче "' . $title . '" сформирован.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.checklist_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [
-                ['title' => 'Проверить входные данные и ограничения.', 'description' => '', 'priority' => 'medium', 'done' => false],
-                ['title' => 'Согласовать ожидаемый результат.', 'description' => '', 'priority' => 'medium', 'done' => false],
-                ['title' => 'Выполнить реализацию и self-review.', 'description' => '', 'priority' => 'medium', 'done' => false],
-                ['title' => 'Подготовить короткий отчет о выполнении.', 'description' => '', 'priority' => 'low', 'done' => false],
+                ['title' => $this->t('ai_suggestion/messages.check_input_data'), 'description' => '', 'priority' => 'medium', 'done' => false],
+                ['title' => $this->t('ai_suggestion/messages.agree_expected_result'), 'description' => '', 'priority' => 'medium', 'done' => false],
+                ['title' => $this->t('ai_suggestion/messages.implement_and_self_review'), 'description' => '', 'priority' => 'medium', 'done' => false],
+                ['title' => $this->t('ai_suggestion/messages.prepare_brief_report'), 'description' => '', 'priority' => 'low', 'done' => false],
             ],
             'calendar_slots' => [],
             'questions' => [],
@@ -3124,18 +3130,18 @@ final class AiSuggestionService
         $status = trim((string)($context['status'] ?? 'new'));
         $priority = trim((string)($context['priority'] ?? 'normal'));
         return [
-            'summary' => 'Проверка качества: задача оценена как требующая уточнения acceptance criteria.',
+            'summary' => $this->t('ai_suggestion/messages.quality_check_summary'),
             'risks' => [
-                $status === 'blocked' ? 'Задача находится в blocked-статусе.' : 'Статус и критерии завершения стоит уточнить.',
-                $priority === 'high' ? 'Высокий приоритет требует явного контроля сроков.' : 'Рекомендуется добавить измеримый критерий готовности.',
+                $status === 'blocked' ? $this->t('ai_suggestion/messages.blocked_status_warning') : $this->t('ai_suggestion/messages.status_criteria_needs_clarification'),
+                $priority === 'high' ? $this->t('ai_suggestion/messages.high_priority_deadline_control') : $this->t('ai_suggestion/messages.add_measurable_readiness'),
             ],
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Добавить критерии приемки.',
-                'Зафиксировать владельца и дедлайн.',
+                $this->t('ai_suggestion/messages.add_acceptance_criteria'),
+                $this->t('ai_suggestion/messages.fix_owner_and_deadline'),
             ],
             'calendar_slots' => [],
-            'questions' => ['Что будет считаться окончательно успешным результатом?'],
+            'questions' => [$this->t('ai_suggestion/messages.what_is_successful_result')],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'task_quality'],
         ];
     }
@@ -3143,12 +3149,12 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildTaskNextActionSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Задача'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_task_title')));
         return [
-            'summary' => 'Следующий шаг для "' . $title . '": зафиксировать самый маленький исполнимый action.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.next_step_summary'), $title),
             'risks' => [],
             'suggested_tasks' => [
-                ['title' => 'Сделать первый минимальный шаг по задаче', 'recommended_minutes' => 25, 'recommended_order' => 1],
+                ['title' => $this->t('ai_suggestion/messages.first_minimal_step'), 'recommended_minutes' => 25, 'recommended_order' => 1],
             ],
             'checklist_items' => [],
             'calendar_slots' => [],
@@ -3160,15 +3166,15 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildTaskCommentDraftSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Задача'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_task_title')));
         return [
-            'summary' => 'Черновик комментария к задаче "' . $title . '" подготовлен.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.comment_draft_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [],
             'calendar_slots' => [],
             'questions' => [],
-            'comment_draft' => 'Промежуточный апдейт: проанализирован текущий контекст, следующий шаг определен, блокеров на данный момент нет.',
+            'comment_draft' => $this->t('ai_suggestion/messages.interim_update_draft'),
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'task_comment_draft'],
         ];
     }
@@ -3176,27 +3182,27 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildProjectSummarySuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Проект'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_project_title')));
         $evidence = is_array($context['evidence'] ?? null) ? (array)$context['evidence'] : [];
         $overdueTasks = (int)($evidence['overdue_tasks'] ?? 0);
         $blockedTasks = (int)($evidence['blocked_tasks'] ?? 0);
         $upcomingMilestones = (int)($evidence['milestones_upcoming_7_days'] ?? 0);
         $suggestedTasks = [];
         if ($overdueTasks > 0) {
-            $suggestedTasks[] = 'follow-up task: разобрать ' . $overdueTasks . ' просроченных задач и назначить владельцев.';
+            $suggestedTasks[] = sprintf($this->t('ai_suggestion/messages.follow_up_overdue_tasks'), $overdueTasks);
         }
         if ($blockedTasks > 0) {
-            $suggestedTasks[] = 'reminder: провести синхронизацию по блокерам (' . $blockedTasks . ' шт.).';
+            $suggestedTasks[] = sprintf($this->t('ai_suggestion/messages.reminder_sync_blockers'), $blockedTasks);
         }
         if ($upcomingMilestones > 0) {
-            $suggestedTasks[] = 'calendar event: короткий статус-митинг по ближайшим майлстоунам.';
+            $suggestedTasks[] = $this->t('ai_suggestion/messages.calendar_status_meeting');
         }
         if ($suggestedTasks === []) {
-            $suggestedTasks[] = 'comment draft: зафиксировать стабильный статус проекта и следующий контрольный шаг.';
+            $suggestedTasks[] = $this->t('ai_suggestion/messages.comment_draft_stable_status');
         }
 
         return [
-            'summary' => 'Сводка по проекту "' . $title . '" подготовлена.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.project_summary_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => $suggestedTasks,
             'checklist_items' => [],
@@ -3217,33 +3223,33 @@ final class AiSuggestionService
 
         $risks = [];
         if ($overdueTasks > 0) {
-            $risks[] = 'Сроки: обнаружено просроченных задач — ' . $overdueTasks . '.';
+            $risks[] = sprintf($this->t('ai_suggestion/messages.overdue_tasks_risk'), $overdueTasks);
         }
         if ($blockedTasks > 0) {
-            $risks[] = 'Статусы: заблокированных задач — ' . $blockedTasks . '.';
+            $risks[] = sprintf($this->t('ai_suggestion/messages.blocked_tasks_risk'), $blockedTasks);
         }
         if ($milestonesOverdue > 0) {
-            $risks[] = 'Майлстоуны: просрочено — ' . $milestonesOverdue . '.';
+            $risks[] = sprintf($this->t('ai_suggestion/messages.milestones_overdue_risk'), $milestonesOverdue);
         }
         if ($milestonesUpcoming > 0) {
-            $risks[] = 'Сроки: в ближайшие 7 дней майлстоунов — ' . $milestonesUpcoming . '.';
+            $risks[] = sprintf($this->t('ai_suggestion/messages.milestones_upcoming_risk'), $milestonesUpcoming);
         }
         if ($risks === []) {
-            $risks[] = 'По текущему evidence критичных рисков не выявлено.';
+            $risks[] = $this->t('ai_suggestion/messages.no_critical_risks_current');
         }
 
         return [
-            'summary' => 'Риски проекта проанализированы.',
+            'summary' => $this->t('ai_suggestion/messages.project_risks_analyzed'),
             'risks' => $risks,
             'suggested_tasks' => [
-                'follow-up task: обновить риск-регистр и назначить ответственных.',
-                'reminder: проверить дедлайны и статусы blocked к следующему контрольному слоту.',
+                $this->t('ai_suggestion/messages.follow_up_update_risk_register'),
+                $this->t('ai_suggestion/messages.reminder_check_deadlines_blocked'),
             ],
-            'checklist_items' => ['Обновить риск-регистр по проекту.'],
+            'checklist_items' => [$this->t('ai_suggestion/messages.update_risk_register')],
             'calendar_slots' => [],
             'questions' => [
-                'Кто владелец каждого риска и срок следующего контроля?',
-                'Какие блокеры требуют внешней эскалации?',
+                $this->t('ai_suggestion/messages.who_risk_owner'),
+                $this->t('ai_suggestion/messages.external_escalation_blockers'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'project_risk_summary'],
         ];
@@ -3252,15 +3258,15 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildProjectClientReportSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Проект'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_project_title')));
         return [
-            'summary' => 'Черновик клиентского отчета по проекту "' . $title . '" подготовлен.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.client_report_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => [],
-            'checklist_items' => ['Проверить формулировки перед отправкой клиенту.'],
+            'checklist_items' => [$this->t('ai_suggestion/messages.check_formulations_before_sending')],
             'calendar_slots' => [],
             'questions' => [],
-            'report_draft' => 'Статус проекта: ключевые работы в прогрессе, блокеров не выявлено, следующий шаг согласован.',
+            'report_draft' => $this->t('ai_suggestion/messages.project_status_draft'),
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'project_client_report'],
         ];
     }
@@ -3268,9 +3274,9 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildClientSummarySuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Клиент'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_client_title')));
         return [
-            'summary' => 'Сводка по клиенту "' . $title . '" подготовлена.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.client_summary_prepared'), $title),
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [],
@@ -3283,45 +3289,45 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildClientMeetingPrepSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Клиент'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_client_title')));
         $events = is_array($context['upcoming_events'] ?? null) ? (array)$context['upcoming_events'] : [];
         $openTasks = is_array($context['open_tasks'] ?? null) ? (array)$context['open_tasks'] : [];
         $projects = is_array($context['recent_projects'] ?? null) ? (array)$context['recent_projects'] : [];
 
         $facts = [
-            'Клиент: ' . $title,
-            'Ближайших событий: ' . (string)count($events),
-            'Открытых задач: ' . (string)count($openTasks),
-            'Активных/недавних проектов: ' . (string)count($projects),
+            $this->t('ai_suggestion/messages.client_label') . $title,
+            $this->t('ai_suggestion/messages.upcoming_events_count') . (string)count($events),
+            $this->t('ai_suggestion/messages.open_tasks_count') . (string)count($openTasks),
+            $this->t('ai_suggestion/messages.active_recent_projects_count') . (string)count($projects),
         ];
 
         $checklist = [];
         if ($events !== []) {
             $firstEvent = (array)$events[0];
-            $checklist[] = 'Подтвердить цель встречи "' . trim((string)($firstEvent['title'] ?? '')) . '" и ожидаемый результат.';
+            $checklist[] = sprintf($this->t('ai_suggestion/messages.confirm_meeting_goal'), trim((string)($firstEvent['title'] ?? '')));
         } else {
-            $checklist[] = 'Согласовать слот встречи с клиентом и назначить owner.';
+            $checklist[] = $this->t('ai_suggestion/messages.agree_meeting_slot_with_client');
         }
         if ($openTasks !== []) {
             $firstTask = (array)$openTasks[0];
-            $checklist[] = 'Подготовить апдейт по задаче "' . trim((string)($firstTask['title'] ?? '')) . '" перед встречей.';
+            $checklist[] = sprintf($this->t('ai_suggestion/messages.prepare_task_update_before_meeting'), trim((string)($firstTask['title'] ?? '')));
         }
         if ($projects !== []) {
             $firstProject = (array)$projects[0];
-            $checklist[] = 'Проверить статус проекта "' . trim((string)($firstProject['title'] ?? '')) . '" и ключевые риски.';
+            $checklist[] = sprintf($this->t('ai_suggestion/messages.check_project_status_risks'), trim((string)($firstProject['title'] ?? '')));
         }
 
         return [
-            'summary' => 'Подготовка к встрече по клиенту "' . $title . '" сформирована.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.meeting_prep_prepared'), $title),
             'facts' => $facts,
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => $checklist,
             'calendar_slots' => [],
             'questions' => [
-                'Какие решения нужно получить от клиента на этой встрече?',
-                'Какие блокеры стоит эскалировать заранее?',
-                'Какие следующие шаги и сроки фиксируем сразу после встречи?',
+                $this->t('ai_suggestion/messages.decisions_from_client'),
+                $this->t('ai_suggestion/messages.blockers_to_escalate'),
+                $this->t('ai_suggestion/messages.next_steps_and_deadlines'),
             ],
             'upcoming_events' => array_slice($events, 0, 5),
             'open_tasks' => array_slice($openTasks, 0, 5),
@@ -3333,7 +3339,7 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildClientDataQualitySuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Клиент'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_client_title')));
         $profile = is_array($context['quality_profile'] ?? null) ? (array)$context['quality_profile'] : [];
         $issues = [];
 
@@ -3349,47 +3355,47 @@ final class AiSuggestionService
         $corrDigits = (int)($profile['bank_corr_account_digits'] ?? 0);
 
         if (!$emailPresent && !$phonePresent) {
-            $issues[] = 'Не заполнены контактные каналы: email и телефон.';
+            $issues[] = $this->t('ai_suggestion/messages.contact_channels_empty');
         }
         if ($innDigits > 0 && $innDigits !== 10 && $innDigits !== 12) {
-            $issues[] = 'ИНН выглядит неполным: ожидается 10 или 12 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.inn_incomplete');
         }
         if ($kppDigits > 0 && $kppDigits !== 9) {
-            $issues[] = 'КПП должен содержать 9 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.kpp_must_be_9');
         }
         if ($ogrnDigits > 0 && $ogrnDigits !== 13) {
-            $issues[] = 'ОГРН должен содержать 13 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.ogrn_must_be_13');
         }
         if ($ogrnipDigits > 0 && $ogrnipDigits !== 15) {
-            $issues[] = 'ОГРНИП должен содержать 15 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.ogrnip_must_be_15');
         }
         if ($accountDigits > 0 && $accountDigits !== 20) {
-            $issues[] = 'Расчетный счет должен содержать 20 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.account_must_be_20');
         }
         if ($bikDigits > 0 && $bikDigits !== 9) {
-            $issues[] = 'БИК должен содержать 9 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.bik_must_be_9');
         }
         if ($corrDigits > 0 && $corrDigits !== 20) {
-            $issues[] = 'Корреспондентский счет должен содержать 20 цифр.';
+            $issues[] = $this->t('ai_suggestion/messages.corr_account_must_be_20');
         }
         if (!$websitePresent) {
-            $issues[] = 'У клиента не указан сайт.';
+            $issues[] = $this->t('ai_suggestion/messages.no_website');
         }
 
         $summary = $issues === []
-            ? 'Критичных проблем качества данных по клиенту "' . $title . '" не найдено.'
-            : 'Найдены потенциальные проблемы качества данных по клиенту "' . $title . '".';
+            ? sprintf($this->t('ai_suggestion/messages.no_critical_quality_issues'), $title)
+            : sprintf($this->t('ai_suggestion/messages.quality_issues_found'), $title);
 
         $checklist = $issues === []
-            ? ['Периодически обновлять контакты и реквизиты клиента.']
-            : array_map(static fn(string $item): string => 'Проверить и исправить: ' . $item, array_slice($issues, 0, 6));
+            ? [$this->t('ai_suggestion/messages.periodically_update_contacts')]
+            : array_map(static fn(string $item): string => $this->t('ai_suggestion/messages.check_and_fix') . $item, array_slice($issues, 0, 6));
 
         return [
             'summary' => $summary,
             'facts' => [
-                'Email заполнен: ' . ($emailPresent ? 'да' : 'нет'),
-                'Телефон заполнен: ' . ($phonePresent ? 'да' : 'нет'),
-                'Сайт заполнен: ' . ($websitePresent ? 'да' : 'нет'),
+                $this->t('ai_suggestion/messages.email_filled') . ($emailPresent ? $this->t('ai_suggestion/messages.yes') : $this->t('ai_suggestion/messages.no')),
+                $this->t('ai_suggestion/messages.phone_filled') . ($phonePresent ? $this->t('ai_suggestion/messages.yes') : $this->t('ai_suggestion/messages.no')),
+                $this->t('ai_suggestion/messages.website_filled') . ($websitePresent ? $this->t('ai_suggestion/messages.yes') : $this->t('ai_suggestion/messages.no')),
             ],
             'problems' => $issues,
             'risks' => [],
@@ -3397,8 +3403,8 @@ final class AiSuggestionService
             'checklist_items' => $checklist,
             'calendar_slots' => [],
             'questions' => $issues === []
-                ? ['Нужно ли обновить карточку клиента после последней коммуникации?']
-                : ['Какие поля нужно подтвердить у клиента в ближайшем контакте?'],
+                ? [$this->t('ai_suggestion/messages.update_client_card_question')]
+                : [$this->t('ai_suggestion/messages.confirm_fields_question')],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'client_data_quality'],
         ];
     }
@@ -3406,7 +3412,7 @@ final class AiSuggestionService
     /** @param array<string,mixed> $context */
     private function buildClientSafeReportSuggestion(array $context): array
     {
-        $title = trim((string)($context['title'] ?? 'Клиент'));
+        $title = trim((string)($context['title'] ?? $this->t('ai_suggestion/messages.default_client_title')));
         $events = is_array($context['upcoming_events'] ?? null) ? (array)$context['upcoming_events'] : [];
         $openTasks = is_array($context['open_tasks'] ?? null) ? (array)$context['open_tasks'] : [];
         $projects = is_array($context['recent_projects'] ?? null) ? (array)$context['recent_projects'] : [];
@@ -3415,25 +3421,25 @@ final class AiSuggestionService
         $firstTask = $openTasks !== [] ? trim((string)((array)$openTasks[0])['title'] ?? '') : '';
         $firstProject = $projects !== [] ? trim((string)((array)$projects[0])['title'] ?? '') : '';
 
-        $reportDraft = 'Отчет по клиенту "' . $title . "\"\n"
-            . 'Текущий статус: коммуникация и работы по клиенту продолжаются в плановом режиме.' . "\n"
-            . 'Ближайшие активности: ' . ($firstEvent !== '' ? $firstEvent : 'слот встречи уточняется') . '.' . "\n"
-            . 'Фокус по задачам: ' . ($firstTask !== '' ? $firstTask : 'активные задачи в работе') . '.' . "\n"
-            . 'Контекст проектов: ' . ($firstProject !== '' ? $firstProject : 'актуальные проекты обновляются по графику') . '.' . "\n"
-            . 'Следующий шаг: согласовать с клиентом ближайшие контрольные точки и сроки.';
+        $reportDraft = sprintf($this->t('ai_suggestion/messages.client_report_header'), $title) . "\n"
+            . $this->t('ai_suggestion/messages.current_status_default') . "\n"
+            . $this->t('ai_suggestion/messages.nearest_activities_label') . ($firstEvent !== '' ? $firstEvent : $this->t('ai_suggestion/messages.meeting_slot_pending')) . '.' . "\n"
+            . $this->t('ai_suggestion/messages.task_focus_label') . ($firstTask !== '' ? $firstTask : $this->t('ai_suggestion/messages.active_tasks_in_progress')) . '.' . "\n"
+            . $this->t('ai_suggestion/messages.projects_context_label') . ($firstProject !== '' ? $firstProject : $this->t('ai_suggestion/messages.projects_up_to_date')) . '.' . "\n"
+            . $this->t('ai_suggestion/messages.next_step_agree_deadlines');
 
         return [
-            'summary' => 'Клиент-safe черновик отчета по клиенту "' . $title . '" подготовлен.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.client_safe_report_prepared'), $title),
             'facts' => [
-                'Ближайших событий: ' . (string)count($events),
-                'Открытых задач: ' . (string)count($openTasks),
-                'Недавних проектов: ' . (string)count($projects),
+                $this->t('ai_suggestion/messages.nearest_events_count') . (string)count($events),
+                $this->t('ai_suggestion/messages.open_tasks_count2') . (string)count($openTasks),
+                $this->t('ai_suggestion/messages.recent_projects_count') . (string)count($projects),
             ],
             'risks' => [],
             'suggested_tasks' => [],
-            'checklist_items' => ['Проверить формулировки перед отправкой клиенту.'],
+            'checklist_items' => [$this->t('ai_suggestion/messages.check_formulations_before_sending2')],
             'calendar_slots' => [],
-            'questions' => ['Нужно ли уточнить с клиентом цели следующей встречи?'],
+            'questions' => [$this->t('ai_suggestion/messages.clarify_next_meeting_goals')],
             'report_draft' => $reportDraft,
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'client_safe_report', 'client_safe' => true],
         ];
@@ -3443,13 +3449,13 @@ final class AiSuggestionService
     private function buildCalendarAgendaSuggestion(array $context): array
     {
         return [
-            'summary' => 'Повестка события сформирована.',
+            'summary' => $this->t('ai_suggestion/messages.event_agenda_prepared'),
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Согласовать цель встречи.',
-                'Подготовить ключевые вопросы.',
-                'Зафиксировать follow-up действия.',
+                $this->t('ai_suggestion/messages.agree_meeting_goal'),
+                $this->t('ai_suggestion/messages.prepare_key_questions'),
+                $this->t('ai_suggestion/messages.fix_follow_up_actions'),
             ],
             'calendar_slots' => [],
             'questions' => [],
@@ -3461,7 +3467,7 @@ final class AiSuggestionService
     private function buildDashboardDigestSuggestion(array $context): array
     {
         return [
-            'summary' => 'Дайджест по дашборду за день сформирован.',
+            'summary' => $this->t('ai_suggestion/messages.dashboard_digest_prepared'),
             'risks' => [],
             'suggested_tasks' => [],
             'checklist_items' => [],
@@ -3485,26 +3491,26 @@ final class AiSuggestionService
         $worklog = (int)($analytics['worklog_minutes_week'] ?? 0);
 
         $facts = [
-            'Период анализа: ' . $period,
-            'Всего задач: ' . $total,
-            'Доля завершения: ' . $completion . '%',
-            'Просроченные задачи: ' . $overdue,
-            'Лог времени за неделю: ' . $worklog . ' мин',
+            $this->t('ai_suggestion/messages.analysis_period') . $period,
+            $this->t('ai_suggestion/messages.total_tasks') . $total,
+            $this->t('ai_suggestion/messages.completion_rate') . $completion . '%',
+            $this->t('ai_suggestion/messages.overdue_tasks_count') . $overdue,
+            $this->t('ai_suggestion/messages.weekly_worklog') . $worklog . $this->t('ai_suggestion/messages.minutes_short'),
         ];
         $questions = [
-            'Какая доля просрочек приходится на блокированные задачи?',
-            'Какая команда дает основной вклад в падение completion rate?',
-            'Нужна ли корректировка WIP-лимитов на следующую неделю?',
+            $this->t('ai_suggestion/messages.blocked_tasks_overdue_share'),
+            $this->t('ai_suggestion/messages.team_completion_rate_impact'),
+            $this->t('ai_suggestion/messages.wip_limits_adjustment'),
         ];
 
         return [
-            'summary' => 'Пояснение KPI по аналитике за период "' . $period . '" подготовлено.',
+            'summary' => sprintf($this->t('ai_suggestion/messages.kpi_explanation_prepared'), $period),
             'facts' => $facts,
-            'risks' => $overdue > 0 ? ['Рост просрочек снижает предсказуемость delivery.'] : [],
+            'risks' => $overdue > 0 ? [$this->t('ai_suggestion/messages.overdue_risk_delivery')] : [],
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Сверить задачи с просрочкой и назначить owner для снятия блокеров.',
-                'Проверить команды с низким completion rate и перегрузом по worklog.',
+                $this->t('ai_suggestion/messages.check_overdue_assign_owners'),
+                $this->t('ai_suggestion/messages.check_teams_low_completion'),
             ],
             'calendar_slots' => [],
             'questions' => $questions,
@@ -3526,26 +3532,26 @@ final class AiSuggestionService
             if ($overdue <= 0 && $blocked <= 0) {
                 continue;
             }
-            $title = trim((string)($item['project_title'] ?? $item['title'] ?? 'Проект'));
+            $title = trim((string)($item['project_title'] ?? $item['title'] ?? $this->t('ai_suggestion/messages.default_project_title')));
             $topRisky[] = $title . ': overdue=' . $overdue . ', blocked=' . $blocked;
         }
         if ($topRisky === []) {
-            $topRisky[] = 'Критичных проектных рисков по текущей выборке не обнаружено.';
+            $topRisky[] = $this->t('ai_suggestion/messages.no_critical_project_risks');
         }
 
         return [
-            'summary' => 'Пояснение рисков по аналитике сформировано.',
+            'summary' => $this->t('ai_suggestion/messages.risks_explanation_prepared'),
             'facts' => $topRisky,
             'risks' => $topRisky,
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Обновить риск-регистр проектов с просрочками/блокировками.',
-                'Назначить владельцев и сроки контрольных действий по top-risk проектам.',
+                $this->t('ai_suggestion/messages.update_project_risk_register'),
+                $this->t('ai_suggestion/messages.assign_risk_owners'),
             ],
             'calendar_slots' => [],
             'questions' => [
-                'Какие блокеры требуют внешней эскалации в ближайшие 48 часов?',
-                'Есть ли риски сроков по клиентским обязательствам на этой неделе?',
+                $this->t('ai_suggestion/messages.external_escalation_48h'),
+                $this->t('ai_suggestion/messages.client_deadline_risks'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'analytics_risks_explanation'],
         ];
@@ -3561,32 +3567,32 @@ final class AiSuggestionService
             if (!is_array($row)) {
                 continue;
             }
-            $name = trim((string)($row['user_full_name'] ?? $row['user_login'] ?? 'Пользователь'));
+            $name = trim((string)($row['user_full_name'] ?? $row['user_login'] ?? $this->t('ai_suggestion/messages.default_user_name')));
             $active = (int)($row['assigned_active_tasks'] ?? 0);
             $overdue = (int)($row['assigned_overdue_tasks'] ?? 0);
             $worklog = (int)($row['worklog_minutes_week'] ?? 0);
-            $items[] = $name . ': active=' . $active . ', overdue=' . $overdue . ', worklog=' . $worklog . ' мин';
+            $items[] = $name . ': active=' . $active . ', overdue=' . $overdue . ', worklog=' . $worklog . $this->t('ai_suggestion/messages.minutes_unit');
             if ($active >= 12 || $overdue >= 4 || $worklog >= 2400) {
-                $warnings[] = 'Перегруз: ' . $name . ' (active=' . $active . ', overdue=' . $overdue . ', worklog=' . $worklog . ' мин).';
+                $warnings[] = sprintf($this->t('ai_suggestion/messages.workload_overload_warning'), $name, $active, $overdue, $worklog);
             }
         }
         if ($items === []) {
-            $items[] = 'Недостаточно данных по загрузке исполнителей.';
+            $items[] = $this->t('ai_suggestion/messages.insufficient_workload_data');
         }
 
         return [
-            'summary' => 'AI-сводка по командной загрузке подготовлена.',
+            'summary' => $this->t('ai_suggestion/messages.team_workload_summary_prepared'),
             'facts' => $items,
             'risks' => $warnings,
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Сбалансировать задачи между исполнителями с признаками перегруза.',
-                'Проверить приоритеты и сроки по overdue-задачам в перегруженных командах.',
+                $this->t('ai_suggestion/messages.balance_tasks_between_workers'),
+                $this->t('ai_suggestion/messages.check_priorities_overdue_teams'),
             ],
             'calendar_slots' => [],
             'questions' => [
-                'Какие задачи можно делегировать без потери сроков?',
-                'Какие команды требуют перераспределения capacity на следующем спринте?',
+                $this->t('ai_suggestion/messages.delegatable_tasks'),
+                $this->t('ai_suggestion/messages.capacity_redistribution'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'analytics_team_workload_summary'],
         ];
@@ -3607,22 +3613,22 @@ final class AiSuggestionService
             $events[] = ($createdAt !== '' ? ($createdAt . ' • ') : '') . $eventType . ($details !== '' ? (' • ' . $details) : '');
         }
         if ($events === []) {
-            $events[] = 'Нет security-событий для анализа в текущем окне.';
+            $events[] = $this->t('ai_suggestion/messages.no_security_events');
         }
 
         return [
-            'summary' => 'Сводка по security logs подготовлена (sanitized).',
+            'summary' => $this->t('ai_suggestion/messages.security_logs_prepared'),
             'facts' => $events,
             'risks' => array_values(array_filter($events, static fn(string $row): bool => (bool)preg_match('/forbidden|error|denied|failed|timeout/i', $row))),
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Проверить повторяющиеся denied/error события и владельцев инцидентов.',
-                'Подтвердить, что sensitive-поля в логах остаются замаскированы.',
+                $this->t('ai_suggestion/messages.check_repeated_denied_events'),
+                $this->t('ai_suggestion/messages.confirm_sensitive_fields_masked'),
             ],
             'calendar_slots' => [],
             'questions' => [
-                'Какие события требуют немедленного расследования?',
-                'Есть ли аномальные всплески ошибок по времени или endpoint?',
+                $this->t('ai_suggestion/messages.events_needing_investigation'),
+                $this->t('ai_suggestion/messages.anomalous_error_spikes'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'admin_log_review', 'sanitized_only' => true],
         ];
@@ -3657,22 +3663,22 @@ final class AiSuggestionService
             $risks[] = 'Delivery failed: ' . $webhookId . ' • ' . $eventCode . ' • HTTP ' . $responseCode;
         }
         if ($risks === []) {
-            $risks[] = 'Критичных проблем доставок webhook по текущему окну не обнаружено.';
+            $risks[] = $this->t('ai_suggestion/messages.no_critical_webhook_issues');
         }
 
         return [
-            'summary' => 'AI-анализ здоровья webhook доставок подготовлен.',
+            'summary' => $this->t('ai_suggestion/messages.webhook_health_prepared'),
             'facts' => $facts,
             'risks' => $risks,
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Проверить endpoint и retry policy у webhook-ов с ошибками.',
-                'Проверить, не отключены ли критичные webhook subscriptions.',
+                $this->t('ai_suggestion/messages.check_endpoint_retry_policy'),
+                $this->t('ai_suggestion/messages.check_critical_webhook_subscriptions'),
             ],
             'calendar_slots' => [],
             'questions' => [
-                'Нужна ли корректировка retry/backoff для проблемных endpoint-ов?',
-                'Какие webhook-ы стоит временно перевести в degraded-mode?',
+                $this->t('ai_suggestion/messages.retry_backoff_adjustment'),
+                $this->t('ai_suggestion/messages.degraded_mode_webhooks'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'webhook_health_review'],
         ];
@@ -3703,22 +3709,22 @@ final class AiSuggestionService
             $risks[] = 'Failed run: ' . $ruleTitle . ($errorMasked !== '' ? (' • ' . $errorMasked) : '');
         }
         if ($risks === []) {
-            $risks[] = 'Критичных сбоев workflow runs в текущем окне не найдено.';
+            $risks[] = $this->t('ai_suggestion/messages.no_critical_workflow_failures');
         }
 
         return [
-            'summary' => 'Аудит workflow rules подготовлен.',
+            'summary' => $this->t('ai_suggestion/messages.workflow_audit_prepared'),
             'facts' => $facts,
             'risks' => $risks,
             'suggested_tasks' => [],
             'checklist_items' => [
-                'Проверить disabled rules и их актуальность.',
-                'Проверить failed runs и скорректировать payload/условия правил.',
+                $this->t('ai_suggestion/messages.check_disabled_rules'),
+                $this->t('ai_suggestion.messages.check_failed_runs_payload'),
             ],
             'calendar_slots' => [],
             'questions' => [
-                'Какие правила требуют обновления условий запуска?',
-                'Есть ли повторяющиеся ошибки в workflow-run, требующие шаблонного фикса?',
+                $this->t('ai_suggestion/messages.rules_needing_trigger_update'),
+                $this->t('ai_suggestion.messages.repetitive_workflow_errors'),
             ],
             'meta' => ['mode' => 'safe_mock', 'intent_code' => 'workflow_rule_audit'],
         ];
@@ -3917,14 +3923,14 @@ final class AiSuggestionService
                 continue;
             }
             $taskPublicId = trim((string)($task['task_public_id'] ?? ''));
-            $title = trim((string)($task['title'] ?? 'Задача'));
+            $title = trim((string)($task['title'] ?? $this->t('ai_suggestion/messages.default_task_title')));
             $minutes = max(20, (int)($task['recommended_minutes'] ?? 0));
 
             if ($remaining < 20) {
                 $deferrals[] = [
                     'task_public_id' => $taskPublicId,
                     'title' => $title,
-                    'reason' => 'Не помещается в доступные рабочие минуты текущего дня.',
+                    'reason' => $this->t('ai_suggestion/messages.does_not_fit_available_minutes'),
                 ];
                 continue;
             }
@@ -3934,7 +3940,7 @@ final class AiSuggestionService
                 $deferrals[] = [
                     'task_public_id' => $taskPublicId,
                     'title' => $title,
-                    'reason' => 'Не помещается в доступные рабочие минуты текущего дня.',
+                    'reason' => $this->t('ai_suggestion/messages.does_not_fit_available_minutes'),
                 ];
                 continue;
             }
@@ -3947,7 +3953,7 @@ final class AiSuggestionService
                 $deferrals[] = [
                     'task_public_id' => $taskPublicId,
                     'title' => $title,
-                    'reason' => 'Полный объём задачи не помещается в доступные рабочие минуты текущего дня.',
+                    'reason' => $this->t('ai_suggestion/messages.full_task_volume_too_large'),
                 ];
             }
         }
@@ -3960,28 +3966,28 @@ final class AiSuggestionService
         $priority = strtolower(trim((string)($task['priority_code'] ?? 'normal')));
         $dueAt = trim((string)($task['due_at'] ?? ''));
         if (in_array($priority, ['urgent', 'critical'], true)) {
-            return 'Снимает самый дорогой риск дня для сроков и обязательств.';
+            return $this->t('ai_suggestion/messages.highest_risk_of_day');
         }
         if ($priority === 'high') {
-            return 'Поддерживает ключевой результат проекта и не дает задаче зависнуть.';
+            return $this->t('ai_suggestion/messages.supports_key_project_result');
         }
         if ($dueAt !== '') {
-            return 'Помогает удержать срок без накопления просрочки.';
+            return $this->t('ai_suggestion/messages.helps_meet_deadline');
         }
 
-        return 'Дает понятный прогресс по активной работе без распыления внимания.';
+        return $this->t('ai_suggestion/messages.clear_progress_no_distraction');
     }
 
     private function myDayCareNote(int $minutes, string $status): string
     {
         if ($status === 'blocked') {
-            return 'Начать с короткой разблокировки, не пытаться продавить задачу в одиночку.';
+            return $this->t('ai_suggestion/messages.start_with_short_unblock');
         }
         if ($minutes >= 80) {
-            return 'Работать одним фокус-блоком и сделать паузу перед следующей задачей.';
+            return $this->t('ai_suggestion/messages.focus_block_and_pause');
         }
 
-        return 'Сделать конкретный завершенный шаг и переключаться только после фиксации результата.';
+        return $this->t('ai_suggestion/messages.complete_step_then_switch');
     }
 
     /**
@@ -4112,13 +4118,13 @@ final class AiSuggestionService
     {
         $risks = [];
         if (count($events) >= 5) {
-            $risks[] = 'День перегружен встречами, может не хватить времени на фокус.';
+            $risks[] = $this->t('ai_suggestion/messages.day_overloaded_meetings');
         }
         if (count($suggestedTasks) > 4) {
-            $risks[] = 'Большой объем задач на день, стоит защитить приоритетные слоты.';
+            $risks[] = $this->t('ai_suggestion/messages.large_task_volume');
         }
         if ($risks === []) {
-            $risks[] = 'Критичных рисков на день не выявлено.';
+            $risks[] = $this->t('ai_suggestion/messages.no_critical_day_risks');
         }
 
         return $risks;
@@ -4333,7 +4339,7 @@ final class AiSuggestionService
         $meta['cache'] = $cacheMeta;
         if ($staleReason !== null) {
             $warnings = is_array($payload['warnings'] ?? null) ? (array)$payload['warnings'] : [];
-            $warnings[] = 'AI-результат может быть неактуален: ' . $staleReason . '. Рекомендуется обновить.';
+            $warnings[] = sprintf($this->t('ai_suggestion/messages.stale_result_warning'), $staleReason);
             $payload['warnings'] = array_values(array_unique(array_map('strval', $warnings)));
         }
         $payload['meta'] = $meta;
@@ -4399,7 +4405,7 @@ final class AiSuggestionService
         $payload['meta'] = $meta;
 
         $warnings = is_array($payload['warnings'] ?? null) ? (array)$payload['warnings'] : [];
-        $warnings[] = 'AI сейчас недоступен, показан последний сохраненный результат.';
+        $warnings[] = $this->t('ai_suggestion/messages.ai_unavailable_cached');
         $payload['warnings'] = array_values(array_unique(array_map('strval', $warnings)));
         $normalized['payload'] = $payload;
         return $normalized;
@@ -4653,13 +4659,13 @@ final class AiSuggestionService
             }
             $actions[] = [
                 'type' => $type,
-                'title' => $actionTitle !== '' ? $actionTitle : ($type === 'create_checklist' ? 'Создать чеклист' : 'Добавить пункт чеклиста'),
+                'title' => $actionTitle !== '' ? $actionTitle : ($type === 'create_checklist' ? $this->t('ai_suggestion/messages.create_checklist_title') : $this->t('ai_suggestion/messages.add_checklist_item_title')),
                 'payload' => $actionPayload,
             ];
         }
         if ($actions === []) {
             foreach ($normalizedItems as $item) {
-                $actions[] = ['type' => 'create_checklist_item', 'title' => 'Добавить пункт чеклиста', 'payload' => $item];
+                $actions[] = ['type' => 'create_checklist_item', 'title' => $this->t('ai_suggestion/messages.add_checklist_item_title'), 'payload' => $item];
             }
         }
         return ['ok' => true, 'payload' => ['summary' => $summary, 'checklist' => $normalizedItems, 'suggested_actions' => $actions, 'warnings' => is_array($payload['warnings'] ?? null) ? array_values($payload['warnings']) : [], 'confidence' => in_array((string)($payload['confidence'] ?? 'medium'), ['high','medium','low'], true) ? (string)$payload['confidence'] : 'medium', 'meta' => ['mode' => 'llm', 'parse_ok' => true, 'validation_ok' => true, 'fallback_used' => false, 'raw_text_used' => false]]];
@@ -4682,17 +4688,17 @@ final class AiSuggestionService
                 $items[] = ['label' => $label, 'value' => '—', 'severity' => 'normal'];
             }
             if ($items !== []) {
-                $sections[] = ['title' => 'Обзор', 'items' => $items];
+                $sections[] = ['title' => $this->t('ai_suggestion/messages.overview_section_title'), 'items' => $items];
             }
             foreach (array_slice($legacyRisks, 0, 6) as $risk) {
                 $text = trim((string)$risk);
                 if ($text === '') continue;
-                $insights[] = ['title' => 'Риск', 'text' => $text, 'severity' => 'warning'];
+                $insights[] = ['title' => $this->t('ai_suggestion/messages.risk_insight_title'), 'text' => $text, 'severity' => 'warning'];
             }
             foreach (array_slice($legacyChecklist, 0, 6) as $todo) {
                 $text = trim((string)$todo);
                 if ($text === '') continue;
-                $insights[] = ['title' => 'Фокус', 'text' => $text, 'severity' => 'normal'];
+                $insights[] = ['title' => $this->t('ai_suggestion/messages.focus_insight_title'), 'text' => $text, 'severity' => 'normal'];
             }
         }
         if ($summary === '') {
@@ -4790,7 +4796,7 @@ final class AiSuggestionService
             return ['ok' => true, 'payload' => (array)$parsed['payload'], 'repair_attempted' => false] + $debug;
         }
 
-        $repairPrompt = 'Преобразуй вход в валидный JSON-объект по схеме intent ' . $intentCode . '. Верни только JSON без markdown.' . "\n\nInput:\n" . $rawText;
+        $repairPrompt = sprintf($this->t('ai_suggestion/messages.repair_prompt'), $intentCode) . "\n\nInput:\n" . $rawText;
         $repair = $this->aiProviderService->completeText($providerPublicId, [
             'intent_code' => $intentCode,
             'system_prompt' => $systemPrompt . "\n\n" . $this->structuredResponseInstruction($intentCode),

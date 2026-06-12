@@ -4,10 +4,16 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use PDO;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 
 final class IdeaService
 {
-    public function __construct(private readonly PDO $pdo) {}
+    use TranslatableTrait;
+
+    public function __construct(private readonly PDO $pdo, ?LanguageManager $lang = null) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
+    }
 
     /** @return array<string,mixed>|null */
     public function getByPublicId(string $publicId): ?array
@@ -161,8 +167,8 @@ final class IdeaService
                 $questionType = 'text';
             }
 
-            if ($allowUnknown && !isset($seenKeys['unknown']) && !isset($seenKeys['not_sure']) && !isset($seenOptions[$this->optionFingerprint('Пока не знаю')])) {
-                $normalizedOptions[] = ['key' => 'unknown', 'label' => 'Пока не знаю', 'description' => null];
+            if ($allowUnknown && !isset($seenKeys['unknown']) && !isset($seenKeys['not_sure']) && !isset($seenOptions[$this->optionFingerprint($this->t('idea/messages.dont_know_yet'))])) {
+                $normalizedOptions[] = ['key' => 'unknown', 'label' => $this->t('idea/messages.dont_know_yet'), 'description' => null];
             }
 
             $allowCustom = (int)($q['allow_custom_answer'] ?? $q['allow_custom'] ?? 1);

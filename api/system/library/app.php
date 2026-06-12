@@ -708,7 +708,7 @@ final class App
         $this->container->factory('repository.milestone', fn(Container $c) => new \Api\Model\Milestone\MilestoneRepository($c->get('db.pdo')));
         $this->container->factory('repository.dependency', fn(Container $c) => new \Api\Model\Dependency\DependencyRepository($c->get('db.pdo')));
         $this->container->factory('repository.template', fn(Container $c) => new \Api\Model\Template\TemplateRepository($c->get('db.pdo')));
-        $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo')));
+        $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo'), $c->get('lang')));
         $this->container->factory('repository.custom_field', fn(Container $c) => new \Api\Model\Custom_field\CustomFieldRepository($c->get('db.pdo')));
         $this->container->factory('repository.workflow', fn(Container $c) => new \Api\Model\Workflow\WorkflowRepository($c->get('db.pdo')));
         $this->container->factory('repository.sla', fn(Container $c) => new \Api\Model\Sla\SlaRepository($c->get('db.pdo')));
@@ -815,7 +815,8 @@ final class App
         $this->container->factory('service.task_board', fn(Container $c) => new TaskBoardService(
             $c->get('repository.task'),
             $c->get('repository.status'),
-            $c->get('service.task')
+            $c->get('service.task'),
+            $c->get('lang')
         ));
         $this->container->factory('service.comment', fn(Container $c) => new CommentService(
             $c->get('repository.comment'),
@@ -877,7 +878,8 @@ final class App
             $c->get('policy.hierarchy')
         ));
         $this->container->factory('service.recurring', fn(Container $c) => new \Api\System\Library\Service\RecurringService(
-            $c->get('repository.recurring')
+            $c->get('repository.recurring'),
+            $c->get('lang')
         ));
         $this->container->factory('service.custom_field', fn(Container $c) => new \Api\System\Library\Service\CustomFieldService(
             $c->get('repository.custom_field')
@@ -885,7 +887,8 @@ final class App
         $this->container->factory('service.workflow', fn(Container $c) => new WorkflowService(
             $c->get('repository.workflow'),
             $c->get('repository.user_management'),
-            $c->get('policy.hierarchy')
+            $c->get('policy.hierarchy'),
+            $c->get('lang')
         ));
         $this->container->factory('service.sla', fn(Container $c) => new SlaService(
             $c->get('repository.sla')
@@ -998,7 +1001,8 @@ final class App
             $c->get('repository.permission'),
             $c->get('repository.role_permission'),
             $c->get('repository.role'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('lang')
         ));
         $this->container->factory('service.admin_role_matrix', fn(Container $c) => new AdminRoleMatrixService(
             $c->get('service.permission')
@@ -1059,7 +1063,8 @@ final class App
         ));
         $this->container->factory('service.chat', fn(Container $c) => new ChatService(
             $c->get('db.pdo'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            $c->get('lang')
         ));
         $this->container->factory('service.notification_push', fn(Container $c) => new \Api\System\Library\Service\NotificationPushService(
             $c->get('repository.notification_push_subscription'),

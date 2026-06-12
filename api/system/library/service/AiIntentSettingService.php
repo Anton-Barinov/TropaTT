@@ -8,10 +8,14 @@ use Api\Model\Ai\AiJsonSchemaRepository;
 use Api\Model\Ai\AiPromptTemplateRepository;
 use Api\Model\Ai\AiProviderRepository;
 use Api\System\Library\Config;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 
 final class AiIntentSettingService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly AiIntentSettingRepository $repo,
         private readonly AiJsonSchemaRepository $schemas,
@@ -19,8 +23,10 @@ final class AiIntentSettingService
         private readonly AiProviderRepository $providers,
         private readonly SettingService $settings,
         private readonly JsonLogger $logger,
-        private readonly Config $config
+        private readonly Config $config,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function list(array $filters): array
@@ -198,7 +204,7 @@ final class AiIntentSettingService
             'intent_code' => $intentCode,
             'locale' => 'ru-ru',
             'version' => 1,
-            'template_text' => 'Сформируй безопасный структурированный ответ для intent `' . $intentCode . '`. Не включай секреты, токены, пароли и внутренние ключи.',
+            'template_text' => $this->t('ai/messages.default_prompt_template', '{intent}', $intentCode),
             'is_active' => 1,
             'created_by_user_id' => null,
             'updated_by_user_id' => null,

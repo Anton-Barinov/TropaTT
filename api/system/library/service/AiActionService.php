@@ -6,10 +6,14 @@ namespace Api\System\Library\Service;
 use Api\Model\Ai\AiProviderRepository;
 use Api\Model\Ai\AiRuntimeRepository;
 use Api\Model\Ai\AiIntentSettingRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 
 final class AiActionService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly AiProviderRepository $providers,
         private readonly AiRuntimeRepository $runtime,
@@ -19,8 +23,10 @@ final class AiActionService
         private readonly FeatureFlagService $featureFlags,
         private readonly AiRateLimitService $rateLimit,
         private readonly AiCostLimitService $costLimit,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     /** @return list<string> */
@@ -112,7 +118,7 @@ final class AiActionService
         ai_diag_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?"));
         $mode = $completionOk ? 'llm' : 'safe_mock';
         $errorCode = $completionOk ? null : (string)($completion['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
-        $summary = $rawText !== '' ? $rawText : 'AI не смог сформировать ответ у провайдера. Показан безопасный fallback.';
+        $summary = $rawText !== '' ? $rawText : $this->t('ai/messages.fallback_error');
 
         $jobPublicId = $this->runtime->createJob([
             'job_type' => 'interactive',

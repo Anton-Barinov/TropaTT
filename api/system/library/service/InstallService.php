@@ -8,6 +8,8 @@ use Api\System\Library\Config;
 use Api\System\Library\Database\ConnectionManager;
 use Api\System\Library\Database\Migration\MigrationManager;
 use Api\System\Library\Database\SchemaManager;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Support\Ulid;
@@ -16,6 +18,8 @@ use Throwable;
 
 final class InstallService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly Config $config,
         private readonly ConnectionManager $connections,
@@ -23,7 +27,9 @@ final class InstallService
         private readonly MigrationManager $migrations,
         private readonly PasswordHasher $hasher,
         private readonly JsonLogger $logger,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     public function isInstalled(): bool
@@ -73,7 +79,7 @@ final class InstallService
         $adminLogin = trim((string)($payload['root_login'] ?? ''));
         $adminPassword = (string)($payload['root_password'] ?? '');
         $adminToken = trim((string)($payload['root_token'] ?? ''));
-        $adminName = trim((string)($payload['root_name'] ?? 'Главный администратор'));
+        $adminName = trim((string)($payload['root_name'] ?? $this->t('install/messages.default_admin_name')));
         $adminEmail = trim((string)($payload['root_email'] ?? ''));
         $locale = trim((string)($payload['default_language'] ?? 'en-gb'));
 

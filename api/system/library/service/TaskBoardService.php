@@ -5,22 +5,20 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Status\StatusRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 
 final class TaskBoardService
 {
-    /** @var array<int,array{code:string,title:string,color:string,sort_order:int}> */
-    private array $fallbackColumns = [
-        ['code' => 'new', 'title' => 'Новые', 'color' => '#64748b', 'sort_order' => 10],
-        ['code' => 'in_progress', 'title' => 'В работе', 'color' => '#0ea5e9', 'sort_order' => 20],
-        ['code' => 'blocked', 'title' => 'Блокировано', 'color' => '#ef4444', 'sort_order' => 30],
-        ['code' => 'done', 'title' => 'Выполнено', 'color' => '#22c55e', 'sort_order' => 40],
-    ];
+    use TranslatableTrait;
 
     public function __construct(
         private readonly TaskRepository $tasks,
         private readonly StatusRepository $statuses,
-        private readonly TaskService $taskService
+        private readonly TaskService $taskService,
+        LanguageManager $lang
     ) {
+        $this->lang = $lang;
     }
 
     public function board(array $filters, array $actor): array
@@ -111,7 +109,12 @@ final class TaskBoardService
         ]);
 
         if ($items === []) {
-            return $this->fallbackColumns;
+            return [
+                ['code' => 'new', 'title' => $this->t('task/messages.status_new'), 'color' => '#64748b', 'sort_order' => 10],
+                ['code' => 'in_progress', 'title' => $this->t('task/messages.status_in_progress'), 'color' => '#0ea5e9', 'sort_order' => 20],
+                ['code' => 'blocked', 'title' => $this->t('task/messages.status_blocked'), 'color' => '#ef4444', 'sort_order' => 30],
+                ['code' => 'done', 'title' => $this->t('task/messages.status_done'), 'color' => '#22c55e', 'sort_order' => 40],
+            ];
         }
 
         $columns = [];
@@ -255,7 +258,7 @@ final class TaskBoardService
         return match ($swimlaneBy) {
             'assignee' => [
                 (string)($item['assignee_user_public_id'] ?? 'unassigned'),
-                (string)($item['assignee_name'] ?? 'Не назначено'),
+                (string)($item['assignee_name'] ?? $this->t('task/messages.unassigned')),
             ],
             'priority' => [
                 (string)($item['priority_code'] ?? 'normal'),
@@ -263,9 +266,9 @@ final class TaskBoardService
             ],
             'project' => [
                 (string)($item['project_public_id'] ?? 'no_project'),
-                (string)($item['project_title'] ?? 'Без проекта'),
+                (string)($item['project_title'] ?? $this->t('task/messages.no_project')),
             ],
-            default => ['default', 'Все задачи'],
+            default => ['default', $this->t('task/messages.all_tasks')],
         };
     }
 
