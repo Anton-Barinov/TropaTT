@@ -2013,6 +2013,7 @@ return array (
     'option_ru' => 'Русский',
     'option_en' => 'English',
     'option_zh' => '中文',
+    'option_es' => 'Español',
     'option_fr' => 'Français',
     'btn_login' => 'Se connecter',
     'hint' => 'Après la connexion, vous verrez l\'espace de travail principal avec les tâches et projets.',
