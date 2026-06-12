@@ -103,7 +103,7 @@ final class I18n
 
         $candidate = self::normalizeLocaleCode($candidate);
 
-        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de'], true)) {
+        if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'], true)) {
             $candidate = 'ru-ru';
         }
 
@@ -119,6 +119,8 @@ final class I18n
             'zh', 'cn', 'zh-hans' => 'zh-cn',
             'es' => 'es-es',
             'pt' => 'pt-br',
+            'de' => 'de-de',
+            'fr' => 'fr-fr',
             default => $value,
         };
     }

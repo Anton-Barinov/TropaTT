@@ -1,0 +1,23 @@
+<?php
+return [
+    'list' => 'Liste des utilisateurs',
+    'detail' => 'Détails de l\'utilisateur',
+    'created' => 'Utilisateur créé',
+    'updated' => 'Utilisateur mis à jour',
+    'deleted' => 'Utilisateur désactivé',
+    'not_found' => 'Utilisateur introuvable',
+    'forbidden_hierarchy' => 'Impossible de modifier un utilisateur ancêtre',
+    'root_protected' => 'L\'utilisateur racine est protégé',
+    'max_120' => 'Maximum 120 caractères',
+    'create_failed' => 'Échec de la création de l\'utilisateur',
+    'update_failed' => 'Échec de la mise à jour de l\'utilisateur',
+    'delete_failed' => 'Échec de la suppression de l\'utilisateur',
+    'token_info_failed' => 'Échec de la récupération des données de jeton de l\'utilisateur',
+    'token_info' => 'Données de jeton de l\'utilisateur',
+    'token_rotate_failed' => 'Échec de la rotation du jeton de l\'utilisateur',
+    'token_rotated' => 'Jeton de l\'utilisateur roté',
+    'token_revoke_failed' => 'Échec de la révocation du jeton de l\'utilisateur',
+    'token_revoked' => 'Jeton de l\'utilisateur révoqué',
+    'activity_failed' => 'Échec de la récupération de l\'activité de l\'utilisateur',
+    'activity' => 'Activité de l\'utilisateur',
+];

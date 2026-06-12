@@ -50,6 +50,8 @@ window.CRM.api = (function () {
     if (value === 'zh' || value === 'cn' || value === 'zh-hans') return 'zh-cn';
     if (value === 'es') return 'es-es';
     if (value === 'pt') return 'pt-br';
+    if (value === 'de') return 'de-de';
+    if (value === 'fr') return 'fr-fr';
     return value;
   }
 

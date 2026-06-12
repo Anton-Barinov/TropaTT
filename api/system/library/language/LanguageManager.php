@@ -36,6 +36,8 @@ final class LanguageManager
             'zh', 'cn', 'zh-hans' => 'zh-cn',
             'es' => 'es-es',
             'pt' => 'pt-br',
+            'de' => 'de-de',
+            'fr' => 'fr-fr',
             default => $value,
         };
     }

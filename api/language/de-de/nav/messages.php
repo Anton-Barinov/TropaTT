@@ -1,0 +1,21 @@
+<?php
+return [
+    'dashboard' => 'Dashboard',
+    'ideas' => 'Ideas',
+    'tasks' => 'Tasks',
+    'day' => 'My day',
+    'week' => 'My week',
+    'kanban' => 'Kanban',
+    'gantt' => 'Gantt',
+    'projects' => 'Projects',
+    'calendar' => 'Calendar',
+    'counterparties' => 'Counterparties',
+    'teams' => 'Teams',
+    'analytics' => 'Analytics',
+    'notifications' => 'Notifications',
+    'admin' => 'Administration',
+    'admin_modules' => 'Modules',
+    'chat' => 'Chats',
+    'api' => 'Documentation',
+    'menu_loaded' => 'Menu loaded',
+];
