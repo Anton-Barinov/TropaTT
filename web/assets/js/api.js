@@ -43,6 +43,14 @@ window.CRM.api = (function () {
     'admin-ai': ['ai.admin']
   };
 
+  function normalizeLocaleCode(locale) {
+    var value = String(locale || '').trim().toLowerCase().replace('_', '-');
+    if (value === 'ru') return 'ru-ru';
+    if (value === 'en') return 'en-gb';
+    if (value === 'zh' || value === 'cn' || value === 'zh-hans') return 'zh-cn';
+    return value;
+  }
+
   function getBaseUrl() {
     var preset = window.CRM && window.CRM.config && window.CRM.config.apiBaseUrl;
     if (preset) return preset;
@@ -310,7 +318,7 @@ window.CRM.api = (function () {
   }
 
   function setPreferredLocale(locale) {
-    var value = String(locale || '').trim().toLowerCase();
+    var value = normalizeLocaleCode(locale);
     if (!value) {
       storageRemove(LOCALE_KEY);
       document.cookie = 'crm_locale=; path=/; max-age=0; samesite=lax';
@@ -324,7 +332,7 @@ window.CRM.api = (function () {
   }
 
   function getPreferredLocale() {
-    return String(storageGet(LOCALE_KEY, 'ru-ru') || 'ru-ru').toLowerCase();
+    return normalizeLocaleCode(storageGet(LOCALE_KEY, 'ru-ru') || 'ru-ru');
   }
 
   function createIdempotencyKey(prefix) {
@@ -905,9 +913,6 @@ window.CRM.api = (function () {
     var envelope = await request('api/v1/auth/me', { method: 'GET' });
     var user = envelope.data && envelope.data.user ? envelope.data.user : null;
     var csrfToken = envelope.data && envelope.data.csrf_token ? envelope.data.csrf_token : '';
-    if (user && user.locale) {
-      setPreferredLocale(String(user.locale));
-    }
     setCsrfToken(csrfToken);
     setUser(user);
     return envelope;

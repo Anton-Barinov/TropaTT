@@ -41,7 +41,7 @@ final class AuthController extends BaseController
             ]);
         }
 
-        $locale = (string)($result['user']['locale'] ?? '');
+        $locale = trim((string)$this->request()->locale);
         if ($locale !== '') {
             $this->lang()->setLocale($locale);
         }

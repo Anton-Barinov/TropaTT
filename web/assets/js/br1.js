@@ -67,6 +67,14 @@ window.CRM.br1 = (function () {
     '[data-calendar-ai-generate-btn]': 'calendar_event_agenda'
   };
 
+  function normalizeLocaleCode(locale) {
+    var value = String(locale || '').trim().toLowerCase().replace('_', '-');
+    if (value === 'ru') return 'ru-ru';
+    if (value === 'en') return 'en-gb';
+    if (value === 'zh' || value === 'cn' || value === 'zh-hans') return 'zh-cn';
+    return value;
+  }
+
   function escapeHtml(value) {
     if (window.CRM.text && typeof window.CRM.text.escapeHtml === 'function') {
       return window.CRM.text.escapeHtml(value);
@@ -828,11 +836,30 @@ window.CRM.br1 = (function () {
 
     var localeSelect = loginForm.querySelector('[name="locale"]');
     if (localeSelect && window.CRM.api && typeof window.CRM.api.getPreferredLocale === 'function') {
-      localeSelect.value = window.CRM.api.getPreferredLocale();
+      var preferredLocale = normalizeLocaleCode(window.CRM.api.getPreferredLocale());
+      var activeLocale = normalizeLocaleCode((window.CRM && window.CRM.locale) || '');
+      var queryLocale = normalizeLocaleCode(new URLSearchParams(window.location.search || '').get('lang') || '');
+      if (queryLocale && typeof window.CRM.api.setPreferredLocale === 'function') {
+        window.CRM.api.setPreferredLocale(activeLocale || queryLocale);
+        preferredLocale = activeLocale || queryLocale;
+      }
+      localeSelect.value = preferredLocale;
+      if (!queryLocale && preferredLocale && activeLocale && preferredLocale !== activeLocale) {
+        var localeUrl = new URL(window.location.href);
+        localeUrl.searchParams.set('route', 'login');
+        localeUrl.searchParams.set('lang', preferredLocale);
+        window.location.replace(localeUrl.toString());
+        return;
+      }
       localeSelect.addEventListener('change', function () {
+        var nextLocale = String(localeSelect.value || '').trim().toLowerCase();
         if (typeof window.CRM.api.setPreferredLocale === 'function') {
-          window.CRM.api.setPreferredLocale(localeSelect.value);
+          window.CRM.api.setPreferredLocale(nextLocale);
         }
+        var localeUrl = new URL(window.location.href);
+        localeUrl.searchParams.set('route', 'login');
+        localeUrl.searchParams.set('lang', nextLocale);
+        window.location.href = localeUrl.toString();
       });
     }
 
@@ -953,11 +980,30 @@ window.CRM.br1 = (function () {
 
     var localeSelect = loginForm.querySelector('[name="locale"]');
     if (localeSelect && window.CRM.api && typeof window.CRM.api.getPreferredLocale === 'function') {
-      localeSelect.value = window.CRM.api.getPreferredLocale();
+      var preferredLocale = normalizeLocaleCode(window.CRM.api.getPreferredLocale());
+      var activeLocale = normalizeLocaleCode((window.CRM && window.CRM.locale) || '');
+      var queryLocale = normalizeLocaleCode(new URLSearchParams(window.location.search || '').get('lang') || '');
+      if (queryLocale && typeof window.CRM.api.setPreferredLocale === 'function') {
+        window.CRM.api.setPreferredLocale(activeLocale || queryLocale);
+        preferredLocale = activeLocale || queryLocale;
+      }
+      localeSelect.value = preferredLocale;
+      if (!queryLocale && preferredLocale && activeLocale && preferredLocale !== activeLocale) {
+        var localeUrl = new URL(window.location.href);
+        localeUrl.searchParams.set('route', 'login');
+        localeUrl.searchParams.set('lang', preferredLocale);
+        window.location.replace(localeUrl.toString());
+        return;
+      }
       localeSelect.addEventListener('change', function () {
+        var nextLocale = String(localeSelect.value || '').trim().toLowerCase();
         if (typeof window.CRM.api.setPreferredLocale === 'function') {
-          window.CRM.api.setPreferredLocale(localeSelect.value);
+          window.CRM.api.setPreferredLocale(nextLocale);
         }
+        var localeUrl = new URL(window.location.href);
+        localeUrl.searchParams.set('route', 'login');
+        localeUrl.searchParams.set('lang', nextLocale);
+        window.location.href = localeUrl.toString();
       });
     }
 

@@ -1,5 +1,12 @@
 window.CRM = window.CRM || {};
 window.CRM.ai = (function () {
+  function t(key, fallback) {
+    if (window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      return window.CRM.i18n.t(key, fallback);
+    }
+    return typeof fallback === 'undefined' ? key : fallback;
+  }
+
   var drawerHandlers = {
     onApply: null,
     onDismiss: null,
@@ -28,112 +35,112 @@ window.CRM.ai = (function () {
   };
   var intentUiStateCopy = {
     'task_summary': {
-      empty: window.CRM.i18n.t('js.ai.task_summary_empty', 'Task AI summary not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_summary_error', 'Failed to generate task AI summary.')
+      empty: t('js.ai.task_summary_empty', 'Task AI summary not generated yet.'),
+      error: t('js.ai.task_summary_error', 'Failed to generate task AI summary.')
     },
     'task_decomposition': {
-      empty: window.CRM.i18n.t('js.ai.task_decomposition_empty', 'Task AI decomposition not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_decomposition_error', 'Failed to generate task AI decomposition.')
+      empty: t('js.ai.task_decomposition_empty', 'Task AI decomposition not generated yet.'),
+      error: t('js.ai.task_decomposition_error', 'Failed to generate task AI decomposition.')
     },
     'task_checklist': {
-      empty: window.CRM.i18n.t('js.ai.task_checklist_empty', 'Task AI checklist not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_checklist_error', 'Failed to generate task AI checklist.')
+      empty: t('js.ai.task_checklist_empty', 'Task AI checklist not generated yet.'),
+      error: t('js.ai.task_checklist_error', 'Failed to generate task AI checklist.')
     },
     'task_quality': {
-      empty: window.CRM.i18n.t('js.ai.task_quality_empty', 'Task AI quality assessment not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_quality_error', 'Failed to generate task AI quality assessment.')
+      empty: t('js.ai.task_quality_empty', 'Task AI quality assessment not generated yet.'),
+      error: t('js.ai.task_quality_error', 'Failed to generate task AI quality assessment.')
     },
     'task_next_action': {
-      empty: window.CRM.i18n.t('js.ai.task_next_action_empty', 'Next step AI recommendation not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_next_action_error', 'Failed to generate next step AI recommendation.')
+      empty: t('js.ai.task_next_action_empty', 'Next step AI recommendation not generated yet.'),
+      error: t('js.ai.task_next_action_error', 'Failed to generate next step AI recommendation.')
     },
     'task_comment_draft': {
-      empty: window.CRM.i18n.t('js.ai.task_comment_draft_empty', 'Comment AI draft not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_comment_draft_error', 'Failed to generate comment AI draft.')
+      empty: t('js.ai.task_comment_draft_empty', 'Comment AI draft not generated yet.'),
+      error: t('js.ai.task_comment_draft_error', 'Failed to generate comment AI draft.')
     },
     'project_summary': {
-      empty: window.CRM.i18n.t('js.ai.project_summary_empty', 'Project AI summary not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.project_summary_error', 'Failed to generate project AI summary.')
+      empty: t('js.ai.project_summary_empty', 'Project AI summary not generated yet.'),
+      error: t('js.ai.project_summary_error', 'Failed to generate project AI summary.')
     },
     'project_risk_summary': {
-      empty: window.CRM.i18n.t('js.ai.project_risk_summary_empty', 'Project AI risk analysis not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.project_risk_summary_error', 'Failed to generate project AI risk analysis.')
+      empty: t('js.ai.project_risk_summary_empty', 'Project AI risk analysis not generated yet.'),
+      error: t('js.ai.project_risk_summary_error', 'Failed to generate project AI risk analysis.')
     },
     'project_client_report': {
-      empty: window.CRM.i18n.t('js.ai.project_client_report_empty', 'Project AI client report not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.project_client_report_error', 'Failed to generate project AI client report.')
+      empty: t('js.ai.project_client_report_empty', 'Project AI client report not generated yet.'),
+      error: t('js.ai.project_client_report_error', 'Failed to generate project AI client report.')
     },
     'client_summary': {
-      empty: window.CRM.i18n.t('js.ai.client_summary_empty', 'Client AI summary not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.client_summary_error', 'Failed to generate client AI summary.')
+      empty: t('js.ai.client_summary_empty', 'Client AI summary not generated yet.'),
+      error: t('js.ai.client_summary_error', 'Failed to generate client AI summary.')
     },
     'client_meeting_prep': {
-      empty: window.CRM.i18n.t('js.ai.client_meeting_prep_empty', 'Meeting AI preparation not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.client_meeting_prep_error', 'Failed to generate meeting AI preparation.')
+      empty: t('js.ai.client_meeting_prep_empty', 'Meeting AI preparation not generated yet.'),
+      error: t('js.ai.client_meeting_prep_error', 'Failed to generate meeting AI preparation.')
     },
     'client_data_quality': {
-      empty: window.CRM.i18n.t('js.ai.client_data_quality_empty', 'Client data quality AI check not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.client_data_quality_error', 'Failed to generate client data quality AI check.')
+      empty: t('js.ai.client_data_quality_empty', 'Client data quality AI check not generated yet.'),
+      error: t('js.ai.client_data_quality_error', 'Failed to generate client data quality AI check.')
     },
     'client_safe_report': {
-      empty: window.CRM.i18n.t('js.ai.client_safe_report_empty', 'AI client-safe report not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.client_safe_report_error', 'Failed to generate AI client-safe report.')
+      empty: t('js.ai.client_safe_report_empty', 'AI client-safe report not generated yet.'),
+      error: t('js.ai.client_safe_report_error', 'Failed to generate AI client-safe report.')
     },
     'calendar_event_agenda': {
-      empty: window.CRM.i18n.t('js.ai.calendar_event_agenda_empty', 'AI event agenda not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.calendar_event_agenda_error', 'Failed to generate AI event agenda.')
+      empty: t('js.ai.calendar_event_agenda_empty', 'AI event agenda not generated yet.'),
+      error: t('js.ai.calendar_event_agenda_error', 'Failed to generate AI event agenda.')
     },
     'dashboard_daily_digest': {
-      empty: window.CRM.i18n.t('js.ai.dashboard_daily_digest_empty', 'Daily AI digest not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.dashboard_daily_digest_error', 'Failed to generate daily AI digest.')
+      empty: t('js.ai.dashboard_daily_digest_empty', 'Daily AI digest not generated yet.'),
+      error: t('js.ai.dashboard_daily_digest_error', 'Failed to generate daily AI digest.')
     },
     'analytics_kpi_explanation': {
-      empty: window.CRM.i18n.t('js.ai.analytics_kpi_explanation_empty', 'KPI AI explanation not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.analytics_kpi_explanation_error', 'Failed to generate KPI AI explanation.')
+      empty: t('js.ai.analytics_kpi_explanation_empty', 'KPI AI explanation not generated yet.'),
+      error: t('js.ai.analytics_kpi_explanation_error', 'Failed to generate KPI AI explanation.')
     },
     'analytics_risks_explanation': {
-      empty: window.CRM.i18n.t('js.ai.analytics_risks_explanation_empty', 'Risk AI explanation not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.analytics_risks_explanation_error', 'Failed to generate risk AI explanation.')
+      empty: t('js.ai.analytics_risks_explanation_empty', 'Risk AI explanation not generated yet.'),
+      error: t('js.ai.analytics_risks_explanation_error', 'Failed to generate risk AI explanation.')
     },
     'analytics_team_workload_summary': {
-      empty: window.CRM.i18n.t('js.ai.analytics_team_workload_summary_empty', 'Team workload AI summary not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.analytics_team_workload_summary_error', 'Failed to generate team workload AI summary.')
+      empty: t('js.ai.analytics_team_workload_summary_empty', 'Team workload AI summary not generated yet.'),
+      error: t('js.ai.analytics_team_workload_summary_error', 'Failed to generate team workload AI summary.')
     },
     'admin_log_review': {
-      empty: window.CRM.i18n.t('js.ai.admin_log_review_empty', 'Log AI review not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.admin_log_review_error', 'Failed to generate log AI review.')
+      empty: t('js.ai.admin_log_review_empty', 'Log AI review not generated yet.'),
+      error: t('js.ai.admin_log_review_error', 'Failed to generate log AI review.')
     },
     'webhook_health_review': {
-      empty: window.CRM.i18n.t('js.ai.webhook_health_review_empty', 'Webhook health AI review not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.webhook_health_review_error', 'Failed to generate webhook health AI review.')
+      empty: t('js.ai.webhook_health_review_empty', 'Webhook health AI review not generated yet.'),
+      error: t('js.ai.webhook_health_review_error', 'Failed to generate webhook health AI review.')
     },
     'workflow_rule_audit': {
-      empty: window.CRM.i18n.t('js.ai.workflow_rule_audit_empty', 'Workflow rules AI audit not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.workflow_rule_audit_error', 'Failed to generate workflow rules AI audit.')
+      empty: t('js.ai.workflow_rule_audit_empty', 'Workflow rules AI audit not generated yet.'),
+      error: t('js.ai.workflow_rule_audit_error', 'Failed to generate workflow rules AI audit.')
     },
     'my_day_plan': {
-      empty: window.CRM.i18n.t('js.ai.my_day_plan_empty', 'Day AI plan not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.my_day_plan_error', 'Failed to generate day AI plan.')
+      empty: t('js.ai.my_day_plan_empty', 'Day AI plan not generated yet.'),
+      error: t('js.ai.my_day_plan_error', 'Failed to generate day AI plan.')
     },
     'my_week_plan': {
-      empty: window.CRM.i18n.t('js.ai.my_week_plan_empty', 'Week AI plan not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.my_week_plan_error', 'Failed to generate week AI plan.')
+      empty: t('js.ai.my_week_plan_empty', 'Week AI plan not generated yet.'),
+      error: t('js.ai.my_week_plan_error', 'Failed to generate week AI plan.')
     },
     'task_list_priority': {
-      empty: window.CRM.i18n.t('js.ai.task_list_priority_empty', 'Task priority AI not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.task_list_priority_error', 'Failed to generate task priority AI.')
+      empty: t('js.ai.task_list_priority_empty', 'Task priority AI not generated yet.'),
+      error: t('js.ai.task_list_priority_error', 'Failed to generate task priority AI.')
     },
     'daily_work_plan': {
-      empty: window.CRM.i18n.t('js.ai.daily_work_plan_empty', 'Daily work plan AI not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.daily_work_plan_error', 'Failed to generate daily work plan AI.')
+      empty: t('js.ai.daily_work_plan_empty', 'Daily work plan AI not generated yet.'),
+      error: t('js.ai.daily_work_plan_error', 'Failed to generate daily work plan AI.')
     },
     'security_log_review': {
-      empty: window.CRM.i18n.t('js.ai.security_log_review_empty', 'Security log AI review not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.security_log_review_error', 'Failed to generate security log AI review.')
+      empty: t('js.ai.security_log_review_empty', 'Security log AI review not generated yet.'),
+      error: t('js.ai.security_log_review_error', 'Failed to generate security log AI review.')
     },
     'semantic_search': {
-      empty: window.CRM.i18n.t('js.ai.semantic_search_empty', 'AI semantic search result not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.semantic_search_error', 'Failed to generate AI semantic search result.')
+      empty: t('js.ai.semantic_search_empty', 'AI semantic search result not generated yet.'),
+      error: t('js.ai.semantic_search_error', 'Failed to generate AI semantic search result.')
     }
   };
   var aiRouteIntentPatterns = [
@@ -297,12 +304,12 @@ window.CRM.ai = (function () {
   }
 
   function createApiLikeError(code, message, meta) {
-    var error = new Error(String(message || window.CRM.i18n.t('js.ai.error_request', 'Failed to execute AI request')));
+    var error = new Error(String(message || t('js.ai.error_request', 'Failed to execute AI request')));
     error.status = 403;
     error.envelope = {
       success: false,
       code: String(code || 'FORBIDDEN'),
-      message: String(message || window.CRM.i18n.t('js.ai.error_permission', 'Insufficient permissions')),
+      message: String(message || t('js.ai.error_permission', 'Insufficient permissions')),
       data: null,
       errors: [],
       meta: meta && typeof meta === 'object' ? meta : {}
@@ -317,7 +324,7 @@ window.CRM.ai = (function () {
     if (window.CRM.__aiActionNotices[key]) return;
     window.CRM.__aiActionNotices[key] = true;
     if (typeof window.notify === 'function') {
-      window.notify(window.CRM.i18n.t('js.ai.notice_context', 'AI uses available CRM context without transmitting passwords, tokens or secrets.'), 'info');
+      window.notify(t('js.ai.notice_context', 'AI uses available CRM context without transmitting passwords, tokens or secrets.'), 'info');
     }
   }
 
@@ -328,7 +335,7 @@ window.CRM.ai = (function () {
     var inferredIntent = inferIntentByRoute(route);
 
     if (!hasAiPermission(inferredIntent)) {
-      return Promise.reject(createApiLikeError('FORBIDDEN', window.CRM.i18n.t('js.ai.error_permission_action', 'Insufficient permissions to perform AI action'), {
+      return Promise.reject(createApiLikeError('FORBIDDEN', t('js.ai.error_permission_action', 'Insufficient permissions to perform AI action'), {
         reason: 'permission_required',
         intent_code: inferredIntent
       }));
@@ -338,7 +345,7 @@ window.CRM.ai = (function () {
       ? hydrateAvailability([inferredIntent]).then(function () {
           var availability = getIntentAvailability(inferredIntent);
           if (!availability.enabled) {
-            throw createApiLikeError('AI_INTENT_DISABLED', window.CRM.i18n.t('js.ai.error_intent_disabled', 'AI action temporarily unavailable for this role.'), {
+            throw createApiLikeError('AI_INTENT_DISABLED', t('js.ai.error_intent_disabled', 'AI action temporarily unavailable for this role.'), {
               reason: String(availability.reason || 'intent_disabled'),
               intent_code: inferredIntent
             });
@@ -373,36 +380,36 @@ window.CRM.ai = (function () {
     var retryAfter = Number(meta.retry_after || 0);
     var retryable = providerError ? Boolean(providerError.retryable) : (code !== 'AI_PROVIDER_AUTH_FAILED');
 
-    var message = String((envelope && envelope.message) || fallbackMessage || window.CRM.i18n.t('js.ai.error_request', 'Failed to execute AI request'));
+    var message = String((envelope && envelope.message) || fallbackMessage || t('js.ai.error_request', 'Failed to execute AI request'));
     if (code === 'AI_DISABLED') {
-      message = window.CRM.i18n.t('js.ai.error_disabled', 'AI temporarily disabled by administrator.');
+      message = t('js.ai.error_disabled', 'AI temporarily disabled by administrator.');
     } else if (code === 'AI_PROVIDER_NOT_CONFIGURED') {
-      message = window.CRM.i18n.t('js.ai.error_not_configured', 'AI not configured by administrator yet.');
+      message = t('js.ai.error_not_configured', 'AI not configured by administrator yet.');
       if (window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('ai.admin')) {
-        message += window.CRM.i18n.t('js.ai.error_not_configured_admin_hint', ' Check provider override in intent settings and default provider.');
+        message += t('js.ai.error_not_configured_admin_hint', ' Check provider override in intent settings and default provider.');
       }
     } else if (code === 'AI_PROVIDER_TIMEOUT') {
-      message = window.CRM.i18n.t('js.ai.error_timeout', 'AI provider did not respond in time. Try again.');
+      message = t('js.ai.error_timeout', 'AI provider did not respond in time. Try again.');
     } else if (code === 'AI_PROVIDER_AUTH_FAILED') {
-      message = window.CRM.i18n.t('js.ai.error_auth_failed', 'AI provider access error. Contact administrator.');
+      message = t('js.ai.error_auth_failed', 'AI provider access error. Contact administrator.');
     } else if (code === 'AI_PROVIDER_UNAVAILABLE') {
-      message = window.CRM.i18n.t('js.ai.error_provider_unavailable', 'AI provider temporarily unavailable. Try again later.');
+      message = t('js.ai.error_provider_unavailable', 'AI provider temporarily unavailable. Try again later.');
     } else if (code === 'AI_RATE_LIMITED') {
       message = retryAfter > 0
-        ? (window.CRM.i18n.t('js.ai.error_rate_limit', 'AI request limit temporarily exhausted. Retry in ') + String(retryAfter) + window.CRM.i18n.t('js.ai.error_rate_limit_sec', ' sec.'))
-        : window.CRM.i18n.t('js.ai.error_rate_limit_generic', 'AI request limit temporarily exhausted. Try again later.');
+        ? (t('js.ai.error_rate_limit', 'AI request limit temporarily exhausted. Retry in ') + String(retryAfter) + t('js.ai.error_rate_limit_sec', ' sec.'))
+        : t('js.ai.error_rate_limit_generic', 'AI request limit temporarily exhausted. Try again later.');
     } else if (code === 'AI_COST_LIMIT_EXCEEDED') {
-      message = window.CRM.i18n.t('js.ai.error_cost_limit', 'AI limit reached for current period. Update AI limits or try again later.');
+      message = t('js.ai.error_cost_limit', 'AI limit reached for current period. Update AI limits or try again later.');
     } else if (code === 'AI_SCHEMA_VALIDATION_FAILED') {
-      message = window.CRM.i18n.t('js.ai.error_schema_validation', 'Failed to parse AI response. You can retry the request.');
+      message = t('js.ai.error_schema_validation', 'Failed to parse AI response. You can retry the request.');
     } else if (code === 'AI_ROW_VERSION_CONFLICT') {
-      message = window.CRM.i18n.t('js.ai.error_version_conflict', 'Data changed after suggestion preparation. Refresh the suggestion.');
+      message = t('js.ai.error_version_conflict', 'Data changed after suggestion preparation. Refresh the suggestion.');
     } else if (code === 'AI_SUGGESTION_NOT_FOUND') {
-      message = window.CRM.i18n.t('js.ai.error_suggestion_not_found', 'AI suggestion not found. Refresh the AI result.');
+      message = t('js.ai.error_suggestion_not_found', 'AI suggestion not found. Refresh the AI result.');
     } else if (code === 'AI_SUGGESTION_NOT_ACTIONABLE' || code === 'AI_SUGGESTION_STALE') {
-      message = window.CRM.i18n.t('js.ai.error_suggestion_stale', 'Suggestion is outdated or already applied. Refresh the AI result.');
+      message = t('js.ai.error_suggestion_stale', 'Suggestion is outdated or already applied. Refresh the AI result.');
     } else if (code === 'VALIDATION_ERROR') {
-      message = window.CRM.i18n.t('js.ai.error_validation', 'Some AI action fields are invalid. Refresh the AI result.');
+      message = t('js.ai.error_validation', 'Some AI action fields are invalid. Refresh the AI result.');
     }
 
     var requestId = String((meta && meta.request_id) || '');
@@ -435,8 +442,8 @@ window.CRM.ai = (function () {
       };
     }
     return {
-      empty: window.CRM.i18n.t('js.ai.result_empty', 'AI result not generated yet.'),
-      error: window.CRM.i18n.t('js.ai.result_error', 'Failed to execute AI action.')
+      empty: t('js.ai.result_empty', 'AI result not generated yet.'),
+      error: t('js.ai.result_error', 'Failed to execute AI action.')
     };
   }
 
@@ -504,37 +511,37 @@ window.CRM.ai = (function () {
 <div class="offcanvas offcanvas-end crm-drawer-wide" tabindex="-1" id="aiSuggestionDrawer" aria-labelledby="aiSuggestionDrawerTitle">\
   <div class="offcanvas-header">\
     <div>\
-      <h5 id="aiSuggestionDrawerTitle" class="mb-1">' + window.CRM.i18n.t('js.ai.drawer_title', 'AI Suggestion') + '</h5>\
-      <div class="small text-muted" id="aiSuggestionDrawerState">' + window.CRM.i18n.t('js.ai.state_idle', 'Status: idle') + '</div>\
+      <h5 id="aiSuggestionDrawerTitle" class="mb-1">' + t('js.ai.drawer_title', 'AI Suggestion') + '</h5>\
+      <div class="small text-muted" id="aiSuggestionDrawerState">' + t('js.ai.state_idle', 'Status: idle') + '</div>\
     </div>\
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="' + window.CRM.i18n.t('js.ai.drawer_close', 'Close') + '"></button>\
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="' + t('js.ai.drawer_close', 'Close') + '"></button>\
   </div>\
   <div class="offcanvas-body">\
     <div class="alert alert-danger d-none" id="aiSuggestionDrawerError"></div>\
     <section class="mb-3">\
-      <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.ai.summary_heading', 'Summary') + '</div>\
-      <div class="crm-metric-tile" id="aiSuggestionDrawerSummary">' + window.CRM.i18n.t('js.ai.summary_placeholder', 'Select an AI suggestion.') + '</div>\
+      <div class="small text-muted mb-1">' + t('js.ai.summary_heading', 'Summary') + '</div>\
+      <div class="crm-metric-tile" id="aiSuggestionDrawerSummary">' + t('js.ai.summary_placeholder', 'Select an AI suggestion.') + '</div>\
     </section>\
     <section class="mb-3">\
-      <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.ai.warnings_heading', 'Warnings') + '</div>\
-      <div class="crm-metric-tile" id="aiSuggestionDrawerWarnings">' + window.CRM.i18n.t('js.ai.warnings_placeholder', 'No warnings.') + '</div>\
+      <div class="small text-muted mb-1">' + t('js.ai.warnings_heading', 'Warnings') + '</div>\
+      <div class="crm-metric-tile" id="aiSuggestionDrawerWarnings">' + t('js.ai.warnings_placeholder', 'No warnings.') + '</div>\
     </section>\
     <section class="mb-3">\
-      <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.ai.actions_heading', 'Suggested actions') + '</div>\
-      <div class="crm-metric-tile" id="aiSuggestionDrawerActions">' + window.CRM.i18n.t('js.ai.actions_placeholder', 'No actions.') + '</div>\
+      <div class="small text-muted mb-1">' + t('js.ai.actions_heading', 'Suggested actions') + '</div>\
+      <div class="crm-metric-tile" id="aiSuggestionDrawerActions">' + t('js.ai.actions_placeholder', 'No actions.') + '</div>\
     </section>\
     <section class="mb-3">\
-      <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.ai.diff_heading', 'Changes preview') + '</div>\
-      <div id="aiSuggestionDrawerDiff">' + window.CRM.i18n.t('js.ai.diff_placeholder', 'No preview.') + '</div>\
+      <div class="small text-muted mb-1">' + t('js.ai.diff_heading', 'Changes preview') + '</div>\
+      <div id="aiSuggestionDrawerDiff">' + t('js.ai.diff_placeholder', 'No preview.') + '</div>\
     </section>\
     <section class="mb-3">\
-      <div class="small text-muted mb-1">' + window.CRM.i18n.t('js.ai.source_heading', 'Source') + '</div>\
+      <div class="small text-muted mb-1">' + t('js.ai.source_heading', 'Source') + '</div>\
       <div class="crm-metric-tile" id="aiSuggestionDrawerSource">—</div>\
     </section>\
     <div class="d-flex gap-2">\
-      <button type="button" class="btn btn-sm crm-btn-primary" id="aiSuggestionDrawerApplyBtn" disabled>' + window.CRM.i18n.t('js.ai.apply', 'Apply selected') + '</button>\
-      <button type="button" class="btn btn-sm crm-btn-danger" id="aiSuggestionDrawerDismissBtn">' + window.CRM.i18n.t('js.ai.dismiss', 'Dismiss') + '</button>\
-      <button type="button" class="btn btn-sm btn-light" id="aiSuggestionDrawerRefreshBtn">' + window.CRM.i18n.t('js.ai.refresh', 'Refresh') + '</button>\
+      <button type="button" class="btn btn-sm crm-btn-primary" id="aiSuggestionDrawerApplyBtn" disabled>' + t('js.ai.apply', 'Apply selected') + '</button>\
+      <button type="button" class="btn btn-sm crm-btn-danger" id="aiSuggestionDrawerDismissBtn">' + t('js.ai.dismiss', 'Dismiss') + '</button>\
+      <button type="button" class="btn btn-sm btn-light" id="aiSuggestionDrawerRefreshBtn">' + t('js.ai.refresh', 'Refresh') + '</button>\
     </div>\
   </div>\
 </div>');
@@ -551,22 +558,22 @@ window.CRM.ai = (function () {
   function stateLabel(stateCode) {
     var state = String(stateCode || 'idle');
     var map = {
-      hidden: window.CRM.i18n.t('js.ai.state_hidden', 'Status: hidden'),
-      idle: window.CRM.i18n.t('js.ai.state_idle', 'Status: idle'),
-      loading: window.CRM.i18n.t('js.ai.state_loading', 'Status: loading'),
-      ready: window.CRM.i18n.t('js.ai.state_ready', 'Status: ready'),
-      empty: window.CRM.i18n.t('js.ai.state_empty', 'Status: empty'),
-      disabled: window.CRM.i18n.t('js.ai.state_disabled', 'Status: disabled'),
-      provider_missing: window.CRM.i18n.t('js.ai.state_provider_missing', 'Status: provider missing'),
-      rate_limited: window.CRM.i18n.t('js.ai.state_rate_limited', 'Status: rate limited'),
-      error: window.CRM.i18n.t('js.ai.state_error', 'Status: error'),
-      conflict: window.CRM.i18n.t('js.ai.state_conflict', 'Status: conflict'),
-      applied: window.CRM.i18n.t('js.ai.state_applied', 'Status: applied'),
-      partially_applied: window.CRM.i18n.t('js.ai.state_partially_applied', 'Status: partially applied'),
-      dismissed: window.CRM.i18n.t('js.ai.state_dismissed', 'Status: dismissed')
+      hidden: t('js.ai.state_hidden', 'Status: hidden'),
+      idle: t('js.ai.state_idle', 'Status: idle'),
+      loading: t('js.ai.state_loading', 'Status: loading'),
+      ready: t('js.ai.state_ready', 'Status: ready'),
+      empty: t('js.ai.state_empty', 'Status: empty'),
+      disabled: t('js.ai.state_disabled', 'Status: disabled'),
+      provider_missing: t('js.ai.state_provider_missing', 'Status: provider missing'),
+      rate_limited: t('js.ai.state_rate_limited', 'Status: rate limited'),
+      error: t('js.ai.state_error', 'Status: error'),
+      conflict: t('js.ai.state_conflict', 'Status: conflict'),
+      applied: t('js.ai.state_applied', 'Status: applied'),
+      partially_applied: t('js.ai.state_partially_applied', 'Status: partially applied'),
+      dismissed: t('js.ai.state_dismissed', 'Status: dismissed')
     };
 
-    return map[state] || (window.CRM.i18n.t('js.ai.state_prefix', 'Status: ') + state);
+    return map[state] || (t('js.ai.state_prefix', 'Status: ') + state);
   }
 
   function setDrawerState(stateCode, details) {
@@ -586,9 +593,9 @@ window.CRM.ai = (function () {
 
     if (errorNode) {
       if (state === 'error' || state === 'provider_missing' || state === 'rate_limited' || state === 'conflict' || state === 'disabled') {
-        var message = String((details && details.message) || window.CRM.i18n.t('js.ai.error_generic', 'AI action failed with an error.'));
+        var message = String((details && details.message) || t('js.ai.error_generic', 'AI action failed with an error.'));
         if ((state === 'provider_missing' || state === 'disabled') && canOpenAdminAi()) {
-          errorNode.innerHTML = escapeHtml(message) + '<div class="mt-1"><a href="index.php?route=admin-ai">' + window.CRM.i18n.t('js.ai.open_ai_settings', 'Open AI settings') + '</a></div>';
+          errorNode.innerHTML = escapeHtml(message) + '<div class="mt-1"><a href="index.php?route=admin-ai">' + t('js.ai.open_ai_settings', 'Open AI settings') + '</a></div>';
         } else {
           errorNode.textContent = message;
         }
@@ -600,7 +607,7 @@ window.CRM.ai = (function () {
     }
 
     if (summaryNode && state === 'loading') {
-      summaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>' + window.CRM.i18n.t('js.ai.loading_message', 'Request to AI in progress...') + '</span></div>';
+      summaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>' + t('js.ai.loading_message', 'Request to AI in progress...') + '</span></div>';
     }
 
     if (applyBtn) {
@@ -689,7 +696,7 @@ window.CRM.ai = (function () {
       }
       return null;
     }).catch(function (error) {
-      renderAiError(error, fallbackErrorMessage || window.CRM.i18n.t('js.ai.drawer_action_failed', 'Failed to perform action in AI drawer'));
+      renderAiError(error, fallbackErrorMessage || t('js.ai.drawer_action_failed', 'Failed to perform action in AI drawer'));
     }).finally(function () {
       setDrawerBusy(false);
       var drawer = ensureSuggestionDrawer();
@@ -728,20 +735,20 @@ window.CRM.ai = (function () {
             return null;
           },
           null,
-          window.CRM.i18n.t('js.ai.drawer_apply_failed', 'Failed to apply selected AI actions')
+          t('js.ai.drawer_apply_failed', 'Failed to apply selected AI actions')
         );
       });
     }
 
     if (dismissBtn) {
       dismissBtn.addEventListener('click', function () {
-        runDrawerAction(drawerHandlers.onDismiss, defaultDismissHandler, window.CRM.i18n.t('js.ai.drawer_dismiss_failed', 'Failed to dismiss AI suggestion'));
+        runDrawerAction(drawerHandlers.onDismiss, defaultDismissHandler, t('js.ai.drawer_dismiss_failed', 'Failed to dismiss AI suggestion'));
       });
     }
 
     if (refreshBtn) {
       refreshBtn.addEventListener('click', function () {
-        runDrawerAction(drawerHandlers.onRefresh, defaultRefreshHandler, window.CRM.i18n.t('js.ai.drawer_refresh_failed', 'Failed to refresh AI suggestion'));
+        runDrawerAction(drawerHandlers.onRefresh, defaultRefreshHandler, t('js.ai.drawer_refresh_failed', 'Failed to refresh AI suggestion'));
       });
     }
 
@@ -772,7 +779,7 @@ window.CRM.ai = (function () {
   function renderActionCheckboxes(node, actions) {
     if (!node) return;
     if (!Array.isArray(actions) || actions.length === 0) {
-      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + window.CRM.i18n.t('js.ai.actions_placeholder', 'No actions.') + '</p></div>';
+      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + t('js.ai.actions_placeholder', 'No actions.') + '</p></div>';
       return;
     }
 
@@ -780,8 +787,8 @@ window.CRM.ai = (function () {
       var label = String(action.label || action.field || action.type || ('action_' + String(index + 1)));
       var value = String(action.value || '');
       var requiresExplicitSelection = Boolean(action && action.raw && action.raw.requires_explicit_selection);
-      var warning = action.high_risk ? '<div class="small text-warning">' + window.CRM.i18n.t('js.ai.confirm_required', 'Separate confirmation required') + '</div>' : '';
-      var explicitSelectionHint = requiresExplicitSelection ? '<div class="small text-warning">' + window.CRM.i18n.t('js.ai.manual_selection_needed', 'Must be selected manually: a new business entity will be created') + '</div>' : '';
+      var warning = action.high_risk ? '<div class="small text-warning">' + t('js.ai.confirm_required', 'Separate confirmation required') + '</div>' : '';
+      var explicitSelectionHint = requiresExplicitSelection ? '<div class="small text-warning">' + t('js.ai.manual_selection_needed', 'Must be selected manually: a new business entity will be created') + '</div>' : '';
       return ''
         + '<label class="form-check mb-2">'
         + '<input class="form-check-input" type="checkbox" data-ai-action-checkbox data-ai-action-index="' + String(index) + '"' + (requiresExplicitSelection ? '' : ' checked') + '>'
@@ -798,18 +805,18 @@ window.CRM.ai = (function () {
   function renderDiffPreview(node, actions) {
     if (!node) return;
     if (!Array.isArray(actions) || actions.length === 0) {
-      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + window.CRM.i18n.t('js.ai.diff_placeholder', 'No preview.') + '</p></div>';
+      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + t('js.ai.diff_placeholder', 'No preview.') + '</p></div>';
       return;
     }
 
     var riskIcons = {
-      low: '<span class="badge bg-success-subtle text-success">' + window.CRM.i18n.t('js.ai.risk_low', 'Low') + '</span>',
-      medium: '<span class="badge bg-warning-subtle text-warning">' + window.CRM.i18n.t('js.ai.risk_medium', 'Medium') + '</span>',
-      high: '<span class="badge bg-danger-subtle text-danger">' + window.CRM.i18n.t('js.ai.risk_high', 'High') + '</span>'
+      low: '<span class="badge bg-success-subtle text-success">' + t('js.ai.risk_low', 'Low') + '</span>',
+      medium: '<span class="badge bg-warning-subtle text-warning">' + t('js.ai.risk_medium', 'Medium') + '</span>',
+      high: '<span class="badge bg-danger-subtle text-danger">' + t('js.ai.risk_high', 'High') + '</span>'
     };
 
     node.innerHTML = '<div class="vstack gap-2">' + actions.map(function (action, index) {
-      var label = String(action.label || action.field || action.type || (window.CRM.i18n.t('js.ai.action_label', 'Action ') + String(index + 1)));
+      var label = String(action.label || action.field || action.type || (t('js.ai.action_label', 'Action ') + String(index + 1)));
       var value = String(action.value || '');
       var riskLevel = action.high_risk ? 'high' : (action.risk_level || 'low');
       var riskBadge = riskIcons[riskLevel] || riskIcons.low;
@@ -874,10 +881,10 @@ window.CRM.ai = (function () {
     setDrawerBusy(false);
 
     if (!suggestion || typeof suggestion !== 'object') {
-      if (summaryNode) summaryNode.textContent = window.CRM.i18n.t('js.ai.suggestion_not_selected', 'No AI suggestion selected.');
-      if (warningsNode) warningsNode.textContent = window.CRM.i18n.t('js.ai.warnings_placeholder', 'No warnings.');
-      if (actionsNode) actionsNode.textContent = window.CRM.i18n.t('js.ai.actions_placeholder', 'No actions.');
-      if (diffNode) diffNode.textContent = window.CRM.i18n.t('js.ai.preview_not_loaded', 'Preview not loaded yet.');
+      if (summaryNode) summaryNode.textContent = t('js.ai.suggestion_not_selected', 'No AI suggestion selected.');
+      if (warningsNode) warningsNode.textContent = t('js.ai.warnings_placeholder', 'No warnings.');
+      if (actionsNode) actionsNode.textContent = t('js.ai.actions_placeholder', 'No actions.');
+      if (diffNode) diffNode.textContent = t('js.ai.preview_not_loaded', 'Preview not loaded yet.');
       if (sourceNode) sourceNode.textContent = '—';
       if (applyBtn) applyBtn.disabled = true;
       setDrawerState('empty');
@@ -886,8 +893,8 @@ window.CRM.ai = (function () {
 
     var payload = suggestion.payload && typeof suggestion.payload === 'object' ? suggestion.payload : {};
     if (summaryNode) {
-      summaryNode.innerHTML = '<strong>' + escapeHtml(String(payload.summary || suggestion.summary || window.CRM.i18n.t('js.ai.drawer_title', 'AI Suggestion'))) + '</strong>'
-        + '<div class="small text-muted mt-1">' + window.CRM.i18n.t('js.ai.status_label', 'Status: ') + escapeHtml(String(suggestion.status || 'draft')) + '</div>';
+      summaryNode.innerHTML = '<strong>' + escapeHtml(String(payload.summary || suggestion.summary || t('js.ai.drawer_title', 'AI Suggestion'))) + '</strong>'
+        + '<div class="small text-muted mt-1">' + t('js.ai.status_label', 'Status: ') + escapeHtml(String(suggestion.status || 'draft')) + '</div>';
     }
 
     var warningItems = [];
@@ -897,7 +904,7 @@ window.CRM.ai = (function () {
     if (Array.isArray(payload.risks)) {
       warningItems = warningItems.concat(payload.risks);
     }
-    renderList(warningsNode, warningItems, window.CRM.i18n.t('js.ai.warnings_placeholder', 'No warnings.'), function (risk) {
+    renderList(warningsNode, warningItems, t('js.ai.warnings_placeholder', 'No warnings.'), function (risk) {
       return escapeHtml(String(risk || ''));
     });
 
@@ -947,9 +954,9 @@ window.CRM.ai = (function () {
     if (canPreviewSuggestion(suggestion)) return '';
     var cache = getSuggestionCacheMeta(suggestion) || {};
     if (cache.stale === true || String(cache.status || '') === 'stale' || String(cache.status || '') === 'stale_due_to_ai_error') {
-      return window.CRM.i18n.t('js.ai.suggestion_stale_preview', 'Suggestion is outdated. Refresh the AI result before preview.');
+      return t('js.ai.suggestion_stale_preview', 'Suggestion is outdated. Refresh the AI result before preview.');
     }
-    return window.CRM.i18n.t('js.ai.suggestion_preview_unavailable', 'Preview unavailable for current suggestion. Refresh the AI result.');
+    return t('js.ai.suggestion_preview_unavailable', 'Preview unavailable for current suggestion. Refresh the AI result.');
   }
 
   function toUiState(errorOrCode, fallbackMessage) {
@@ -980,7 +987,7 @@ window.CRM.ai = (function () {
     var aiError = opts.aiError || null;
     var controls = Array.isArray(opts.controls) ? opts.controls : [];
     var stateSetter = typeof opts.setState === 'function' ? opts.setState : null;
-    var fallbackMessage = String(opts.fallbackMessage || window.CRM.i18n.t('js.ai.temporarily_unavailable', 'AI action temporarily unavailable.'));
+    var fallbackMessage = String(opts.fallbackMessage || t('js.ai.temporarily_unavailable', 'AI action temporarily unavailable.'));
     if (!shouldLockAiControls(aiError)) return false;
     controls.forEach(function (btn) {
       if (!btn) return;
@@ -1025,7 +1032,7 @@ window.CRM.ai = (function () {
           opts.onSuccess();
         }
       } catch (error) {
-        var fallbackMessage = String(opts.fallbackMessage || window.CRM.i18n.t('js.ai.result_error', 'Failed to execute AI action.'));
+        var fallbackMessage = String(opts.fallbackMessage || t('js.ai.result_error', 'Failed to execute AI action.'));
         var aiError = normalizeError(error, fallbackMessage);
         if (typeof opts.onError === 'function') {
           opts.onError(aiError, error);

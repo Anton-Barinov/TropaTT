@@ -14,7 +14,7 @@ return [
     'locale' => [
         'default' => 'en-gb',
         'fallback' => 'en-gb',
-        'supported' => ['ru-ru', 'en-gb'],
+        'supported' => ['ru-ru', 'en-gb', 'zh-cn'],
     ],
     'storage' => [
         'base' => $storageBase,

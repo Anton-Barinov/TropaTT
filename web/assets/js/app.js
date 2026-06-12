@@ -19,6 +19,27 @@
     var withQuery = function (route) {
       return 'index.php?route=' + encodeURIComponent(route || 'dashboard');
     };
+    var localeInput = form.querySelector('[name="locale"]');
+
+    if (localeInput && localeInput.dataset.crmLocaleSwitchBound !== '1') {
+      localeInput.addEventListener('change', function () {
+        var nextLocale = String(localeInput.value || '').trim().toLowerCase();
+        var currentLocale = String((window.CRM && window.CRM.locale) || document.documentElement.lang || '').trim().toLowerCase();
+        if (!nextLocale || nextLocale === currentLocale) {
+          return;
+        }
+        if (window.CRM && window.CRM.api && typeof window.CRM.api.setPreferredLocale === 'function') {
+          window.CRM.api.setPreferredLocale(nextLocale);
+        } else {
+          document.cookie = 'crm_locale=' + encodeURIComponent(nextLocale) + '; path=/; max-age=31536000; samesite=lax';
+        }
+        var url = new URL(window.location.href);
+        url.searchParams.set('route', 'login');
+        url.searchParams.set('lang', nextLocale);
+        window.location.href = url.toString();
+      });
+      localeInput.dataset.crmLocaleSwitchBound = '1';
+    }
 
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -29,7 +50,6 @@
       hideError();
       var loginInput = form.querySelector('[name="login"]') || form.querySelector('[name="email"]');
       var passInput = form.querySelector('[name="password"]');
-      var localeInput = form.querySelector('[name="locale"]');
       var login = loginInput ? String(loginInput.value || '').trim() : '';
       var password = passInput ? String(passInput.value || '').trim() : '';
       var locale = localeInput ? String(localeInput.value || '').trim().toLowerCase() : '';

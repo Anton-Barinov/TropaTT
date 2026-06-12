@@ -93,19 +93,32 @@ final class I18n
     private static function resolveLocale(): string
     {
         $candidate = '';
-        if (isset($_COOKIE['crm_locale'])) {
+        if (isset($_GET['lang'])) {
+            $candidate = strtolower(trim((string)$_GET['lang']));
+        }
+
+        if ($candidate === '' && isset($_COOKIE['crm_locale'])) {
             $candidate = strtolower(trim((string)$_COOKIE['crm_locale']));
         }
 
-        if ($candidate === '' && isset($_GET['lang'])) {
-            $candidate = strtolower(trim((string)$_GET['lang']));
-        }
+        $candidate = self::normalizeLocaleCode($candidate);
 
         if (!in_array($candidate, ['ru-ru', 'en-gb', 'zh-cn'], true)) {
             $candidate = 'ru-ru';
         }
 
         return $candidate;
+    }
+
+    private static function normalizeLocaleCode(string $locale): string
+    {
+        $value = str_replace('_', '-', strtolower(trim($locale)));
+        return match ($value) {
+            'ru' => 'ru-ru',
+            'en' => 'en-gb',
+            'zh', 'cn', 'zh-hans' => 'zh-cn',
+            default => $value,
+        };
     }
 
     /** @param array<string, mixed> $fallback @param array<string, mixed> $current */

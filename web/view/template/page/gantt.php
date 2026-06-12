@@ -36,7 +36,7 @@
   </div>
   <div class="crm-gantt-legend" id="ganttLegend"><span class="crm-chip" data-i18n="gantt.loading_statuses"><?= htmlspecialchars($t('gantt.loading_statuses', 'Загрузка статусов...'), ENT_QUOTES, 'UTF-8') ?></span></div>
   <div class="crm-gantt-kpis" id="ganttSummaryTiles"><div class="crm-gantt-kpi-card"><small data-i18n="gantt.kpi_active_tasks"><?= htmlspecialchars($t('gantt.kpi_active_tasks', 'Активные задачи'), ENT_QUOTES, 'UTF-8') ?></small><strong>...</strong><span data-i18n="gantt.kpi_loading_data"><?= htmlspecialchars($t('gantt.kpi_loading_data', 'Подготовка данных'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
-  <div class="crm-mobile-work-mode-hint" data-i18n="gantt.mobile_hint"><?= htmlspecialchars($t('gantt.mobile_hint', 'Таймлайн можно прокручивать по горизонтали. Заголовок шкалы остается ориентиром при прокрутке.'), ENT_QUOTES, 'UTF-8') ?></div>
+  <div class="crm-mobile-work-mode-hint" data-i18n="gantt.mobile_hint"><?= htmlspecialchars($t('gantt.mobile_hint', 'Таймлайн можно прокручивать по горизонтали.'), ENT_QUOTES, 'UTF-8') ?></div>
   <div class="crm-gantt-board">
     <div class="crm-gantt-scale"><div class="crm-gantt-scale-label" data-i18n="gantt.scale_label"><?= htmlspecialchars($t('gantt.scale_label', 'Проект / задача'), ENT_QUOTES, 'UTF-8') ?></div><div class="crm-gantt-scale-track" id="ganttScaleTrack"><span data-i18n="gantt.loading_scale"><?= htmlspecialchars($t('gantt.loading_scale', 'Загрузка шкалы...'), ENT_QUOTES, 'UTF-8') ?></span></div>
       <div class="crm-gantt"><div class="crm-gantt-rows"></div><div class="crm-gantt-lanes">

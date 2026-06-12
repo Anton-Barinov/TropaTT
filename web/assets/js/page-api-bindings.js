@@ -24,7 +24,10 @@ window.CRM.pageApiBindings = (function () {
 
   function tp(key, fallback) {
     if (window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
-      return window.CRM.i18n.t('js.pab.' + key, fallback);
+      var sentinel = '__CRM_I18N_MISSING__';
+      var pabValue = window.CRM.i18n.t('js.pab.' + key, sentinel);
+      if (pabValue !== sentinel) return pabValue;
+      return window.CRM.i18n.t(key, fallback);
     }
     return fallback || key;
   }
@@ -313,19 +316,19 @@ window.CRM.pageApiBindings = (function () {
   function aiStateLabel(stateCode) {
     var state = String(stateCode || 'idle');
     var map = {
-      hidden: 'hidden',
-      idle: 'idle',
-      loading: 'loading',
-      ready: 'ready',
-      empty: 'empty',
-      disabled: 'disabled',
-      provider_missing: 'provider_missing',
-      rate_limited: 'rate_limited',
-      error: 'error',
-      conflict: 'conflict',
-      applied: 'applied',
-      partially_applied: 'partially_applied',
-      dismissed: 'dismissed'
+      hidden: window.CRM.i18n.t('js.pab.ai_state_hidden', 'hidden'),
+      idle: window.CRM.i18n.t('js.pab.ai_state_idle', 'idle'),
+      loading: window.CRM.i18n.t('js.pab.ai_state_loading', 'loading'),
+      ready: window.CRM.i18n.t('js.pab.ai_state_ready', 'ready'),
+      empty: window.CRM.i18n.t('js.pab.ai_state_empty', 'empty'),
+      disabled: window.CRM.i18n.t('js.pab.ai_state_disabled', 'disabled'),
+      provider_missing: window.CRM.i18n.t('js.pab.ai_state_provider_missing', 'provider missing'),
+      rate_limited: window.CRM.i18n.t('js.pab.ai_state_rate_limited', 'rate limited'),
+      error: window.CRM.i18n.t('js.pab.ai_state_error', 'error'),
+      conflict: window.CRM.i18n.t('js.pab.ai_state_conflict', 'conflict'),
+      applied: window.CRM.i18n.t('js.pab.ai_state_applied', 'applied'),
+      partially_applied: window.CRM.i18n.t('js.pab.ai_state_partially_applied', 'partially applied'),
+      dismissed: window.CRM.i18n.t('js.pab.ai_state_dismissed', 'dismissed')
     };
     return map[state] || state;
   }
@@ -3916,7 +3919,7 @@ window.CRM.pageApiBindings = (function () {
     var subtitle = document.querySelector('[data-dashboard-subtitle]');
     if (subtitle) {
       subtitle.textContent = window.CRM.i18n.t('js.pab.dashboard_subtitle', 'Overview of tasks, risks and team load for')
-        + ' ' + new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+        + ' ' + new Date().toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: 'long', year: 'numeric' });
     }
 
     {

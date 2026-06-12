@@ -18,13 +18,24 @@ final class LanguageManager
 
     public function setLocale(string $locale): void
     {
-        $normalized = strtolower(trim($locale));
+        $normalized = $this->normalizeLocaleCode($locale);
         if ($normalized === '' || !is_dir($this->basePath . '/' . $normalized)) {
             $this->locale = $this->fallbackLocale;
             return;
         }
 
         $this->locale = $normalized;
+    }
+
+    private function normalizeLocaleCode(string $locale): string
+    {
+        $value = str_replace('_', '-', strtolower(trim($locale)));
+        return match ($value) {
+            'ru' => 'ru-ru',
+            'en' => 'en-gb',
+            'zh', 'cn', 'zh-hans' => 'zh-cn',
+            default => $value,
+        };
     }
 
     public function load(string $group): void
