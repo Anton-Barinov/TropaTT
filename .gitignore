@@ -80,6 +80,17 @@ pnpm-debug.log*
 Thumbs.db
 api/docs/
 
+# Temporary / converted JS files
+web/assets/js/*.tmp*
+web/assets/js/*.broken
+web/assets/js/*.converted
+web/assets/js/*.pre_tiny
+web/assets/js/*.converted.js
+web/assets/js/page-api-bindings.converted.js
+web/assets/js/XX7FVWxB
+web/assets/js/_i18n_replace2.pl
+web/assets/js/i18n_convert.py
+
 
 # Ignored generated/private documentation
 /docs/api/
