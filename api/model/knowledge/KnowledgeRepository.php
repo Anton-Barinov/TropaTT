@@ -522,6 +522,149 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function comments(string $pagePublicId): array
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('SELECT c.*, u.public_id AS user_public_id, u.full_name AS user_name FROM knowledge_comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.page_id = :page_id ORDER BY c.created_at ASC');
+        $stmt->execute(['page_id' => (int)$page['id']]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function addComment(string $pagePublicId, string $body, int $userId, ?string $parentPublicId = null): ?array
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) {
+            return null;
+        }
+        $parentId = null;
+        if ($parentPublicId !== null) {
+            $pStmt = $this->pdo->prepare('SELECT id FROM knowledge_comments WHERE public_id = :public_id AND page_id = :page_id LIMIT 1');
+            $pStmt->execute(['public_id' => $parentPublicId, 'page_id' => (int)$page['id']]);
+            $parentId = $pStmt->fetchColumn() ?: null;
+        }
+        $publicId = $this->publicId('kbc');
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :created_at, :updated_at)');
+        $stmt->execute([
+            'public_id' => $publicId,
+            'page_id' => (int)$page['id'],
+            'parent_id' => $parentId,
+            'user_id' => $userId,
+            'body' => $body,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $this->pdo->prepare('UPDATE knowledge_pages SET comments_count = comments_count + 1 WHERE id = :id')->execute(['id' => (int)$page['id']]);
+        $row = $this->comment($publicId);
+        $row['user_public_id'] = null;
+        $row['user_name'] = null;
+        return $row;
+    }
+
+    public function comment(string $publicId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT c.*, u.public_id AS user_public_id, u.full_name AS user_name FROM knowledge_comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $publicId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    public function deleteComment(string $publicId, int $userId): bool
+    {
+        $comment = $this->comment($publicId);
+        if (!$comment) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_comments WHERE public_id = :public_id AND user_id = :user_id');
+        $stmt->execute(['public_id' => $publicId, 'user_id' => $userId]);
+        if ($stmt->rowCount() > 0) {
+            $this->pdo->prepare('UPDATE knowledge_pages SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = :id')->execute(['id' => (int)$comment['page_id']]);
+            return true;
+        }
+        return false;
+    }
+
+    public function resolveComment(string $publicId): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE knowledge_comments SET resolved_at = :resolved_at WHERE public_id = :public_id AND resolved_at IS NULL');
+        $stmt->execute(['public_id' => $publicId, 'resolved_at' => gmdate('Y-m-d H:i:s')]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function reopenComment(string $publicId): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE knowledge_comments SET resolved_at = NULL WHERE public_id = :public_id AND resolved_at IS NOT NULL');
+        $stmt->execute(['public_id' => $publicId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function isPageFavorited(string $pagePublicId, int $userId): bool
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) return false;
+        $stmt = $this->pdo->prepare('SELECT id FROM favorites WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    public function favoritePage(string $pagePublicId, int $userId): ?string
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) return null;
+        $stmt = $this->pdo->prepare('SELECT public_id FROM favorites WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        $existing = $stmt->fetchColumn();
+        if ($existing !== false) {
+            return (string)$existing;
+        }
+        $publicId = 'fav_' . strtoupper(bin2hex(random_bytes(10)));
+        $stmt = $this->pdo->prepare('INSERT INTO favorites (public_id, user_id, entity_type, entity_public_id, created_at) VALUES (:public_id, :user_id, :entity_type, :entity_public_id, :created_at)');
+        $stmt->execute(['public_id' => $publicId, 'user_id' => $userId, 'entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'created_at' => gmdate('Y-m-d H:i:s')]);
+        return $publicId;
+    }
+
+    public function unfavoritePage(string $pagePublicId, int $userId): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM favorites WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function isPageSubscribed(string $pagePublicId, int $userId): bool
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) return false;
+        $stmt = $this->pdo->prepare('SELECT id FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    public function subscribePage(string $pagePublicId, int $userId): ?string
+    {
+        $page = $this->page($pagePublicId);
+        if (!$page) return null;
+        $stmt = $this->pdo->prepare('SELECT public_id FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        $existing = $stmt->fetchColumn();
+        if ($existing !== false) {
+            return (string)$existing;
+        }
+        $publicId = 'sub_' . strtoupper(bin2hex(random_bytes(10)));
+        $stmt = $this->pdo->prepare('INSERT INTO subscriptions (public_id, user_id, entity_type, entity_public_id, created_at) VALUES (:public_id, :user_id, :entity_type, :entity_public_id, :created_at)');
+        $stmt->execute(['public_id' => $publicId, 'user_id' => $userId, 'entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'created_at' => gmdate('Y-m-d H:i:s')]);
+        return $publicId;
+    }
+
+    public function unsubscribePage(string $pagePublicId, int $userId): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
     private function addVersion(string $pagePublicId, ?int $actorId, string $summary): void
     {
         $page = $this->page($pagePublicId);

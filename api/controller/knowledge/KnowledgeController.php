@@ -383,6 +383,95 @@ final class KnowledgeController extends BaseController
         ], 201);
     }
 
+    public function comments(array $params): JsonResponse
+    {
+        return $this->success('KNOWLEDGE_COMMENTS', $this->t('knowledge/messages.comments', 'Comments loaded'), [
+            'items' => $this->repo()->comments((string)$params['public_id']),
+        ]);
+    }
+
+    public function addComment(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        $input = $this->request()->allInput();
+        $body = trim((string)($input['body'] ?? ''));
+        if ($body === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'body' => [$this->t('common/messages.field_required', 'Field is required')],
+            ]);
+        }
+        $comment = $this->repo()->addComment((string)$params['public_id'], $body, (int)($auth['user']['id'] ?? 0), (string)($input['parent_public_id'] ?? '') ?: null);
+        if (!$comment) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_COMMENT_CREATED', $this->t('knowledge/messages.comment_created', 'Comment added'), [
+            'comment' => $comment,
+        ], 201);
+    }
+
+    public function deleteComment(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$this->repo()->deleteComment((string)$params['comment_public_id'], (int)($auth['user']['id'] ?? 0))) {
+            return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_COMMENT_DELETED', $this->t('knowledge/messages.comment_deleted', 'Comment deleted'));
+    }
+
+    public function resolveComment(array $params): JsonResponse
+    {
+        if (!$this->repo()->resolveComment((string)$params['comment_public_id'])) {
+            return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_COMMENT_RESOLVED', $this->t('knowledge/messages.comment_resolved', 'Comment resolved'));
+    }
+
+    public function reopenComment(array $params): JsonResponse
+    {
+        if (!$this->repo()->reopenComment((string)$params['comment_public_id'])) {
+            return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_COMMENT_REOPENED', $this->t('knowledge/messages.comment_reopened', 'Comment reopened'));
+    }
+
+    public function favoritePage(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        $publicId = $this->repo()->favoritePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if ($publicId === null) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_PAGE_FAVORITED', $this->t('knowledge/messages.page_favorited', 'Page added to favorites'), [
+            'favorite_public_id' => $publicId,
+        ]);
+    }
+
+    public function unfavoritePage(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        $this->repo()->unfavoritePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        return $this->success('KNOWLEDGE_PAGE_UNFAVORITED', $this->t('knowledge/messages.page_unfavorited', 'Page removed from favorites'));
+    }
+
+    public function subscribePage(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        $publicId = $this->repo()->subscribePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if ($publicId === null) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        return $this->success('KNOWLEDGE_PAGE_SUBSCRIBED', $this->t('knowledge/messages.page_subscribed', 'Subscribed to page updates'), [
+            'subscription_public_id' => $publicId,
+        ]);
+    }
+
+    public function unsubscribePage(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        $this->repo()->unsubscribePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        return $this->success('KNOWLEDGE_PAGE_UNSUBSCRIBED', $this->t('knowledge/messages.page_unsubscribed', 'Unsubscribed from page updates'));
+    }
+
     public function entityPages(array $params): JsonResponse
     {
         return $this->success('KNOWLEDGE_ENTITY_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [

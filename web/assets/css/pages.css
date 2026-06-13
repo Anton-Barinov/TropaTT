@@ -12908,6 +12908,36 @@ a.task-tag:hover {
   line-height: 1.55;
 }
 
+.crm-knowledge-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--crm-border);
+  border-bottom: 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--crm-surface-2);
+}
+.crm-knowledge-toolbar .btn {
+  min-height: 32px;
+  min-width: 34px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: var(--crm-text);
+  border-color: transparent;
+  background: transparent;
+}
+.crm-knowledge-toolbar .btn:hover {
+  border-color: var(--crm-border);
+  background: var(--crm-surface);
+}
+.crm-knowledge-toolbar .btn b { font-weight: 700; }
+.crm-knowledge-toolbar .btn i { font-style: italic; }
+#knowledgeEditContent {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
 .crm-knowledge-editor-actions {
   display: flex;
   justify-content: flex-end;

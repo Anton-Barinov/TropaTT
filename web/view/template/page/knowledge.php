@@ -48,6 +48,18 @@
     <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('knowledge.review_title', 'На проверке'), ENT_QUOTES, 'UTF-8') ?></h2></div>
     <div class="crm-knowledge-list" id="knowledgeReview"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
   </section>
+  <section class="crm-card crm-section-card">
+    <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('knowledge.popular_title', 'Популярные'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+    <div class="crm-knowledge-list" id="knowledgePopular"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+  </section>
+  <section class="crm-card crm-section-card">
+    <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('knowledge.drafts_title', 'Мои черновики'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+    <div class="crm-knowledge-list" id="knowledgeDrafts"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+  </section>
+  <section class="crm-card crm-section-card">
+    <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('knowledge.outdated_title', 'Требуют актуализации'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+    <div class="crm-knowledge-list" id="knowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+  </section>
 </div>
 
 <div class="modal fade" id="knowledgePageModal" tabindex="-1" aria-hidden="true">
@@ -89,6 +101,9 @@
     spaces: document.getElementById('knowledgeSpaces'),
     recent: document.getElementById('knowledgeRecent'),
     review: document.getElementById('knowledgeReview'),
+    popular: document.getElementById('knowledgePopular'),
+    drafts: document.getElementById('knowledgeDrafts'),
+    outdated: document.getElementById('knowledgeOutdated'),
     results: document.getElementById('knowledgeSearchResults'),
     search: document.getElementById('knowledgeSearchInput'),
     searchButton: document.getElementById('knowledgeSearchButton'),
@@ -129,7 +144,12 @@
       return;
     }
     target.innerHTML = items.map(function (item) {
-      return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + esc(item.title) + '</strong><small>' + esc(item.space_title || '') + ' · ' + esc(item.status || '') + '</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+      var statusBadge = '';
+      if (item.status) {
+        var sm = { draft: 'crm-badge-secondary', review: 'crm-badge-warning', published: 'crm-badge-success', archived: 'crm-badge-light', needs_update: 'crm-badge-danger' };
+        statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.7rem;padding:0.15rem 0.4rem;margin-left:0.5rem">' + esc(item.status) + '</span>';
+      }
+      return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || '') + '</small></span><i class="fa-solid fa-chevron-right"></i></a>';
     }).join('');
   }
   function renderSpaces(items) {
@@ -161,6 +181,9 @@
       renderSpaces(data.spaces || []);
       renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'));
       renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
+      renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'));
+      renderList(els.drafts, data.drafts || [], t('knowledge.empty_drafts', 'Нет черновиков.'));
+      renderList(els.outdated, data.outdated || [], t('knowledge.empty_outdated', 'Нет устаревших страниц.'));
     } catch (err) {
       renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'));
     }

@@ -41,6 +41,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             "CREATE TABLE IF NOT EXISTS knowledge_templates (id {$id}, public_id VARCHAR(64) UNIQUE, title VARCHAR(255), page_type VARCHAR(64), description {$text} NULL, content_html {$text} NULL, content_json {$text} NULL, is_system {$bool} DEFAULT 0, is_active {$bool} DEFAULT 1, created_by_user_id INTEGER NULL, created_at {$dt}, updated_at {$dt})",
             "CREATE TABLE IF NOT EXISTS knowledge_page_views (id {$id}, page_id INTEGER NOT NULL, user_id INTEGER NULL, source VARCHAR(32) DEFAULT 'direct', viewed_at {$dt})",
             "CREATE TABLE IF NOT EXISTS knowledge_search_queries (id {$id}, query VARCHAR(255), user_id INTEGER NULL, results_count INTEGER DEFAULT 0, clicked_page_id INTEGER NULL, created_at {$dt})",
+            "CREATE TABLE IF NOT EXISTS knowledge_comments (id {$id}, public_id VARCHAR(64) UNIQUE, page_id INTEGER NOT NULL, parent_id INTEGER NULL, user_id INTEGER NOT NULL, body {$text} NOT NULL, resolved_at {$dt} NULL, created_at {$dt}, updated_at {$dt})",
         ];
 
         foreach ($tables as $sql) {
@@ -71,6 +72,8 @@ final class KnowledgeBaseMigration implements MigrationInterface
             ['knowledge_search_index', 'idx_knowledge_search_page_type', 'page_type'],
             ['knowledge_templates', 'idx_knowledge_templates_type_active', 'page_type, is_active'],
             ['knowledge_page_views', 'idx_knowledge_views_page', 'page_id, viewed_at'],
+            ['knowledge_comments', 'idx_knowledge_comments_page', 'page_id, created_at'],
+            ['knowledge_comments', 'idx_knowledge_comments_parent', 'parent_id'],
         ];
 
         foreach ($indexes as $index) {
