@@ -57,6 +57,28 @@ if ($assetsVersion === '') {
     window.CRM = window.CRM || {};
     window.CRM.locale = <?= json_encode($currentLocale, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.messages = <?= json_encode($lang_messages ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.i18n = window.CRM.i18n || (function () {
+      function getByPath(obj, key) {
+        var value = obj;
+        var parts = String(key || '').split('.');
+        for (var i = 0; i < parts.length; i += 1) {
+          if (!value || typeof value !== 'object' || !Object.prototype.hasOwnProperty.call(value, parts[i])) {
+            return undefined;
+          }
+          value = value[parts[i]];
+        }
+        return value;
+      }
+      function t(key, fallback) {
+        var value = getByPath(window.CRM.messages || {}, key);
+        if (typeof value === 'string') return value;
+        if (typeof fallback === 'string' && fallback !== '') return fallback;
+        return String(key || '');
+      }
+      function applyToDom() {}
+      function init() {}
+      return { t: t, applyToDom: applyToDom, init: init };
+    })();
     window.CRM.config = window.CRM.config || {};
     window.CRM.config.assetsVersion = <?= json_encode($assetsVersion, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>

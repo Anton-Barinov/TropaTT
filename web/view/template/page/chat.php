@@ -107,9 +107,10 @@
     if (!value) return '';
     var date = new Date(String(value).replace(' ', 'T'));
     if (Number.isNaN(date.getTime())) return '';
+    var locale = String((window.CRM && (window.CRM.locale || window.CRM.currentLocale)) || document.documentElement.lang || 'en-GB').replace('_', '-');
     return date.toDateString() === new Date().toDateString()
-      ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-      : date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+      ? date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+      : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
   }
 
   function plural(count, one, few, many) {

@@ -1,5 +1,81 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('docs.title', 'TropaTT — Справка'); ?>
+<?php
+$docsLocale = strtolower((string)($locale ?? 'ru-ru'));
+if (!str_starts_with($docsLocale, 'ru')) {
+  $isZhDocs = str_starts_with($docsLocale, 'zh');
+  $docsCopy = $isZhDocs ? [
+    'subtitle' => 'TropaTT 各模块、功能和工作流程的实用指南。',
+    'dashboard' => '主页',
+    'intro_title' => '如何使用 TropaTT',
+    'intro_text' => 'TropaTT 是一个自托管的 CRM 与工作平台：任务、项目、看板、甘特图、日历、团队聊天、自动化、REST API 和 AI 辅助流程集中在一个产品中。',
+    'work_title' => '日常工作流程',
+    'work_items' => [
+      '从主页查看风险、任务和快速操作。',
+      '在任务、看板和甘特图中规划执行进度。',
+      '在项目中跟踪团队、客户、截止日期和结果。',
+      '在聊天、通知和日历中保持团队同步。',
+    ],
+    'ai_title' => 'AI 功能',
+    'ai_items' => [
+      'AI 想法分析：从原始想法生成建议、风险、计划和任务。',
+      'AI 日计划和周计划：按优先级和负载安排工作。',
+      '任务、项目、客户和分析页面中的 AI 摘要与解释。',
+    ],
+    'admin_title' => '管理与扩展',
+    'admin_items' => [
+      '在管理区配置用户、角色、状态、自动化规则和系统设置。',
+      '通过 REST API、OpenAPI 文档和 webhook 集成外部系统。',
+      '模块化结构允许添加自定义模块而不破坏核心功能。',
+    ],
+    'install_title' => '安装',
+    'install_text' => '将项目上传到 PHP/MySQL 主机，打开 /web/install.php，并按照浏览器安装向导完成数据库和管理员账户配置。',
+  ] : [
+    'subtitle' => 'Practical guide to TropaTT sections, features and workflows.',
+    'dashboard' => 'Open dashboard',
+    'intro_title' => 'How to Use TropaTT',
+    'intro_text' => 'TropaTT is a self-hosted CRM and work platform: tasks, projects, Kanban, Gantt, calendar, team chat, automation, REST API and AI-assisted workflows in one product.',
+    'work_title' => 'Daily Workflow',
+    'work_items' => [
+      'Start from Dashboard to review risks, tasks and quick actions.',
+      'Plan execution in Tasks, Kanban and Gantt.',
+      'Track teams, clients, deadlines and results in Projects.',
+      'Keep the team aligned with Chats, Notifications and Calendar.',
+    ],
+    'ai_title' => 'AI Tools',
+    'ai_items' => [
+      'AI idea analysis turns a raw idea into recommendations, risks, plans and tasks.',
+      'AI day and week planning orders work by priority and workload.',
+      'AI summaries and explanations are available for tasks, projects, clients and analytics.',
+    ],
+    'admin_title' => 'Administration and Extensions',
+    'admin_items' => [
+      'Configure users, roles, statuses, automation rules and system settings in Administration.',
+      'Integrate external systems through REST API, OpenAPI documentation and webhooks.',
+      'The modular structure lets you add custom modules without breaking the core.',
+    ],
+    'install_title' => 'Installation',
+    'install_text' => 'Upload the project to a PHP/MySQL host, open /web/install.php and follow the browser installer to configure the database and administrator account.',
+  ];
+?>
+<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
+<main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title"><?= htmlspecialchars($t('docs.page_title', $isZhDocs ? '文档' : 'Documentation'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle"><?= htmlspecialchars($docsCopy['subtitle'], ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard"><?= htmlspecialchars($docsCopy['dashboard'], ENT_QUOTES, 'UTF-8') ?></a></div>
+<div class="row g-3">
+<?php foreach (['intro', 'work', 'ai', 'admin', 'install'] as $docsBlock): ?>
+  <div class="col-12">
+    <section class="crm-card crm-section-card mb-3">
+      <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($docsCopy[$docsBlock . '_title'], ENT_QUOTES, 'UTF-8') ?></h2></div></div>
+      <div class="p-3">
+        <?php if (isset($docsCopy[$docsBlock . '_text'])): ?><p class="mb-0"><?= htmlspecialchars($docsCopy[$docsBlock . '_text'], ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
+        <?php if (isset($docsCopy[$docsBlock . '_items'])): ?><ul class="mb-0"><?php foreach ($docsCopy[$docsBlock . '_items'] as $docsItem): ?><li><?= htmlspecialchars($docsItem, ENT_QUOTES, 'UTF-8') ?></li><?php endforeach; ?></ul><?php endif; ?>
+      </div>
+    </section>
+  </div>
+<?php endforeach; ?>
+</div></main></div></div></body>
+<?php return; ?>
+<?php } ?>
 <body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="docs.page_title"><?= htmlspecialchars($t('docs.page_title', 'Справка'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="docs.subtitle"><?= htmlspecialchars($t('docs.subtitle', 'Полное руководство по разделам, функциям и рабочим сценариям TropaTT.'), ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard" data-i18n="docs.btn_dashboard"><?= htmlspecialchars($t('docs.btn_dashboard', 'Открыть главную'), ENT_QUOTES, 'UTF-8') ?></a></div>

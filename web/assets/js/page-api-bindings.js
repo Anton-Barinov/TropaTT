@@ -5122,15 +5122,15 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function monthLabel(date) {
-      return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      return date.toLocaleDateString(tpLocale('en-GB'), { month: 'long', year: 'numeric' });
     }
 
     function dayLabel(date) {
-      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+      return date.toLocaleDateString(tpLocale('en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     }
 
     function weekdayShort(date) {
-      return date.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '');
+      return date.toLocaleDateString(tpLocale('en-GB'), { weekday: 'short' }).replace('.', '');
     }
 
     function parseEventDate(item) {
@@ -5149,12 +5149,12 @@ window.CRM.pageApiBindings = (function () {
 
     function timeLabel(date) {
       if (!date) return window.CRM.i18n.t('js.pab.all_day', 'All day');
-      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString(tpLocale('en-GB'), { hour: '2-digit', minute: '2-digit' });
     }
 
     function dateTimeFullLabel(date) {
       if (!date) return window.CRM.i18n.t('js.pab.not_specified', 'Not specified');
-      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
+      return date.toLocaleDateString(tpLocale('en-GB'), { day: '2-digit', month: 'long', year: 'numeric' })
         + ' ' + window.CRM.i18n.t('js.pab.at', 'at') + ' ' + timeLabel(date);
     }
 
@@ -5746,7 +5746,7 @@ window.CRM.pageApiBindings = (function () {
       return list.slice(0, 14).map(function (item, index) {
         var start = parseEventDate(item);
         var dateText = start
-          ? start.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' })
+          ? start.toLocaleDateString(tpLocale('en-GB'), { weekday: 'short', day: '2-digit', month: 'short' })
           : window.CRM.i18n.t('js.pab.no_date', 'No date');
         return '<button class="crm-calendar-agenda-item is-' + eventTone(item, index) + '" type="button" data-calendar-event-id="' + safeText(eventUid(item, index)) + '">'
           + '<div class="crm-calendar-agenda-date">' + safeText(dateText) + '</div>'
@@ -6273,6 +6273,28 @@ window.CRM.pageApiBindings = (function () {
     return map[key] || '';
   }
 
+  function notificationText(value, fallback) {
+    var raw = String(value || '').trim();
+    if (!raw) return fallback || '';
+    function normalizeKey(key) {
+      var normalized = String(key || '').replace(/\//g, '.');
+      if (normalized.indexOf('notification.messages.') === 0) {
+        normalized = normalized.replace(/^notification\./, '');
+      }
+      return normalized;
+    }
+    if (/^[a-z][a-z0-9_-]*(?:[/.][a-z0-9_-]+)+$/i.test(raw)) {
+      var normalizedRawKey = normalizeKey(raw);
+      var translated = tp(normalizedRawKey, raw);
+      if (translated && translated !== raw) return translated;
+    }
+    return raw.replace(/\b(?:notification\/)?messages\.[a-z0-9_]+\b/gi, function (match) {
+      var normalizedKey = normalizeKey(match);
+      var translatedMatch = tp(normalizedKey, match);
+      return translatedMatch && translatedMatch !== match ? translatedMatch : match;
+    });
+  }
+
   function notificationLink(item) {
     if (item && item.link) {
       return notificationSafeInternalLink(String(item.link));
@@ -6373,7 +6395,7 @@ window.CRM.pageApiBindings = (function () {
 
   function notificationSecondaryLine(item) {
     var parts = [];
-    var actor = String(item && item.actor_name || '').trim();
+    var actor = notificationText(item && item.actor_name, '');
     var action = notificationActionLabel(item && item.action_code);
     var category = notificationCategoryLabel(item && item.category);
 
@@ -6386,7 +6408,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function notificationBodyPreview(item) {
-    var text = String(item && item.body || '').trim();
+    var text = notificationText(item && item.body, '');
     if (!text && item && item.payload && item.payload.comment_excerpt) {
       text = String(item.payload.comment_excerpt || '').trim();
     }
@@ -6425,9 +6447,10 @@ window.CRM.pageApiBindings = (function () {
     var unreadClass = item.is_read ? '' : ' is-unread';
     var link = notificationLink(item);
     var preview = notificationBodyPreview(item);
+    var titleText = notificationText(item.title, tp('notifications.notification_title_fallback', 'Notification'));
     var toggleAttr = item.is_read ? 'data-mark-unread' : 'data-mark-read';
     var toggleLabel = item.is_read ? tp('notifications.toggle_mark_unread', 'Mark as unread again') : tp('notifications.toggle_mark_read', 'Mark as read');
-    var toggleBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + (item.title || tp('notifications.notification_fallback', 'notification'))) + '">'
+    var toggleBtn = '<button class="btn btn-sm crm-btn-subtle crm-btn-compact" type="button" ' + toggleAttr + '="' + safeText(item.public_id || '') + '" aria-label="' + safeText(toggleLabel + ': ' + titleText) + '">'
       + toggleLabel
       + '</button>';
 
@@ -6435,12 +6458,12 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">'
       + '<div class="crm-notification-main">'
       + '<div class="d-flex flex-wrap gap-2 mb-2">' + notificationContextChips(item) + '</div>'
-      + '<strong>' + safeText(item.title || tp('notifications.notification_title_fallback', 'Notification')) + '</strong>'
+      + '<strong>' + safeText(titleText) + '</strong>'
       + '<div class="text-muted small">' + safeText(notificationSecondaryLine(item)) + '</div>'
       + (preview ? '<div class="small mt-2">' + safeText(preview) + '</div>' : '')
       + '</div>'
       + '<div class="d-flex gap-2 flex-wrap crm-notification-actions">'
-      + '<a class="btn btn-sm crm-btn-primary crm-btn-compact" href="' + safeText(link) + '" aria-label="' + tp('notifications.open_aria_prefix', 'Open notification: ') + safeText(item.title || tp('notifications.notification_title_fallback', 'Notification')) + '">' + tp('notifications.open', 'Open') + '</a>'
+      + '<a class="btn btn-sm crm-btn-primary crm-btn-compact" href="' + safeText(link) + '" aria-label="' + tp('notifications.open_aria_prefix', 'Open notification: ') + safeText(titleText) + '">' + tp('notifications.open', 'Open') + '</a>'
       + toggleBtn
       + '</div>'
       + '</div>'
@@ -6588,6 +6611,7 @@ window.CRM.pageApiBindings = (function () {
         ? items.map(function (item) {
           var href = notificationLink(item);
           var preview = notificationBodyPreview(item);
+          var titleText = notificationText(item.title || item.body || item.public_id, tp('notifications.notification_title_fallback', 'Notification'));
           var chips = [];
           var action = notificationActionLabel(item && item.action_code);
           var priority = String(item && item.priority || '').trim();
@@ -6603,7 +6627,7 @@ window.CRM.pageApiBindings = (function () {
           return '<li class="mb-3">'
             + '<a href="' + safeText(href) + '" class="text-decoration-none d-block">'
             + '<div class="d-flex align-items-start justify-content-between gap-2">'
-            + '<strong class="d-block">' + safeText(item.title || item.body || item.public_id) + '</strong>'
+            + '<strong class="d-block">' + safeText(titleText) + '</strong>'
             + (!item.is_read ? '<span class="badge text-bg-primary rounded-pill">' + tp('notifications.badge_new', 'new') + '</span>' : '')
             + '</div>'
             + '<span class="small text-muted d-block">' + safeText(notificationSecondaryLine(item)) + '</span>'

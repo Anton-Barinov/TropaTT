@@ -531,6 +531,10 @@ window.CRM.api = (function () {
     if (_csrf) {
       _headers['X-CSRF-Token'] = _csrf;
     }
+    var _token = getToken();
+    if (_token) {
+      _headers.Authorization = 'Bearer ' + _token;
+    }
 
     fetch(buildUrl('api/v1/telemetry/frontend-event'), {
       method: 'POST',
