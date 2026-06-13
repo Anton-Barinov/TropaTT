@@ -563,8 +563,11 @@ final class KnowledgeRepository
             $params['page_type'] = (string)$filters['page_type'];
         }
         if (!empty($filters['q'])) {
-            $where[] = '(p.title LIKE :q OR p.content_text LIKE :q OR s.title LIKE :q)';
-            $params['q'] = '%' . (string)$filters['q'] . '%';
+            $like = '%' . (string)$filters['q'] . '%';
+            $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
+            $params['q_title'] = $like;
+            $params['q_content'] = $like;
+            $params['q_space'] = $like;
         }
         return [implode(' AND ', $where), $params];
     }
