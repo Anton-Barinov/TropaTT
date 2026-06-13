@@ -252,8 +252,15 @@ final class KnowledgeRepository
         if (!$page) {
             return null;
         }
-        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :now, reviewed_at = :now, row_version = row_version + 1, updated_at = :now WHERE public_id = :public_id");
-        $stmt->execute(['actor' => $actorId, 'now' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id");
+        $stmt->execute([
+            'actor' => $actorId,
+            'published_at' => $now,
+            'reviewed_at' => $now,
+            'updated_at' => $now,
+            'public_id' => $publicId,
+        ]);
         $this->addVersion($publicId, $actorId, $summary !== '' ? $summary : 'Published');
         return $this->page($publicId);
     }
@@ -277,8 +284,13 @@ final class KnowledgeRepository
 
     public function deletePage(string $publicId): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET deleted_at = :deleted_at, row_version = row_version + 1, updated_at = :deleted_at WHERE public_id = :public_id');
-        $stmt->execute(['deleted_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET deleted_at = :deleted_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
+        $stmt->execute([
+            'deleted_at' => $now,
+            'updated_at' => $now,
+            'public_id' => $publicId,
+        ]);
         return $stmt->rowCount() > 0;
     }
 
@@ -632,8 +644,11 @@ final class KnowledgeRepository
         if ($parentId === null) {
             return;
         }
-        $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET children_count = (SELECT COUNT(*) FROM knowledge_pages c WHERE c.parent_id = :parent_id AND c.deleted_at IS NULL) WHERE id = :parent_id');
-        $stmt->execute(['parent_id' => $parentId]);
+        $stmt = $this->pdo->prepare('UPDATE knowledge_pages SET children_count = (SELECT COUNT(*) FROM knowledge_pages c WHERE c.parent_id = :parent_id_count AND c.deleted_at IS NULL) WHERE id = :parent_id_where');
+        $stmt->execute([
+            'parent_id_count' => $parentId,
+            'parent_id_where' => $parentId,
+        ]);
     }
 
     private function nextPageSort(int $spaceId, ?int $parentId): int
