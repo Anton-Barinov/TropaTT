@@ -20,6 +20,7 @@ final class MenuController extends BaseController
         ['key' => 'calendar', 'i18n' => 'nav.calendar', 'label_key' => 'nav.messages.calendar', 'href' => 'index.php?route=calendar', 'permissions' => ['task.manage']],
         ['key' => 'counterparties', 'i18n' => 'nav.counterparties', 'label_key' => 'nav.messages.counterparties', 'href' => 'index.php?route=counterparties', 'permissions' => ['counterparty.manage']],
         ['key' => 'teams', 'i18n' => 'nav.teams', 'label_key' => 'nav.messages.teams', 'href' => 'index.php?route=teams', 'permissions' => []],
+        ['key' => 'knowledge', 'i18n' => 'nav.knowledge', 'label_key' => 'nav.messages.knowledge', 'href' => 'index.php?route=knowledge', 'permissions' => ['knowledge.view']],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.messages.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.messages.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
         ['key' => 'admin', 'i18n' => 'nav.admin', 'label_key' => 'nav.messages.admin', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],

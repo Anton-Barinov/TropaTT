@@ -11,6 +11,7 @@ return [
     'calendar' => 'Календарь',
     'counterparties' => 'Контрагенты',
     'teams' => 'Команды',
+    'knowledge' => 'База знаний',
     'analytics' => 'Аналитика',
     'notifications' => 'Уведомления',
     'admin' => 'Администрирование',

@@ -11,6 +11,7 @@ return [
     'calendar' => '日历',
     'counterparties' => '交易方',
     'teams' => '团队',
+    'knowledge' => '知识库',
     'analytics' => '分析',
     'notifications' => '通知',
     'admin' => '管理',

@@ -42,6 +42,7 @@ final class MigrationManager
             new RecurringProcessorMigration(),
             new RecurringRuleTitleMigration(),
             new GanttPerformanceIndexesMigration(),
+            new KnowledgeBaseMigration(),
         ];
     }
 

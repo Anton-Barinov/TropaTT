@@ -11,6 +11,7 @@ return [
     'calendar' => 'Calendar',
     'counterparties' => 'Counterparties',
     'teams' => 'Teams',
+    'knowledge' => 'Knowledge base',
     'analytics' => 'Analytics',
     'notifications' => 'Notifications',
     'admin' => 'Administration',

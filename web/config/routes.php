@@ -39,6 +39,8 @@ return [
     'time-analytics' => [Web\Controller\Page\TimeAnalyticsController::class, 'index'],
     'global-search' => [Web\Controller\Page\GlobalSearchController::class, 'index'],
     'docs' => [Web\Controller\Page\DocsController::class, 'index'],
+    'knowledge' => [Web\Controller\Page\KnowledgeController::class, 'index'],
+    'knowledge-page' => [Web\Controller\Page\KnowledgePageController::class, 'index'],
 
     'admin' => [Web\Controller\Page\AdminController::class, 'index'],
     'admin-users' => [Web\Controller\Page\AdminUsersController::class, 'index'],
@@ -58,6 +60,7 @@ return [
     'organizations' => [Web\Controller\Page\OrganizationsController::class, 'index'],
     'admin-priorities' => [Web\Controller\Page\AdminPrioritiesController::class, 'index'],
     'admin-calendar' => [Web\Controller\Page\AdminCalendarController::class, 'index'],
+    'admin-knowledge' => [Web\Controller\Page\AdminKnowledgeController::class, 'index'],
     'mentions' => [Web\Controller\Page\MentionsController::class, 'index'],
     'admin-templates' => [Web\Controller\Page\AdminTemplatesController::class, 'index'],
     'admin-tags' => [Web\Controller\Page\AdminTagsController::class, 'index'],

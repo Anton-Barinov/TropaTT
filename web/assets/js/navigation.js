@@ -34,6 +34,7 @@ window.CRM.navigation = (function () {
       chat: '<i class="fa-regular fa-comments"></i>',
       counterparties: '<i class="fa-solid fa-address-book"></i>',
       teams: '<i class="fa-solid fa-people-group"></i>',
+      knowledge: '<i class="fa-solid fa-book-open-reader"></i>',
       profile: '<i class="fa-solid fa-user"></i>',
       admin: '<i class="fa-solid fa-shield-halved"></i>',
       'admin-settings': '<i class="fa-solid fa-sliders"></i>',
@@ -139,6 +140,7 @@ window.CRM.navigation = (function () {
       { key: 'calendar', i18n: 'nav.calendar', label: t('nav.calendar', 'Calendar'), href: 'index.php?route=calendar' },
       { key: 'counterparties', i18n: 'nav.counterparties', label: t('nav.counterparties', 'Counterparties'), href: 'index.php?route=counterparties' },
       { key: 'teams', i18n: 'nav.teams', label: t('nav.teams', 'Teams and departments'), href: 'index.php?route=teams' },
+      { key: 'knowledge', i18n: 'nav.knowledge', label: t('nav.knowledge', 'Knowledge base'), href: 'index.php?route=knowledge' },
       { key: 'analytics', i18n: 'nav.analytics', label: t('nav.analytics', 'Analytics'), href: 'index.php?route=analytics' },
       { key: 'notifications', i18n: 'nav.notifications', label: t('nav.notifications', 'Notifications'), href: 'index.php?route=notifications' },
       { key: 'chat', i18n: 'nav.chat', label: t('nav.chat', 'Chats'), href: 'index.php?route=chat' },
@@ -164,6 +166,7 @@ window.CRM.navigation = (function () {
     var label = String(item && item.label || '').trim();
     if (type === 'task' && publicId) return 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(publicId);
     if (type === 'project' && publicId) return 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(publicId);
+    if (type === 'knowledge' && publicId) return 'index.php?route=knowledge-page&id=' + encodeURIComponent(publicId);
     if (type === 'client' && publicId) return 'index.php?route=client-detail&client_public_id=' + encodeURIComponent(publicId);
     if ((type === 'company' || type === 'contact') && label) {
       return 'index.php?route=clients&search=' + encodeURIComponent(label);
@@ -178,6 +181,7 @@ window.CRM.navigation = (function () {
       client: t('nav.result_client', 'Client'),
       company: t('nav.result_company', 'Company'),
       contact: t('nav.result_contact', 'Contact'),
+      knowledge: t('nav.result_knowledge', 'Knowledge'),
       comment: t('nav.result_comment', 'Comment'),
       file: t('nav.result_file', 'File')
     };
