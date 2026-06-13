@@ -80,7 +80,6 @@
 </main></div></div>
 <script>
 (function () {
-  var api = window.CRM && window.CRM.api;
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
   var state = { spaces: [] };
@@ -95,6 +94,26 @@
     spaceForm: document.getElementById('knowledgeSpaceForm'),
     pageSpace: document.getElementById('knowledgePageSpace')
   };
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function waitForApi(callback, attempts) {
+    var api = getApi();
+    if (api) {
+      callback(api);
+      return;
+    }
+    if ((attempts || 0) > 80) {
+      renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'));
+      return;
+    }
+    window.setTimeout(function () { waitForApi(callback, (attempts || 0) + 1); }, 50);
+  }
+  async function request(route, options) {
+    var api = getApi();
+    if (!api) throw new Error('CRM_API_NOT_READY');
+    return api.request(route, options);
+  }
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
@@ -133,9 +152,8 @@
     els.stats.querySelectorAll('strong').forEach(function (node, index) { node.textContent = String(values[index] || 0); });
   }
   async function load() {
-    if (!api || !api.request) return;
     try {
-      var envelope = await api.request('api/v1/knowledge/overview', { method: 'GET' });
+      var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
       var data = envelope.data || {};
       renderStats(data.totals || {});
       renderSpaces(data.spaces || []);
@@ -151,7 +169,7 @@
       renderList(els.results, [], t('knowledge.search_empty_hint', 'Введите запрос, чтобы найти материалы.'));
       return;
     }
-    var envelope = await api.request('api/v1/knowledge/search', { method: 'GET', query: { q: query } });
+    var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { q: query } });
     renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'));
   }
   function formPayload(form) {
@@ -168,18 +186,18 @@
   if (els.search) els.search.addEventListener('input', window.CRM && CRM.debounce ? CRM.debounce(search, 350) : search);
   if (els.pageForm) els.pageForm.addEventListener('submit', async function (event) {
     event.preventDefault();
-    var envelope = await api.request('api/v1/knowledge/pages', { method: 'POST', body: formPayload(els.pageForm), idempotent: true });
+    var envelope = await request('api/v1/knowledge/pages', { method: 'POST', body: formPayload(els.pageForm), idempotent: true });
     var page = envelope.data && envelope.data.page;
     if (page && page.public_id) window.location.href = pageUrl(page);
   });
   if (els.spaceForm) els.spaceForm.addEventListener('submit', async function (event) {
     event.preventDefault();
-    await api.request('api/v1/knowledge/spaces', { method: 'POST', body: formPayload(els.spaceForm), idempotent: true });
+    await request('api/v1/knowledge/spaces', { method: 'POST', body: formPayload(els.spaceForm), idempotent: true });
     window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).hide();
     els.spaceForm.reset();
     load();
   });
-  load();
+  waitForApi(load);
 })();
 </script>
 </body>

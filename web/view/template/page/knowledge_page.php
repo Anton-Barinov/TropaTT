@@ -53,7 +53,6 @@
 <script>
 (function () {
   var pageId = document.body.getAttribute('data-knowledge-page-id') || '';
-  var api = window.CRM && window.CRM.api;
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
   var current = null;
@@ -73,6 +72,25 @@
     metaViews: document.getElementById('knowledgeMetaViews'),
     versions: document.getElementById('knowledgeVersions')
   };
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function waitForApi(callback, attempts) {
+    if (getApi()) {
+      callback();
+      return;
+    }
+    if ((attempts || 0) > 80) {
+      els.state.textContent = t('knowledge_page.load_error', 'Не удалось загрузить материал.');
+      return;
+    }
+    window.setTimeout(function () { waitForApi(callback, (attempts || 0) + 1); }, 50);
+  }
+  async function request(route, options) {
+    var api = getApi();
+    if (!api) throw new Error('CRM_API_NOT_READY');
+    return api.request(route, options);
+  }
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
@@ -114,22 +132,22 @@
       return;
     }
     try {
-      var envelope = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId), { method: 'GET' });
+      var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId), { method: 'GET' });
       render(envelope.data && envelope.data.page || {});
-      var versions = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions', { method: 'GET' });
+      var versions = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions', { method: 'GET' });
       renderVersions(versions.data && versions.data.items || []);
     } catch (e) {
       els.state.textContent = t('knowledge_page.load_error', 'Не удалось загрузить материал.');
     }
   }
   async function patch(body) {
-    var envelope = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId), { method: 'PATCH', body: Object.assign({ row_version: current && current.row_version }, body) });
+    var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId), { method: 'PATCH', body: Object.assign({ row_version: current && current.row_version }, body) });
     render(envelope.data && envelope.data.page || {});
   }
   document.getElementById('knowledgeEditBtn').addEventListener('click', function () { showEditor(true); });
   document.getElementById('knowledgeCancelEditBtn').addEventListener('click', function () { showEditor(false); });
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
-    await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true });
+    await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true });
   });
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
@@ -137,19 +155,19 @@
     showEditor(false);
   });
   document.getElementById('knowledgePublishBtn').addEventListener('click', async function () {
-    var envelope = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/publish', { method: 'POST', body: {}, idempotent: true });
+    var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/publish', { method: 'POST', body: {}, idempotent: true });
     render(envelope.data && envelope.data.page || {});
     load();
   });
   document.getElementById('knowledgeReviewBtn').addEventListener('click', async function () {
-    var envelope = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/request-review', { method: 'POST', body: {}, idempotent: true });
+    var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/request-review', { method: 'POST', body: {}, idempotent: true });
     render(envelope.data && envelope.data.page || {});
   });
   document.getElementById('knowledgeArchiveBtn').addEventListener('click', async function () {
-    var envelope = await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/archive', { method: 'POST', body: {}, idempotent: true });
+    var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/archive', { method: 'POST', body: {}, idempotent: true });
     render(envelope.data && envelope.data.page || {});
   });
-  load();
+  waitForApi(load);
 })();
 </script>
 </body>

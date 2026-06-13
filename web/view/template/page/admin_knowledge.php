@@ -55,10 +55,28 @@
 </main></div></div>
 <script>
 (function () {
-  var api = window.CRM && window.CRM.api;
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
   var stats = document.getElementById('adminKnowledgeStats');
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function waitForApi(callback, attempts) {
+    if (getApi()) {
+      callback();
+      return;
+    }
+    if ((attempts || 0) > 80) {
+      document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="3" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
+      return;
+    }
+    window.setTimeout(function () { waitForApi(callback, (attempts || 0) + 1); }, 50);
+  }
+  async function request(route, options) {
+    var api = getApi();
+    if (!api) throw new Error('CRM_API_NOT_READY');
+    return api.request(route, options);
+  }
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
@@ -75,7 +93,7 @@
     }).join('');
   }
   async function load() {
-    var overview = await api.request('api/v1/knowledge/overview', { method: 'GET' });
+    var overview = await request('api/v1/knowledge/overview', { method: 'GET' });
     var data = overview.data || {};
     var totals = data.totals || {};
     [totals.spaces || 0, totals.pages || 0, totals.published || 0, totals.drafts || 0].forEach(function (value, index) {
@@ -86,7 +104,7 @@
     }).join('') || '<tr><td colspan="3" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
     list(document.getElementById('adminKnowledgeReview'), data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
     list(document.getElementById('adminKnowledgeOutdated'), data.outdated || [], t('admin_knowledge.empty_outdated', 'Нет просроченных ревью.'));
-    var templates = await api.request('api/v1/knowledge/templates', { method: 'GET' });
+    var templates = await request('api/v1/knowledge/templates', { method: 'GET' });
     document.getElementById('adminKnowledgeTemplates').innerHTML = (templates.data && templates.data.items || []).map(function (tpl) {
       return '<div class="crm-knowledge-list-item"><span><strong>' + esc(tpl.title) + '</strong><small>' + esc(tpl.description || tpl.page_type || '') + '</small></span><span class="crm-badge">' + esc(tpl.page_type || '') + '</span></div>';
     }).join('') || '<div class="text-muted p-3">' + esc(t('admin_knowledge.empty_templates', 'Шаблонов пока нет.')) + '</div>';
@@ -95,14 +113,14 @@
     event.preventDefault();
     var body = {};
     new FormData(event.currentTarget).forEach(function (value, key) { body[key] = value; });
-    await api.request('api/v1/knowledge/templates', { method: 'POST', body: body, idempotent: true });
+    await request('api/v1/knowledge/templates', { method: 'POST', body: body, idempotent: true });
     window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeTemplateModal')).hide();
     event.currentTarget.reset();
     load();
   });
-  load().catch(function () {
+  waitForApi(function () { load().catch(function () {
     document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="3" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
-  });
+  }); });
 })();
 </script>
 </body>
