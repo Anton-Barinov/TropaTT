@@ -19,6 +19,7 @@
     <div class="input-group">
       <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
       <input id="knowledgeSearchInput" class="form-control" type="search" placeholder="<?= htmlspecialchars($t('knowledge.search_placeholder', 'Найдите регламент, инструкцию или FAQ'), ENT_QUOTES, 'UTF-8') ?>">
+      <button id="knowledgeSearchButton" class="btn crm-btn-secondary" type="button"><?= htmlspecialchars($t('knowledge.btn_search', 'Найти'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div>
 </section>
@@ -90,6 +91,7 @@
     review: document.getElementById('knowledgeReview'),
     results: document.getElementById('knowledgeSearchResults'),
     search: document.getElementById('knowledgeSearchInput'),
+    searchButton: document.getElementById('knowledgeSearchButton'),
     pageForm: document.getElementById('knowledgePageForm'),
     spaceForm: document.getElementById('knowledgeSpaceForm'),
     pageSpace: document.getElementById('knowledgePageSpace')
@@ -169,9 +171,15 @@
       renderList(els.results, [], t('knowledge.search_empty_hint', 'Введите запрос, чтобы найти материалы.'));
       return;
     }
-    var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { q: query } });
-    renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'));
+    try {
+      var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { q: query } });
+      renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'));
+    } catch (err) {
+      renderList(els.results, [], t('knowledge.search_error', 'Не удалось выполнить поиск.'));
+      if (window.console && console.warn) console.warn('[CRM] Knowledge search failed', err);
+    }
   }
+  var debouncedSearch = window.CRM && CRM.debounce ? CRM.debounce(search, 350) : search;
   function formPayload(form) {
     var data = {};
     new FormData(form).forEach(function (value, key) { data[key] = value; });
@@ -183,7 +191,17 @@
   document.querySelectorAll('[data-knowledge-open-space]').forEach(function (btn) {
     btn.addEventListener('click', function () { window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).show(); });
   });
-  if (els.search) els.search.addEventListener('input', window.CRM && CRM.debounce ? CRM.debounce(search, 350) : search);
+  if (els.search) {
+    els.search.addEventListener('input', debouncedSearch);
+    els.search.addEventListener('change', search);
+    els.search.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        search();
+      }
+    });
+  }
+  if (els.searchButton) els.searchButton.addEventListener('click', search);
   if (els.pageForm) els.pageForm.addEventListener('submit', async function (event) {
     event.preventDefault();
     var envelope = await request('api/v1/knowledge/pages', { method: 'POST', body: formPayload(els.pageForm), idempotent: true });
