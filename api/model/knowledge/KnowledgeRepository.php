@@ -141,10 +141,14 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare('
             SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
                    u.public_id AS user_public_id, u.name AS user_name,
-                   r.public_id AS role_public_id, r.title AS role_title
+                   r.public_id AS role_public_id, r.title AS role_title,
+                   t.public_id AS team_public_id, t.title AS team_title,
+                   d.public_id AS department_public_id, d.title AS department_title
             FROM knowledge_space_permissions p
             LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
             LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            LEFT JOIN teams t ON t.id = p.subject_id AND p.subject_type = \'team\'
+            LEFT JOIN departments d ON d.id = p.subject_id AND p.subject_type = \'department\'
             WHERE p.space_id = :space_id
             ORDER BY p.created_at DESC
         ');
@@ -152,7 +156,7 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function addSpacePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId): ?array
+    public function addSpacePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId, string $subjectPublicId = ''): ?array
     {
         $space = $this->space($publicId);
         if (!$space) {
@@ -160,6 +164,10 @@ final class KnowledgeRepository
         }
         $allowedTypes = ['user', 'role', 'team', 'department'];
         if (!in_array($subjectType, $allowedTypes, true)) {
+            return null;
+        }
+        $resolvedSubjectId = $this->resolvePermissionSubjectId($subjectType, $subjectId, $subjectPublicId);
+        if ($resolvedSubjectId <= 0) {
             return null;
         }
         $allowedLevels = ['view', 'comment', 'edit', 'manage', 'owner'];
@@ -170,7 +178,7 @@ final class KnowledgeRepository
         $stmt->execute([
             'space_id' => (int)$space['id'],
             'subject_type' => $subjectType,
-            'subject_id' => $subjectId,
+            'subject_id' => $resolvedSubjectId,
             'access_level' => $accessLevel,
             'created_by_user_id' => $actorId,
             'created_at' => $now,
@@ -182,10 +190,14 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare('
             SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
                    u.public_id AS user_public_id, u.name AS user_name,
-                   r.public_id AS role_public_id, r.title AS role_title
+                   r.public_id AS role_public_id, r.title AS role_title,
+                   t.public_id AS team_public_id, t.title AS team_title,
+                   d.public_id AS department_public_id, d.title AS department_title
             FROM knowledge_space_permissions p
             LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
             LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            LEFT JOIN teams t ON t.id = p.subject_id AND p.subject_type = \'team\'
+            LEFT JOIN departments d ON d.id = p.subject_id AND p.subject_type = \'department\'
             WHERE p.id = :id
         ');
         $stmt->execute(['id' => $id]);
@@ -929,6 +941,8 @@ final class KnowledgeRepository
         $actorId = $this->actorUserId($actor);
         $rank = $this->accessRank($minAccess);
         $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
+        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId) : [];
+        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId) : [];
         $params = [
             'acl_public_rank' => $rank,
             'acl_space_perm_rank' => $rank,
@@ -956,6 +970,40 @@ final class KnowledgeRepository
             $pageRoleClause = 'perm.subject_type = \'role\' AND perm.subject_id IN (' . implode(',', $pagePlaceholders) . ')';
         }
 
+        $spaceTeamClause = '0=1';
+        $pageTeamClause = '0=1';
+        if ($teamIds !== []) {
+            $spacePlaceholders = [];
+            $pagePlaceholders = [];
+            foreach ($teamIds as $index => $teamId) {
+                $spaceKey = 'acl_space_team_' . $index;
+                $pageKey = 'acl_page_team_' . $index;
+                $spacePlaceholders[] = ':' . $spaceKey;
+                $pagePlaceholders[] = ':' . $pageKey;
+                $params[$spaceKey] = $teamId;
+                $params[$pageKey] = $teamId;
+            }
+            $spaceTeamClause = 'perm.subject_type = \'team\' AND perm.subject_id IN (' . implode(',', $spacePlaceholders) . ')';
+            $pageTeamClause = 'perm.subject_type = \'team\' AND perm.subject_id IN (' . implode(',', $pagePlaceholders) . ')';
+        }
+
+        $spaceDepartmentClause = '0=1';
+        $pageDepartmentClause = '0=1';
+        if ($departmentIds !== []) {
+            $spacePlaceholders = [];
+            $pagePlaceholders = [];
+            foreach ($departmentIds as $index => $departmentId) {
+                $spaceKey = 'acl_space_department_' . $index;
+                $pageKey = 'acl_page_department_' . $index;
+                $spacePlaceholders[] = ':' . $spaceKey;
+                $pagePlaceholders[] = ':' . $pageKey;
+                $params[$spaceKey] = $departmentId;
+                $params[$pageKey] = $departmentId;
+            }
+            $spaceDepartmentClause = 'perm.subject_type = \'department\' AND perm.subject_id IN (' . implode(',', $spacePlaceholders) . ')';
+            $pageDepartmentClause = 'perm.subject_type = \'department\' AND perm.subject_id IN (' . implode(',', $pagePlaceholders) . ')';
+        }
+
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
         $sql = "(
@@ -966,13 +1014,13 @@ final class KnowledgeRepository
                 SELECT 1 FROM knowledge_space_permissions perm
                 WHERE perm.space_id = {$spaceAlias}.id
                   AND {$rankSql} >= :acl_space_perm_rank
-                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$spaceRoleClause}))
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$spaceRoleClause}) OR ({$spaceTeamClause}) OR ({$spaceDepartmentClause}))
             )
             OR EXISTS (
                 SELECT 1 FROM knowledge_page_permissions perm
                 WHERE perm.page_id = {$pageAlias}.id
                   AND {$rankSql} >= :acl_page_perm_rank
-                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_page_perm_user_id) OR ({$pageRoleClause}))
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_page_perm_user_id) OR ({$pageRoleClause}) OR ({$pageTeamClause}) OR ({$pageDepartmentClause}))
             )
         )";
 
@@ -988,6 +1036,8 @@ final class KnowledgeRepository
         $actorId = $this->actorUserId($actor);
         $rank = $this->accessRank($minAccess);
         $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
+        $teamIds = $actorId > 0 ? $this->actorTeamIds($actorId) : [];
+        $departmentIds = $actorId > 0 ? $this->actorDepartmentIds($actorId) : [];
         $params = [
             'acl_space_public_rank' => $rank,
             'acl_space_owner_user_id' => $actorId,
@@ -1006,6 +1056,28 @@ final class KnowledgeRepository
             $roleClause = 'perm.subject_type = \'role\' AND perm.subject_id IN (' . implode(',', $placeholders) . ')';
         }
 
+        $teamClause = '0=1';
+        if ($teamIds !== []) {
+            $placeholders = [];
+            foreach ($teamIds as $index => $teamId) {
+                $key = 'acl_space_team_' . $index;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $teamId;
+            }
+            $teamClause = 'perm.subject_type = \'team\' AND perm.subject_id IN (' . implode(',', $placeholders) . ')';
+        }
+
+        $departmentClause = '0=1';
+        if ($departmentIds !== []) {
+            $placeholders = [];
+            foreach ($departmentIds as $index => $departmentId) {
+                $key = 'acl_space_department_' . $index;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $departmentId;
+            }
+            $departmentClause = 'perm.subject_type = \'department\' AND perm.subject_id IN (' . implode(',', $placeholders) . ')';
+        }
+
         $rankSql = $this->accessRankSql('perm.access_level');
         $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
         $sql = "(
@@ -1015,7 +1087,7 @@ final class KnowledgeRepository
                 SELECT 1 FROM knowledge_space_permissions perm
                 WHERE perm.space_id = {$spaceAlias}.id
                   AND {$rankSql} >= :acl_space_perm_rank
-                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$roleClause}))
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$roleClause}) OR ({$teamClause}) OR ({$departmentClause}))
             )
         )";
 
@@ -1060,6 +1132,68 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare('SELECT role_id FROM user_roles WHERE user_id = :user_id');
         $stmt->execute(['user_id' => $userId]);
         return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    private function actorTeamIds(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $stmt = $this->pdo->query('SELECT id, manager_user_id, created_by_user_id, member_user_ids FROM teams');
+        $rows = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        $ids = [];
+        foreach ($rows as $row) {
+            if ((int)($row['manager_user_id'] ?? 0) === $userId || (int)($row['created_by_user_id'] ?? 0) === $userId || in_array($userId, $this->decodeIdList($row['member_user_ids'] ?? null), true)) {
+                $ids[] = (int)$row['id'];
+            }
+        }
+        return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+    }
+
+    private function actorDepartmentIds(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('SELECT id FROM departments WHERE manager_user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+        return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    private function resolvePermissionSubjectId(string $subjectType, int $subjectId, string $subjectPublicId): int
+    {
+        if ($subjectId > 0) {
+            return $subjectId;
+        }
+        $publicId = trim($subjectPublicId);
+        if ($publicId === '') {
+            return 0;
+        }
+        $tables = [
+            'user' => 'users',
+            'role' => 'roles',
+            'team' => 'teams',
+            'department' => 'departments',
+        ];
+        $table = $tables[$subjectType] ?? '';
+        if ($table === '') {
+            return 0;
+        }
+        $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = :public_id LIMIT 1");
+        $stmt->execute(['public_id' => $publicId]);
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    private function decodeIdList(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        $decoded = json_decode((string)$raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+        return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $id): bool => $id > 0)));
     }
 
     private function accessRank(string $level): int

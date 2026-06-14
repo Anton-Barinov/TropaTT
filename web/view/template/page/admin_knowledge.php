@@ -63,6 +63,8 @@
           <select id="knowledgePermSubjectType" class="form-select">
             <option value="user"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="role"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="team"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="department"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_department', 'Отдел'), ENT_QUOTES, 'UTF-8') ?></option>
           </select>
         </div>
         <div class="col-md-4">
@@ -195,8 +197,14 @@
       return;
     }
     listEl.innerHTML = '<table class="table crm-table mb-0"><thead><tr><th>' + esc(t('admin_knowledge.permissions_th_subject', 'Субъект')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_level', 'Уровень')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_created', 'Добавлено')) + '</th><th></th></tr></thead><tbody>' + items.map(function (p) {
-      var label = p.user_name || p.role_title || p.subject_id;
-      var typeLabel = p.subject_type === 'role' ? esc(t('admin_knowledge.permissions_subject_role', 'Роль')) + ':' : esc(t('admin_knowledge.permissions_subject_user', 'Пользователь')) + ':';
+      var typeMap = {
+        user: t('admin_knowledge.permissions_subject_user', 'Пользователь'),
+        role: t('admin_knowledge.permissions_subject_role', 'Роль'),
+        team: t('admin_knowledge.permissions_subject_team', 'Команда'),
+        department: t('admin_knowledge.permissions_subject_department', 'Отдел')
+      };
+      var label = p.user_name || p.role_title || p.team_title || p.department_title || p.user_public_id || p.role_public_id || p.team_public_id || p.department_public_id || p.subject_id;
+      var typeLabel = esc(typeMap[p.subject_type] || p.subject_type || '') + ':';
       return '<tr><td><strong>' + typeLabel + ' ' + esc(label) + '</strong></td><td>' + esc(p.access_level) + '</td><td class="small text-muted">' + esc(p.created_at || '') + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-perm-delete="' + esc(p.id) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
     }).join('') + '</tbody></table>';
   }
@@ -220,13 +228,26 @@
         var envelope = await request('api/v1/users', { method: 'GET', query: { limit: 200 } });
         var items = envelope.data && envelope.data.items || [];
         sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_user', 'Выберите пользователя...')) + '</option>' + items.map(function (u) {
-          return '<option value="' + esc(u.id) + '">' + esc(u.name || u.email || u.public_id) + '</option>';
+          var label = u.name || u.full_name || u.login || u.email || u.public_id || '';
+          return '<option value="' + esc(u.public_id || u.id || '') + '">' + esc(label) + '</option>';
         }).join('');
       } else if (type === 'role') {
         var envelope = await request('api/v1/roles', { method: 'GET', query: { limit: 50 } });
         var items = envelope.data && envelope.data.items || [];
         sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_role', 'Выберите роль...')) + '</option>' + items.map(function (r) {
-          return '<option value="' + esc(r.id) + '">' + esc(r.title || r.public_id) + '</option>';
+          return '<option value="' + esc(r.public_id || r.id || '') + '">' + esc(r.title || r.code || r.public_id || '') + '</option>';
+        }).join('');
+      } else if (type === 'team') {
+        var envelope = await request('api/v1/teams', { method: 'GET', query: { limit: 200 } });
+        var items = envelope.data && envelope.data.items || [];
+        sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_team', 'Выберите команду...')) + '</option>' + items.map(function (team) {
+          return '<option value="' + esc(team.public_id || team.id || '') + '">' + esc(team.title || team.public_id || '') + '</option>';
+        }).join('');
+      } else if (type === 'department') {
+        var envelope = await request('api/v1/departments', { method: 'GET', query: { limit: 200 } });
+        var items = envelope.data && envelope.data.items || [];
+        sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_department', 'Выберите отдел...')) + '</option>' + items.map(function (department) {
+          return '<option value="' + esc(department.public_id || department.id || '') + '">' + esc(department.title || department.public_id || '') + '</option>';
         }).join('');
       }
     } catch (e) {
@@ -274,12 +295,19 @@
   document.getElementById('knowledgePermAddBtn').addEventListener('click', async function () {
     if (!currentPermSpaceId) return;
     var type = document.getElementById('knowledgePermSubjectType').value;
-    var subjectId = parseInt(document.getElementById('knowledgePermSubjectId').value, 10);
+    var rawSubjectId = document.getElementById('knowledgePermSubjectId').value;
+    var subjectId = parseInt(rawSubjectId, 10);
     var level = document.getElementById('knowledgePermAccessLevel').value;
-    if (!subjectId || subjectId <= 0) return;
+    if (!rawSubjectId) return;
+    var body = { subject_type: type, access_level: level };
+    if (/^\d+$/.test(rawSubjectId) && subjectId > 0) {
+      body.subject_id = subjectId;
+    } else {
+      body.subject_public_id = rawSubjectId;
+    }
     try {
       await request('api/v1/knowledge/spaces/' + encodeURIComponent(currentPermSpaceId) + '/permissions', {
-        method: 'POST', body: { subject_type: type, subject_id: subjectId, access_level: level }, idempotent: true
+        method: 'POST', body: body, idempotent: true
       });
       loadPermModal(currentPermSpaceId);
     } catch (e) {}
