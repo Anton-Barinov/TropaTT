@@ -13380,13 +13380,23 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-tree-sidebar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.85rem;
   margin: 0;
-  padding: 1rem 1.2rem;
+  padding: 0.1rem 0 0.15rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   min-width: 0;
+  overflow: visible;
 }
 
 .crm-knowledge-tree-sidebar h3 {
-  margin-bottom: 0.7rem;
+  flex: 0 0 auto;
+  margin: 0;
   color: var(--crm-muted);
   font-size: 0.82rem;
   letter-spacing: 0.02em;
@@ -13396,6 +13406,7 @@ textarea.form-control.crm-knowledge-editor {
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-list {
   display: flex;
   flex-wrap: wrap;
+  flex: 1 1 auto;
   gap: 0.5rem;
   margin: 0;
   padding: 0;
@@ -13417,7 +13428,7 @@ textarea.form-control.crm-knowledge-editor {
   padding: 0.32rem 0.72rem;
   border: 1px solid var(--crm-border);
   border-radius: 999px;
-  background: var(--crm-surface);
+  background: color-mix(in srgb, var(--crm-surface) 72%, transparent);
   color: var(--crm-text);
   text-decoration: none;
 }
