@@ -267,6 +267,10 @@ return array (
     'attachments_empty' => 'No files yet',
     'attachments_delete' => 'Delete',
     'attachments_delete_confirm' => 'Delete this file?',
+    'tags_title' => 'Tags',
+    'tag_select_hint' => 'Select a tag...',
+    'tag_add' => '+',
+    'tag_remove' => 'Remove tag',
   ),
   'admin_knowledge' =>
   array (

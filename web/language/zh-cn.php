@@ -260,6 +260,10 @@ return [
         'attachments_empty' => '暂无文件',
         'attachments_delete' => '删除',
         'attachments_delete_confirm' => '删除此文件？',
+        'tags_title' => '标签',
+        'tag_select_hint' => '选择标签...',
+        'tag_add' => '+',
+        'tag_remove' => '移除标签',
     ],
     'admin_knowledge' => [
         'title' => 'TropaTT — 知识库设置',
