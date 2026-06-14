@@ -299,7 +299,7 @@
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
         + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
-        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '</div></article>';
+        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button></div></article>';
   }
 
   function renderMessages(messages) {
@@ -693,6 +693,10 @@
     root.querySelectorAll('[data-image-url]:not([data-chat-bound])').forEach(function (btn) {
       btn.setAttribute('data-chat-bound', '1');
       btn.addEventListener('click', function () { showImageModal(btn.getAttribute('data-image-url'), btn.getAttribute('data-image-name')); });
+    });
+    root.querySelectorAll('[data-create-knowledge]:not([data-chat-bound])').forEach(function (btn) {
+      btn.setAttribute('data-chat-bound', '1');
+      btn.addEventListener('click', function () { createKnowledgeFromMessage(btn.getAttribute('data-create-knowledge')); });
     });
   }
 
@@ -1273,6 +1277,107 @@
     }
     return result.join('');
   }
+
+  function createKnowledgeFromMessage(messageId) {
+    var message = findMessage(messageId);
+    if (!message) return;
+    var text = (message.text || '').trim();
+    var title = text.substring(0, 80);
+    if (text.length > 80) title += '...';
+    if (!title) title = window.CRM.i18n.t('chat.create_knowledge_default_title', 'Из сообщения');
+
+    var modal = document.getElementById('createKnowledgeModal');
+    if (!modal) {
+      var html = '<div class="crm-chat-modal is-open" id="createKnowledgeModal" role="dialog" aria-modal="true" aria-labelledby="createKnowledgeTitle">'
+        + '<div class="crm-chat-modal-panel">'
+        + '<div class="crm-chat-modal-head"><h2 class="h5 mb-0" id="createKnowledgeTitle">' + window.CRM.i18n.t('chat.create_knowledge_modal_title', 'Создать страницу из сообщения') + '</h2><button class="btn-close" type="button" aria-label="' + window.CRM.i18n.t('page.close_aria', 'Закрыть') + '"></button></div>'
+        + '<div class="row g-3"><div class="col-12"><label class="form-label" for="createKnowledgeTitleInput">' + window.CRM.i18n.t('chat.create_knowledge_title_label', 'Название страницы') + '</label><input type="text" class="form-control" id="createKnowledgeTitleInput" maxlength="255"></div>'
+        + '<div class="col-12"><label class="form-label" for="createKnowledgeSpaceSelect">' + window.CRM.i18n.t('chat.create_knowledge_space_label', 'Раздел') + '</label><select class="form-select" id="createKnowledgeSpaceSelect"><option value="">' + window.CRM.i18n.t('chat.create_knowledge_loading_spaces', 'Загрузка...') + '</option></select></div></div>'
+        + '<div class="text-danger small mb-2 d-none" id="createKnowledgeError" aria-live="polite"></div>'
+        + '<div class="crm-chat-modal-actions"><button class="btn crm-btn-muted" type="button" id="cancelCreateKnowledge">' + window.CRM.i18n.t('page.cancel', 'Отмена') + '</button><button class="btn crm-btn-primary" type="button" id="submitCreateKnowledge" disabled>' + window.CRM.i18n.t('chat.create_knowledge_create_btn', 'Создать') + '</button></div></div></div>';
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      document.body.appendChild(wrapper.firstElementChild);
+      modal = document.getElementById('createKnowledgeModal');
+      modal.querySelector('.btn-close').addEventListener('click', function () { modal.remove(); });
+      document.getElementById('cancelCreateKnowledge').addEventListener('click', function () { modal.remove(); });
+      modal.addEventListener('click', function (event) { if (event.target === modal) modal.remove(); });
+
+      document.getElementById('createKnowledgeTitleInput').addEventListener('input', function () {
+        var btn = document.getElementById('submitCreateKnowledge');
+        var title = this.value.trim();
+        var space = document.getElementById('createKnowledgeSpaceSelect').value;
+        btn.disabled = !title || !space;
+      });
+      document.getElementById('createKnowledgeSpaceSelect').addEventListener('change', function () {
+        var btn = document.getElementById('submitCreateKnowledge');
+        var title = document.getElementById('createKnowledgeTitleInput').value.trim();
+        btn.disabled = !title || !this.value;
+      });
+
+      document.getElementById('submitCreateKnowledge').addEventListener('click', async function () {
+        var title = document.getElementById('createKnowledgeTitleInput').value.trim();
+        var spaceId = document.getElementById('createKnowledgeSpaceSelect').value;
+        if (!title || !spaceId) return;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = window.CRM.i18n.t('chat.create_knowledge_creating', 'Создание...');
+        document.getElementById('createKnowledgeError').classList.add('d-none');
+        try {
+          var env = await request('api/v1/knowledge/pages', { method: 'POST', body: { title: title, space_public_id: spaceId, status: 'draft', content_html: '<p>' + esc(text) + '</p>', content_text: text }, idempotent: true });
+          var page = env.data && env.data.page;
+          if (page && page.public_id) {
+            // Link the page to the chat
+            try {
+              await request('api/v1/knowledge/pages/' + encodeURIComponent(page.public_id) + '/links', { method: 'POST', body: { entity_type: 'chat', entity_public_id: selectedChatId, relation_type: 'related' }, idempotent: true });
+            } catch (linkErr) {
+              if (window.console) console.warn('[CRM] Failed to link page to chat', linkErr);
+            }
+            modal.remove();
+            showInfoModal(
+              window.CRM.i18n.t('chat.create_knowledge_success_title', 'Страница создана'),
+              '<p>' + window.CRM.i18n.t('chat.create_knowledge_success_text', 'Страница создана и привязана к чату.') + '</p><a class="btn crm-btn-primary" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(page.public_id) + '" target="_blank" rel="noopener">' + window.CRM.i18n.t('chat.create_knowledge_open_btn', 'Открыть страницу') + '</a>'
+            );
+          } else {
+            throw new Error('No page returned');
+          }
+        } catch (err) {
+          var errorEl = document.getElementById('createKnowledgeError');
+          errorEl.textContent = window.CRM.i18n.t('chat.create_knowledge_error', 'Ошибка создания страницы. Попробуйте еще раз.');
+          errorEl.classList.remove('d-none');
+          btn.disabled = false;
+          btn.textContent = window.CRM.i18n.t('chat.create_knowledge_create_btn', 'Создать');
+        }
+      });
+    }
+
+    document.getElementById('createKnowledgeTitleInput').value = title;
+    document.getElementById('createKnowledgeError').classList.add('d-none');
+    document.getElementById('submitCreateKnowledge').disabled = true;
+
+    // Load spaces
+    request('api/v1/knowledge/spaces', { method: 'GET' }).then(function (env) {
+      var items = env.data && env.data.items || [];
+      var select = document.getElementById('createKnowledgeSpaceSelect');
+      select.innerHTML = '<option value="">' + window.CRM.i18n.t('chat.create_knowledge_select_space', 'Выберите раздел') + '</option>' + items.map(function (s) {
+        return '<option value="' + esc(s.public_id || '') + '">' + esc(s.title || '') + '</option>';
+      }).join('');
+      var title2 = document.getElementById('createKnowledgeTitleInput').value.trim();
+      document.getElementById('submitCreateKnowledge').disabled = !title2;
+    }).catch(function () {
+      var select = document.getElementById('createKnowledgeSpaceSelect');
+      select.innerHTML = '<option value="">' + window.CRM.i18n.t('chat.create_knowledge_load_error', 'Ошибка загрузки') + '</option>';
+    });
+
+    modal.style.display = 'flex';
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    var titleInput = document.getElementById('createKnowledgeTitleInput');
+    titleInput.focus();
+    titleInput.setSelectionRange(title.length, title.length);
+  }
+
   bindPage();
   document.addEventListener('visibilitychange', startPolling);
   loadChats({ initial: true });
