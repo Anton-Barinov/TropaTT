@@ -672,6 +672,7 @@ final class App
         $this->container->factory('repository.priority', fn(Container $c) => new \Api\Model\Priority\PriorityRepository($c->get('db.pdo')));
         $this->container->factory('repository.tag', fn(Container $c) => new \Api\Model\Tag\TagRepository($c->get('db.pdo')));
         $this->container->factory('repository.file', fn(Container $c) => new \Api\Model\File\FileRepository($c->get('db.pdo')));
+        $this->container->factory('repository.knowledge', fn(Container $c) => new \Api\Model\Knowledge\KnowledgeRepository($c->get('db.pdo')));
         $this->container->factory('repository.user_management', fn(Container $c) => new \Api\Model\User\UserManagementRepository($c->get('db.pdo')));
         $this->container->factory('repository.role', fn(Container $c) => new \Api\Model\Role\RoleRepository($c->get('db.pdo')));
         $this->container->factory('repository.permission', fn(Container $c) => new \Api\Model\Permission\PermissionRepository($c->get('db.pdo')));
@@ -941,6 +942,7 @@ final class App
             (array)$this->config->get('security.uploads.quarantine_mime_prefixes', []),
             $c->get('repository.task'),
             $c->get('repository.project'),
+            $c->get('repository.knowledge'),
             $c->get('repository.recycle_bin'),
             $c->get('logger'),
             $c->get('service.ai_semantic_index')

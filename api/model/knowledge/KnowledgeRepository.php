@@ -757,7 +757,7 @@ final class KnowledgeRepository
 
     public function comments(string $pagePublicId): array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->pageIdentity($pagePublicId);
         if (!$page) {
             return [];
         }
@@ -768,7 +768,7 @@ final class KnowledgeRepository
 
     public function addComment(string $pagePublicId, string $body, int $userId, ?string $parentPublicId = null): ?array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->pageIdentity($pagePublicId);
         if (!$page) {
             return null;
         }

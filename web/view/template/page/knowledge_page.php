@@ -406,7 +406,7 @@
   async function loadTree(page) {
     if (!page || !page.space_public_id) { els.tree.innerHTML = '<div class="text-muted small">—</div>'; return; }
     try {
-      var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(page.space_public_id) + '/tree?depth=10', { method: 'GET' });
+      var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(page.space_public_id) + '/tree', { method: 'GET', query: { depth: 10 } });
       var items = envelope.data && envelope.data.items || [];
       els.tree.innerHTML = renderTreeNodes(items);
     } catch (e) { els.tree.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.load_error', 'Ошибка')) + '</div>'; }
