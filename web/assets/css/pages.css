@@ -13379,7 +13379,7 @@ textarea.form-control.crm-knowledge-editor {
   min-height: 40px;
 }
 
-.crm-knowledge-tree-sidebar {
+.crm-knowledge-page-detail .crm-card.crm-section-card.crm-knowledge-tree-sidebar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
