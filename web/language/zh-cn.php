@@ -2434,6 +2434,7 @@ return [
         'knowledge_title' => '关联页面',
         'knowledge_loading' => '加载中...',
         'knowledge_empty' => '暂无关联页面',
+        'btn_create_knowledge' => '创建关联页面',
         'projects' => [
         'title' => 'TropaTT — 项目',
         'page_title' => '项目',
@@ -2552,6 +2553,7 @@ return [
         'summary_description' => '描述',
         'section_knowledge' => '知识库',
         'btn_knowledge' => '前往知识库',
+        'btn_create_knowledge' => '创建关联页面',
         'knowledge_empty' => '暂无关联页面',
     ],
     'companies' => [
@@ -2754,6 +2756,11 @@ return [
         'extra_edit_modal_title' => '编辑附加字段',
         'extra_fields_empty' => '暂无附加字段。',
         'btn_add_field' => '添加字段',
+        'section_knowledge' => '知识库',
+        'section_knowledge_note' => '关联页面和文档。',
+        'btn_knowledge' => '前往知识库',
+        'btn_create_knowledge' => '创建关联页面',
+        'knowledge_empty' => '暂无关联页面',
     ],
     'clients' => [
         'title' => 'TropaTT — 客户',

@@ -2725,6 +2725,7 @@ return array (
     'knowledge_title' => 'Linked Pages',
     'knowledge_loading' => 'Loading...',
     'knowledge_empty' => 'No linked pages',
+    'btn_create_knowledge' => 'Create linked page',
   ),
   'projects' => 
   array (
@@ -2848,6 +2849,7 @@ return array (
     'summary_description' => 'Description',
     'section_knowledge' => 'Knowledge Base',
     'btn_knowledge' => 'Go to Knowledge Base',
+    'btn_create_knowledge' => 'Create linked page',
     'knowledge_empty' => 'No linked pages',
   ),
   'companies' => 
@@ -3055,6 +3057,11 @@ return array (
     'extra_edit_modal_title' => 'Edit extra fields',
     'extra_fields_empty' => 'No extra fields.',
     'btn_add_field' => 'Add field',
+    'section_knowledge' => 'Knowledge Base',
+    'section_knowledge_note' => 'Linked pages and documentation.',
+    'btn_knowledge' => 'Go to Knowledge Base',
+    'btn_create_knowledge' => 'Create linked page',
+    'knowledge_empty' => 'No linked pages',
   ),
   'clients' => 
   array (

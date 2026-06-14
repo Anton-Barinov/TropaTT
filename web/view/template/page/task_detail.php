@@ -207,6 +207,7 @@
       <section id="detailKnowledge" class="tab-pane fade crm-card crm-task-section">
         <h2 class="h6" data-i18n="task_detail.knowledge_title"><?= htmlspecialchars($t('task_detail.knowledge_title', 'Связанные страницы'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div id="taskKnowledgeList"><div class="text-muted small" data-i18n="task_detail.knowledge_loading"><?= htmlspecialchars($t('task_detail.knowledge_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+        <div class="mt-2"><a id="taskCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="task_detail.btn_create_knowledge"><?= htmlspecialchars($t('task_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
       </section>
     </div>
   </div>
@@ -615,6 +616,8 @@
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('route') === 'task-detail') taskId = urlParams.get('task_public_id');
   if (!taskId) return;
+  var createKnowledgeBtn = document.getElementById('taskCreateKnowledgeBtn');
+  if (createKnowledgeBtn) createKnowledgeBtn.href = 'index.php?route=knowledge&entity_type=task&entity_public_id=' + encodeURIComponent(taskId);
 
   function getApi() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
 

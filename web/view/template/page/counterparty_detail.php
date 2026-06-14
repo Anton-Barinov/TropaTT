@@ -32,7 +32,7 @@
     <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_knowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_knowledge_note"><?= htmlspecialchars($t('counterparty_detail.section_knowledge_note', 'Связанные страницы и документация.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div id="counterpartyKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-      <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+      <div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="counterpartyCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_create_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
     </div>
     <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_extra"><?= htmlspecialchars($t('counterparty_detail.section_extra', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_extra_note"><?= htmlspecialchars($t('counterparty_detail.section_extra_note', 'Кастомные поля контрагента.'), ENT_QUOTES, 'UTF-8') ?></div></div><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyExtraEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_extra_aria', 'Редактировать дополнительные поля'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_extra_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
@@ -114,6 +114,8 @@
   var urlParams = new URLSearchParams(window.location.search);
   var counterpartyId = urlParams.get('id');
   if (!counterpartyId) return;
+  var createKnowledgeBtn = document.getElementById('counterpartyCreateKnowledgeBtn');
+  if (createKnowledgeBtn) createKnowledgeBtn.href = 'index.php?route=knowledge&entity_type=counterparty&entity_public_id=' + encodeURIComponent(counterpartyId);
   function getApi() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
   }

@@ -131,7 +131,15 @@
 (function () {
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
-  var state = { spaces: [] };
+  var urlParams = new URLSearchParams(window.location.search);
+  var state = {
+    spaces: [],
+    sourceEntity: {
+      type: urlParams.get('entity_type') || '',
+      publicId: urlParams.get('entity_public_id') || '',
+      title: urlParams.get('source_title') || ''
+    }
+  };
   var els = {
     stats: document.getElementById('knowledgeStats'),
     spaces: document.getElementById('knowledgeSpaces'),
@@ -268,6 +276,8 @@
   document.querySelectorAll('[data-knowledge-open-page]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (els.pageForm) els.pageForm.reset();
+      var titleInput = document.getElementById('knowledgePageTitle');
+      if (titleInput && state.sourceEntity.title) titleInput.value = state.sourceEntity.title;
       var wrap = els.pageTemplateWrap;
       if (wrap) wrap.style.display = 'none';
       if (els.pageContent) els.pageContent.value = '';
@@ -337,6 +347,21 @@
     event.preventDefault();
     var envelope = await request('api/v1/knowledge/pages', { method: 'POST', body: formPayload(els.pageForm), idempotent: true });
     var page = envelope.data && envelope.data.page;
+    if (page && page.public_id && state.sourceEntity.type && state.sourceEntity.publicId) {
+      try {
+        await request('api/v1/knowledge/pages/' + encodeURIComponent(page.public_id) + '/links', {
+          method: 'POST',
+          body: {
+            entity_type: state.sourceEntity.type,
+            entity_public_id: state.sourceEntity.publicId,
+            relation_type: 'related'
+          },
+          idempotent: true
+        });
+      } catch (linkError) {
+        if (window.console && console.warn) console.warn('[CRM] Knowledge page created, but entity link failed', linkError);
+      }
+    }
     if (page && page.public_id) window.location.href = pageUrl(page);
   });
   if (els.spaceForm) els.spaceForm.addEventListener('submit', async function (event) {
@@ -367,7 +392,16 @@
     if (els.search) els.search.value = '';
     search();
   });
-  waitForApi(function () { load(); loadTags(); });
+  waitForApi(function () {
+    load();
+    loadTags();
+    if (state.sourceEntity.type && state.sourceEntity.publicId) {
+      window.setTimeout(function () {
+        var btn = document.querySelector('[data-knowledge-open-page]');
+        if (btn) btn.click();
+      }, 250);
+    }
+  });
 })();
 </script>
 </body>
