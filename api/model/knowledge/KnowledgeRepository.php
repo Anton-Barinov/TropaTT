@@ -472,11 +472,13 @@ final class KnowledgeRepository
             return null;
         }
         $now = gmdate('Y-m-d H:i:s');
-        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id");
+        $defaultReviewDue = gmdate('Y-m-d H:i:s', time() + 90 * 86400); // 90 days from now
+        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, review_due_at = COALESCE(review_due_at, :default_review_due), row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id");
         $stmt->execute([
             'actor' => $actorId,
             'published_at' => $now,
             'reviewed_at' => $now,
+            'default_review_due' => $defaultReviewDue,
             'updated_at' => $now,
             'public_id' => $publicId,
         ]);
