@@ -105,7 +105,7 @@
 (function () {
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
-  var stats = document.getElementById('adminKnowledgeStats');
+  var statsEl = document.getElementById('adminKnowledgeStats');
   function getApi() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
   }
@@ -114,8 +114,8 @@
       callback();
       return;
     }
-    if ((attempts || 0) > 80) {
-      document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="3" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
+    if ((attempts || 0) > 240) {
+      document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
       return;
     }
     window.setTimeout(function () { waitForApi(callback, (attempts || 0) + 1); }, 50);
@@ -150,7 +150,7 @@
     var data = overview.data || {};
     var totals = data.totals || {};
     [totals.spaces || 0, totals.pages || 0, totals.published || 0, totals.drafts || 0].forEach(function (value, index) {
-      stats.querySelectorAll('strong')[index].textContent = String(value);
+      statsEl.querySelectorAll('strong')[index].textContent = String(value);
     });
     document.getElementById('adminKnowledgeSpaces').innerHTML = (data.spaces || []).map(function (space) {
       var arch = space.is_archived ? 1 : 0;
@@ -162,14 +162,18 @@
     }).join('') || '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
     list(document.getElementById('adminKnowledgeReview'), data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
     list(document.getElementById('adminKnowledgeOutdated'), data.outdated || [], t('admin_knowledge.empty_outdated', 'Нет просроченных ревью.'));
-    var templates = await request('api/v1/knowledge/templates', { method: 'GET' });
-    document.getElementById('adminKnowledgeTemplates').innerHTML = (templates.data && templates.data.items || []).map(function (tpl) {
-      return '<div class="crm-knowledge-list-item"><span><strong>' + esc(tpl.title) + '</strong><small>' + esc(tpl.description || tpl.page_type || '') + '</small></span><span class="crm-badge">' + esc(tpl.page_type || '') + '</span></div>';
-    }).join('') || '<div class="text-muted p-3">' + esc(t('admin_knowledge.empty_templates', 'Шаблонов пока нет.')) + '</div>';
+    try {
+      var templates = await request('api/v1/knowledge/templates', { method: 'GET' });
+      document.getElementById('adminKnowledgeTemplates').innerHTML = (templates.data && templates.data.items || []).map(function (tpl) {
+        return '<div class="crm-knowledge-list-item"><span><strong>' + esc(tpl.title) + '</strong><small>' + esc(tpl.description || tpl.page_type || '') + '</small></span><span class="crm-badge">' + esc(tpl.page_type || '') + '</span></div>';
+      }).join('') || '<div class="text-muted p-3">' + esc(t('admin_knowledge.empty_templates', 'Шаблонов пока нет.')) + '</div>';
+    } catch (e) {
+      document.getElementById('adminKnowledgeTemplates').innerHTML = '<div class="text-muted p-3">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</div>';
+    }
     try {
       var analyticsRes = await request('api/v1/knowledge/analytics', { method: 'GET' });
-      var stats = analyticsRes.data && analyticsRes.data.stats || {};
-      var map = { analyticsTotalPages: stats.total_pages, analyticsPublished: stats.published, analyticsDrafts: stats.drafts, analyticsReview: stats.review_queue, analyticsArchived: stats.archived, analyticsSpaces: stats.active_spaces, analyticsComments: stats.total_comments, analyticsVersions: stats.total_versions };
+      var analyticsStats = analyticsRes.data && analyticsRes.data.stats || {};
+      var map = { analyticsTotalPages: analyticsStats.total_pages, analyticsPublished: analyticsStats.published, analyticsDrafts: analyticsStats.drafts, analyticsReview: analyticsStats.review_queue, analyticsArchived: analyticsStats.archived, analyticsSpaces: analyticsStats.active_spaces, analyticsComments: analyticsStats.total_comments, analyticsVersions: analyticsStats.total_versions };
       Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) el.textContent = map[id] != null ? String(map[id]) : '—'; });
     } catch (e) {}
   }
@@ -285,7 +289,7 @@
     loadSubjectOptions(document.getElementById('knowledgePermSubjectType').value);
   });
   waitForApi(function () { load().catch(function () {
-    document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="4" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
+    document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
   }); });
 })();
 </script>

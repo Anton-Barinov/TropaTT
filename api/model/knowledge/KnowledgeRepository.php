@@ -744,6 +744,8 @@ final class KnowledgeRepository
 
     public function favorites(int $userId, int $limit = 20, int $offset = 0): array
     {
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
         $stmt = $this->pdo->prepare('SELECT p.id, p.public_id, p.title, p.status, p.page_type, p.updated_at, p.published_at, p.views_count, s.title AS space_title, s.public_id AS space_public_id
             FROM favorites f
             INNER JOIN knowledge_pages p ON p.public_id = f.entity_public_id AND p.deleted_at IS NULL
@@ -751,12 +753,17 @@ final class KnowledgeRepository
             WHERE f.entity_type = :entity_type AND f.user_id = :user_id
             ORDER BY f.created_at DESC
             LIMIT :limit OFFSET :offset');
-        $stmt->execute(['entity_type' => 'knowledge_page', 'user_id' => $userId, 'limit' => $limit, 'offset' => $offset]);
+        $stmt->bindValue(':entity_type', 'knowledge_page');
+        $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function suggest(string $query, int $limit = 10): array
     {
+        $limit = max(1, min(50, $limit));
         $q = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%';
         $stmt = $this->pdo->prepare('SELECT p.public_id, p.title, p.page_type, s.title AS space_title, s.public_id AS space_public_id
             FROM knowledge_pages p
@@ -764,12 +771,11 @@ final class KnowledgeRepository
             WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q_title OR p.content_text LIKE :q_content)
             ORDER BY p.views_count DESC, p.updated_at DESC
             LIMIT :limit');
-        $stmt->execute([
-            'status' => 'published',
-            'q_title' => $q,
-            'q_content' => $q,
-            'limit' => $limit,
-        ]);
+        $stmt->bindValue(':status', 'published');
+        $stmt->bindValue(':q_title', $q);
+        $stmt->bindValue(':q_content', $q);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
