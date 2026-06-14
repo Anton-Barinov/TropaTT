@@ -219,6 +219,7 @@ return array (
     'meta_title' => '状态',
     'updated_at' => '更新时间',
     'views' => '浏览',
+            'review_due_at_label' => '审查截止',
     'versions_title' => '版本',
     'empty_content' => '内容尚未填写。',
     'no_versions' => '暂无版本。',
@@ -1028,8 +1029,18 @@ return array (
       'ai_preview_only' => '分析页仅提供预览。数字指标仍为主要依据。',
       'task_tree' => 
       array (
-        'subtask' => '子任务',
-        'group' => '分组',
+        'subtask' => 
+        array (
+          'one' => 'subtask',
+          'few' => 'subtasks',
+          'many' => 'subtasks',
+        ),
+        'group' => 
+        array (
+          'one' => 'group',
+          'few' => 'groups',
+          'many' => 'groups',
+        ),
       ),
       'calendar' => 
       array (
@@ -1039,7 +1050,12 @@ return array (
         'month_prefix' => '月：',
         'jump_current_period' => '跳转到当前时段',
         'subtitle' => '团队的日历视图，包括事件、会议和截止日期。',
-        'event' => '事件',
+        'event' => 
+        array (
+          'one' => 'event',
+          'few' => 'events',
+          'many' => 'events',
+        ),
         'today_short' => '今天',
         'view_day' => '日',
         'view_week' => '周',
@@ -1465,7 +1481,12 @@ return array (
         'type_department' => '部门',
         'type_team' => '团队',
         'created_prefix' => '已创建 ',
-        'participant' => '位成员',
+        'participant' => 
+        array (
+          'one' => 'participant',
+          'few' => 'participants',
+          'many' => 'participants',
+        ),
         'delete_confirm' => '删除团队？此操作不可撤销。',
         'deleted' => '团队已删除',
         'delete_fail' => '删除团队失败',
@@ -1632,7 +1653,12 @@ return array (
         'no_project' => '无项目',
         'filter_apply_fail' => '应用甘特图筛选失败',
         'render_fail' => '重新绘制甘特图失败',
-        'task' => '个任务',
+        'task' => 
+        array (
+          'one' => 'task',
+          'few' => 'tasks',
+          'many' => 'tasks',
+        ),
         'untitled_task' => '无标题',
         'tooltip_project' => '项目：',
         'tooltip_status' => '状态：',
@@ -1818,8 +1844,18 @@ return array (
         'quick_working' => '连接运行正常',
         'added_lower' => '已添加',
         'not_added_lower' => '未添加',
-        'scenario' => '个场景',
-        'issue' => '个问题',
+        'scenario' => 
+        array (
+          'one' => 'scenario',
+          'few' => 'scenarios',
+          'many' => 'scenarios',
+        ),
+        'issue' => 
+        array (
+          'one' => 'issue',
+          'few' => 'issues',
+          'many' => 'issues',
+        ),
         'attention_has_prefix' => '有 ',
         'attention_has_suffix' => ' 个需要关注',
         'attention_check_connections' => '建议在使用前检查连接。',

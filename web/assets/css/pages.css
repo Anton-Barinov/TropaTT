@@ -13262,6 +13262,25 @@ textarea.form-control.crm-knowledge-editor {
   color: var(--crm-text-muted);
 }
 
+.crm-knowledge-edit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin: 0 0 1.35rem;
+}
+
+.crm-knowledge-edit-review {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.crm-knowledge-edit-review label {
+  white-space: nowrap;
+}
+
 .crm-knowledge-writing-canvas .crm-knowledge-toolbar {
   position: sticky;
   top: 58px;

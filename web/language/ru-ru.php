@@ -219,6 +219,7 @@ return array (
     'meta_title' => 'Состояние',
     'updated_at' => 'Обновлено',
     'views' => 'Просмотры',
+            'review_due_at_label' => 'Проверка до',
     'versions_title' => 'Версии',
     'empty_content' => 'Содержание пока не заполнено.',
     'no_versions' => 'Версий пока нет.',

@@ -38,7 +38,13 @@
           </div>
         </div>
         <div class="crm-knowledge-writing-canvas">
-          <input id="knowledgeEditTitle" class="crm-knowledge-title-input" name="title" required placeholder="<?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?>">
+          <div class="crm-knowledge-edit-meta">
+            <input id="knowledgeEditTitle" class="crm-knowledge-title-input" name="title" required placeholder="<?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?>">
+            <div class="crm-knowledge-edit-review">
+              <label class="small text-muted"><?= htmlspecialchars($t('knowledge_page.review_due_at_label', 'Проверка до'), ENT_QUOTES, 'UTF-8') ?></label>
+              <input id="knowledgeEditReviewDue" class="form-control form-control-sm" type="date" name="review_due_at" style="width:200px">
+            </div>
+          </div>
           <div class="crm-knowledge-toolbar" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
             <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="bold" title="<?= htmlspecialchars($t('knowledge_page.bold', 'Жирный'), ENT_QUOTES, 'UTF-8') ?>"><b>B</b></button>
             <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
@@ -95,6 +101,7 @@
       <dt><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaType">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.updated_at', 'Обновлено'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaUpdated">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.views', 'Просмотры'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaViews">0</dd>
+      <dt><?= htmlspecialchars($t('knowledge_page.review_due_at_label', 'Проверка до'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaReviewDue">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaTags"><span class="text-muted small">—</span></dd>
     </dl>
     <div class="d-flex gap-2 mb-2">
@@ -180,6 +187,8 @@
     editTitle: document.getElementById('knowledgeEditTitle'),
     editContent: document.getElementById('knowledgeEditContent'),
     editPreview: document.getElementById('knowledgeEditorPreview'),
+    editReviewDue: document.getElementById('knowledgeEditReviewDue'),
+    metaReviewDue: document.getElementById('knowledgeMetaReviewDue'),
     visualEditor: document.getElementById('knowledgeVisualEditor'),
     blockAddBtn: document.getElementById('knowledgeBlockAddBtn'),
     blockMenu: document.getElementById('knowledgeBlockMenu'),
@@ -482,8 +491,8 @@
     document.body.classList.toggle('crm-knowledge-writing-mode', show);
     els.editor.classList.toggle('d-none', !show);
     els.view.classList.toggle('d-none', show);
-    if (show && current) {
-      els.editTitle.value = current.title || '';
+    if (show && current) {    els.editTitle.value = current.title || '';
+      if (els.editReviewDue) els.editReviewDue.value = current.review_due_at ? current.review_due_at.substring(0, 10) : '';
       els.editContent.value = current.content_html || '';
       if (els.visualEditor) {
         els.visualEditor.innerHTML = sanitizePreviewHtml(current.content_html || '<p></p>');
@@ -507,6 +516,7 @@
     els.metaType.textContent = page.page_type || '—';
     els.metaUpdated.textContent = page.updated_at || '—';
     els.metaViews.textContent = String(page.views_count || 0);
+    els.metaReviewDue.textContent = page.review_due_at ? page.review_due_at.substring(0, 10) : '—';
     updateFavSubButtons();
     loadTree(page);
     loadComments();
@@ -642,8 +652,13 @@
       if (els.editor.classList.contains('d-none')) return;
       syncHiddenContent();
       if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saving', 'Сохранение...');
+      var draftBody = { title: els.editTitle.value, content_html: els.editContent.value };
+      if (els.editReviewDue) {
+        var rv = els.editReviewDue.value;
+        if (rv) draftBody.review_due_at = rv;
+      }
       request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', {
-        method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true
+        method: 'POST', body: draftBody, idempotent: true
       }).then(function () {
         if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saved', 'Сохранено');
       }).catch(function () {
@@ -655,7 +670,12 @@
   document.getElementById('knowledgeCancelEditBtn').addEventListener('click', function () { showEditor(false); });
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
     syncHiddenContent();
-    await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true });
+    var draftBody = { title: els.editTitle.value, content_html: els.editContent.value };
+    if (els.editReviewDue) {
+      var rv = els.editReviewDue.value;
+      if (rv) draftBody.review_due_at = rv;
+    }
+    await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: draftBody, idempotent: true });
     if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saved', 'Сохранено');
   });
   els.editContent && els.editContent.addEventListener('input', function () { updateEditorPreview(); startAutosave(); });
@@ -728,7 +748,12 @@
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
     syncHiddenContent();
-    await patch({ title: els.editTitle.value, content_html: els.editContent.value });
+    var patchBody = { title: els.editTitle.value, content_html: els.editContent.value };
+    if (els.editReviewDue) {
+      var rv = els.editReviewDue.value;
+      if (rv) patchBody.review_due_at = rv;
+    }
+    await patch(patchBody);
     showEditor(false);
   });
   document.getElementById('knowledgePublishBtn').addEventListener('click', async function () {

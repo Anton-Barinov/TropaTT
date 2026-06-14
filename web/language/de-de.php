@@ -3644,6 +3644,7 @@ return array (
     'meta_title' => 'State',
     'updated_at' => 'Updated',
     'views' => 'Views',
+            'review_due_at_label' => 'Prüfung fällig',
     'versions_title' => 'Versions',
     'empty_content' => 'Content has not been filled yet.',
     'no_versions' => 'No versions yet.',

@@ -641,6 +641,16 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->notifyComment((string)$params['public_id'], $comment, $auth);
+
+        // Check for knowledge page mentions (kb:public_id pattern) in the comment
+        if (preg_match('/\bkb:([a-zA-Z0-9_]+)\b/', $body, $kbMatch)) {
+            $mentionedPublicId = $kbMatch[1];
+            $mentionedPage = $this->repo()->page($mentionedPublicId);
+            if ($mentionedPage) {
+                $this->notifyPageEvent($mentionedPage, 'mentioned', $auth);
+            }
+        }
+
         return $this->success('KNOWLEDGE_COMMENT_CREATED', $this->t('knowledge/messages.comment_created', 'Comment added'), [
             'comment' => $comment,
         ], 201);
