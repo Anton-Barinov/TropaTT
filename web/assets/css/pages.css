@@ -12956,6 +12956,10 @@ a.task-tag:hover {
   line-height: 1.55;
 }
 
+textarea.form-control.crm-knowledge-editor {
+  min-height: 460px;
+}
+
 .crm-knowledge-toolbar {
   display: flex;
   flex-wrap: wrap;
