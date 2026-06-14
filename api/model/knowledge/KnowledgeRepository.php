@@ -139,7 +139,7 @@ final class KnowledgeRepository
             return [];
         }
         $stmt = $this->pdo->prepare('
-            SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
+            SELECT p.id AS permission_id, p.subject_type, p.subject_id, p.access_level, p.created_at,
                    u.public_id AS user_public_id, COALESCE(u.full_name, u.login, u.public_id) AS user_name,
                    r.public_id AS role_public_id, r.title AS role_title,
                    t.public_id AS team_public_id, t.title AS team_title,
@@ -188,7 +188,7 @@ final class KnowledgeRepository
         $this->pdo->prepare('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1, updated_at = :updated_at WHERE id = :id')->execute(['updated_at' => $now, 'id' => (int)$space['id']]);
 
         $stmt = $this->pdo->prepare('
-            SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
+            SELECT p.id AS permission_id, p.subject_type, p.subject_id, p.access_level, p.created_at,
                    u.public_id AS user_public_id, COALESCE(u.full_name, u.login, u.public_id) AS user_name,
                    r.public_id AS role_public_id, r.title AS role_title,
                    t.public_id AS team_public_id, t.title AS team_title,
