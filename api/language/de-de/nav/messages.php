@@ -17,5 +17,6 @@ return [
     'admin_modules' => 'Modules',
     'chat' => 'Chats',
     'api' => 'Documentation',
+    'knowledge' => 'Wissensbasis',
     'menu_loaded' => 'Menu loaded',
 ];
