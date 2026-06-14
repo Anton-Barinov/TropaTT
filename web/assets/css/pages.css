@@ -12913,11 +12913,13 @@ a.task-tag:hover {
 .crm-knowledge-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 320px);
-  gap: 1rem;
+  gap: 1.15rem;
   align-items: start;
 }
 
 .crm-knowledge-center {
+  display: grid;
+  gap: 1rem;
   grid-column: 1;
   min-width: 0;
 }
@@ -12928,7 +12930,7 @@ a.task-tag:hover {
 }
 
 .crm-knowledge-article {
-  padding: 1.55rem 1.7rem;
+  padding: 1.35rem 1.45rem 1.55rem;
   min-width: 0;
 }
 
@@ -12936,7 +12938,7 @@ a.task-tag:hover {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 1rem;
+  padding-bottom: 1.05rem;
   border-bottom: 1px solid var(--crm-border);
 }
 
@@ -12947,7 +12949,7 @@ a.task-tag:hover {
 }
 
 .crm-knowledge-content {
-  padding-top: 1.1rem;
+  padding-top: 1.25rem;
   color: var(--crm-text);
   font-size: 1.04rem;
   line-height: 1.75;
@@ -13287,18 +13289,52 @@ textarea.form-control.crm-knowledge-editor {
 .crm-knowledge-side {
   position: sticky;
   top: 1rem;
-  padding: 1.1rem;
+  padding: 1.2rem 1.2rem 1.3rem;
   min-width: 0;
 }
 
+.crm-knowledge-side h2,
+.crm-knowledge-side h3 {
+  margin: 0 0 0.85rem;
+}
+
+.crm-knowledge-side hr {
+  margin: 1.15rem 0;
+  border-color: var(--crm-border);
+  opacity: 1;
+}
+
+.crm-knowledge-side .btn {
+  min-height: 38px;
+}
+
+.crm-knowledge-side > .d-flex,
+.crm-knowledge-side > .d-grid {
+  margin-top: 0.85rem;
+}
+
+.crm-knowledge-side > .d-flex {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+}
+
+.crm-knowledge-side .input-group {
+  align-items: stretch;
+}
+
+.crm-knowledge-side .input-group .form-select,
+.crm-knowledge-side .input-group .btn {
+  min-height: 40px;
+}
+
 .crm-knowledge-tree-sidebar {
-  margin-bottom: 1rem;
-  padding: 0.95rem 1.1rem;
+  margin: 0;
+  padding: 1rem 1.2rem;
   min-width: 0;
 }
 
 .crm-knowledge-tree-sidebar h3 {
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.7rem;
   color: var(--crm-muted);
   font-size: 0.82rem;
   letter-spacing: 0.02em;
@@ -13308,7 +13344,7 @@ textarea.form-control.crm-knowledge-editor {
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
 }
@@ -13325,8 +13361,8 @@ textarea.form-control.crm-knowledge-editor {
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-item a {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 0.28rem 0.65rem;
+  min-height: 34px;
+  padding: 0.32rem 0.72rem;
   border: 1px solid var(--crm-border);
   border-radius: 999px;
   background: var(--crm-surface);
@@ -13341,8 +13377,19 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-work-card {
-  margin-top: 1rem;
-  padding: 1.25rem 1.35rem;
+  margin: 0;
+  padding: 1.25rem 1.45rem 1.35rem;
+}
+
+.crm-knowledge-work-card .crm-section-head {
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-work-card .crm-section-head h3 {
+  font-size: 1.15rem;
+  line-height: 1.25;
 }
 
 .crm-knowledge-comment-form,
@@ -13350,7 +13397,7 @@ textarea.form-control.crm-knowledge-editor {
   display: flex;
   gap: 0.75rem;
   align-items: flex-end;
-  margin-top: 0.8rem;
+  margin-top: 0.9rem;
 }
 
 .crm-knowledge-comment-form textarea {
@@ -13367,9 +13414,9 @@ textarea.form-control.crm-knowledge-editor {
 
 .crm-knowledge-meta {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 0.45rem 0.75rem;
-  margin: 1rem 0;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 0.55rem 0.75rem;
+  margin: 1rem 0 1.05rem;
   font-size: 0.9rem;
 }
 
@@ -13380,6 +13427,8 @@ textarea.form-control.crm-knowledge-editor {
 
 .crm-knowledge-meta dd {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .crm-knowledge-version-list {
