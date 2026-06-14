@@ -1203,7 +1203,7 @@
       return;
     }
     knowledgeSearchTimer = setTimeout(function () {
-      request('api/v1/knowledge/search', { method: 'GET', body: { q: q.trim(), limit: 10 } }).then(function (env) {
+      request('api/v1/knowledge/search', { method: 'GET', query: { q: q.trim(), limit: 10 } }).then(function (env) {
         var items = env.data && env.data.items || [];
         var list = document.getElementById('knowledgePickerList');
         if (!list) return;
@@ -1233,7 +1233,7 @@
   function insertKnowledgePage(publicId, title) {
     var input = document.getElementById('msgInput');
     if (!input) return;
-    var link = '📄 ' + title + ': index.php?route=knowledge-page&page_id=' + publicId;
+    var link = '📄 ' + title + ': index.php?route=knowledge-page&id=' + publicId;
     var text = input.value;
     var start = input.selectionStart;
     input.value = text.substring(0, start) + (start > 0 && text[start - 1] !== '\n' && text[start - 1] !== ' ' ? '\n' : '') + link + '\n' + text.substring(input.selectionEnd);

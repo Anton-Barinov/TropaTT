@@ -187,6 +187,10 @@ return [
         'filter_all_tags' => 'Все теги',
         'type_runbook' => 'Runbook',
         'type_meeting_note' => 'Протокол встречи',
+        'type_decision' => 'Решение',
+        'type_client_note' => 'Заметка клиента',
+        'type_project_note' => 'Заметка проекта',
+        'type_onboarding' => 'Онбординг',
     ],
     'knowledge_page' => [
         'title' => 'TropaTT — Материал базы знаний',

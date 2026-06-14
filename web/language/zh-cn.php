@@ -185,6 +185,10 @@ return [
         'filter_all_tags' => '所有标签',
         'type_runbook' => 'Runbook',
         'type_meeting_note' => '会议记录',
+        'type_decision' => '决策',
+        'type_client_note' => '客户备注',
+        'type_project_note' => '项目备注',
+        'type_onboarding' => '入职指引',
     ],
     'knowledge_page' => [
         'title' => 'TropaTT — 知识页面',

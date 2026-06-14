@@ -701,7 +701,7 @@ final class KnowledgeController extends BaseController
         $title = ($page['title'] ?? '');
         $publicId = ($page['public_id'] ?? '');
         $actorName = ($auth['user']['name'] ?? $auth['user']['login'] ?? '');
-        $link = 'index.php?route=knowledge-page&page_id=' . urlencode($publicId);
+        $link = 'index.php?route=knowledge-page&id=' . urlencode($publicId);
         switch ($event) {
             case 'published':
                 $notifTitle = $this->t('knowledge/messages.notif_published_title', 'Page published');
@@ -749,7 +749,7 @@ final class KnowledgeController extends BaseController
         $actorId = (int)($auth['user']['id'] ?? 0);
         $title = ($page['title'] ?? '');
         $publicId = $pagePublicId;
-        $link = 'index.php?route=knowledge-page&page_id=' . urlencode($publicId);
+        $link = 'index.php?route=knowledge-page&id=' . urlencode($publicId);
         $subscriberIds = $this->repo()->pageSubscriberIds($publicId);
         $targetIds = array_values(array_unique(array_map('intval', $subscriberIds)));
         if (empty($targetIds)) {

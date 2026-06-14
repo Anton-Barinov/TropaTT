@@ -7,6 +7,20 @@ use PDO;
 
 final class KnowledgeRepository
 {
+    private const PAGE_TYPES = [
+        'article',
+        'instruction',
+        'regulation',
+        'faq',
+        'checklist',
+        'runbook',
+        'meeting_note',
+        'decision',
+        'client_note',
+        'project_note',
+        'onboarding',
+    ];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -167,11 +181,21 @@ final class KnowledgeRepository
 
     public function removeSpacePermission(int $permissionId): bool
     {
+        $lookup = $this->pdo->prepare('SELECT space_id FROM knowledge_space_permissions WHERE id = :id LIMIT 1');
+        $lookup->execute(['id' => $permissionId]);
+        $spaceId = $lookup->fetchColumn();
+        if ($spaceId === false) {
+            return false;
+        }
+
         $stmt = $this->pdo->prepare('DELETE FROM knowledge_space_permissions WHERE id = :id');
         $stmt->execute(['id' => $permissionId]);
         if ($stmt->rowCount() > 0) {
             $now = gmdate('Y-m-d H:i:s');
-            $this->pdo->prepare('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1, updated_at = :updated_at WHERE id = (SELECT space_id FROM knowledge_space_permissions WHERE id = :perm_id)')->execute(['updated_at' => $now, 'perm_id' => $permissionId]);
+            $this->pdo->prepare('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1, updated_at = :updated_at WHERE id = :space_id')->execute([
+                'updated_at' => $now,
+                'space_id' => (int)$spaceId,
+            ]);
             return true;
         }
         return false;
@@ -231,7 +255,7 @@ final class KnowledgeRepository
             'parent_id' => $parent ? (int)$parent['id'] : null,
             'title' => $title,
             'slug' => $this->uniquePageSlug((int)$space['id'], $this->slug((string)($payload['slug'] ?? $title), 'page'), null),
-            'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), ['article', 'instruction', 'regulation', 'faq', 'checklist', 'runbook', 'meeting_note'], 'article'),
+            'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), self::PAGE_TYPES, 'article'),
             'status' => $this->choice((string)($payload['status'] ?? 'draft'), ['draft', 'review', 'published', 'archived'], 'draft'),
             'content_html' => $html,
             'content_text' => $this->contentText($html),
@@ -296,7 +320,7 @@ final class KnowledgeRepository
             'title' => trim((string)($payload['title'] ?? $current['title'])),
             'space_id' => $space ? (int)$space['id'] : (int)$current['space_id'],
             'parent_id' => $parent === false ? ($current['parent_id'] ?? null) : ($parent ? (int)$parent['id'] : null),
-            'page_type' => $this->choice((string)($payload['page_type'] ?? $current['page_type'] ?? 'article'), ['article', 'instruction', 'regulation', 'faq', 'checklist', 'runbook', 'meeting_note'], 'article'),
+            'page_type' => $this->choice((string)($payload['page_type'] ?? $current['page_type'] ?? 'article'), self::PAGE_TYPES, 'article'),
             'status' => $this->choice((string)($payload['status'] ?? $current['status'] ?? 'draft'), ['draft', 'review', 'published', 'archived'], 'draft'),
             'content_html' => $html,
             'content_text' => $this->contentText($html),
@@ -538,7 +562,7 @@ final class KnowledgeRepository
         $stmt->execute([
             'public_id' => $publicId,
             'title' => trim((string)($payload['title'] ?? '')),
-            'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), ['article', 'instruction', 'regulation', 'faq', 'checklist', 'runbook', 'meeting_note'], 'article'),
+            'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), self::PAGE_TYPES, 'article'),
             'description' => $this->nullableText($payload['description'] ?? null),
             'content_html' => $this->sanitizeHtml((string)($payload['content_html'] ?? '')),
             'content_json' => isset($payload['content_json']) ? json_encode($payload['content_json'], JSON_UNESCAPED_UNICODE) : null,
@@ -737,10 +761,15 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare('SELECT p.public_id, p.title, p.page_type, s.title AS space_title, s.public_id AS space_public_id
             FROM knowledge_pages p
             LEFT JOIN knowledge_spaces s ON s.id = p.space_id
-            WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q OR p.content_text LIKE :q)
+            WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q_title OR p.content_text LIKE :q_content)
             ORDER BY p.views_count DESC, p.updated_at DESC
             LIMIT :limit');
-        $stmt->execute(['status' => 'published', 'q' => $q, 'limit' => $limit]);
+        $stmt->execute([
+            'status' => 'published',
+            'q_title' => $q,
+            'q_content' => $q,
+            'limit' => $limit,
+        ]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

@@ -190,6 +190,10 @@ return array (
     'filter_all_tags' => 'All tags',
     'type_runbook' => 'Runbook',
     'type_meeting_note' => 'Meeting note',
+    'type_decision' => 'Decision',
+    'type_client_note' => 'Client note',
+    'type_project_note' => 'Project note',
+    'type_onboarding' => 'Onboarding',
   ),
   'knowledge_page' =>
   array (

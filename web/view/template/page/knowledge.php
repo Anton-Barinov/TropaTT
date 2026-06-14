@@ -32,6 +32,10 @@
       <option value="checklist"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="runbook"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="meeting_note"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="decision"><?= htmlspecialchars($t('knowledge.type_decision', 'Решение'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="client_note"><?= htmlspecialchars($t('knowledge.type_client_note', 'Заметка клиента'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="project_note"><?= htmlspecialchars($t('knowledge.type_project_note', 'Заметка проекта'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="onboarding"><?= htmlspecialchars($t('knowledge.type_onboarding', 'Онбординг'), ENT_QUOTES, 'UTF-8') ?></option>
     </select>
     <select id="knowledgeFilterTag" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
     <button id="knowledgeFilterReset" class="btn crm-btn-muted btn-sm" type="button"><?= htmlspecialchars($t('page.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -93,6 +97,10 @@
             <option value="checklist" data-icon="fa-solid fa-check-square"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="runbook" data-icon="fa-solid fa-book"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="meeting_note" data-icon="fa-solid fa-note-sticky"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="decision" data-icon="fa-solid fa-gavel"><?= htmlspecialchars($t('knowledge.type_decision', 'Решение'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="client_note" data-icon="fa-solid fa-address-card"><?= htmlspecialchars($t('knowledge.type_client_note', 'Заметка клиента'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="project_note" data-icon="fa-solid fa-diagram-project"><?= htmlspecialchars($t('knowledge.type_project_note', 'Заметка проекта'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="onboarding" data-icon="fa-solid fa-person-chalkboard"><?= htmlspecialchars($t('knowledge.type_onboarding', 'Онбординг'), ENT_QUOTES, 'UTF-8') ?></option>
           </select></div></div>
         <div class="col-12" id="knowledgePageTemplateWrap" style="display:none"><label class="crm-filter-label" for="knowledgePageTemplate"><?= htmlspecialchars($t('knowledge.template_label', 'Шаблон'), ENT_QUOTES, 'UTF-8') ?></label>
           <select id="knowledgePageTemplate" class="form-select">
@@ -181,7 +189,7 @@
     }
     var showExcerpt = opts && opts.excerpt;
     target.innerHTML = items.map(function (item) {
-      var typeIconsMap = { article: 'fa-file-lines', instruction: 'fa-list-check', regulation: 'fa-scale-balanced', faq: 'fa-circle-question', checklist: 'fa-check-square', runbook: 'fa-book', meeting_note: 'fa-note-sticky' };
+      var typeIconsMap = { article: 'fa-file-lines', instruction: 'fa-list-check', regulation: 'fa-scale-balanced', faq: 'fa-circle-question', checklist: 'fa-check-square', runbook: 'fa-book', meeting_note: 'fa-note-sticky', decision: 'fa-gavel', client_note: 'fa-address-card', project_note: 'fa-diagram-project', onboarding: 'fa-person-chalkboard' };
       var icon = typeIconsMap[item.page_type] || 'fa-file-lines';
       var typeIconHtml = '<i class="fa-solid ' + icon + '" style="margin-right:0.4rem;color:var(--crm-muted);width:1rem;text-align:center"></i>';
       var statusBadge = '';
@@ -286,7 +294,7 @@
   }
   if (els.searchButton) els.searchButton.addEventListener('click', search);
   var templatesCache = {};
-  var typeIcons = { article: 'fa-solid fa-file-lines', instruction: 'fa-solid fa-list-check', regulation: 'fa-solid fa-scale-balanced', faq: 'fa-solid fa-circle-question', checklist: 'fa-solid fa-check-square', runbook: 'fa-solid fa-book', meeting_note: 'fa-solid fa-note-sticky' };
+  var typeIcons = { article: 'fa-solid fa-file-lines', instruction: 'fa-solid fa-list-check', regulation: 'fa-solid fa-scale-balanced', faq: 'fa-solid fa-circle-question', checklist: 'fa-solid fa-check-square', runbook: 'fa-solid fa-book', meeting_note: 'fa-solid fa-note-sticky', decision: 'fa-solid fa-gavel', client_note: 'fa-solid fa-address-card', project_note: 'fa-solid fa-diagram-project', onboarding: 'fa-solid fa-person-chalkboard' };
   function updateTypeIcon(type) {
     var iconEl = document.getElementById('knowledgeTypeIcon');
     if (!iconEl) return;
