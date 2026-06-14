@@ -18,4 +18,7 @@ return [
     'migration_rollback_check' => '迁移回滚检查',
     'migration_rollback_check_failed' => '无法检查迁移回滚',
     'default_admin_name' => '超级管理员',
+    'method_not_allowed' => '请使用POST方法发送安装检查数据',
+    'bootstrap_not_configured' => '安装引导令牌未配置',
+    'bootstrap_token_required' => '需要安装引导令牌',
 ];
