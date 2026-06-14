@@ -13439,7 +13439,7 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a {
-  color: var(--color-primary);
+  color: var(--color-primary) !important;
 }
 
 .crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a::before {
