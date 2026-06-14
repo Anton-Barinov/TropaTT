@@ -236,6 +236,7 @@ return [
         'editor_mode_title' => 'Редактирование материала',
         'editor_placeholder' => 'Начните писать материал...',
         'block_add' => 'Добавить блок',
+        'block_search' => 'Найти блок',
         'block_text' => 'Текст',
         'block_h2' => 'Подзаголовок H2',
         'block_h3' => 'Подзаголовок H3',

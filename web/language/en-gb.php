@@ -241,6 +241,7 @@ return array (
     'editor_mode_title' => 'Editing knowledge page',
     'editor_placeholder' => 'Start writing the page...',
     'block_add' => 'Add block',
+    'block_search' => 'Find a block',
     'block_text' => 'Text',
     'block_h2' => 'Heading H2',
     'block_h3' => 'Heading H3',

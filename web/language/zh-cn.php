@@ -234,6 +234,7 @@ return [
         'editor_mode_title' => '编辑知识页面',
         'editor_placeholder' => '开始撰写页面...',
         'block_add' => '添加块',
+        'block_search' => '查找块',
         'block_text' => '文本',
         'block_h2' => '标题 H2',
         'block_h3' => '标题 H3',

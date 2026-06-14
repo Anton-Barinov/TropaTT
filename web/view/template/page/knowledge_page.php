@@ -55,6 +55,10 @@
             <button class="crm-knowledge-block-add" type="button" id="knowledgeBlockAddBtn" aria-label="<?= htmlspecialchars($t('knowledge_page.block_add', 'Добавить блок'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-plus"></i></button>
             <div id="knowledgeVisualEditor" class="crm-knowledge-visual-editor" contenteditable="true" spellcheck="true" data-placeholder="<?= htmlspecialchars($t('knowledge_page.editor_placeholder', 'Начните писать материал...'), ENT_QUOTES, 'UTF-8') ?>"></div>
             <div id="knowledgeBlockMenu" class="crm-knowledge-block-menu d-none">
+              <label class="crm-knowledge-block-search">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="knowledgeBlockSearch" type="search" placeholder="<?= htmlspecialchars($t('knowledge_page.block_search', 'Найти блок'), ENT_QUOTES, 'UTF-8') ?>">
+              </label>
               <button type="button" data-editor-block="p"><i class="fa-solid fa-align-left"></i><span><?= htmlspecialchars($t('knowledge_page.block_text', 'Текст'), ENT_QUOTES, 'UTF-8') ?></span></button>
               <button type="button" data-editor-block="h2"><strong>H2</strong><span><?= htmlspecialchars($t('knowledge_page.block_h2', 'Подзаголовок H2'), ENT_QUOTES, 'UTF-8') ?></span></button>
               <button type="button" data-editor-block="h3"><strong>H3</strong><span><?= htmlspecialchars($t('knowledge_page.block_h3', 'Подзаголовок H3'), ENT_QUOTES, 'UTF-8') ?></span></button>
@@ -163,7 +167,7 @@
   var pageId = document.body.getAttribute('data-knowledge-page-id') || '';
   var i18n = window.CRM && window.CRM.i18n;
   var t = function (key, fallback) { return i18n && i18n.t ? i18n.t(key, fallback) : fallback; };
-  var current = null;
+  var current = null, savedEditorRange = null;
   var isFav = false, isSub = false, autoTimer = null;
   var els = {
     state: document.getElementById('knowledgePageState'),
@@ -179,6 +183,7 @@
     visualEditor: document.getElementById('knowledgeVisualEditor'),
     blockAddBtn: document.getElementById('knowledgeBlockAddBtn'),
     blockMenu: document.getElementById('knowledgeBlockMenu'),
+    blockSearch: document.getElementById('knowledgeBlockSearch'),
     metaSpace: document.getElementById('knowledgeMetaSpace'),
     metaType: document.getElementById('knowledgeMetaType'),
     metaUpdated: document.getElementById('knowledgeMetaUpdated'),
@@ -234,9 +239,45 @@
     if (!els.editContent || !els.visualEditor) return;
     els.editContent.value = sanitizePreviewHtml(els.visualEditor.innerHTML || '');
   }
+  function rememberEditorSelection() {
+    if (!els.visualEditor || !window.getSelection) return;
+    var selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+    var range = selection.getRangeAt(0);
+    if (els.visualEditor.contains(range.commonAncestorContainer)) savedEditorRange = range.cloneRange();
+  }
+  function restoreEditorSelection() {
+    if (!savedEditorRange || !window.getSelection) return;
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedEditorRange);
+  }
   function focusVisualEditor() {
     if (!els.visualEditor) return;
     els.visualEditor.focus();
+    restoreEditorSelection();
+  }
+  function openBlockMenu() {
+    if (!els.blockMenu) return;
+    rememberEditorSelection();
+    els.blockMenu.classList.remove('d-none');
+    if (els.blockSearch) {
+      els.blockSearch.value = '';
+      filterBlockMenu('');
+      window.setTimeout(function () { els.blockSearch.focus(); }, 20);
+    }
+  }
+  function closeBlockMenu() {
+    if (els.blockMenu) els.blockMenu.classList.add('d-none');
+    focusVisualEditor();
+  }
+  function filterBlockMenu(query) {
+    if (!els.blockMenu) return;
+    var needle = String(query || '').toLowerCase().trim();
+    els.blockMenu.querySelectorAll('[data-editor-block]').forEach(function (btn) {
+      var text = (btn.textContent || '').toLowerCase();
+      btn.style.display = !needle || text.indexOf(needle) !== -1 ? '' : 'none';
+    });
   }
   function insertVisualHtml(html) {
     focusVisualEditor();
@@ -266,7 +307,29 @@
     }
     syncHiddenContent();
     startAutosave();
+    updateToolbarState();
     return true;
+  }
+  function updateToolbarState() {
+    if (!els.visualEditor || els.editor.classList.contains('d-none')) return;
+    var map = {
+      bold: 'bold',
+      italic: 'italic',
+      ul: 'insertUnorderedList',
+      ol: 'insertOrderedList'
+    };
+    document.querySelectorAll('[data-editor-cmd]').forEach(function (btn) {
+      var cmd = btn.getAttribute('data-editor-cmd');
+      var active = false;
+      try {
+        if (map[cmd]) active = document.queryCommandState(map[cmd]);
+        if (cmd === 'h2' || cmd === 'h3' || cmd === 'blockquote') {
+          var block = String(document.queryCommandValue('formatBlock') || '').toLowerCase().replace(/[<>]/g, '');
+          active = block === cmd || (cmd === 'blockquote' && block === 'blockquote');
+        }
+      } catch (e) {}
+      btn.classList.toggle('is-active', active);
+    });
   }
   document.querySelectorAll('[data-editor-cmd]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -597,10 +660,54 @@
   });
   els.editContent && els.editContent.addEventListener('input', function () { updateEditorPreview(); startAutosave(); });
   els.visualEditor && els.visualEditor.addEventListener('input', function () { syncHiddenContent(); startAutosave(); });
+  els.visualEditor && els.visualEditor.addEventListener('keyup', function () { rememberEditorSelection(); updateToolbarState(); });
+  els.visualEditor && els.visualEditor.addEventListener('mouseup', function () { rememberEditorSelection(); updateToolbarState(); });
+  els.visualEditor && els.visualEditor.addEventListener('focus', function () { rememberEditorSelection(); updateToolbarState(); });
+  els.visualEditor && els.visualEditor.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      document.getElementById('knowledgeSaveDraftBtn').click();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      els.editor.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      return;
+    }
+    if (e.key === '/') {
+      e.preventDefault();
+      openBlockMenu();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeBlockMenu();
+    }
+  });
   els.editTitle && els.editTitle.addEventListener('input', startAutosave);
   els.blockAddBtn && els.blockAddBtn.addEventListener('click', function () {
     if (!els.blockMenu) return;
-    els.blockMenu.classList.toggle('d-none');
+    if (els.blockMenu.classList.contains('d-none')) openBlockMenu();
+    else closeBlockMenu();
+  });
+  els.blockSearch && els.blockSearch.addEventListener('input', function () { filterBlockMenu(els.blockSearch.value); });
+  els.blockSearch && els.blockSearch.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeBlockMenu();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var firstVisible = Array.prototype.slice.call(els.blockMenu.querySelectorAll('[data-editor-block]')).find(function (btn) {
+        return btn.style.display !== 'none';
+      });
+      if (firstVisible) firstVisible.click();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (!els.blockMenu || els.blockMenu.classList.contains('d-none')) return;
+    if (e.target.closest('#knowledgeBlockMenu') || e.target.closest('#knowledgeBlockAddBtn')) return;
+    els.blockMenu.classList.add('d-none');
   });
   document.querySelectorAll('[data-editor-block]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -617,6 +724,7 @@
       }
     });
   });
+  document.addEventListener('selectionchange', updateToolbarState);
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
     syncHiddenContent();
