@@ -13388,7 +13388,7 @@ textarea.form-control.crm-knowledge-editor {
   padding: 0.1rem 0 0.15rem;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: transparent !important;
   box-shadow: none;
   min-width: 0;
   overflow: visible;
