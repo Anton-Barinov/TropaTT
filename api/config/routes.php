@@ -277,6 +277,13 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/files', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'uploadFile', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/files/{file_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteFile', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
 
+    // knowledge export
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/export', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'exportPage', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/export', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'exportSpace', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+
+    // knowledge import
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/import', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'importPages', 'auth' => true, 'required_permissions' => ['knowledge.import']],
+
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'create', 'auth' => true],

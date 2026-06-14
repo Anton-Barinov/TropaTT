@@ -1404,6 +1404,39 @@ final class App
         try { $cronScheduler->ensureTables($driver); } catch (\Throwable) {}
         $this->container->set('module.cron_scheduler', $cronScheduler);
 
+        try {
+            $cronScheduler->registerTask('knowledge', new \Api\System\Library\Module\ScheduledTask(
+                name: 'freshness.scan',
+                description: 'Scan published knowledge pages for freshness, mark overdue pages as needs_update',
+                schedule: '0 6 * * *',
+                handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'freshnessScan'],
+                timeout: 600,
+            ));
+            $cronScheduler->registerTask('knowledge', new \Api\System\Library\Module\ScheduledTask(
+                name: 'drafts.cleanup',
+                description: 'Clean up knowledge drafts older than 30 days',
+                schedule: '0 3 * * 0',
+                handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'draftsCleanup'],
+                timeout: 300,
+            ));
+            $cronScheduler->registerTask('knowledge', new \Api\System\Library\Module\ScheduledTask(
+                name: 'versions.cleanup',
+                description: 'Clean up old knowledge page versions beyond 50 per page',
+                schedule: '0 4 * * 0',
+                handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'versionsCleanup'],
+                timeout: 600,
+            ));
+            $cronScheduler->registerTask('knowledge', new \Api\System\Library\Module\ScheduledTask(
+                name: 'search.reindex',
+                description: 'Rebuild knowledge search index',
+                schedule: '0 5 * * *',
+                handler: [\Api\System\Library\Service\KnowledgeCronTaskHandler::class, 'reindexSearch'],
+                timeout: 600,
+            ));
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeCron] Task registration failed: ' . $e->getMessage());
+        }
+
         $jobDispatcher = new ModuleJobDispatcher($pdo);
         try { $jobDispatcher->ensureTable($driver); } catch (\Throwable) {}
         $this->container->set('module.job_dispatcher', $jobDispatcher);

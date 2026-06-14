@@ -4148,39 +4148,49 @@ window.CRM.pageApiBindings = (function () {
       kReview = Array.isArray(kReview) ? kReview.slice(0, 3) : [];
       var kOutdated = ko.outdated || [];
       kOutdated = Array.isArray(kOutdated) ? kOutdated.slice(0, 3) : [];
-      function linkList(items) {
+      var kPopular = ko.popular || [];
+      kPopular = Array.isArray(kPopular) ? kPopular.slice(0, 3) : [];
+      function kblink(item) {
+        var statusBadge = '';
+        if (item.status && item.status !== 'published') {
+          var sm = { draft: 'crm-badge-secondary', review: 'crm-badge-warning', archived: 'crm-badge-light', needs_update: 'crm-badge-danger' };
+          statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.65rem;padding:0.1rem 0.3rem;margin-left:0.3rem">' + safeText(item.status) + '</span>';
+        }
+        return '<a class="crm-dashboard-kb-link" href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(item.public_id || '') + '">' + safeText(item.title || '') + statusBadge + '</a>';
+      }
+      function kbsection(items, emptyText) {
         return items.length
-          ? items.map(function (p) {
-              return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id || '') + '">' + safeText(p.title || '') + '</a>';
-            }).join(', ')
-          : '<span class="text-muted small">' + window.CRM.i18n.t('js.pab.kb_none', '—') + '</span>';
+          ? items.map(kblink).join('')
+          : '<span class="text-muted small">' + safeText(emptyText) + '</span>';
       }
       knowledgeList.innerHTML = ''
-        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_pages', 'Pages') + '</span><strong>' + safeText(String(kTotals.pages || 0)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_published', 'Published') + '</span><strong>' + safeText(String(kTotals.published || 0)) + '</strong></div>'
-        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_drafts', 'Drafts') + '</span><strong>' + safeText(String(kTotals.drafts || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-kb-stats d-flex gap-3 mb-2 flex-wrap">'
+        + '<span class="small">' + window.CRM.i18n.t('js.pab.kb_pages', 'Pages') + ': <strong>' + safeText(String(kTotals.pages || 0)) + '</strong></span>'
+        + '<span class="small">' + window.CRM.i18n.t('js.pab.kb_published', 'Published') + ': <strong>' + safeText(String(kTotals.published || 0)) + '</strong></span>'
+        + '<span class="small">' + window.CRM.i18n.t('js.pab.kb_drafts', 'Drafts') + ': <strong>' + safeText(String(kTotals.drafts || 0)) + '</strong></span>'
+        + '</div>'
+        + '<div class="crm-dashboard-kb-sections">'
+        + (kPopular.length
+          ? '<div class="crm-dashboard-kb-section mb-1"><span class="small fw-semibold text-muted">' + window.CRM.i18n.t('js.pab.kb_popular', 'Popular') + '</span><div class="crm-dashboard-kb-items">' + kbsection(kPopular, '') + '</div></div>'
+          : '')
         + (kRecent.length
-          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_recent', 'Recently updated') + '</span><strong>'
-            + linkList(kRecent)
-          + '</strong></div>'
+          ? '<div class="crm-dashboard-kb-section mb-1"><span class="small fw-semibold text-muted">' + window.CRM.i18n.t('js.pab.kb_recent', 'Recently updated') + '</span><div class="crm-dashboard-kb-items">' + kbsection(kRecent, '') + '</div></div>'
           : '')
         + (kDrafts.length
-          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_my_drafts', 'My drafts') + '</span><strong>'
-            + linkList(kDrafts)
-          + '</strong></div>'
+          ? '<div class="crm-dashboard-kb-section mb-1"><span class="small fw-semibold text-muted">' + window.CRM.i18n.t('js.pab.kb_my_drafts', 'My drafts') + '</span><div class="crm-dashboard-kb-items">' + kbsection(kDrafts, window.CRM.i18n.t('js.pab.kb_none', '-')) + '</div></div>'
           : '')
         + (kReview.length
-          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_review', 'For review') + '</span><strong>'
-            + linkList(kReview)
-          + '</strong></div>'
+          ? '<div class="crm-dashboard-kb-section mb-1"><span class="small fw-semibold text-muted">' + window.CRM.i18n.t('js.pab.kb_review', 'For review') + '</span><div class="crm-dashboard-kb-items">' + kbsection(kReview, window.CRM.i18n.t('js.pab.kb_none', '-')) + '</div></div>'
           : '')
         + (kOutdated.length
-          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_outdated', 'Needs update') + '</span><strong>'
-            + linkList(kOutdated)
-          + '</strong></div>'
-          : '');
+          ? '<div class="crm-dashboard-kb-section mb-1"><span class="small fw-semibold text-muted">' + window.CRM.i18n.t('js.pab.kb_outdated', 'Needs update') + '</span><div class="crm-dashboard-kb-items">' + kbsection(kOutdated, window.CRM.i18n.t('js.pab.kb_none', '-')) + '</div></div>'
+          : '')
+        + (!kPopular.length && !kRecent.length && !kDrafts.length && !kReview.length && !kOutdated.length
+          ? '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.kb_empty', 'No pages yet.') + '</div>'
+          : '')
+        + '</div>'
+        + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=knowledge">' + window.CRM.i18n.t('js.pab.kb_open', 'Open knowledge base') + '</a>';
     }
-
     var note1Title = document.querySelector('[data-dashboard-note-1-title]');
     var note1Body = document.querySelector('[data-dashboard-note-1-body]');
     if (note1Title && note1Body) {

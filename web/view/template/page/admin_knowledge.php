@@ -16,30 +16,55 @@
   <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_drafts', 'черновиков'), ENT_QUOTES, 'UTF-8') ?></span></div>
 </section>
 
-<div class="crm-knowledge-grid">
-  <section class="crm-card crm-section-card">
-    <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.spaces_hint', 'Управляйте областями знаний и их видимостью.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
-    <div class="table-responsive">
-      <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('admin_knowledge.th_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+<div class="crm-knowledge-tabs">
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="kb-tab-spaces" data-bs-toggle="tab" data-bs-target="#kb-panel-spaces" type="button" role="tab" aria-controls="kb-panel-spaces" aria-selected="true"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-templates" data-bs-toggle="tab" data-bs-target="#kb-panel-templates" type="button" role="tab" aria-controls="kb-panel-templates" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.templates_title', 'Шаблоны'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-review" data-bs-toggle="tab" data-bs-target="#kb-panel-review" type="button" role="tab" aria-controls="kb-panel-review" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.review_title', 'Очередь проверки'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-outdated" data-bs-toggle="tab" data-bs-target="#kb-panel-outdated" type="button" role="tab" aria-controls="kb-panel-outdated" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-analytics" data-bs-toggle="tab" data-bs-target="#kb-panel-analytics" type="button" role="tab" aria-controls="kb-panel-analytics" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+  </ul>
+  <div class="tab-content mt-3">
+    <div class="tab-pane fade show active" id="kb-panel-spaces" role="tabpanel" aria-labelledby="kb-tab-spaces">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.spaces_hint', 'Управляйте областями знаний и их видимостью.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
+        <div class="table-responsive">
+          <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('admin_knowledge.th_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+        </div>
+      </section>
     </div>
-  </section>
-  <section class="crm-card crm-section-card">
-    <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.templates_title', 'Шаблоны'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.templates_hint', 'Типовые структуры для инструкций, FAQ и регламентов.'), ENT_QUOTES, 'UTF-8') ?></p></div><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#knowledgeTemplateModal"><?= htmlspecialchars($t('admin_knowledge.btn_create_template', 'Создать шаблон'), ENT_QUOTES, 'UTF-8') ?></button></div>
-    <div class="crm-knowledge-list" id="adminKnowledgeTemplates"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-  </section>
-  <section class="crm-card crm-section-card">
-    <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.review_title', 'Очередь проверки'), ENT_QUOTES, 'UTF-8') ?></h2></div>
-    <div class="crm-knowledge-list" id="adminKnowledgeReview"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-  </section>
-  <section class="crm-card crm-section-card">
-    <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></h2></div>
-    <div class="crm-knowledge-list" id="adminKnowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-  </section>
-</div>
-
-<section class="crm-card crm-section-card mt-3" id="adminKnowledgeAnalyticsSection">
-  <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></h2></div>
-  <div id="adminKnowledgeAnalytics" class="row g-3 p-3">
+    <div class="tab-pane fade" id="kb-panel-templates" role="tabpanel" aria-labelledby="kb-tab-templates">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.templates_title', 'Шаблоны'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.templates_hint', 'Типовые структуры для инструкций, FAQ и регламентов.'), ENT_QUOTES, 'UTF-8') ?></p></div><button class="btn crm-btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#knowledgeTemplateModal"><?= htmlspecialchars($t('admin_knowledge.btn_create_template', 'Создать шаблон'), ENT_QUOTES, 'UTF-8') ?></button></div>
+        <div class="crm-knowledge-list" id="adminKnowledgeTemplates"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-review" role="tabpanel" aria-labelledby="kb-tab-review">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.review_title', 'Очередь проверки'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+        <div class="crm-knowledge-list" id="adminKnowledgeReview"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-outdated" role="tabpanel" aria-labelledby="kb-tab-outdated">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+        <div class="crm-knowledge-list" id="adminKnowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-analytics" role="tabpanel" aria-labelledby="kb-tab-analytics">
+      <section class="crm-card crm-section-card" id="adminKnowledgeAnalyticsSection">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+        <div id="adminKnowledgeAnalytics" class="row g-3 p-3">
     <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsTotalPages">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_total_pages', 'Всего страниц'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
     <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsPublished">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_published', 'Опубликовано'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
     <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsDrafts">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_drafts', 'Черновиков'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
@@ -50,6 +75,9 @@
     <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsVersions">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_versions', 'Версий'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
   </div>
 </section>
+</div>
+</div>
+</div>
 
 <div class="modal fade" id="knowledgePermissionsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">

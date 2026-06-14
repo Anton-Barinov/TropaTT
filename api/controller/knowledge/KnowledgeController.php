@@ -347,7 +347,16 @@ final class KnowledgeController extends BaseController
 
     public function approveReview(array $params): JsonResponse
     {
-        return $this->publish($params);
+        $auth = $this->user();
+        $page = $this->repo()->publish((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('change_summary', ''));
+        if (!$page) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $this->invalidateCache('knowledge');
+        $this->notifyPageEvent($page, 'review_approved', $auth);
+        return $this->success('KNOWLEDGE_REVIEW_APPROVED', $this->t('knowledge/messages.review_approved', 'Review approved'), [
+            'page' => $page,
+        ]);
     }
 
     public function rejectReview(array $params): JsonResponse
@@ -790,6 +799,331 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_FILE_DELETED', $this->t('knowledge/messages.file_deleted', 'File deleted'));
     }
 
+    public function exportPage(array $params): JsonResponse
+    {
+        $page = $this->requirePageAccess((string)$params['public_id'], 'view');
+        if (!$page) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $format = (string)$this->request()->input('format', 'json');
+        $export = [
+            'public_id' => $page['public_id'],
+            'title' => $page['title'],
+            'page_type' => $page['page_type'],
+            'status' => $page['status'],
+            'content_html' => $page['content_html'],
+            'content_text' => $page['content_text'],
+            'content_json' => $page['content_json'] ? json_decode((string)$page['content_json'], true) : null,
+            'excerpt' => $page['excerpt'],
+            'space_public_id' => $page['space_public_id'],
+            'space_title' => $page['space_title'],
+            'slug' => $page['slug'],
+            'path' => $page['path'],
+            'created_at' => $page['created_at'],
+            'updated_at' => $page['updated_at'],
+            'published_at' => $page['published_at'],
+            'tags' => $this->tagRepo()->listByEntity('knowledge_page', (string)$page['public_id']),
+            'links' => $this->repo()->links((string)$page['public_id']),
+        ];
+        if ($format === 'markdown') {
+            $markdown = '# ' . $page['title'] . "\n\n";
+            $markdown .= '**Type:** ' . $page['page_type'] . ' | **Status:** ' . $page['status'] . "\n\n";
+            $markdown .= $this->htmlToMarkdown((string)($page['content_html'] ?? ''));
+            return $this->success('KNOWLEDGE_EXPORT_PAGE', $this->t('knowledge/messages.export_page', 'Page exported'), [
+                'format' => 'markdown',
+                'content' => $markdown,
+                'filename' => $page['slug'] . '.md',
+            ]);
+        }
+        return $this->success('KNOWLEDGE_EXPORT_PAGE', $this->t('knowledge/messages.export_page', 'Page exported'), [
+            'format' => 'json',
+            'page' => $export,
+        ]);
+    }
+
+    public function exportSpace(array $params): JsonResponse
+    {
+        $space = $this->repo()->space((string)$params['public_id'], $this->actor());
+        if (!$space) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
+        $format = (string)$this->request()->input('format', 'json');
+        $pages = $this->repo()->pages(['space_public_id' => (string)$params['public_id'], 'limit' => 500], $this->actor());
+        $exportPages = [];
+        foreach ($pages as $page) {
+            $exportPages[] = [
+                'public_id' => $page['public_id'],
+                'title' => $page['title'],
+                'page_type' => $page['page_type'],
+                'status' => $page['status'],
+                'content_html' => $page['content_html'],
+                'content_text' => $page['content_text'],
+                'slug' => $page['slug'],
+                'path' => $page['path'],
+                'created_at' => $page['created_at'],
+                'updated_at' => $page['updated_at'],
+            ];
+        }
+        if ($format === 'markdown') {
+            $md = '# Space: ' . $space['title'] . "\n\n";
+            $md .= 'Description: ' . ($space['description'] ?? '') . "\n\n";
+            $md .= '---' . "\n\n";
+            foreach ($exportPages as $ep) {
+                $md .= '## ' . $ep['title'] . "\n\n";
+                $md .= '**Type:** ' . $ep['page_type'] . ' | **Status:** ' . $ep['status'] . "\n\n";
+                $md .= $this->htmlToMarkdown((string)($ep['content_html'] ?? '')) . "\n\n";
+                $md .= '---' . "\n\n";
+            }
+            return $this->success('KNOWLEDGE_EXPORT_SPACE', $this->t('knowledge/messages.export_space', 'Space exported'), [
+                'format' => 'markdown',
+                'content' => $md,
+                'filename' => $space['slug'] . '.md',
+            ]);
+        }
+        return $this->success('KNOWLEDGE_EXPORT_SPACE', $this->t('knowledge/messages.export_space', 'Space exported'), [
+            'format' => 'json',
+            'space' => [
+                'title' => $space['title'],
+                'slug' => $space['slug'],
+                'description' => $space['description'],
+            ],
+            'pages' => $exportPages,
+        ]);
+    }
+
+    public function importPages(): JsonResponse
+    {
+        $auth = $this->user();
+        $input = $this->request()->allInput();
+        $format = (string)($input['format'] ?? 'json');
+        $spacePublicId = trim((string)($input['space_public_id'] ?? ''));
+        $data = $input['data'] ?? null;
+
+        if ($data === null || !is_array($data)) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'data' => [$this->t('common/messages.field_required', 'Field is required')],
+            ]);
+        }
+
+        if ($format === 'json') {
+            return $this->importFromJson($data, $spacePublicId, $auth);
+        }
+
+        if ($format === 'markdown') {
+            return $this->importFromMarkdown($data, $spacePublicId, $auth);
+        }
+
+        return $this->error('VALIDATION_ERROR', $this->t('knowledge/messages.invalid_import_format', 'Invalid import format'), 422);
+    }
+
+    private function importFromJson(array $data, string $spacePublicId, array $auth): JsonResponse
+    {
+        $userId = $this->actorUserId() ?: null;
+        $imported = [];
+        $errors = [];
+
+        // Single page import
+        if (isset($data['title']) || isset($data['page'])) {
+            $pageData = $data['page'] ?? $data;
+            try {
+                $input = [
+                    'title' => (string)($pageData['title'] ?? 'Imported Page'),
+                    'space_public_id' => $spacePublicId ?: (string)($pageData['space_public_id'] ?? ''),
+                    'page_type' => (string)($pageData['page_type'] ?? 'article'),
+                    'status' => (string)($pageData['status'] ?? 'draft'),
+                    'content_html' => (string)($pageData['content_html'] ?? ''),
+                    'content_text' => (string)($pageData['content_text'] ?? ''),
+                ];
+                if (empty($input['space_public_id'])) {
+                    $spaces = $this->repo()->spaces([], $this->actor());
+                    if (!empty($spaces)) {
+                        $input['space_public_id'] = (string)$spaces[0]['public_id'];
+                    } else {
+                        $errors[] = 'No available space for import';
+                    }
+                }
+                if (!empty($input['space_public_id'])) {
+                    $page = $this->repo()->createPage($input, $userId, $this->actor());
+                    $imported[] = [
+                        'public_id' => $page['public_id'] ?? null,
+                        'title' => $page['title'] ?? $input['title'],
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+
+        // Bulk pages import (from export format)
+        if (isset($data['pages']) && is_array($data['pages'])) {
+            foreach ($data['pages'] as $pageData) {
+                try {
+                    $input = [
+                        'title' => (string)($pageData['title'] ?? 'Imported Page'),
+                        'space_public_id' => $spacePublicId ?: (string)($pageData['space_public_id'] ?? (isset($data['space']) ? ($data['space']['slug'] ?? '') : '')),
+                        'page_type' => (string)($pageData['page_type'] ?? 'article'),
+                        'status' => (string)($pageData['status'] ?? 'draft'),
+                        'content_html' => (string)($pageData['content_html'] ?? ''),
+                        'content_text' => (string)($pageData['content_text'] ?? ''),
+                    ];
+                    if (empty($input['space_public_id'])) {
+                        $spaces = $this->repo()->spaces([], $this->actor());
+                        if (!empty($spaces)) {
+                            $input['space_public_id'] = (string)$spaces[0]['public_id'];
+                        } else {
+                            $errors[] = 'No available space for import';
+                            continue;
+                        }
+                    }
+                    $page = $this->repo()->createPage($input, $userId, $this->actor());
+                    $imported[] = [
+                        'public_id' => $page['public_id'] ?? null,
+                        'title' => $page['title'] ?? $input['title'],
+                    ];
+                } catch (\Throwable $e) {
+                    $errors[] = $e->getMessage();
+                }
+            }
+        }
+
+        return $this->success('KNOWLEDGE_IMPORT_COMPLETED', $this->t('knowledge/messages.import_completed', 'Import completed'), [
+            'imported' => count($imported),
+            'pages' => $imported,
+            'errors' => $errors,
+        ], 201);
+    }
+
+    private function importFromMarkdown(array $data, string $spacePublicId, array $auth): JsonResponse
+    {
+        $userId = $this->actorUserId() ?: null;
+        $imported = [];
+        $errors = [];
+
+        // Support both single markdown and array of markdown pages
+        $pages = [];
+        if (isset($data['content'])) {
+            $pages[] = ['title' => $data['title'] ?? 'Imported', 'content' => $data['content']];
+        } elseif (isset($data['pages'])) {
+            foreach ($data['pages'] as $p) {
+                $pages[] = $p;
+            }
+        } elseif (isset($data['content_raw'])) {
+            $pages[] = ['title' => $data['title'] ?? 'Imported', 'content' => $data['content_raw']];
+        }
+
+        foreach ($pages as $pageData) {
+            try {
+                $title = (string)($pageData['title'] ?? 'Imported');
+                $markdown = (string)($pageData['content'] ?? $pageData['content_raw'] ?? '');
+                $html = $this->markdownToHtml($markdown);
+
+                $input = [
+                    'title' => $title,
+                    'space_public_id' => $spacePublicId,
+                    'page_type' => 'article',
+                    'status' => 'draft',
+                    'content_html' => $html,
+                    'content_text' => strip_tags($html),
+                ];
+                if (empty($input['space_public_id'])) {
+                    $spaces = $this->repo()->spaces([], $this->actor());
+                    if (!empty($spaces)) {
+                        $input['space_public_id'] = (string)$spaces[0]['public_id'];
+                    } else {
+                        $errors[] = 'No available space for import';
+                        continue;
+                    }
+                }
+                $page = $this->repo()->createPage($input, $userId, $this->actor());
+                $imported[] = [
+                    'public_id' => $page['public_id'] ?? null,
+                    'title' => $page['title'] ?? $title,
+                ];
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+
+        return $this->success('KNOWLEDGE_IMPORT_COMPLETED', $this->t('knowledge/messages.import_completed', 'Import completed'), [
+            'imported' => count($imported),
+            'pages' => $imported,
+            'errors' => $errors,
+        ], 201);
+    }
+
+    /**
+     * Basic Markdown to HTML converter for import.
+     */
+    private function markdownToHtml(string $markdown): string
+    {
+        $html = $markdown;
+
+        // Headers
+        $html = preg_replace('/^##### (.+)$/m', '<h5>$1</h5>', $html) ?? $html;
+        $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html) ?? $html;
+        $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html) ?? $html;
+        $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html) ?? $html;
+        $html = preg_replace('/^# (.+)$/m', '<h2>$1</h2>', $html) ?? $html;
+
+        // Bold and italic
+        $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html) ?? $html;
+        $html = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $html) ?? $html;
+
+        // Links
+        $html = preg_replace('/\[([^\]]+)\]\(([^\)]+)\)/', '<a href="$2">$1</a>', $html) ?? $html;
+
+        // Unordered lists
+        $html = preg_replace('/^\s*[-*]\s+(.+)$/m', '<li>$1</li>', $html) ?? $html;
+        $html = preg_replace('/(<li>.*?<\/li>(\s*<li>.*?<\/li>)*)/s', '<ul>$1</ul>', $html) ?? $html;
+
+        // Ordered lists
+        $html = preg_replace('/^\s*\d+\.\s+(.+)$/m', '<li>$1</li>', $html) ?? $html;
+
+        // Code blocks
+        $html = preg_replace('/```(\w*)\n(.*?)```/s', '<pre><code>$2</code></pre>', $html) ?? $html;
+        $html = preg_replace('/`([^`]+)`/', '<code>$1</code>', $html) ?? $html;
+
+        // Blockquotes
+        $html = preg_replace('/^>\s+(.+)$/m', '<blockquote><p>$1</p></blockquote>', $html) ?? $html;
+
+        // Horizontal rules
+        $html = preg_replace('/^---$/m', '<hr>', $html) ?? $html;
+
+        // Paragraphs - wrap remaining text
+        $html = preg_replace('/^(?!<[houblcp]|\s*$)(.+)$/m', '<p>$1</p>', $html) ?? $html;
+
+        // Clean up nested paragraphs inside blockquotes/lists
+        $html = preg_replace('/<blockquote><p>(.*?)<\/p><\/blockquote>/s', '<blockquote>$1</blockquote>', $html) ?? $html;
+
+        return $html;
+    }
+
+    private function htmlToMarkdown(string $html): string
+    {
+        $html = preg_replace('#<hr[^>]*>#i', "\n---\n", $html) ?? $html;
+        $html = preg_replace('#</?(p|div|section|article)>#i', "\n\n", $html) ?? $html;
+        $html = preg_replace('#<br\s*/?>#i', "\n", $html) ?? $html;
+        $html = preg_replace('#<(h[1-6])[^>]*>(.*?)</\1>#is', function (array $m): string {
+            $level = (int)substr($m[1], 1);
+            return str_repeat('#', $level) . ' ' . trim($m[2]) . "\n\n";
+        }, $html) ?? $html;
+        $html = preg_replace('#<li[^>]*>(.*?)</li>#is', "- $1\n", $html) ?? $html;
+        $html = preg_replace('#</?ul[^>]*>#i', "\n", $html) ?? $html;
+        $html = preg_replace('#</?ol[^>]*>#i', "\n", $html) ?? $html;
+        $html = preg_replace('#<strong[^>]*>(.*?)</strong>#is', '**$1**', $html) ?? $html;
+        $html = preg_replace('#<em[^>]*>(.*?)</em>#is', '*$1*', $html) ?? $html;
+        $html = preg_replace('#<a[^>]*href=["\'](.*?)["\'][^>]*>(.*?)</a>#is', '[$2]($1)', $html) ?? $html;
+        $html = preg_replace('#<code[^>]*>(.*?)</code>#is', '`$1`', $html) ?? $html;
+        $html = preg_replace('#<pre[^>]*>(.*?)</pre>#is', "```\n$1\n```\n", $html) ?? $html;
+        $html = preg_replace('#<blockquote[^>]*>(.*?)</blockquote>#is', "> $1\n\n", $html) ?? $html;
+        $html = preg_replace('#<img[^>]*src=["\'](.*?)["\'][^>]*alt=["\'](.*?)["\'][^>]*/?>#is', '![$2]($1)', $html) ?? $html;
+        $html = preg_replace('#<img[^>]*src=["\'](.*?)["\'][^>]*/?>#is', '![]($1)', $html) ?? $html;
+        $html = strip_tags($html);
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = preg_replace('/\n{4,}/', "\n\n\n", $html) ?? $html;
+        return trim($html);
+    }
+
     private function tagRepo(): TagRepository
     {
         return new TagRepository($this->container->get('db.pdo'));
@@ -855,14 +1189,12 @@ final class KnowledgeController extends BaseController
             return;
         }
         $subscriberIds = $this->repo()->pageSubscriberIds((string)($page['public_id'] ?? ''));
-        if (empty($subscriberIds)) {
-            return;
-        }
         $actorId = $this->actorUserId();
         $title = ($page['title'] ?? '');
         $publicId = ($page['public_id'] ?? '');
         $actorName = ($auth['user']['name'] ?? $auth['user']['login'] ?? '');
         $link = 'index.php?route=knowledge-page&id=' . urlencode($publicId);
+        $targetIds = $subscriberIds;
         switch ($event) {
             case 'published':
                 $notifTitle = $this->t('knowledge/messages.notif_published_title', 'Page published');
@@ -879,12 +1211,20 @@ final class KnowledgeController extends BaseController
                 $notifBody = $this->t('knowledge/messages.notif_review_rejected_body', 'Review for page "%s" was rejected by %s');
                 $actionCode = 'knowledge_review_rejected';
                 break;
+            case 'review_approved':
+                $notifTitle = $this->t('knowledge/messages.notif_review_approved_title', 'Review approved');
+                $notifBody = $this->t('knowledge/messages.notif_review_approved_body', 'Review for page "%s" was approved by %s');
+                $actionCode = 'knowledge_review_approved';
+                break;
             default:
                 $notifTitle = $this->t('knowledge/messages.notif_updated_title', 'Page updated');
                 $notifBody = $this->t('knowledge/messages.notif_updated_body', 'Page "%s" was updated by %s');
                 $actionCode = 'knowledge_page_updated';
         }
-        $this->container->get('service.notification')->notifyUsers($subscriberIds, [
+        if (empty($targetIds)) {
+            return;
+        }
+        $this->container->get('service.notification')->notifyUsers($targetIds, [
             'category' => 'knowledge',
             'title' => $notifTitle,
             'body' => sprintf($notifBody, $title, $actorName),

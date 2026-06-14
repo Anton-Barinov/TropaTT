@@ -377,7 +377,7 @@ final class KnowledgeRepository
             'title' => $title,
             'slug' => $this->uniquePageSlug((int)$space['id'], $this->slug((string)($payload['slug'] ?? $title), 'page'), null),
             'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), self::PAGE_TYPES, 'article'),
-            'status' => $this->choice((string)($payload['status'] ?? 'draft'), ['draft', 'review', 'published', 'archived'], 'draft'),
+            'status' => $this->choice((string)($payload['status'] ?? 'draft'), ['draft', 'review', 'published', 'archived', 'needs_update'], 'draft'),
             'content_html' => $html,
             'content_text' => $this->contentText($html),
             'content_json' => isset($payload['content_json']) ? json_encode($payload['content_json'], JSON_UNESCAPED_UNICODE) : null,
