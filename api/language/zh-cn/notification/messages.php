@@ -82,4 +82,10 @@ return [
     'test_push_title' => 'Push 通知测试',
     'test_push_body' => 'Push 通道已连接并准备就绪。',
     'new_notification' => '新通知',
+    'push_subscriptions_list' => 'Push订阅列表',
+    'push_subscription_invalid' => 'Push订阅数据无效',
+    'push_subscription_saved' => 'Push订阅已保存',
+    'push_subscription_not_found' => '未找到Push订阅',
+    'push_subscription_deleted' => 'Push订阅已删除',
+    'push_test_prepared' => 'Push测试数据已准备',
 ];

@@ -13,4 +13,7 @@ return [
     'task_not_found' => '任务未找到',
     'internal_error' => '服务器内部错误',
     'ok' => 'OK',
+    'invalid_event_type' => '无效的事件类型',
+    'csp_accepted' => 'CSP已接受',
+    'saved' => '已保存',
 ];
