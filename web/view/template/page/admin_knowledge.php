@@ -7,7 +7,7 @@
   ['label' => $t('page.home', 'Главная'), 'href' => 'index.php?route=dashboard'],
   ['label' => $t('admin.title', 'Админка'), 'href' => 'index.php?route=admin'],
   ['label' => $t('admin_knowledge.page_title', 'База знаний'), 'active' => true],
-], $t('admin_knowledge.page_title', 'Настройки базы знаний'), $t('admin_knowledge.subtitle', 'Разделы, шаблоны и контроль качества корпоративной wiki.'), '<a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.page_title', 'База знаний'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
+], $t('admin_knowledge.page_title', 'Настройки базы знаний'), $t('admin_knowledge.subtitle', 'Разделы, шаблоны и контроль качества корпоративной wiki.'), '<a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.page_title', 'База знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="adminKnowledgeExportBtn">' . htmlspecialchars($t('admin_knowledge.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') . '</button><button class="btn crm-btn-secondary" type="button" id="adminKnowledgeImportBtn">' . htmlspecialchars($t('admin_knowledge.btn_import', 'Импорт'), ENT_QUOTES, 'UTF-8') . '</button>'); ?>
 
 <section class="crm-knowledge-stats" id="adminKnowledgeStats">
   <div class="crm-card"><strong>0</strong><span><?= htmlspecialchars($t('knowledge.stat_spaces', 'разделов'), ENT_QUOTES, 'UTF-8') ?></span></div>
@@ -348,6 +348,157 @@
   waitForApi(function () { load().catch(function () {
     document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';
   }); });
+
+  // ── Export modal ──
+  var exportBtn = document.getElementById('adminKnowledgeExportBtn');
+  var exportModal = document.getElementById('adminKnowledgeExportModal');
+  var exportSpace = document.getElementById('adminKnowledgeExportSpace');
+  var exportStart = document.getElementById('adminKnowledgeExportStartBtn');
+  if (exportBtn && exportModal) {
+    exportBtn.addEventListener('click', async function () {
+      if (!exportSpace) return;
+      try {
+        var env = await request('api/v1/knowledge/spaces', { method: 'GET' });
+        var spaces = env.data && env.data.items || [];
+        exportSpace.innerHTML = '<option value="">' + esc(t('admin_knowledge.export_all_spaces', 'Все разделы')) + '</option>'
+          + spaces.map(function (s) { return '<option value="' + esc(s.public_id) + '">' + esc(s.title) + '</option>'; }).join('');
+      } catch (e) { exportSpace.innerHTML = '<option value="">' + esc(t('knowledge.load_error', 'Ошибка')) + '</option>'; }
+      exportStart.disabled = true;
+      var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(exportModal);
+      modal && modal.show();
+    });
+    if (exportSpace) exportSpace.addEventListener('change', function () { exportStart.disabled = !exportSpace.value; });
+    if (exportStart) {
+      exportStart.addEventListener('click', async function () {
+        var spaceId = exportSpace ? exportSpace.value : '';
+        if (!spaceId) return;
+        var fmtEl = document.querySelector('input[name="exportFormat"]:checked');
+        var fmt = fmtEl ? fmtEl.value : 'json';
+        try {
+          var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/export?format=' + fmt, { method: 'GET' });
+          var data = envelope.data || {};
+          var filename = data.filename || (spaceId + '.' + fmt);
+          var blobContent = fmt === 'json' ? JSON.stringify(data, null, 2) : (data.content || '');
+          var blob = new Blob([blobContent], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          bootstrap.Modal.getOrCreateInstance(exportModal).hide();
+        } catch (e) { alert(t('admin_knowledge.export_error', 'Ошибка экспорта')); }
+      });
+    }
+  }
+
+  // ── Import modal ──
+  var importBtn = document.getElementById('adminKnowledgeImportBtn');
+  var importModal = document.getElementById('adminKnowledgeImportModal');
+  var importFile = document.getElementById('adminKnowledgeImportFile');
+  var importSpace = document.getElementById('adminKnowledgeImportSpace');
+  var importStart = document.getElementById('adminKnowledgeImportStartBtn');
+  var importResult = document.getElementById('adminKnowledgeImportResult');
+  if (importBtn && importModal) {
+    importBtn.addEventListener('click', async function () {
+      if (importSpace) {
+        try {
+          var env = await request('api/v1/knowledge/spaces', { method: 'GET' });
+          var spaces = env.data && env.data.items || [];
+          importSpace.innerHTML = '<option value="">' + esc(t('admin_knowledge.import_auto_space', 'Автоматически')) + '</option>'
+            + spaces.map(function (s) { return '<option value="' + esc(s.public_id) + '">' + esc(s.title) + '</option>'; }).join('');
+        } catch (e) { importSpace.innerHTML = '<option value="">' + esc(t('knowledge.load_error', 'Ошибка')) + '</option>'; }
+      }
+      importStart.disabled = true;
+      if (importResult) importResult.classList.add('d-none');
+      if (importFile) importFile.value = '';
+      bootstrap.Modal.getOrCreateInstance(importModal).show();
+    });
+    if (importFile) importFile.addEventListener('change', function () { importStart.disabled = !importFile.files || !importFile.files.length; });
+    if (importStart) {
+      importStart.addEventListener('click', async function () {
+        if (!importFile || !importFile.files || !importFile.files.length) return;
+        var file = importFile.files[0];
+        var text = await file.text();
+        var spaceId = importSpace ? importSpace.value : '';
+        var body = { space_public_id: spaceId };
+        // Try JSON first, fall back to markdown
+        var parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        if (parsed !== null && typeof parsed === 'object') {
+          body.format = 'json';
+          body.data = parsed;
+        } else {
+          body.format = 'markdown';
+          body.data = { content: text, title: file.name.replace(/\.\w+$/i, '') };
+        }
+        try {
+          var envelope = await request('api/v1/knowledge/pages/import', { method: 'POST', body: body, idempotent: true });
+          var res = envelope.data || {};
+          if (importResult) {
+            importResult.classList.remove('d-none');
+            importResult.innerHTML = '<div class="alert alert-success mb-0">'
+              + esc(t('admin_knowledge.import_done', 'Импорт завершён')) + ': ' + esc(res.imported || 0) + ' ' + esc(t('knowledge.stat_pages', 'страниц'))
+              + (res.errors && res.errors.length ? '<br><span class="text-danger">' + esc(t('admin_knowledge.import_errors', 'Ошибки')) + ': ' + esc(res.errors.join(', ')) + '</span>' : '')
+              + '</div>';
+          }
+          importStart.disabled = true;
+          load();
+        } catch (e) {
+          if (importResult) {
+            importResult.classList.remove('d-none');
+            importResult.innerHTML = '<div class="alert alert-danger mb-0">' + esc(t('admin_knowledge.import_error', 'Ошибка импорта')) + '</div>';
+          }
+        }
+      });
+    }
+  }
 })();
 </script>
+<div class="modal fade" id="adminKnowledgeImportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">' . htmlspecialchars($t('admin_knowledge.import_title', 'Импорт базы знаний'), ENT_QUOTES, 'UTF-8') . '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '"></button></div>
+    <div class="modal-body">
+      <p class="text-muted small">' . htmlspecialchars($t('admin_knowledge.import_hint', 'Загрузите JSON или Markdown файл, экспортированный из базы знаний.'), ENT_QUOTES, 'UTF-8') . '</p>
+      <div class="mb-3">
+        <label class="crm-filter-label" for="adminKnowledgeImportSpace">' . htmlspecialchars($t('admin_knowledge.import_target_space', 'Целевой раздел'), ENT_QUOTES, 'UTF-8') . '</label>
+        <select id="adminKnowledgeImportSpace" class="form-select"><option value="">' . htmlspecialchars($t('admin_knowledge.import_auto_space', 'Автоматически'), ENT_QUOTES, 'UTF-8') . '</option></select>
+      </div>
+      <div class="mb-3">
+        <label class="crm-filter-label" for="adminKnowledgeImportFile">' . htmlspecialchars($t('admin_knowledge.import_file_label', 'Файл импорта'), ENT_QUOTES, 'UTF-8') . '</label>
+        <input type="file" id="adminKnowledgeImportFile" class="form-control" accept=".json,.md,.markdown,.txt">
+      </div>
+      <div id="adminKnowledgeImportResult" class="d-none"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '</button>
+      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeImportStartBtn" disabled>' . htmlspecialchars($t('admin_knowledge.import_start', 'Начать импорт'), ENT_QUOTES, 'UTF-8') . '</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="adminKnowledgeExportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">' . htmlspecialchars($t('admin_knowledge.export_title', 'Экспорт базы знаний'), ENT_QUOTES, 'UTF-8') . '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '"></button></div>
+    <div class="modal-body">
+      <p class="text-muted small">' . htmlspecialchars($t('admin_knowledge.export_hint', 'Выберите раздел и формат для экспорта.'), ENT_QUOTES, 'UTF-8') . '</p>
+      <div class="mb-3">
+        <label class="crm-filter-label" for="adminKnowledgeExportSpace">' . htmlspecialchars($t('admin_knowledge.export_select_space', 'Раздел'), ENT_QUOTES, 'UTF-8') . '</label>
+        <select id="adminKnowledgeExportSpace" class="form-select"><option value="">' . htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') . '</option></select>
+      </div>
+      <div class="mb-3">
+        <label class="crm-filter-label">' . htmlspecialchars($t('admin_knowledge.export_format', 'Формат'), ENT_QUOTES, 'UTF-8') . '</label>
+        <div class="d-flex gap-3">
+          <label><input type="radio" name="exportFormat" value="json" checked> JSON</label>
+          <label><input type="radio" name="exportFormat" value="markdown"> Markdown</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' . htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') . '</button>
+      <button type="button" class="btn crm-btn-primary" id="adminKnowledgeExportStartBtn" disabled>' . htmlspecialchars($t('admin_knowledge.export_start', 'Экспортировать'), ENT_QUOTES, 'UTF-8') . '</button>
+    </div>
+  </div></div>
+</div>
+
 </body>
