@@ -26008,6 +26008,15 @@ window.CRM.pageApiBindings = (function () {
         sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_contacts', 'Контакты') + '</h2><span class="crm-chip">' + (counts?.contacts || results.contacts.length) + '</span></div><div class="crm-search-list">' + contactHtml + '</div></div></div>');
       }
 
+      if (results.knowledge && results.knowledge.length) {
+        var knowledgeHtml = results.knowledge.slice(0, 10).map(function(page) {
+          var link = 'index.php?route=knowledge-page&id=' + encodeURIComponent(page.public_id || '');
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(page.title || _t('page.search_untitled', 'Без названия')) + '</a>'
+            + '<div class="crm-search-item-meta">' + _t('page.search_meta_knowledge', 'База знаний') + ' · ' + escapeHtml(page.space_title || page.page_type || '—') + '</div></div>';
+        }).join('');
+        sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_knowledge', 'База знаний') + '</h2><span class="crm-chip">' + (counts?.knowledge || results.knowledge.length) + '</span></div><div class="crm-search-list">' + knowledgeHtml + '</div></div></div>');
+      }
+
       if (sections.length === 0) {
         container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_no_results_query', 'Ничего не найдено по запросу «') + escapeHtml(queryInput ? queryInput.value : '') + '».</div></div></div>';
         return;

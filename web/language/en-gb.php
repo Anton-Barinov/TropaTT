@@ -66,6 +66,14 @@ return array (
     'logout' => 'Logout',
     'user_fallback' => 'User',
   ),
+  'global_search' =>
+  array (
+    'title' => 'TropaTT — Search',
+    'page_title' => 'Search',
+    'subtitle' => 'Search results across all sections.',
+    'placeholder_query' => 'Search: tasks, projects, counterparties, contacts, knowledge base',
+    'btn_search' => 'Search',
+  ),
   'messages' =>
   array (
     'reminder' => 'Reminder',
@@ -2243,10 +2251,12 @@ return array (
     'search_section_projects' => 'Projects',
     'search_section_counterparties' => 'Counterparties',
     'search_section_contacts' => 'Contacts',
+    'search_section_knowledge' => 'Knowledge base',
     'search_meta_task' => 'Task',
     'search_meta_project' => 'Project',
     'search_meta_counterparty' => 'Counterparty',
     'search_meta_contact' => 'Contact',
+    'search_meta_knowledge' => 'Knowledge base',
     'search_untitled' => 'Untitled',
     'select_placeholder' => 'Select',
     'select_empty' => 'Nothing found',
