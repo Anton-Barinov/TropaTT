@@ -61,23 +61,23 @@
           <button class="btn crm-btn-primary" type="submit"><?= htmlspecialchars($t('knowledge_page.btn_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
-      <div id="knowledgeCommentsSection" class="crm-knowledge-comments mt-4">
-        <h3 class="h5"><?= htmlspecialchars($t('knowledge_page.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?></h3>
-        <div id="knowledgeCommentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-        <div class="mt-2 d-flex gap-2">
-          <textarea id="knowledgeCommentInput" class="form-control" rows="2" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>" style="flex:1"></textarea>
-          <button class="btn crm-btn-primary" type="button" id="knowledgeCommentSendBtn" style="align-self:flex-end"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
-        </div>
-      </div>
-      <div id="knowledgeAttachmentsSection" class="crm-knowledge-attachments mt-4">
-        <h3 class="h5"><?= htmlspecialchars($t('knowledge_page.attachments_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h3>
-        <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-        <div class="mt-2">
-          <input type="file" id="knowledgeFileInput" class="form-control" multiple>
-          <button class="btn crm-btn-primary mt-1" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
-        </div>
-      </div>
     </article>
+    <section id="knowledgeCommentsSection" class="crm-card crm-section-card crm-knowledge-comments crm-knowledge-work-card">
+      <div class="crm-section-head"><h3 class="h5 mb-0"><?= htmlspecialchars($t('knowledge_page.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?></h3></div>
+      <div id="knowledgeCommentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <div class="crm-knowledge-comment-form">
+        <textarea id="knowledgeCommentInput" class="form-control" rows="3" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>"></textarea>
+        <button class="btn crm-btn-primary" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </section>
+    <section id="knowledgeAttachmentsSection" class="crm-card crm-section-card crm-knowledge-attachments crm-knowledge-work-card">
+      <div class="crm-section-head"><h3 class="h5 mb-0"><?= htmlspecialchars($t('knowledge_page.attachments_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h3></div>
+      <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <div class="crm-knowledge-file-form">
+        <input type="file" id="knowledgeFileInput" class="form-control" multiple>
+        <button class="btn crm-btn-primary" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </section>
   </div>
   <aside class="crm-card crm-section-card crm-knowledge-side">
     <h2 class="h5"><?= htmlspecialchars($t('knowledge_page.meta_title', 'Состояние'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -367,6 +367,8 @@
     await loadPagePermissions();
   }
   function showEditor(show) {
+    var layout = document.querySelector('.crm-knowledge-detail-layout');
+    if (layout) layout.classList.toggle('is-editing', show);
     els.editor.classList.toggle('d-none', !show);
     els.view.classList.toggle('d-none', show);
     if (show && current) {

@@ -12912,13 +12912,29 @@ a.task-tag:hover {
 
 .crm-knowledge-detail-layout {
   display: grid;
-  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr) minmax(280px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 320px);
   gap: 1rem;
   align-items: start;
 }
 
+.crm-knowledge-tree-sidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.crm-knowledge-center {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.crm-knowledge-side {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
 .crm-knowledge-article {
-  padding: 1.35rem;
+  padding: 1.55rem 1.7rem;
   min-width: 0;
 }
 
@@ -12939,8 +12955,9 @@ a.task-tag:hover {
 .crm-knowledge-content {
   padding-top: 1.1rem;
   color: var(--crm-text);
-  font-size: 1rem;
-  line-height: 1.72;
+  font-size: 1.04rem;
+  line-height: 1.75;
+  max-width: 82ch;
 }
 
 .crm-knowledge-content h2,
@@ -12998,8 +13015,8 @@ textarea.form-control.crm-knowledge-editor {
 
 .crm-knowledge-editor-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.82fr);
-  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+  gap: 1rem;
   margin-top: 0.8rem;
 }
 
@@ -13045,15 +13062,83 @@ textarea.form-control.crm-knowledge-editor {
 .crm-knowledge-side {
   position: sticky;
   top: 1rem;
-  padding: 1rem;
+  padding: 1.1rem;
   min-width: 0;
 }
 
 .crm-knowledge-tree-sidebar {
   position: sticky;
   top: 1rem;
-  padding: 1rem;
+  padding: 0.95rem 1.1rem;
   min-width: 0;
+}
+
+.crm-knowledge-tree-sidebar h3 {
+  margin-bottom: 0.6rem;
+  color: var(--crm-muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+}
+
+.crm-knowledge-tree-sidebar ul.crm-knowledge-tree-list {
+  list-style: none;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item {
+  margin: 0;
+  padding: 0;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 999px;
+  background: var(--crm-surface);
+  color: var(--crm-text);
+  text-decoration: none;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a {
+  border-color: rgba(var(--color-primary-rgb), 0.35);
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-primary);
+}
+
+.crm-knowledge-work-card {
+  margin-top: 1rem;
+  padding: 1.25rem 1.35rem;
+}
+
+.crm-knowledge-comment-form,
+.crm-knowledge-file-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-top: 0.8rem;
+}
+
+.crm-knowledge-comment-form textarea {
+  flex: 1 1 auto;
+}
+
+.crm-knowledge-file-form .form-control {
+  flex: 1 1 auto;
+}
+
+.crm-knowledge-detail-layout.is-editing .crm-knowledge-work-card {
+  display: none;
 }
 
 .crm-knowledge-meta {
@@ -13141,11 +13226,14 @@ textarea.form-control.crm-knowledge-editor {
 
 @media (max-width: 1199.98px) {
   .crm-knowledge-detail-layout {
-    grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
+  .crm-knowledge-tree-sidebar,
+  .crm-knowledge-center,
   .crm-knowledge-side {
     grid-column: 1 / -1;
+    grid-row: auto;
     position: static;
   }
 }
