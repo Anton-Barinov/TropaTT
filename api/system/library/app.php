@@ -1125,7 +1125,8 @@ final class App
             $c->get('service.webhook')
         ));
         $this->container->factory('service.search', fn(Container $c) => new SearchService(
-            $c->get('repository.search')
+            $c->get('repository.search'),
+            $c->get('repository.knowledge')
         ));
         $this->container->factory('service.setting', fn(Container $c) => new SettingService(
             $c->get('repository.setting')

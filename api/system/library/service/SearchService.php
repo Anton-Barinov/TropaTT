@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Search\SearchRepository;
 
 final class SearchService
 {
-    public function __construct(private readonly SearchRepository $search)
+    public function __construct(
+        private readonly SearchRepository $search,
+        private readonly KnowledgeRepository $knowledge
+    )
     {
     }
 
@@ -21,7 +25,7 @@ final class SearchService
         $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot);
         $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30)), $normalized, $limit);
         $contacts = $this->search->searchContacts($normalized, $limit);
-        $knowledge = $this->search->searchKnowledge($normalized, $limit);
+        $knowledge = $this->knowledge->search($normalized, ['limit' => $limit, 'status' => 'published'], $actor);
 
         return [
             'query' => $normalized,
@@ -95,7 +99,7 @@ final class SearchService
         $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
         $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15)), $normalized, $perTypeLimit);
         $contactRows = $this->search->searchContacts($normalized, $perTypeLimit);
-        $knowledgeRows = $this->search->searchKnowledge($normalized, $perTypeLimit);
+        $knowledgeRows = $this->knowledge->search($normalized, ['limit' => $perTypeLimit, 'status' => 'published'], $actor);
 
         $items = [];
         foreach ($taskRows as $row) {
