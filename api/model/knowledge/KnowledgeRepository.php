@@ -21,31 +21,44 @@ final class KnowledgeRepository
         'onboarding',
     ];
 
+    private const ACCESS_RANK = [
+        'view' => 10,
+        'comment' => 20,
+        'edit' => 30,
+        'manage' => 40,
+        'owner' => 50,
+    ];
+
     public function __construct(private readonly PDO $pdo)
     {
     }
 
-    public function overview(array $filters = []): array
+    public function overview(array $filters = [], ?array $actor = null): array
     {
         return [
-            'spaces' => $this->spaces(['include_archived' => false]),
-            'recent' => $this->pages(['limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC']),
-            'popular' => $this->popular(8),
-            'drafts' => $this->pages(['status' => 'draft', 'limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC']),
-            'review_queue' => $this->pages(['status' => 'review', 'limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC']),
-            'outdated' => $this->outdated(8),
-            'totals' => $this->totals(),
+            'spaces' => $this->spaces(['include_archived' => false], $actor),
+            'recent' => $this->pages(['limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC'], $actor),
+            'popular' => $this->popular(8, $actor),
+            'drafts' => $this->pages(['status' => 'draft', 'limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC'], $actor),
+            'review_queue' => $this->pages(['status' => 'review', 'limit' => 8, 'sort' => 'updated_at', 'order' => 'DESC'], $actor),
+            'outdated' => $this->outdated(8, $actor),
+            'totals' => $this->totals($actor),
         ];
     }
 
-    public function spaces(array $filters = []): array
+    public function spaces(array $filters = [], ?array $actor = null): array
     {
         $includeArchived = !empty($filters['include_archived']);
-        $where = $includeArchived ? '1=1' : 'is_archived = 0';
-        $stmt = $this->pdo->query("SELECT * FROM knowledge_spaces WHERE {$where} ORDER BY sort_order ASC, title ASC");
-        $spaces = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        $where = $includeArchived ? ['1=1'] : ['s.is_archived = 0'];
+        $params = [];
+        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, 'view');
+        $where[] = $aclSql;
+        $params += $aclParams;
+        $stmt = $this->pdo->prepare('SELECT s.* FROM knowledge_spaces s WHERE ' . implode(' AND ', $where) . ' ORDER BY s.sort_order ASC, s.title ASC');
+        $stmt->execute($params);
+        $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($spaces as &$space) {
-            $space['pages_count'] = $this->countPages((int)$space['id']);
+            $space['pages_count'] = $this->countPages((int)$space['id'], $actor);
             $space['is_archived'] = (int)($space['is_archived'] ?? 0);
         }
         unset($space);
@@ -76,15 +89,16 @@ final class KnowledgeRepository
         return $this->space($publicId) ?? [];
     }
 
-    public function space(string $publicId): ?array
+    public function space(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_spaces WHERE public_id = :public_id LIMIT 1');
-        $stmt->execute(['public_id' => $publicId]);
+        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, $minAccess);
+        $stmt = $this->pdo->prepare("SELECT s.* FROM knowledge_spaces s WHERE s.public_id = :public_id AND {$aclSql} LIMIT 1");
+        $stmt->execute(['public_id' => $publicId] + $aclParams);
         $space = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($space)) {
             return null;
         }
-        $space['pages_count'] = $this->countPages((int)$space['id']);
+        $space['pages_count'] = $this->countPages((int)$space['id'], $actor);
         return $space;
     }
 
@@ -208,21 +222,22 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
-    public function tree(string $spacePublicId, int $depth = 10): array
+    public function tree(string $spacePublicId, int $depth = 10, ?array $actor = null): array
     {
-        $space = $this->space($spacePublicId);
+        $space = $this->space($spacePublicId, $actor);
         if (!$space) {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.space_id = :space_id AND p.deleted_at IS NULL ORDER BY COALESCE(p.parent_id, 0), p.sort_order ASC, p.title ASC');
-        $stmt->execute(['space_id' => (int)$space['id']]);
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.space_id = :space_id AND p.deleted_at IS NULL AND {$aclSql} ORDER BY COALESCE(p.parent_id, 0), p.sort_order ASC, p.title ASC");
+        $stmt->execute(['space_id' => (int)$space['id']] + $aclParams);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return $this->buildTree($rows, null, 0, max(1, $depth));
     }
 
-    public function pages(array $filters = []): array
+    public function pages(array $filters = [], ?array $actor = null): array
     {
-        [$where, $params] = $this->pageWhere($filters);
+        [$where, $params] = $this->pageWhere($filters, $actor);
         $limit = min(100, max(1, (int)($filters['limit'] ?? 30)));
         $page = max(1, (int)($filters['page'] ?? 1));
         $offset = ($page - 1) * $limit;
@@ -278,10 +293,11 @@ final class KnowledgeRepository
         return $this->page($publicId) ?? $page;
     }
 
-    public function page(string $publicId): ?array
+    public function page(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.public_id = :public_id AND p.deleted_at IS NULL LIMIT 1');
-        $stmt->execute(['public_id' => $publicId]);
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, $minAccess);
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.public_id = :public_id AND p.deleted_at IS NULL AND {$aclSql} LIMIT 1");
+        $stmt->execute(['public_id' => $publicId] + $aclParams);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($page) ? $page : null;
     }
@@ -519,25 +535,27 @@ final class KnowledgeRepository
         ];
     }
 
-    public function search(string $query, array $filters = []): array
+    public function search(string $query, array $filters = [], ?array $actor = null): array
     {
         $query = trim($query);
         if ($query === '') {
-            return $this->pages($filters + ['limit' => 20]);
+            return $this->pages($filters + ['limit' => 20], $actor);
         }
         $filters['q'] = $query;
-        return $this->pages($filters + ['limit' => 30]);
+        return $this->pages($filters + ['limit' => 30], $actor);
     }
 
-    public function popular(int $limit = 10): array
+    public function popular(int $limit = 10, ?array $actor = null): array
     {
-        return $this->pages(['limit' => $limit, 'sort' => 'views_count', 'order' => 'DESC', 'status' => 'published']);
+        return $this->pages(['limit' => $limit, 'sort' => 'views_count', 'order' => 'DESC', 'status' => 'published'], $actor);
     }
 
-    public function outdated(int $limit = 10): array
+    public function outdated(int $limit = 10, ?array $actor = null): array
     {
-        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.deleted_at IS NULL AND p.status = 'published' AND p.review_due_at IS NOT NULL AND p.review_due_at < :now ORDER BY p.review_due_at ASC LIMIT {$limit}");
-        $stmt->execute(['now' => gmdate('Y-m-d H:i:s')]);
+        $limit = max(1, min(100, $limit));
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.deleted_at IS NULL AND p.status = 'published' AND p.review_due_at IS NOT NULL AND p.review_due_at < :now AND {$aclSql} ORDER BY p.review_due_at ASC LIMIT {$limit}");
+        $stmt->execute(['now' => gmdate('Y-m-d H:i:s')] + $aclParams);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -742,39 +760,47 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
-    public function favorites(int $userId, int $limit = 20, int $offset = 0): array
+    public function favorites(int $userId, int $limit = 20, int $offset = 0, ?array $actor = null): array
     {
         $limit = max(1, min(100, $limit));
         $offset = max(0, $offset);
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
         $stmt = $this->pdo->prepare('SELECT p.id, p.public_id, p.title, p.status, p.page_type, p.updated_at, p.published_at, p.views_count, s.title AS space_title, s.public_id AS space_public_id
             FROM favorites f
             INNER JOIN knowledge_pages p ON p.public_id = f.entity_public_id AND p.deleted_at IS NULL
             LEFT JOIN knowledge_spaces s ON s.id = p.space_id
-            WHERE f.entity_type = :entity_type AND f.user_id = :user_id
+            WHERE f.entity_type = :entity_type AND f.user_id = :user_id AND ' . $aclSql . '
             ORDER BY f.created_at DESC
             LIMIT :limit OFFSET :offset');
         $stmt->bindValue(':entity_type', 'knowledge_page');
         $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        foreach ($aclParams as $key => $value) {
+            $stmt->bindValue(':' . $key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function suggest(string $query, int $limit = 10): array
+    public function suggest(string $query, int $limit = 10, ?array $actor = null): array
     {
         $limit = max(1, min(50, $limit));
         $q = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%';
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
         $stmt = $this->pdo->prepare('SELECT p.public_id, p.title, p.page_type, s.title AS space_title, s.public_id AS space_public_id
             FROM knowledge_pages p
             LEFT JOIN knowledge_spaces s ON s.id = p.space_id
-            WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q_title OR p.content_text LIKE :q_content)
+            WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q_title OR p.content_text LIKE :q_content) AND ' . $aclSql . '
             ORDER BY p.views_count DESC, p.updated_at DESC
             LIMIT :limit');
         $stmt->bindValue(':status', 'published');
         $stmt->bindValue(':q_title', $q);
         $stmt->bindValue(':q_content', $q);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        foreach ($aclParams as $key => $value) {
+            $stmt->bindValue(':' . $key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
@@ -860,10 +886,13 @@ final class KnowledgeRepository
         ]);
     }
 
-    private function pageWhere(array $filters): array
+    private function pageWhere(array $filters, ?array $actor = null): array
     {
         $where = ['p.deleted_at IS NULL', 's.is_archived = 0'];
         $params = [];
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, (string)($filters['min_access'] ?? 'view'));
+        $where[] = $aclSql;
+        $params += $aclParams;
         if (!empty($filters['status'])) {
             $where[] = 'p.status = :status';
             $params['status'] = (string)$filters['status'];
@@ -889,6 +918,165 @@ final class KnowledgeRepository
             $params['tag_public_id'] = (string)$filters['tag_public_id'];
         }
         return [implode(' AND ', $where), $params];
+    }
+
+    private function pageAccessSql(string $pageAlias, string $spaceAlias, ?array $actor, string $minAccess = 'view'): array
+    {
+        if ($this->actorBypassesKnowledgeAcl($actor)) {
+            return ['1=1', []];
+        }
+
+        $actorId = $this->actorUserId($actor);
+        $rank = $this->accessRank($minAccess);
+        $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
+        $params = [
+            'acl_public_rank' => $rank,
+            'acl_space_perm_rank' => $rank,
+            'acl_page_perm_rank' => $rank,
+            'acl_space_owner_user_id' => $actorId,
+            'acl_page_owner_user_id' => $actorId,
+            'acl_space_perm_user_id' => $actorId,
+            'acl_page_perm_user_id' => $actorId,
+        ];
+
+        $spaceRoleClause = '0=1';
+        $pageRoleClause = '0=1';
+        if ($roleIds !== []) {
+            $spacePlaceholders = [];
+            $pagePlaceholders = [];
+            foreach ($roleIds as $index => $roleId) {
+                $spaceKey = 'acl_space_role_' . $index;
+                $pageKey = 'acl_page_role_' . $index;
+                $spacePlaceholders[] = ':' . $spaceKey;
+                $pagePlaceholders[] = ':' . $pageKey;
+                $params[$spaceKey] = $roleId;
+                $params[$pageKey] = $roleId;
+            }
+            $spaceRoleClause = 'perm.subject_type = \'role\' AND perm.subject_id IN (' . implode(',', $spacePlaceholders) . ')';
+            $pageRoleClause = 'perm.subject_type = \'role\' AND perm.subject_id IN (' . implode(',', $pagePlaceholders) . ')';
+        }
+
+        $rankSql = $this->accessRankSql('perm.access_level');
+        $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
+        $sql = "(
+            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_public_rank)
+            OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
+            OR {$pageAlias}.owner_user_id = :acl_page_owner_user_id
+            OR EXISTS (
+                SELECT 1 FROM knowledge_space_permissions perm
+                WHERE perm.space_id = {$spaceAlias}.id
+                  AND {$rankSql} >= :acl_space_perm_rank
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$spaceRoleClause}))
+            )
+            OR EXISTS (
+                SELECT 1 FROM knowledge_page_permissions perm
+                WHERE perm.page_id = {$pageAlias}.id
+                  AND {$rankSql} >= :acl_page_perm_rank
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_page_perm_user_id) OR ({$pageRoleClause}))
+            )
+        )";
+
+        return [$sql, $params];
+    }
+
+    private function spaceAccessSql(string $spaceAlias, ?array $actor, string $minAccess = 'view'): array
+    {
+        if ($this->actorBypassesKnowledgeAcl($actor)) {
+            return ['1=1', []];
+        }
+
+        $actorId = $this->actorUserId($actor);
+        $rank = $this->accessRank($minAccess);
+        $roleIds = $actorId > 0 ? $this->actorRoleIds($actorId) : [];
+        $params = [
+            'acl_space_public_rank' => $rank,
+            'acl_space_owner_user_id' => $actorId,
+            'acl_space_perm_rank' => $rank,
+            'acl_space_perm_user_id' => $actorId,
+        ];
+
+        $roleClause = '0=1';
+        if ($roleIds !== []) {
+            $placeholders = [];
+            foreach ($roleIds as $index => $roleId) {
+                $key = 'acl_space_role_' . $index;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $roleId;
+            }
+            $roleClause = 'perm.subject_type = \'role\' AND perm.subject_id IN (' . implode(',', $placeholders) . ')';
+        }
+
+        $rankSql = $this->accessRankSql('perm.access_level');
+        $defaultRankSql = $this->accessRankSql($spaceAlias . '.default_access_level');
+        $sql = "(
+            ({$spaceAlias}.visibility = 'public' AND {$defaultRankSql} >= :acl_space_public_rank)
+            OR {$spaceAlias}.owner_user_id = :acl_space_owner_user_id
+            OR EXISTS (
+                SELECT 1 FROM knowledge_space_permissions perm
+                WHERE perm.space_id = {$spaceAlias}.id
+                  AND {$rankSql} >= :acl_space_perm_rank
+                  AND ((perm.subject_type = 'user' AND perm.subject_id = :acl_space_perm_user_id) OR ({$roleClause}))
+            )
+        )";
+
+        return [$sql, $params];
+    }
+
+    private function actorBypassesKnowledgeAcl(?array $actor): bool
+    {
+        if (!$actor) {
+            return false;
+        }
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        $permissions = array_map('strval', (array)($actor['permission_codes'] ?? []));
+        return in_array('*', $permissions, true) || in_array('knowledge.admin', $permissions, true);
+    }
+
+    private function actorUserId(?array $actor): int
+    {
+        if (!$actor) {
+            return 0;
+        }
+        $id = (int)($actor['id'] ?? 0);
+        if ($id > 0) {
+            return $id;
+        }
+        $publicId = trim((string)($actor['public_id'] ?? ''));
+        if ($publicId === '') {
+            return 0;
+        }
+        $stmt = $this->pdo->prepare('SELECT id FROM users WHERE public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $publicId]);
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    private function actorRoleIds(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('SELECT role_id FROM user_roles WHERE user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+        return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    private function accessRank(string $level): int
+    {
+        return self::ACCESS_RANK[$level] ?? self::ACCESS_RANK['view'];
+    }
+
+    private function accessRankSql(string $expr): string
+    {
+        return "CASE {$expr}
+            WHEN 'owner' THEN 50
+            WHEN 'manage' THEN 40
+            WHEN 'edit' THEN 30
+            WHEN 'comment' THEN 20
+            WHEN 'view' THEN 10
+            ELSE 0
+        END";
     }
 
     private function buildTree(array $rows, ?int $parentId, int $level, int $maxDepth): array
@@ -921,20 +1109,42 @@ final class KnowledgeRepository
         return $publicId !== '' ? $this->page($publicId) : null;
     }
 
-    private function countPages(int $spaceId): int
+    private function countPages(int $spaceId, ?array $actor = null): int
     {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM knowledge_pages WHERE space_id = :space_id AND deleted_at IS NULL');
-        $stmt->execute(['space_id' => $spaceId]);
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.space_id = :space_id AND p.deleted_at IS NULL AND {$aclSql}");
+        $stmt->execute(['space_id' => $spaceId] + $aclParams);
         return (int)$stmt->fetchColumn();
     }
 
-    private function totals(): array
+    private function totals(?array $actor = null): array
     {
+        if ($this->actorBypassesKnowledgeAcl($actor)) {
+            return [
+                'spaces' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 0')->fetchColumn(),
+                'pages' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL')->fetchColumn(),
+                'published' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'published'")->fetchColumn(),
+                'drafts' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'draft'")->fetchColumn(),
+            ];
+        }
+        [$spaceAclSql, $spaceAclParams] = $this->spaceAccessSql('s', $actor, 'view');
+        [$pageAclSql, $pageAclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        $spaces = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_spaces s WHERE s.is_archived = 0 AND {$spaceAclSql}");
+        $spaces->execute($spaceAclParams);
+        $pageCount = function (string $extraWhere = '') use ($pageAclSql, $pageAclParams): int {
+            $sql = "SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.deleted_at IS NULL AND {$pageAclSql}";
+            if ($extraWhere !== '') {
+                $sql .= ' AND ' . $extraWhere;
+            }
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($pageAclParams);
+            return (int)$stmt->fetchColumn();
+        };
         return [
-            'spaces' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 0')->fetchColumn(),
-            'pages' => (int)$this->pdo->query('SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL')->fetchColumn(),
-            'published' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'published'")->fetchColumn(),
-            'drafts' => (int)$this->pdo->query("SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'draft'")->fetchColumn(),
+            'spaces' => (int)$spaces->fetchColumn(),
+            'pages' => $pageCount(),
+            'published' => $pageCount("p.status = 'published'"),
+            'drafts' => $pageCount("p.status = 'draft'"),
         ];
     }
 

@@ -17,13 +17,42 @@ final class KnowledgeController extends BaseController
         return new KnowledgeRepository($this->container->get('db.pdo'));
     }
 
+    private function actor(): array
+    {
+        $auth = $this->user();
+        return is_array($auth['user'] ?? null) ? $auth['user'] : [];
+    }
+
+    private function actorUserId(): int
+    {
+        $actor = $this->actor();
+        $id = (int)($actor['id'] ?? 0);
+        if ($id > 0) {
+            return $id;
+        }
+        $publicId = trim((string)($actor['public_id'] ?? ''));
+        if ($publicId === '') {
+            return 0;
+        }
+        $stmt = $this->container->get('db.pdo')->prepare('SELECT id FROM users WHERE public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $publicId]);
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    private function requirePageAccess(string $publicId, string $minAccess = 'view'): ?array
+    {
+        return $this->repo()->page($publicId, $this->actor(), $minAccess);
+    }
+
     public function overview(): JsonResponse
     {
+        $actor = $this->actor();
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $data = $cache->remember('knowledge', 'overview:' . $this->cacheUserId(), 60, fn(): array => $this->repo()->overview($this->request()->allInput()));
+            $cacheUser = (string)($actor['public_id'] ?? $this->cacheUserId());
+            $data = $cache->remember('knowledge', 'overview:' . $cacheUser, 60, fn(): array => $this->repo()->overview($this->request()->allInput(), $actor));
         } else {
-            $data = $this->repo()->overview($this->request()->allInput());
+            $data = $this->repo()->overview($this->request()->allInput(), $actor);
         }
 
         return $this->success('KNOWLEDGE_OVERVIEW', $this->t('knowledge/messages.overview', 'Knowledge overview loaded'), $data);
@@ -32,7 +61,7 @@ final class KnowledgeController extends BaseController
     public function spaces(): JsonResponse
     {
         return $this->success('KNOWLEDGE_SPACES', $this->t('knowledge/messages.spaces', 'Knowledge spaces loaded'), [
-            'items' => $this->repo()->spaces($this->request()->allInput()),
+            'items' => $this->repo()->spaces($this->request()->allInput(), $this->actor()),
         ]);
     }
 
@@ -48,7 +77,7 @@ final class KnowledgeController extends BaseController
         }
 
         return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
-            $space = $this->repo()->createSpace($input, (int)($auth['user']['id'] ?? 0) ?: null);
+            $space = $this->repo()->createSpace($input, $this->actorUserId() ?: null);
             $this->invalidateCache('knowledge');
             return $this->success('KNOWLEDGE_SPACE_CREATED', $this->t('knowledge/messages.space_created', 'Knowledge space created'), [
                 'space' => $space,
@@ -58,7 +87,7 @@ final class KnowledgeController extends BaseController
 
     public function getSpace(array $params): JsonResponse
     {
-        $space = $this->repo()->space((string)$params['public_id']);
+        $space = $this->repo()->space((string)$params['public_id'], $this->actor());
         if (!$space) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
@@ -103,14 +132,14 @@ final class KnowledgeController extends BaseController
     public function tree(array $params): JsonResponse
     {
         return $this->success('KNOWLEDGE_TREE', $this->t('knowledge/messages.tree', 'Knowledge tree loaded'), [
-            'items' => $this->repo()->tree((string)$params['public_id'], (int)($this->request()->input('depth', 10))),
+            'items' => $this->repo()->tree((string)$params['public_id'], (int)($this->request()->input('depth', 10)), $this->actor()),
         ]);
     }
 
     public function pages(): JsonResponse
     {
         return $this->success('KNOWLEDGE_PAGES', $this->t('knowledge/messages.pages', 'Knowledge pages loaded'), [
-            'items' => $this->repo()->pages($this->request()->allInput()),
+            'items' => $this->repo()->pages($this->request()->allInput(), $this->actor()),
         ]);
     }
 
@@ -134,7 +163,7 @@ final class KnowledgeController extends BaseController
                 'subject_type' => [$this->t('common/messages.field_required', 'Field is required')],
             ]);
         }
-        $result = $this->repo()->addSpacePermission((string)$params['public_id'], $subjectType, $subjectId, $accessLevel, (int)($auth['user']['id'] ?? 0) ?: null);
+        $result = $this->repo()->addSpacePermission((string)$params['public_id'], $subjectType, $subjectId, $accessLevel, $this->actorUserId() ?: null);
         if ($result === null) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
@@ -167,7 +196,7 @@ final class KnowledgeController extends BaseController
 
         return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
             try {
-                $page = $this->repo()->createPage($input, (int)($auth['user']['id'] ?? 0) ?: null);
+                $page = $this->repo()->createPage($input, $this->actorUserId() ?: null);
             } catch (\RuntimeException $e) {
                 return $this->error('VALIDATION_ERROR', $e->getMessage(), 422);
             }
@@ -180,12 +209,12 @@ final class KnowledgeController extends BaseController
 
     public function getPage(array $params): JsonResponse
     {
-        $page = $this->repo()->page((string)$params['public_id']);
+        $page = $this->requirePageAccess((string)$params['public_id']);
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $this->repo()->recordView((string)$params['public_id'], (int)($auth['user']['id'] ?? 0) ?: null, (string)$this->request()->input('source', 'direct'));
+        $this->repo()->recordView((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('source', 'direct'));
         return $this->success('KNOWLEDGE_PAGE_DETAIL', $this->t('knowledge/messages.page_detail', 'Knowledge page loaded'), [
             'page' => $page,
             'links' => $this->repo()->links((string)$params['public_id']),
@@ -194,8 +223,11 @@ final class KnowledgeController extends BaseController
 
     public function updatePage(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $result = $this->repo()->updatePage((string)$params['public_id'], $this->request()->allInput(), (int)($auth['user']['id'] ?? 0) ?: null);
+        $result = $this->repo()->updatePage((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId() ?: null);
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The record was changed by another user'), 409);
         }
@@ -213,6 +245,9 @@ final class KnowledgeController extends BaseController
 
     public function deletePage(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         if (!$this->repo()->deletePage((string)$params['public_id'])) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -222,8 +257,11 @@ final class KnowledgeController extends BaseController
 
     public function publish(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->publish((string)$params['public_id'], (int)($auth['user']['id'] ?? 0) ?: null, (string)$this->request()->input('change_summary', ''));
+        $page = $this->repo()->publish((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('change_summary', ''));
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -246,8 +284,11 @@ final class KnowledgeController extends BaseController
 
     public function requestReview(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->setStatus((string)$params['public_id'], 'review', (int)($auth['user']['id'] ?? 0) ?: null);
+        $page = $this->repo()->setStatus((string)$params['public_id'], 'review', $this->actorUserId() ?: null);
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -263,8 +304,11 @@ final class KnowledgeController extends BaseController
 
     public function rejectReview(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->setStatus((string)$params['public_id'], 'draft', (int)($auth['user']['id'] ?? 0) ?: null);
+        $page = $this->repo()->setStatus((string)$params['public_id'], 'draft', $this->actorUserId() ?: null);
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -275,8 +319,11 @@ final class KnowledgeController extends BaseController
 
     public function duplicatePage(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->duplicate((string)$params['public_id'], (int)($auth['user']['id'] ?? 0) ?: null);
+        $page = $this->repo()->duplicate((string)$params['public_id'], $this->actorUserId() ?: null);
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -288,13 +335,16 @@ final class KnowledgeController extends BaseController
 
     public function movePage(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
         $input = $this->request()->allInput();
         $result = $this->repo()->updatePage((string)$params['public_id'], [
             'space_public_id' => $input['space_public_id'] ?? null,
             'parent_public_id' => $input['parent_public_id'] ?? null,
             'sort_order' => $input['sort_order'] ?? null,
-        ], (int)($auth['user']['id'] ?? 0) ?: null);
+        ], $this->actorUserId() ?: null);
         if (!$result || $result === 'ROW_VERSION_CONFLICT') {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -306,8 +356,11 @@ final class KnowledgeController extends BaseController
 
     public function getDraft(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $draft = $this->repo()->draft((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        $draft = $this->repo()->draft((string)$params['public_id'], $this->actorUserId());
         return $this->success('KNOWLEDGE_DRAFT', $this->t('knowledge/messages.draft', 'Draft loaded'), [
             'draft' => $draft,
         ]);
@@ -315,9 +368,12 @@ final class KnowledgeController extends BaseController
 
     public function saveDraft(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
         try {
-            $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), (int)($auth['user']['id'] ?? 0));
+            $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId());
         } catch (\RuntimeException $e) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $e->getMessage(), 404);
         }
@@ -328,13 +384,19 @@ final class KnowledgeController extends BaseController
 
     public function deleteDraft(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $this->repo()->deleteDraft((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        $this->repo()->deleteDraft((string)$params['public_id'], $this->actorUserId());
         return $this->success('KNOWLEDGE_DRAFT_DELETED', $this->t('knowledge/messages.draft_deleted', 'Draft deleted'));
     }
 
     public function versions(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         return $this->success('KNOWLEDGE_VERSIONS', $this->t('knowledge/messages.versions', 'Versions loaded'), [
             'items' => $this->repo()->versions((string)$params['public_id']),
         ]);
@@ -342,8 +404,11 @@ final class KnowledgeController extends BaseController
 
     public function restoreVersion(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->restoreVersion((string)$params['public_id'], (int)$params['version_number'], (int)($auth['user']['id'] ?? 0) ?: null);
+        $page = $this->repo()->restoreVersion((string)$params['public_id'], (int)$params['version_number'], $this->actorUserId() ?: null);
         if (!$page) {
             return $this->error('KNOWLEDGE_VERSION_NOT_FOUND', $this->t('knowledge/messages.version_not_found', 'Version not found'), 404);
         }
@@ -355,6 +420,9 @@ final class KnowledgeController extends BaseController
 
     public function diff(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $from = (int)$this->request()->input('from', 0);
         $to = (int)$this->request()->input('to', 0);
         return $this->success('KNOWLEDGE_VERSION_DIFF', $this->t('knowledge/messages.diff', 'Version diff loaded'), $this->repo()->diff((string)$params['public_id'], $from, $to));
@@ -364,35 +432,35 @@ final class KnowledgeController extends BaseController
     {
         $query = (string)$this->request()->input('q', '');
         return $this->success('KNOWLEDGE_SEARCH', $this->t('knowledge/messages.search', 'Knowledge search completed'), [
-            'items' => $this->repo()->search($query, $this->request()->allInput()),
+            'items' => $this->repo()->search($query, $this->request()->allInput(), $this->actor()),
         ]);
     }
 
     public function recent(): JsonResponse
     {
         return $this->success('KNOWLEDGE_RECENT', $this->t('knowledge/messages.recent', 'Recent pages loaded'), [
-            'items' => $this->repo()->pages(['limit' => (int)$this->request()->input('limit', 20), 'sort' => 'updated_at', 'order' => 'DESC']),
+            'items' => $this->repo()->pages(['limit' => (int)$this->request()->input('limit', 20), 'sort' => 'updated_at', 'order' => 'DESC'], $this->actor()),
         ]);
     }
 
     public function popular(): JsonResponse
     {
         return $this->success('KNOWLEDGE_POPULAR', $this->t('knowledge/messages.popular', 'Popular pages loaded'), [
-            'items' => $this->repo()->popular((int)$this->request()->input('limit', 20)),
+            'items' => $this->repo()->popular((int)$this->request()->input('limit', 20), $this->actor()),
         ]);
     }
 
     public function reviewQueue(): JsonResponse
     {
         return $this->success('KNOWLEDGE_REVIEW_QUEUE', $this->t('knowledge/messages.review_queue', 'Review queue loaded'), [
-            'items' => $this->repo()->pages(['status' => 'review', 'limit' => (int)$this->request()->input('limit', 50)]),
+            'items' => $this->repo()->pages(['status' => 'review', 'limit' => (int)$this->request()->input('limit', 50)], $this->actor()),
         ]);
     }
 
     public function outdated(): JsonResponse
     {
         return $this->success('KNOWLEDGE_OUTDATED', $this->t('knowledge/messages.outdated', 'Outdated pages loaded'), [
-            'items' => $this->repo()->outdated((int)$this->request()->input('limit', 50)),
+            'items' => $this->repo()->outdated((int)$this->request()->input('limit', 50), $this->actor()),
         ]);
     }
 
@@ -400,7 +468,7 @@ final class KnowledgeController extends BaseController
     {
         $auth = $this->user();
         return $this->success('KNOWLEDGE_FAVORITES', $this->t('knowledge/messages.favorites', 'Favorites loaded'), [
-            'items' => $this->repo()->favorites((int)($auth['user']['id'] ?? 0), (int)$this->request()->input('limit', 20), (int)$this->request()->input('offset', 0)),
+            'items' => $this->repo()->favorites($this->actorUserId(), (int)$this->request()->input('limit', 20), (int)$this->request()->input('offset', 0), $this->actor()),
         ]);
     }
 
@@ -408,7 +476,7 @@ final class KnowledgeController extends BaseController
     {
         $q = trim((string)$this->request()->input('q', ''));
         return $this->success('KNOWLEDGE_SUGGEST', $this->t('knowledge/messages.suggest', 'Suggestions loaded'), [
-            'items' => $q === '' ? [] : $this->repo()->suggest($q, (int)$this->request()->input('limit', 10)),
+            'items' => $q === '' ? [] : $this->repo()->suggest($q, (int)$this->request()->input('limit', 10), $this->actor()),
         ]);
     }
 
@@ -435,7 +503,7 @@ final class KnowledgeController extends BaseController
                 'title' => [$this->t('common/messages.field_required', 'Field is required')],
             ]);
         }
-        $template = $this->repo()->createTemplate($input, (int)($auth['user']['id'] ?? 0) ?: null);
+        $template = $this->repo()->createTemplate($input, $this->actorUserId() ?: null);
         return $this->success('KNOWLEDGE_TEMPLATE_CREATED', $this->t('knowledge/messages.template_created', 'Template created'), [
             'template' => $template,
         ], 201);
@@ -443,6 +511,9 @@ final class KnowledgeController extends BaseController
 
     public function links(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         return $this->success('KNOWLEDGE_LINKS', $this->t('knowledge/messages.links', 'Links loaded'), [
             'items' => $this->repo()->links((string)$params['public_id']),
         ]);
@@ -450,6 +521,9 @@ final class KnowledgeController extends BaseController
 
     public function linkEntity(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
         $input = $this->request()->allInput();
         try {
@@ -458,7 +532,7 @@ final class KnowledgeController extends BaseController
                 (string)($input['entity_type'] ?? ''),
                 (string)($input['entity_public_id'] ?? ''),
                 (string)($input['relation_type'] ?? 'related'),
-                (int)($auth['user']['id'] ?? 0) ?: null
+                $this->actorUserId() ?: null
             );
         } catch (\RuntimeException $e) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $e->getMessage(), 404);
@@ -470,6 +544,10 @@ final class KnowledgeController extends BaseController
 
     public function deleteLink(array $params): JsonResponse
     {
+        $pageId = (string)$params['public_id'];
+        if (!$this->requirePageAccess($pageId, 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         try {
             $this->repo()->unlinkEntity((string)$params['link_public_id']);
         } catch (\RuntimeException $e) {
@@ -480,6 +558,9 @@ final class KnowledgeController extends BaseController
 
     public function comments(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         return $this->success('KNOWLEDGE_COMMENTS', $this->t('knowledge/messages.comments', 'Comments loaded'), [
             'items' => $this->repo()->comments((string)$params['public_id']),
         ]);
@@ -487,6 +568,9 @@ final class KnowledgeController extends BaseController
 
     public function addComment(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'comment')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
         $input = $this->request()->allInput();
         $body = trim((string)($input['body'] ?? ''));
@@ -495,7 +579,7 @@ final class KnowledgeController extends BaseController
                 'body' => [$this->t('common/messages.field_required', 'Field is required')],
             ]);
         }
-        $comment = $this->repo()->addComment((string)$params['public_id'], $body, (int)($auth['user']['id'] ?? 0), (string)($input['parent_public_id'] ?? '') ?: null);
+        $comment = $this->repo()->addComment((string)$params['public_id'], $body, $this->actorUserId(), (string)($input['parent_public_id'] ?? '') ?: null);
         if (!$comment) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -508,7 +592,7 @@ final class KnowledgeController extends BaseController
     public function deleteComment(array $params): JsonResponse
     {
         $auth = $this->user();
-        if (!$this->repo()->deleteComment((string)$params['comment_public_id'], (int)($auth['user']['id'] ?? 0))) {
+        if (!$this->repo()->deleteComment((string)$params['comment_public_id'], $this->actorUserId())) {
             return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
         }
         return $this->success('KNOWLEDGE_COMMENT_DELETED', $this->t('knowledge/messages.comment_deleted', 'Comment deleted'));
@@ -532,8 +616,10 @@ final class KnowledgeController extends BaseController
 
     public function favoritePage(array $params): JsonResponse
     {
-        $auth = $this->user();
-        $publicId = $this->repo()->favoritePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $publicId = $this->repo()->favoritePage((string)$params['public_id'], $this->actorUserId());
         if ($publicId === null) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -544,15 +630,19 @@ final class KnowledgeController extends BaseController
 
     public function unfavoritePage(array $params): JsonResponse
     {
-        $auth = $this->user();
-        $this->repo()->unfavoritePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $this->repo()->unfavoritePage((string)$params['public_id'], $this->actorUserId());
         return $this->success('KNOWLEDGE_PAGE_UNFAVORITED', $this->t('knowledge/messages.page_unfavorited', 'Page removed from favorites'));
     }
 
     public function subscribePage(array $params): JsonResponse
     {
-        $auth = $this->user();
-        $publicId = $this->repo()->subscribePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $publicId = $this->repo()->subscribePage((string)$params['public_id'], $this->actorUserId());
         if ($publicId === null) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -563,20 +653,28 @@ final class KnowledgeController extends BaseController
 
     public function unsubscribePage(array $params): JsonResponse
     {
-        $auth = $this->user();
-        $this->repo()->unsubscribePage((string)$params['public_id'], (int)($auth['user']['id'] ?? 0));
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $this->repo()->unsubscribePage((string)$params['public_id'], $this->actorUserId());
         return $this->success('KNOWLEDGE_PAGE_UNSUBSCRIBED', $this->t('knowledge/messages.page_unsubscribed', 'Unsubscribed from page updates'));
     }
 
     public function entityPages(array $params): JsonResponse
     {
         return $this->success('KNOWLEDGE_ENTITY_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
-            'items' => $this->repo()->entityPages((string)$params['entity_type'], (string)$params['entity_public_id']),
+            'items' => array_values(array_filter(
+                $this->repo()->entityPages((string)$params['entity_type'], (string)$params['entity_public_id']),
+                fn(array $page): bool => $this->repo()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
+            )),
         ]);
     }
 
     public function listFiles(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -596,6 +694,9 @@ final class KnowledgeController extends BaseController
 
     public function uploadFile(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -609,7 +710,7 @@ final class KnowledgeController extends BaseController
         $service = $this->container->get('service.file');
 
         try {
-            $item = $service->create($input, $this->request()->files, (int)$authUser['user']['id'], $authUser['user']);
+            $item = $service->create($input, $this->request()->files, $this->actorUserId(), $authUser['user']);
             return $this->success('KNOWLEDGE_FILE_UPLOADED', $this->t('knowledge/messages.file_uploaded', 'File uploaded'), [
                 'file' => $item,
             ], 201);
@@ -648,12 +749,18 @@ final class KnowledgeController extends BaseController
 
     public function listPageTags(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $items = $this->tagRepo()->listByEntity('knowledge_page', (string)$params['public_id']);
         return $this->success('KNOWLEDGE_PAGE_TAGS', $this->t('knowledge/messages.page_tags', 'Page tags loaded'), ['items' => $items]);
     }
 
     public function attachPageTag(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id']);
         if (!$tag) {
             return $this->error('TAG_NOT_FOUND', $this->t('knowledge/messages.tag_not_found', 'Tag not found'), 404);
@@ -665,6 +772,9 @@ final class KnowledgeController extends BaseController
 
     public function detachPageTag(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $tag = $this->tagRepo()->findByPublicId((string)$params['tag_public_id']);
         if (!$tag) {
             return $this->error('TAG_NOT_FOUND', $this->t('knowledge/messages.tag_not_found', 'Tag not found'), 404);
@@ -679,8 +789,11 @@ final class KnowledgeController extends BaseController
 
     private function setPageStatus(array $params, string $status, string $code, string $message): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
-        $page = $this->repo()->setStatus((string)$params['public_id'], $status, (int)($auth['user']['id'] ?? 0) ?: null);
+        $page = $this->repo()->setStatus((string)$params['public_id'], $status, $this->actorUserId() ?: null);
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -697,7 +810,7 @@ final class KnowledgeController extends BaseController
         if (empty($subscriberIds)) {
             return;
         }
-        $actorId = (int)($auth['user']['id'] ?? 0);
+        $actorId = $this->actorUserId();
         $title = ($page['title'] ?? '');
         $publicId = ($page['public_id'] ?? '');
         $actorName = ($auth['user']['name'] ?? $auth['user']['login'] ?? '');
@@ -746,7 +859,7 @@ final class KnowledgeController extends BaseController
         if (!$page) {
             return;
         }
-        $actorId = (int)($auth['user']['id'] ?? 0);
+        $actorId = $this->actorUserId();
         $title = ($page['title'] ?? '');
         $publicId = $pagePublicId;
         $link = 'index.php?route=knowledge-page&id=' . urlencode($publicId);

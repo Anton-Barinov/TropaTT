@@ -305,12 +305,7 @@ final class FileService
         }
 
         if ($entityType === 'knowledge_page') {
-            $page = $this->knowledge->page($entityPublicId);
-            if (!$page) {
-                return false;
-            }
-
-            return true;
+            return $this->knowledge->page($entityPublicId, $actor) !== null;
         }
 
         return false;
