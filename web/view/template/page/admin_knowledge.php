@@ -205,7 +205,7 @@
       };
       var label = p.user_name || p.role_title || p.team_title || p.department_title || p.user_public_id || p.role_public_id || p.team_public_id || p.department_public_id || p.subject_id;
       var typeLabel = esc(typeMap[p.subject_type] || p.subject_type || '') + ':';
-      var permissionId = p.permission_id || p.id || '';
+      var permissionId = p.permission_key || p.permission_id || p.id || '';
       return '<tr><td><strong>' + typeLabel + ' ' + esc(label) + '</strong></td><td>' + esc(p.access_level) + '</td><td class="small text-muted">' + esc(p.created_at || '') + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-perm-delete="' + esc(permissionId) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
     }).join('') + '</tbody></table>';
   }
