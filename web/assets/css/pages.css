@@ -12936,10 +12936,62 @@ a.task-tag:hover {
 
 .crm-knowledge-article-head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 1.05rem;
   border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-article-head #knowledgePageStatus {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 28px;
+  margin-top: 0.25rem;
+  padding: 0.28rem 0.62rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+  box-shadow: none;
+}
+
+.crm-knowledge-article-head #knowledgePageStatus::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.crm-knowledge-article-head #knowledgePageStatus.crm-badge-success {
+  border-color: rgba(var(--color-primary-rgb), 0.22);
+  background: rgba(var(--color-primary-rgb), 0.07);
+  color: var(--color-primary);
+}
+
+.crm-knowledge-article-head #knowledgePageStatus.crm-badge-warning {
+  border-color: rgba(180, 83, 9, 0.22);
+  background: rgba(251, 191, 36, 0.12);
+  color: #92400e;
+}
+
+.crm-knowledge-article-head #knowledgePageStatus.crm-badge-danger {
+  border-color: rgba(185, 28, 28, 0.18);
+  background: rgba(254, 226, 226, 0.65);
+  color: #991b1b;
+}
+
+.crm-knowledge-article-head #knowledgePageStatus.crm-badge-secondary,
+.crm-knowledge-article-head #knowledgePageStatus.crm-badge-light {
+  border-color: var(--crm-border);
+  background: var(--crm-surface-2);
+  color: var(--crm-muted);
 }
 
 .crm-knowledge-article-head h2 {
