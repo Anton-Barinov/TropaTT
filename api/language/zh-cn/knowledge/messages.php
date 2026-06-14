@@ -85,6 +85,7 @@ return [
     'analytics' => '分析已加载',
     'export_page' => '页面已导出',
     'export_space' => '空间已导出',
+    'export_all' => '所有知识库已导出',
     'import_completed' => '导入已完成',
     'import_forbidden' => '不允许导入',
     'invalid_import_format' => '无效的导入格式',

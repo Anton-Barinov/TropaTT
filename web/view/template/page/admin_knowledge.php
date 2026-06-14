@@ -367,27 +367,35 @@
       var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(exportModal);
       modal && modal.show();
     });
-    if (exportSpace) exportSpace.addEventListener('change', function () { exportStart.disabled = !exportSpace.value; });
+    if (exportSpace) exportSpace.addEventListener('change', function () { exportStart.disabled = false; });
     if (exportStart) {
       exportStart.addEventListener('click', async function () {
         var spaceId = exportSpace ? exportSpace.value : '';
-        if (!spaceId) return;
         var fmtEl = document.querySelector('input[name="exportFormat"]:checked');
         var fmt = fmtEl ? fmtEl.value : 'json';
+        exportStart.disabled = true;
+        exportStart.textContent = t('admin_knowledge.export_all_progress', 'Экспорт...');
         try {
-          var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/export?format=' + fmt, { method: 'GET' });
+          var url, envelope;
+          if (spaceId) {
+            envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/export?format=' + fmt, { method: 'GET' });
+          } else {
+            envelope = await request('api/v1/knowledge/export?format=' + fmt, { method: 'GET' });
+          }
           var data = envelope.data || {};
-          var filename = data.filename || (spaceId + '.' + fmt);
+          var filename = data.filename || (spaceId || 'knowledge-base') + '.' + fmt;
           var blobContent = fmt === 'json' ? JSON.stringify(data, null, 2) : (data.content || '');
           var blob = new Blob([blobContent], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
-          var url = URL.createObjectURL(blob);
+          var dlUrl = URL.createObjectURL(blob);
           var a = document.createElement('a');
-          a.href = url; a.download = filename;
+          a.href = dlUrl; a.download = filename;
           document.body.appendChild(a); a.click();
           document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(dlUrl);
           bootstrap.Modal.getOrCreateInstance(exportModal).hide();
         } catch (e) { alert(t('admin_knowledge.export_error', 'Ошибка экспорта')); }
+        exportStart.disabled = false;
+        exportStart.textContent = t('admin_knowledge.export_start', 'Экспортировать');
       });
     }
   }

@@ -799,6 +799,57 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_FILE_DELETED', $this->t('knowledge/messages.file_deleted', 'File deleted'));
     }
 
+    public function exportAll(): JsonResponse
+    {
+        $actor = $this->actor();
+        $format = (string)$this->request()->input('format', 'json');
+        $spaces = $this->repo()->spaces([], $actor);
+        $allPages = [];
+        foreach ($spaces as $space) {
+            $pages = $this->repo()->pages(['space_public_id' => (string)$space['public_id'], 'limit' => 500], $actor);
+            foreach ($pages as $page) {
+                $allPages[] = [
+                    'public_id' => $page['public_id'],
+                    'title' => $page['title'],
+                    'page_type' => $page['page_type'],
+                    'status' => $page['status'],
+                    'content_html' => $page['content_html'],
+                    'content_text' => $page['content_text'],
+                    'slug' => $page['slug'],
+                    'space_title' => $page['space_title'] ?? $space['title'],
+                    'space_public_id' => $space['public_id'],
+                    'path' => $page['path'],
+                    'created_at' => $page['created_at'],
+                    'updated_at' => $page['updated_at'],
+                ];
+            }
+        }
+        if ($format === 'markdown') {
+            $md = '# Knowledge Base Export' . "\n\n";
+            $md .= 'Exported: ' . gmdate('Y-m-d H:i:s') . " UTC\n\n";
+            $md .= '---' . "\n\n";
+            foreach ($allPages as $ep) {
+                $md .= '## ' . $ep['title'] . "\n\n";
+                $md .= '**Space:** ' . $ep['space_title'] . ' | **Type:** ' . $ep['page_type'] . ' | **Status:** ' . $ep['status'] . "\n\n";
+                $md .= $this->htmlToMarkdown((string)($ep['content_html'] ?? '')) . "\n\n";
+                $md .= '---' . "\n\n";
+            }
+            return $this->success('KNOWLEDGE_EXPORT_ALL', $this->t('knowledge/messages.export_all', 'All knowledge exported'), [
+                'format' => 'markdown',
+                'content' => $md,
+                'filename' => 'knowledge-base-export.md',
+            ]);
+        }
+        return $this->success('KNOWLEDGE_EXPORT_ALL', $this->t('knowledge/messages.export_all', 'All knowledge exported'), [
+            'format' => 'json',
+            'exported_at' => gmdate('Y-m-d H:i:s'),
+            'spaces_count' => count($spaces),
+            'pages_count' => count($allPages),
+            'spaces' => array_map(fn($s) => ['public_id' => $s['public_id'], 'title' => $s['title'], 'slug' => $s['slug']], $spaces),
+            'pages' => $allPages,
+        ]);
+    }
+
     public function exportPage(array $params): JsonResponse
     {
         $page = $this->requirePageAccess((string)$params['public_id'], 'view');
@@ -1215,6 +1266,11 @@ final class KnowledgeController extends BaseController
                 $notifTitle = $this->t('knowledge/messages.notif_review_approved_title', 'Review approved');
                 $notifBody = $this->t('knowledge/messages.notif_review_approved_body', 'Review for page "%s" was approved by %s');
                 $actionCode = 'knowledge_review_approved';
+                break;
+            case 'mentioned':
+                $notifTitle = $this->t('knowledge/messages.notif_mentioned_title', 'Page mentioned');
+                $notifBody = $this->t('knowledge/messages.notif_mentioned_body', 'Page "%s" was mentioned by %s');
+                $actionCode = 'knowledge_page_mentioned';
                 break;
             default:
                 $notifTitle = $this->t('knowledge/messages.notif_updated_title', 'Page updated');

@@ -278,6 +278,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/files/{file_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteFile', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
 
     // knowledge export
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/export', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'exportAll', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/export', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'exportPage', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/export', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'exportSpace', 'auth' => true, 'required_permissions' => ['knowledge.view']],
 

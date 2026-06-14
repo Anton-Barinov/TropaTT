@@ -82,6 +82,7 @@ return [
     'notif_review_due_body' => 'Материал "%s" требует проверки актуальности',
     'export_page' => 'Страница экспортирована',
     'export_space' => 'Space exported',
+    'export_all' => 'Вся база знаний экспортирована',
         'import_completed' => 'Import completed',
         'import_forbidden' => 'Import is not allowed',
         'invalid_import_format' => 'Invalid import format','Раздел экспортирован',

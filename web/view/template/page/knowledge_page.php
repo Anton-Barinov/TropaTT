@@ -8,7 +8,7 @@
   ['label' => $t('page.home', 'Главная'), 'href' => 'index.php?route=dashboard'],
   ['label' => $t('knowledge.page_title', 'База знаний'), 'href' => 'index.php?route=knowledge'],
   ['label' => $t('knowledge_page.page_title', 'Материал'), 'active' => true],
-], $t('knowledge_page.page_title', 'Материал'), $t('knowledge_page.subtitle', 'Просмотр, редактирование и публикация знаний команды.'), '<div class="d-flex gap-2 flex-wrap"><a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.back_to_list', 'К базе знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="knowledgeEditBtn">' . htmlspecialchars($t('knowledge_page.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') . '</button><button class="btn crm-btn-secondary" type="button" id="knowledgeExportBtn">' . htmlspecialchars($t('knowledge_page.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') . '</button><button class="btn crm-btn-primary" type="button" id="knowledgePublishBtn">' . htmlspecialchars($t('knowledge_page.btn_publish', 'Опубликовать'), ENT_QUOTES, 'UTF-8') . '</button></div>'); ?>
+], $t('knowledge_page.page_title', 'Материал'), $t('knowledge_page.subtitle', 'Просмотр, редактирование и публикация знаний команды.'), '<div class="d-flex gap-2 flex-wrap"><a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.back_to_list', 'К базе знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="knowledgeEditBtn">' . htmlspecialchars($t('knowledge_page.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') . '</button><div class="btn-group"><button class="btn crm-btn-secondary dropdown-toggle" type="button" id="knowledgeExportBtn" data-bs-toggle="dropdown" aria-expanded="false">' . htmlspecialchars($t('knowledge_page.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') . '</button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="knowledgeExportBtn"><li><a class="dropdown-item" href="#" data-export-format="json">' . htmlspecialchars($t('knowledge_page.export_json', 'JSON'), ENT_QUOTES, 'UTF-8') . '</a></li><li><a class="dropdown-item" href="#" data-export-format="markdown">' . htmlspecialchars($t('knowledge_page.export_markdown', 'Markdown'), ENT_QUOTES, 'UTF-8') . '</a></li></ul></div><button class="btn crm-btn-primary" type="button" id="knowledgePublishBtn">' . htmlspecialchars($t('knowledge_page.btn_publish', 'Опубликовать'), ENT_QUOTES, 'UTF-8') . '</button></div>'); ?>
 
 <div class="crm-knowledge-detail-layout">
   <div class="crm-knowledge-center">
@@ -736,23 +736,30 @@
     render(envelope.data && envelope.data.page || {});
     load();
   });
-  document.getElementById('knowledgeExportBtn').addEventListener('click', async function () {
-    if (!current) return;
-    var fmt = confirm(t('knowledge_page.export_markdown_confirm', 'Экспортировать в Markdown? Нажмите OK для MD, Отмена для JSON')) ? 'markdown' : 'json';
-    try {
-      var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/export?format=' + fmt, { method: 'GET' });
-      var data = envelope.data || {};
-      var filename = data.filename || (current.slug || pageId) + '.' + fmt;
-      var blobContent = fmt === 'json' ? JSON.stringify(data, null, 2) : (data.content || '');
-      var blob = new Blob([blobContent], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) { alert(t('knowledge_page.export_error', 'Ошибка экспорта')); }
-  });
+  document.addEventListener('click', function (e) {
+    var exportItem = e.target.closest('[data-export-format]');
+    if (exportItem && current) {
+      e.preventDefault();
+      var fmt = exportItem.getAttribute('data-export-format') || 'json';
+      (async function () {
+        try {
+          var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/export?format=' + fmt, { method: 'GET' });
+          var data = envelope.data || {};
+          var filename = data.filename || (current.slug || pageId) + '.' + fmt;
+          var blobContent = fmt === 'json' ? JSON.stringify(data, null, 2) : (data.content || '');
+          var blob = new Blob([blobContent], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (e) { alert(t('knowledge_page.export_error', 'Ошибка экспорта')); }
+      })();
+      return;
+    }
+
+    var restoreBtn = e.target.closest('[data-restore-version]');
   document.getElementById('knowledgeReviewBtn').addEventListener('click', async function () {
     await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/request-review', { method: 'POST', body: {}, idempotent: true });
     load();
