@@ -227,6 +227,100 @@ final class KnowledgeRepository
         return false;
     }
 
+    public function pagePermissions(string $publicId): array
+    {
+        $page = $this->pageIdentity($publicId);
+        if (!$page) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('
+            SELECT p.id AS permission_key, p.subject_type, p.subject_id, p.access_level, p.created_at,
+                   u.public_id AS user_public_id, COALESCE(u.full_name, u.login, u.public_id) AS user_name,
+                   r.public_id AS role_public_id, r.title AS role_title,
+                   t.public_id AS team_public_id, t.title AS team_title,
+                   d.public_id AS department_public_id, d.title AS department_title
+            FROM knowledge_page_permissions p
+            LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
+            LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            LEFT JOIN teams t ON t.id = p.subject_id AND p.subject_type = \'team\'
+            LEFT JOIN departments d ON d.id = p.subject_id AND p.subject_type = \'department\'
+            WHERE p.page_id = :page_id
+            ORDER BY p.created_at DESC
+        ');
+        $stmt->execute(['page_id' => (int)$page['id']]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function addPagePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId, string $subjectPublicId = ''): ?array
+    {
+        $page = $this->pageIdentity($publicId);
+        if (!$page) {
+            return null;
+        }
+        $allowedTypes = ['user', 'role', 'team', 'department'];
+        if (!in_array($subjectType, $allowedTypes, true)) {
+            return null;
+        }
+        $resolvedSubjectId = $this->resolvePermissionSubjectId($subjectType, $subjectId, $subjectPublicId);
+        if ($resolvedSubjectId <= 0) {
+            return null;
+        }
+        $allowedLevels = ['view', 'comment', 'edit', 'manage', 'owner'];
+        $accessLevel = $this->choice($accessLevel, $allowedLevels, 'view');
+
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_page_permissions (page_id, subject_type, subject_id, access_level, created_by_user_id, created_at) VALUES (:page_id, :subject_type, :subject_id, :access_level, :created_by_user_id, :created_at)');
+        $stmt->execute([
+            'page_id' => (int)$page['id'],
+            'subject_type' => $subjectType,
+            'subject_id' => $resolvedSubjectId,
+            'access_level' => $accessLevel,
+            'created_by_user_id' => $actorId,
+            'created_at' => $now,
+        ]);
+        $id = (int)$this->pdo->lastInsertId();
+
+        $this->pdo->prepare('UPDATE knowledge_pages SET updated_at = :updated_at WHERE id = :id')->execute(['updated_at' => $now, 'id' => (int)$page['id']]);
+
+        $stmt = $this->pdo->prepare('
+            SELECT p.id AS permission_key, p.subject_type, p.subject_id, p.access_level, p.created_at,
+                   u.public_id AS user_public_id, COALESCE(u.full_name, u.login, u.public_id) AS user_name,
+                   r.public_id AS role_public_id, r.title AS role_title,
+                   t.public_id AS team_public_id, t.title AS team_title,
+                   d.public_id AS department_public_id, d.title AS department_title
+            FROM knowledge_page_permissions p
+            LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
+            LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            LEFT JOIN teams t ON t.id = p.subject_id AND p.subject_type = \'team\'
+            LEFT JOIN departments d ON d.id = p.subject_id AND p.subject_type = \'department\'
+            WHERE p.id = :id
+        ');
+        $stmt->execute(['id' => $id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    public function removePagePermission(int $permissionId): bool
+    {
+        $lookup = $this->pdo->prepare('SELECT page_id FROM knowledge_page_permissions WHERE id = :id LIMIT 1');
+        $lookup->execute(['id' => $permissionId]);
+        $pageId = $lookup->fetchColumn();
+        if ($pageId === false) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_page_permissions WHERE id = :id');
+        $stmt->execute(['id' => $permissionId]);
+        if ($stmt->rowCount() > 0) {
+            $this->pdo->prepare('UPDATE knowledge_pages SET updated_at = :updated_at WHERE id = :page_id')->execute([
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+                'page_id' => (int)$pageId,
+            ]);
+            return true;
+        }
+        return false;
+    }
+
     public function archiveSpace(string $publicId, bool $archived): bool
     {
         $stmt = $this->pdo->prepare('UPDATE knowledge_spaces SET is_archived = :archived, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
@@ -1182,6 +1276,14 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = :public_id LIMIT 1");
         $stmt->execute(['public_id' => $publicId]);
         return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    private function pageIdentity(string $publicId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, public_id, space_id FROM knowledge_pages WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
+        $stmt->execute(['public_id' => $publicId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
     }
 
     private function decodeIdList(mixed $raw): array

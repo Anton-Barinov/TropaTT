@@ -185,6 +185,53 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_SPACE_PERMISSION_REMOVED', $this->t('knowledge/messages.space_permission_removed', 'Space permission removed'));
     }
 
+    public function pagePermissions(array $params): JsonResponse
+    {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $items = $this->repo()->pagePermissions((string)$params['public_id']);
+        return $this->success('KNOWLEDGE_PAGE_PERMISSIONS', $this->t('knowledge/messages.page_permissions', 'Page permissions loaded'), [
+            'items' => $items,
+        ]);
+    }
+
+    public function addPagePermission(array $params): JsonResponse
+    {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $input = $this->request()->allInput();
+        $subjectType = trim((string)($input['subject_type'] ?? ''));
+        $subjectId = (int)($input['subject_id'] ?? 0);
+        $subjectPublicId = trim((string)($input['subject_public_id'] ?? ''));
+        $accessLevel = trim((string)($input['access_level'] ?? 'view'));
+        if ($subjectType === '' || ($subjectId <= 0 && $subjectPublicId === '')) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'subject_type' => [$this->t('common/messages.field_required', 'Field is required')],
+            ]);
+        }
+        $result = $this->repo()->addPagePermission((string)$params['public_id'], $subjectType, $subjectId, $accessLevel, $this->actorUserId() ?: null, $subjectPublicId);
+        if ($result === null) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+        $this->invalidateCache('knowledge');
+        return $this->success('KNOWLEDGE_PAGE_PERMISSION_ADDED', $this->t('knowledge/messages.page_permission_added', 'Page permission added'), [
+            'permission' => $result,
+        ], 201);
+    }
+
+    public function removePagePermission(array $params): JsonResponse
+    {
+        $id = (int)($params['permission_id'] ?? 0);
+        if ($id <= 0) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
+        }
+        $this->repo()->removePagePermission($id);
+        $this->invalidateCache('knowledge');
+        return $this->success('KNOWLEDGE_PAGE_PERMISSION_REMOVED', $this->t('knowledge/messages.page_permission_removed', 'Page permission removed'));
+    }
+
     public function createPage(): JsonResponse
     {
         $auth = $this->user();

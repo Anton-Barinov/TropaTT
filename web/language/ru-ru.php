@@ -202,6 +202,8 @@ return [
         'btn_save_draft' => 'Сохранить черновик',
         'btn_request_review' => 'Отправить на проверку',
         'btn_archive' => 'В архив',
+        'btn_permissions' => 'Доступ',
+        'permissions_title' => 'Права доступа к материалу',
         'meta_title' => 'Состояние',
         'updated_at' => 'Обновлено',
         'views' => 'Просмотры',

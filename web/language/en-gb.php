@@ -206,6 +206,8 @@ return array (
     'btn_save_draft' => 'Save draft',
     'btn_request_review' => 'Request review',
     'btn_archive' => 'Archive',
+    'btn_permissions' => 'Access',
+    'permissions_title' => 'Page access permissions',
     'meta_title' => 'State',
     'updated_at' => 'Updated',
     'views' => 'Views',

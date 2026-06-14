@@ -84,6 +84,7 @@
       <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeSubBtn"><?= htmlspecialchars($t('knowledge_page.subscribe', 'Подписаться'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
     <div class="d-grid gap-2">
+      <button class="btn crm-btn-secondary" type="button" id="knowledgePermissionsBtn"><?= htmlspecialchars($t('knowledge_page.btn_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn crm-btn-secondary" type="button" id="knowledgeReviewBtn"><?= htmlspecialchars($t('knowledge_page.btn_request_review', 'Отправить на проверку'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn crm-btn-danger-soft" type="button" id="knowledgeArchiveBtn"><?= htmlspecialchars($t('knowledge_page.btn_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
@@ -106,6 +107,43 @@
   </aside>
 </div>
 </main></div></div>
+
+<div class="modal fade" id="knowledgePagePermissionsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('knowledge_page.permissions_title', 'Права доступа к материалу'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-body">
+      <div id="knowledgePagePermList" class="mb-3"><div class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <hr>
+      <h6><?= htmlspecialchars($t('admin_knowledge.permissions_add_title', 'Добавить доступ'), ENT_QUOTES, 'UTF-8') ?></h6>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select id="knowledgePagePermSubjectType" class="form-select">
+            <option value="user"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="role"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="team"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="department"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_department', 'Отдел'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select id="knowledgePagePermSubjectId" class="form-select" style="max-width:100%"><option value=""><?= htmlspecialchars($t('admin_knowledge.permissions_select_subject', 'Выберите...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+        </div>
+        <div class="col-md-2">
+          <select id="knowledgePagePermAccessLevel" class="form-select">
+            <option value="view"><?= htmlspecialchars($t('admin_knowledge.permissions_level_view', 'Просмотр'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="comment"><?= htmlspecialchars($t('admin_knowledge.permissions_level_comment', 'Комментирование'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="edit"><?= htmlspecialchars($t('admin_knowledge.permissions_level_edit', 'Редактирование'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="manage"><?= htmlspecialchars($t('admin_knowledge.permissions_level_manage', 'Управление'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn crm-btn-primary w-100" type="button" id="knowledgePagePermAddBtn"><?= htmlspecialchars($t('common.add', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button></div>
+  </div></div>
+</div>
+
 <script>
 (function () {
   var pageId = document.body.getAttribute('data-knowledge-page-id') || '';
@@ -144,7 +182,14 @@
     tagSelect: document.getElementById('knowledgeTagSelect'),
     tagAddBtn: document.getElementById('knowledgeTagAddBtn'),
     tocContainer: document.getElementById('knowledgeTocContainer'),
-    toc: document.getElementById('knowledgeToc')
+    toc: document.getElementById('knowledgeToc'),
+    permBtn: document.getElementById('knowledgePermissionsBtn'),
+    permModal: document.getElementById('knowledgePagePermissionsModal'),
+    permList: document.getElementById('knowledgePagePermList'),
+    permSubjectType: document.getElementById('knowledgePagePermSubjectType'),
+    permSubjectId: document.getElementById('knowledgePagePermSubjectId'),
+    permAccessLevel: document.getElementById('knowledgePagePermAccessLevel'),
+    permAddBtn: document.getElementById('knowledgePagePermAddBtn')
   };
   function editorWrapTag(ta, before, after) {
     var start = ta.selectionStart, end = ta.selectionEnd;
@@ -213,6 +258,83 @@
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
     });
+  }
+  function renderPermissionList(items) {
+    if (!els.permList) return;
+    if (!items || !items.length) {
+      els.permList.innerHTML = '<div class="text-muted">' + esc(t('admin_knowledge.permissions_empty', 'Нет назначенных прав доступа')) + '</div>';
+      return;
+    }
+    var typeMap = {
+      user: t('admin_knowledge.permissions_subject_user', 'Пользователь'),
+      role: t('admin_knowledge.permissions_subject_role', 'Роль'),
+      team: t('admin_knowledge.permissions_subject_team', 'Команда'),
+      department: t('admin_knowledge.permissions_subject_department', 'Отдел')
+    };
+    els.permList.innerHTML = '<table class="table crm-table mb-0"><thead><tr><th>' + esc(t('admin_knowledge.permissions_th_subject', 'Субъект')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_level', 'Уровень')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_created', 'Добавлено')) + '</th><th></th></tr></thead><tbody>' + items.map(function (p) {
+      var label = p.user_name || p.role_title || p.team_title || p.department_title || p.user_public_id || p.role_public_id || p.team_public_id || p.department_public_id || p.subject_id;
+      var permissionId = p.permission_key || '';
+      return '<tr><td><strong>' + esc(typeMap[p.subject_type] || p.subject_type || '') + ': ' + esc(label) + '</strong></td><td>' + esc(p.access_level) + '</td><td class="small text-muted">' + esc(p.created_at || '') + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-page-perm-delete="' + esc(permissionId) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  async function loadPagePermissions() {
+    if (!els.permList || !pageId) return;
+    els.permList.innerHTML = '<div class="text-muted">' + esc(t('knowledge.loading', 'Загрузка...')) + '</div>';
+    try {
+      var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/permissions', { method: 'GET' });
+      renderPermissionList(envelope.data && envelope.data.items || []);
+    } catch (e) {
+      els.permList.innerHTML = '<div class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</div>';
+    }
+  }
+  async function loadPagePermissionSubjects(type) {
+    if (!els.permSubjectId) return;
+    els.permSubjectId.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_loading_subjects', 'Загрузка...')) + '</option>';
+    try {
+      var envelope, items;
+      if (type === 'user') {
+        envelope = await request('api/v1/users', { method: 'GET', query: { limit: 200 } });
+        items = envelope.data && envelope.data.items || [];
+        els.permSubjectId.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_user', 'Выберите пользователя...')) + '</option>' + items.map(function (u) {
+          var label = u.name || u.full_name || u.login || u.email || u.public_id || '';
+          return '<option value="' + esc(u.public_id || u.id || '') + '">' + esc(label) + '</option>';
+        }).join('');
+      } else if (type === 'role') {
+        envelope = await request('api/v1/roles', { method: 'GET', query: { limit: 50 } });
+        items = envelope.data && envelope.data.items || [];
+        els.permSubjectId.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_role', 'Выберите роль...')) + '</option>' + items.map(function (r) {
+          return '<option value="' + esc(r.public_id || r.id || '') + '">' + esc(r.title || r.code || r.public_id || '') + '</option>';
+        }).join('');
+      } else if (type === 'team') {
+        envelope = await request('api/v1/teams', { method: 'GET', query: { limit: 200 } });
+        items = envelope.data && envelope.data.items || [];
+        els.permSubjectId.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_team', 'Выберите команду...')) + '</option>' + items.map(function (team) {
+          return '<option value="' + esc(team.public_id || team.id || '') + '">' + esc(team.title || team.public_id || '') + '</option>';
+        }).join('');
+      } else if (type === 'department') {
+        envelope = await request('api/v1/departments', { method: 'GET', query: { limit: 200 } });
+        items = envelope.data && envelope.data.items || [];
+        els.permSubjectId.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_department', 'Выберите отдел...')) + '</option>' + items.map(function (department) {
+          return '<option value="' + esc(department.public_id || department.id || '') + '">' + esc(department.title || department.public_id || '') + '</option>';
+        }).join('');
+      }
+    } catch (e) {
+      els.permSubjectId.innerHTML = '<option value="">' + esc(t('knowledge.load_error', 'Ошибка')) + '</option>';
+    }
+  }
+  async function addPagePermission() {
+    if (!els.permSubjectType || !els.permSubjectId || !els.permAccessLevel || !pageId) return;
+    var rawSubjectId = els.permSubjectId.value;
+    if (!rawSubjectId) return;
+    var subjectId = parseInt(rawSubjectId, 10);
+    var body = { subject_type: els.permSubjectType.value, access_level: els.permAccessLevel.value };
+    if (/^\d+$/.test(rawSubjectId) && subjectId > 0) {
+      body.subject_id = subjectId;
+    } else {
+      body.subject_public_id = rawSubjectId;
+    }
+    await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/permissions', { method: 'POST', body: body, idempotent: true });
+    await loadPagePermissions();
   }
   function showEditor(show) {
     els.editor.classList.toggle('d-none', !show);
@@ -481,6 +603,14 @@
       if (fId && confirm(t('knowledge_page.attachments_delete_confirm', 'Удалить этот файл?'))) {
         request('api/v1/knowledge/files/' + encodeURIComponent(fId), { method: 'DELETE', idempotent: true }).then(loadAttachments);
       }
+      return;
+    }
+    var pagePermDelBtn = e.target.closest('[data-page-perm-delete]');
+    if (pagePermDelBtn) {
+      var permId = pagePermDelBtn.getAttribute('data-page-perm-delete');
+      if (permId && confirm(t('admin_knowledge.permissions_delete_confirm', 'Удалить это право доступа?'))) {
+        request('api/v1/knowledge/page-permissions/' + encodeURIComponent(permId), { method: 'DELETE', idempotent: true }).then(loadPagePermissions);
+      }
     }
   });
   var allTags = [];
@@ -534,6 +664,18 @@
       await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/tags/' + encodeURIComponent(tagId), { method: 'DELETE', idempotent: true });
       await loadTags();
     } catch (e) {}
+  });
+  if (els.permBtn) els.permBtn.addEventListener('click', function () {
+    loadPagePermissions();
+    loadPagePermissionSubjects(els.permSubjectType ? els.permSubjectType.value : 'user');
+    var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(els.permModal);
+    modal && modal.show();
+  });
+  if (els.permSubjectType) els.permSubjectType.addEventListener('change', function () {
+    loadPagePermissionSubjects(this.value);
+  });
+  if (els.permAddBtn) els.permAddBtn.addEventListener('click', function () {
+    addPagePermission().catch(function () {});
   });
   var tocScrollHandler = null;
   function initTocScroll() {

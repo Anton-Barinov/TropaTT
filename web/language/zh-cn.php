@@ -200,6 +200,8 @@ return [
         'btn_save_draft' => '保存草稿',
         'btn_request_review' => '提交审核',
         'btn_archive' => '归档',
+        'btn_permissions' => '权限',
+        'permissions_title' => '页面访问权限',
         'meta_title' => '状态',
         'updated_at' => '更新时间',
         'views' => '浏览',
