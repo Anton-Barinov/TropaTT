@@ -472,6 +472,75 @@
   font-weight: 650;
 }
 
+/* ── Knowledge Chat Preview Card ── */
+.crm-knowledge-chat-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  margin: 0.25rem 0;
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--crm-surface, #ffffff);
+  text-decoration: none;
+  color: var(--crm-text, #0f172a);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  max-width: 420px;
+}
+
+.crm-knowledge-chat-card:hover {
+  border-color: var(--crm-accent, #0f8f72);
+  box-shadow: 0 2px 8px rgba(15, 143, 114, 0.1);
+}
+
+.crm-knowledge-chat-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(15, 143, 114, 0.1);
+  color: var(--crm-accent, #0f8f72);
+  font-size: 1rem;
+}
+
+.crm-knowledge-chat-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.crm-knowledge-chat-info strong {
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-knowledge-chat-info span {
+  color: var(--crm-text-muted, #64748b);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.crm-knowledge-chat-arrow {
+  flex: 0 0 auto;
+  color: var(--crm-text-muted, #94a3b8);
+  font-size: 0.72rem;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.crm-knowledge-chat-card:hover .crm-knowledge-chat-arrow {
+  opacity: 1;
+  color: var(--crm-accent, #0f8f72);
+}
+
 @media (max-width: 768px) {
   .crm-check-picker,
   .crm-schedule-grid {

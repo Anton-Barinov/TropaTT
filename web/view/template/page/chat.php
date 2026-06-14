@@ -397,6 +397,14 @@
     safe = safe.replace(/(^|\s)@([\p{L}\p{N}._-]{2,80})/gu, '$1<span class="crm-chat-mention">@$2</span>');
     safe = safe.replace(/\[стикер: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
     safe = safe.replace(/\[gif: ([^\]]+)\]/g, '<span class="crm-chat-sticker">$1</span>');
+    // Render knowledge page preview cards from kb:public_id:Title format
+    safe = safe.replace(/kb:([a-zA-Z0-9_]+):([^<]*)/g, function(match, publicId, title) {
+      title = (title || '').trim() || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
+      return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base') + ': ' + esc(title) + '">'
+        + '<span class="crm-knowledge-chat-icon"><i class="fa-solid fa-book" aria-hidden="true"></i></span>'
+        + '<span class="crm-knowledge-chat-info"><strong>' + esc(title) + '</strong><span>' + window.CRM.i18n.t('chat.knowledge_page_subtitle', 'Knowledge base page') + '</span></span>'
+        + '<span class="crm-knowledge-chat-arrow"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
+    });
     return safe;
   }
 
@@ -1233,13 +1241,37 @@
   function insertKnowledgePage(publicId, title) {
     var input = document.getElementById('msgInput');
     if (!input) return;
-    var link = '📄 ' + title + ': index.php?route=knowledge-page&id=' + publicId;
+    var link = 'kb:' + publicId + ':' + (title || 'Page');
     var text = input.value;
     var start = input.selectionStart;
     input.value = text.substring(0, start) + (start > 0 && text[start - 1] !== '\n' && text[start - 1] !== ' ' ? '\n' : '') + link + '\n' + text.substring(input.selectionEnd);
     input.selectionStart = input.selectionEnd = start + link.length + 1;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.focus();
+  }
+
+  function renderKnowledgePreview(text) {
+    var kbRegex = /kb:([a-zA-Z0-9_]+):([^\n]*)/g;
+    var match;
+    var result = [];
+    var lastIndex = 0;
+    while ((match = kbRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push(esc(text.slice(lastIndex, match.index)));
+      }
+      var publicId = match[1];
+      var title = match[2] || window.CRM.i18n.t('chat.knowledge_page', 'Knowledge page');
+      result.push('<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(publicId) + '" class="crm-knowledge-chat-card" target="_blank" rel="noopener" title="' + esc(window.CRM.i18n.t('chat.open_knowledge_title', 'Open in Knowledge Base: ')) + esc(title) + '">'
+        + '<span class="crm-knowledge-chat-icon"><i class="fa-solid fa-book" aria-hidden="true"></i></span>'
+        + '<span class="crm-knowledge-chat-info"><strong>' + esc(title) + '</strong><span>' + esc(window.CRM.i18n.t('chat.knowledge_page_subtitle', 'Knowledge base page')) + '</span></span>'
+        + '<span class="crm-knowledge-chat-arrow"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>'
+        + '</a>');
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      result.push(esc(text.slice(lastIndex)));
+    }
+    return result.join('');
   }
   bindPage();
   document.addEventListener('visibilitychange', startPolling);
