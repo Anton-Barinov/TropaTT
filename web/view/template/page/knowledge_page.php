@@ -30,7 +30,7 @@
           <div class="col-12"><label class="crm-filter-label" for="knowledgeEditTitle"><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input id="knowledgeEditTitle" class="form-control" name="title" required></div>
           <div class="col-12">
             <label class="crm-filter-label"><?= htmlspecialchars($t('knowledge.field_content', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></label>
-            <div class="crm-knowledge-toolbar">
+            <div class="crm-knowledge-toolbar" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
               <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="bold" title="<?= htmlspecialchars($t('knowledge_page.bold', 'Жирный'), ENT_QUOTES, 'UTF-8') ?>"><b>B</b></button>
               <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
               <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h2" title="<?= htmlspecialchars($t('knowledge_page.h2', 'Заголовок H2'), ENT_QUOTES, 'UTF-8') ?>">H2</button>
@@ -42,7 +42,16 @@
               <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="link" title="<?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-link"></i></button>
               <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square"></i></button>
             </div>
-            <textarea id="knowledgeEditContent" class="form-control crm-knowledge-editor" name="content_html" rows="18"></textarea>
+            <div class="crm-knowledge-editor-shell">
+              <div class="crm-knowledge-editor-pane">
+                <div class="crm-knowledge-editor-pane-title"><?= htmlspecialchars($t('knowledge_page.editor_source', 'Текст и разметка'), ENT_QUOTES, 'UTF-8') ?></div>
+                <textarea id="knowledgeEditContent" class="form-control crm-knowledge-editor" name="content_html" rows="18"></textarea>
+              </div>
+              <div class="crm-knowledge-editor-pane crm-knowledge-editor-preview-pane">
+                <div class="crm-knowledge-editor-pane-title"><?= htmlspecialchars($t('knowledge_page.editor_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div id="knowledgeEditorPreview" class="crm-knowledge-editor-preview"></div>
+              </div>
+            </div>
             <div class="small text-muted mt-1" id="knowledgeAutosaveStatus"></div>
           </div>
         </div>
@@ -161,6 +170,7 @@
     content: document.getElementById('knowledgePageContent'),
     editTitle: document.getElementById('knowledgeEditTitle'),
     editContent: document.getElementById('knowledgeEditContent'),
+    editPreview: document.getElementById('knowledgeEditorPreview'),
     metaSpace: document.getElementById('knowledgeMetaSpace'),
     metaType: document.getElementById('knowledgeMetaType'),
     metaUpdated: document.getElementById('knowledgeMetaUpdated'),
@@ -259,6 +269,26 @@
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
     });
   }
+  function sanitizePreviewHtml(html) {
+    var template = document.createElement('template');
+    template.innerHTML = String(html || '');
+    template.content.querySelectorAll('script, iframe, object, embed').forEach(function (node) { node.remove(); });
+    template.content.querySelectorAll('*').forEach(function (node) {
+      Array.prototype.slice.call(node.attributes || []).forEach(function (attr) {
+        var name = attr.name.toLowerCase();
+        var value = String(attr.value || '');
+        if (name.indexOf('on') === 0 || ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(value))) {
+          node.removeAttribute(attr.name);
+        }
+      });
+    });
+    return template.innerHTML;
+  }
+  function updateEditorPreview() {
+    if (!els.editPreview || !els.editContent) return;
+    var html = els.editContent.value || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>';
+    els.editPreview.innerHTML = sanitizePreviewHtml(html);
+  }
   function renderPermissionList(items) {
     if (!els.permList) return;
     if (!items || !items.length) {
@@ -342,6 +372,7 @@
     if (show && current) {
       els.editTitle.value = current.title || '';
       els.editContent.value = current.content_html || '';
+      updateEditorPreview();
     }
   }
   function render(page) {
@@ -507,7 +538,7 @@
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
     await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true });
   });
-  els.editContent && els.editContent.addEventListener('input', startAutosave);
+  els.editContent && els.editContent.addEventListener('input', function () { updateEditorPreview(); startAutosave(); });
   els.editTitle && els.editTitle.addEventListener('input', startAutosave);
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
