@@ -11,11 +11,11 @@
 ], $t('knowledge_page.page_title', 'Материал'), $t('knowledge_page.subtitle', 'Просмотр, редактирование и публикация знаний команды.'), '<div class="d-flex gap-2 flex-wrap"><a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.back_to_list', 'К базе знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="knowledgeEditBtn">' . htmlspecialchars($t('knowledge_page.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') . '</button><button class="btn crm-btn-primary" type="button" id="knowledgePublishBtn">' . htmlspecialchars($t('knowledge_page.btn_publish', 'Опубликовать'), ENT_QUOTES, 'UTF-8') . '</button></div>'); ?>
 
 <div class="crm-knowledge-detail-layout">
-  <aside class="crm-card crm-section-card crm-knowledge-tree crm-knowledge-tree-sidebar">
-    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.tree_title', 'Страницы раздела'), ENT_QUOTES, 'UTF-8') ?></h3>
-    <div id="knowledgeTree" class="crm-knowledge-tree-list"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-  </aside>
   <div class="crm-knowledge-center">
+    <aside class="crm-card crm-section-card crm-knowledge-tree crm-knowledge-tree-sidebar">
+      <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.tree_title', 'Страницы раздела'), ENT_QUOTES, 'UTF-8') ?></h3>
+      <div id="knowledgeTree" class="crm-knowledge-tree-list"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    </aside>
     <article class="crm-card crm-section-card crm-knowledge-article">
       <div id="knowledgePageState" class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
       <div id="knowledgePageView" class="d-none">

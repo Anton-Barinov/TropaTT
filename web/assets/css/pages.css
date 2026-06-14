@@ -12917,20 +12917,14 @@ a.task-tag:hover {
   align-items: start;
 }
 
-.crm-knowledge-tree-sidebar {
-  grid-column: 1;
-  grid-row: 1;
-}
-
 .crm-knowledge-center {
   grid-column: 1;
-  grid-row: 2;
   min-width: 0;
 }
 
 .crm-knowledge-side {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
 }
 
 .crm-knowledge-article {
@@ -13067,8 +13061,7 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-tree-sidebar {
-  position: sticky;
-  top: 1rem;
+  margin-bottom: 1rem;
   padding: 0.95rem 1.1rem;
   min-width: 0;
 }
@@ -13233,7 +13226,6 @@ textarea.form-control.crm-knowledge-editor {
   .crm-knowledge-center,
   .crm-knowledge-side {
     grid-column: 1 / -1;
-    grid-row: auto;
     position: static;
   }
 }
