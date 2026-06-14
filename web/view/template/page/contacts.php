@@ -17,7 +17,6 @@
 
 <div class="crm-card crm-section-card p-0 table-responsive"><table id="contactsTable" class="table crm-table mb-0"><thead><tr><th data-i18n="contacts.th_contact"><?= htmlspecialchars($t('contacts.th_contact', 'Контакт'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="contacts.th_counterparty"><?= htmlspecialchars($t('contacts.th_counterparty', 'Контрагент'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="contacts.th_role"><?= htmlspecialchars($t('contacts.th_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="contacts.th_email"><?= htmlspecialchars($t('contacts.th_email', 'Email'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="contacts.th_phone"><?= htmlspecialchars($t('contacts.th_phone', 'Телефон'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="contacts.th_primary"><?= htmlspecialchars($t('contacts.th_primary', 'Основной'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:96px" data-i18n="contacts.th_actions"><?= htmlspecialchars($t('contacts.th_actions', 'Действия'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="contactsTableBody"><tr><td colspan="7" class="text-muted" data-i18n="contacts.loading"><?= htmlspecialchars($t('contacts.loading', 'Загрузка контактов...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div>
 </main></div></div>
-
 <div class="modal fade" id="contactCreateModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="contacts.create_modal_title"><?= htmlspecialchars($t('contacts.create_modal_title', 'Создать контакт'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div><form id="contactsCreateForm"><div class="modal-body"><div class="row g-3">
   <div class="col-12 d-none" data-form-error-summary></div>
   <div class="col-md-6"><label class="form-label" data-i18n="contacts.field_full_name"><?= htmlspecialchars($t('contacts.field_full_name', 'ФИО *'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="full_name" maxlength="255" required></div>
@@ -36,5 +35,45 @@
   <div class="col-md-4"><label class="form-label" data-i18n="contacts.field_phone"><?= htmlspecialchars($t('contacts.field_phone', 'Телефон'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="phone" maxlength="64"></div>
   <div class="col-md-2"><label class="form-label" data-i18n="contacts.field_role"><?= htmlspecialchars($t('contacts.field_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></label><select class="form-select" name="role"><option value="" data-i18n="contacts.opt_no_role"><?= htmlspecialchars($t('contacts.opt_no_role', 'Без роли'), ENT_QUOTES, 'UTF-8') ?></option><option value="decision_maker" data-i18n="contacts.role_decision_maker"><?= htmlspecialchars($t('contacts.role_decision_maker', 'ЛПР'), ENT_QUOTES, 'UTF-8') ?></option><option value="influencer" data-i18n="contacts.role_influencer"><?= htmlspecialchars($t('contacts.role_influencer', 'Влияющий'), ENT_QUOTES, 'UTF-8') ?></option><option value="user" data-i18n="contacts.role_user"><?= htmlspecialchars($t('contacts.role_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></option><option value="technical" data-i18n="contacts.role_technical"><?= htmlspecialchars($t('contacts.role_technical', 'Технический'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
   <div class="col-md-2 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_primary" id="contactEditIsPrimary"><label class="form-check-label" for="contactEditIsPrimary" data-i18n="contacts.label_primary"><?= htmlspecialchars($t('contacts.label_primary', 'Основной'), ENT_QUOTES, 'UTF-8') ?></label></div></div>
-</div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-danger-soft me-auto" type="button" id="contactsDeleteInModalBtn" data-i18n="contacts.btn_delete"><?= htmlspecialchars($t('contacts.btn_delete', 'Удалить контакт'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+</div>
+<div class="mt-3 pt-3 border-top" id="contactKnowledgeSection">
+  <h6 class="mb-2"><?= htmlspecialchars($t('contacts.section_notes', 'Связанные заметки'), ENT_QUOTES, 'UTF-8') ?></h6>
+  <div id="contactKnowledgeList"><div class="text-muted small">—</div></div>
+  <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="contactKnowledgeLink" data-i18n="contacts.btn_knowledge"><?= htmlspecialchars($t('contacts.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+</div>
+</div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-danger-soft me-auto" type="button" id="contactsDeleteInModalBtn" data-i18n="contacts.btn_delete"><?= htmlspecialchars($t('contacts.btn_delete', 'Удалить контакт'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+<script>
+(function () {
+  var editModal = document.getElementById('contactEditModal');
+  if (!editModal) return;
+  var knowledgeSection = document.getElementById('contactKnowledgeSection');
+  var knowledgeList = document.getElementById('contactKnowledgeList');
+  if (!knowledgeSection || !knowledgeList) return;
+  editModal.addEventListener('show.bs.modal', function () {
+    var contactIdInput = document.querySelector('#contactsEditForm input[name="public_id"]');
+    var contactId = contactIdInput ? contactIdInput.value : '';
+    if (!contactId) { knowledgeList.innerHTML = '<div class="text-muted small">—</div>'; return; }
+    var link = document.getElementById('contactKnowledgeLink');
+    if (link) link.href = 'index.php?route=knowledge&entity_type=contact&entity_public_id=' + encodeURIComponent(contactId);
+    knowledgeList.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
+    (async function () {
+      try {
+        var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+        if (!api) return;
+        var envelope = await api.request('api/v1/knowledge/entities/contact/' + encodeURIComponent(contactId) + '/pages', { method: 'GET' });
+        var items = envelope.data && envelope.data.items || [];
+        if (!items.length) {
+          knowledgeList.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('contacts.knowledge_empty', 'Нет связанных заметок'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          knowledgeList.innerHTML = '<ul class="list-unstyled mb-0 small">' + items.map(function (p) {
+            return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch]; }); })(p.title || '') + '</a></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        knowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+      }
+    })();
+  });
+})();
+</script>
 </body>

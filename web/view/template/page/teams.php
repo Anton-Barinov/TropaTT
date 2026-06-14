@@ -108,7 +108,7 @@
 
 <!-- EDIT MODAL -->
 <div class="modal fade" id="teamEditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-team-edit modal-dialog-centered">
+  <div class="modal-dialog modal-team-edit modal-dialog-centered" style="max-width:820px">
     <div class="modal-content">
       <div class="team-modal-header">
         <div class="team-modal-header-left">
@@ -187,6 +187,13 @@
               </div>
             </div>
           </div>
+
+          <div class="mt-3 pt-3 border-top" id="teamKnowledgeSection">
+            <h6 class="mb-2"><?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h6>
+            <div id="teamKnowledgeList"><div class="text-muted small">—</div></div>
+            <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge"><?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+          </div>
+
         </div>
 
         <div class="team-modal-footer">
@@ -208,3 +215,40 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var editModal = document.getElementById('teamEditModal');
+  if (!editModal) return;
+  var knowledgeSection = document.getElementById('teamKnowledgeSection');
+  var knowledgeList = document.getElementById('teamKnowledgeList');
+  if (!knowledgeSection || !knowledgeList) return;
+  editModal.addEventListener('show.bs.modal', function () {
+    var teamIdInput = document.querySelector('#teamEditForm input[name=\"public_id\"]');
+    var teamId = teamIdInput ? teamIdInput.value : '';
+    if (!teamId) { knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>'; return; }
+    var link = document.getElementById('teamKnowledgeLink');
+    if (link) link.href = 'index.php?route=knowledge&entity_type=team&entity_public_id=' + encodeURIComponent(teamId);
+    knowledgeList.innerHTML = '<div class=\"text-muted small\"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
+    (async function () {
+      try {
+        var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+        if (!api) return;
+        var envelope = await api.request('api/v1/knowledge/entities/team/' + encodeURIComponent(teamId) + '/pages', { method: 'GET' });
+        var items = envelope.data && envelope.data.items || [];
+        if (!items.length) {
+          knowledgeList.innerHTML = '<div class=\"text-muted small\"><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
+        } else {
+          knowledgeList.innerHTML = '<ul class=\"list-unstyled mb-0 small\">' + items.map(function (p) {
+            return '<li class=\"mb-1\"><a href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'})[ch]; }); })(p.title || '') + '</a></li>';
+          }).join('') + '</ul>';
+        }
+      } catch (e) {
+        knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>';
+      }
+    })();
+  });
+})();
+</script>
+</body>
+</html>]]

@@ -20,5 +20,72 @@
     <button id="departmentsRefreshBtn" class="btn crm-btn-secondary" type="button" data-i18n="page.refresh"><?= htmlspecialchars($t('page.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
   <div id="departmentsList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+  <div class="mt-3 pt-3 border-top" id="departmentKnowledgeSection">
+    <h6 class="mb-2"><?= htmlspecialchars($t('departments.section_knowledge', 'Регламенты отдела'), ENT_QUOTES, 'UTF-8') ?></h6>
+    <div id="departmentKnowledgeList"><div class="text-muted small">—</div></div>
+    <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="departmentKnowledgeLink" data-i18n="departments.btn_knowledge"><?= htmlspecialchars($t('departments.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+  </div>
 </section>
 </main></div></div>
+
+<script>
+(function () {
+  var deptKnowledgeSection = document.getElementById('departmentKnowledgeSection');
+  var deptKnowledgeList = document.getElementById('departmentKnowledgeList');
+  if (!deptKnowledgeSection || !deptKnowledgeList) return;
+  var deptLink = document.getElementById('departmentKnowledgeLink');
+  var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  if (!api) return;
+  function loadDepartmentKnowledge(deptId) {
+    if (!deptId) { deptKnowledgeList.innerHTML = '<?= htmlspecialchars($t('departments.knowledge_select_department', 'Выберите департамент'), ENT_QUOTES, 'UTF-8') ?>'; return; }
+    if (deptLink) deptLink.href = 'index.php?route=knowledge&amp;entity_type=department&amp;entity_public_id=' + encodeURIComponent(deptId);
+    deptKnowledgeList.innerHTML = '<?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?>';
+    api.request('api/v1/knowledge/entities/department/' + encodeURIComponent(deptId) + '/pages', { method: 'GET' }).then(function (envelope) {
+      var items = envelope.data && envelope.data.items || [];
+      if (!items.length) {
+        deptKnowledgeList.innerHTML = '<?= htmlspecialchars($t('departments.knowledge_empty', 'Нет регламентов отдела'), ENT_QUOTES, 'UTF-8') ?>';
+      } else {
+        deptKnowledgeList.innerHTML = '<ul class="list-unstyled mb-0 small">' + items.map(function (p) {
+          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch]; }); })(p.title || '') + '</a></li>';
+        }).join('') + '</ul>';
+      }
+    }).catch(function () {
+      deptKnowledgeList.innerHTML = '<div class="text-muted small">—</div>';
+    });
+  }
+  function findFirstDepartmentId() {
+    var node = document.querySelector('#departmentsList .dept-item, #departmentsList tr, #departmentsList .crm-dept-item');
+    if (!node) return '';
+    var id = node.getAttribute('data-dept-id') || node.getAttribute('data-public-id') || '';
+    if (!id) {
+      var link = node.querySelector('a[href*="department"]');
+      if (link) {
+        var m = link.getAttribute('href').match(/department[&?]?.*?=([a-zA-Z0-9_]+)/);
+        if (m) id = m[1];
+      }
+    }
+    return id;
+  }
+  function waitForDeptList(cb, n) {
+    if (document.querySelector('#departmentsList .text-muted') && document.querySelector('#departmentsList .text-muted').textContent.indexOf('Загрузка') >= 0) {
+      if ((n || 0) > 40) { cb(''); return; }
+      setTimeout(function () { waitForDeptList(cb, (n || 0) + 1); }, 200);
+      return;
+    }
+    var firstId = findFirstDepartmentId();
+    cb(firstId);
+  }
+  waitForDeptList(function (deptId) {
+    loadDepartmentKnowledge(deptId);
+  });
+
+  document.getElementById('departmentsRefreshBtn') && document.getElementById('departmentsRefreshBtn').addEventListener('click', function () {
+    setTimeout(function () {
+      var firstId = findFirstDepartmentId();
+      if (firstId) loadDepartmentKnowledge(firstId);
+    }, 500);
+  });
+})();
+</script>
+</body>
+</html>]]
