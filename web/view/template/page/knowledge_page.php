@@ -26,39 +26,44 @@
         <div class="crm-knowledge-content" id="knowledgePageContent"></div>
       </div>
       <form id="knowledgePageEditor" class="d-none">
-        <div class="row g-3">
-          <div class="col-12"><label class="crm-filter-label" for="knowledgeEditTitle"><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input id="knowledgeEditTitle" class="form-control" name="title" required></div>
-          <div class="col-12">
-            <label class="crm-filter-label"><?= htmlspecialchars($t('knowledge.field_content', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></label>
-            <div class="crm-knowledge-toolbar" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="bold" title="<?= htmlspecialchars($t('knowledge_page.bold', 'Жирный'), ENT_QUOTES, 'UTF-8') ?>"><b>B</b></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h2" title="<?= htmlspecialchars($t('knowledge_page.h2', 'Заголовок H2'), ENT_QUOTES, 'UTF-8') ?>">H2</button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h3" title="<?= htmlspecialchars($t('knowledge_page.h3', 'Заголовок H3'), ENT_QUOTES, 'UTF-8') ?>">H3</button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ul" title="<?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ul"></i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ol" title="<?= htmlspecialchars($t('knowledge_page.ol', 'Нумерованный список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ol"></i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="blockquote" title="<?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-quote-right"></i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="code" title="<?= htmlspecialchars($t('knowledge_page.code', 'Код'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-code"></i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="link" title="<?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-link"></i></button>
-              <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square"></i></button>
-            </div>
-            <div class="crm-knowledge-editor-shell">
-              <div class="crm-knowledge-editor-pane">
-                <div class="crm-knowledge-editor-pane-title"><?= htmlspecialchars($t('knowledge_page.editor_source', 'Текст и разметка'), ENT_QUOTES, 'UTF-8') ?></div>
-                <textarea id="knowledgeEditContent" class="form-control crm-knowledge-editor" name="content_html" rows="18"></textarea>
-              </div>
-              <div class="crm-knowledge-editor-pane crm-knowledge-editor-preview-pane">
-                <div class="crm-knowledge-editor-pane-title"><?= htmlspecialchars($t('knowledge_page.editor_preview', 'Предпросмотр'), ENT_QUOTES, 'UTF-8') ?></div>
-                <div id="knowledgeEditorPreview" class="crm-knowledge-editor-preview"></div>
-              </div>
-            </div>
-            <div class="small text-muted mt-1" id="knowledgeAutosaveStatus"></div>
+        <div class="crm-knowledge-writing-topbar">
+          <div>
+            <div class="crm-knowledge-writing-label"><?= htmlspecialchars($t('knowledge_page.editor_mode_title', 'Редактирование материала'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="small text-muted" id="knowledgeAutosaveStatus"></div>
+          </div>
+          <div class="crm-knowledge-writing-actions">
+            <button class="btn crm-btn-secondary" type="button" id="knowledgeCancelEditBtn"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn crm-btn-secondary" type="button" id="knowledgeSaveDraftBtn"><?= htmlspecialchars($t('knowledge_page.btn_save_draft', 'Сохранить черновик'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn crm-btn-primary" type="submit"><?= htmlspecialchars($t('knowledge_page.btn_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
-        <div class="crm-knowledge-editor-actions">
-          <button class="btn crm-btn-secondary" type="button" id="knowledgeCancelEditBtn"><?= htmlspecialchars($t('common.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-secondary" type="button" id="knowledgeSaveDraftBtn"><?= htmlspecialchars($t('knowledge_page.btn_save_draft', 'Сохранить черновик'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-primary" type="submit"><?= htmlspecialchars($t('knowledge_page.btn_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <div class="crm-knowledge-writing-canvas">
+          <input id="knowledgeEditTitle" class="crm-knowledge-title-input" name="title" required placeholder="<?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?>">
+          <div class="crm-knowledge-toolbar" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="bold" title="<?= htmlspecialchars($t('knowledge_page.bold', 'Жирный'), ENT_QUOTES, 'UTF-8') ?>"><b>B</b></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h2" title="<?= htmlspecialchars($t('knowledge_page.h2', 'Заголовок H2'), ENT_QUOTES, 'UTF-8') ?>">H2</button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h3" title="<?= htmlspecialchars($t('knowledge_page.h3', 'Заголовок H3'), ENT_QUOTES, 'UTF-8') ?>">H3</button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ul" title="<?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ul"></i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="ol" title="<?= htmlspecialchars($t('knowledge_page.ol', 'Нумерованный список'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-list-ol"></i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="blockquote" title="<?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-quote-right"></i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="code" title="<?= htmlspecialchars($t('knowledge_page.code', 'Код'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-code"></i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="link" title="<?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-link"></i></button>
+            <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square"></i></button>
+          </div>
+          <div class="crm-knowledge-visual-wrap">
+            <button class="crm-knowledge-block-add" type="button" id="knowledgeBlockAddBtn" aria-label="<?= htmlspecialchars($t('knowledge_page.block_add', 'Добавить блок'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-plus"></i></button>
+            <div id="knowledgeVisualEditor" class="crm-knowledge-visual-editor" contenteditable="true" spellcheck="true" data-placeholder="<?= htmlspecialchars($t('knowledge_page.editor_placeholder', 'Начните писать материал...'), ENT_QUOTES, 'UTF-8') ?>"></div>
+            <div id="knowledgeBlockMenu" class="crm-knowledge-block-menu d-none">
+              <button type="button" data-editor-block="p"><i class="fa-solid fa-align-left"></i><span><?= htmlspecialchars($t('knowledge_page.block_text', 'Текст'), ENT_QUOTES, 'UTF-8') ?></span></button>
+              <button type="button" data-editor-block="h2"><strong>H2</strong><span><?= htmlspecialchars($t('knowledge_page.block_h2', 'Подзаголовок H2'), ENT_QUOTES, 'UTF-8') ?></span></button>
+              <button type="button" data-editor-block="h3"><strong>H3</strong><span><?= htmlspecialchars($t('knowledge_page.block_h3', 'Подзаголовок H3'), ENT_QUOTES, 'UTF-8') ?></span></button>
+              <button type="button" data-editor-block="ul"><i class="fa-solid fa-list-ul"></i><span><?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?></span></button>
+              <button type="button" data-editor-block="blockquote"><i class="fa-solid fa-quote-right"></i><span><?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?></span></button>
+              <button type="button" data-editor-block="link"><i class="fa-solid fa-link"></i><span><?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?></span></button>
+            </div>
+          </div>
+          <textarea id="knowledgeEditContent" class="crm-knowledge-editor-source" name="content_html" rows="1" tabindex="-1" aria-hidden="true"></textarea>
         </div>
       </form>
     </article>
@@ -171,6 +176,9 @@
     editTitle: document.getElementById('knowledgeEditTitle'),
     editContent: document.getElementById('knowledgeEditContent'),
     editPreview: document.getElementById('knowledgeEditorPreview'),
+    visualEditor: document.getElementById('knowledgeVisualEditor'),
+    blockAddBtn: document.getElementById('knowledgeBlockAddBtn'),
+    blockMenu: document.getElementById('knowledgeBlockMenu'),
     metaSpace: document.getElementById('knowledgeMetaSpace'),
     metaType: document.getElementById('knowledgeMetaType'),
     metaUpdated: document.getElementById('knowledgeMetaUpdated'),
@@ -222,10 +230,49 @@
     ta.focus();
     ta.dispatchEvent(new Event('input', {bubbles: true}));
   }
+  function syncHiddenContent() {
+    if (!els.editContent || !els.visualEditor) return;
+    els.editContent.value = sanitizePreviewHtml(els.visualEditor.innerHTML || '');
+  }
+  function focusVisualEditor() {
+    if (!els.visualEditor) return;
+    els.visualEditor.focus();
+  }
+  function insertVisualHtml(html) {
+    focusVisualEditor();
+    document.execCommand('insertHTML', false, html);
+    syncHiddenContent();
+    startAutosave();
+  }
+  function runVisualCommand(cmd) {
+    if (!els.visualEditor) return false;
+    focusVisualEditor();
+    switch (cmd) {
+      case 'bold': document.execCommand('bold', false, null); break;
+      case 'italic': document.execCommand('italic', false, null); break;
+      case 'h2': document.execCommand('formatBlock', false, 'h2'); break;
+      case 'h3': document.execCommand('formatBlock', false, 'h3'); break;
+      case 'ul': document.execCommand('insertUnorderedList', false, null); break;
+      case 'ol': document.execCommand('insertOrderedList', false, null); break;
+      case 'blockquote': document.execCommand('formatBlock', false, 'blockquote'); break;
+      case 'code': insertVisualHtml('<code>' + esc(window.getSelection ? window.getSelection().toString() || t('knowledge_page.code', 'Код') : t('knowledge_page.code', 'Код')) + '</code>'); return true;
+      case 'link': {
+        var url = prompt(t('knowledge_page.link_prompt', 'Введите URL:'), 'https://');
+        if (url) document.execCommand('createLink', false, url);
+        break;
+      }
+      case 'checklist': insertVisualHtml('<p><label><input type="checkbox"> ' + esc(t('knowledge_page.checklist', 'Чеклист')) + '</label></p>'); return true;
+      default: return false;
+    }
+    syncHiddenContent();
+    startAutosave();
+    return true;
+  }
   document.querySelectorAll('[data-editor-cmd]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (!els.editContent) return;
       var cmd = btn.getAttribute('data-editor-cmd');
+      if (runVisualCommand(cmd)) return;
+      if (!els.editContent) return;
       var ta = els.editContent;
       switch (cmd) {
         case 'bold': editorWrapTag(ta, '<strong>', '</strong>'); break;
@@ -369,12 +416,17 @@
   function showEditor(show) {
     var layout = document.querySelector('.crm-knowledge-detail-layout');
     if (layout) layout.classList.toggle('is-editing', show);
+    document.body.classList.toggle('crm-knowledge-writing-mode', show);
     els.editor.classList.toggle('d-none', !show);
     els.view.classList.toggle('d-none', show);
     if (show && current) {
       els.editTitle.value = current.title || '';
       els.editContent.value = current.content_html || '';
+      if (els.visualEditor) {
+        els.visualEditor.innerHTML = sanitizePreviewHtml(current.content_html || '<p></p>');
+      }
       updateEditorPreview();
+      window.setTimeout(focusVisualEditor, 80);
     }
   }
   function render(page) {
@@ -525,6 +577,7 @@
     if (autoTimer) clearTimeout(autoTimer);
     autoTimer = setTimeout(function () {
       if (els.editor.classList.contains('d-none')) return;
+      syncHiddenContent();
       if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saving', 'Сохранение...');
       request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', {
         method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true
@@ -538,12 +591,35 @@
   document.getElementById('knowledgeEditBtn').addEventListener('click', function () { showEditor(true); });
   document.getElementById('knowledgeCancelEditBtn').addEventListener('click', function () { showEditor(false); });
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
+    syncHiddenContent();
     await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'POST', body: { title: els.editTitle.value, content_html: els.editContent.value }, idempotent: true });
+    if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saved', 'Сохранено');
   });
   els.editContent && els.editContent.addEventListener('input', function () { updateEditorPreview(); startAutosave(); });
+  els.visualEditor && els.visualEditor.addEventListener('input', function () { syncHiddenContent(); startAutosave(); });
   els.editTitle && els.editTitle.addEventListener('input', startAutosave);
+  els.blockAddBtn && els.blockAddBtn.addEventListener('click', function () {
+    if (!els.blockMenu) return;
+    els.blockMenu.classList.toggle('d-none');
+  });
+  document.querySelectorAll('[data-editor-block]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var type = btn.getAttribute('data-editor-block');
+      if (els.blockMenu) els.blockMenu.classList.add('d-none');
+      if (type === 'p') insertVisualHtml('<p>' + esc(t('knowledge_page.block_text', 'Текст')) + '</p>');
+      if (type === 'h2') insertVisualHtml('<h2>' + esc(t('knowledge_page.block_h2', 'Подзаголовок H2')) + '</h2>');
+      if (type === 'h3') insertVisualHtml('<h3>' + esc(t('knowledge_page.block_h3', 'Подзаголовок H3')) + '</h3>');
+      if (type === 'ul') insertVisualHtml('<ul><li>' + esc(t('knowledge_page.ul', 'Список')) + '</li></ul>');
+      if (type === 'blockquote') insertVisualHtml('<blockquote><p>' + esc(t('knowledge_page.blockquote', 'Цитата')) + '</p></blockquote>');
+      if (type === 'link') {
+        var url = prompt(t('knowledge_page.link_prompt', 'Введите URL:'), 'https://');
+        if (url) insertVisualHtml('<p><a href="' + esc(url) + '">' + esc(url) + '</a></p>');
+      }
+    });
+  });
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
+    syncHiddenContent();
     await patch({ title: els.editTitle.value, content_html: els.editContent.value });
     showEditor(false);
   });
