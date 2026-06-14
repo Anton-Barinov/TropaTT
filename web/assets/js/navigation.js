@@ -192,11 +192,12 @@ window.CRM.navigation = (function () {
     if (!container) return [];
     var results = [];
     var groups = payload && payload.results && typeof payload.results === 'object' ? payload.results : {};
-    ['tasks', 'projects', 'clients', 'companies', 'contacts'].forEach(function (groupKey) {
+    var typeMap = { tasks: 'task', projects: 'project', clients: 'client', companies: 'company', contacts: 'contact', knowledge: 'knowledge' };
+    ['tasks', 'projects', 'clients', 'companies', 'contacts', 'knowledge'].forEach(function (groupKey) {
       var list = Array.isArray(groups[groupKey]) ? groups[groupKey] : [];
       list.forEach(function (item) {
         results.push({
-          entity_type: groupKey.slice(0, -1),
+          entity_type: typeMap[groupKey] || groupKey.slice(0, -1),
           public_id: String(item.public_id || ''),
           label: String(item.title || item.full_name || item.public_id || ''),
           meta: item
@@ -218,8 +219,10 @@ window.CRM.navigation = (function () {
         subtitle = String(meta.status_code || '');
       } else if (item.entity_type === 'client') {
         subtitle = String(meta.email || meta.phone || '');
-      } else if (item.entity_type === 'contact') {
+      } else       if (item.entity_type === 'contact') {
         subtitle = String(meta.email || meta.phone || '');
+      } else if (item.entity_type === 'knowledge') {
+        subtitle = String(meta.space_title || meta.page_type || '');
       }
       var activeClass = index === activeIndex ? ' active' : '';
       return '<a class="dropdown-item crm-search-result' + activeClass + '" href="' + resultUrl(item) + '" data-search-result-index="' + index + '">'

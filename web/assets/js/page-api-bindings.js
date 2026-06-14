@@ -3783,6 +3783,7 @@ window.CRM.pageApiBindings = (function () {
       softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/calendar/my-day', { silent: true }) : Promise.resolve(null),
+      hasPermission('knowledge.view') ? softDashboardRequest(tryRequest('api/v1/knowledge/overview', { silent: true }), 700) : Promise.resolve(null),
       aiCanUse
         ? softDashboardRequest(tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true }), 700)
         : Promise.resolve(null),
@@ -3797,7 +3798,8 @@ window.CRM.pageApiBindings = (function () {
     var projectsEnvelope = results[5];
     var myDayEnvelope = results[6];
     var aiSuggestionsEnvelope = results[7];
-    var quickActionUsersEnvelope = results[8];
+    var knowledgeOverviewEnvelope = results[9];
+    var knowledgeOverview = knowledgeOverviewEnvelope && knowledgeOverviewEnvelope.data || null;
 
     function dateTimeLabel(value) {
       if (!value) return '—';
@@ -4132,6 +4134,51 @@ window.CRM.pageApiBindings = (function () {
           ? '<a href="' + safeText(lastProjectHref) + '">' + safeText(lastProjectTitle) + '</a>'
           : safeText(lastProjectTitle))
         + '</strong></div>';
+    }
+
+    var knowledgeList = document.querySelector('[data-dashboard-knowledge-list]');
+    if (knowledgeList) {
+      var ko = knowledgeOverview || {};
+      var kTotals = ko.totals || {};
+      var kRecent = ko.recent || [];
+      kRecent = Array.isArray(kRecent) ? kRecent.slice(0, 3) : [];
+      var kDrafts = ko.drafts || [];
+      kDrafts = Array.isArray(kDrafts) ? kDrafts.slice(0, 3) : [];
+      var kReview = ko.review_queue || [];
+      kReview = Array.isArray(kReview) ? kReview.slice(0, 3) : [];
+      var kOutdated = ko.outdated || [];
+      kOutdated = Array.isArray(kOutdated) ? kOutdated.slice(0, 3) : [];
+      function linkList(items) {
+        return items.length
+          ? items.map(function (p) {
+              return '<a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id || '') + '">' + safeText(p.title || '') + '</a>';
+            }).join(', ')
+          : '<span class="text-muted small">' + window.CRM.i18n.t('js.pab.kb_none', '—') + '</span>';
+      }
+      knowledgeList.innerHTML = ''
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_pages', 'Pages') + '</span><strong>' + safeText(String(kTotals.pages || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_published', 'Published') + '</span><strong>' + safeText(String(kTotals.published || 0)) + '</strong></div>'
+        + '<div class="crm-dashboard-overview-row"><span>' + window.CRM.i18n.t('js.pab.kb_drafts', 'Drafts') + '</span><strong>' + safeText(String(kTotals.drafts || 0)) + '</strong></div>'
+        + (kRecent.length
+          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_recent', 'Recently updated') + '</span><strong>'
+            + linkList(kRecent)
+          + '</strong></div>'
+          : '')
+        + (kDrafts.length
+          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_my_drafts', 'My drafts') + '</span><strong>'
+            + linkList(kDrafts)
+          + '</strong></div>'
+          : '')
+        + (kReview.length
+          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_review', 'For review') + '</span><strong>'
+            + linkList(kReview)
+          + '</strong></div>'
+          : '')
+        + (kOutdated.length
+          ? '<div class="crm-dashboard-overview-row is-project"><span>' + window.CRM.i18n.t('js.pab.kb_outdated', 'Needs update') + '</span><strong>'
+            + linkList(kOutdated)
+          + '</strong></div>'
+          : '');
     }
 
     var note1Title = document.querySelector('[data-dashboard-note-1-title]');
@@ -16739,12 +16786,14 @@ window.CRM.pageApiBindings = (function () {
       }
     }
     var desc = task.description ? safeText(task.description).slice(0, 120) : '';
+    var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
+    var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + '</div>'
       + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
       + (desc ? '<p>' + desc + '</p>' : '')
       + tagChips
-      + '<div class="crm-kanban-card-bottom"><div>' + dueBadge + '</div>' + avatarStack + '</div>'
+      + '<div class="crm-kanban-card-bottom"><div>' + knowledgeBadge + dueBadge + '</div>' + avatarStack + '</div>'
       + managerHtml
       + '</div>';
   }

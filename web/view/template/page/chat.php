@@ -237,7 +237,7 @@
       + '</div>'
       + '<div class="crm-chat-messages" id="msgArea" aria-live="polite"><div class="crm-chat-list-state">' + window.CRM.i18n.t('chat.loading_messages', 'Загрузка сообщений...') + '</div></div>'
       + (isArchived ? '' : '<div class="crm-chat-compose"><div class="text-danger small d-none" id="chatSendError" aria-live="polite"></div><div class="crm-chat-reply-preview d-none" id="replyPreview"></div><div id="mentionPopup" class="crm-chat-mention-popup d-none" role="listbox" aria-label="' + window.CRM.i18n.t('chat.mention_popup_aria', 'Упомянуть участника') + '"></div><div class="crm-chat-picker d-none" id="emojiPicker"></div>'
-      + '<div class="crm-chat-compose-row"><button class="btn crm-icon-btn" type="button" id="attachChatFileBtn" aria-label="' + window.CRM.i18n.t('chat.btn_attach_aria', 'Прикрепить файл') + '" title="' + window.CRM.i18n.t('chat.btn_attach_title', 'Прикрепить файл') + '"><i class="fa-solid fa-paperclip"></i></button><button class="btn crm-icon-btn" type="button" id="emojiChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_emoji_aria', 'Эмоджи и стикеры') + '" title="' + window.CRM.i18n.t('chat.btn_emoji_title', 'Эмоджи и стикеры') + '" aria-expanded="false" aria-controls="emojiPicker"><i class="fa-regular fa-face-smile"></i></button><input class="d-none" type="file" id="chatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip"><label class="visually-hidden" for="msgInput">' + window.CRM.i18n.t('chat.msg_input_label', 'Сообщение') + '</label><textarea class="form-control crm-chat-message-input" id="msgInput" rows="1" maxlength="4000" placeholder="' + window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...') + '"></textarea><button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="sendChatMessageBtn" disabled aria-label="' + window.CRM.i18n.t('chat.btn_send_aria', 'Отправить сообщение') + '" title="' + window.CRM.i18n.t('chat.btn_send_title', 'Отправить сообщение') + '"><i class="fa-solid fa-paper-plane"></i></button></div><div class="crm-chat-compose-hint">' + window.CRM.i18n.t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.') + '</div></div>')
+      + '<div class="crm-chat-compose-row"><button class="btn crm-icon-btn" type="button" id="attachChatFileBtn" aria-label="' + window.CRM.i18n.t('chat.btn_attach_aria', 'Прикрепить файл') + '" title="' + window.CRM.i18n.t('chat.btn_attach_title', 'Прикрепить файл') + '"><i class="fa-solid fa-paperclip"></i></button><button class="btn crm-icon-btn" type="button" id="knowledgeChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_knowledge_aria', 'Вставить страницу базы знаний') + '" title="' + window.CRM.i18n.t('chat.btn_knowledge_title', 'База знаний') + '"><i class="fa-solid fa-book"></i></button><button class="btn crm-icon-btn" type="button" id="emojiChatBtn" aria-label="' + window.CRM.i18n.t('chat.btn_emoji_aria', 'Эмоджи и стикеры') + '" title="' + window.CRM.i18n.t('chat.btn_emoji_title', 'Эмоджи и стикеры') + '" aria-expanded="false" aria-controls="emojiPicker"><i class="fa-regular fa-face-smile"></i></button><input class="d-none" type="file" id="chatFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip"><label class="visually-hidden" for="msgInput">' + window.CRM.i18n.t('chat.msg_input_label', 'Сообщение') + '</label><textarea class="form-control crm-chat-message-input" id="msgInput" rows="1" maxlength="4000" placeholder="' + window.CRM.i18n.t('chat.placeholder_message', 'Сообщение...') + '"></textarea><button class="btn crm-btn-primary crm-chat-send-btn" type="button" id="sendChatMessageBtn" disabled aria-label="' + window.CRM.i18n.t('chat.btn_send_aria', 'Отправить сообщение') + '" title="' + window.CRM.i18n.t('chat.btn_send_title', 'Отправить сообщение') + '"><i class="fa-solid fa-paper-plane"></i></button></div><div class="crm-chat-compose-hint">' + window.CRM.i18n.t('chat.compose_hint', 'Enter — отправить, Shift+Enter — новая строка. @логин — упоминание.') + '</div></div>')
       + '</div>';
     renderedChatId = selectedChatId;
     bindComposer();
@@ -520,6 +520,8 @@
     button.addEventListener('click', sendMsg);
     document.getElementById('attachChatFileBtn').addEventListener('click', function () { document.getElementById('chatFileInput').click(); });
     document.getElementById('chatFileInput').addEventListener('change', uploadChatFile);
+    var knowledgeBtn = document.getElementById('knowledgeChatBtn');
+    if (knowledgeBtn) knowledgeBtn.addEventListener('click', openKnowledgePicker);
     document.getElementById('emojiChatBtn').addEventListener('click', toggleEmojiPicker);
     renderReplyPreview();
     renderEmojiPicker();
@@ -1173,6 +1175,72 @@
     });
   }
 
+  function openKnowledgePicker() {
+    var modal = document.getElementById('knowledgePickerModal');
+    if (!modal) { createKnowledgePickerModal(); modal = document.getElementById('knowledgePickerModal'); }
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+    setTimeout(function () {
+      var input = document.getElementById('knowledgePickerSearch');
+      if (input) { input.value = ''; input.focus(); }
+      var list = document.getElementById('knowledgePickerList');
+      if (list) list.innerHTML = '<div class="text-muted small py-2">' + window.CRM.i18n.t('chat.knowledge_search_hint', 'Начните ввод для поиска...') + '</div>';
+    }, 200);
+  }
+  function createKnowledgePickerModal() {
+    var html = '<div class="modal fade" id="knowledgePickerModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('chat.knowledge_modal_title', 'Вставить страницу') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('page.close', 'Закрыть') + '"></button></div><div class="modal-body"><input id="knowledgePickerSearch" class="form-control mb-2" placeholder="' + window.CRM.i18n.t('chat.knowledge_search_placeholder', 'Поиск страниц...') + '"><div id="knowledgePickerList" class="crm-knowledge-picker-list" style="max-height:300px;overflow-y:auto"><div class="text-muted small py-2">' + window.CRM.i18n.t('chat.knowledge_search_hint', 'Начните ввод для поиска...') + '</div></div></div></div></div></div>';
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    document.body.appendChild(wrapper.firstElementChild);
+    var input = document.getElementById('knowledgePickerSearch');
+    if (input) input.addEventListener('input', function () { debounceKnowledgeSearch(input.value); });
+  }
+  var knowledgeSearchTimer = null;
+  function debounceKnowledgeSearch(q) {
+    if (knowledgeSearchTimer) clearTimeout(knowledgeSearchTimer);
+    if (!q.trim()) {
+      var list = document.getElementById('knowledgePickerList');
+      if (list) list.innerHTML = '<div class="text-muted small py-2">' + window.CRM.i18n.t('chat.knowledge_search_hint', 'Начните ввод для поиска...') + '</div>';
+      return;
+    }
+    knowledgeSearchTimer = setTimeout(function () {
+      request('api/v1/knowledge/search', { method: 'GET', body: { q: q.trim(), limit: 10 } }).then(function (env) {
+        var items = env.data && env.data.items || [];
+        var list = document.getElementById('knowledgePickerList');
+        if (!list) return;
+        if (!items.length) {
+          list.innerHTML = '<div class="text-muted small py-2">' + window.CRM.i18n.t('chat.knowledge_no_results', 'Ничего не найдено') + '</div>';
+          return;
+        }
+        list.innerHTML = items.map(function (p) {
+          return '<div class="crm-knowledge-picker-item" data-id="' + esc(p.public_id) + '" data-title="' + esc(p.title || '') + '" style="cursor:pointer;padding:6px 8px;border-radius:6px" onmouseenter="this.style.background=\'var(--color-neutral-100)\'" onmouseleave="this.style.background=\'\'">'
+            + '<div style="font-weight:500">' + esc(p.title || '') + '</div>'
+            + '<div class="text-muted small">' + esc(p.space_title || '') + '</div>'
+            + '</div>';
+        }).join('');
+        list.querySelectorAll('.crm-knowledge-picker-item').forEach(function (el) {
+          el.addEventListener('click', function () {
+            var id = el.getAttribute('data-id');
+            var title = el.getAttribute('data-title');
+            if (id) { insertKnowledgePage(id, title); bootstrap.Modal.getInstance(document.getElementById('knowledgePickerModal')).hide(); }
+          });
+        });
+      }).catch(function () {
+        var list = document.getElementById('knowledgePickerList');
+        if (list) list.innerHTML = '<div class="text-danger small py-2">' + window.CRM.i18n.t('chat.knowledge_search_error', 'Ошибка поиска') + '</div>';
+      });
+    }, 300);
+  }
+  function insertKnowledgePage(publicId, title) {
+    var input = document.getElementById('msgInput');
+    if (!input) return;
+    var link = '📄 ' + title + ': index.php?route=knowledge-page&page_id=' + publicId;
+    var text = input.value;
+    var start = input.selectionStart;
+    input.value = text.substring(0, start) + (start > 0 && text[start - 1] !== '\n' && text[start - 1] !== ' ' ? '\n' : '') + link + '\n' + text.substring(input.selectionEnd);
+    input.selectionStart = input.selectionEnd = start + link.length + 1;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  }
   bindPage();
   document.addEventListener('visibilitychange', startPolling);
   loadChats({ initial: true });

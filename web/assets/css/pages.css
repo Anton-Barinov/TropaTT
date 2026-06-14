@@ -1068,6 +1068,15 @@
 .crm-kanban-date-warning { color: #d97706; }
 .crm-kanban-date-ok { color: var(--crm-text-muted); }
 
+.crm-kanban-knowledge {
+  font-size: 10px;
+  color: var(--crm-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 8px;
+}
+
 .crm-kanban-avatar-stack {
   display: flex;
   align-items: center;
@@ -12784,6 +12793,26 @@ a.task-tag:hover {
   font-size: 0.86rem;
 }
 
+.crm-analytics-card {
+  background: var(--crm-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-md);
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+.crm-analytics-card strong {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--crm-accent);
+}
+.crm-analytics-card span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--crm-text-muted);
+}
+
 .crm-knowledge-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -12984,6 +13013,54 @@ a.task-tag:hover {
 
 .crm-knowledge-version span {
   color: var(--crm-muted);
+}
+
+.crm-knowledge-excerpt {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--crm-muted);
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.crm-knowledge-filters .form-select {
+  font-size: 0.86rem;
+  border-color: var(--color-neutral-300);
+  background-color: var(--crm-surface);
+  color: var(--crm-text);
+}
+.crm-knowledge-filters .form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 0.15rem rgba(var(--color-primary-rgb), 0.15);
+}
+.crm-knowledge-filters .btn-sm {
+  font-size: 0.86rem;
+}
+
+.crm-knowledge-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.86rem;
+}
+.crm-knowledge-toc a {
+  color: var(--crm-text);
+  text-decoration: none;
+  padding: 0.15rem 0;
+  border-left: 2px solid transparent;
+  padding-left: 0.5rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.crm-knowledge-toc a:hover,
+.crm-knowledge-toc a.toc-active {
+  border-left-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.crm-knowledge-toc a.toc-h3 {
+  padding-left: 1.25rem;
+  font-size: 0.82rem;
 }
 
 @media (max-width: 991.98px) {

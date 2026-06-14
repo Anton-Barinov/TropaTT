@@ -82,6 +82,7 @@ final class TaskRepository
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
                 ) AS tags",
+                "(SELECT COUNT(*) FROM knowledge_entity_links kel WHERE kel.entity_type = 'task' AND kel.entity_public_id = t.public_id) AS knowledge_links_count",
             ])
             ->orderBy('t.' . $sort, $order)
             ->orderBy('t.public_id', $order);

@@ -22,6 +22,20 @@
       <button id="knowledgeSearchButton" class="btn crm-btn-secondary" type="button"><?= htmlspecialchars($t('knowledge.btn_search', 'Найти'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
   </div>
+  <div class="crm-knowledge-filters mt-2 d-flex gap-2 flex-wrap" id="knowledgeFilters">
+    <select id="knowledgeFilterSpace" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_spaces', 'Все разделы'), ENT_QUOTES, 'UTF-8') ?></option></select>
+    <select id="knowledgeFilterType" class="form-select form-select-sm" style="width:auto;min-width:120px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_types', 'Все типы'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="article"><?= htmlspecialchars($t('knowledge.type_article', 'Статья'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="instruction"><?= htmlspecialchars($t('knowledge.type_instruction', 'Инструкция'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="regulation"><?= htmlspecialchars($t('knowledge.type_regulation', 'Регламент'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="faq"><?= htmlspecialchars($t('knowledge.type_faq', 'FAQ'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="checklist"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="runbook"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="meeting_note"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
+    </select>
+    <select id="knowledgeFilterTag" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
+    <button id="knowledgeFilterReset" class="btn crm-btn-muted btn-sm" type="button"><?= htmlspecialchars($t('page.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+  </div>
 </section>
 
 <section class="crm-knowledge-stats" id="knowledgeStats">
@@ -69,7 +83,21 @@
       <div class="row g-3">
         <div class="col-12"><label class="crm-filter-label" for="knowledgePageTitle"><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input id="knowledgePageTitle" class="form-control" name="title" required></div>
         <div class="col-md-6"><label class="crm-filter-label" for="knowledgePageSpace"><?= htmlspecialchars($t('knowledge.field_space', 'Раздел'), ENT_QUOTES, 'UTF-8') ?></label><select id="knowledgePageSpace" class="form-select" name="space_public_id"></select></div>
-        <div class="col-md-6"><label class="crm-filter-label" for="knowledgePageType"><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></label><select id="knowledgePageType" class="form-select" name="page_type"><option value="article"><?= htmlspecialchars($t('knowledge.type_article', 'Статья'), ENT_QUOTES, 'UTF-8') ?></option><option value="instruction"><?= htmlspecialchars($t('knowledge.type_instruction', 'Инструкция'), ENT_QUOTES, 'UTF-8') ?></option><option value="regulation"><?= htmlspecialchars($t('knowledge.type_regulation', 'Регламент'), ENT_QUOTES, 'UTF-8') ?></option><option value="faq"><?= htmlspecialchars($t('knowledge.type_faq', 'FAQ'), ENT_QUOTES, 'UTF-8') ?></option><option value="checklist"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
+        <div class="col-md-6"><label class="crm-filter-label" for="knowledgePageType"><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></label>
+          <div class="input-group"><span class="input-group-text" id="knowledgeTypeIcon"><i class="fa-solid fa-file-lines"></i></span>
+          <select id="knowledgePageType" class="form-select" name="page_type">
+            <option value="article" data-icon="fa-solid fa-file-lines"><?= htmlspecialchars($t('knowledge.type_article', 'Статья'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="instruction" data-icon="fa-solid fa-list-check"><?= htmlspecialchars($t('knowledge.type_instruction', 'Инструкция'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="regulation" data-icon="fa-solid fa-scale-balanced"><?= htmlspecialchars($t('knowledge.type_regulation', 'Регламент'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="faq" data-icon="fa-solid fa-circle-question"><?= htmlspecialchars($t('knowledge.type_faq', 'FAQ'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="checklist" data-icon="fa-solid fa-check-square"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="runbook" data-icon="fa-solid fa-book"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="meeting_note" data-icon="fa-solid fa-note-sticky"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select></div></div>
+        <div class="col-12" id="knowledgePageTemplateWrap" style="display:none"><label class="crm-filter-label" for="knowledgePageTemplate"><?= htmlspecialchars($t('knowledge.template_label', 'Шаблон'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select id="knowledgePageTemplate" class="form-select">
+            <option value=""><?= htmlspecialchars($t('knowledge.template_none', 'Без шаблона (пустой)'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select></div>
         <div class="col-12"><label class="crm-filter-label" for="knowledgePageContent"><?= htmlspecialchars($t('knowledge.field_content', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></label><textarea id="knowledgePageContent" class="form-control" name="content_html" rows="8" placeholder="<?= htmlspecialchars($t('knowledge.content_placeholder', 'Опишите решение, шаги, правила или ответ на вопрос.'), ENT_QUOTES, 'UTF-8') ?>"></textarea></div>
       </div>
       <div class="alert alert-danger d-none mt-3" id="knowledgePageError"></div>
@@ -109,7 +137,15 @@
     searchButton: document.getElementById('knowledgeSearchButton'),
     pageForm: document.getElementById('knowledgePageForm'),
     spaceForm: document.getElementById('knowledgeSpaceForm'),
-    pageSpace: document.getElementById('knowledgePageSpace')
+    pageSpace: document.getElementById('knowledgePageSpace'),
+    pageType: document.getElementById('knowledgePageType'),
+    pageTemplateWrap: document.getElementById('knowledgePageTemplateWrap'),
+    pageTemplate: document.getElementById('knowledgePageTemplate'),
+    pageContent: document.getElementById('knowledgePageContent'),
+    filterSpace: document.getElementById('knowledgeFilterSpace'),
+    filterType: document.getElementById('knowledgeFilterType'),
+    filterTag: document.getElementById('knowledgeFilterTag'),
+    filterReset: document.getElementById('knowledgeFilterReset')
   };
   function getApi() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
@@ -137,28 +173,33 @@
     });
   }
   function pageUrl(item) { return 'index.php?route=knowledge-page&id=' + encodeURIComponent(item.public_id || ''); }
-  function renderList(target, items, emptyText) {
+  function renderList(target, items, emptyText, opts) {
     if (!target) return;
     if (!items || !items.length) {
       target.innerHTML = '<div class="text-muted p-3">' + esc(emptyText) + '</div>';
       return;
     }
+    var showExcerpt = opts && opts.excerpt;
     target.innerHTML = items.map(function (item) {
+      var typeIconsMap = { article: 'fa-file-lines', instruction: 'fa-list-check', regulation: 'fa-scale-balanced', faq: 'fa-circle-question', checklist: 'fa-check-square', runbook: 'fa-book', meeting_note: 'fa-note-sticky' };
+      var icon = typeIconsMap[item.page_type] || 'fa-file-lines';
+      var typeIconHtml = '<i class="fa-solid ' + icon + '" style="margin-right:0.4rem;color:var(--crm-muted);width:1rem;text-align:center"></i>';
       var statusBadge = '';
       if (item.status) {
         var sm = { draft: 'crm-badge-secondary', review: 'crm-badge-warning', published: 'crm-badge-success', archived: 'crm-badge-light', needs_update: 'crm-badge-danger' };
         statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.7rem;padding:0.15rem 0.4rem;margin-left:0.5rem">' + esc(item.status) + '</span>';
       }
-      return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || '') + '</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+      var excerptHtml = showExcerpt && item.excerpt ? '<span class="crm-knowledge-excerpt">' + esc(item.excerpt.substring(0, 120)) + '</span>' : '';
+      return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + typeIconHtml + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || '') + '</small>' + excerptHtml + '</span><i class="fa-solid fa-chevron-right"></i></a>';
     }).join('');
   }
   function renderSpaces(items) {
     state.spaces = items || [];
-    if (els.pageSpace) {
-      els.pageSpace.innerHTML = state.spaces.map(function (space) {
-        return '<option value="' + esc(space.public_id) + '">' + esc(space.title) + '</option>';
-      }).join('');
-    }
+    var spaceOpts = state.spaces.map(function (space) {
+      return '<option value="' + esc(space.public_id) + '">' + esc(space.title) + '</option>';
+    }).join('');
+    if (els.pageSpace) els.pageSpace.innerHTML = spaceOpts;
+    if (els.filterSpace) els.filterSpace.innerHTML = '<option value="">' + esc(t('knowledge.filter_all_spaces', 'Все разделы')) + '</option>' + spaceOpts;
     if (!els.spaces) return;
     if (!state.spaces.length) {
       els.spaces.innerHTML = '<div class="text-muted p-3">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</div>';
@@ -190,13 +231,21 @@
   }
   async function search() {
     var query = (els.search && els.search.value || '').trim();
-    if (!query) {
+    var params = {};
+    if (query) params.q = query;
+    var sf = els.filterSpace && els.filterSpace.value || '';
+    var tf = els.filterType && els.filterType.value || '';
+    var tg = els.filterTag && els.filterTag.value || '';
+    if (sf) params.space_public_id = sf;
+    if (tf) params.page_type = tf;
+    if (tg) params.tag_public_id = tg;
+    if (!query && !sf && !tf && !tg) {
       renderList(els.results, [], t('knowledge.search_empty_hint', 'Введите запрос, чтобы найти материалы.'));
       return;
     }
     try {
-      var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { q: query } });
-      renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'));
+      var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: params });
+      renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'), { excerpt: true });
     } catch (err) {
       renderList(els.results, [], t('knowledge.search_error', 'Не удалось выполнить поиск.'));
       if (window.console && console.warn) console.warn('[CRM] Knowledge search failed', err);
@@ -209,7 +258,18 @@
     return data;
   }
   document.querySelectorAll('[data-knowledge-open-page]').forEach(function (btn) {
-    btn.addEventListener('click', function () { window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgePageModal')).show(); });
+    btn.addEventListener('click', function () {
+      if (els.pageForm) els.pageForm.reset();
+      var wrap = els.pageTemplateWrap;
+      if (wrap) wrap.style.display = 'none';
+      if (els.pageContent) els.pageContent.value = '';
+      var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgePageModal'));
+      modal.show();
+      if (els.pageType) {
+        updateTypeIcon(els.pageType.value);
+        els.pageType.dispatchEvent(new Event('change'));
+      }
+    });
   });
   document.querySelectorAll('[data-knowledge-open-space]').forEach(function (btn) {
     btn.addEventListener('click', function () { window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).show(); });
@@ -225,6 +285,46 @@
     });
   }
   if (els.searchButton) els.searchButton.addEventListener('click', search);
+  var templatesCache = {};
+  var typeIcons = { article: 'fa-solid fa-file-lines', instruction: 'fa-solid fa-list-check', regulation: 'fa-solid fa-scale-balanced', faq: 'fa-solid fa-circle-question', checklist: 'fa-solid fa-check-square', runbook: 'fa-solid fa-book', meeting_note: 'fa-solid fa-note-sticky' };
+  function updateTypeIcon(type) {
+    var iconEl = document.getElementById('knowledgeTypeIcon');
+    if (!iconEl) return;
+    var icon = typeIcons[type] || 'fa-solid fa-file-lines';
+    iconEl.innerHTML = '<i class="' + icon + '"></i>';
+  }
+  async function loadTemplates(pageType) {
+    if (templatesCache[pageType]) return templatesCache[pageType];
+    try {
+      var envelope = await request('api/v1/knowledge/templates', { method: 'GET', query: { page_type: pageType } });
+      templatesCache[pageType] = envelope.data && envelope.data.items || [];
+    } catch (e) {
+      templatesCache[pageType] = [];
+    }
+    return templatesCache[pageType];
+  }
+  if (els.pageType) els.pageType.addEventListener('change', async function () {
+    var type = els.pageType.value;
+    updateTypeIcon(type);
+    var items = await loadTemplates(type);
+    var wrap = els.pageTemplateWrap;
+    var sel = els.pageTemplate;
+    if (!wrap || !sel) return;
+    if (!items.length) {
+      wrap.style.display = 'none';
+      return;
+    }
+    sel.innerHTML = '<option value="">' + esc(t('knowledge.template_none', 'Без шаблона (пустой)')) + '</option>' + items.map(function (tmpl) {
+      return '<option value="' + esc(tmpl.public_id) + '" data-content="' + esc(tmpl.content_html || '') + '">' + esc(tmpl.title) + '</option>';
+    }).join('');
+    wrap.style.display = '';
+  });
+  if (els.pageTemplate) els.pageTemplate.addEventListener('change', function () {
+    if (els.pageContent) {
+      var selected = els.pageTemplate.options[els.pageTemplate.selectedIndex];
+      els.pageContent.value = selected && selected.dataset.content ? selected.dataset.content : '';
+    }
+  });
   if (els.pageForm) els.pageForm.addEventListener('submit', async function (event) {
     event.preventDefault();
     var envelope = await request('api/v1/knowledge/pages', { method: 'POST', body: formPayload(els.pageForm), idempotent: true });
@@ -238,7 +338,28 @@
     els.spaceForm.reset();
     load();
   });
-  waitForApi(load);
+  async function loadTags() {
+    try {
+      var envelope = await request('api/v1/tags', { method: 'GET' });
+      var tags = envelope.data && envelope.data.items || [];
+      if (els.filterTag) {
+        els.filterTag.innerHTML = '<option value="">' + esc(t('knowledge.filter_all_tags', 'Все теги')) + '</option>' + tags.map(function (tag) {
+          return '<option value="' + esc(tag.public_id) + '">' + esc(tag.title) + '</option>';
+        }).join('');
+      }
+    } catch (e) {}
+  }
+  [els.filterSpace, els.filterType, els.filterTag].forEach(function (el) {
+    if (el) el.addEventListener('change', function () { var q = (els.search && els.search.value || '').trim(); if (q) search(); else search(); });
+  });
+  if (els.filterReset) els.filterReset.addEventListener('click', function () {
+    if (els.filterSpace) els.filterSpace.value = '';
+    if (els.filterType) els.filterType.value = '';
+    if (els.filterTag) els.filterTag.value = '';
+    if (els.search) els.search.value = '';
+    search();
+  });
+  waitForApi(function () { load(); loadTags(); });
 })();
 </script>
 </body>

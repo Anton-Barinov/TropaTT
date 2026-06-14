@@ -104,6 +104,79 @@ final class KnowledgeRepository
         return $this->space($publicId);
     }
 
+    public function spacePermissions(string $publicId): array
+    {
+        $space = $this->space($publicId);
+        if (!$space) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('
+            SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
+                   u.public_id AS user_public_id, u.name AS user_name,
+                   r.public_id AS role_public_id, r.title AS role_title
+            FROM knowledge_space_permissions p
+            LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
+            LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            WHERE p.space_id = :space_id
+            ORDER BY p.created_at DESC
+        ');
+        $stmt->execute(['space_id' => (int)$space['id']]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function addSpacePermission(string $publicId, string $subjectType, int $subjectId, string $accessLevel, ?int $actorId): ?array
+    {
+        $space = $this->space($publicId);
+        if (!$space) {
+            return null;
+        }
+        $allowedTypes = ['user', 'role', 'team', 'department'];
+        if (!in_array($subjectType, $allowedTypes, true)) {
+            return null;
+        }
+        $allowedLevels = ['view', 'comment', 'edit', 'manage', 'owner'];
+        $accessLevel = $this->choice($accessLevel, $allowedLevels, 'view');
+
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_space_permissions (space_id, subject_type, subject_id, access_level, created_by_user_id, created_at) VALUES (:space_id, :subject_type, :subject_id, :access_level, :created_by_user_id, :created_at)');
+        $stmt->execute([
+            'space_id' => (int)$space['id'],
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'access_level' => $accessLevel,
+            'created_by_user_id' => $actorId,
+            'created_at' => $now,
+        ]);
+        $id = (int)$this->pdo->lastInsertId();
+
+        $this->pdo->prepare('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1, updated_at = :updated_at WHERE id = :id')->execute(['updated_at' => $now, 'id' => (int)$space['id']]);
+
+        $stmt = $this->pdo->prepare('
+            SELECT p.id, p.subject_type, p.subject_id, p.access_level, p.created_at,
+                   u.public_id AS user_public_id, u.name AS user_name,
+                   r.public_id AS role_public_id, r.title AS role_title
+            FROM knowledge_space_permissions p
+            LEFT JOIN users u ON u.id = p.subject_id AND p.subject_type = \'user\'
+            LEFT JOIN roles r ON r.id = p.subject_id AND p.subject_type = \'role\'
+            WHERE p.id = :id
+        ');
+        $stmt->execute(['id' => $id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    public function removeSpacePermission(int $permissionId): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_space_permissions WHERE id = :id');
+        $stmt->execute(['id' => $permissionId]);
+        if ($stmt->rowCount() > 0) {
+            $now = gmdate('Y-m-d H:i:s');
+            $this->pdo->prepare('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1, updated_at = :updated_at WHERE id = (SELECT space_id FROM knowledge_space_permissions WHERE id = :perm_id)')->execute(['updated_at' => $now, 'perm_id' => $permissionId]);
+            return true;
+        }
+        return false;
+    }
+
     public function archiveSpace(string $publicId, bool $archived): bool
     {
         $stmt = $this->pdo->prepare('UPDATE knowledge_spaces SET is_archived = :archived, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
@@ -515,6 +588,18 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function unlinkEntity(string $linkPublicId): void
+    {
+        $stmt = $this->pdo->prepare('SELECT page_id FROM knowledge_entity_links WHERE public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $linkPublicId]);
+        $link = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$link) {
+            throw new \RuntimeException('Knowledge link not found');
+        }
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_entity_links WHERE public_id = :public_id');
+        $stmt->execute(['public_id' => $linkPublicId]);
+    }
+
     public function entityPages(string $entityType, string $entityPublicId): array
     {
         $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL ORDER BY p.updated_at DESC");
@@ -633,6 +718,57 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
+    public function favorites(int $userId, int $limit = 20, int $offset = 0): array
+    {
+        $stmt = $this->pdo->prepare('SELECT p.id, p.public_id, p.title, p.status, p.page_type, p.updated_at, p.published_at, p.views_count, s.title AS space_title, s.public_id AS space_public_id
+            FROM favorites f
+            INNER JOIN knowledge_pages p ON p.public_id = f.entity_public_id AND p.deleted_at IS NULL
+            LEFT JOIN knowledge_spaces s ON s.id = p.space_id
+            WHERE f.entity_type = :entity_type AND f.user_id = :user_id
+            ORDER BY f.created_at DESC
+            LIMIT :limit OFFSET :offset');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'user_id' => $userId, 'limit' => $limit, 'offset' => $offset]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function suggest(string $query, int $limit = 10): array
+    {
+        $q = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $query) . '%';
+        $stmt = $this->pdo->prepare('SELECT p.public_id, p.title, p.page_type, s.title AS space_title, s.public_id AS space_public_id
+            FROM knowledge_pages p
+            LEFT JOIN knowledge_spaces s ON s.id = p.space_id
+            WHERE p.deleted_at IS NULL AND p.status = :status AND (p.title LIKE :q OR p.content_text LIKE :q)
+            ORDER BY p.views_count DESC, p.updated_at DESC
+            LIMIT :limit');
+        $stmt->execute(['status' => 'published', 'q' => $q, 'limit' => $limit]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function analytics(): array
+    {
+        $stmt = $this->pdo->query("SELECT
+            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL) AS total_pages,
+            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'published') AS published,
+            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'draft') AS drafts,
+            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'review') AS review_queue,
+            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'archived') AS archived,
+            (SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 0) AS active_spaces,
+            (SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 1) AS archived_spaces,
+            (SELECT COUNT(*) FROM knowledge_comments) AS total_comments,
+            (SELECT COUNT(*) FROM knowledge_page_versions) AS total_versions,
+            (SELECT COUNT(*) FROM knowledge_entity_links) AS total_links
+        ");
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : [];
+    }
+
+    public function pageSubscriberIds(string $pagePublicId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT user_id FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id');
+        $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId]);
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
     public function isPageSubscribed(string $pagePublicId, int $userId): bool
     {
         $page = $this->page($pagePublicId);
@@ -711,6 +847,11 @@ final class KnowledgeRepository
             $params['q_title'] = $like;
             $params['q_content'] = $like;
             $params['q_space'] = $like;
+        }
+        if (!empty($filters['tag_public_id'])) {
+            $where[] = 'EXISTS(SELECT 1 FROM entity_tags et2 INNER JOIN tags tg2 ON tg2.id = et2.tag_id WHERE et2.entity_type = :tag_entity_type AND et2.entity_public_id = p.public_id AND tg2.public_id = :tag_public_id)';
+            $params['tag_entity_type'] = 'knowledge_page';
+            $params['tag_public_id'] = (string)$filters['tag_public_id'];
         }
         return [implode(' AND ', $where), $params];
     }

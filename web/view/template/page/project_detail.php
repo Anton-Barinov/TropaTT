@@ -103,8 +103,50 @@
     </section>
     <section class="crm-card mb-3"><h2 class="h6" data-i18n="project_detail.section_metrics"><?= htmlspecialchars($t('project_detail.section_metrics', 'Метрики проекта'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectMetricsList"><div class="crm-metric-tile mb-2"><small class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка'), ENT_QUOTES, 'UTF-8') ?></small><div>...</div></div></div></section>
     <section class="crm-card mb-3"><h2 class="h6" data-i18n="project_detail.section_team"><?= htmlspecialchars($t('project_detail.section_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectTeamList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div></section>
+    <section class="crm-card mb-3" id="projectKnowledgeSection"><h2 class="h6" data-i18n="project_detail.section_knowledge"><?= htmlspecialchars($t('project_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div id="projectKnowledgeList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div><div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="project_detail.btn_knowledge"><?= htmlspecialchars($t('project_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div></section>
     <section class="crm-card"><h2 class="h6" data-i18n="project_detail.section_summary"><?= htmlspecialchars($t('project_detail.section_summary', 'Сводка проекта'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_author"><?= htmlspecialchars($t('project_detail.summary_author', 'Автор'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryCreator">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_manager"><?= htmlspecialchars($t('project_detail.summary_manager', 'Менеджер'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryManager">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_team"><?= htmlspecialchars($t('project_detail.summary_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryTeam">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_client"><?= htmlspecialchars($t('project_detail.summary_client', 'Клиент'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryClient">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_created_at"><?= htmlspecialchars($t('project_detail.summary_created_at', 'Создан'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryCreatedAt">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_updated_at"><?= htmlspecialchars($t('project_detail.summary_updated_at', 'Обновлён'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryUpdatedAt">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_status"><?= htmlspecialchars($t('project_detail.summary_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryStatus">—</div></div><div class="crm-info-panel mb-2"><small class="text-muted" data-i18n="project_detail.summary_priority"><?= htmlspecialchars($t('project_detail.summary_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryPriority">—</div></div><div class="crm-info-panel"><small class="text-muted" data-i18n="project_detail.summary_description"><?= htmlspecialchars($t('project_detail.summary_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></small><div id="projectSummaryDescription">—</div></div></section>
   </aside>
 </div>
 </main></div></div>
+<script>
+(function () {
+  var projectId = null;
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('route') === 'project-detail') projectId = urlParams.get('project_public_id');
+  if (!projectId) return;
+
+  function getApi() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
+
+  function waitForApi(cb, n) {
+    if (getApi()) { cb(); return; }
+    if ((n || 0) > 100) return;
+    setTimeout(function () { waitForApi(cb, (n || 0) + 1); }, 100);
+  }
+
+  waitForApi(async function () {
+    var api = getApi();
+    var listEl = document.getElementById('projectKnowledgeList');
+    if (!listEl) return;
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/project/' + encodeURIComponent(projectId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      if (!items.length) {
+        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('project_detail.knowledge_empty', 'Связанных страниц нет'), ENT_QUOTES, 'UTF-8') ?></div>';
+      } else {
+        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a> <span class="text-muted small">(' + escapeHtml(p.relation_type || 'related') + ')</span></li>';
+        }).join('') + '</ul>';
+      }
+    } catch (e) {
+      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  });
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"]/g, function (ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] || ch;
+    });
+  }
+})();
+</script>
 </body>

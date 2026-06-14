@@ -21,6 +21,7 @@ final class SearchService
         $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot);
         $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30)), $normalized, $limit);
         $contacts = $this->search->searchContacts($normalized, $limit);
+        $knowledge = $this->search->searchKnowledge($normalized, $limit);
 
         return [
             'query' => $normalized,
@@ -29,12 +30,14 @@ final class SearchService
                 'projects' => $projects,
                 'counterparties' => $counterparties,
                 'contacts' => $contacts,
+                'knowledge' => $knowledge,
             ],
             'counts' => [
                 'tasks' => count($tasks),
                 'projects' => count($projects),
                 'counterparties' => count($counterparties),
                 'contacts' => count($contacts),
+                'knowledge' => count($knowledge),
             ],
         ];
     }
@@ -86,12 +89,13 @@ final class SearchService
         $normalized = $this->normalizeQuery($query);
         $actorUserId = (int)($actor['id'] ?? 0);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
-        $perTypeLimit = max(1, (int)ceil($limit / 5));
+        $perTypeLimit = max(1, (int)ceil($limit / 6));
 
         $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
         $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
         $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15)), $normalized, $perTypeLimit);
         $contactRows = $this->search->searchContacts($normalized, $perTypeLimit);
+        $knowledgeRows = $this->search->searchKnowledge($normalized, $perTypeLimit);
 
         $items = [];
         foreach ($taskRows as $row) {
@@ -139,6 +143,17 @@ final class SearchService
                 ],
             ];
         }
+        foreach ($knowledgeRows as $row) {
+            $items[] = [
+                'entity_type' => 'knowledge',
+                'public_id' => (string)($row['public_id'] ?? ''),
+                'label' => (string)($row['title'] ?? ''),
+                'meta' => [
+                    'space_title' => $row['space_title'] ?? null,
+                    'page_type' => $row['page_type'] ?? null,
+                ],
+            ];
+        }
 
         $items = array_values(array_filter($items, static fn(array $item): bool => $item['public_id'] !== ''));
         if (count($items) > $limit) {
@@ -154,6 +169,7 @@ final class SearchService
                 'projects' => count($projectRows),
                 'counterparties' => count($counterpartyRows),
                 'contacts' => count($contactRows),
+                'knowledge' => count($knowledgeRows),
             ],
         ];
     }

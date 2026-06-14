@@ -157,6 +157,34 @@ final class SearchRepository
             ->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.website LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ?)', [$like, $like, $like, $like, $like, $like]);
     }
 
+    public function searchKnowledge(string $query, int $limit): array
+    {
+        return $this->buildKnowledgeQuery($query)
+            ->select([
+                'kp.public_id',
+                'kp.title',
+                'ks.title AS space_title',
+                'kp.status',
+                'kp.page_type',
+                'kp.updated_at',
+            ])
+            ->orderBy('kp.updated_at', 'DESC')
+            ->limit($limit)
+            ->get();
+    }
+
+    private function buildKnowledgeQuery(string $query): QueryBuilder
+    {
+        $like = '%' . $query . '%';
+
+        return (new QueryBuilder($this->pdo))
+            ->from('knowledge_pages kp')
+            ->leftJoin('knowledge_spaces ks', 'ks.id', '=', 'kp.space_id')
+            ->whereNull('kp.deleted_at')
+            ->where('kp.status', '=', 'published')
+            ->whereRaw('(kp.title LIKE ? OR kp.content_text LIKE ? OR ks.title LIKE ?)', [$like, $like, $like]);
+    }
+
     private function buildContactsQuery(string $query): QueryBuilder
     {
         $like = '%' . $query . '%';

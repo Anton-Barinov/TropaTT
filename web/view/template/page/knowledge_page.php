@@ -60,6 +60,14 @@
           <button class="btn crm-btn-primary" type="button" id="knowledgeCommentSendBtn" style="align-self:flex-end"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </div>
+      <div id="knowledgeAttachmentsSection" class="crm-knowledge-attachments mt-4">
+        <h3 class="h5"><?= htmlspecialchars($t('knowledge_page.attachments_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h3>
+        <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+        <div class="mt-2">
+          <input type="file" id="knowledgeFileInput" class="form-control" multiple>
+          <button class="btn crm-btn-primary mt-1" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </div>
     </article>
   </div>
   <aside class="crm-card crm-section-card crm-knowledge-side">
@@ -69,6 +77,7 @@
       <dt><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaType">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.updated_at', 'Обновлено'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaUpdated">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.views', 'Просмотры'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaViews">0</dd>
+      <dt><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaTags"><span class="text-muted small">—</span></dd>
     </dl>
     <div class="d-flex gap-2 mb-2">
       <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeFavBtn"><?= htmlspecialchars($t('knowledge_page.favorite_add', 'В избранное'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -77,6 +86,18 @@
     <div class="d-grid gap-2">
       <button class="btn crm-btn-secondary" type="button" id="knowledgeReviewBtn"><?= htmlspecialchars($t('knowledge_page.btn_request_review', 'Отправить на проверку'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn crm-btn-danger-soft" type="button" id="knowledgeArchiveBtn"><?= htmlspecialchars($t('knowledge_page.btn_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+    <div id="knowledgeTocContainer" class="d-none">
+      <hr>
+      <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.toc_title', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></h3>
+      <nav id="knowledgeToc" class="crm-knowledge-toc"></nav>
+    </div>
+    <hr>
+    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></h3>
+    <div id="knowledgeTagsList" class="mb-2 d-flex flex-wrap gap-1"><span class="text-muted small">—</span></div>
+    <div class="input-group input-group-sm">
+      <select id="knowledgeTagSelect" class="form-select" style="min-width:80px"><option value=""><?= htmlspecialchars($t('knowledge_page.tag_select_hint', 'Выбрать тег...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+      <button class="btn crm-btn-primary" type="button" id="knowledgeTagAddBtn" disabled><?= htmlspecialchars($t('knowledge_page.tag_add', '+'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
     <hr>
     <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.versions_title', 'Версии'), ENT_QUOTES, 'UTF-8') ?></h3>
@@ -115,7 +136,15 @@
     commentSend: document.getElementById('knowledgeCommentSendBtn'),
     diffContainer: document.getElementById('knowledgeDiffContainer'),
     diffContent: document.getElementById('knowledgeDiffContent'),
-    autosaveStatus: document.getElementById('knowledgeAutosaveStatus')
+    autosaveStatus: document.getElementById('knowledgeAutosaveStatus'),
+    attachList: document.getElementById('knowledgeAttachmentsList'),
+    attachInput: document.getElementById('knowledgeFileInput'),
+    attachUploadBtn: document.getElementById('knowledgeFileUploadBtn'),
+    tagsList: document.getElementById('knowledgeTagsList'),
+    tagSelect: document.getElementById('knowledgeTagSelect'),
+    tagAddBtn: document.getElementById('knowledgeTagAddBtn'),
+    tocContainer: document.getElementById('knowledgeTocContainer'),
+    toc: document.getElementById('knowledgeToc')
   };
   function editorWrapTag(ta, before, after) {
     var start = ta.selectionStart, end = ta.selectionEnd;
@@ -203,6 +232,7 @@
     els.status.className = 'crm-badge ' + (statusMap[page.status] || 'crm-badge-secondary');
     els.status.textContent = page.status || '';
     els.content.innerHTML = page.content_html || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>';
+    renderToc();
     els.metaSpace.textContent = page.space_title || '—';
     els.metaType.textContent = page.page_type || '—';
     els.metaUpdated.textContent = page.updated_at || '—';
@@ -210,6 +240,31 @@
     updateFavSubButtons();
     loadTree(page);
     loadComments();
+    loadAttachments();
+  }
+  function renderToc() {
+    if (!els.tocContainer || !els.toc) return;
+    var headings = els.content.querySelectorAll('h2, h3');
+    if (!headings.length) {
+      els.tocContainer.classList.add('d-none');
+      return;
+    }
+    var html = [];
+    headings.forEach(function (h) {
+      if (!h.id) h.id = 'toc-heading-' + Math.random().toString(36).substring(2, 8);
+      var level = h.tagName === 'H2' ? 'toc-h2' : 'toc-h3';
+      html.push('<a class="' + level + '" href="#' + h.id + '">' + esc(h.textContent || '') + '</a>');
+    });
+    els.toc.innerHTML = html.join('');
+    els.tocContainer.classList.remove('d-none');
+    els.toc.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var target = document.getElementById(this.getAttribute('href').substring(1));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    initTocScroll();
   }
   function renderVersions(items) {
     if (!items || !items.length) {
@@ -266,6 +321,32 @@
         : '<button class="btn btn-sm crm-btn-secondary" data-comment-resolve="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_resolve', 'Решено')) + '</button>';
       return '<div class="crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + '"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + resolveBtn + '</div></div>';
     }).join('');
+  }
+  async function loadAttachments() {
+    if (!pageId) return;
+    try {
+      var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/files', { method: 'GET' });
+      renderAttachments(envelope.data && envelope.data.items || []);
+    } catch (e) { els.attachList.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.load_error', 'Ошибка')) + '</div>'; }
+  }
+  function renderAttachments(items) {
+    if (!items || !items.length) {
+      els.attachList.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.attachments_empty', 'Файлов пока нет')) + '</div>';
+      return;
+    }
+    els.attachList.innerHTML = '<ul class="crm-knowledge-attach-list">' + items.map(function (f) {
+      return '<li>' + esc(f.original_name) + ' <span class="text-muted small">(' + esc(f.size_bytes || 0) + ' B)</span> <button class="btn btn-sm crm-btn-danger-soft" data-attach-delete="' + esc(f.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.attachments_delete', 'Удалить')) + '</button></li>';
+    }).join('') + '</ul>';
+  }
+  async function uploadFile(file) {
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('entity_type', 'knowledge_page');
+    formData.append('entity_public_id', pageId);
+    try {
+      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/files', { method: 'POST', body: formData, idempotent: true });
+      await loadAttachments();
+    } catch (e) {}
   }
   async function load() {
     if (!pageId) {
@@ -357,6 +438,12 @@
   els.commentInput && els.commentInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); els.commentSend.click(); }
   });
+  els.attachUploadBtn && els.attachUploadBtn.addEventListener('click', async function () {
+    var files = els.attachInput && els.attachInput.files;
+    if (!files || !files.length) return;
+    for (var i = 0; i < files.length; i++) { await uploadFile(files[i]); }
+    els.attachInput.value = '';
+  });
   document.addEventListener('click', function (e) {
     var restoreBtn = e.target.closest('[data-restore-version]');
     if (restoreBtn) {
@@ -386,9 +473,98 @@
     var reopenBtn = e.target.closest('[data-comment-reopen]');
     if (reopenBtn) {
       request('api/v1/knowledge/comments/' + encodeURIComponent(reopenBtn.getAttribute('data-comment-reopen')) + '/reopen', { method: 'POST', idempotent: true }).then(loadComments);
+      return;
+    }
+    var delBtn = e.target.closest('[data-attach-delete]');
+    if (delBtn) {
+      var fId = delBtn.getAttribute('data-attach-delete');
+      if (fId && confirm(t('knowledge_page.attachments_delete_confirm', 'Удалить этот файл?'))) {
+        request('api/v1/knowledge/files/' + encodeURIComponent(fId), { method: 'DELETE', idempotent: true }).then(loadAttachments);
+      }
     }
   });
-  waitForApi(load);
+  var allTags = [];
+  async function loadTagOptions() {
+    try {
+      var env = await request('api/v1/tags', { method: 'GET' });
+      allTags = env.data && env.data.items || [];
+    } catch (e) { allTags = []; }
+  }
+  async function loadTags() {
+    if (!els.tagsList || !pageId) return;
+    try {
+      var env = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/tags', { method: 'GET' });
+      var items = env.data && env.data.items || [];
+      if (!items.length) {
+        els.tagsList.innerHTML = '<span class="text-muted small">—</span>';
+      } else {
+        els.tagsList.innerHTML = items.map(function (tag) {
+          var color = tag.color || '#6c757d';
+          return '<span class="crm-badge" style="background:' + color + ';color:#fff;cursor:default">' + esc(tag.title || tag.code || '') + ' <i class="fa-solid fa-xmark" style="cursor:pointer;margin-left:2px" data-tag-id="' + esc(tag.public_id || '') + '" title="' + esc(t('knowledge_page.tag_remove', 'Удалить тег')) + '"></i></span>';
+        }).join('');
+      }
+      var usedIds = {};
+      items.forEach(function (tag) { usedIds[tag.public_id] = true; });
+      if (els.tagSelect) {
+        els.tagSelect.innerHTML = '<option value="">' + esc(t('knowledge_page.tag_select_hint', 'Выбрать тег...')) + '</option>'
+          + allTags.filter(function (tag) { return !usedIds[tag.public_id]; }).map(function (tag) {
+            return '<option value="' + esc(tag.public_id) + '">' + esc(tag.title || tag.code || '') + '</option>';
+          }).join('');
+        els.tagAddBtn.disabled = true;
+      }
+    } catch (e) { els.tagsList.innerHTML = '<span class="text-muted small">—</span>'; }
+  }
+  if (els.tagSelect) els.tagSelect.addEventListener('change', function () {
+    els.tagAddBtn.disabled = !els.tagSelect.value;
+  });
+  if (els.tagAddBtn) els.tagAddBtn.addEventListener('click', async function () {
+    var tagId = els.tagSelect && els.tagSelect.value;
+    if (!tagId || !pageId) return;
+    try {
+      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/tags/' + encodeURIComponent(tagId), { method: 'POST', idempotent: true });
+      await loadTags();
+    } catch (e) {}
+  });
+  if (els.tagsList) els.tagsList.addEventListener('click', async function (e) {
+    var delIcon = e.target.closest('[data-tag-id]');
+    if (!delIcon || !pageId) return;
+    var tagId = delIcon.getAttribute('data-tag-id');
+    if (!tagId) return;
+    try {
+      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/tags/' + encodeURIComponent(tagId), { method: 'DELETE', idempotent: true });
+      await loadTags();
+    } catch (e) {}
+  });
+  var tocScrollHandler = null;
+  function initTocScroll() {
+    if (tocScrollHandler) document.removeEventListener('scroll', tocScrollHandler);
+    if (!els.toc) return;
+    var links = els.toc.querySelectorAll('a');
+    if (!links.length) return;
+    tocScrollHandler = function () {
+      var active = '';
+      links.forEach(function (link) {
+        var id = link.getAttribute('href') && link.getAttribute('href').substring(1);
+        if (!id) return;
+        var el = document.getElementById(id);
+        if (el) {
+          var rect = el.getBoundingClientRect();
+          if (rect.top < 120) active = id;
+        }
+      });
+      links.forEach(function (link) {
+        var id = link.getAttribute('href') && link.getAttribute('href').substring(1);
+        link.classList.toggle('toc-active', id === active);
+      });
+    };
+    document.addEventListener('scroll', tocScrollHandler, { passive: true });
+    tocScrollHandler();
+  }
+  waitForApi(async function () {
+    await loadTagOptions();
+    await load();
+    await loadTags();
+  });
 })();
 </script>
 </body>

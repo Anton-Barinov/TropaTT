@@ -20,7 +20,7 @@
   <section class="crm-card crm-section-card">
     <div class="crm-section-head"><div><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.spaces_title', 'Разделы'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.spaces_hint', 'Управляйте областями знаний и их видимостью.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
     <div class="table-responsive">
-      <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="4" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+      <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.visibility', 'Видимость'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.stat_pages', 'Страниц'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('admin_knowledge.th_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></th><th></th></tr></thead><tbody id="adminKnowledgeSpaces"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
     </div>
   </section>
   <section class="crm-card crm-section-card">
@@ -35,6 +35,54 @@
     <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.outdated_title', 'Требуют ревью'), ENT_QUOTES, 'UTF-8') ?></h2></div>
     <div class="crm-knowledge-list" id="adminKnowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
   </section>
+</div>
+
+<section class="crm-card crm-section-card mt-3" id="adminKnowledgeAnalyticsSection">
+  <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+  <div id="adminKnowledgeAnalytics" class="row g-3 p-3">
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsTotalPages">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_total_pages', 'Всего страниц'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsPublished">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_published', 'Опубликовано'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsDrafts">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_drafts', 'Черновиков'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsReview">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_review', 'На проверке'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsArchived">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_archived', 'В архиве'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsSpaces">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_spaces', 'Активных разделов'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsComments">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_comments', 'Комментариев'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+    <div class="col-md-3 col-6"><div class="crm-analytics-card"><strong id="analyticsVersions">—</strong><span><?= htmlspecialchars($t('admin_knowledge.analytics_versions', 'Версий'), ENT_QUOTES, 'UTF-8') ?></span></div></div>
+  </div>
+</section>
+
+<div class="modal fade" id="knowledgePermissionsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><span id="knowledgePermModalTitle"><?= htmlspecialchars($t('admin_knowledge.permissions_title', 'Права доступа'), ENT_QUOTES, 'UTF-8') ?></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
+    <div class="modal-body">
+      <div id="knowledgePermList" class="mb-3"><div class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <hr>
+      <h6><?= htmlspecialchars($t('admin_knowledge.permissions_add_title', 'Добавить доступ'), ENT_QUOTES, 'UTF-8') ?></h6>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select id="knowledgePermSubjectType" class="form-select">
+            <option value="user"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="role"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select id="knowledgePermSubjectId" class="form-select" style="max-width:100%"><option value=""><?= htmlspecialchars($t('admin_knowledge.permissions_select_subject', 'Выберите...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+        </div>
+        <div class="col-md-2">
+          <select id="knowledgePermAccessLevel" class="form-select">
+            <option value="view"><?= htmlspecialchars($t('admin_knowledge.permissions_level_view', 'Просмотр'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="comment"><?= htmlspecialchars($t('admin_knowledge.permissions_level_comment', 'Комментирование'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="edit"><?= htmlspecialchars($t('admin_knowledge.permissions_level_edit', 'Редактирование'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="manage"><?= htmlspecialchars($t('admin_knowledge.permissions_level_manage', 'Управление'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn crm-btn-primary w-100" type="button" id="knowledgePermAddBtn"><?= htmlspecialchars($t('common.add', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?></button></div>
+  </div></div>
 </div>
 
 <div class="modal fade" id="knowledgeTemplateModal" tabindex="-1" aria-hidden="true">
@@ -110,14 +158,20 @@
         ? '<button class="btn btn-sm crm-btn-secondary" data-space-restore="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.btn_restore_space', 'Восстановить')) + '</button>'
         : '<button class="btn btn-sm crm-btn-danger-soft" data-space-archive="' + esc(space.public_id) + '">' + esc(t('admin_knowledge.btn_archive_space', 'Архивировать')) + '</button>';
       var archLabel = arch ? '<span class="crm-badge crm-badge-light">' + esc(t('admin_knowledge.archived', 'Архив')) + '</span>' : '';
-      return '<tr><td><strong>' + esc(space.title) + ' ' + archLabel + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td><td>' + esc(space.visibility || '') + '</td><td>' + esc(space.pages_count || 0) + '</td><td class="crm-table-actions">' + actionBtn + '</td></tr>';
-    }).join('') || '<tr><td colspan="4" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
+      return '<tr><td><strong>' + esc(space.title) + ' ' + archLabel + '</strong><div class="text-muted small">' + esc(space.description || '') + '</div></td><td>' + esc(space.visibility || '') + '</td><td>' + esc(space.pages_count || 0) + '</td><td><button class="btn btn-sm crm-btn-secondary" data-space-permissions="' + esc(space.public_id) + '" data-space-title="' + esc(space.title) + '">' + esc(t('admin_knowledge.btn_permissions', 'Доступ')) + '</button></td><td class="crm-table-actions">' + actionBtn + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" class="text-muted">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</td></tr>';
     list(document.getElementById('adminKnowledgeReview'), data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
     list(document.getElementById('adminKnowledgeOutdated'), data.outdated || [], t('admin_knowledge.empty_outdated', 'Нет просроченных ревью.'));
     var templates = await request('api/v1/knowledge/templates', { method: 'GET' });
     document.getElementById('adminKnowledgeTemplates').innerHTML = (templates.data && templates.data.items || []).map(function (tpl) {
       return '<div class="crm-knowledge-list-item"><span><strong>' + esc(tpl.title) + '</strong><small>' + esc(tpl.description || tpl.page_type || '') + '</small></span><span class="crm-badge">' + esc(tpl.page_type || '') + '</span></div>';
     }).join('') || '<div class="text-muted p-3">' + esc(t('admin_knowledge.empty_templates', 'Шаблонов пока нет.')) + '</div>';
+    try {
+      var analyticsRes = await request('api/v1/knowledge/analytics', { method: 'GET' });
+      var stats = analyticsRes.data && analyticsRes.data.stats || {};
+      var map = { analyticsTotalPages: stats.total_pages, analyticsPublished: stats.published, analyticsDrafts: stats.drafts, analyticsReview: stats.review_queue, analyticsArchived: stats.archived, analyticsSpaces: stats.active_spaces, analyticsComments: stats.total_comments, analyticsVersions: stats.total_versions };
+      Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) el.textContent = map[id] != null ? String(map[id]) : '—'; });
+    } catch (e) {}
   }
   document.getElementById('knowledgeTemplateForm').addEventListener('submit', async function (event) {
     event.preventDefault();
@@ -128,6 +182,54 @@
     event.currentTarget.reset();
     load();
   });
+  var currentPermSpaceId = null;
+
+  function renderPermList(items) {
+    var listEl = document.getElementById('knowledgePermList');
+    if (!items || !items.length) {
+      listEl.innerHTML = '<div class="text-muted">' + esc(t('admin_knowledge.permissions_empty', 'Нет назначенных прав доступа')) + '</div>';
+      return;
+    }
+    listEl.innerHTML = '<table class="table crm-table mb-0"><thead><tr><th>' + esc(t('admin_knowledge.permissions_th_subject', 'Субъект')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_level', 'Уровень')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_created', 'Добавлено')) + '</th><th></th></tr></thead><tbody>' + items.map(function (p) {
+      var label = p.user_name || p.role_title || p.subject_id;
+      var typeLabel = p.subject_type === 'role' ? esc(t('admin_knowledge.permissions_subject_role', 'Роль')) + ':' : esc(t('admin_knowledge.permissions_subject_user', 'Пользователь')) + ':';
+      return '<tr><td><strong>' + typeLabel + ' ' + esc(label) + '</strong></td><td>' + esc(p.access_level) + '</td><td class="small text-muted">' + esc(p.created_at || '') + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-perm-delete="' + esc(p.id) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+
+  async function loadPermModal(spaceId) {
+    currentPermSpaceId = spaceId;
+    document.getElementById('knowledgePermList').innerHTML = '<div class="text-muted">' + esc(t('knowledge.loading', 'Загрузка...')) + '</div>';
+    try {
+      var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(spaceId) + '/permissions', { method: 'GET' });
+      renderPermList(envelope.data && envelope.data.items || []);
+    } catch (e) {
+      document.getElementById('knowledgePermList').innerHTML = '<div class="text-muted">' + esc(t('knowledge.load_error', 'Ошибка')) + '</div>';
+    }
+  }
+
+  async function loadSubjectOptions(type) {
+    var sel = document.getElementById('knowledgePermSubjectId');
+    sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_loading_subjects', 'Загрузка...')) + '</option>';
+    try {
+      if (type === 'user') {
+        var envelope = await request('api/v1/users', { method: 'GET', query: { limit: 200 } });
+        var items = envelope.data && envelope.data.items || [];
+        sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_user', 'Выберите пользователя...')) + '</option>' + items.map(function (u) {
+          return '<option value="' + esc(u.id) + '">' + esc(u.name || u.email || u.public_id) + '</option>';
+        }).join('');
+      } else if (type === 'role') {
+        var envelope = await request('api/v1/roles', { method: 'GET', query: { limit: 50 } });
+        var items = envelope.data && envelope.data.items || [];
+        sel.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_role', 'Выберите роль...')) + '</option>' + items.map(function (r) {
+          return '<option value="' + esc(r.id) + '">' + esc(r.title || r.public_id) + '</option>';
+        }).join('');
+      }
+    } catch (e) {
+      sel.innerHTML = '<option value="">' + esc(t('knowledge.load_error', 'Ошибка')) + '</option>';
+    }
+  }
+
   document.addEventListener('click', function (e) {
     var archiveBtn = e.target.closest('[data-space-archive]');
     if (archiveBtn) {
@@ -137,7 +239,50 @@
     var restoreBtn = e.target.closest('[data-space-restore]');
     if (restoreBtn) {
       request('api/v1/knowledge/spaces/' + encodeURIComponent(restoreBtn.getAttribute('data-space-restore')) + '/restore', { method: 'POST', idempotent: true }).then(load);
+      return;
     }
+    var permBtn = e.target.closest('[data-space-permissions]');
+    if (permBtn) {
+      var spaceId = permBtn.getAttribute('data-space-permissions');
+      var spaceTitle = permBtn.getAttribute('data-space-title');
+      document.getElementById('knowledgePermModalTitle').textContent = esc(t('admin_knowledge.permissions_title', 'Права доступа')) + ': ' + esc(spaceTitle);
+      loadPermModal(spaceId).then(function () {
+        var modal = window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgePermissionsModal'));
+        modal && modal.show();
+      });
+      return;
+    }
+    var permDelBtn = e.target.closest('[data-perm-delete]');
+    if (permDelBtn) {
+      var permId = permDelBtn.getAttribute('data-perm-delete');
+      if (permId && currentPermSpaceId && confirm(t('admin_knowledge.permissions_delete_confirm', 'Удалить это право доступа?'))) {
+        request('api/v1/knowledge/permissions/' + encodeURIComponent(permId), { method: 'DELETE', idempotent: true }).then(function () {
+          loadPermModal(currentPermSpaceId);
+        });
+      }
+    }
+  });
+
+  document.getElementById('knowledgePermSubjectType').addEventListener('change', function () {
+    loadSubjectOptions(this.value);
+  });
+
+  document.getElementById('knowledgePermAddBtn').addEventListener('click', async function () {
+    if (!currentPermSpaceId) return;
+    var type = document.getElementById('knowledgePermSubjectType').value;
+    var subjectId = parseInt(document.getElementById('knowledgePermSubjectId').value, 10);
+    var level = document.getElementById('knowledgePermAccessLevel').value;
+    if (!subjectId || subjectId <= 0) return;
+    try {
+      await request('api/v1/knowledge/spaces/' + encodeURIComponent(currentPermSpaceId) + '/permissions', {
+        method: 'POST', body: { subject_type: type, subject_id: subjectId, access_level: level }, idempotent: true
+      });
+      loadPermModal(currentPermSpaceId);
+    } catch (e) {}
+  });
+
+  document.getElementById('knowledgePermissionsModal').addEventListener('show.bs.modal', function () {
+    loadSubjectOptions(document.getElementById('knowledgePermSubjectType').value);
   });
   waitForApi(function () { load().catch(function () {
     document.getElementById('adminKnowledgeSpaces').innerHTML = '<tr><td colspan="4" class="text-muted">' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</td></tr>';

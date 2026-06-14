@@ -38,6 +38,11 @@
       <div id="clientDetailSummary"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div>
     <div class="crm-card crm-section-card mt-3">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="client_detail.section_knowledge"><?= htmlspecialchars($t('client_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="client_detail.section_knowledge_note"><?= htmlspecialchars($t('client_detail.section_knowledge_note', 'Связанные страницы и документация клиента.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+      <div id="clientKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="client_detail.btn_knowledge"><?= htmlspecialchars($t('client_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+    </div>
+    <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="client_detail.section_extra"><?= htmlspecialchars($t('client_detail.section_extra', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="client_detail.section_extra_note"><?= htmlspecialchars($t('client_detail.section_extra_note', 'Кастомные поля клиента из API.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <pre id="clientDetailExtra" class="mb-0 small crm-pre-wrap" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></pre>
     </div>
@@ -56,4 +61,37 @@
   <div class="col-md-4"><label class="form-label" data-i18n="clients.field_website"><?= htmlspecialchars($t('clients.field_website', 'Сайт'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="website" maxlength="2048"></div>
   <div class="col-12"><label class="form-label" data-i18n="clients.field_notes"><?= htmlspecialchars($t('clients.field_notes', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="notes" rows="3"></textarea></div>
 </div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+<script>
+(function () {
+  var urlParams = new URLSearchParams(window.location.search);
+  var clientId = urlParams.get('id');
+  if (!clientId) return;
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function waitForApi(cb, n) {
+    if (getApi()) { cb(); return; }
+    if ((n || 0) > 80) return;
+    window.setTimeout(function () { waitForApi(cb, (n || 0) + 1); }, 50);
+  }
+  waitForApi(async function () {
+    var api = getApi();
+    var listEl = document.getElementById('clientKnowledgeList');
+    if (!listEl) return;
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/client/' + encodeURIComponent(clientId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      if (!items.length) {
+        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('client_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
+      } else {
+        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a> <span class="text-muted small">(' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.relation_type || 'related') + ')</span></li>';
+        }).join('') + '</ul>';
+      }
+    } catch (e) {
+      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  });
+})();
+</script>
 </body>

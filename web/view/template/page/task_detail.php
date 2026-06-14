@@ -58,6 +58,7 @@
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-i18n="task_detail.tab_activity"><?= htmlspecialchars($t('task_detail.tab_activity', 'Активность'), ENT_QUOTES, 'UTF-8') ?></button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailHistory" type="button" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button></li>
     </ul>
 
     <div class="tab-content">
@@ -202,6 +203,10 @@
         <h2 class="h6" data-i18n="task_detail.history_title"><?= htmlspecialchars($t('task_detail.history_title', 'История изменений полей'), ENT_QUOTES, 'UTF-8') ?></h2>
         <p class="text-muted small mb-3" data-i18n="task_detail.history_subtitle"><?= htmlspecialchars($t('task_detail.history_subtitle', 'Хронология изменений атрибутов задачи.'), ENT_QUOTES, 'UTF-8') ?></p>
         <table class="table table-sm crm-table mb-0"><thead><tr><th data-i18n="task_detail.history_th_date"><?= htmlspecialchars($t('task_detail.history_th_date', 'Дата'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_field"><?= htmlspecialchars($t('task_detail.history_th_field', 'Поле'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_was"><?= htmlspecialchars($t('task_detail.history_th_was', 'Было'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_became"><?= htmlspecialchars($t('task_detail.history_th_became', 'Стало'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_by"><?= htmlspecialchars($t('task_detail.history_th_by', 'Кем изменено'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="taskHistoryList"><tr><td colspan="5" class="text-muted" data-i18n="task_detail.history_loading"><?= htmlspecialchars($t('task_detail.history_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+      </section>
+      <section id="detailKnowledge" class="tab-pane fade crm-card crm-task-section">
+        <h2 class="h6" data-i18n="task_detail.knowledge_title"><?= htmlspecialchars($t('task_detail.knowledge_title', 'Связанные страницы'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <div id="taskKnowledgeList"><div class="text-muted small" data-i18n="task_detail.knowledge_loading"><?= htmlspecialchars($t('task_detail.knowledge_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
     </div>
   </div>
@@ -604,3 +609,44 @@
 </div>
 
 </main></div></div>
+<script>
+(function () {
+  var taskId = null;
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('route') === 'task-detail') taskId = urlParams.get('task_public_id');
+  if (!taskId) return;
+
+  function getApi() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
+
+  function waitForApi(cb, n) {
+    if (getApi()) { cb(); return; }
+    if ((n || 0) > 100) return;
+    setTimeout(function () { waitForApi(cb, (n || 0) + 1); }, 100);
+  }
+
+  waitForApi(async function () {
+    var api = getApi();
+    var listEl = document.getElementById('taskKnowledgeList');
+    if (!listEl) return;
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/task/' + encodeURIComponent(taskId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      if (!items.length) {
+        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('task_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
+      } else {
+        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + escapeHtml(p.title || '') + '</a> <span class="text-muted small">(' + escapeHtml(p.relation_type || 'related') + ')</span></li>';
+        }).join('') + '</ul>';
+      }
+    } catch (e) {
+      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  });
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"]/g, function (ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] || ch;
+    });
+  }
+})();
+</script>

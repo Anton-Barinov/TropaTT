@@ -221,6 +221,17 @@
               </div>
             </div>
           </section>
+          <section class="col-12 col-lg-4">
+            <div class="crm-card h-100 crm-dashboard-widget">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                <h2 class="h5 mb-0" data-i18n="dashboard.knowledge_title"><?= htmlspecialchars($t('dashboard.knowledge_title', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2>
+                <a href="index.php?route=knowledge" data-i18n="dashboard.knowledge_more"><?= htmlspecialchars($t('dashboard.knowledge_more', 'Перейти'), ENT_QUOTES, 'UTF-8') ?></a>
+              </div>
+              <div data-dashboard-knowledge-list>
+                <div class="crm-skeleton crm-skeleton--text"></div><div class="crm-skeleton crm-skeleton--text-sm mb-2"></div>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
 

@@ -206,6 +206,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/popular', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'popular', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/review-queue', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'reviewQueue', 'auth' => true, 'required_permissions' => ['knowledge.publish']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/outdated', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'outdated', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/favorites', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'favorites', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/suggest', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'suggest', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/analytics', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'analytics', 'auth' => true, 'required_permissions' => ['knowledge.analytics_view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/templates', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'templates', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/templates', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'createTemplate', 'auth' => true, 'required_permissions' => ['knowledge.template_manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/entities/{entity_type}/{entity_public_id}/pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'entityPages', 'auth' => true, 'required_permissions' => ['knowledge.view']],
@@ -233,6 +236,9 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/archive', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'archiveSpace', 'auth' => true, 'required_permissions' => ['knowledge.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/restore', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'restoreSpace', 'auth' => true, 'required_permissions' => ['knowledge.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/tree', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'tree', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/permissions', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'spacePermissions', 'auth' => true, 'required_permissions' => ['knowledge.permission_manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}/permissions', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'addSpacePermission', 'auth' => true, 'required_permissions' => ['knowledge.permission_manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/permissions/{permission_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'removeSpacePermission', 'auth' => true, 'required_permissions' => ['knowledge.permission_manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'pages', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'createPage', 'auth' => true, 'required_permissions' => ['knowledge.create']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'getPage', 'auth' => true, 'required_permissions' => ['knowledge.view']],
@@ -256,6 +262,17 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/versions/{version_number}/restore', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'restoreVersion', 'auth' => true, 'required_permissions' => ['knowledge.publish']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'links', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'linkEntity', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links/{link_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteLink', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+
+    // knowledge page tags
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/tags', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'listPageTags', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/tags/{tag_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'attachPageTag', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/tags/{tag_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'detachPageTag', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+
+    // knowledge files
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/files', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'listFiles', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/files', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'uploadFile', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/files/{file_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteFile', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
 
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true],

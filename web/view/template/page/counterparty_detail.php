@@ -30,6 +30,11 @@
       <div id="counterpartyDetailRequisites"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div>
     <div class="crm-card crm-section-card mt-3">
+      <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_knowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_knowledge_note"><?= htmlspecialchars($t('counterparty_detail.section_knowledge_note', 'Связанные страницы и документация.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+      <div id="counterpartyKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+    </div>
+    <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_extra"><?= htmlspecialchars($t('counterparty_detail.section_extra', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_extra_note"><?= htmlspecialchars($t('counterparty_detail.section_extra_note', 'Кастомные поля контрагента.'), ENT_QUOTES, 'UTF-8') ?></div></div><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyExtraEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_extra_aria', 'Редактировать дополнительные поля'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_extra_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
       <div id="counterpartyDetailExtra"><div class="text-muted" data-i18n="counterparty_detail.extra_empty"><?= htmlspecialchars($t('counterparty_detail.extra_empty', 'Нет дополнительных атрибутов'), ENT_QUOTES, 'UTF-8') ?></div></div>
     </div>
@@ -104,4 +109,37 @@
   <div id="counterpartyExtraFieldsContainer"><div class="text-muted" data-i18n="counterparty_detail.extra_fields_empty"><?= htmlspecialchars($t('counterparty_detail.extra_fields_empty', 'Нет дополнительных полей.'), ENT_QUOTES, 'UTF-8') ?></div></div>
   <div class="col-12 mt-3"><button type="button" class="btn btn-sm crm-btn-secondary" id="addExtraFieldBtn" data-i18n="counterparty_detail.btn_add_field"><?= htmlspecialchars($t('counterparty_detail.btn_add_field', 'Добавить поле'), ENT_QUOTES, 'UTF-8') ?></button></div>
 </div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+<script>
+(function () {
+  var urlParams = new URLSearchParams(window.location.search);
+  var counterpartyId = urlParams.get('id');
+  if (!counterpartyId) return;
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+  function waitForApi(cb, n) {
+    if (getApi()) { cb(); return; }
+    if ((n || 0) > 80) return;
+    window.setTimeout(function () { waitForApi(cb, (n || 0) + 1); }, 50);
+  }
+  waitForApi(async function () {
+    var api = getApi();
+    var listEl = document.getElementById('counterpartyKnowledgeList');
+    if (!listEl) return;
+    try {
+      var envelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/pages', { method: 'GET' });
+      var items = envelope.data && envelope.data.items || [];
+      if (!items.length) {
+        listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('counterparty_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
+      } else {
+        listEl.innerHTML = '<ul class="list-unstyled mb-0">' + items.map(function (p) {
+          return '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.title || '') + '</a> <span class="text-muted small">(' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); })(p.relation_type || 'related') + ')</span></li>';
+        }).join('') + '</ul>';
+      }
+    } catch (e) {
+      listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  });
+})();
+</script>
 </body>

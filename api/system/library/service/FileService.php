@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\File\FileRepository;
+use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\Model\Recycle_bin\RecycleBinRepository;
 use Api\Model\Task\TaskRepository;
@@ -21,6 +22,7 @@ final class FileService
         private readonly array $quarantineMimePrefixes,
         private readonly TaskRepository $tasks,
         private readonly ProjectRepository $projects,
+        private readonly KnowledgeRepository $knowledge,
         private readonly RecycleBinRepository $recycleBin,
         private readonly JsonLogger $logger,
         private readonly ?AiSemanticIndexService $semanticIndex = null
@@ -300,6 +302,15 @@ final class FileService
                 || (int)($project['manager_user_id'] ?? 0) === $actorId
                 || (int)($project['team_manager_user_id'] ?? 0) === $actorId
                 || in_array($actorId, $this->decodeTeamMemberIds($project['team_member_user_ids'] ?? null), true);
+        }
+
+        if ($entityType === 'knowledge_page') {
+            $page = $this->knowledge->page($entityPublicId);
+            if (!$page) {
+                return false;
+            }
+
+            return true;
         }
 
         return false;
