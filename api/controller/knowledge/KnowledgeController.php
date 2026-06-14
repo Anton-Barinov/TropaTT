@@ -196,7 +196,7 @@ final class KnowledgeController extends BaseController
 
         return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
             try {
-                $page = $this->repo()->createPage($input, $this->actorUserId() ?: null);
+                $page = $this->repo()->createPage($input, $this->actorUserId() ?: null, $this->actor());
             } catch (\RuntimeException $e) {
                 return $this->error('VALIDATION_ERROR', $e->getMessage(), 422);
             }
@@ -227,7 +227,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $result = $this->repo()->updatePage((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId() ?: null);
+        $result = $this->repo()->updatePage((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId() ?: null, $this->actor());
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The record was changed by another user'), 409);
         }
@@ -323,7 +323,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $page = $this->repo()->duplicate((string)$params['public_id'], $this->actorUserId() ?: null);
+        $page = $this->repo()->duplicate((string)$params['public_id'], $this->actorUserId() ?: null, $this->actor());
         if (!$page) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -344,7 +344,7 @@ final class KnowledgeController extends BaseController
             'space_public_id' => $input['space_public_id'] ?? null,
             'parent_public_id' => $input['parent_public_id'] ?? null,
             'sort_order' => $input['sort_order'] ?? null,
-        ], $this->actorUserId() ?: null);
+        ], $this->actorUserId() ?: null, $this->actor());
         if (!$result || $result === 'ROW_VERSION_CONFLICT') {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -408,7 +408,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $page = $this->repo()->restoreVersion((string)$params['public_id'], (int)$params['version_number'], $this->actorUserId() ?: null);
+        $page = $this->repo()->restoreVersion((string)$params['public_id'], (int)$params['version_number'], $this->actorUserId() ?: null, $this->actor());
         if (!$page) {
             return $this->error('KNOWLEDGE_VERSION_NOT_FOUND', $this->t('knowledge/messages.version_not_found', 'Version not found'), 404);
         }

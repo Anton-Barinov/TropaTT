@@ -51,7 +51,7 @@ final class KnowledgeRepository
         $includeArchived = !empty($filters['include_archived']);
         $where = $includeArchived ? ['1=1'] : ['s.is_archived = 0'];
         $params = [];
-        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, 'view');
+        [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, (string)($filters['min_access'] ?? 'view'));
         $where[] = $aclSql;
         $params += $aclParams;
         $stmt = $this->pdo->prepare('SELECT s.* FROM knowledge_spaces s WHERE ' . implode(' AND ', $where) . ' ORDER BY s.sort_order ASC, s.title ASC');
@@ -248,17 +248,17 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function createPage(array $payload, ?int $actorId): array
+    public function createPage(array $payload, ?int $actorId, ?array $actor = null): array
     {
-        $space = $this->resolveSpace((string)($payload['space_public_id'] ?? $payload['space_id'] ?? ''));
+        $space = $this->resolveSpace((string)($payload['space_public_id'] ?? $payload['space_id'] ?? ''), $actor, 'edit');
         if (!$space) {
-            $spaces = $this->spaces();
+            $spaces = $this->spaces(['min_access' => 'edit'], $actor);
             $space = $spaces[0] ?? null;
         }
         if (!$space) {
-            throw new \RuntimeException('Knowledge space is required');
+            throw new \RuntimeException('Knowledge space with edit access is required');
         }
-        $parent = $this->resolvePage((string)($payload['parent_public_id'] ?? ''));
+        $parent = $this->resolvePage((string)($payload['parent_public_id'] ?? ''), $actor, 'edit');
         $title = trim((string)($payload['title'] ?? ''));
         $html = $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
@@ -318,9 +318,9 @@ final class KnowledgeRepository
         $this->pdo->prepare('UPDATE knowledge_pages SET views_count = views_count + 1 WHERE id = :id')->execute(['id' => (int)$page['id']]);
     }
 
-    public function updatePage(string $publicId, array $payload, ?int $actorId): array|string|null
+    public function updatePage(string $publicId, array $payload, ?int $actorId, ?array $actor = null): array|string|null
     {
-        $current = $this->page($publicId);
+        $current = $this->page($publicId, $actor, 'edit');
         if (!$current) {
             return null;
         }
@@ -330,8 +330,8 @@ final class KnowledgeRepository
         $html = array_key_exists('content_html', $payload) || array_key_exists('content', $payload)
             ? $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? ''))
             : (string)($current['content_html'] ?? '');
-        $space = isset($payload['space_public_id']) ? $this->resolveSpace((string)$payload['space_public_id']) : null;
-        $parent = array_key_exists('parent_public_id', $payload) ? $this->resolvePage((string)$payload['parent_public_id']) : false;
+        $space = isset($payload['space_public_id']) ? $this->resolveSpace((string)$payload['space_public_id'], $actor, 'edit') : null;
+        $parent = array_key_exists('parent_public_id', $payload) ? $this->resolvePage((string)$payload['parent_public_id'], $actor, 'edit') : false;
         $params = [
             'title' => trim((string)($payload['title'] ?? $current['title'])),
             'space_id' => $space ? (int)$space['id'] : (int)$current['space_id'],
@@ -407,9 +407,9 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
-    public function duplicate(string $publicId, ?int $actorId): ?array
+    public function duplicate(string $publicId, ?int $actorId, ?array $actor = null): ?array
     {
-        $page = $this->page($publicId);
+        $page = $this->page($publicId, $actor);
         if (!$page) {
             return null;
         }
@@ -421,7 +421,7 @@ final class KnowledgeRepository
             'content_html' => $page['content_html'],
             'content_json' => $page['content_json'] ? json_decode((string)$page['content_json'], true) : null,
             'status' => 'draft',
-        ], $actorId);
+        ], $actorId, $actor);
     }
 
     public function saveDraft(string $pagePublicId, array $payload, int $userId): array
@@ -499,9 +499,9 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function restoreVersion(string $pagePublicId, int $versionNumber, ?int $actorId): ?array
+    public function restoreVersion(string $pagePublicId, int $versionNumber, ?int $actorId, ?array $actor = null): ?array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return null;
         }
@@ -515,7 +515,7 @@ final class KnowledgeRepository
             'title' => $version['title'],
             'content_html' => $version['content_html'],
             'content_json' => $version['content_json'] ? json_decode((string)$version['content_json'], true) : null,
-        ], $actorId);
+        ], $actorId, $actor);
         $this->addVersion($pagePublicId, $actorId, 'Restored version ' . $versionNumber);
         return $this->page($pagePublicId);
     }
@@ -1096,17 +1096,17 @@ final class KnowledgeRepository
         return $items;
     }
 
-    private function resolveSpace(string $publicId): ?array
+    private function resolveSpace(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
         if ($publicId === '') {
             return null;
         }
-        return $this->space($publicId);
+        return $this->space($publicId, $actor, $minAccess);
     }
 
-    private function resolvePage(string $publicId): ?array
+    private function resolvePage(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
-        return $publicId !== '' ? $this->page($publicId) : null;
+        return $publicId !== '' ? $this->page($publicId, $actor, $minAccess) : null;
     }
 
     private function countPages(int $spaceId, ?array $actor = null): int
