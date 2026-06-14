@@ -13438,11 +13438,11 @@ textarea.form-control.crm-knowledge-editor {
   text-decoration: none;
 }
 
-.crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a {
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a {
   color: var(--color-primary);
 }
 
-.crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a::before {
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a::before {
   content: "";
   width: 0.42rem;
   height: 0.42rem;
