@@ -81,6 +81,10 @@
       <div class="crm-section-head"><h3 class="h5 mb-0"><?= htmlspecialchars($t('knowledge_page.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?></h3></div>
       <div id="knowledgeCommentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       <div class="crm-knowledge-comment-form">
+        <div id="knowledgeCommentReplyIndicator" class="small text-muted d-none" style="margin-bottom:6px">
+          <span id="knowledgeCommentReplyLabel"></span>
+          <button type="button" class="btn btn-sm crm-btn-secondary" id="knowledgeCommentCancelReply" style="font-size:0.7rem;margin-left:8px"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
         <textarea id="knowledgeCommentInput" class="form-control" rows="3" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>"></textarea>
         <button class="btn crm-btn-primary" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
@@ -602,18 +606,30 @@
       renderComments(items);
     } catch (e) { els.commentsList.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.load_error', 'Ошибка')) + '</div>'; }
   }
+  var replyToId = null;
+  var replyToName = '';
   function renderComments(items) {
     if (!items || !items.length) {
       els.commentsList.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.comments_empty', 'Комментариев пока нет')) + '</div>';
       return;
     }
-    els.commentsList.innerHTML = items.map(function (c) {
-      var resolved = c.resolved_at ? ' <span class="text-success small">' + esc(t('knowledge_page.comments_resolved', ' resolved')) + '</span>' : '';
-      var resolveBtn = c.resolved_at
-        ? '<button class="btn btn-sm crm-btn-secondary" data-comment-reopen="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_reopen', 'Открыть')) + '</button>'
-        : '<button class="btn btn-sm crm-btn-secondary" data-comment-resolve="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_resolve', 'Решено')) + '</button>';
-      return '<div class="crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + '"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + resolveBtn + '</div></div>';
-    }).join('');
+    var byParent = {};
+    items.forEach(function (c) { var pid = c.parent_id || 'root'; if (!byParent[pid]) byParent[pid] = []; byParent[pid].push(c); });
+    function renderThread(parentId, depth) {
+      var kids = byParent[parentId] || [];
+      if (!kids.length) return '';
+      return kids.map(function (c) {
+        var ml = Math.min(depth * 24, 72);
+        var resolved = c.resolved_at ? ' <span class="text-success small">' + esc(t('knowledge_page.comments_resolved', ' resolved')) + '</span>' : '';
+        var resolveBtn = c.resolved_at
+          ? '<button class="btn btn-sm crm-btn-secondary" data-comment-reopen="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_reopen', 'Открыть')) + '</button>'
+          : '<button class="btn btn-sm crm-btn-secondary" data-comment-resolve="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_resolve', 'Решено')) + '</button>';
+        var replyBtn = '<button class="btn btn-sm crm-btn-secondary" data-comment-reply="' + esc(c.public_id) + '" data-comment-reply-name="' + esc(c.user_name || '') + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_reply', 'Ответить')) + '</button>';
+        var childrenHtml = renderThread(c.id, depth + 1);
+        return '<div class="crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + '" style="margin-left:' + ml + 'px"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + replyBtn + resolveBtn + '</div>' + childrenHtml + '</div>';
+      }).join('');
+    }
+    els.commentsList.innerHTML = renderThread('root', 0);
   }
   async function loadAttachments() {
     if (!pageId) return;
@@ -828,11 +844,31 @@
     if (!body) return;
     els.commentInput.disabled = true;
     try {
-      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/comments', { method: 'POST', body: { body: body }, idempotent: true });
+      var payload = { body: body };
+      if (replyToId) payload.parent_public_id = replyToId;
+      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/comments', { method: 'POST', body: payload, idempotent: true });
       els.commentInput.value = '';
+      replyToId = null; replyToName = '';
+      updateReplyIndicator();
       loadComments();
     } catch (e) {}
     els.commentInput.disabled = false;
+    els.commentInput.focus();
+  });
+  function updateReplyIndicator() {
+    var indicator = document.getElementById('knowledgeCommentReplyIndicator');
+    var label = document.getElementById('knowledgeCommentReplyLabel');
+    if (!indicator || !label) return;
+    if (replyToId) {
+      indicator.classList.remove('d-none');
+      label.textContent = t('knowledge_page.comments_reply_to', 'Ответ на') + ' ' + esc(replyToName);
+    } else {
+      indicator.classList.add('d-none');
+    }
+  }
+  document.getElementById('knowledgeCommentCancelReply').addEventListener('click', function () {
+    replyToId = null; replyToName = '';
+    updateReplyIndicator();
     els.commentInput.focus();
   });
   els.commentInput && els.commentInput.addEventListener('keydown', function (e) {
@@ -873,6 +909,14 @@
     var reopenBtn = e.target.closest('[data-comment-reopen]');
     if (reopenBtn) {
       request('api/v1/knowledge/comments/' + encodeURIComponent(reopenBtn.getAttribute('data-comment-reopen')) + '/reopen', { method: 'POST', idempotent: true }).then(loadComments);
+      return;
+    }
+    var replyBtn = e.target.closest('[data-comment-reply]');
+    if (replyBtn) {
+      replyToId = replyBtn.getAttribute('data-comment-reply');
+      replyToName = replyBtn.getAttribute('data-comment-reply-name') || '';
+      updateReplyIndicator();
+      els.commentInput.focus();
       return;
     }
     var delBtn = e.target.closest('[data-attach-delete]');
