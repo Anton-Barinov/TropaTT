@@ -15,30 +15,28 @@
     <p><?= htmlspecialchars($t('knowledge.hero_text', 'Собирайте инструкции, решения, стандарты и ответы на частые вопросы рядом с задачами, проектами и клиентами.'), ENT_QUOTES, 'UTF-8') ?></p>
   </div>
   <div class="crm-knowledge-search">
-    <label class="crm-filter-label" for="knowledgeSearchInput"><?= htmlspecialchars($t('knowledge.search_label', 'Поиск по базе знаний'), ENT_QUOTES, 'UTF-8') ?></label>
     <div class="input-group">
       <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
       <input id="knowledgeSearchInput" class="form-control" type="search" placeholder="<?= htmlspecialchars($t('knowledge.search_placeholder', 'Найдите регламент, инструкцию или FAQ'), ENT_QUOTES, 'UTF-8') ?>">
       <button id="knowledgeSearchButton" class="btn crm-btn-secondary" type="button"><?= htmlspecialchars($t('knowledge.btn_search', 'Найти'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
-  </div>
-  <div class="crm-knowledge-filters mt-2 d-flex gap-2 flex-wrap" id="knowledgeFilters">
-    <select id="knowledgeFilterSpace" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_spaces', 'Все разделы'), ENT_QUOTES, 'UTF-8') ?></option></select>
-    <select id="knowledgeFilterType" class="form-select form-select-sm" style="width:auto;min-width:120px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_types', 'Все типы'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="article"><?= htmlspecialchars($t('knowledge.type_article', 'Статья'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="instruction"><?= htmlspecialchars($t('knowledge.type_instruction', 'Инструкция'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="regulation"><?= htmlspecialchars($t('knowledge.type_regulation', 'Регламент'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="faq"><?= htmlspecialchars($t('knowledge.type_faq', 'FAQ'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="checklist"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="runbook"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="meeting_note"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="decision"><?= htmlspecialchars($t('knowledge.type_decision', 'Решение'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="client_note"><?= htmlspecialchars($t('knowledge.type_client_note', 'Заметка клиента'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="project_note"><?= htmlspecialchars($t('knowledge.type_project_note', 'Заметка проекта'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="onboarding"><?= htmlspecialchars($t('knowledge.type_onboarding', 'Онбординг'), ENT_QUOTES, 'UTF-8') ?></option>
-    </select>
-    <select id="knowledgeFilterTag" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
-    <button id="knowledgeFilterReset" class="btn crm-btn-muted btn-sm" type="button"><?= htmlspecialchars($t('page.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <div class="crm-knowledge-filters mt-2 d-flex gap-2 flex-wrap" id="knowledgeFilters">
+      <select id="knowledgeFilterType" class="form-select form-select-sm" style="width:auto;min-width:120px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_types', 'Все типы'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="article"><?= htmlspecialchars($t('knowledge.type_article', 'Статья'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="instruction"><?= htmlspecialchars($t('knowledge.type_instruction', 'Инструкция'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="regulation"><?= htmlspecialchars($t('knowledge.type_regulation', 'Регламент'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="faq"><?= htmlspecialchars($t('knowledge.type_faq', 'FAQ'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="checklist"><?= htmlspecialchars($t('knowledge.type_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="runbook"><?= htmlspecialchars($t('knowledge.type_runbook', 'Runbook'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="meeting_note"><?= htmlspecialchars($t('knowledge.type_meeting_note', 'Протокол встречи'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="decision"><?= htmlspecialchars($t('knowledge.type_decision', 'Решение'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="client_note"><?= htmlspecialchars($t('knowledge.type_client_note', 'Заметка клиента'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="project_note"><?= htmlspecialchars($t('knowledge.type_project_note', 'Заметка проекта'), ENT_QUOTES, 'UTF-8') ?></option>
+        <option value="onboarding"><?= htmlspecialchars($t('knowledge.type_onboarding', 'Онбординг'), ENT_QUOTES, 'UTF-8') ?></option>
+      </select>
+      <select id="knowledgeFilterTag" class="form-select form-select-sm" style="width:auto;min-width:140px"><option value=""><?= htmlspecialchars($t('knowledge.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
+      <button id="knowledgeFilterReset" class="btn crm-btn-muted btn-sm" type="button" style="display:none"><?= htmlspecialchars($t('page.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
   </div>
 </section>
 
@@ -55,31 +53,37 @@
     <div id="knowledgeSpaces"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
   </section>
   <div class="crm-card crm-section-card crm-knowledge-content-panel">
-    <div class="crm-knowledge-tab-nav" id="knowledgeTabNav">
-      <button class="crm-knowledge-tab-btn is-active" data-kb-tab="recent"><?= htmlspecialchars($t('knowledge.recent_title', 'Недавно обновлено'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="crm-knowledge-tab-btn" data-kb-tab="popular"><?= htmlspecialchars($t('knowledge.popular_title', 'Популярные'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="crm-knowledge-tab-btn" data-kb-tab="drafts"><?= htmlspecialchars($t('knowledge.drafts_title', 'Мои черновики'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="crm-knowledge-tab-btn" data-kb-tab="review"><?= htmlspecialchars($t('knowledge.review_title', 'На проверке'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="crm-knowledge-tab-btn" data-kb-tab="outdated"><?= htmlspecialchars($t('knowledge.outdated_title', 'Требуют актуализации'), ENT_QUOTES, 'UTF-8') ?></button>
+    <div id="knowledgeSpaceView" class="crm-knowledge-space-view">
+      <div id="knowledgeSpaceHeader"></div>
+      <div id="knowledgeSpacePagesList"></div>
     </div>
-    <div id="knowledgeSearchResultsWrap" class="crm-knowledge-tab-panel">
-      <div class="crm-section-head" style="padding:0.65rem 0.5rem"><h3 class="h6 mb-0"><?= htmlspecialchars($t('knowledge.search_results_title', 'Результаты поиска'), ENT_QUOTES, 'UTF-8') ?></h3></div>
-      <div id="knowledgeSearchResults"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.search_empty_hint', 'Введите запрос, чтобы найти материалы.'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    </div>
-    <div class="crm-knowledge-tab-panel is-active" data-kb-panel="recent">
-      <div id="knowledgeRecent"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    </div>
-    <div class="crm-knowledge-tab-panel" data-kb-panel="popular">
-      <div id="knowledgePopular"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    </div>
-    <div class="crm-knowledge-tab-panel" data-kb-panel="drafts">
-      <div id="knowledgeDrafts"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    </div>
-    <div class="crm-knowledge-tab-panel" data-kb-panel="review">
-      <div id="knowledgeReview"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    </div>
-    <div class="crm-knowledge-tab-panel" data-kb-panel="outdated">
-      <div id="knowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    <div id="knowledgeTabView">
+      <div class="crm-knowledge-tab-nav" id="knowledgeTabNav">
+        <button class="crm-knowledge-tab-btn is-active" data-kb-tab="recent"><?= htmlspecialchars($t('knowledge.recent_title', 'Недавно обновлено'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="crm-knowledge-tab-btn" data-kb-tab="popular"><?= htmlspecialchars($t('knowledge.popular_title', 'Популярные'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="crm-knowledge-tab-btn" data-kb-tab="drafts"><?= htmlspecialchars($t('knowledge.drafts_title', 'Мои черновики'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="crm-knowledge-tab-btn" data-kb-tab="review"><?= htmlspecialchars($t('knowledge.review_title', 'На проверке'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="crm-knowledge-tab-btn" data-kb-tab="outdated"><?= htmlspecialchars($t('knowledge.outdated_title', 'Требуют актуализации'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+      <div id="knowledgeSearchResultsWrap" class="crm-knowledge-tab-panel">
+        <div id="knowledgeSearchInfo" class="crm-knowledge-search-info"></div>
+        <div id="knowledgeSearchResults"></div>
+      </div>
+      <div class="crm-knowledge-tab-panel is-active" data-kb-panel="recent">
+        <div id="knowledgeRecent"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
+      <div class="crm-knowledge-tab-panel" data-kb-panel="popular">
+        <div id="knowledgePopular"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
+      <div class="crm-knowledge-tab-panel" data-kb-panel="drafts">
+        <div id="knowledgeDrafts"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
+      <div class="crm-knowledge-tab-panel" data-kb-panel="review">
+        <div id="knowledgeReview"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
+      <div class="crm-knowledge-tab-panel" data-kb-panel="outdated">
+        <div id="knowledgeOutdated"><div class="text-muted p-3"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -138,6 +142,7 @@
   var urlParams = new URLSearchParams(window.location.search);
   var state = {
     spaces: [],
+    activeSpace: '',
     sourceEntity: {
       type: urlParams.get('entity_type') || '',
       publicId: urlParams.get('entity_public_id') || '',
@@ -153,6 +158,7 @@
     drafts: document.getElementById('knowledgeDrafts'),
     outdated: document.getElementById('knowledgeOutdated'),
     results: document.getElementById('knowledgeSearchResults'),
+    searchInfo: document.getElementById('knowledgeSearchInfo'),
     search: document.getElementById('knowledgeSearchInput'),
     searchButton: document.getElementById('knowledgeSearchButton'),
     pageForm: document.getElementById('knowledgePageForm'),
@@ -162,20 +168,21 @@
     pageTemplateWrap: document.getElementById('knowledgePageTemplateWrap'),
     pageTemplate: document.getElementById('knowledgePageTemplate'),
     pageContent: document.getElementById('knowledgePageContent'),
-    filterSpace: document.getElementById('knowledgeFilterSpace'),
     filterType: document.getElementById('knowledgeFilterType'),
     filterTag: document.getElementById('knowledgeFilterTag'),
-    filterReset: document.getElementById('knowledgeFilterReset')
+    filterReset: document.getElementById('knowledgeFilterReset'),
+    spaceView: document.getElementById('knowledgeSpaceView'),
+    spaceHeader: document.getElementById('knowledgeSpaceHeader'),
+    spacePagesList: document.getElementById('knowledgeSpacePagesList'),
+    tabView: document.getElementById('knowledgeTabView'),
+    searchResultsWrap: document.getElementById('knowledgeSearchResultsWrap')
   };
   function getApi() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
   }
   function waitForApi(callback, attempts) {
     var api = getApi();
-    if (api) {
-      callback(api);
-      return;
-    }
+    if (api) { callback(api); return; }
     if ((attempts || 0) > 80) {
       renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'));
       return;
@@ -194,13 +201,14 @@
   }
   function pageUrl(item) { return 'index.php?route=knowledge-page&id=' + encodeURIComponent(item.public_id || ''); }
   function renderList(target, items, emptyText, opts) {
-    if (!target) return;
+    if (!target) return '';
     if (!items || !items.length) {
-      target.innerHTML = '<div class="text-muted p-3">' + esc(emptyText) + '</div>';
-      return;
+      var emptyIcon = (opts && opts.emptyIcon) || 'fa-folder-open';
+      target.innerHTML = '<div class="crm-knowledge-empty"><i class="fa-solid ' + esc(emptyIcon) + '"></i><p>' + esc(emptyText) + '</p></div>';
+      return '';
     }
     var showExcerpt = opts && opts.excerpt;
-    target.innerHTML = items.map(function (item) {
+    var html = items.map(function (item) {
       var typeIconsMap = { article: 'fa-file-lines', instruction: 'fa-list-check', regulation: 'fa-scale-balanced', faq: 'fa-circle-question', checklist: 'fa-check-square', runbook: 'fa-book', meeting_note: 'fa-note-sticky', decision: 'fa-gavel', client_note: 'fa-address-card', project_note: 'fa-diagram-project', onboarding: 'fa-person-chalkboard' };
       var icon = typeIconsMap[item.page_type] || 'fa-file-lines';
       var typeIconHtml = '<i class="fa-solid ' + icon + '" style="margin-right:0.4rem;color:var(--crm-muted);width:1rem;text-align:center"></i>';
@@ -212,6 +220,8 @@
       var excerptHtml = showExcerpt && item.excerpt ? '<span class="crm-knowledge-excerpt">' + esc(item.excerpt.substring(0, 120)) + '</span>' : '';
       return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + typeIconHtml + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || '') + '</small>' + excerptHtml + '</span><i class="fa-solid fa-chevron-right"></i></a>';
     }).join('');
+    target.innerHTML = html;
+    return html;
   }
   function renderSpaces(items) {
     state.spaces = items || [];
@@ -219,28 +229,94 @@
       return '<option value="' + esc(space.public_id) + '">' + esc(space.title) + '</option>';
     }).join('');
     if (els.pageSpace) els.pageSpace.innerHTML = spaceOpts;
-    if (els.filterSpace) els.filterSpace.innerHTML = '<option value="">' + esc(t('knowledge.filter_all_spaces', 'Все разделы')) + '</option>' + spaceOpts;
     if (!els.spaces) return;
+    var allHtml = '<a href="javascript:void(0)" class="crm-knowledge-space-link' + (!state.activeSpace ? ' is-active' : '') + '" data-space="">' +
+      '<span class="crm-knowledge-space-mark" style="background:var(--crm-muted)"></span>' +
+      '<span class="crm-knowledge-space-info"><strong>' + esc(t('knowledge.all_spaces', 'Все разделы')) + '</strong><small>' + esc(t('knowledge.all_spaces_desc', 'Обзор всей базы знаний')) + '</small></span></a>';
     if (!state.spaces.length) {
-      els.spaces.innerHTML = '<div class="text-muted p-3">' + esc(t('knowledge.empty_spaces', 'Разделов пока нет.')) + '</div>';
+      els.spaces.innerHTML = allHtml + '<div class="crm-knowledge-empty" style="padding:1.5rem 1rem"><i class="fa-solid fa-folder-plus"></i><p>' + esc(t('knowledge.empty_spaces', 'Разделов пока нет. Создайте первый раздел.')) + '</p></div>';
       return;
     }
-    els.spaces.innerHTML = state.spaces.map(function (space) {
+    els.spaces.innerHTML = allHtml + state.spaces.map(function (space) {
       var desc = space.description || t('knowledge.no_description', 'Без описания');
       var count = space.pages_count || 0;
-      return '<a href="index.php?route=knowledge&amp;space=' + esc(space.public_id) + '" class="crm-knowledge-space-link" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-mark"></span><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
+      var active = state.activeSpace === space.public_id ? ' is-active' : '';
+      return '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-mark"></span><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
     }).join('');
-    var activeSpace = urlParams.get('space') || '';
-    if (activeSpace) {
-      els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (link) {
-        if (link.getAttribute('data-space') === activeSpace) link.classList.add('is-active');
-      });
-    }
   }
   function renderStats(totals) {
     if (!els.stats) return;
     var values = [totals.spaces || 0, totals.pages || 0, totals.published || 0, totals.drafts || 0];
     els.stats.querySelectorAll('strong').forEach(function (node, index) { node.textContent = String(values[index] || 0); });
+  }
+  function showTabView() {
+    if (els.spaceView) els.spaceView.classList.remove('is-active');
+    if (els.tabView) els.tabView.style.display = '';
+    if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
+    var tabPanels = document.querySelectorAll('[data-kb-panel]');
+    tabPanels.forEach(function (p) { p.classList.remove('is-active'); });
+    var recentPanel = document.querySelector('[data-kb-panel="recent"]');
+    if (recentPanel) recentPanel.classList.add('is-active');
+    document.querySelectorAll('[data-kb-tab]').forEach(function (btn) { btn.classList.toggle('is-active', btn.getAttribute('data-kb-tab') === 'recent'); });
+  }
+  function showSpaceView() {
+    if (els.tabView) els.tabView.style.display = 'none';
+    if (els.spaceView) els.spaceView.classList.add('is-active');
+    if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
+  }
+  function updateStatsForSpace(space) {
+    if (!els.stats) return;
+    var cards = els.stats.querySelectorAll('.crm-card');
+    if (!space) {
+      cards[0].querySelector('span').textContent = t('knowledge.stat_spaces', 'разделов');
+      cards[1].querySelector('span').textContent = t('knowledge.stat_pages', 'страниц');
+      cards[2].querySelector('span').textContent = t('knowledge.stat_published', 'опубликовано');
+      cards[3].querySelector('span').textContent = t('knowledge.stat_drafts', 'черновиков');
+      return;
+    }
+    cards[0].querySelector('span').textContent = t('knowledge.stat_pages_in_space', 'страниц в разделе');
+    cards[1].querySelector('span').textContent = t('knowledge.stat_published', 'опубликовано');
+    cards[2].querySelector('span').textContent = t('knowledge.stat_drafts', 'черновиков');
+    cards[3].querySelector('span').textContent = t('knowledge.stat_views', 'просмотров');
+  }
+  async function loadSpacePages(spaceId) {
+    var space = state.spaces.find(function (s) { return s.public_id === spaceId; });
+    if (!space) return;
+    showSpaceView();
+    updateStatsForSpace(space);
+    if (els.spaceHeader) {
+      els.spaceHeader.innerHTML = '<div class="crm-knowledge-space-header"><div class="crm-knowledge-space-header-info"><h3>' + esc(space.title) + '</h3>' +
+        (space.description ? '<p>' + esc(space.description) + '</p>' : '') +
+        '<div class="crm-knowledge-space-header-meta"><span><i class="fa-solid fa-file-lines" style="margin-right:0.3rem"></i>' + esc(space.pages_count || 0) + ' ' + esc(t('knowledge.stat_pages', 'страниц')) + '</span></div></div>' +
+        '<button class="btn btn-sm crm-btn-secondary" id="knowledgeSpaceShowAll"><i class="fa-solid fa-arrow-left" style="margin-right:0.3rem"></i>' + esc(t('knowledge.show_all', 'Все разделы')) + '</button></div>';
+      document.getElementById('knowledgeSpaceShowAll') && document.getElementById('knowledgeSpaceShowAll').addEventListener('click', function () { selectSpace(''); });
+    }
+    if (els.spacePagesList) {
+      els.spacePagesList.innerHTML = '<div class="text-muted p-3">' + esc(t('knowledge.loading', 'Загрузка...')) + '</div>';
+      try {
+        var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { space_public_id: spaceId } });
+        var pages = envelope.data && envelope.data.items || [];
+        if (!pages.length) {
+          els.spacePagesList.innerHTML = '<div class="crm-knowledge-empty"><i class="fa-solid fa-file-circle-plus"></i><p>' + esc(t('knowledge.empty_space_pages', 'В этом разделе пока нет страниц. Создайте первую страницу.')) + '</p></div>';
+        } else {
+          renderList(els.spacePagesList, pages, t('knowledge.empty_space_pages', 'В этом разделе пока нет страниц.'), { emptyIcon: 'fa-file-circle-plus' });
+        }
+      } catch (e) {
+        els.spacePagesList.innerHTML = '<div class="crm-knowledge-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</p></div>';
+      }
+    }
+  }
+  function selectSpace(spaceId) {
+    state.activeSpace = spaceId;
+    els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (link) {
+      link.classList.toggle('is-active', link.getAttribute('data-space') === spaceId);
+    });
+    if (spaceId) {
+      loadSpacePages(spaceId);
+    } else {
+      showTabView();
+      load();
+    }
   }
   async function load() {
     try {
@@ -248,35 +324,51 @@
       var data = envelope.data || {};
       renderStats(data.totals || {});
       renderSpaces(data.spaces || []);
-      renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'));
-      renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'));
-      renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'));
-      renderList(els.drafts, data.drafts || [], t('knowledge.empty_drafts', 'Нет черновиков.'));
-      renderList(els.outdated, data.outdated || [], t('knowledge.empty_outdated', 'Нет устаревших страниц.'));
+      renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
+      renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
+      renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });
+      renderList(els.drafts, data.drafts || [], t('knowledge.empty_drafts', 'Нет черновиков.'), { emptyIcon: 'fa-pencil' });
+      renderList(els.outdated, data.outdated || [], t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
     } catch (err) {
-      renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'));
+      renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'), { emptyIcon: 'fa-triangle-exclamation' });
     }
   }
   async function search() {
     var query = (els.search && els.search.value || '').trim();
     var params = {};
     if (query) params.q = query;
-    var sf = els.filterSpace && els.filterSpace.value || '';
+    if (state.activeSpace) params.space_public_id = state.activeSpace;
     var tf = els.filterType && els.filterType.value || '';
     var tg = els.filterTag && els.filterTag.value || '';
-    if (sf) params.space_public_id = sf;
     if (tf) params.page_type = tf;
     if (tg) params.tag_public_id = tg;
-    if (!query && !sf && !tf && !tg) {
-      renderList(els.results, [], t('knowledge.search_empty_hint', 'Введите запрос, чтобы найти материалы.'));
+    var hasFilter = !!(query || tf || tg);
+    if (!hasFilter && !state.activeSpace) {
+      if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
+      showTabView();
       return;
     }
     try {
       var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: params });
-      renderList(els.results, envelope.data && envelope.data.items || [], t('knowledge.search_empty', 'Ничего не найдено.'), { excerpt: true });
+      var items = envelope.data && envelope.data.items || [];
+      if (els.searchInfo) {
+        var countLabel = items.length + ' ' + (items.length === 1 ? t('knowledge.result_one', 'результат') : items.length < 5 ? t('knowledge.result_few', 'результата') : t('knowledge.result_many', 'результатов'));
+        els.searchInfo.innerHTML = '<span>' + esc(countLabel) + (query ? ' &middot; «' + esc(query) + '»' : '') + '</span><button type="button" class="crm-knowledge-search-clear" id="knowledgeSearchClear">' + esc(t('knowledge.clear_search', 'Очистить')) + '</button>';
+        document.getElementById('knowledgeSearchClear') && document.getElementById('knowledgeSearchClear').addEventListener('click', function () {
+          if (els.search) els.search.value = '';
+          if (els.filterType) els.filterType.value = '';
+          if (els.filterTag) els.filterTag.value = '';
+          if (els.filterReset) els.filterReset.style.display = 'none';
+          selectSpace(state.activeSpace);
+        });
+      }
+      renderList(els.results, items, t('knowledge.search_empty', 'Ничего не найдено.'), { excerpt: true, emptyIcon: 'fa-magnifying-glass' });
+      if (els.spaceView) els.spaceView.classList.remove('is-active');
+      if (els.tabView) els.tabView.style.display = 'none';
+      if (els.searchResultsWrap) els.searchResultsWrap.classList.add('is-active');
+      document.querySelectorAll('[data-kb-panel]').forEach(function (p) { p.classList.remove('is-active'); });
     } catch (err) {
-      renderList(els.results, [], t('knowledge.search_error', 'Не удалось выполнить поиск.'));
-      if (window.console && console.warn) console.warn('[CRM] Knowledge search failed', err);
+      renderList(els.results, [], t('knowledge.search_error', 'Не удалось выполнить поиск.'), { emptyIcon: 'fa-triangle-exclamation' });
     }
   }
   var debouncedSearch = window.CRM && CRM.debounce ? CRM.debounce(search, 350) : search;
@@ -308,49 +400,23 @@
     els.search.addEventListener('input', debouncedSearch);
     els.search.addEventListener('change', search);
     els.search.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        search();
-      }
+      if (event.key === 'Enter') { event.preventDefault(); search(); }
     });
   }
   if (els.searchButton) els.searchButton.addEventListener('click', search);
-
-  var searchResultsWrap = document.getElementById('knowledgeSearchResultsWrap');
-  var tabPanels = document.querySelectorAll('[data-kb-panel]');
   var tabBtns = document.querySelectorAll('[data-kb-tab]');
-  var activeSpaceFilter = urlParams.get('space') || '';
-
-  function showTab(tabName) {
-    tabBtns.forEach(function (btn) { btn.classList.toggle('is-active', btn.getAttribute('data-kb-tab') === tabName); });
-    tabPanels.forEach(function (panel) { panel.classList.toggle('is-active', panel.getAttribute('data-kb-panel') === tabName); });
-    if (searchResultsWrap) searchResultsWrap.classList.remove('is-active');
-  }
-
   tabBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () { showTab(btn.getAttribute('data-kb-tab')); });
+    btn.addEventListener('click', function () {
+      if (state.activeSpace) { selectSpace(''); return; }
+      tabBtns.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+      document.querySelectorAll('[data-kb-panel]').forEach(function (p) { p.classList.toggle('is-active', p.getAttribute('data-kb-panel') === btn.getAttribute('data-kb-tab')); });
+      if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
+    });
   });
-
-  function handleSearchVisibility() {
-    var query = (els.search && els.search.value || '').trim();
-    var sf = els.filterSpace && els.filterSpace.value || '';
-    var tf = els.filterType && els.filterType.value || '';
-    var tg = els.filterTag && els.filterTag.value || '';
-    var hasFilter = !!(query || sf || tf || tg);
-    if (searchResultsWrap) searchResultsWrap.classList.toggle('is-active', hasFilter);
-    tabPanels.forEach(function (panel) { panel.classList.toggle('is-active', !hasFilter && panel.getAttribute('data-kb-panel') === 'recent'); });
-  }
-
   document.querySelectorAll('.crm-knowledge-space-link[data-space]').forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
-      var spaceId = link.getAttribute('data-space');
-      if (els.filterSpace) els.filterSpace.value = spaceId;
-      search();
-      els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (l) { l.classList.remove('is-active'); });
-      link.classList.add('is-active');
-      if (searchResultsWrap) searchResultsWrap.classList.add('is-active');
-      tabPanels.forEach(function (p) { p.classList.remove('is-active'); });
+      selectSpace(link.getAttribute('data-space'));
     });
   });
   var templatesCache = {};
@@ -358,17 +424,14 @@
   function updateTypeIcon(type) {
     var iconEl = document.getElementById('knowledgeTypeIcon');
     if (!iconEl) return;
-    var icon = typeIcons[type] || 'fa-solid fa-file-lines';
-    iconEl.innerHTML = '<i class="' + icon + '"></i>';
+    iconEl.innerHTML = '<i class="' + (typeIcons[type] || 'fa-solid fa-file-lines') + '"></i>';
   }
   async function loadTemplates(pageType) {
     if (templatesCache[pageType]) return templatesCache[pageType];
     try {
       var envelope = await request('api/v1/knowledge/templates', { method: 'GET', query: { page_type: pageType } });
       templatesCache[pageType] = envelope.data && envelope.data.items || [];
-    } catch (e) {
-      templatesCache[pageType] = [];
-    }
+    } catch (e) { templatesCache[pageType] = []; }
     return templatesCache[pageType];
   }
   if (els.pageType) els.pageType.addEventListener('change', async function () {
@@ -378,10 +441,7 @@
     var wrap = els.pageTemplateWrap;
     var sel = els.pageTemplate;
     if (!wrap || !sel) return;
-    if (!items.length) {
-      wrap.style.display = 'none';
-      return;
-    }
+    if (!items.length) { wrap.style.display = 'none'; return; }
     sel.innerHTML = '<option value="">' + esc(t('knowledge.template_none', 'Без шаблона (пустой)')) + '</option>' + items.map(function (tmpl) {
       return '<option value="' + esc(tmpl.public_id) + '" data-content="' + esc(tmpl.content_html || '') + '">' + esc(tmpl.title) + '</option>';
     }).join('');
@@ -400,17 +460,9 @@
     if (page && page.public_id && state.sourceEntity.type && state.sourceEntity.publicId) {
       try {
         await request('api/v1/knowledge/pages/' + encodeURIComponent(page.public_id) + '/links', {
-          method: 'POST',
-          body: {
-            entity_type: state.sourceEntity.type,
-            entity_public_id: state.sourceEntity.publicId,
-            relation_type: 'related'
-          },
-          idempotent: true
+          method: 'POST', body: { entity_type: state.sourceEntity.type, entity_public_id: state.sourceEntity.publicId, relation_type: 'related' }, idempotent: true
         });
-      } catch (linkError) {
-        if (window.console && console.warn) console.warn('[CRM] Knowledge page created, but entity link failed', linkError);
-      }
+      } catch (linkError) { if (window.console && console.warn) console.warn('[CRM] Knowledge page created, but entity link failed', linkError); }
     }
     if (page && page.public_id) window.location.href = pageUrl(page);
   });
@@ -432,28 +484,26 @@
       }
     } catch (e) {}
   }
-  [els.filterSpace, els.filterType, els.filterTag].forEach(function (el) {
-    if (el) el.addEventListener('change', function () { search(); handleSearchVisibility(); });
+  [els.filterType, els.filterTag].forEach(function (el) {
+    if (el) el.addEventListener('change', function () {
+      var hasFilter = (els.filterType && els.filterType.value) || (els.filterTag && els.filterTag.value);
+      if (els.filterReset) els.filterReset.style.display = hasFilter || (els.search && els.search.value) ? '' : 'none';
+      search();
+    });
   });
   if (els.filterReset) els.filterReset.addEventListener('click', function () {
-    if (els.filterSpace) els.filterSpace.value = '';
     if (els.filterType) els.filterType.value = '';
     if (els.filterTag) els.filterTag.value = '';
     if (els.search) els.search.value = '';
-    search();
-    handleSearchVisibility();
-    els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (l) { l.classList.remove('is-active'); });
+    if (els.filterReset) els.filterReset.style.display = 'none';
+    selectSpace(state.activeSpace);
   });
+  var initSpace = urlParams.get('space') || '';
   waitForApi(function () {
     load();
     loadTags();
-    if (activeSpaceFilter && els.filterSpace) {
-      window.setTimeout(function () {
-        els.filterSpace.value = activeSpaceFilter;
-        search();
-        if (searchResultsWrap) searchResultsWrap.classList.add('is-active');
-        tabPanels.forEach(function (p) { p.classList.remove('is-active'); });
-      }, 300);
+    if (initSpace) {
+      window.setTimeout(function () { selectSpace(initSpace); }, 300);
     }
     if (state.sourceEntity.type && state.sourceEntity.publicId) {
       window.setTimeout(function () {

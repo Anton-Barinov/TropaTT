@@ -13951,6 +13951,96 @@ textarea.form-control.crm-knowledge-editor {
   display: none;
 }
 
+.crm-knowledge-space-view {
+  display: none;
+}
+
+.crm-knowledge-space-view.is-active {
+  display: block;
+}
+
+.crm-knowledge-space-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-space-header-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.crm-knowledge-space-header h3 {
+  margin: 0 0 0.15rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.crm-knowledge-space-header p {
+  margin: 0;
+  color: var(--crm-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.crm-knowledge-space-header-meta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  color: var(--crm-muted);
+  font-size: 0.78rem;
+}
+
+.crm-knowledge-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1rem;
+  color: var(--crm-muted);
+  text-align: center;
+}
+
+.crm-knowledge-empty i {
+  font-size: 2rem;
+  opacity: 0.35;
+}
+
+.crm-knowledge-empty p {
+  margin: 0;
+  font-size: 0.86rem;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.crm-knowledge-search-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--crm-border);
+  color: var(--crm-muted);
+  font-size: 0.82rem;
+}
+
+.crm-knowledge-search-clear {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+.crm-knowledge-search-clear:hover {
+  text-decoration: underline;
+}
+
 .crm-knowledge-toc {
   display: flex;
   flex-direction: column;
