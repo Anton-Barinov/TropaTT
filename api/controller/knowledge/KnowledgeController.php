@@ -350,6 +350,9 @@ final class KnowledgeController extends BaseController
 
     public function approveReview(array $params): JsonResponse
     {
+        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
         $auth = $this->user();
         $page = $this->repo()->publish((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('change_summary', ''));
         if (!$page) {
@@ -799,6 +802,18 @@ final class KnowledgeController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $stmt = $this->container->get('db.pdo')->prepare('SELECT entity_type, entity_public_id FROM files WHERE public_id = :public_id AND is_deleted = 0 LIMIT 1');
+        $stmt->execute(['public_id' => (string)$params['file_public_id']]);
+        $fileRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$fileRow) {
+            return $this->error('FILE_NOT_FOUND', $this->t('file/messages.not_found', 'File not found'), 404);
+        }
+        if (($fileRow['entity_type'] ?? '') === 'knowledge_page') {
+            if (!$this->requirePageAccess((string)$fileRow['entity_public_id'], 'edit')) {
+                return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+            }
         }
 
         /** @var FileService $service */

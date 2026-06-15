@@ -54,11 +54,16 @@ final class KnowledgeRepository
         [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, (string)($filters['min_access'] ?? 'view'));
         $where[] = $aclSql;
         $params += $aclParams;
-        $stmt = $this->pdo->prepare('SELECT s.* FROM knowledge_spaces s WHERE ' . implode(' AND ', $where) . ' ORDER BY s.sort_order ASC, s.title ASC');
+        $stmt = $this->pdo->prepare(
+            'SELECT s.*, '
+            . '(SELECT COUNT(*) FROM knowledge_pages p WHERE p.space_id = s.id AND p.deleted_at IS NULL) AS pages_count '
+            . 'FROM knowledge_spaces s WHERE ' . implode(' AND ', $where)
+            . ' ORDER BY s.sort_order ASC, s.title ASC'
+        );
         $stmt->execute($params);
         $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($spaces as &$space) {
-            $space['pages_count'] = $this->countPages((int)$space['id'], $actor);
+            $space['pages_count'] = (int)($space['pages_count'] ?? 0);
             $space['is_archived'] = (int)($space['is_archived'] ?? 0);
         }
         unset($space);
@@ -92,13 +97,16 @@ final class KnowledgeRepository
     public function space(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
         [$aclSql, $aclParams] = $this->spaceAccessSql('s', $actor, $minAccess);
-        $stmt = $this->pdo->prepare("SELECT s.* FROM knowledge_spaces s WHERE s.public_id = :public_id AND {$aclSql} LIMIT 1");
+        $stmt = $this->pdo->prepare(
+            "SELECT s.*, (SELECT COUNT(*) FROM knowledge_pages p WHERE p.space_id = s.id AND p.deleted_at IS NULL) AS pages_count "
+            . "FROM knowledge_spaces s WHERE s.public_id = :public_id AND {$aclSql} LIMIT 1"
+        );
         $stmt->execute(['public_id' => $publicId] + $aclParams);
         $space = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($space)) {
             return null;
         }
-        $space['pages_count'] = $this->countPages((int)$space['id'], $actor);
+        $space['pages_count'] = (int)($space['pages_count'] ?? 0);
         return $space;
     }
 
@@ -330,6 +338,12 @@ final class KnowledgeRepository
 
     public function tree(string $spacePublicId, int $depth = 10, ?array $actor = null): array
     {
+        static $cache = [];
+        $actorId = $this->actorUserId($actor);
+        $cacheKey = $spacePublicId . '|' . ($actorId ?? '0');
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
         $space = $this->space($spacePublicId, $actor);
         if (!$space) {
             return [];
@@ -338,7 +352,9 @@ final class KnowledgeRepository
         $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.space_id = :space_id AND p.deleted_at IS NULL AND {$aclSql} ORDER BY COALESCE(p.parent_id, 0), p.sort_order ASC, p.title ASC");
         $stmt->execute(['space_id' => (int)$space['id']] + $aclParams);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        return $this->buildTree($rows, null, 0, max(1, $depth));
+        $result = $this->buildTree($rows, null, 0, max(1, $depth));
+        $cache[$cacheKey] = $result;
+        return $result;
     }
 
     public function pages(array $filters = [], ?array $actor = null): array
@@ -782,6 +798,7 @@ final class KnowledgeRepository
         }
         $publicId = $this->publicId('kbc');
         $now = gmdate('Y-m-d H:i:s');
+        $body = strip_tags($body);
         $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
@@ -1014,11 +1031,41 @@ final class KnowledgeRepository
             $params['page_type'] = (string)$filters['page_type'];
         }
         if (!empty($filters['q'])) {
-            $like = '%' . (string)$filters['q'] . '%';
-            $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
-            $params['q_title'] = $like;
-            $params['q_content'] = $like;
-            $params['q_space'] = $like;
+            $q = (string)$filters['q'];
+            $like = '%' . $q . '%';
+            if (strlen($q) >= 4) {
+                $safeQ = preg_replace('/[^\p{L}\p{N}\s\-\_\']/u', ' ', $q);
+                $safeQ = trim(preg_replace('/\s+/', ' ', $safeQ));
+                if ($safeQ !== '') {
+                    $words = explode(' ', $safeQ);
+                    $terms = [];
+                    foreach ($words as $w) {
+                        $w = trim($w);
+                        if (strlen($w) >= 2) {
+                            $terms[] = '+' . $w . '*';
+                        }
+                    }
+                    if ($terms !== []) {
+                        $where[] = 'MATCH(p.title, p.content_text) AGAINST(:q_ft IN BOOLEAN MODE)';
+                        $params['q_ft'] = implode(' ', $terms);
+                    } else {
+                        $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
+                        $params['q_title'] = $like;
+                        $params['q_content'] = $like;
+                        $params['q_space'] = $like;
+                    }
+                } else {
+                    $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
+                    $params['q_title'] = $like;
+                    $params['q_content'] = $like;
+                    $params['q_space'] = $like;
+                }
+            } else {
+                $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
+                $params['q_title'] = $like;
+                $params['q_content'] = $like;
+                $params['q_space'] = $like;
+            }
         }
         if (!empty($filters['tag_public_id'])) {
             $where[] = 'EXISTS(SELECT 1 FROM entity_tags et2 INNER JOIN tags tg2 ON tg2.id = et2.tag_id WHERE et2.entity_type = :tag_entity_type AND et2.entity_public_id = p.public_id AND tg2.public_id = :tag_public_id)';
@@ -1235,15 +1282,16 @@ final class KnowledgeRepository
         if ($userId <= 0) {
             return [];
         }
-        $stmt = $this->pdo->query('SELECT id, manager_user_id, created_by_user_id, member_user_ids FROM teams');
-        $rows = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
-        $ids = [];
-        foreach ($rows as $row) {
-            if ((int)($row['manager_user_id'] ?? 0) === $userId || (int)($row['created_by_user_id'] ?? 0) === $userId || in_array($userId, $this->decodeIdList($row['member_user_ids'] ?? null), true)) {
-                $ids[] = (int)$row['id'];
-            }
+        static $cache = [];
+        if (isset($cache[$userId])) {
+            return $cache[$userId];
         }
-        return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+        $stmt = $this->pdo->prepare('SELECT id FROM teams WHERE manager_user_id = :uid1 OR created_by_user_id = :uid2 OR FIND_IN_SET(:uid3, COALESCE(member_user_ids, \'\')) > 0');
+        $stmt->execute(['uid1' => $userId, 'uid2' => $userId, 'uid3' => $userId]);
+        $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+        $ids = array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+        $cache[$userId] = $ids;
+        return $ids;
     }
 
     private function actorDepartmentIds(int $userId): array
@@ -1251,9 +1299,15 @@ final class KnowledgeRepository
         if ($userId <= 0) {
             return [];
         }
+        static $cache = [];
+        if (isset($cache[$userId])) {
+            return $cache[$userId];
+        }
         $stmt = $this->pdo->prepare('SELECT id FROM departments WHERE manager_user_id = :user_id');
         $stmt->execute(['user_id' => $userId]);
-        return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+        $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+        $cache[$userId] = $ids;
+        return $ids;
     }
 
     private function resolvePermissionSubjectId(string $subjectType, int $subjectId, string $subjectPublicId): int
@@ -1486,10 +1540,12 @@ final class KnowledgeRepository
 
     private function sanitizeHtml(string $html): string
     {
-        $html = preg_replace('#<(script|style|iframe|object|embed|form|input|button)[^>]*>.*?</\1>#is', '', $html) ?? '';
-        $html = preg_replace('#</?(script|style|iframe|object|embed|form|input|button)[^>]*>#i', '', $html) ?? '';
+        $html = preg_replace('#<(script|style|iframe|object|embed|form|input|button|svg|math)[^>]*>.*?</\1>#is', '', $html) ?? '';
+        $html = preg_replace('#</?(script|style|iframe|object|embed|form|input|button|svg|math)[^>]*>#i', '', $html) ?? '';
         $html = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? '';
-        $html = preg_replace('/(href|src)\s*=\s*("|\')\s*javascript:[^"\']*("|\')/i', '$1="#"', $html) ?? '';
+        $html = preg_replace('/(href|src|action|formaction)\s*=\s*("|\')\s*(javascript|data|vbscript):[^"\']*("|\')/i', '$1="#"', $html) ?? '';
+        $html = preg_replace('/<meta[^>]*>/i', '', $html) ?? '';
+        $html = preg_replace('/<link[^>]*>/i', '', $html) ?? '';
         return trim($html);
     }
 
