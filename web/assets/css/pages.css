@@ -13459,13 +13459,26 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-side hr {
-  margin: 1.15rem 0;
+  margin: 0.85rem 0;
   border-color: var(--crm-border);
   opacity: 1;
 }
 
+.crm-knowledge-side-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.crm-knowledge-side-actions .btn {
+  min-height: 34px;
+}
+
 .crm-knowledge-side .btn {
-  min-height: 38px;
+  min-height: 34px;
+}
+
+.crm-knowledge-side-meta-collapsed {
+  font-size: 0.86rem;
 }
 
 .crm-knowledge-side > .d-flex,
@@ -13527,15 +13540,15 @@ textarea.form-control.crm-knowledge-editor {
   padding: 0;
 }
 
-.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a {
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a,
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item-row > a {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  min-height: 30px;
-  padding: 0.25rem 0.5rem;
-  border: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.32rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: transparent;
   color: var(--crm-text);
   font-size: 0.86rem;
   font-weight: 500;
@@ -13544,7 +13557,8 @@ textarea.form-control.crm-knowledge-editor {
   transition: background 0.12s;
 }
 
-.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a:hover {
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a:hover,
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item-row > a:hover {
   background: var(--crm-surface-2);
   color: var(--crm-text);
 }
@@ -13605,11 +13619,15 @@ textarea.form-control.crm-knowledge-editor {
   text-decoration: none;
 }
 
-.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a {
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a,
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > .crm-knowledge-tree-item-row > a {
   color: var(--crm-primary) !important;
+  background: rgba(var(--color-primary-rgb, 15, 143, 114), 0.08);
+  font-weight: 600;
 }
 
-.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a::before {
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > a::before,
+.crm-knowledge-page-detail .crm-knowledge-tree-sidebar .crm-knowledge-tree-active > .crm-knowledge-tree-item-row > a::before {
   content: "";
   width: 0.42rem;
   height: 0.42rem;

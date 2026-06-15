@@ -8,7 +8,7 @@
   ['label' => $t('page.home', 'Главная'), 'href' => 'index.php?route=dashboard'],
   ['label' => $t('knowledge.page_title', 'База знаний'), 'href' => 'index.php?route=knowledge'],
   ['label' => $t('knowledge_page.page_title', 'Материал'), 'active' => true],
-], $t('knowledge_page.page_title', 'Материал'), $t('knowledge_page.subtitle', 'Просмотр, редактирование и публикация знаний команды.'), '<div class="d-flex gap-2 flex-wrap"><a class="btn crm-btn-secondary" href="index.php?route=knowledge">' . htmlspecialchars($t('knowledge.back_to_list', 'К базе знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary" type="button" id="knowledgeEditBtn">' . htmlspecialchars($t('knowledge_page.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') . '</button><div class="btn-group"><button class="btn crm-btn-secondary dropdown-toggle" type="button" id="knowledgeExportBtn" data-bs-toggle="dropdown" aria-expanded="false">' . htmlspecialchars($t('knowledge_page.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') . '</button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="knowledgeExportBtn"><li><a class="dropdown-item" href="#" data-export-format="json">' . htmlspecialchars($t('knowledge_page.export_json', 'JSON'), ENT_QUOTES, 'UTF-8') . '</a></li><li><a class="dropdown-item" href="#" data-export-format="markdown">' . htmlspecialchars($t('knowledge_page.export_markdown', 'Markdown'), ENT_QUOTES, 'UTF-8') . '</a></li></ul></div><button class="btn crm-btn-primary" type="button" id="knowledgePublishBtn">' . htmlspecialchars($t('knowledge_page.btn_publish', 'Опубликовать'), ENT_QUOTES, 'UTF-8') . '</button></div>'); ?>
+], $t('knowledge_page.page_title', 'Материал'), $t('knowledge_page.subtitle', 'Просмотр, редактирование и публикация знаний команды.'), '<div class="d-flex gap-2 flex-wrap"><a class="btn crm-btn-secondary btn-sm" href="index.php?route=knowledge"><i class="fa-solid fa-arrow-left" style="margin-right:0.3rem"></i>' . htmlspecialchars($t('knowledge.back_to_list', 'К базе знаний'), ENT_QUOTES, 'UTF-8') . '</a><button class="btn crm-btn-secondary btn-sm" type="button" id="knowledgeEditBtn"><i class="fa-solid fa-pen" style="margin-right:0.3rem"></i>' . htmlspecialchars($t('knowledge_page.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') . '</button></div>'); ?>
 
 <div class="crm-knowledge-detail-layout">
   <div class="crm-knowledge-center">
@@ -99,53 +99,67 @@
     </section>
   </div>
   <aside class="crm-card crm-section-card crm-knowledge-side">
-    <h2 class="h5"><?= htmlspecialchars($t('knowledge_page.meta_title', 'Состояние'), ENT_QUOTES, 'UTF-8') ?></h2>
+    <div class="crm-knowledge-side-actions">
+      <button class="btn crm-btn-primary btn-sm w-100" type="button" id="knowledgePublishBtn"><?= htmlspecialchars($t('knowledge_page.btn_publish', 'Опубликовать'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-secondary btn-sm w-100" type="button" id="knowledgeReviewBtn"><?= htmlspecialchars($t('knowledge_page.btn_request_review', 'На проверку'), ENT_QUOTES, 'UTF-8') ?></button>
+      <div class="dropdown w-100">
+        <button class="btn crm-btn-secondary btn-sm w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-download" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_export', 'Экспорт'), ENT_QUOTES, 'UTF-8') ?></button>
+        <ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="#" data-export-format="json">JSON</a></li><li><a class="dropdown-item" href="#" data-export-format="markdown">Markdown</a></li></ul>
+      </div>
+    </div>
+    <hr>
     <dl class="crm-knowledge-meta">
       <dt><?= htmlspecialchars($t('knowledge.field_space', 'Раздел'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaSpace">—</dd>
       <dt><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaType">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.updated_at', 'Обновлено'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaUpdated">—</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.views', 'Просмотры'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaViews">0</dd>
       <dt><?= htmlspecialchars($t('knowledge_page.review_due_at_label', 'Проверка до'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaReviewDue">—</dd>
-      <dt><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></dt><dd id="knowledgeMetaTags"><span class="text-muted small">—</span></dd>
     </dl>
-    <div class="d-flex gap-2 mb-2">
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeFavBtn"><?= htmlspecialchars($t('knowledge_page.favorite_add', 'В избранное'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeSubBtn"><?= htmlspecialchars($t('knowledge_page.subscribe', 'Подписаться'), ENT_QUOTES, 'UTF-8') ?></button>
-    </div>
-    <div class="d-grid gap-2">
-      <button class="btn crm-btn-secondary" type="button" id="knowledgePermissionsBtn"><?= htmlspecialchars($t('knowledge_page.btn_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn crm-btn-secondary" type="button" id="knowledgeReviewBtn"><?= htmlspecialchars($t('knowledge_page.btn_request_review', 'Отправить на проверку'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn crm-btn-danger-soft" type="button" id="knowledgeArchiveBtn"><?= htmlspecialchars($t('knowledge_page.btn_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
+    <hr>
+    <div class="crm-knowledge-side-tags">
+      <h3 class="h6 mb-2"><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></h3>
+      <div id="knowledgeTagsList" class="mb-2 d-flex flex-wrap gap-1"><span class="text-muted small">—</span></div>
+      <div class="input-group input-group-sm">
+        <select id="knowledgeTagSelect" class="form-select" style="min-width:80px"><option value=""><?= htmlspecialchars($t('knowledge_page.tag_select_hint', 'Выбрать тег...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+        <button class="btn crm-btn-primary" type="button" id="knowledgeTagAddBtn" disabled>+</button>
+      </div>
     </div>
     <hr>
-    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></h3>
-    <div class="d-grid gap-2 mb-2">
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSummaryBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_summary', 'Краткое содержание'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiExplainBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_explain', 'Объяснить проще'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiChecklistBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSimilarBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_similar', 'Похожие страницы'), ENT_QUOTES, 'UTF-8') ?></button>
-      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiFaqBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_faq', 'FAQ из комментариев'), ENT_QUOTES, 'UTF-8') ?></button>
-    </div>
-    <div id="knowledgeAiResult" class="crm-knowledge-ai-result d-none">
-      <div id="knowledgeAiResultTitle" class="fw-bold small mb-1"></div>
-      <div id="knowledgeAiResultBody" class="small text-muted crm-knowledge-ai-body"></div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm crm-btn-secondary flex-1" type="button" id="knowledgeFavBtn"><i class="fa-regular fa-star" style="margin-right:0.25rem"></i><?= htmlspecialchars($t('knowledge_page.favorite_add', 'В избранное'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-secondary flex-1" type="button" id="knowledgeSubBtn"><i class="fa-regular fa-bell" style="margin-right:0.25rem"></i><?= htmlspecialchars($t('knowledge_page.subscribe', 'Подписаться'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
     <div id="knowledgeTocContainer" class="d-none">
       <hr>
       <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.toc_title', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></h3>
       <nav id="knowledgeToc" class="crm-knowledge-toc"></nav>
     </div>
-    <hr>
-    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></h3>
-    <div id="knowledgeTagsList" class="mb-2 d-flex flex-wrap gap-1"><span class="text-muted small">—</span></div>
-    <div class="input-group input-group-sm">
-      <select id="knowledgeTagSelect" class="form-select" style="min-width:80px"><option value=""><?= htmlspecialchars($t('knowledge_page.tag_select_hint', 'Выбрать тег...'), ENT_QUOTES, 'UTF-8') ?></option></select>
-      <button class="btn crm-btn-primary" type="button" id="knowledgeTagAddBtn" disabled><?= htmlspecialchars($t('knowledge_page.tag_add', '+'), ENT_QUOTES, 'UTF-8') ?></button>
+    <div id="knowledgeAiSection">
+      <hr>
+      <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></h3>
+      <div class="d-grid gap-1">
+        <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSummaryBtn"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_ai_summary', 'Краткое содержание'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiExplainBtn"><i class="fa-solid fa-lightbulb" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_ai_explain', 'Объяснить проще'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiChecklistBtn"><i class="fa-solid fa-list-check" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_ai_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSimilarBtn"><i class="fa-solid fa-copy" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_ai_similar', 'Похожие страницы'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiFaqBtn"><i class="fa-solid fa-circle-question" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_ai_faq', 'FAQ из комментариев'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+      <div id="knowledgeAiResult" class="crm-knowledge-ai-result d-none mt-2">
+        <div id="knowledgeAiResultTitle" class="fw-bold small mb-1"></div>
+        <div id="knowledgeAiResultBody" class="small text-muted crm-knowledge-ai-body"></div>
+      </div>
     </div>
     <hr>
-    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.versions_title', 'Версии'), ENT_QUOTES, 'UTF-8') ?></h3>
-    <div id="knowledgeVersions" class="crm-knowledge-version-list"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-    <div id="knowledgeDiffContainer" class="d-none mt-2"><h4 class="h6"><?= htmlspecialchars($t('knowledge_page.diff_title', 'Сравнение'), ENT_QUOTES, 'UTF-8') ?></h4><div id="knowledgeDiffContent" class="crm-knowledge-diff small"></div></div>
+    <div class="crm-knowledge-side-meta-collapsed">
+      <h3 class="h6 mb-2"><?= htmlspecialchars($t('knowledge_page.versions_title', 'Версии'), ENT_QUOTES, 'UTF-8') ?></h3>
+      <div id="knowledgeVersions" class="crm-knowledge-version-list"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+      <div id="knowledgeDiffContainer" class="d-none mt-2"><h4 class="h6"><?= htmlspecialchars($t('knowledge_page.diff_title', 'Сравнение'), ENT_QUOTES, 'UTF-8') ?></h4><div id="knowledgeDiffContent" class="crm-knowledge-diff small"></div></div>
+    </div>
+    <hr>
+    <div class="d-grid gap-2">
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgePermissionsBtn"><i class="fa-solid fa-shield-halved" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_permissions', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-danger-soft" type="button" id="knowledgeArchiveBtn"><i class="fa-solid fa-box-archive" style="margin-right:0.3rem"></i><?= htmlspecialchars($t('knowledge_page.btn_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
   </aside>
 </div>
 </main></div></div>
