@@ -3797,9 +3797,10 @@ window.CRM.pageApiBindings = (function () {
     var remindersEnvelope = results[4];
     var projectsEnvelope = results[5];
     var myDayEnvelope = results[6];
-    var aiSuggestionsEnvelope = results[7];
-    var knowledgeOverviewEnvelope = results[9];
+    var knowledgeOverviewEnvelope = results[7];
+    var aiSuggestionsEnvelope = results[8];
     var knowledgeOverview = knowledgeOverviewEnvelope && knowledgeOverviewEnvelope.data || null;
+    var quickActionUsersEnvelope = results[9];
 
     function dateTimeLabel(value) {
       if (!value) return '—';
