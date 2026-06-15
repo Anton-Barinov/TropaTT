@@ -13566,6 +13566,29 @@ textarea.form-control.crm-knowledge-editor {
   flex: 1 1 auto;
 }
 
+.crm-knowledge-attach-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.crm-knowledge-attach-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--crm-border, #eaeef2);
+}
+
+.crm-knowledge-attach-list li:last-child {
+  border-bottom: none;
+}
+
+.crm-knowledge-attach-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .crm-knowledge-file-form .form-control {
   flex: 1 1 auto;
 }

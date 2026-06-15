@@ -644,7 +644,10 @@
       return;
     }
     els.attachList.innerHTML = '<ul class="crm-knowledge-attach-list">' + items.map(function (f) {
-      return '<li>' + esc(f.original_name) + ' <span class="text-muted small">(' + esc(f.size_bytes || 0) + ' B)</span> <button class="btn btn-sm crm-btn-danger-soft" data-attach-delete="' + esc(f.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.attachments_delete', 'Удалить')) + '</button></li>';
+      var isImage = (f.mime_type || '').indexOf('image/') === 0;
+      var sizeLabel = f.size_bytes >= 1048576 ? (f.size_bytes / 1048576).toFixed(1) + ' MB' : f.size_bytes >= 1024 ? (f.size_bytes / 1024).toFixed(0) + ' KB' : f.size_bytes + ' B';
+      var preview = isImage ? '<a href="api/v1/files/' + esc(f.public_id) + '/download" target="_blank" rel="noopener"><img src="api/v1/files/' + esc(f.public_id) + '/download" alt="' + esc(f.original_name) + '" style="max-width:120px;max-height:80px;border-radius:4px;object-fit:cover;display:block;margin-bottom:4px" loading="lazy"></a>' : '';
+      return '<li>' + preview + '<div class="crm-knowledge-attach-info"><a href="api/v1/files/' + esc(f.public_id) + '/download" target="_blank" rel="noopener">' + esc(f.original_name) + '</a> <span class="text-muted small">(' + sizeLabel + ')</span> <button class="btn btn-sm crm-btn-danger-soft" data-attach-delete="' + esc(f.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.attachments_delete', 'Удалить')) + '</button></div></li>';
     }).join('') + '</ul>';
   }
   async function uploadFile(file) {
