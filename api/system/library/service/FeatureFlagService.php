@@ -86,7 +86,15 @@ final class FeatureFlagService
     {
         $now = gmdate('Y-m-d H:i:s');
         foreach ($this->defaults as $code => $enabled) {
-            if ($this->repo->findByCode((string)$code)) {
+            $existing = $this->repo->findByCode((string)$code);
+            if ($existing) {
+                $currentValue = (int)($existing['is_enabled'] ?? 0) === 1;
+                if ($currentValue !== (bool)$enabled) {
+                    $this->repo->updateByPublicId((string)($existing['public_id'] ?? ''), [
+                        'is_enabled' => $enabled ? 1 : 0,
+                        'updated_at' => $now,
+                    ]);
+                }
                 continue;
             }
 
