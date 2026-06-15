@@ -1380,4 +1380,51 @@ final class KnowledgeController extends BaseController
             'link' => $link,
         ], $actorId);
     }
+
+    public function adminGetSettings(): JsonResponse
+    {
+        $settings = $this->container->get('service.setting');
+        $items = $settings->list(['scope' => 'knowledge', 'limit' => 100]);
+        $map = [];
+        foreach (($items['items'] ?? []) as $item) {
+            $map[(string)$item['name']] = $item['value'] ?? null;
+        }
+        return $this->success('KNOWLEDGE_SETTINGS', 'Settings loaded', [
+            'settings' => $map,
+        ]);
+    }
+
+    public function adminUpdateSettings(): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $settings = $this->container->get('service.setting');
+        foreach ($input as $name => $value) {
+            $settings->set('knowledge', (string)$name, $value);
+        }
+        return $this->success('KNOWLEDGE_SETTINGS_UPDATED', 'Settings updated');
+    }
+
+    public function adminReindex(): JsonResponse
+    {
+        $this->repo()->reindexSearch();
+        return $this->success('KNOWLEDGE_REINDEX_STARTED', 'Search index rebuild completed');
+    }
+
+    public function adminRebuildPermissions(): JsonResponse
+    {
+        $pdo = $this->container->get('db.pdo');
+        $pdo->exec('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1');
+        return $this->success('KNOWLEDGE_PERMISSIONS_REBUILT', 'Permissions version bumped');
+    }
+
+    public function adminCleanupDrafts(): JsonResponse
+    {
+        $stmt = $this->container->get('db.pdo')->prepare("DELETE FROM knowledge_drafts WHERE updated_at < :cutoff");
+        $cutoff = gmdate('Y-m-d H:i:s', time() - 90 * 86400);
+        $stmt->execute(['cutoff' => $cutoff]);
+        $deleted = $stmt->rowCount();
+        return $this->success('KNOWLEDGE_DRAFTS_CLEANED', 'Old drafts cleaned', [
+            'deleted_count' => $deleted,
+        ]);
+    }
 }

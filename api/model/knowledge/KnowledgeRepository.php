@@ -1538,6 +1538,15 @@ final class KnowledgeRepository
         return $prefix . '_' . bin2hex(random_bytes(10));
     }
 
+    public function reindexSearch(): void
+    {
+        $this->pdo->exec("UPDATE knowledge_pages SET content_text = TRIM(REGEXP_REPLACE(REGEXP_REPLACE(content_html, '<[^>]+>', ' '), '[[:space:]]+', ' ')) WHERE content_text IS NULL OR content_text = ''");
+        $res = $this->pdo->query("SHOW INDEX FROM knowledge_pages WHERE Key_name = 'ft_search'");
+        if (!$res || $res->rowCount() === 0) {
+            $this->pdo->exec('ALTER TABLE knowledge_pages ADD FULLTEXT INDEX ft_search (title, content_text)');
+        }
+    }
+
     private function sanitizeHtml(string $html): string
     {
         $html = preg_replace('#<(script|style|iframe|object|embed|form|input|button|svg|math)[^>]*>.*?</\1>#is', '', $html) ?? '';

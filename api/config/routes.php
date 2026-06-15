@@ -296,6 +296,13 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/ai/admin/find-orphans', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'findOrphans', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/ai/admin/suggest-structure/{public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'suggestStructure', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
 
+    // knowledge admin settings
+    ['methods' => ['GET'], 'pattern' => '/api/v1/admin/knowledge/settings', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminGetSettings', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/admin/knowledge/settings', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminUpdateSettings', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/reindex', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminReindex', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/rebuild-permissions', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminRebuildPermissions', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/admin/knowledge/cleanup-drafts', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminCleanupDrafts', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'create', 'auth' => true],
