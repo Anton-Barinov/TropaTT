@@ -584,15 +584,47 @@
       var envelope = await request('api/v1/knowledge/spaces/' + encodeURIComponent(page.space_public_id) + '/tree', { method: 'GET', query: { depth: 10 } });
       var items = envelope.data && envelope.data.items || [];
       els.tree.innerHTML = renderTreeNodes(items);
+      initTreeToggles();
     } catch (e) { els.tree.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.load_error', 'Ошибка')) + '</div>'; }
   }
-  function renderTreeNodes(nodes) {
-    if (!nodes || !nodes.length) return '<div class="text-muted small">—</div>';
+  function initTreeToggles() {
+    if (!els.tree) return;
+    els.tree.querySelectorAll('[data-tree-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var li = btn.closest('.crm-knowledge-tree-item');
+        if (!li) return;
+        var isOpen = btn.classList.contains('is-open');
+        btn.classList.toggle('is-open', !isOpen);
+        li.classList.toggle('is-collapsed', isOpen);
+      });
+    });
+    els.tree.querySelectorAll('.crm-knowledge-tree-item').forEach(function (li) {
+      var active = li.querySelector('.crm-knowledge-tree-active');
+      if (!active) return;
+      var parent = li.parentElement;
+      while (parent && parent !== els.tree) {
+        if (parent.classList && parent.classList.contains('crm-knowledge-tree-item')) {
+          parent.classList.remove('is-collapsed');
+          var toggle = parent.querySelector(':scope > .crm-knowledge-tree-item-row > [data-tree-toggle]');
+          if (toggle) toggle.classList.add('is-open');
+        }
+        parent = parent.parentElement;
+      }
+    });
+  }
+  function renderTreeNodes(nodes, depth) {
+    if (!nodes || !nodes.length) return '';
+    depth = depth || 0;
     var html = '<ul class="crm-knowledge-tree-list">';
     nodes.forEach(function (n) {
       var active = n.public_id === pageId ? ' crm-knowledge-tree-active' : '';
-      html += '<li class="crm-knowledge-tree-item' + active + '"><a href="index.php?route=knowledge-page&amp;id=' + esc(n.public_id) + '">' + esc(n.title) + '</a>';
-      if (n.children && n.children.length) html += renderTreeNodes(n.children);
+      var hasChildren = n.children && n.children.length;
+      var toggleHtml = hasChildren ? '<button type="button" class="crm-knowledge-tree-toggle is-open" data-tree-toggle aria-label="Toggle"><i class="fa-solid fa-chevron-right"></i></button>' : '';
+      html += '<li class="crm-knowledge-tree-item' + active + '">';
+      html += '<div class="crm-knowledge-tree-item-row">' + toggleHtml + '<a href="index.php?route=knowledge-page&amp;id=' + esc(n.public_id) + '">' + esc(n.title) + '</a></div>';
+      if (hasChildren) html += renderTreeNodes(n.children, depth + 1);
       html += '</li>';
     });
     html += '</ul>';

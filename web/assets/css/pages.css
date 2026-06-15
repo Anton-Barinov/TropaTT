@@ -13468,12 +13468,9 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-page-detail .crm-card.crm-section-card.crm-knowledge-tree-sidebar {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.45rem 0.7rem;
+  display: block;
   margin: 0;
-  padding: 0.15rem 0 0.25rem;
+  padding: 0.6rem 0.75rem 0.75rem;
   border: 0;
   border-radius: 0;
   background: transparent !important;
@@ -13483,8 +13480,7 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-tree-sidebar h3 {
-  flex: 0 0 auto;
-  margin: 0;
+  margin: 0 0 0.5rem;
   color: var(--crm-muted);
   font-size: 0.78rem;
   font-weight: 800;
@@ -13493,21 +13489,84 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-list {
-  display: flex;
-  flex-wrap: wrap;
-  flex: 1 1 auto;
-  gap: 0.25rem 0.7rem;
+  display: block;
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 
 .crm-knowledge-tree-sidebar ul.crm-knowledge-tree-list {
   list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-item {
+  position: relative;
   margin: 0;
   padding: 0;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 30px;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-text);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item > a:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item ul {
+  margin-left: 0.5rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--crm-border);
+  list-style: none;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-toggle:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-toggle i {
+  font-size: 0.55rem;
+  transition: transform 0.15s;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-toggle.is-open i {
+  transform: rotate(90deg);
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-item.is-collapsed > ul {
+  display: none;
 }
 
 .crm-knowledge-tree-sidebar .crm-knowledge-tree-item a {
@@ -13658,6 +13717,240 @@ textarea.form-control.crm-knowledge-editor {
   font-size: 0.86rem;
 }
 
+.crm-knowledge-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.34fr) minmax(0, 0.66fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.crm-knowledge-spaces-panel .crm-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-spaces-panel .crm-section-head h2 {
+  margin-bottom: 0;
+}
+
+.crm-knowledge-space-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0.6rem 0.85rem;
+  border: 0;
+  border-top: 1px solid var(--crm-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--crm-text);
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.crm-knowledge-space-link:first-child {
+  border-top: 0;
+}
+
+.crm-knowledge-space-link:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-space-link.is-active {
+  background: rgba(var(--color-primary-rgb), 0.06);
+}
+
+.crm-knowledge-space-link .crm-knowledge-space-mark {
+  flex: 0 0 6px;
+  width: 6px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--crm-border);
+  transition: background 0.15s;
+}
+
+.crm-knowledge-space-link.is-active .crm-knowledge-space-mark,
+.crm-knowledge-space-link:hover .crm-knowledge-space-mark {
+  background: var(--crm-accent);
+}
+
+.crm-knowledge-space-link .crm-knowledge-space-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.crm-knowledge-space-link .crm-knowledge-space-info strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.crm-knowledge-space-link .crm-knowledge-space-info small {
+  display: block;
+  margin-top: 0.1rem;
+  overflow: hidden;
+  color: var(--crm-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-knowledge-space-link .crm-knowledge-space-count {
+  flex: 0 0 auto;
+  min-width: 24px;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: var(--crm-surface-2);
+  color: var(--crm-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.crm-knowledge-content-panel {
+  min-width: 0;
+}
+
+.crm-knowledge-tab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--crm-border);
+  padding: 0 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.crm-knowledge-tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.crm-knowledge-tab-btn {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.8rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--crm-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.crm-knowledge-tab-btn:hover {
+  color: var(--crm-text);
+}
+
+.crm-knowledge-tab-btn.is-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.crm-knowledge-tab-panel {
+  display: none;
+}
+
+.crm-knowledge-tab-panel.is-active {
+  display: block;
+}
+
+.crm-knowledge-tree-v {
+  padding: 0.35rem 0;
+}
+
+.crm-knowledge-tree-v ul.crm-knowledge-tree-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.crm-knowledge-tree-v .crm-knowledge-tree-item {
+  position: relative;
+}
+
+.crm-knowledge-tree-v .crm-knowledge-tree-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crm-knowledge-tree-v .crm-knowledge-tree-item > a {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.32rem 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--crm-text);
+  text-decoration: none;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  transition: background 0.12s;
+}
+
+.crm-knowledge-tree-v .crm-knowledge-tree-item > a:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-tree-v .crm-knowledge-tree-active > a {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.crm-knowledge-tree-v ul ul {
+  margin-left: 0.6rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.crm-knowledge-tree-toggle:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-tree-toggle i {
+  font-size: 0.6rem;
+  transition: transform 0.15s;
+}
+
+.crm-knowledge-tree-toggle.is-open i {
+  transform: rotate(90deg);
+}
+
+.crm-knowledge-tree-item.is-collapsed > ul {
+  display: none;
+}
+
 .crm-knowledge-toc {
   display: flex;
   flex-direction: column;
@@ -13698,6 +13991,7 @@ textarea.form-control.crm-knowledge-editor {
 @media (max-width: 991.98px) {
   .crm-knowledge-hero,
   .crm-knowledge-grid,
+  .crm-knowledge-layout,
   .crm-knowledge-detail-layout,
   .crm-knowledge-stats {
     grid-template-columns: 1fr;
