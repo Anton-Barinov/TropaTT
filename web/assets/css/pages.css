@@ -13749,7 +13749,7 @@ a.task-tag:hover {
 
 .kb-space-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
 }
 
 .kb-space-row .kb-space-item {
@@ -13760,40 +13760,39 @@ a.task-tag:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.45rem 0.85rem;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
-  transition: background 0.1s;
-  border-left: 3px solid transparent;
+  transition: color 0.1s;
+  border-left: 2px solid transparent;
   text-decoration: none;
-  color: #374151;
+  color: var(--crm-text-muted);
   font-size: 0.8125rem;
 }
 
 .kb-space-item:hover {
-  background: #f3f4f6;
+  color: var(--crm-text);
 }
 
 .kb-space-item.active {
-  background: #ecfdf5;
-  border-left-color: #059669;
-  color: #059669;
+  color: var(--crm-accent);
   font-weight: 600;
 }
 
 .kb-space-item.active .kb-space-count {
-  background: #d1fae5;
-  color: #047857;
+  background: var(--color-primary-50);
+  color: var(--crm-accent);
 }
 
 .kb-space-item .kb-space-icon {
-  width: 20px;
+  width: 18px;
   text-align: center;
-  color: #9ca3af;
+  color: inherit;
   flex-shrink: 0;
+  font-size: 0.8rem;
 }
 
 .kb-space-item.active .kb-space-icon {
-  color: #059669;
+  color: var(--crm-accent);
 }
 
 .kb-space-item .kb-space-name {
@@ -13806,19 +13805,23 @@ a.task-tag:hover {
 
 .kb-space-count {
   flex-shrink: 0;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--crm-surface-2);
+  color: var(--crm-text-muted);
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 0.1rem 0.4rem;
+  padding: 0.05rem 0.35rem;
   border-radius: 10px;
-  min-width: 22px;
+  min-width: 20px;
   text-align: center;
 }
 
 .kb-space-children {
-  border-left: 1px solid #e5e7eb;
-  margin-left: 0.65rem;
+  border-left: 1px solid var(--crm-border);
+  margin-left: 0.55rem;
+}
+
+.kb-space-children.kb-collapsed {
+  display: none;
 }
 
 .kb-space-toggle {
@@ -13828,18 +13831,19 @@ a.task-tag:hover {
   width: 18px;
   height: 18px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #9ca3af;
+  color: var(--crm-text-muted);
   cursor: pointer;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   transition: transform 0.15s, background 0.1s;
   flex-shrink: 0;
+  margin-right: 2px;
 }
 
 .kb-space-toggle:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
 }
 
 .kb-space-toggle.is-open {

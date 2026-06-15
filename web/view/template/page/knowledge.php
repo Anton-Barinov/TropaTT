@@ -299,6 +299,22 @@
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
 
+  /* ── Cookie helpers for tree state ── */
+  function getCookie(name){
+    var m = document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function setCookie(name, val, days){
+    var d = new Date(); d.setTime(d.getTime()+(days||30)*864e5);
+    document.cookie = name+'='+encodeURIComponent(val)+';expires='+d.toUTCString()+';path=/';
+  }
+  function getOpenSpaces(){
+    try { return JSON.parse(getCookie('kb_open_spaces')); } catch(e){ return []; }
+  }
+  function saveOpenSpaces(ids){
+    setCookie('kb_open_spaces', JSON.stringify(ids), 30);
+  }
+
   function flattenSpaces(tree, result){
     result = result || [];
     if(!tree) return result;
@@ -333,7 +349,6 @@
 
     /* build tree */
     var html = '<a href="javascript:void(0)" class="kb-space-item'+(!state.activeSpace?' active':'')+'" data-space="">'
-      +'<span class="kb-space-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>'
       +'<span class="kb-space-name">Все разделы</span>'
       +'<span class="kb-space-count">'+flatSpaces.length+'</span></a>';
 
@@ -343,19 +358,20 @@
 
   function renderSpaceTree(nodes, depth){
     if(!nodes || !nodes.length) return '';
+    var openIds = getOpenSpaces();
     var h = '';
     nodes.forEach(function(s){
       var active = state.activeSpace === s.public_id ? ' active' : '';
       var hasKids = s.children && s.children.length;
+      var isOpen = openIds.indexOf(s.public_id) !== -1;
       var indent = depth > 0 ? ' style="padding-left:'+(depth*16)+'px"' : '';
       h += '<div class="kb-space-row"'+indent+'>';
-      if(hasKids) h += '<button type="button" class="kb-space-toggle is-open" data-toggle="'+esc(s.public_id)+'"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>';
+      if(hasKids) h += '<button type="button" class="kb-space-toggle'+(isOpen?' is-open':'')+'" data-toggle="'+esc(s.public_id)+'"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>';
       else h += '<span class="kb-space-toggle" style="visibility:hidden"></span>';
       h += '<a href="javascript:void(0)" class="kb-space-item'+active+'" data-space="'+esc(s.public_id)+'">'
-        +'<span class="kb-space-icon"><i class="fa-regular fa-folder" aria-hidden="true"></i></span>'
         +'<span class="kb-space-name">'+esc(s.title)+'</span>'
         +'<span class="kb-space-count">'+(s.pages_count||0)+'</span></a></div>';
-      if(hasKids) h += '<div class="kb-space-children" data-children="'+esc(s.public_id)+'">'+renderSpaceTree(s.children, depth+1)+'</div>';
+      if(hasKids) h += '<div class="kb-space-children'+(isOpen?'':' kb-collapsed')+'" data-children="'+esc(s.public_id)+'">'+renderSpaceTree(s.children, depth+1)+'</div>';
     });
     return h;
   }
@@ -500,7 +516,12 @@
       var ch = document.querySelector('[data-children="'+id+'"]');
       if(ch){
         toggle.classList.toggle('is-open');
-        ch.style.display = ch.style.display==='none'?'':'none';
+        ch.classList.toggle('kb-collapsed');
+        var openIds = [];
+        document.querySelectorAll('.kb-space-toggle.is-open[data-toggle]').forEach(function(t){
+          openIds.push(t.getAttribute('data-toggle'));
+        });
+        saveOpenSpaces(openIds);
       }
       return;
     }
