@@ -33,6 +33,9 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="kb-tab-analytics" data-bs-toggle="tab" data-bs-target="#kb-panel-analytics" type="button" role="tab" aria-controls="kb-panel-analytics" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.analytics_title', 'Аналитика'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-ai" data-bs-toggle="tab" data-bs-target="#kb-panel-ai" type="button" role="tab" aria-controls="kb-panel-ai" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
   </ul>
   <div class="tab-content mt-3">
     <div class="tab-pane fade show active" id="kb-panel-spaces" role="tabpanel" aria-labelledby="kb-tab-spaces">
@@ -76,6 +79,42 @@
   </div>
 </section>
 </div>
+    <div class="tab-pane fade" id="kb-panel-ai" role="tabpanel" aria-labelledby="kb-tab-ai">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></h2></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.ai_duplicates_title', 'Поиск дублей'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.ai_duplicates_hint', 'Найти страницы с похожими названиями и содержимым.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminAiDuplicatesBtn"><?= htmlspecialchars($t('admin_knowledge.ai_find_btn', 'Найти дубли'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminAiDuplicatesResult" class="mt-2 small"></div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.ai_orphans_title', 'Страницы без владельца'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.ai_orphans_hint', 'Страницы, у которых не назначен ответственный.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminAiOrphansBtn"><?= htmlspecialchars($t('admin_knowledge.ai_find_btn', 'Найти'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminAiOrphansResult" class="mt-2 small"></div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.ai_structure_title', 'Структура раздела'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.ai_structure_hint', 'Рекомендовать группировку материалов.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <div class="input-group input-group-sm mb-1">
+                  <select id="adminAiStructureSpace" class="form-select"><option value=""><?= htmlspecialchars($t('admin_knowledge.permissions_select_subject', 'Выберите раздел...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+                  <button class="btn crm-btn-secondary" type="button" id="adminAiStructureBtn"><?= htmlspecialchars($t('admin_knowledge.ai_analyze_btn', 'Анализ'), ENT_QUOTES, 'UTF-8') ?></button>
+                </div>
+                <div id="adminAiStructureResult" class="mt-1 small"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
 </div>
 </div>
 
@@ -460,6 +499,106 @@
         }
       });
     }
+  }
+
+  // Admin AI features
+  var adminAi = {
+    duplicatsBtn: document.getElementById('adminAiDuplicatesBtn'),
+    duplicatesResult: document.getElementById('adminAiDuplicatesResult'),
+    orphansBtn: document.getElementById('adminAiOrphansBtn'),
+    orphansResult: document.getElementById('adminAiOrphansResult'),
+    structureSpace: document.getElementById('adminAiStructureSpace'),
+    structureBtn: document.getElementById('adminAiStructureBtn'),
+    structureResult: document.getElementById('adminAiStructureResult'),
+  };
+  if (adminAi.duplicatsBtn) {
+    adminAi.duplicatsBtn.addEventListener('click', async function () {
+      if (!adminAi.duplicatesResult) return;
+      adminAi.duplicatsBtn.disabled = true;
+      adminAi.duplicatesResult.innerHTML = '<em>' + esc(t('knowledge.loading', 'Загрузка...')) + '</em>';
+      try {
+        var env = await request('api/v1/knowledge/ai/admin/find-duplicates', { method: 'POST', body: { threshold: 0.5 } });
+        var items = (env.data || {}).items || [];
+        if (!items.length) {
+          adminAi.duplicatesResult.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.ai_no_duplicates', 'Дублей не найдено')) + '</em>';
+        } else {
+          var html = '<div class="fw-bold mb-1">' + esc(t('admin_knowledge.ai_duplicates_found', 'Найдено дублей')) + ': ' + items.length + '</div><ul class="small mb-0 ps-3">';
+          items.forEach(function (d) {
+            html += '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + esc(d.page_1.public_id) + '">' + esc(d.page_1.title) + '</a> ↔ <a href="index.php?route=knowledge-page&amp;id=' + esc(d.page_2.public_id) + '">' + esc(d.page_2.title) + '</a> <span class="text-muted">(' + esc(d.space_title) + ')</span></li>';
+          });
+          html += '</ul>';
+          adminAi.duplicatesResult.innerHTML = html;
+        }
+      } catch (e) {
+        adminAi.duplicatesResult.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'AI error')) + '</em>';
+      }
+      adminAi.duplicatsBtn.disabled = false;
+    });
+  }
+  if (adminAi.orphansBtn) {
+    adminAi.orphansBtn.addEventListener('click', async function () {
+      if (!adminAi.orphansResult) return;
+      adminAi.orphansBtn.disabled = true;
+      adminAi.orphansResult.innerHTML = '<em>' + esc(t('knowledge.loading', 'Загрузка...')) + '</em>';
+      try {
+        var env = await request('api/v1/knowledge/ai/admin/find-orphans', { method: 'GET' });
+        var items = (env.data || {}).items || [];
+        if (!items.length) {
+          adminAi.orphansResult.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.ai_no_orphans', 'Страниц без владельца нет')) + '</em>';
+        } else {
+          var html = '<div class="fw-bold mb-1">' + items.length + ' ' + esc(t('admin_knowledge.ai_orphans_found', 'страниц без владельца')) + '</div><ul class="small mb-0 ps-3">';
+          items.forEach(function (p) {
+            html += '<li class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + esc(p.public_id) + '">' + esc(p.title) + '</a> <span class="text-muted">(' + esc(p.space_title) + ', ' + esc(p.status) + ')</span></li>';
+          });
+          html += '</ul>';
+          adminAi.orphansResult.innerHTML = html;
+        }
+      } catch (e) {
+        adminAi.orphansResult.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'AI error')) + '</em>';
+      }
+      adminAi.orphansBtn.disabled = false;
+    });
+  }
+  if (adminAi.structureSpace) {
+    // Load spaces for structure select
+    (async function loadStructureSpaces() {
+      try {
+        var env = await request('api/v1/knowledge/spaces', { method: 'GET' });
+        var spaces = (env.data || {}).items || [];
+        adminAi.structureSpace.innerHTML = '<option value="">' + esc(t('admin_knowledge.permissions_select_subject', 'Выберите раздел...')) + '</option>';
+        spaces.forEach(function (s) {
+          var opt = document.createElement('option');
+          opt.value = s.public_id;
+          opt.textContent = s.title;
+          adminAi.structureSpace.appendChild(opt);
+        });
+      } catch (e) {}
+    })();
+  }
+  if (adminAi.structureBtn && adminAi.structureSpace) {
+    adminAi.structureBtn.addEventListener('click', async function () {
+      var spaceId = adminAi.structureSpace.value;
+      if (!spaceId || !adminAi.structureResult) return;
+      adminAi.structureBtn.disabled = true;
+      adminAi.structureResult.innerHTML = '<em>' + esc(t('knowledge.loading', 'Загрузка...')) + '</em>';
+      try {
+        var env = await request('api/v1/knowledge/ai/admin/suggest-structure/' + encodeURIComponent(spaceId), { method: 'POST', body: {} });
+        var data = env.data || {};
+        var suggestion = data.suggestion || [];
+        if (!suggestion.length) {
+          adminAi.structureResult.innerHTML = '<em class="text-muted">' + esc(data.suggestion || t('admin_knowledge.ai_no_structure', 'Недостаточно данных для рекомендации')) + '</em>';
+        } else {
+          var html = '<div class="fw-bold mb-1">' + esc(t('admin_knowledge.ai_structure_result', 'Рекомендуемая структура')) + '</div>';
+          suggestion.forEach(function (g) {
+            html += '<div class="mb-1"><span class="badge bg-light text-dark me-1">' + esc(g.title) + '</span> <span class="text-muted">' + g.count + ' ' + esc(t('knowledge.stat_pages', 'страниц')) + '</span></div>';
+          });
+          adminAi.structureResult.innerHTML = html;
+        }
+      } catch (e) {
+        adminAi.structureResult.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'AI error')) + '</em>';
+      }
+      adminAi.structureBtn.disabled = false;
+    });
   }
 })();
 </script>

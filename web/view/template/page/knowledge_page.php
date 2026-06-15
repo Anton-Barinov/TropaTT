@@ -118,7 +118,9 @@
     <div class="d-grid gap-2 mb-2">
       <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSummaryBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_summary', 'Краткое содержание'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiExplainBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_explain', 'Объяснить проще'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiChecklistBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSimilarBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_similar', 'Похожие страницы'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiFaqBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_faq', 'FAQ из комментариев'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
     <div id="knowledgeAiResult" class="crm-knowledge-ai-result d-none">
       <div id="knowledgeAiResultTitle" class="fw-bold small mb-1"></div>
@@ -890,8 +892,29 @@
     }
   });
   // AI helpers
+  var aiBtnLabels = {
+    summary: function () { return t('knowledge_page.btn_ai_summary', 'Краткое содержание'); },
+    explain: function () { return t('knowledge_page.btn_ai_explain', 'Объяснить проще'); },
+    checklist: function () { return t('knowledge_page.btn_ai_checklist', 'Чеклист'); },
+    similar: function () { return t('knowledge_page.btn_ai_similar', 'Похожие страницы'); },
+    'faq-from-comments': function () { return t('knowledge_page.btn_ai_faq', 'FAQ из комментариев'); }
+  };
+  var aiBtnIds = {
+    summary: 'knowledgeAiSummaryBtn',
+    explain: 'knowledgeAiExplainBtn',
+    checklist: 'knowledgeAiChecklistBtn',
+    similar: 'knowledgeAiSimilarBtn',
+    'faq-from-comments': 'knowledgeAiFaqBtn'
+  };
+  var aiResultTitles = {
+    summary: function () { return t('knowledge_page.ai_summary_title', 'Краткое содержание'); },
+    explain: function () { return t('knowledge_page.ai_explain_title', 'Объяснение'); },
+    checklist: function () { return t('knowledge_page.ai_checklist_title', 'Чеклист'); },
+    similar: function () { return t('knowledge_page.ai_similar_title', 'Похожие страницы'); },
+    'faq-from-comments': function () { return t('knowledge_page.ai_faq_title', 'FAQ из комментариев'); }
+  };
   async function handleAiAction(action) {
-    var btn = document.getElementById('knowledgeAi' + action.charAt(0).toUpperCase() + action.slice(1) + 'Btn');
+    var btn = document.getElementById(aiBtnIds[action] || '');
     var resultEl = document.getElementById('knowledgeAiResult');
     var titleEl = document.getElementById('knowledgeAiResultTitle');
     var bodyEl = document.getElementById('knowledgeAiResultBody');
@@ -914,28 +937,44 @@
             return '<div class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + esc(item.public_id) + '" class="text-decoration-none">' + esc(item.title) + '</a> <span class="badge bg-light text-muted">' + esc(item.page_type) + '</span></div>';
           }).join('');
         }
-        titleEl.textContent = t('knowledge_page.ai_similar_title', 'Похожие страницы');
+        titleEl.textContent = (aiResultTitles[action] || function () { return ''; })();
+      } else if (action === 'checklist') {
+        var checklistItems = data.items || [];
+        if (!checklistItems.length) {
+          bodyEl.innerHTML = '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
+        } else {
+          bodyEl.innerHTML = '<ul class="mb-0 ps-3">' + checklistItems.map(function (item) {
+            return '<li><label><input type="checkbox" class="me-1">' + esc(item) + '</label></li>';
+          }).join('') + '</ul>';
+        }
+        titleEl.textContent = (aiResultTitles[action] || function () { return ''; })();
+      } else if (action === 'faq-from-comments') {
+        var faqItems = data.items || [];
+        if (!faqItems.length) {
+          bodyEl.innerHTML = '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
+        } else {
+          bodyEl.innerHTML = faqItems.map(function (item) {
+            return '<div class="mb-2"><strong>' + esc(item.question) + '</strong><br><span class="text-muted">' + esc(item.answer) + '</span></div>';
+          }).join('');
+        }
+        titleEl.textContent = (aiResultTitles[action] || function () { return ''; })();
       } else {
         var text = data.summary || data.explanation || data.text || '';
         bodyEl.innerHTML = text ? '<p>' + esc(text) + '</p>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
-        titleEl.textContent = action === 'summary'
-          ? t('knowledge_page.ai_summary_title', 'Краткое содержание')
-          : t('knowledge_page.ai_explain_title', 'Объяснение');
+        titleEl.textContent = (aiResultTitles[action] || function () { return ''; })();
       }
     } catch (e) {
       bodyEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</em>';
     }
     btn.disabled = false;
-    btn.textContent = action === 'summary'
-      ? t('knowledge_page.btn_ai_summary', 'Краткое содержание')
-      : action === 'explain'
-        ? t('knowledge_page.btn_ai_explain', 'Объяснить проще')
-        : t('knowledge_page.btn_ai_similar', 'Похожие страницы');
+    btn.textContent = (aiBtnLabels[action] || function () { return action; })();
   }
 
   document.getElementById('knowledgeAiSummaryBtn') && document.getElementById('knowledgeAiSummaryBtn').addEventListener('click', function () { handleAiAction('summary'); });
   document.getElementById('knowledgeAiExplainBtn') && document.getElementById('knowledgeAiExplainBtn').addEventListener('click', function () { handleAiAction('explain'); });
+  document.getElementById('knowledgeAiChecklistBtn') && document.getElementById('knowledgeAiChecklistBtn').addEventListener('click', function () { handleAiAction('checklist'); });
   document.getElementById('knowledgeAiSimilarBtn') && document.getElementById('knowledgeAiSimilarBtn').addEventListener('click', function () { handleAiAction('similar'); });
+  document.getElementById('knowledgeAiFaqBtn') && document.getElementById('knowledgeAiFaqBtn').addEventListener('click', function () { handleAiAction('faq-from-comments'); });
 
   var allTags = [];
   async function loadTagOptions() {

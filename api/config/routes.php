@@ -289,6 +289,12 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/summary', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/explain', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'explain', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/similar', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'similar', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/checklist', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'checklist', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/faq-from-comments', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'faqFromComments', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/ai/suggest-for-task/{task_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'suggestForTask', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/ai/admin/find-duplicates', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'findDuplicates', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/ai/admin/find-orphans', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'findOrphans', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/ai/admin/suggest-structure/{public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'suggestStructure', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
 
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true],
