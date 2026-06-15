@@ -80,7 +80,7 @@
       </div>
 
       <!-- CENTER: Articles list -->
-      <div class="col-12 col-xl-6 col-xxl-7">
+      <div class="col-12 col-xl-9">
         <div class="kb-panel kb-center-panel">
           <!-- Space header -->
           <div id="kbSpaceHeader" class="kb-space-header">
@@ -146,55 +146,62 @@
         </div>
       </div>
 
-      <!-- RIGHT: Info panel -->
-      <div class="col-12 col-xl-3">
-        <div class="kb-panel kb-side-panel">
-          <!-- Recently updated -->
-          <div class="kb-side-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <h3 class="h6 mb-0 fw-bold"><i class="fa-regular fa-clock text-muted me-1" aria-hidden="true"></i> Недавно обновлено</h3>
-              <a href="#" class="small text-decoration-none">Смотреть все</a>
-            </div>
-            <div id="kbRecentList" class="kb-side-list"></div>
-          </div>
 
-          <!-- Quick links -->
-          <div class="kb-side-card">
-            <h3 class="h6 mb-2 fw-bold">Быстрые ссылки</h3>
-            <div class="d-flex flex-column gap-1" id="kbQuickLinks">
-              <a href="#" class="kb-quick-link" data-status="draft">
-                <i class="fa-regular fa-pen-to-square text-muted" aria-hidden="true"></i>
-                <span>Черновики</span>
-                <span class="badge bg-primary bg-opacity-10 text-primary ms-auto">0</span>
-              </a>
-              <a href="#" class="kb-quick-link" data-status="review">
-                <i class="fa-regular fa-circle-check text-muted" aria-hidden="true"></i>
-                <span>На проверке</span>
-                <span class="badge bg-warning bg-opacity-10 text-warning ms-auto">0</span>
-              </a>
-              <a href="#" class="kb-quick-link" data-status="needs_update">
-                <i class="fa-regular fa-clock text-muted" aria-hidden="true"></i>
-                <span>Просрочено</span>
-                <span class="badge bg-danger bg-opacity-10 text-danger ms-auto">0</span>
-              </a>
-              <a href="#" class="kb-quick-link" data-status="archived">
-                <i class="fa-regular fa-eye text-muted" aria-hidden="true"></i>
-                <span>Архив</span>
-                <span class="badge bg-secondary bg-opacity-10 text-secondary ms-auto">0</span>
-              </a>
-            </div>
-          </div>
+    </div>
 
-          <!-- Document types -->
-          <div class="kb-side-card">
-            <h3 class="h6 mb-2 fw-bold">Типы документов</h3>
-            <div class="d-flex flex-column gap-1" id="kbTypes">
-              <div class="kb-type-row"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
-              <div class="kb-type-row"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
-              <div class="kb-type-row"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
-              <div class="kb-type-row"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
-              <div class="kb-type-row"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
-            </div>
+    <!-- ─── BOTTOM SECTION: Recent, Quick Links, Types ─── -->
+    <div class="row g-3 mt-1">
+
+      <!-- Recently updated -->
+      <div class="col-12">
+        <div class="kb-side-card">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h3 class="h6 mb-0 fw-bold"><i class="fa-regular fa-clock text-muted me-1" aria-hidden="true"></i> Недавно обновлено</h3>
+            <a href="#" class="small text-decoration-none">Смотреть все</a>
+          </div>
+          <div id="kbRecentList" class="kb-side-list"></div>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div class="col-12">
+        <div class="kb-side-card">
+          <h3 class="h6 mb-2 fw-bold">Быстрые ссылки</h3>
+          <div class="d-flex flex-wrap gap-2" id="kbQuickLinks">
+            <a href="#" class="kb-quick-link" data-status="draft">
+              <i class="fa-regular fa-pen-to-square text-muted" aria-hidden="true"></i>
+              <span>Черновики</span>
+              <span class="badge bg-primary bg-opacity-10 text-primary ms-auto">0</span>
+            </a>
+            <a href="#" class="kb-quick-link" data-status="review">
+              <i class="fa-regular fa-circle-check text-muted" aria-hidden="true"></i>
+              <span>На проверке</span>
+              <span class="badge bg-warning bg-opacity-10 text-warning ms-auto">0</span>
+            </a>
+            <a href="#" class="kb-quick-link" data-status="needs_update">
+              <i class="fa-regular fa-clock text-muted" aria-hidden="true"></i>
+              <span>Просрочено</span>
+              <span class="badge bg-danger bg-opacity-10 text-danger ms-auto">0</span>
+            </a>
+            <a href="#" class="kb-quick-link" data-status="archived">
+              <i class="fa-regular fa-eye text-muted" aria-hidden="true"></i>
+              <span>Архив</span>
+              <span class="badge bg-secondary bg-opacity-10 text-secondary ms-auto">0</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document types -->
+      <div class="col-12">
+        <div class="kb-side-card">
+          <h3 class="h6 mb-2 fw-bold">Типы документов</h3>
+          <div class="d-flex flex-wrap gap-2" id="kbTypes">
+            <div class="kb-type-row"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
           </div>
         </div>
       </div>
