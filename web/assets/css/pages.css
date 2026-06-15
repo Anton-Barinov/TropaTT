@@ -13329,7 +13329,469 @@ a.task-tag:hover {
   font-size: 0.82rem;
 }
 
+/* ══════════════════════════════════════════
+   KB Detail Page — Full Visual System
+   ══════════════════════════════════════════ */
+
+/* Layout grid */
+.crm-knowledge-detail-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  gap: 0;
+  align-items: start;
+  margin-top: 0.75rem;
+}
+
+/* ── Tree sidebar ── */
+.crm-knowledge-tree-sidebar {
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  margin-right: 0;
+}
+
+.crm-knowledge-tree-sidebar h3 {
+  padding: 0 0.35rem 0.5rem;
+  margin: 0;
+  border-bottom: 1px solid var(--crm-border);
+  color: var(--crm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.crm-knowledge-tree-sidebar .crm-knowledge-tree-list {
+  padding: 0.35rem 0;
+  margin: 0;
+}
+
+/* ── Center column ── */
+.crm-knowledge-center {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Article card ── */
+.crm-knowledge-article {
+  padding: 0;
+}
+
+.crm-knowledge-article-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 0.75rem;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-article-head h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--crm-text);
+}
+
+.crm-knowledge-article-head .crm-eyebrow {
+  font-size: 0.75rem;
+  color: var(--crm-accent);
+  font-weight: 600;
+}
+
+.crm-knowledge-content {
+  padding: 1.25rem 1.5rem;
+  line-height: 1.7;
+  color: var(--crm-text);
+  font-size: 0.9375rem;
+}
+
+.crm-knowledge-content h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.crm-knowledge-content h3 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.crm-knowledge-content p {
+  margin: 0 0 0.75rem;
+}
+
+.crm-knowledge-content ul,
+.crm-knowledge-content ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.crm-knowledge-content li {
+  margin-bottom: 0.25rem;
+}
+
+.crm-knowledge-content blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--crm-accent);
+  background: var(--crm-surface-2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--crm-text-muted);
+  font-style: italic;
+}
+
+.crm-knowledge-content code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: var(--crm-surface-2);
+  font-size: 0.85em;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+.crm-knowledge-content pre {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: #1e293b;
+  color: #e2e8f0;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.crm-knowledge-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.crm-knowledge-content a {
+  color: var(--crm-accent);
+  text-decoration: none;
+}
+
+.crm-knowledge-content a:hover {
+  text-decoration: underline;
+}
+
+/* ── Right sidebar ── */
+.crm-knowledge-side {
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.crm-knowledge-side hr {
+  margin: 0.5rem 0;
+  border-color: var(--crm-border);
+}
+
+.crm-knowledge-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crm-knowledge-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.crm-knowledge-meta dt {
+  color: var(--crm-text-muted);
+  font-weight: 500;
+}
+
+.crm-knowledge-meta dd {
+  margin: 0;
+  color: var(--crm-text);
+  font-weight: 500;
+}
+
+.crm-knowledge-side-tags {
+  margin: 0;
+}
+
+.crm-knowledge-side-tags h3 {
+  margin: 0;
+}
+
+/* ── Comments ── */
+.crm-knowledge-comments {
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-knowledge-comments .crm-section-head {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-comment-form {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--crm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.crm-knowledge-comment-form .form-control {
+  font-size: 0.875rem;
+}
+
+/* ── Attachments ── */
+.crm-knowledge-attachments .crm-section-head {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-file-form {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--crm-border);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.crm-knowledge-file-form .form-control {
+  font-size: 0.875rem;
+}
+
+/* ── Work card (shared) ── */
+.crm-knowledge-work-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Editor writing mode ── */
+.crm-knowledge-writing-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--crm-surface-2);
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-writing-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.crm-knowledge-writing-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.crm-knowledge-edit-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.crm-knowledge-title-input {
+  width: 100%;
+  border: none;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0;
+  background: transparent;
+  outline: none;
+  color: var(--crm-text);
+}
+
+.crm-knowledge-title-input::placeholder {
+  color: var(--crm-text-muted);
+}
+
+.crm-knowledge-edit-review {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-knowledge-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--crm-border);
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-knowledge-visual-wrap {
+  position: relative;
+  min-height: 300px;
+}
+
+.crm-knowledge-visual-editor {
+  padding: 1rem 1.25rem;
+  min-height: 300px;
+  outline: none;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--crm-text);
+}
+
+.crm-knowledge-visual-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--crm-text-muted);
+  opacity: 0.5;
+}
+
+.crm-knowledge-editor-source {
+  position: absolute;
+  opacity: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.crm-knowledge-block-add {
+  position: absolute;
+  left: -0.75rem;
+  top: 0.75rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--crm-border);
+  background: var(--crm-surface);
+  color: var(--crm-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.crm-knowledge-visual-wrap:hover .crm-knowledge-block-add {
+  opacity: 1;
+}
+
+.crm-knowledge-block-menu {
+  position: absolute;
+  left: -1.5rem;
+  top: 2rem;
+  z-index: 10;
+  background: var(--crm-surface);
+  border: 1px solid var(--crm-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  padding: 0.5rem;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-knowledge-block-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.crm-knowledge-block-menu button:hover {
+  background: var(--crm-surface-2);
+}
+
+.crm-knowledge-block-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--crm-border);
+  margin-bottom: 0.25rem;
+  color: var(--crm-text-muted);
+}
+
+.crm-knowledge-block-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--crm-text);
+  width: 100%;
+}
+
+/* ── Version list ── */
+.crm-knowledge-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.crm-knowledge-diff {
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--crm-surface-2);
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* ── Side collapsed meta ── */
+.crm-knowledge-side-meta-collapsed h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* ── Badge in article head ── */
+.crm-knowledge-article-head .crm-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 @media (max-width: 1199.98px) {
+  .crm-knowledge-detail-layout {
+    grid-template-columns: 220px 1fr;
+  }
+
+  .crm-knowledge-side {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    position: static;
+    max-height: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .crm-knowledge-side hr {
+    display: none;
+  }
+}
+
+@media (max-width: 991.98px) {
   .crm-knowledge-detail-layout {
     grid-template-columns: 1fr;
   }
@@ -13339,28 +13801,15 @@ a.task-tag:hover {
   .crm-knowledge-side {
     grid-column: 1 / -1;
     position: static;
-  }
-}
-
-@media (max-width: 991.98px) {
-  .crm-knowledge-hero,
-  .crm-knowledge-grid,
-  .crm-knowledge-layout,
-  .crm-knowledge-detail-layout,
-  .crm-knowledge-stats {
-    grid-template-columns: 1fr;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .crm-knowledge-side {
-    position: static;
-  }
-
-  .crm-knowledge-tree-sidebar {
-    position: static;
-  }
-
-  .crm-knowledge-editor-shell {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
   }
 }
 
