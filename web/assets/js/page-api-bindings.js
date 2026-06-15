@@ -26474,6 +26474,7 @@ window.CRM.pageApiBindings = (function () {
 
   function init() {
     if (!window.CRM.api || !isProtectedPage()) return;
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
 
     return refreshCurrentPage().catch(function (error) {
     var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
