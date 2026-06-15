@@ -125,11 +125,10 @@
                   <th scope="col">Статус</th>
                   <th class="d-none d-md-table-cell" scope="col">Обновлено</th>
                   <th class="d-none d-lg-table-cell" scope="col" style="width:50px">Просм.</th>
-                  <th scope="col" style="width:32px"></th>
                 </tr>
               </thead>
               <tbody id="kbArticlesBody">
-                <tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>
+                <tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>
               </tbody>
             </table>
           </div>
@@ -148,54 +147,11 @@
 
     </div>
 
-    <!-- ─── BOTTOM: Quick Links + Types + Recent ─── -->
+    <!-- ─── BOTTOM: Recent ─── -->
     <div class="row g-3 mt-1">
 
-      <!-- Quick links -->
-      <div class="col-12 col-md-4">
-        <div class="crm-card crm-section-card p-3">
-          <h3 class="h6 mb-3 fw-bold">Быстрые ссылки</h3>
-          <div class="d-flex flex-column" id="kbQuickLinks">
-            <a href="javascript:void(0)" class="kb-quick-link" data-status="draft">
-              <i class="fa-regular fa-pen-to-square text-muted" aria-hidden="true"></i>
-              <span>Черновики</span>
-              <span class="badge ms-auto" id="kbQLDrafts">0</span>
-            </a>
-            <a href="javascript:void(0)" class="kb-quick-link" data-status="review">
-              <i class="fa-regular fa-circle-check text-muted" aria-hidden="true"></i>
-              <span>На проверке</span>
-              <span class="badge ms-auto" id="kbQLReview">0</span>
-            </a>
-            <a href="javascript:void(0)" class="kb-quick-link" data-status="needs_update">
-              <i class="fa-regular fa-clock text-muted" aria-hidden="true"></i>
-              <span>Просрочено</span>
-              <span class="badge ms-auto" id="kbQLOutdated">0</span>
-            </a>
-            <a href="javascript:void(0)" class="kb-quick-link" data-status="archived">
-              <i class="fa-regular fa-eye text-muted" aria-hidden="true"></i>
-              <span>Архив</span>
-              <span class="badge ms-auto" id="kbQLArchived">0</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Document types -->
-      <div class="col-12 col-md-4">
-        <div class="crm-card crm-section-card p-3">
-          <h3 class="h6 mb-3 fw-bold">Типы документов</h3>
-          <div class="d-flex flex-column" id="kbTypes">
-            <div class="kb-type-row" data-type="regulation"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row" data-type="instruction"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row" data-type="article"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row" data-type="checklist"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row" data-type="faq"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Recently updated -->
-      <div class="col-12 col-md-4">
+      <div class="col-12">
         <div class="crm-card crm-section-card p-3">
           <h3 class="h6 mb-3 fw-bold"><i class="fa-regular fa-clock text-muted me-1" aria-hidden="true"></i> Недавно обновлено</h3>
           <div id="kbRecentList" class="kb-side-list"></div>
@@ -430,7 +386,7 @@
   async function loadArticles(){
     var body = document.getElementById('kbArticlesBody');
     if(!body) return;
-    body.innerHTML = '<tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>';
 
     var params = {};
     if(state.activeSpace) params.space_public_id = state.activeSpace;
@@ -449,13 +405,13 @@
       renderArticles(items);
       updateTabs(items);
       updatePagInfo(items);
-    } catch(e){ body.innerHTML='<tr><td colspan="6" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
+    } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
   function renderArticles(items){
     var body = document.getElementById('kbArticlesBody');
     if(!items.length){
-      body.innerHTML = '<tr><td colspan="6"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
+      body.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
       var eb = document.getElementById('kbEmptyCreate');
       if(eb) eb.addEventListener('click', function(){ document.getElementById('btnCreatePage').click(); });
       return;
@@ -476,7 +432,6 @@
         +'<td><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
         +'<td class="d-none d-md-table-cell text-muted kb-col-date">'+esc(date)+'</td>'
         +'<td class="d-none d-lg-table-cell text-muted kb-col-views">'+esc(p.views_count||0)+'</td>'
-        +'<td><div class="kb-article-actions"><button class="btn btn-sm btn-light" type="button" aria-label="Действия"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></div></td>'
         +'</tr>';
     }).join('');
 
@@ -494,11 +449,6 @@
     document.getElementById('kbTabDrafts').textContent = counts.draft;
     document.getElementById('kbTabReview').textContent = counts.review;
     document.getElementById('kbTabOutdated').textContent = counts.needs_update;
-
-    document.getElementById('kbQLDrafts').textContent = counts.draft;
-    document.getElementById('kbQLReview').textContent = counts.review;
-    document.getElementById('kbQLOutdated').textContent = counts.needs_update;
-    document.getElementById('kbQLArchived').textContent = counts.archived;
   }
 
   function updatePagInfo(items){
@@ -529,24 +479,6 @@
           +'<div class="kb-side-item-text"><span class="kb-side-item-title">'+esc(p.title)+'</span>'
           +'<span class="kb-side-item-meta">'+esc(p.space_title||'')+' · '+esc(p.updated_at?p.updated_at.substring(0,10):'')+'</span></div></a>';
       }).join('');
-    } catch(e){}
-  }
-
-  /* ── Load Types ── */
-  async function loadTypes(){
-    try {
-      var r = await req('api/v1/knowledge/search', {method:'GET', query:{limit:200}});
-      var items = r.data && r.data.items || [];
-      var counts = {};
-      items.forEach(function(p){ counts[p.page_type] = (counts[p.page_type]||0)+1; });
-      var el = document.getElementById('kbTypes');
-      if(!el) return;
-      el.querySelectorAll('.kb-type-row').forEach(function(row){
-        var type = row.getAttribute('data-type');
-        var c = counts[type] || 0;
-        row.querySelector('span:last-child').textContent = c;
-        row.setAttribute('data-count', c);
-      });
     } catch(e){}
   }
 
@@ -585,42 +517,30 @@
     loadArticles();
   });
 
-  /* 7. Quick links → set status filter and reload */
-  document.getElementById('kbQuickLinks').addEventListener('click', function(e){
-    var link = e.target.closest('.kb-quick-link[data-status]');
-    if(!link) return;
-    e.preventDefault();
-    var status = link.getAttribute('data-status');
-    document.getElementById('kbFilterStatus').value = status;
-    document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
-      n.classList.toggle('active', n.getAttribute('data-status')===status);
-    });
-    state.activeStatus = status;
-    loadArticles();
-  });
-
-  /* 8. Types → set type filter and reload */
-  document.getElementById('kbTypes').addEventListener('click', function(e){
-    var row = e.target.closest('.kb-type-row[data-type]');
-    if(!row) return;
-    var type = row.getAttribute('data-type');
-    document.getElementById('kbFilterType').value = type;
-    loadArticles();
-  });
+  /* 7. Filter reset visibility */
+  function checkFilters(){
+    var active = document.getElementById('kbSearch').value.trim()
+      || document.getElementById('kbFilterStatus').value
+      || document.getElementById('kbFilterType').value
+      || document.getElementById('kbFilterTag').value
+      || document.getElementById('kbFilterSpace').value;
+    document.getElementById('kbFilterReset').style.display = active ? '' : 'none';
+  }
 
   /* Search */
   document.getElementById('kbSearch').addEventListener('input', function(){
     clearTimeout(this._t);
-    this._t = setTimeout(loadArticles, 300);
+    this._t = setTimeout(function(){ checkFilters(); loadArticles(); }, 300);
   });
 
   /* Filters */
-  document.getElementById('kbFilterStatus').addEventListener('change', loadArticles);
-  document.getElementById('kbFilterType').addEventListener('change', loadArticles);
-  document.getElementById('kbFilterTag').addEventListener('change', loadArticles);
+  document.getElementById('kbFilterStatus').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterType').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterTag').addEventListener('change', function(){ checkFilters(); loadArticles(); });
   document.getElementById('kbFilterSpace').addEventListener('change', function(){
     state.activeSpace = this.value;
     updateSpaceHeader();
+    checkFilters();
     loadArticles();
   });
 
@@ -636,6 +556,7 @@
     });
     state.activeStatus='';
     updateSpaceHeader();
+    checkFilters();
     loadArticles();
   });
 
@@ -689,7 +610,6 @@
   waitForApi(function(){
     loadSpaces();
     loadRecent();
-    loadTypes();
     loadArticles();
     loadTags();
   });

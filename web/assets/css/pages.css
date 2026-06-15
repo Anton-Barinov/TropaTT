@@ -13861,15 +13861,13 @@ a.task-tag:hover {
 }
 
 .kb-space-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ecfdf5;
-  border-radius: 10px;
-  color: #059669;
-  font-size: 1.1rem;
+  color: var(--crm-accent);
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
@@ -14184,6 +14182,12 @@ a.task-tag:hover {
   font-size: 2rem;
   margin-bottom: 0.5rem;
   opacity: 0.4;
+}
+
+.kb-empty-state .btn i {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+  opacity: 1;
 }
 
 .kb-empty-state p {
