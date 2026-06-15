@@ -290,6 +290,7 @@
     if(!api){ return Promise.reject(new Error('CRM API not ready')); }
     return api.request(route, opts);
   }
+  function esc(s){ var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
