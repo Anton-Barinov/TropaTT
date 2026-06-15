@@ -358,10 +358,16 @@
         renderList(els.outdated, outdated, t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
       } else {
         var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
-        var treeEnvelope = await request('api/v1/knowledge/spaces-tree', { method: 'GET' });
         var data = envelope.data || {};
         renderStats(data.totals || {}, globalStatLabels);
-        renderSpaces(treeEnvelope.data && treeEnvelope.data.items || []);
+        var treeItems = data.spaces || [];
+        try {
+          var treeEnvelope = await request('api/v1/knowledge/spaces-tree', { method: 'GET' });
+          treeItems = (treeEnvelope.data && treeEnvelope.data.items) || treeItems;
+        } catch (treeErr) {
+          if (window.console && console.warn) console.warn('[CRM] spaces-tree failed, using flat list', treeErr);
+        }
+        renderSpaces(treeItems);
         renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
         renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
         renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });

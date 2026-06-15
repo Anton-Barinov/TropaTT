@@ -13778,6 +13778,10 @@ textarea.form-control.crm-knowledge-editor {
   align-items: start;
 }
 
+.crm-knowledge-spaces-panel {
+  overflow: visible !important;
+}
+
 .crm-knowledge-spaces-panel .crm-section-head {
   display: flex;
   align-items: center;
