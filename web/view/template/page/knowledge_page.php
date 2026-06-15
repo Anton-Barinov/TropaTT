@@ -783,8 +783,7 @@
       })();
       return;
     }
-
-    var restoreBtn = e.target.closest('[data-restore-version]');
+  });
   document.getElementById('knowledgeReviewBtn').addEventListener('click', async function () {
     await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/request-review', { method: 'POST', body: {}, idempotent: true });
     load();

@@ -67,6 +67,13 @@ final class ConnectionManager
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
 
+        if ($driver === 'mysql' && !defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+            define('PDO::MYSQL_ATTR_INIT_COMMAND', 1002);
+        }
+        if ($driver === 'mysql') {
+            $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci';
+        }
+
         return match ($driver) {
             'mysql' => [
                 sprintf(
