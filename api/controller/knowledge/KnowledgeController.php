@@ -80,6 +80,9 @@ final class KnowledgeController extends BaseController
         return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
             $space = $this->repo()->createSpace($input, $this->actorUserId() ?: null);
             $this->invalidateCache('knowledge');
+            $this->auditLog('knowledge_space', $space['public_id'] ?? '', 'space_created', [
+                'title' => $space['title'] ?? '',
+            ]);
             return $this->success('KNOWLEDGE_SPACE_CREATED', $this->t('knowledge/messages.space_created', 'Knowledge space created'), [
                 'space' => $space,
             ], 201, ['row_version' => (int)($space['row_version'] ?? 1)]);
@@ -107,6 +110,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
         $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_space', (string)$params['public_id'], 'space_updated');
         return $this->success('KNOWLEDGE_SPACE_UPDATED', $this->t('knowledge/messages.space_updated', 'Knowledge space updated'), [
             'space' => $result,
         ], meta: ['row_version' => (int)($result['row_version'] ?? 1)]);
@@ -250,6 +254,9 @@ final class KnowledgeController extends BaseController
                 return $this->error('VALIDATION_ERROR', $e->getMessage(), 422);
             }
             $this->invalidateCache('knowledge');
+            $this->auditLog('knowledge_page', $page['public_id'] ?? '', 'page_created', [
+                'title' => $page['title'] ?? '',
+            ]);
             return $this->success('KNOWLEDGE_PAGE_CREATED', $this->t('knowledge/messages.page_created', 'Knowledge page created'), [
                 'page' => $page,
             ], 201, ['row_version' => (int)($page['row_version'] ?? 1)]);
@@ -288,6 +295,9 @@ final class KnowledgeController extends BaseController
             $this->notifyPageEvent($result, 'updated', $auth);
             $this->indexPageForSemanticSearch($result);
         }
+        $this->auditLog('knowledge_page', (string)$params['public_id'], 'page_updated', [
+            'title' => $result['title'] ?? '',
+        ]);
         return $this->success('KNOWLEDGE_PAGE_UPDATED', $this->t('knowledge/messages.page_updated', 'Knowledge page updated'), [
             'page' => $result,
         ], meta: ['row_version' => (int)($result['row_version'] ?? 1)]);
@@ -302,6 +312,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_page', (string)$params['public_id'], 'page_deleted');
         return $this->success('KNOWLEDGE_PAGE_DELETED', $this->t('knowledge/messages.page_deleted', 'Knowledge page deleted'));
     }
 
@@ -318,6 +329,9 @@ final class KnowledgeController extends BaseController
         $this->invalidateCache('knowledge');
         $this->indexPageForSemanticSearch($page);
         $this->notifyPageEvent($page, 'published', $auth);
+        $this->auditLog('knowledge_page', (string)$params['public_id'], 'page_published', [
+            'title' => $page['title'] ?? '',
+        ]);
         return $this->success('KNOWLEDGE_PAGE_PUBLISHED', $this->t('knowledge/messages.page_published', 'Knowledge page published'), [
             'page' => $page,
         ]);
@@ -657,6 +671,10 @@ final class KnowledgeController extends BaseController
             }
         }
 
+        $this->auditLog('knowledge_page', (string)$params['public_id'], 'comment_added', [
+            'comment_public_id' => $comment['public_id'] ?? '',
+        ]);
+
         return $this->success('KNOWLEDGE_COMMENT_CREATED', $this->t('knowledge/messages.comment_created', 'Comment added'), [
             'comment' => $comment,
         ], 201);
@@ -668,6 +686,7 @@ final class KnowledgeController extends BaseController
         if (!$this->repo()->deleteComment((string)$params['comment_public_id'], $this->actorUserId())) {
             return $this->error('KNOWLEDGE_COMMENT_NOT_FOUND', $this->t('knowledge/messages.comment_not_found', 'Comment not found'), 404);
         }
+        $this->auditLog('knowledge_comment', (string)$params['comment_public_id'], 'comment_deleted');
         return $this->success('KNOWLEDGE_COMMENT_DELETED', $this->t('knowledge/messages.comment_deleted', 'Comment deleted'));
     }
 
@@ -1259,7 +1278,33 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->invalidateCache('knowledge');
+        $this->auditLog('knowledge_page', (string)$params['public_id'], 'page_status_' . $status, [
+            'title' => $page['title'] ?? '',
+        ]);
         return $this->success($code, $message, ['page' => $page]);
+    }
+
+    private function auditLog(string $entityType, string $entityPublicId, string $action, array $details = []): void
+    {
+        try {
+            $pdo = $this->container->get('db.pdo');
+            $now = gmdate('Y-m-d H:i:s');
+            $publicId = bin2hex(random_bytes(10));
+            $auth = $this->user();
+            $actorPub = ($auth['user']['public_id'] ?? '');
+            $detailsJson = json_encode($details, JSON_UNESCAPED_UNICODE);
+            $stmt = $pdo->prepare('INSERT INTO audit_logs (public_id, actor_public_id, entity_type, entity_public_id, action, details, created_at) VALUES (:public_id, :actor, :entity_type, :entity_pub, :action, :details, :created_at)');
+            $stmt->execute([
+                'public_id' => $publicId,
+                'actor' => $actorPub,
+                'entity_type' => $entityType,
+                'entity_pub' => $entityPublicId,
+                'action' => $action,
+                'details' => $detailsJson,
+                'created_at' => $now,
+            ]);
+        } catch (\Throwable) {
+        }
     }
 
     private function notifyPageEvent(array $page, string $event, array $auth): void
@@ -1407,6 +1452,7 @@ final class KnowledgeController extends BaseController
     public function adminReindex(): JsonResponse
     {
         $this->repo()->reindexSearch();
+        $this->auditLog('knowledge_admin', 'all', 'reindex');
         return $this->success('KNOWLEDGE_REINDEX_STARTED', 'Search index rebuild completed');
     }
 
@@ -1414,6 +1460,7 @@ final class KnowledgeController extends BaseController
     {
         $pdo = $this->container->get('db.pdo');
         $pdo->exec('UPDATE knowledge_spaces SET permissions_version = permissions_version + 1');
+        $this->auditLog('knowledge_admin', 'all', 'rebuild_permissions');
         return $this->success('KNOWLEDGE_PERMISSIONS_REBUILT', 'Permissions version bumped');
     }
 
@@ -1423,6 +1470,7 @@ final class KnowledgeController extends BaseController
         $cutoff = gmdate('Y-m-d H:i:s', time() - 90 * 86400);
         $stmt->execute(['cutoff' => $cutoff]);
         $deleted = $stmt->rowCount();
+        $this->auditLog('knowledge_admin', 'all', 'cleanup_drafts', ['deleted_count' => $deleted]);
         return $this->success('KNOWLEDGE_DRAFTS_CLEANED', 'Old drafts cleaned', [
             'deleted_count' => $deleted,
         ]);
