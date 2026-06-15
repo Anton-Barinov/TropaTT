@@ -13714,14 +13714,11 @@ a.task-tag:hover {
 }
 
 @media (min-width: 1200px) {
-  .kb-workspace {
-    gap: 0 !important;
-  }
   .kb-workspace > .col-xl-4 {
-    padding-right: 0;
+    padding-left: 0;
   }
   .kb-workspace > .col-xl-8 {
-    padding-left: 0;
+    padding-right: 0;
   }
 }
 
