@@ -413,12 +413,14 @@
       if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
     });
   });
-  document.querySelectorAll('.crm-knowledge-space-link[data-space]').forEach(function (link) {
-    link.addEventListener('click', function (e) {
+  if (els.spaces) {
+    els.spaces.addEventListener('click', function (e) {
+      var link = e.target.closest('.crm-knowledge-space-link[data-space]');
+      if (!link) return;
       e.preventDefault();
       selectSpace(link.getAttribute('data-space'));
     });
-  });
+  }
   var templatesCache = {};
   var typeIcons = { article: 'fa-solid fa-file-lines', instruction: 'fa-solid fa-list-check', regulation: 'fa-solid fa-scale-balanced', faq: 'fa-solid fa-circle-question', checklist: 'fa-solid fa-check-square', runbook: 'fa-solid fa-book', meeting_note: 'fa-solid fa-note-sticky', decision: 'fa-solid fa-gavel', client_note: 'fa-solid fa-address-card', project_note: 'fa-solid fa-diagram-project', onboarding: 'fa-solid fa-person-chalkboard' };
   function updateTypeIcon(type) {
