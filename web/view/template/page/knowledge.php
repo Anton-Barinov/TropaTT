@@ -117,18 +117,19 @@
 
           <!-- Articles table -->
           <div class="kb-articles-wrap">
-            <table class="table align-middle mb-0" id="kbArticlesTable">
+            <table class="table table-hover align-middle mb-0" id="kbArticlesTable">
               <thead>
                 <tr>
-                  <th>Страница</th>
-                  <th class="d-none d-md-table-cell">Тип</th>
-                  <th>Статус</th>
-                  <th class="d-none d-md-table-cell">Обновлено</th>
-                  <th class="d-none d-lg-table-cell kb-col-views">Просм.</th>
+                  <th style="width:42%" scope="col">Страница</th>
+                  <th class="d-none d-md-table-cell" scope="col">Тип</th>
+                  <th scope="col">Статус</th>
+                  <th class="d-none d-md-table-cell" scope="col">Обновлено</th>
+                  <th class="d-none d-lg-table-cell" scope="col" style="width:50px">Просм.</th>
+                  <th scope="col" style="width:32px"></th>
                 </tr>
               </thead>
               <tbody id="kbArticlesBody">
-                <tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>
+                <tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>
               </tbody>
             </table>
           </div>
@@ -216,16 +217,16 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label fw-semibold">Название</label>
-          <input id="kbPageTitle" class="form-control" type="text" required>
+          <label for="kbPageTitleInput" class="form-label fw-semibold">Название</label>
+          <input id="kbPageTitleInput" class="form-control" type="text" required>
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Раздел</label>
+            <label for="kbPageSpace" class="form-label fw-semibold">Раздел</label>
             <select id="kbPageSpace" class="form-select"></select>
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Тип</label>
+            <label for="kbPageType" class="form-label fw-semibold">Тип</label>
             <select id="kbPageType" class="form-select">
               <option value="article">Статья</option>
               <option value="instruction">Инструкция</option>
@@ -236,7 +237,7 @@
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Содержание</label>
+          <label for="kbPageContent" class="form-label fw-semibold">Содержание</label>
           <textarea id="kbPageContent" class="form-control" rows="6" placeholder="Опишите решение, шаги, правила..."></textarea>
         </div>
       </div>
@@ -257,17 +258,17 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label fw-semibold">Название</label>
+          <label for="kbSpaceTitleInput" class="form-label fw-semibold">Название</label>
           <input id="kbSpaceTitleInput" class="form-control" type="text" required>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Родительский раздел</label>
+          <label for="kbSpaceParent" class="form-label fw-semibold">Родительский раздел</label>
           <select id="kbSpaceParent" class="form-select">
             <option value="">Без родителя (корневой)</option>
           </select>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Описание</label>
+          <label for="kbSpaceDescInput" class="form-label fw-semibold">Описание</label>
           <textarea id="kbSpaceDescInput" class="form-control" rows="3"></textarea>
         </div>
       </div>
@@ -429,7 +430,7 @@
   async function loadArticles(){
     var body = document.getElementById('kbArticlesBody');
     if(!body) return;
-    body.innerHTML = '<tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>';
 
     var params = {};
     if(state.activeSpace) params.space_public_id = state.activeSpace;
@@ -448,13 +449,13 @@
       renderArticles(items);
       updateTabs(items);
       updatePagInfo(items);
-    } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
+    } catch(e){ body.innerHTML='<tr><td colspan="6" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
   function renderArticles(items){
     var body = document.getElementById('kbArticlesBody');
     if(!items.length){
-      body.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
+      body.innerHTML = '<tr><td colspan="6"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
       var eb = document.getElementById('kbEmptyCreate');
       if(eb) eb.addEventListener('click', function(){ document.getElementById('btnCreatePage').click(); });
       return;
@@ -475,6 +476,7 @@
         +'<td><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
         +'<td class="d-none d-md-table-cell text-muted kb-col-date">'+esc(date)+'</td>'
         +'<td class="d-none d-lg-table-cell text-muted kb-col-views">'+esc(p.views_count||0)+'</td>'
+        +'<td><div class="kb-article-actions"><button class="btn btn-sm btn-light" type="button" aria-label="Действия"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></div></td>'
         +'</tr>';
     }).join('');
 
@@ -653,7 +655,7 @@
   });
 
   document.getElementById('kbPageSubmit').addEventListener('click', async function(){
-    var title = document.getElementById('kbPageTitle').value.trim();
+    var title = document.getElementById('kbPageTitleInput').value.trim();
     if(!title){ alert('Укажите название'); return; }
     try {
       await req('api/v1/knowledge/pages', {method:'POST', body:{
@@ -663,7 +665,7 @@
         content_html: document.getElementById('kbPageContent').value
       }});
       bootstrap.Modal.getInstance(document.getElementById('kbPageModal')).hide();
-      document.getElementById('kbPageTitle').value='';
+      document.getElementById('kbPageTitleInput').value='';
       document.getElementById('kbPageContent').value='';
       loadArticles();
     } catch(e){ alert('Ошибка создания'); }
