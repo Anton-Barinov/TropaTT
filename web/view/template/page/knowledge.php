@@ -245,11 +245,28 @@
       return '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
     }).join('');
   }
-  function renderStats(totals) {
+  function renderStats(totals, labels) {
     if (!els.stats) return;
     var values = [totals.spaces || 0, totals.pages || 0, totals.published || 0, totals.drafts || 0];
-    els.stats.querySelectorAll('strong').forEach(function (node, index) { node.textContent = String(values[index] || 0); });
+    var cardValues = els.stats.querySelectorAll('strong');
+    var cardLabels = els.stats.querySelectorAll('span');
+    cardValues.forEach(function (node, index) { node.textContent = String(values[index] || 0); });
+    if (labels) {
+      cardLabels.forEach(function (node, index) { node.textContent = labels[index] || ''; });
+    }
   }
+  var globalStatLabels = [
+    t('knowledge.stat_spaces', 'разделов'),
+    t('knowledge.stat_pages', 'страниц'),
+    t('knowledge.stat_published', 'опубликовано'),
+    t('knowledge.stat_drafts', 'черновиков')
+  ];
+  var spaceStatLabels = [
+    t('knowledge.stat_pages_in_space', 'страниц в разделе'),
+    t('knowledge.stat_published', 'опубликовано'),
+    t('knowledge.stat_drafts', 'черновиков'),
+    t('knowledge.stat_views', 'просмотров')
+  ];
   function showTabView() {
     if (els.spaceView) els.spaceView.classList.remove('is-active');
     if (els.tabView) els.tabView.style.display = '';
@@ -281,21 +298,12 @@
         var review = pages.filter(function (p) { return p.status === 'review'; });
         var outdated = pages.filter(function (p) { return p.status === 'needs_update'; });
         var publishedCount = pages.filter(function (p) { return p.status === 'published'; }).length;
-        var draftCount = drafts.length;
-        var cardLabels = els.stats ? els.stats.querySelectorAll('span') : [];
-        if (cardLabels.length >= 4) {
-          cardLabels[0].textContent = t('knowledge.stat_pages_in_space', 'страниц в разделе');
-          cardLabels[1].textContent = t('knowledge.stat_published', 'опубликовано');
-          cardLabels[2].textContent = t('knowledge.stat_drafts', 'черновиков');
-          cardLabels[3].textContent = t('knowledge.stat_views', 'просмотров');
-        }
-        var cardValues = els.stats ? els.stats.querySelectorAll('strong') : [];
-        if (cardValues.length >= 4) {
-          cardValues[0].textContent = String(pages.length);
-          cardValues[1].textContent = String(publishedCount);
-          cardValues[2].textContent = String(draftCount);
-          cardValues[3].textContent = String(review.length);
-        }
+        renderStats({
+          spaces: pages.length,
+          pages: pages.length,
+          published: publishedCount,
+          drafts: drafts.length
+        }, spaceStatLabels);
         renderList(els.recent, recent, t('knowledge.empty_recent', 'Пока нет страниц.') + (spaceTitle ? ' ' + t('knowledge.in_space', 'в разделе') + ' «' + spaceTitle + '»' : ''), { emptyIcon: 'fa-clock-rotate-left' });
         renderList(els.popular, popular, t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });
         renderList(els.drafts, drafts, t('knowledge.empty_drafts', 'Нет черновиков.'), { emptyIcon: 'fa-pencil' });
@@ -304,7 +312,7 @@
       } else {
         var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
         var data = envelope.data || {};
-        renderStats(data.totals || {});
+        renderStats(data.totals || {}, globalStatLabels);
         renderSpaces(data.spaces || []);
         renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
         renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });

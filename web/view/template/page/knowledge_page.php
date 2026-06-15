@@ -1018,6 +1018,20 @@
     similar: 'knowledgeAiSimilarBtn',
     'faq-from-comments': 'knowledgeAiFaqBtn'
   };
+  var aiBtnLabels = {
+    summary: function () { return t('knowledge_page.btn_ai_summary', 'Краткое содержание'); },
+    explain: function () { return t('knowledge_page.btn_ai_explain', 'Объяснить проще'); },
+    checklist: function () { return t('knowledge_page.btn_ai_checklist', 'Чеклист'); },
+    similar: function () { return t('knowledge_page.btn_ai_similar', 'Похожие страницы'); },
+    'faq-from-comments': function () { return t('knowledge_page.btn_ai_faq', 'FAQ из комментариев'); }
+  };
+  var aiBtnIcons = {
+    summary: 'fa-wand-magic-sparkles',
+    explain: 'fa-lightbulb',
+    checklist: 'fa-list-check',
+    similar: 'fa-copy',
+    'faq-from-comments': 'fa-circle-question'
+  };
   var aiResultTitles = {
     summary: function () { return t('knowledge_page.ai_summary_title', 'Краткое содержание'); },
     explain: function () { return t('knowledge_page.ai_explain_title', 'Объяснение'); },
@@ -1217,7 +1231,12 @@
       }
     }
 
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" style="margin-right:0.3rem"></i>' + t('knowledge_page.btn_ai_' + (action === 'faq-from-comments' ? 'faq' : action), action); }
+    if (btn) {
+      btn.disabled = false;
+      var icon = aiBtnIcons[action] || 'fa-wand-magic-sparkles';
+      var label = (aiBtnLabels[action] || function () { return action; })();
+      btn.innerHTML = '<i class="fa-solid ' + icon + '" style="margin-right:0.3rem"></i>' + label;
+    }
     aiInProgress = false;
   }
 
