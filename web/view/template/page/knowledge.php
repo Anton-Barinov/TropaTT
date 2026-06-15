@@ -57,7 +57,7 @@
           <option value="needs_update">Требует обновления</option>
           <option value="archived">Архив</option>
         </select>
-        <button id="kbFilterReset" class="btn btn-sm crm-btn-muted" type="button" style="display:none">Сбросить</button>
+        <button id="kbFilterReset" class="btn btn-sm btn-outline-secondary" type="button" style="display:none"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Сбросить</button>
       </div>
     </div>
   </div>
