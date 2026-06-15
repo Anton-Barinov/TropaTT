@@ -285,7 +285,11 @@
     if((n||0)>80){ console.error('CRM API not ready'); return; }
     setTimeout(function(){ waitForApi(cb, (n||0)+1); }, 50);
   }
-  function req(route, opts){ return getApi().request(route, opts); }
+  function req(route, opts){
+    var api = getApi();
+    if(!api){ return Promise.reject(new Error('CRM API not ready')); }
+    return api.request(route, opts);
+  }
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
