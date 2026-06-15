@@ -12805,25 +12805,29 @@ a.task-tag:hover {
 }
 
 .crm-knowledge-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.7fr);
-  gap: 1rem 1.25rem;
-  align-items: center;
-  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
   margin-bottom: 1rem;
   box-shadow: none;
 }
 
 .crm-knowledge-hero h2 {
-  margin: 0 0 0.45rem;
-  font-size: 1.45rem;
-  line-height: 1.2;
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  line-height: 1.25;
 }
 
 .crm-knowledge-hero p {
   max-width: 760px;
   margin: 0;
   color: var(--crm-muted);
+  font-size: 0.9rem;
+}
+
+.crm-knowledge-search {
+  width: 100%;
 }
 
 .crm-knowledge-search .input-group {
@@ -12833,10 +12837,21 @@ a.task-tag:hover {
   background: var(--crm-surface);
 }
 
-.crm-knowledge-search .input-group-text,
+.crm-knowledge-search .input-group-text {
+  border: 0;
+  background: transparent;
+  color: var(--crm-muted);
+}
+
 .crm-knowledge-search .form-control {
   border: 0;
   box-shadow: none;
+}
+
+.crm-knowledge-search .btn {
+  border: 0;
+  border-left: 1px solid var(--crm-border);
+  border-radius: 0;
 }
 
 .crm-knowledge-stats {
@@ -12860,6 +12875,11 @@ a.task-tag:hover {
 
 .crm-knowledge-stats .crm-card:last-child {
   border-right: 0;
+}
+
+.crm-knowledge-stats .crm-card:not(:first-child):not(:last-child) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
 }
 
 .crm-knowledge-stats strong {

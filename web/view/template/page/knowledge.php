@@ -259,76 +259,58 @@
     if (recentPanel) recentPanel.classList.add('is-active');
     document.querySelectorAll('[data-kb-tab]').forEach(function (btn) { btn.classList.toggle('is-active', btn.getAttribute('data-kb-tab') === 'recent'); });
   }
-  function showSpaceView() {
-    if (els.tabView) els.tabView.style.display = 'none';
-    if (els.spaceView) els.spaceView.classList.add('is-active');
-    if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
-  }
-  function updateStatsForSpace(space) {
-    if (!els.stats) return;
-    var cards = els.stats.querySelectorAll('.crm-card');
-    if (!space) {
-      cards[0].querySelector('span').textContent = t('knowledge.stat_spaces', 'разделов');
-      cards[1].querySelector('span').textContent = t('knowledge.stat_pages', 'страниц');
-      cards[2].querySelector('span').textContent = t('knowledge.stat_published', 'опубликовано');
-      cards[3].querySelector('span').textContent = t('knowledge.stat_drafts', 'черновиков');
-      return;
-    }
-    cards[0].querySelector('span').textContent = t('knowledge.stat_pages_in_space', 'страниц в разделе');
-    cards[1].querySelector('span').textContent = t('knowledge.stat_published', 'опубликовано');
-    cards[2].querySelector('span').textContent = t('knowledge.stat_drafts', 'черновиков');
-    cards[3].querySelector('span').textContent = t('knowledge.stat_views', 'просмотров');
-  }
-  async function loadSpacePages(spaceId) {
-    var space = state.spaces.find(function (s) { return s.public_id === spaceId; });
-    if (!space) return;
-    showSpaceView();
-    updateStatsForSpace(space);
-    if (els.spaceHeader) {
-      els.spaceHeader.innerHTML = '<div class="crm-knowledge-space-header"><div class="crm-knowledge-space-header-info"><h3>' + esc(space.title) + '</h3>' +
-        (space.description ? '<p>' + esc(space.description) + '</p>' : '') +
-        '<div class="crm-knowledge-space-header-meta"><span><i class="fa-solid fa-file-lines" style="margin-right:0.3rem"></i>' + esc(space.pages_count || 0) + ' ' + esc(t('knowledge.stat_pages', 'страниц')) + '</span></div></div>' +
-        '<button class="btn btn-sm crm-btn-secondary" id="knowledgeSpaceShowAll"><i class="fa-solid fa-arrow-left" style="margin-right:0.3rem"></i>' + esc(t('knowledge.show_all', 'Все разделы')) + '</button></div>';
-      document.getElementById('knowledgeSpaceShowAll') && document.getElementById('knowledgeSpaceShowAll').addEventListener('click', function () { selectSpace(''); });
-    }
-    if (els.spacePagesList) {
-      els.spacePagesList.innerHTML = '<div class="text-muted p-3">' + esc(t('knowledge.loading', 'Загрузка...')) + '</div>';
-      try {
-        var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { space_public_id: spaceId } });
-        var pages = envelope.data && envelope.data.items || [];
-        if (!pages.length) {
-          els.spacePagesList.innerHTML = '<div class="crm-knowledge-empty"><i class="fa-solid fa-file-circle-plus"></i><p>' + esc(t('knowledge.empty_space_pages', 'В этом разделе пока нет страниц. Создайте первую страницу.')) + '</p></div>';
-        } else {
-          renderList(els.spacePagesList, pages, t('knowledge.empty_space_pages', 'В этом разделе пока нет страниц.'), { emptyIcon: 'fa-file-circle-plus' });
-        }
-      } catch (e) {
-        els.spacePagesList.innerHTML = '<div class="crm-knowledge-empty"><i class="fa-solid fa-triangle-exclamation"></i><p>' + esc(t('knowledge.load_error', 'Не удалось загрузить базу знаний.')) + '</p></div>';
-      }
-    }
-  }
   function selectSpace(spaceId) {
     state.activeSpace = spaceId;
     els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (link) {
       link.classList.toggle('is-active', link.getAttribute('data-space') === spaceId);
     });
-    if (spaceId) {
-      loadSpacePages(spaceId);
-    } else {
-      showTabView();
-      load();
-    }
+    showTabView();
+    load(spaceId);
   }
-  async function load() {
+  async function load(spaceId) {
     try {
-      var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
-      var data = envelope.data || {};
-      renderStats(data.totals || {});
-      renderSpaces(data.spaces || []);
-      renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
-      renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
-      renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });
-      renderList(els.drafts, data.drafts || [], t('knowledge.empty_drafts', 'Нет черновиков.'), { emptyIcon: 'fa-pencil' });
-      renderList(els.outdated, data.outdated || [], t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
+      if (spaceId) {
+        var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { space_public_id: spaceId, limit: 200 } });
+        var pages = envelope.data && envelope.data.items || [];
+        var space = state.spaces.find(function (s) { return s.public_id === spaceId; });
+        var spaceTitle = space ? space.title : '';
+        var recent = pages.slice().sort(function (a, b) { return (b.updated_at || '').localeCompare(a.updated_at || ''); });
+        var popular = pages.slice().sort(function (a, b) { return (b.views_count || 0) - (a.views_count || 0); });
+        var drafts = pages.filter(function (p) { return p.status === 'draft'; });
+        var review = pages.filter(function (p) { return p.status === 'review'; });
+        var outdated = pages.filter(function (p) { return p.status === 'needs_update'; });
+        var publishedCount = pages.filter(function (p) { return p.status === 'published'; }).length;
+        var draftCount = drafts.length;
+        var cardLabels = els.stats ? els.stats.querySelectorAll('span') : [];
+        if (cardLabels.length >= 4) {
+          cardLabels[0].textContent = t('knowledge.stat_pages_in_space', 'страниц в разделе');
+          cardLabels[1].textContent = t('knowledge.stat_published', 'опубликовано');
+          cardLabels[2].textContent = t('knowledge.stat_drafts', 'черновиков');
+          cardLabels[3].textContent = t('knowledge.stat_views', 'просмотров');
+        }
+        var cardValues = els.stats ? els.stats.querySelectorAll('strong') : [];
+        if (cardValues.length >= 4) {
+          cardValues[0].textContent = String(pages.length);
+          cardValues[1].textContent = String(publishedCount);
+          cardValues[2].textContent = String(draftCount);
+          cardValues[3].textContent = String(review.length);
+        }
+        renderList(els.recent, recent, t('knowledge.empty_recent', 'Пока нет страниц.') + (spaceTitle ? ' ' + t('knowledge.in_space', 'в разделе') + ' «' + spaceTitle + '»' : ''), { emptyIcon: 'fa-clock-rotate-left' });
+        renderList(els.popular, popular, t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });
+        renderList(els.drafts, drafts, t('knowledge.empty_drafts', 'Нет черновиков.'), { emptyIcon: 'fa-pencil' });
+        renderList(els.review, review, t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
+        renderList(els.outdated, outdated, t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
+      } else {
+        var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
+        var data = envelope.data || {};
+        renderStats(data.totals || {});
+        renderSpaces(data.spaces || []);
+        renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
+        renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
+        renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });
+        renderList(els.drafts, data.drafts || [], t('knowledge.empty_drafts', 'Нет черновиков.'), { emptyIcon: 'fa-pencil' });
+        renderList(els.outdated, data.outdated || [], t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
+      }
     } catch (err) {
       renderList(els.recent, [], t('knowledge.load_error', 'Не удалось загрузить базу знаний.'), { emptyIcon: 'fa-triangle-exclamation' });
     }
@@ -407,7 +389,6 @@
   var tabBtns = document.querySelectorAll('[data-kb-tab]');
   tabBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (state.activeSpace) { selectSpace(''); return; }
       tabBtns.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
       document.querySelectorAll('[data-kb-panel]').forEach(function (p) { p.classList.toggle('is-active', p.getAttribute('data-kb-panel') === btn.getAttribute('data-kb-tab')); });
       if (els.searchResultsWrap) els.searchResultsWrap.classList.remove('is-active');
@@ -502,10 +483,19 @@
   });
   var initSpace = urlParams.get('space') || '';
   waitForApi(function () {
-    load();
+    if (initSpace) {
+      load(initSpace);
+    } else {
+      load();
+    }
     loadTags();
     if (initSpace) {
-      window.setTimeout(function () { selectSpace(initSpace); }, 300);
+      window.setTimeout(function () {
+        state.activeSpace = initSpace;
+        els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (l) {
+          l.classList.toggle('is-active', l.getAttribute('data-space') === initSpace);
+        });
+      }, 300);
     }
     if (state.sourceEntity.type && state.sourceEntity.publicId) {
       window.setTimeout(function () {
