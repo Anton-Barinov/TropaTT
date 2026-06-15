@@ -21,12 +21,24 @@ final class KnowledgeSpacesHierarchyMigration implements MigrationInterface
     {
         $colType = $driver === 'sqlsrv' ? 'INT' : 'INTEGER';
 
-        $check = $pdo->query("SELECT COUNT(*) FROM pragma_table_info('knowledge_spaces') WHERE name = 'parent_id'");
+        if ($driver === 'mysql') {
+            $check = $pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'knowledge_spaces' AND COLUMN_NAME = 'parent_id'");
+        } elseif ($driver === 'pgsql') {
+            $check = $pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'knowledge_spaces' AND column_name = 'parent_id'");
+        } else {
+            $check = $pdo->query("SELECT COUNT(*) FROM pragma_table_info('knowledge_spaces') WHERE name = 'parent_id'");
+        }
+
         if ($check === false || (int)$check->fetchColumn() > 0) {
             return;
         }
 
         $pdo->exec("ALTER TABLE knowledge_spaces ADD COLUMN parent_id {$colType} NULL");
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_knowledge_spaces_parent ON knowledge_spaces (parent_id)");
+
+        if ($driver === 'mysql') {
+            try { $pdo->exec("CREATE INDEX idx_knowledge_spaces_parent ON knowledge_spaces (parent_id)"); } catch (\Throwable) {}
+        } else {
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_knowledge_spaces_parent ON knowledge_spaces (parent_id)");
+        }
     }
 }
