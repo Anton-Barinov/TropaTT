@@ -16,9 +16,9 @@ if (file_exists($envFile)) {
 
 $dbHost = getenv('DB_HOST') ?: '127.0.0.1';
 $dbPort = getenv('DB_PORT') ?: '3306';
-$dbName = getenv('DB_NAME') ?: 'tropatt';
-$dbUser = getenv('DB_USER') ?: 'root';
-$dbPass = getenv('DB_PASS') ?: '';
+$dbName = getenv('DB_DATABASE') ?: getenv('DB_NAME') ?: 'tropatt';
+$dbUser = getenv('DB_USERNAME') ?: getenv('DB_USER') ?: 'root';
+$dbPass = getenv('DB_PASSWORD') ?: getenv('DB_PASS') ?: '';
 
 try {
     $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
