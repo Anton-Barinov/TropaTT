@@ -36,6 +36,15 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="kb-tab-ai" data-bs-toggle="tab" data-bs-target="#kb-panel-ai" type="button" role="tab" aria-controls="kb-panel-ai" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-page-types" data-bs-toggle="tab" data-bs-target="#kb-panel-page-types" type="button" role="tab" aria-controls="kb-panel-page-types" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.page_types_title', 'Типы страниц'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-indexation" data-bs-toggle="tab" data-bs-target="#kb-panel-indexation" type="button" role="tab" aria-controls="kb-panel-indexation" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.indexation_title', 'Индексация'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="kb-tab-settings" data-bs-toggle="tab" data-bs-target="#kb-panel-settings" type="button" role="tab" aria-controls="kb-panel-settings" aria-selected="false"><?= htmlspecialchars($t('admin_knowledge.settings_title', 'Настройки'), ENT_QUOTES, 'UTF-8') ?></button>
+    </li>
   </ul>
   <div class="tab-content mt-3">
     <div class="tab-pane fade show active" id="kb-panel-spaces" role="tabpanel" aria-labelledby="kb-tab-spaces">
@@ -112,6 +121,67 @@
               </div>
             </div>
           </div>
+        </div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-page-types" role="tabpanel" aria-labelledby="kb-tab-page-types">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.page_types_title', 'Типы страниц'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.page_types_hint', 'Доступные типы страниц, используемые в базе знаний.'), ENT_QUOTES, 'UTF-8') ?></p></div>
+        <div class="table-responsive">
+          <table class="table crm-table align-middle mb-0"><thead><tr><th><?= htmlspecialchars($t('knowledge.field_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('knowledge.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="adminKnowledgePageTypes"><tr><td colspan="3" class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+        </div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-indexation" role="tabpanel" aria-labelledby="kb-tab-indexation">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.indexation_title', 'Индексация'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.indexation_hint', 'Перестроить поисковый индекс, кэш прав и очистить старые черновики.'), ENT_QUOTES, 'UTF-8') ?></p></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.btn_reindex', 'Перестроить поиск'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.indexation_hint', 'Перестроить FULLTEXT поисковый индекс по всем страницам.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminReindexBtn"><?= htmlspecialchars($t('admin_knowledge.btn_reindex', 'Перестроить поиск'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminReindexResult" class="mt-2 small"></div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.btn_rebuild_permissions', 'Перестроить права'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.permissions_rebuilt', 'Обновить версию прав доступа для всех разделов.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminRebuildPermsBtn"><?= htmlspecialchars($t('admin_knowledge.btn_rebuild_permissions', 'Перестроить права'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminRebuildPermsResult" class="mt-2 small"></div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="crm-card p-3">
+                <h6 class="fw-bold"><?= htmlspecialchars($t('admin_knowledge.btn_cleanup_drafts', 'Очистить черновики'), ENT_QUOTES, 'UTF-8') ?></h6>
+                <p class="small text-muted"><?= htmlspecialchars($t('admin_knowledge.cleanup_done', 'Удалить черновики старше 90 дней.'), ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="btn btn-sm crm-btn-secondary" type="button" id="adminCleanupDraftsBtn"><?= htmlspecialchars($t('admin_knowledge.btn_cleanup_drafts', 'Очистить черновики'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div id="adminCleanupDraftsResult" class="mt-2 small"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="tab-pane fade" id="kb-panel-settings" role="tabpanel" aria-labelledby="kb-tab-settings">
+      <section class="crm-card crm-section-card">
+        <div class="crm-section-head"><h2 class="h5 mb-0"><?= htmlspecialchars($t('admin_knowledge.settings_title', 'Настройки'), ENT_QUOTES, 'UTF-8') ?></h2><p class="text-muted mb-0 small"><?= htmlspecialchars($t('admin_knowledge.settings_hint', 'Настройте поведение базы знаний.'), ENT_QUOTES, 'UTF-8') ?></p></div>
+        <div class="p-3">
+          <form id="adminKnowledgeSettingsForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="crm-filter-label" for="settingsDefaultReviewDays"><?= htmlspecialchars($t('admin_knowledge.settings_default_review_days', 'Интервал проверки (дней)'), ENT_QUOTES, 'UTF-8') ?></label>
+                <input type="number" id="settingsDefaultReviewDays" class="form-control" min="1" max="365" value="90">
+                <div class="form-text text-muted small"><?= htmlspecialchars($t('admin_knowledge.settings_default_review_days_hint', 'Через сколько дней после публикации страница должна быть проверена.'), ENT_QUOTES, 'UTF-8') ?></div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <button type="submit" class="btn crm-btn-primary" id="adminSettingsSaveBtn"><?= htmlspecialchars($t('admin_knowledge.settings_save', 'Сохранить настройки'), ENT_QUOTES, 'UTF-8') ?></button>
+              <span id="adminSettingsResult" class="ms-2 small"></span>
+            </div>
+          </form>
         </div>
       </section>
     </div>
@@ -503,7 +573,7 @@
 
   // Admin AI features
   var adminAi = {
-    duplicatsBtn: document.getElementById('adminAiDuplicatesBtn'),
+    duplicatesBtn: document.getElementById('adminAiDuplicatesBtn'),
     duplicatesResult: document.getElementById('adminAiDuplicatesResult'),
     orphansBtn: document.getElementById('adminAiOrphansBtn'),
     orphansResult: document.getElementById('adminAiOrphansResult'),
@@ -511,10 +581,10 @@
     structureBtn: document.getElementById('adminAiStructureBtn'),
     structureResult: document.getElementById('adminAiStructureResult'),
   };
-  if (adminAi.duplicatsBtn) {
-    adminAi.duplicatsBtn.addEventListener('click', async function () {
+  if (adminAi.duplicatesBtn) {
+    adminAi.duplicatesBtn.addEventListener('click', async function () {
       if (!adminAi.duplicatesResult) return;
-      adminAi.duplicatsBtn.disabled = true;
+      adminAi.duplicatesBtn.disabled = true;
       adminAi.duplicatesResult.innerHTML = '<em>' + esc(t('knowledge.loading', 'Загрузка...')) + '</em>';
       try {
         var env = await request('api/v1/knowledge/ai/admin/find-duplicates', { method: 'POST', body: { threshold: 0.5 } });
@@ -532,7 +602,7 @@
       } catch (e) {
         adminAi.duplicatesResult.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'AI error')) + '</em>';
       }
-      adminAi.duplicatsBtn.disabled = false;
+      adminAi.duplicatesBtn.disabled = false;
     });
   }
   if (adminAi.orphansBtn) {
@@ -600,6 +670,109 @@
       adminAi.structureBtn.disabled = false;
     });
   }
+
+  // ── Page types tab ──
+  var pageTypes = [
+    { id: 'article', icon: 'fa-file-lines', title: t('knowledge.type_article', 'Article'), desc: t('admin_knowledge.page_types_hint', 'General informational article.') },
+    { id: 'instruction', icon: 'fa-list-check', title: t('knowledge.type_instruction', 'Instruction'), desc: 'Step-by-step guide.' },
+    { id: 'regulation', icon: 'fa-scale-balanced', title: t('knowledge.type_regulation', 'Regulation'), desc: 'Official policy or rule.' },
+    { id: 'faq', icon: 'fa-circle-question', title: t('knowledge.type_faq', 'FAQ'), desc: 'Frequently asked questions.' },
+    { id: 'checklist', icon: 'fa-check-square', title: t('knowledge.type_checklist', 'Checklist'), desc: 'Action item checklist.' },
+    { id: 'runbook', icon: 'fa-book-open', title: t('knowledge.type_runbook', 'Runbook'), desc: 'Operational runbook.' },
+    { id: 'meeting_note', icon: 'fa-clipboard', title: t('knowledge.type_meeting_note', 'Meeting note'), desc: 'Meeting minutes and notes.' },
+    { id: 'decision', icon: 'fa-gavel', title: t('knowledge.type_decision', 'Decision'), desc: 'Recorded decision log.' },
+    { id: 'client_note', icon: 'fa-user', title: t('knowledge.type_client_note', 'Client note'), desc: 'Client-specific notes.' },
+    { id: 'project_note', icon: 'fa-diagram-project', title: t('knowledge.type_project_note', 'Project note'), desc: 'Project documentation.' },
+    { id: 'onboarding', icon: 'fa-graduation-cap', title: t('knowledge.type_onboarding', 'Onboarding'), desc: 'New member onboarding.' },
+  ];
+  var ptEl = document.getElementById('adminKnowledgePageTypes');
+  if (ptEl) {
+    ptEl.innerHTML = pageTypes.map(function (pt) {
+      return '<tr><td><i class="fa-solid ' + pt.icon + ' me-2 crm-text-muted"></i><code>' + esc(pt.id) + '</code></td><td><strong>' + esc(pt.title) + '</strong></td><td class="text-muted small">' + esc(pt.desc) + '</td></tr>';
+    }).join('');
+  }
+
+  // ── Indexation tab ──
+  var reindexBtn = document.getElementById('adminReindexBtn');
+  var rebuildPermsBtn = document.getElementById('adminRebuildPermsBtn');
+  var cleanupDraftsBtn = document.getElementById('adminCleanupDraftsBtn');
+  if (reindexBtn) {
+    reindexBtn.addEventListener('click', async function () {
+      reindexBtn.disabled = true;
+      var resEl = document.getElementById('adminReindexResult');
+      if (resEl) resEl.innerHTML = '<em>' + esc(t('knowledge.loading', 'Loading...')) + '</em>';
+      try {
+        await request('api/v1/admin/knowledge/reindex', { method: 'POST', idempotent: true });
+        if (resEl) resEl.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.reindex_done', 'Search index rebuilt')) + '</em>';
+      } catch (e) {
+        if (resEl) resEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge.load_error', 'Error')) + '</em>';
+      }
+      reindexBtn.disabled = false;
+    });
+  }
+  if (rebuildPermsBtn) {
+    rebuildPermsBtn.addEventListener('click', async function () {
+      rebuildPermsBtn.disabled = true;
+      var resEl = document.getElementById('adminRebuildPermsResult');
+      if (resEl) resEl.innerHTML = '<em>' + esc(t('knowledge.loading', 'Loading...')) + '</em>';
+      try {
+        await request('api/v1/admin/knowledge/rebuild-permissions', { method: 'POST', idempotent: true });
+        if (resEl) resEl.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.permissions_rebuilt', 'Permissions version bumped')) + '</em>';
+      } catch (e) {
+        if (resEl) resEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge.load_error', 'Error')) + '</em>';
+      }
+      rebuildPermsBtn.disabled = false;
+    });
+  }
+  if (cleanupDraftsBtn) {
+    cleanupDraftsBtn.addEventListener('click', async function () {
+      cleanupDraftsBtn.disabled = true;
+      var resEl = document.getElementById('adminCleanupDraftsResult');
+      if (resEl) resEl.innerHTML = '<em>' + esc(t('knowledge.loading', 'Loading...')) + '</em>';
+      try {
+        var env = await request('api/v1/admin/knowledge/cleanup-drafts', { method: 'POST', idempotent: true });
+        var deleted = (env.data || {}).deleted_count || 0;
+        if (resEl) resEl.innerHTML = '<em class="text-success">' + esc(t('admin_knowledge.cleanup_done', 'Old drafts cleaned').replace('%d', String(deleted))) + '</em>';
+      } catch (e) {
+        if (resEl) resEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge.load_error', 'Error')) + '</em>';
+      }
+      cleanupDraftsBtn.disabled = false;
+    });
+  }
+
+  // ── Settings tab ──
+  var settingsForm = document.getElementById('adminKnowledgeSettingsForm');
+  if (settingsForm) {
+    // Load current settings
+    (async function loadSettings() {
+      try {
+        var env = await request('api/v1/admin/knowledge/settings', { method: 'GET' });
+        var settings = (env.data || {}).settings || {};
+        var reviewDays = document.getElementById('settingsDefaultReviewDays');
+        if (reviewDays && settings.default_review_days != null) {
+          reviewDays.value = String(settings.default_review_days);
+        }
+      } catch (e) {}
+    })();
+    settingsForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var saveBtn = document.getElementById('adminSettingsSaveBtn');
+      var resultEl = document.getElementById('adminSettingsResult');
+      if (saveBtn) saveBtn.disabled = true;
+      if (resultEl) resultEl.innerHTML = '<em>' + esc(t('knowledge.loading', 'Loading...')) + '</em>';
+      try {
+        var reviewDays = document.getElementById('settingsDefaultReviewDays');
+        var body = {};
+        if (reviewDays) body.default_review_days = parseInt(reviewDays.value, 10) || 90;
+        await request('api/v1/admin/knowledge/settings', { method: 'PATCH', body: body, idempotent: true });
+        if (resultEl) resultEl.innerHTML = '<span class="text-success">' + esc(t('admin_knowledge.settings_saved', 'Settings saved')) + '</span>';
+      } catch (e) {
+        if (resultEl) resultEl.innerHTML = '<span class="text-danger">' + esc(t('knowledge.load_error', 'Error')) + '</span>';
+      }
+      if (saveBtn) saveBtn.disabled = false;
+    });
+  }
+
 })();
 </script>
 <div class="modal fade" id="adminKnowledgeImportModal" tabindex="-1" aria-hidden="true">
