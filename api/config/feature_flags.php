@@ -19,6 +19,7 @@ return [
         'ai.analytics' => false,
         'ai.admin' => false,
         'ai.search' => false,
+        'ai.knowledge' => false,
         'ai.workflow' => false,
         'ai.import' => false,
         'ai.cron.enabled' => false,

@@ -284,6 +284,18 @@ return array (
     'export_markdown' => 'Markdown',
     'export_markdown_confirm' => 'Export as Markdown? OK=MD, Cancel=JSON',
     'export_error' => 'Export error',
+    'ai_title' => 'AI',
+    'btn_ai_summary' => 'Краткое содержание',
+    'btn_ai_explain' => 'Объяснить проще',
+    'btn_ai_similar' => 'Похожие страницы',
+    'ai_summary_title' => 'Краткое содержание',
+    'ai_explain_title' => 'Объяснение',
+    'ai_similar_title' => 'Похожие страницы',
+    'ai_loading' => 'AI…',
+    'ai_loading_title' => 'AI обрабатывает…',
+    'ai_no_result' => 'Нет результата',
+    'ai_no_similar' => 'Похожих страниц не найдено',
+    'ai_error' => 'Ошибка AI',
   ),
   'admin_knowledge' => 
   array (

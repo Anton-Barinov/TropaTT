@@ -279,6 +279,18 @@ return array (
     'tag_select_hint' => 'Select a tag...',
     'tag_add' => '+',
     'tag_remove' => 'Remove tag',
+    'ai_title' => 'AI',
+    'btn_ai_summary' => 'Summary',
+    'btn_ai_explain' => 'Explain simply',
+    'btn_ai_similar' => 'Similar pages',
+    'ai_summary_title' => 'Summary',
+    'ai_explain_title' => 'Explanation',
+    'ai_similar_title' => 'Similar pages',
+    'ai_loading' => 'AI…',
+    'ai_loading_title' => 'AI processing…',
+    'ai_no_result' => 'No result',
+    'ai_no_similar' => 'No similar pages found',
+    'ai_error' => 'AI error',
   ),
   'admin_knowledge' =>
   array (

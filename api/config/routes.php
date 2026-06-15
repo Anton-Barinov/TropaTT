@@ -285,6 +285,11 @@ return [
     // knowledge import
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/import', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'importPages', 'auth' => true, 'required_permissions' => ['knowledge.import']],
 
+    // knowledge ai
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/summary', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/explain', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'explain', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/ai/similar', 'controller' => Api\Controller\Knowledge\KnowledgeAiController::class, 'action' => 'similar', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+
     // notifications/reminders
     ['methods' => ['GET'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'list', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/notifications', 'controller' => Api\Controller\Notification\NotificationController::class, 'action' => 'create', 'auth' => true],

@@ -284,6 +284,18 @@ return array (
     'export_markdown' => 'Markdown',
     'export_markdown_confirm' => 'Export as Markdown? OK=MD, Cancel=JSON',
     'export_error' => 'Export error',
+    'ai_title' => 'AI',
+    'btn_ai_summary' => '摘要',
+    'btn_ai_explain' => '简单解释',
+    'btn_ai_similar' => '相似页面',
+    'ai_summary_title' => '摘要',
+    'ai_explain_title' => '解释',
+    'ai_similar_title' => '相似页面',
+    'ai_loading' => 'AI…',
+    'ai_loading_title' => 'AI 处理中…',
+    'ai_no_result' => '无结果',
+    'ai_no_similar' => '未找到相似页面',
+    'ai_error' => 'AI 错误',
   ),
   'admin_knowledge' => 
   array (

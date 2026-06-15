@@ -35,6 +35,8 @@ return [
             'my_day_plan',
             'my_week_plan',
             'task_list_priority',
+            'knowledge_summary',
+            'knowledge_simplify',
         ],
     ],
     'intent_settings' => [

@@ -95,6 +95,7 @@ final class AiSemanticSearchController extends BaseController
             'contact' => $this->container->get('service.contact')->get($entityPublicId, $actor) !== null,
             'comment' => $this->container->get('service.entity_access')->canAccess('comment', $entityPublicId, $actor),
             'file' => (bool)($this->container->get('service.file')->canDownloadInternal($entityPublicId, $actor)['ok'] ?? false),
+            'knowledge' => (bool)$this->container->get('repository.knowledge')->page($entityPublicId, $actor),
             default => false,
         };
     }
@@ -119,6 +120,7 @@ final class AiSemanticSearchController extends BaseController
             'contacts' => 'contact',
             'comments' => 'comment',
             'files' => 'file',
+            'knowledge' => 'knowledge',
             default => $normalized,
         };
     }

@@ -3704,8 +3704,20 @@ return array (
     'tag_select_hint' => 'Select a tag...',
     'tag_add' => '+',
     'tag_remove' => 'Remove tag',
+    'ai_title' => 'IA',
+    'btn_ai_summary' => 'Résumé',
+    'btn_ai_explain' => 'Expliquer simplement',
+    'btn_ai_similar' => 'Pages similaires',
+    'ai_loading' => 'IA…',
+    'ai_loading_title' => 'IA en cours…',
+    'ai_summary_title' => 'Résumé',
+    'ai_explain_title' => 'Explication',
+    'ai_similar_title' => 'Pages similaires',
+    'ai_no_similar' => 'Aucune page similaire trouvée',
+    'ai_no_result' => 'Aucun résultat',
+    'ai_error' => 'Erreur IA',
   ),
-  'login' => 
+  'login' =>
   array (
     'title' => 'TropaTT — Connexion',
     'page_title' => 'Connexion',

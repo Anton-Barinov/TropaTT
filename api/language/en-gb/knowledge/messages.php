@@ -89,4 +89,11 @@ return [
     'favorites' => 'Favorites loaded',
     'suggest' => 'Suggestions loaded',
     'analytics' => 'Analytics loaded',
+    'ai_summary' => 'AI summary generated',
+    'ai_summary_failed' => 'Failed to generate AI summary',
+    'ai_explain' => 'AI explanation generated',
+    'ai_explain_failed' => 'Failed to generate AI explanation',
+    'ai_similar' => 'Similar pages found',
+    'ai_similar_failed' => 'Failed to find similar pages',
+    'ai_no_content' => 'Page has no content to process',
 ];

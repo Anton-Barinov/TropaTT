@@ -89,4 +89,11 @@ return [
     'import_completed' => '导入已完成',
     'import_forbidden' => '不允许导入',
     'invalid_import_format' => '无效的导入格式',
+    'ai_summary' => 'AI 摘要已生成',
+    'ai_summary_failed' => '生成 AI 摘要失败',
+    'ai_explain' => 'AI 解释已生成',
+    'ai_explain_failed' => '生成 AI 解释失败',
+    'ai_similar' => '已找到相似页面',
+    'ai_similar_failed' => '查找相似页面失败',
+    'ai_no_content' => '页面没有可处理的内容',
 ];

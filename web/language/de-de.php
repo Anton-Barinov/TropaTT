@@ -3704,6 +3704,18 @@ return array (
     'tag_select_hint' => 'Select a tag...',
     'tag_add' => '+',
     'tag_remove' => 'Remove tag',
+    'ai_title' => 'KI',
+    'btn_ai_summary' => 'Zusammenfassung',
+    'btn_ai_explain' => 'Einfach erklären',
+    'btn_ai_similar' => 'Ähnliche Seiten',
+    'ai_loading' => 'KI…',
+    'ai_loading_title' => 'KI verarbeitet…',
+    'ai_summary_title' => 'Zusammenfassung',
+    'ai_explain_title' => 'Erklärung',
+    'ai_similar_title' => 'Ähnliche Seiten',
+    'ai_no_similar' => 'Keine ähnlichen Seiten gefunden',
+    'ai_no_result' => 'Kein Ergebnis',
+    'ai_error' => 'KI-Fehler',
   ),
   'login' => 
   array (

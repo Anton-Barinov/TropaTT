@@ -3704,8 +3704,20 @@ return array (
     'tag_select_hint' => 'Select a tag...',
     'tag_add' => '+',
     'tag_remove' => 'Remove tag',
+    'ai_title' => 'AI',
+    'btn_ai_summary' => 'Resumen',
+    'btn_ai_explain' => 'Explicar simple',
+    'btn_ai_similar' => 'Páginas similares',
+    'ai_loading' => 'AI…',
+    'ai_loading_title' => 'AI procesando…',
+    'ai_summary_title' => 'Resumen',
+    'ai_explain_title' => 'Explicación',
+    'ai_similar_title' => 'Páginas similares',
+    'ai_no_similar' => 'No se encontraron páginas similares',
+    'ai_no_result' => 'Sin resultado',
+    'ai_error' => 'Error de AI',
   ),
-  'login' => 
+  'login' =>
   array (
     'title' => 'TropaTT — Inicio de sesión',
     'page_title' => 'Inicio de sesión',

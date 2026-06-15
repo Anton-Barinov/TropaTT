@@ -17,6 +17,7 @@ final class AiSemanticIndexService
         'contacts',
         'comments',
         'files',
+        'knowledge',
     ];
     private const LOCAL_VECTOR_DIMENSIONS = 64;
 
@@ -254,6 +255,7 @@ final class AiSemanticIndexService
             'contact' => 'contacts',
             'comment' => 'comments',
             'file', 'file_metadata' => 'files',
+            'knowledge', 'knowledge_page' => 'knowledge',
             default => $normalized,
         };
     }

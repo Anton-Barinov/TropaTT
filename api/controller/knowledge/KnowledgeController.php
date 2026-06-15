@@ -8,6 +8,7 @@ use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Tag\TagRepository;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Service\FileService;
+use Api\System\Library\Service\AiSemanticIndexService;
 use Throwable;
 
 final class KnowledgeController extends BaseController
@@ -285,6 +286,7 @@ final class KnowledgeController extends BaseController
         $this->invalidateCache('knowledge');
         if (($result['status'] ?? '') === 'published') {
             $this->notifyPageEvent($result, 'updated', $auth);
+            $this->indexPageForSemanticSearch($result);
         }
         return $this->success('KNOWLEDGE_PAGE_UPDATED', $this->t('knowledge/messages.page_updated', 'Knowledge page updated'), [
             'page' => $result,
@@ -314,6 +316,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->invalidateCache('knowledge');
+        $this->indexPageForSemanticSearch($page);
         $this->notifyPageEvent($page, 'published', $auth);
         return $this->success('KNOWLEDGE_PAGE_PUBLISHED', $this->t('knowledge/messages.page_published', 'Knowledge page published'), [
             'page' => $page,
@@ -1302,6 +1305,33 @@ final class KnowledgeController extends BaseController
             'actor_name' => $actorName,
             'link' => $link,
         ], $actorId);
+    }
+
+    private function indexPageForSemanticSearch(array $page): void
+    {
+        if (!$this->container->has('service.ai_semantic_index')) {
+            return;
+        }
+        $publicId = trim((string)($page['public_id'] ?? ''));
+        $title = trim((string)($page['title'] ?? ''));
+        $contentText = trim((string)($page['content_text'] ?? ''));
+        $combined = $title . "\n\n" . $contentText;
+        if ($publicId === '' || $combined === '') {
+            return;
+        }
+        $spaceTitle = trim((string)($page['space_title'] ?? ''));
+        $meta = [
+            'entity_type' => 'knowledge',
+            'entity_public_id' => $publicId,
+            'space_title' => $spaceTitle,
+            'page_type' => trim((string)($page['page_type'] ?? 'article')),
+            'status' => trim((string)($page['status'] ?? 'published')),
+        ];
+        try {
+            $this->container->get('service.ai_semantic_index')->indexEntityDocument('knowledge', $publicId, $combined, $meta);
+        } catch (\Throwable $e) {
+            // Indexing failure is non-critical
+        }
     }
 
     private function notifyComment(string $pagePublicId, array $comment, array $auth): void

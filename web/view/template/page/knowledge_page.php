@@ -113,6 +113,17 @@
       <button class="btn crm-btn-secondary" type="button" id="knowledgeReviewBtn"><?= htmlspecialchars($t('knowledge_page.btn_request_review', 'Отправить на проверку'), ENT_QUOTES, 'UTF-8') ?></button>
       <button class="btn crm-btn-danger-soft" type="button" id="knowledgeArchiveBtn"><?= htmlspecialchars($t('knowledge_page.btn_archive', 'В архив'), ENT_QUOTES, 'UTF-8') ?></button>
     </div>
+    <hr>
+    <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.ai_title', 'AI'), ENT_QUOTES, 'UTF-8') ?></h3>
+    <div class="d-grid gap-2 mb-2">
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSummaryBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_summary', 'Краткое содержание'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiExplainBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_explain', 'Объяснить проще'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn btn-sm crm-btn-secondary" type="button" id="knowledgeAiSimilarBtn"><?= htmlspecialchars($t('knowledge_page.btn_ai_similar', 'Похожие страницы'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
+    <div id="knowledgeAiResult" class="crm-knowledge-ai-result d-none">
+      <div id="knowledgeAiResultTitle" class="fw-bold small mb-1"></div>
+      <div id="knowledgeAiResultBody" class="small text-muted crm-knowledge-ai-body"></div>
+    </div>
     <div id="knowledgeTocContainer" class="d-none">
       <hr>
       <h3 class="h6"><?= htmlspecialchars($t('knowledge_page.toc_title', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></h3>
@@ -878,6 +889,54 @@
       }
     }
   });
+  // AI helpers
+  async function handleAiAction(action) {
+    var btn = document.getElementById('knowledgeAi' + action.charAt(0).toUpperCase() + action.slice(1) + 'Btn');
+    var resultEl = document.getElementById('knowledgeAiResult');
+    var titleEl = document.getElementById('knowledgeAiResultTitle');
+    var bodyEl = document.getElementById('knowledgeAiResultBody');
+    if (!btn || !resultEl || !titleEl || !bodyEl || !pageId) return;
+    btn.disabled = true;
+    btn.textContent = t('knowledge_page.ai_loading', 'AI…');
+    resultEl.classList.remove('d-none');
+    titleEl.textContent = t('knowledge_page.ai_loading_title', 'AI обрабатывает…');
+    bodyEl.textContent = '';
+    try {
+      var url = 'api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/ai/' + action;
+      var envelope = await request(url, { method: 'POST', body: {} });
+      var data = envelope.data || {};
+      if (action === 'similar') {
+        var items = data.items || [];
+        if (!items.length) {
+          bodyEl.innerHTML = '<em>' + esc(t('knowledge_page.ai_no_similar', 'Похожих страниц не найдено')) + '</em>';
+        } else {
+          bodyEl.innerHTML = items.map(function (item) {
+            return '<div class="mb-1"><a href="index.php?route=knowledge-page&amp;id=' + esc(item.public_id) + '" class="text-decoration-none">' + esc(item.title) + '</a> <span class="badge bg-light text-muted">' + esc(item.page_type) + '</span></div>';
+          }).join('');
+        }
+        titleEl.textContent = t('knowledge_page.ai_similar_title', 'Похожие страницы');
+      } else {
+        var text = data.summary || data.explanation || data.text || '';
+        bodyEl.innerHTML = text ? '<p>' + esc(text) + '</p>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
+        titleEl.textContent = action === 'summary'
+          ? t('knowledge_page.ai_summary_title', 'Краткое содержание')
+          : t('knowledge_page.ai_explain_title', 'Объяснение');
+      }
+    } catch (e) {
+      bodyEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</em>';
+    }
+    btn.disabled = false;
+    btn.textContent = action === 'summary'
+      ? t('knowledge_page.btn_ai_summary', 'Краткое содержание')
+      : action === 'explain'
+        ? t('knowledge_page.btn_ai_explain', 'Объяснить проще')
+        : t('knowledge_page.btn_ai_similar', 'Похожие страницы');
+  }
+
+  document.getElementById('knowledgeAiSummaryBtn') && document.getElementById('knowledgeAiSummaryBtn').addEventListener('click', function () { handleAiAction('summary'); });
+  document.getElementById('knowledgeAiExplainBtn') && document.getElementById('knowledgeAiExplainBtn').addEventListener('click', function () { handleAiAction('explain'); });
+  document.getElementById('knowledgeAiSimilarBtn') && document.getElementById('knowledgeAiSimilarBtn').addEventListener('click', function () { handleAiAction('similar'); });
+
   var allTags = [];
   async function loadTagOptions() {
     try {
