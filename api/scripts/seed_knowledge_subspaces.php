@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-require_once $root . '/system/library/autoload.php';
+require_once $root . '/system/library/support/Autoloader.php';
 
 $envFile = $root . '/.env';
 if (file_exists($envFile)) {
