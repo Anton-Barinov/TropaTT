@@ -1,36 +1,30 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('knowledge.title', 'TropaTT — База знаний'); ?>
 <body data-page="knowledge" data-protected="1">
+<div class="crm-app">
+  <aside class="crm-sidebar">
+    <div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div>
+    <nav class="nav flex-column crm-nav"></nav>
+  </aside>
+  <div class="crm-main-wrap">
+    <header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 
-<div class="kb-app">
-
-  <!-- ─── HEADER ─── -->
-  <header class="kb-header">
-    <div class="container-fluid d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-sm btn-light border kb-burger" type="button" aria-label="Меню"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
-        <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-book-open text-success"></i>
-          <h1 class="h5 mb-0 fw-bold">База знаний</h1>
+    <main class="crm-content crm-knowledge-page">
+      <div class="crm-page-head">
+        <div>
+          <h1 class="crm-page-title" data-i18n="knowledge.page_title"><?= htmlspecialchars($t('knowledge.page_title', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h1>
+          <p class="crm-subtitle mb-0" data-i18n="knowledge.subtitle"><?= htmlspecialchars($t('knowledge.subtitle', 'Регламенты, инструкции, FAQ и проектные знания команды.'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
-        <div class="d-none d-md-flex align-items-center gap-1 text-muted small">
-          <i class="fa-solid fa-chevron-right" style="font-size:.5rem" aria-hidden="true"></i>
-          <span>Главная</span>
-          <i class="fa-solid fa-chevron-right" style="font-size:.5rem" aria-hidden="true"></i>
-          <span>База знаний</span>
+        <div class="crm-page-actions d-flex gap-2 flex-wrap">
+          <a class="btn crm-btn-secondary btn-sm" href="index.php?route=admin-knowledge"><i class="fa-solid fa-gear" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge.admin_link', 'Настройки'), ENT_QUOTES, 'UTF-8') ?></a>
+          <button class="btn crm-btn-secondary btn-sm" type="button" id="btnCreateSpace"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge.btn_create_space', 'Создать раздел'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-primary btn-sm" type="button" id="btnCreatePage"><i class="fa-regular fa-file-lines" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge.btn_create_page', 'Создать страницу'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <a class="btn btn-sm btn-light border" href="index.php?route=admin-knowledge"><i class="fa-solid fa-gear" aria-hidden="true"></i> <span class="d-none d-sm-inline">Настройки</span></a>
-        <button class="btn btn-sm btn-light border" type="button" id="btnCreateSpace"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i> <span class="d-none d-sm-inline">Создать раздел</span></button>
-        <button class="btn btn-sm btn-success" type="button" id="btnCreatePage"><i class="fa-regular fa-file-lines" aria-hidden="true"></i> <span class="d-none d-sm-inline">Создать страницу</span></button>
-      </div>
-    </div>
-  </header>
 
   <!-- ─── SEARCH & FILTERS ─── -->
-  <div class="kb-toolbar">
-    <div class="container-fluid d-flex flex-wrap align-items-center gap-2">
+  <div class="crm-card crm-section-card mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2">
       <div class="flex-grow-1" style="min-width:220px">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-transparent border-end-0"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
@@ -63,7 +57,7 @@
           <option value="needs_update">Требует обновления</option>
           <option value="archived">Архив</option>
         </select>
-        <button id="kbFilterReset" class="btn btn-sm btn-outline-secondary" type="button" style="display:none">Сбросить</button>
+        <button id="kbFilterReset" class="btn btn-sm crm-btn-muted" type="button" style="display:none">Сбросить</button>
       </div>
     </div>
   </div>
@@ -207,7 +201,8 @@
 
     </div>
   </div>
-</div>
+</main>
+</div></div>
 
 <!-- ─── MODALS ─── -->
 <div class="modal fade" id="kbPageModal" tabindex="-1" aria-hidden="true">
