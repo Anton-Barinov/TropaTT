@@ -229,6 +229,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/subscribe', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'unsubscribePage', 'auth' => true, 'required_permissions' => ['knowledge.view']],
 
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'spaces', 'auth' => true, 'required_permissions' => ['knowledge.view']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces-tree', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'spacesTree', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/spaces', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'createSpace', 'auth' => true, 'required_permissions' => ['knowledge.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'getSpace', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/knowledge/spaces/{public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'updateSpace', 'auth' => true, 'required_permissions' => ['knowledge.manage']],

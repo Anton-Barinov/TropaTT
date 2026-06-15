@@ -66,6 +66,13 @@ final class KnowledgeController extends BaseController
         ]);
     }
 
+    public function spacesTree(): JsonResponse
+    {
+        return $this->success('KNOWLEDGE_SPACES_TREE', $this->t('knowledge/messages.spaces_tree', 'Knowledge spaces tree loaded'), [
+            'items' => $this->repo()->spacesTree($this->request()->allInput(), $this->actor()),
+        ]);
+    }
+
     public function createSpace(): JsonResponse
     {
         $auth = $this->user();

@@ -65,9 +65,32 @@ final class KnowledgeRepository
         foreach ($spaces as &$space) {
             $space['pages_count'] = (int)($space['pages_count'] ?? 0);
             $space['is_archived'] = (int)($space['is_archived'] ?? 0);
+            $space['parent_id'] = isset($space['parent_id']) ? (int)$space['parent_id'] : null;
         }
         unset($space);
+
         return $spaces;
+    }
+
+    public function spacesTree(array $filters = [], ?array $actor = null): array
+    {
+        $flat = $this->spaces($filters, $actor);
+        $byId = [];
+        foreach ($flat as $s) {
+            $s['children'] = [];
+            $byId[(int)$s['id']] = $s;
+        }
+        $roots = [];
+        foreach ($byId as $id => &$space) {
+            $pid = $space['parent_id'];
+            if ($pid !== null && isset($byId[$pid])) {
+                $byId[$pid]['children'][] = &$space;
+            } else {
+                $roots[] = &$space;
+            }
+        }
+        unset($space);
+        return $roots;
     }
 
     public function createSpace(array $payload, ?int $actorId): array
@@ -76,7 +99,14 @@ final class KnowledgeRepository
         $publicId = $this->publicId('kbs');
         $title = trim((string)($payload['title'] ?? ''));
         $slug = $this->uniqueSlug('knowledge_spaces', $this->slug((string)($payload['slug'] ?? $title), 'space'), null);
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :created_at, :updated_at)');
+        $parentId = null;
+        if (!empty($payload['parent_public_id'])) {
+            $parent = $this->space((string)$payload['parent_public_id']);
+            $parentId = $parent ? (int)$parent['id'] : null;
+        } elseif (!empty($payload['parent_id'])) {
+            $parentId = (int)$payload['parent_id'];
+        }
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
             'title' => $title,
@@ -87,6 +117,7 @@ final class KnowledgeRepository
             'owner_user_id' => $actorId,
             'visibility' => $this->choice((string)($payload['visibility'] ?? 'public'), ['public', 'restricted', 'private'], 'public'),
             'default_access_level' => $this->choice((string)($payload['default_access_level'] ?? 'view'), ['view', 'comment', 'edit'], 'view'),
+            'parent_id' => $parentId,
             'sort_order' => (int)($payload['sort_order'] ?? 100),
             'created_at' => $now,
             'updated_at' => $now,

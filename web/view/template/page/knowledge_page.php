@@ -1103,8 +1103,80 @@
       }
     } else {
       var text = data.summary || data.explanation || data.text || '';
-      sidebarBodyEl.innerHTML = text ? '<p style="font-size:0.75rem;line-height:1.4">' + esc(text.substring(0, 200)) + (text.length > 200 ? '…' : '') + '</p>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
+      sidebarBodyEl.innerHTML = text ? '<div style="font-size:0.75rem;line-height:1.4">' + (data.mode === 'fallback' ? '<span class="text-muted" style="font-size:0.65rem">' + esc(t('knowledge_page.ai_fallback_note_short', 'Структура документа')) + '</span><br>' : '') + textToHtml(text.substring(0, 300)) + (text.length > 300 ? '<span class="text-muted">…</span>' : '') + '</div>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
     }
+  }
+
+  function textToHtml(text) {
+    if (!text) return '';
+    // Escape HTML first
+    var safe = esc(text);
+    // Convert markdown-style formatting
+    // Bold: **text** or __text__
+    safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // Italic: *text* or _text_ (bold already converted, so remaining * are italic)
+    safe = safe.replace(/\*(\S(?:.*?\S)?)\*/g, '<em>$1</em>');
+    safe = safe.replace(/_(\S(?:.*?\S)?)_/g, '<em>$1</em>');
+    // Inline code: `code`
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // URLs
+    safe = safe.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+
+    var lines = safe.split('\n');
+    var html = [];
+    var inUl = false;
+    var inOl = false;
+    var inParagraph = false;
+
+    function closeUl() { if (inUl) { html.push('</ul>'); inUl = false; } }
+    function closeOl() { if (inOl) { html.push('</ol>'); inOl = false; } }
+    function closeParagraph() { if (inParagraph) { html.push('</p>'); inParagraph = false; } }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+
+      // Empty line = paragraph break
+      if (trimmed === '') {
+        closeUl(); closeOl(); closeParagraph();
+        continue;
+      }
+
+      // Unordered list item
+      if (/^[-*]\s/.test(trimmed)) {
+        closeOl(); closeParagraph();
+        if (!inUl) { html.push('<ul>'); inUl = true; }
+        html.push('<li>' + trimmed.substring(2).trim() + '</li>');
+        continue;
+      }
+
+      // Ordered list item
+      if (/^\d+\.\s/.test(trimmed)) {
+        closeUl(); closeParagraph();
+        if (!inOl) { html.push('<ol>'); inOl = true; }
+        html.push('<li>' + trimmed.replace(/^\d+\.\s*/, '') + '</li>');
+        continue;
+      }
+
+      // Heading-like: ## or ### or **text** as heading
+      if (/^#{1,3}\s/.test(trimmed)) {
+        closeUl(); closeOl(); closeParagraph();
+        var level = trimmed.match(/^#+/)[0].length;
+        var hContent = trimmed.replace(/^#+\s*/, '');
+        html.push('<h' + Math.min(level + 1, 4) + '>' + hContent + '</h' + Math.min(level + 1, 4) + '>');
+        continue;
+      }
+
+      // Regular paragraph line
+      closeUl(); closeOl();
+      if (!inParagraph) { html.push('<p>'); inParagraph = true; }
+      else { html.push('<br>'); }
+      html.push(line);
+    }
+
+    closeUl(); closeOl(); closeParagraph();
+    return html.join('\n');
   }
 
   function renderAiInModal(action, data) {
@@ -1140,12 +1212,51 @@
           return '<details class="crm-ai-faq-item" open><summary><strong>' + esc(item.question || '') + '</strong></summary><p>' + esc(item.answer || '') + '</p></details>';
         }).join('') + '</div>';
       }
+    } else if (data.mode === 'error' && data.error_details) {
+      var errDetails = data.error_details;
+      var errCode = errDetails.code || '';
+      var errMsg = errDetails.message || '';
+      var errCategory = errDetails.category || '';
+      var errHttpStatus = errDetails.http_status || 0;
+      var retryable = errDetails.retryable !== false;
+
+      var categoryLabels = {
+        'configuration': t('knowledge_page.ai_error_config', 'Ошибка конфигурации'),
+        'auth': t('knowledge_page.ai_error_auth', 'Ошибка авторизации'),
+        'billing': t('knowledge_page.ai_error_billing', 'Проблема с оплатой'),
+        'rate_limited': t('knowledge_page.ai_error_rate', 'Превышен лимит запросов'),
+        'network': t('knowledge_page.ai_error_network', 'Ошибка сети'),
+        'provider_error': t('knowledge_page.ai_error_provider', 'Ошибка провайдера'),
+        'http_error': t('knowledge_page.ai_error_http', 'HTTP ошибка'),
+        'invalid_response': t('knowledge_page.ai_error_response', 'Некорректный ответ')
+      };
+      var categoryLabel = categoryLabels[errCategory] || errCategory || t('knowledge_page.ai_error_unknown', 'Неизвестная ошибка');
+
+      var errorHtml = '<div class="crm-ai-error">';
+      errorHtml += '<div class="crm-ai-error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>';
+      errorHtml += '<h4>' + esc(categoryLabel) + '</h4>';
+      if (errMsg) errorHtml += '<p class="crm-ai-error-msg">' + esc(errMsg) + '</p>';
+      errorHtml += '<div class="crm-ai-error-details small text-muted">';
+      if (errCode) errorHtml += '<span class="crm-ai-error-code">Код: ' + esc(errCode) + '</span>';
+      if (errHttpStatus) errorHtml += '<span class="crm-ai-error-http">HTTP: ' + errHttpStatus + '</span>';
+      if (!retryable) errorHtml += '<span class="crm-ai-error-nonretryable">' + esc(t('knowledge_page.ai_error_nonretryable', 'Требуется настройка')) + '</span>';
+      errorHtml += '</div>';
+      errorHtml += '<div class="crm-ai-error-actions mt-2">';
+      errorHtml += '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary"><i class="fa-solid fa-gear"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a>';
+      errorHtml += '</div></div>';
+      modalBodyEl.innerHTML = errorHtml;
+
+      // Hide copy/insert buttons, show fallback note
+      var insertBtn = document.getElementById('knowledgeAiModalInsertBtn');
+      if (insertBtn) insertBtn.style.display = 'none';
     } else {
       var text = data.summary || data.explanation || data.text || '';
       if (text) {
-        modalBodyEl.innerHTML = '<div class="crm-ai-text-content">' + text.split('\n').filter(function (l) { return l.trim(); }).map(function (line) {
-          return '<p>' + esc(line) + '</p>';
-        }).join('') + '</div>';
+        var fallbackNote = '';
+        if (data.mode === 'fallback') {
+          fallbackNote = '<div class="crm-ai-fallback-note"><i class="fa-solid fa-info-circle"></i> ' + esc(t('knowledge_page.ai_fallback_note', 'AI временно недоступен. Показана структура документа.')) + '</div>';
+        }
+        modalBodyEl.innerHTML = fallbackNote + '<div class="crm-ai-text-content">' + textToHtml(text) + '</div>';
       } else {
         modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-wand-magic-sparkles"></i><p>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</p></div>';
       }
@@ -1222,12 +1333,16 @@
         insertBtn.style.display = (isEditing && canInsert) ? '' : 'none';
       }
     } catch (e) {
+      lastAiData = null;
+      lastAiAction = null;
+      var errMsg = e && e.message || '';
+      var errStatus = e && e.status || '';
       if (modalBodyEl) {
         showAiLoading(false);
-        modalBodyEl.innerHTML = '<div class="crm-ai-empty"><i class="fa-solid fa-triangle-exclamation" style="color:var(--crm-danger)"></i><p style="color:var(--crm-danger)">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</p></div>';
+        modalBodyEl.innerHTML = '<div class="crm-ai-empty" style="color:var(--crm-danger)"><i class="fa-solid fa-triangle-exclamation"></i><p>' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</p>' + (errMsg ? '<p class="small text-muted">' + esc(errMsg) + (errStatus ? ' (HTTP ' + errStatus + ')' : '') + '</p>' : '<p class="small text-muted">' + esc(t('knowledge_page.ai_error_unknown', 'Неизвестная ошибка. Проверьте настройки AI-провайдера.')) + '</p>') + '<a href="index.php?route=admin-ai" class="btn btn-sm crm-btn-secondary mt-2"><i class="fa-solid fa-gear"></i> ' + esc(t('knowledge_page.ai_check_settings', 'Проверить настройки AI')) + '</a></div>';
       }
       if (sidebarBodyEl) {
-        sidebarBodyEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + '</em>';
+        sidebarBodyEl.innerHTML = '<em class="text-danger">' + esc(t('knowledge_page.ai_error', 'Ошибка AI')) + (errMsg ? ': ' + esc(errMsg) : '') + '</em>';
       }
     }
 

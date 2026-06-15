@@ -13864,6 +13864,14 @@ textarea.form-control.crm-knowledge-editor {
   text-align: center;
 }
 
+.crm-knowledge-space-children {
+  display: contents;
+}
+
+.crm-knowledge-space-toggle {
+  transition: transform 0.15s;
+}
+
 .crm-knowledge-content-panel {
   min-width: 0;
 }

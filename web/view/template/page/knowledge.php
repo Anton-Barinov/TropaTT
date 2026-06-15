@@ -227,7 +227,8 @@
   }
   function renderSpaces(items) {
     state.spaces = items || [];
-    var spaceOpts = state.spaces.map(function (space) {
+    var flatForSelect = flattenSpaces(state.spaces);
+    var spaceOpts = flatForSelect.map(function (space) {
       return '<option value="' + esc(space.public_id) + '">' + esc(space.title) + '</option>';
     }).join('');
     if (els.pageSpace) els.pageSpace.innerHTML = spaceOpts;
@@ -238,11 +239,36 @@
       els.spaces.innerHTML = allHtml + '<div class="crm-knowledge-empty" style="padding:1.5rem 1rem"><i class="fa-solid fa-folder-plus"></i><p>' + esc(t('knowledge.empty_spaces', 'Разделов пока нет. Создайте первый раздел.')) + '</p></div>';
       return;
     }
-    els.spaces.innerHTML = allHtml + state.spaces.map(function (space) {
+    els.spaces.innerHTML = allHtml + renderSpaceTree(state.spaces, 0);
+  }
+  function flattenSpaces(tree) {
+    var result = [];
+    if (!tree || !tree.length) return result;
+    tree.forEach(function (s) {
+      result.push(s);
+      if (s.children && s.children.length) {
+        result = result.concat(flattenSpaces(s.children));
+      }
+    });
+    return result;
+  }
+  function renderSpaceTree(nodes, depth) {
+    if (!nodes || !nodes.length) return '';
+    return nodes.map(function (space) {
       var desc = space.description || t('knowledge.no_description', 'Без описания');
       var count = space.pages_count || 0;
       var active = state.activeSpace === space.public_id ? ' is-active' : '';
-      return '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
+      var hasChildren = space.children && space.children.length;
+      var paddingLeft = depth > 0 ? ' style="padding-left:' + (depth * 16) + 'px"' : '';
+      var html = '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"' + paddingLeft + '>';
+      if (hasChildren) {
+        html += '<i class="fa-solid fa-chevron-right crm-knowledge-space-toggle" style="font-size:0.6rem;color:var(--crm-muted);margin-right:0.3rem;transition:transform 0.15s"></i>';
+      }
+      html += '<span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
+      if (hasChildren) {
+        html += '<div class="crm-knowledge-space-children">' + renderSpaceTree(space.children, depth + 1) + '</div>';
+      }
+      return html;
     }).join('');
   }
   function renderStats(totals, labels) {
@@ -290,7 +316,8 @@
       if (spaceId) {
         var envelope = await request('api/v1/knowledge/search', { method: 'GET', query: { space_public_id: spaceId, limit: 200 } });
         var pages = envelope.data && envelope.data.items || [];
-        var space = state.spaces.find(function (s) { return s.public_id === spaceId; });
+        var flatSpaces = flattenSpaces(state.spaces);
+        var space = flatSpaces.find(function (s) { return s.public_id === spaceId; });
         var spaceTitle = space ? space.title : '';
         var recent = pages.slice().sort(function (a, b) { return (b.updated_at || '').localeCompare(a.updated_at || ''); });
         var popular = pages.slice().sort(function (a, b) { return (b.views_count || 0) - (a.views_count || 0); });
@@ -311,9 +338,10 @@
         renderList(els.outdated, outdated, t('knowledge.empty_outdated', 'Нет устаревших страниц.'), { emptyIcon: 'fa-clock' });
       } else {
         var envelope = await request('api/v1/knowledge/overview', { method: 'GET' });
+        var treeEnvelope = await request('api/v1/knowledge/spaces-tree', { method: 'GET' });
         var data = envelope.data || {};
         renderStats(data.totals || {}, globalStatLabels);
-        renderSpaces(data.spaces || []);
+        renderSpaces(treeEnvelope.data && treeEnvelope.data.items || []);
         renderList(els.recent, data.recent || [], t('knowledge.empty_recent', 'Пока нет страниц.'), { emptyIcon: 'fa-clock-rotate-left' });
         renderList(els.review, data.review_queue || [], t('knowledge.empty_review', 'Нет страниц на проверке.'), { emptyIcon: 'fa-clipboard-check' });
         renderList(els.popular, data.popular || [], t('knowledge.empty_popular', 'Популярных страниц пока нет.'), { emptyIcon: 'fa-fire' });

@@ -87,10 +87,11 @@ final class KnowledgeAiController extends BaseController
         $textForSummary = mb_substr($textForSummary, 0, 4000);
 
         try {
-            $result = $this->callLlmForSummary($title, $textForSummary);
+            $result = $this->callLlmForSummary($title, $textForSummary, $contentHtml);
             return $this->success('KNOWLEDGE_AI_SUMMARY', $this->t('knowledge/messages.ai_summary', 'AI summary'), [
                 'summary' => $result['summary'] ?? '',
                 'mode' => $result['mode'] ?? 'llm',
+                'error_details' => $result['error_details'] ?? null,
             ]);
         } catch (\Throwable $e) {
             return $this->error('AI_SUMMARY_FAILED', $this->t('knowledge/messages.ai_summary_failed', 'Failed to generate summary'), 500);
@@ -128,10 +129,11 @@ final class KnowledgeAiController extends BaseController
         $textForExplain = mb_substr($textForExplain, 0, 4000);
 
         try {
-            $result = $this->callLlmForExplain($title, $textForExplain);
+            $result = $this->callLlmForExplain($title, $textForExplain, $contentHtml);
             return $this->success('KNOWLEDGE_AI_EXPLAIN', $this->t('knowledge/messages.ai_explain', 'AI explanation'), [
                 'explanation' => $result['explanation'] ?? '',
                 'mode' => $result['mode'] ?? 'llm',
+                'error_details' => $result['error_details'] ?? null,
             ]);
         } catch (\Throwable $e) {
             return $this->error('AI_EXPLAIN_FAILED', $this->t('knowledge/messages.ai_explain_failed', 'Failed to generate explanation'), 500);
@@ -213,16 +215,16 @@ final class KnowledgeAiController extends BaseController
     }
 
     /**
-     * @return array{summary:string,mode:string}
+     * @return array{summary:string,mode:string,error_details?:array<string,mixed>}
      */
-    private function callLlmForSummary(string $title, string $content): array
+    private function callLlmForSummary(string $title, string $content, string $html = ''): array
     {
         /** @var AiProviderService $aiProvider */
         $aiProvider = $this->container->get('service.ai_provider');
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider === null) {
             return [
-                'summary' => $this->buildFallbackSummary($title, $content),
+                'summary' => $this->buildFallbackSummary($title, $content, $html),
                 'mode' => 'fallback',
             ];
         }
@@ -240,8 +242,17 @@ final class KnowledgeAiController extends BaseController
 
         $responseText = trim((string)($llmResult['text'] ?? ''));
         if ($responseText === '') {
+            // Include error details when LLM call failed
+            $errorDetails = $this->extractLlmError($llmResult);
+            if ($errorDetails !== null) {
+                return [
+                    'summary' => $this->buildFallbackSummary($title, $content, $html),
+                    'mode' => 'error',
+                    'error_details' => $errorDetails,
+                ];
+            }
             return [
-                'summary' => $this->buildFallbackSummary($title, $content),
+                'summary' => $this->buildFallbackSummary($title, $content, $html),
                 'mode' => 'fallback',
             ];
         }
@@ -257,14 +268,14 @@ final class KnowledgeAiController extends BaseController
     /**
      * @return array{explanation:string,mode:string}
      */
-    private function callLlmForExplain(string $title, string $content): array
+    private function callLlmForExplain(string $title, string $content, string $html = ''): array
     {
         /** @var AiProviderService $aiProvider */
         $aiProvider = $this->container->get('service.ai_provider');
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider === null) {
             return [
-                'explanation' => $this->buildFallbackExplanation($title, $content),
+                'explanation' => $this->buildFallbackExplanation($title, $content, $html),
                 'mode' => 'fallback',
             ];
         }
@@ -282,8 +293,16 @@ final class KnowledgeAiController extends BaseController
 
         $responseText = trim((string)($llmResult['text'] ?? ''));
         if ($responseText === '') {
+            $errorDetails = $this->extractLlmError($llmResult);
+            if ($errorDetails !== null) {
+                return [
+                    'explanation' => $this->buildFallbackExplanation($title, $content, $html),
+                    'mode' => 'error',
+                    'error_details' => $errorDetails,
+                ];
+            }
             return [
-                'explanation' => $this->buildFallbackExplanation($title, $content),
+                'explanation' => $this->buildFallbackExplanation($title, $content, $html),
                 'mode' => 'fallback',
             ];
         }
@@ -295,24 +314,137 @@ final class KnowledgeAiController extends BaseController
         ];
     }
 
-    private function buildFallbackSummary(string $title, string $text): string
+    private function buildFallbackSummary(string $title, string $text, string $html = ''): string
     {
-        $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-        $excerpt = is_array($words) ? implode(' ', array_slice($words, 0, 60)) : $text;
-        if (mb_strlen($excerpt) > 400) {
-            $excerpt = mb_substr($excerpt, 0, 397) . '...';
+        // Try to extract document structure from HTML
+        if ($html !== '') {
+            $headings = [];
+            if (preg_match_all('/<h2[^>]*>(.*?)<\/h2>/iu', $html, $h2matches) > 0) {
+                foreach ($h2matches[1] as $h) {
+                    $cleaned = trim(strip_tags($h));
+                    if ($cleaned !== '') {
+                        $headings[] = $cleaned;
+                    }
+                }
+            }
+            if (preg_match_all('/<h3[^>]*>(.*?)<\/h3>/iu', $html, $h3matches) > 0) {
+                foreach ($h3matches[1] as $h) {
+                    $cleaned = trim(strip_tags($h));
+                    if ($cleaned !== '') {
+                        $headings[] = '  - ' . $cleaned;
+                    }
+                }
+            }
+            if (!empty($headings)) {
+                $result = 'Структура документа:' . "\n";
+                foreach ($headings as $h) {
+                    $result .= '- ' . $h . "\n";
+                }
+                // Add first paragraph as context
+                if (preg_match('/<p[^>]*>(.*?)<\/p>/iu', $html, $pMatch) > 0) {
+                    $firstP = trim(strip_tags($pMatch[1]));
+                    if ($firstP !== '') {
+                        $result .= "\n" . mb_substr($firstP, 0, 300);
+                    }
+                }
+                return trim($result);
+            }
+        }
+
+        // Fallback to first few paragraphs (split by double newline)
+        $paragraphs = preg_split('/\n{2,}/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        $excerpt = '';
+        $count = 0;
+        if (is_array($paragraphs)) {
+            foreach ($paragraphs as $p) {
+                $p = trim($p);
+                if ($p === '') {
+                    continue;
+                }
+                $excerpt .= $p . "\n\n";
+                $count++;
+                if ($count >= 3) {
+                    break;
+                }
+            }
+        }
+        $excerpt = trim($excerpt);
+        if ($excerpt === '') {
+            $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+            $excerpt = is_array($words) ? implode(' ', array_slice($words, 0, 60)) : $text;
+        }
+        if (mb_strlen($excerpt) > 600) {
+            $excerpt = mb_substr($excerpt, 0, 597) . '...';
         }
         return $excerpt;
     }
 
-    private function buildFallbackExplanation(string $title, string $text): string
+    private function buildFallbackExplanation(string $title, string $text, string $html = ''): string
     {
-        $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-        $excerpt = is_array($words) ? implode(' ', array_slice($words, 0, 80)) : $text;
-        if (mb_strlen($excerpt) > 500) {
-            $excerpt = mb_substr($excerpt, 0, 497) . '...';
+        // Try to extract document structure from HTML
+        $headings = [];
+        if ($html !== '') {
+            if (preg_match_all('/<h2[^>]*>(.*?)<\/h2>/iu', $html, $h2matches) > 0) {
+                foreach ($h2matches[1] as $h) {
+                    $cleaned = trim(strip_tags($h));
+                    if ($cleaned !== '') {
+                        $headings[] = $cleaned;
+                    }
+                }
+            }
         }
-        return $excerpt;
+
+        $result = '';
+        if (!empty($headings)) {
+            $result = 'Документ "' . $title . '" состоит из разделов:' . "\n";
+            foreach ($headings as $h) {
+                $result .= '- ' . $h . "\n";
+            }
+            $result .= "\n";
+        }
+
+        // Find sentences with key terms (multi-language)
+        $paragraphs = preg_split('/\n{2,}/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        $keyParagraphs = [];
+        $keyTerms = [
+            // Russian
+            'должен', 'обязан', 'необходимо', 'важно', 'требуется',
+            'правило', 'стандарт', 'процесс', 'регламент', 'инструкция',
+            // English
+            'must', 'should', 'required', 'important', 'mandatory',
+            'rule', 'standard', 'process', 'procedure', 'regulation',
+            'step', 'guide', 'instruction', 'policy',
+        ];
+        if (is_array($paragraphs)) {
+            foreach ($paragraphs as $p) {
+                $p = trim($p);
+                if ($p === '') {
+                    continue;
+                }
+                $lower = mb_strtolower($p);
+                foreach ($keyTerms as $term) {
+                    if (str_contains($lower, $term)) {
+                        $keyParagraphs[] = mb_substr($p, 0, 300);
+                        break;
+                    }
+                }
+                if (count($keyParagraphs) >= 5) {
+                    break;
+                }
+            }
+        }
+
+        if (!empty($keyParagraphs)) {
+            $result .= 'Ключевые положения:' . "\n";
+            foreach ($keyParagraphs as $p) {
+                $result .= '- ' . $p . "\n";
+            }
+        } elseif (is_array($paragraphs) && !empty($paragraphs)) {
+            // First few paragraphs as context
+            $result .= mb_substr(implode("\n\n", array_slice($paragraphs, 0, 3)), 0, 600);
+        }
+
+        return trim($result) !== '' ? trim($result) : mb_substr($text, 0, 500);
     }
 
     /**
@@ -746,7 +878,7 @@ final class KnowledgeAiController extends BaseController
     // --- Private helpers ---
 
     /**
-     * @return array{items:array<int,string>,mode:string}
+     * @return array{items:array<int,string>,mode:string,error_details?:array<string,mixed>}
      */
     private function callLlmForChecklist(string $title, string $text): array
     {
@@ -764,6 +896,17 @@ final class KnowledgeAiController extends BaseController
                 'context' => [],
                 'model' => (string)($provider['default_model'] ?? ''),
             ]);
+
+            // Check for provider error before processing response
+            $errorDetails = $this->extractLlmError($llmResult);
+            if ($errorDetails !== null) {
+                $fallbackItems = $this->buildFallbackChecklist($text);
+                return [
+                    'items' => $fallbackItems,
+                    'mode' => 'error',
+                    'error_details' => $errorDetails,
+                ];
+            }
 
             $responseText = trim((string)($llmResult['text'] ?? ''));
             if ($responseText !== '') {
@@ -783,45 +926,15 @@ final class KnowledgeAiController extends BaseController
             }
         }
 
-        // Fallback: extract sentences with action verbs
-        $sentences = preg_split('/[.!?]+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
-        $items = [];
-        $actionVerbs = ['ensure', 'check', 'verify', 'make', 'create', 'update', 'review', 'submit', 'send', 'confirm', 'prepare', 'implement', 'configure', 'install', 'run', 'test', 'validate', 'document', 'train', 'approve', 'complete', 'follow', 'use', 'add', 'remove', 'set'];
-        if (is_array($sentences)) {
-            foreach ($sentences as $s) {
-                $s = trim($s);
-                if ($s === '') {
-                    continue;
-                }
-                $lower = mb_strtolower($s);
-                foreach ($actionVerbs as $verb) {
-                    if (preg_match('/\b' . preg_quote($verb, '/') . '\b/ui', $lower) === 1) {
-                        $items[] = mb_substr($s, 0, 200);
-                        break;
-                    }
-                }
-                if (count($items) >= 15) {
-                    break;
-                }
-            }
-        }
-
-        if (empty($items)) {
-            // Just use bullet points from HTML
-            if (preg_match_all('/<li[^>]*>([^<]+)<\/li>/iu', $text, $matches) > 0) {
-                $items = array_slice($matches[1], 0, 20);
-            }
-        }
-
         return [
-            'items' => $items,
+            'items' => $this->buildFallbackChecklist($text),
             'mode' => 'fallback',
         ];
     }
 
     /**
      * @param array<int,string> $comments
-     * @return array{items:array<int,array<string,string>>,mode:string}
+     * @return array{items:array<int,array<string,string>>,mode:string,error_details?:array<string,mixed>}
      */
     private function callLlmForFaq(string $pageTitle, array $comments): array
     {
@@ -840,6 +953,18 @@ final class KnowledgeAiController extends BaseController
                 'context' => [],
                 'model' => (string)($provider['default_model'] ?? ''),
             ]);
+
+            // Check for provider error before processing response
+            $errorDetails = $this->extractLlmError($llmResult);
+            if ($errorDetails !== null) {
+                $fallbackItems = $this->buildFallbackFaq($comments);
+                return [
+                    'items' => $fallbackItems,
+                    'mode' => 'error',
+                    'error_details' => $errorDetails,
+                    'comments_count' => count($comments),
+                ];
+            }
 
             $responseText = trim((string)($llmResult['text'] ?? ''));
             if ($responseText !== '') {
@@ -862,7 +987,53 @@ final class KnowledgeAiController extends BaseController
             }
         }
 
-        // Fallback: treat each comment as a potential FAQ item
+        return [
+            'items' => $this->buildFallbackFaq($comments),
+            'mode' => 'fallback',
+            'comments_count' => count($comments),
+        ];
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function buildFallbackChecklist(string $text): array
+    {
+        $sentences = preg_split('/[.!?]+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        $items = [];
+        $actionVerbs = ['ensure', 'check', 'verify', 'make', 'create', 'update', 'review', 'submit', 'send', 'confirm', 'prepare', 'implement', 'configure', 'install', 'run', 'test', 'validate', 'document', 'train', 'approve', 'complete', 'follow', 'use', 'add', 'remove', 'set'];
+        if (is_array($sentences)) {
+            foreach ($sentences as $s) {
+                $s = trim($s);
+                if ($s === '') {
+                    continue;
+                }
+                $lower = mb_strtolower($s);
+                foreach ($actionVerbs as $verb) {
+                    if (preg_match('/\b' . preg_quote($verb, '/') . '\b/ui', $lower) === 1) {
+                        $items[] = mb_substr($s, 0, 200);
+                        break;
+                    }
+                }
+                if (count($items) >= 15) {
+                    break;
+                }
+            }
+        }
+        if (empty($items)) {
+            if (preg_match_all('/<li[^>]*>([^<]+)<\/li>/iu', $text, $matches) > 0) {
+                $items = array_slice($matches[1], 0, 20);
+            }
+        }
+        return $items;
+    }
+
+    /**
+     * @param array<int,string> $comments
+     * @return array<int,array<string,string>>
+     */
+    private function buildFallbackFaq(array $comments): array
+    {
         $items = [];
         foreach ($comments as $c) {
             if (str_contains($c, '?')) {
@@ -876,11 +1047,31 @@ final class KnowledgeAiController extends BaseController
                 break;
             }
         }
+        return $items;
+    }
 
+    /**
+     * @param array<string,mixed> $llmResult
+     * @return array<string,mixed>|null
+     */
+    private function extractLlmError(array $llmResult): ?array
+    {
+        $ok = (bool)($llmResult['ok'] ?? true);
+        if ($ok) {
+            return null; // Not an error, just empty response
+        }
+        $code = trim((string)($llmResult['code'] ?? ''));
+        $message = trim((string)($llmResult['message'] ?? ''));
+        if ($code === '' && $message === '') {
+            return null;
+        }
+        $providerError = $llmResult['provider_error'] ?? null;
         return [
-            'items' => $items,
-            'mode' => 'fallback',
-            'comments_count' => count($comments),
+            'code' => $code,
+            'message' => $message,
+            'category' => is_array($providerError) ? trim((string)($providerError['category'] ?? '')) : '',
+            'retryable' => is_array($providerError) ? (bool)($providerError['retryable'] ?? true) : true,
+            'http_status' => is_array($providerError) ? (int)($providerError['http_status'] ?? 0) : 0,
         ];
     }
 
