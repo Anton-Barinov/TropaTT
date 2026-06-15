@@ -215,7 +215,9 @@
       var statusBadge = '';
       if (item.status) {
         var sm = { draft: 'crm-badge-secondary', review: 'crm-badge-warning', published: 'crm-badge-success', archived: 'crm-badge-light', needs_update: 'crm-badge-danger' };
-        statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.7rem;padding:0.15rem 0.4rem;margin-left:0.5rem">' + esc(item.status) + '</span>';
+        var statusLabels = { draft: t('knowledge.status_draft', 'Черновик'), review: t('knowledge.status_review', 'На проверке'), published: t('knowledge.status_published', 'Опубликовано'), archived: t('knowledge.status_archived', 'В архиве'), needs_update: t('knowledge.status_needs_update', 'Требует обновления') };
+        var statusText = statusLabels[item.status] || item.status;
+        statusBadge = '<span class="crm-badge ' + (sm[item.status] || 'crm-badge-secondary') + '" style="font-size:0.7rem;padding:0.15rem 0.4rem;margin-left:0.5rem">' + esc(statusText) + '</span>';
       }
       var excerptHtml = showExcerpt && item.excerpt ? '<span class="crm-knowledge-excerpt">' + esc(item.excerpt.substring(0, 120)) + '</span>' : '';
       return '<a class="crm-knowledge-list-item" href="' + esc(pageUrl(item)) + '"><span><strong>' + typeIconHtml + esc(item.title) + statusBadge + '</strong><small>' + esc(item.space_title || '') + '</small>' + excerptHtml + '</span><i class="fa-solid fa-chevron-right"></i></a>';
@@ -231,7 +233,6 @@
     if (els.pageSpace) els.pageSpace.innerHTML = spaceOpts;
     if (!els.spaces) return;
     var allHtml = '<a href="javascript:void(0)" class="crm-knowledge-space-link' + (!state.activeSpace ? ' is-active' : '') + '" data-space="">' +
-      '<span class="crm-knowledge-space-mark" style="background:var(--crm-muted)"></span>' +
       '<span class="crm-knowledge-space-info"><strong>' + esc(t('knowledge.all_spaces', 'Все разделы')) + '</strong><small>' + esc(t('knowledge.all_spaces_desc', 'Обзор всей базы знаний')) + '</small></span></a>';
     if (!state.spaces.length) {
       els.spaces.innerHTML = allHtml + '<div class="crm-knowledge-empty" style="padding:1.5rem 1rem"><i class="fa-solid fa-folder-plus"></i><p>' + esc(t('knowledge.empty_spaces', 'Разделов пока нет. Создайте первый раздел.')) + '</p></div>';
@@ -241,7 +242,7 @@
       var desc = space.description || t('knowledge.no_description', 'Без описания');
       var count = space.pages_count || 0;
       var active = state.activeSpace === space.public_id ? ' is-active' : '';
-      return '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-mark"></span><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
+      return '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"><span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
     }).join('');
   }
   function renderStats(totals) {

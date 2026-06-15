@@ -215,20 +215,20 @@ final class KnowledgeAiController extends BaseController
     /**
      * @return array{summary:string,mode:string}
      */
-    private function callLlmForSummary(string $title, string $text): array
+    private function callLlmForSummary(string $title, string $content): array
     {
         /** @var AiProviderService $aiProvider */
         $aiProvider = $this->container->get('service.ai_provider');
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider === null) {
             return [
-                'summary' => $this->buildFallbackSummary($title, $text),
+                'summary' => $this->buildFallbackSummary($title, $content),
                 'mode' => 'fallback',
             ];
         }
 
         $prompt = 'You are a professional knowledge base assistant. Summarize the following page concisely in the same language as the content. Return ONLY the summary text, no extra formatting.';
-        $userPrompt = "Title: {$title}\n\nContent:\n{$text}\n\nWrite a concise summary (3-5 sentences) of this page:";
+        $userPrompt = "Title: {$title}\n\nContent:\n{$content}\n\nWrite a concise summary (3-5 sentences) of this page:";
 
         $llmResult = $aiProvider->completeText((string)($provider['public_id'] ?? ''), [
             'intent_code' => 'knowledge_summary',
@@ -238,18 +238,18 @@ final class KnowledgeAiController extends BaseController
             'model' => (string)($provider['default_model'] ?? ''),
         ]);
 
-        $text = trim((string)($llmResult['text'] ?? ''));
-        if ($text === '') {
+        $responseText = trim((string)($llmResult['text'] ?? ''));
+        if ($responseText === '') {
             return [
-                'summary' => $this->buildFallbackSummary($title, $text),
+                'summary' => $this->buildFallbackSummary($title, $content),
                 'mode' => 'fallback',
             ];
         }
         // Remove any markdown code fences if present
-        $text = preg_replace('/^```\w*\s*\n?|```\s*$/m', '', $text) ?? $text;
+        $responseText = preg_replace('/^```\w*\s*\n?|```\s*$/m', '', $responseText) ?? $responseText;
 
         return [
-            'summary' => trim($text),
+            'summary' => trim($responseText),
             'mode' => 'llm',
         ];
     }
@@ -257,20 +257,20 @@ final class KnowledgeAiController extends BaseController
     /**
      * @return array{explanation:string,mode:string}
      */
-    private function callLlmForExplain(string $title, string $text): array
+    private function callLlmForExplain(string $title, string $content): array
     {
         /** @var AiProviderService $aiProvider */
         $aiProvider = $this->container->get('service.ai_provider');
         $provider = $this->resolveAiProvider($aiProvider);
         if ($provider === null) {
             return [
-                'explanation' => $this->buildFallbackExplanation($title, $text),
+                'explanation' => $this->buildFallbackExplanation($title, $content),
                 'mode' => 'fallback',
             ];
         }
 
         $prompt = 'You are a professional knowledge base assistant. Explain the following page in simple terms that anyone can understand. Use plain language, avoid jargon. Return ONLY the explanation text, no extra formatting.';
-        $userPrompt = "Title: {$title}\n\nContent:\n{$text}\n\nExplain this page in simple terms:";
+        $userPrompt = "Title: {$title}\n\nContent:\n{$content}\n\nExplain this page in simple terms:";
 
         $llmResult = $aiProvider->completeText((string)($provider['public_id'] ?? ''), [
             'intent_code' => 'knowledge_simplify',
@@ -280,17 +280,17 @@ final class KnowledgeAiController extends BaseController
             'model' => (string)($provider['default_model'] ?? ''),
         ]);
 
-        $text = trim((string)($llmResult['text'] ?? ''));
-        if ($text === '') {
+        $responseText = trim((string)($llmResult['text'] ?? ''));
+        if ($responseText === '') {
             return [
-                'explanation' => $this->buildFallbackExplanation($title, $text),
+                'explanation' => $this->buildFallbackExplanation($title, $content),
                 'mode' => 'fallback',
             ];
         }
-        $text = preg_replace('/^```\w*\s*\n?|```\s*$/m', '', $text) ?? $text;
+        $responseText = preg_replace('/^```\w*\s*\n?|```\s*$/m', '', $responseText) ?? $responseText;
 
         return [
-            'explanation' => trim($text),
+            'explanation' => trim($responseText),
             'mode' => 'llm',
         ];
     }
