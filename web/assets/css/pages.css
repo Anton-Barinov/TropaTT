@@ -14046,11 +14046,12 @@ a.task-tag:hover {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--crm-border);
   text-decoration: none;
-  color: #374151;
+  color: var(--crm-text);
   font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
   transition: background 0.1s;
 }
 
@@ -14059,7 +14060,7 @@ a.task-tag:hover {
 }
 
 .kb-side-item:hover {
-  background: #f9fafb;
+  background: var(--crm-surface-2);
 }
 
 .kb-side-item i {
@@ -14078,7 +14079,7 @@ a.task-tag:hover {
 .kb-side-item-title {
   display: block;
   font-weight: 500;
-  color: #111827;
+  color: var(--crm-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14087,7 +14088,7 @@ a.task-tag:hover {
 
 .kb-side-item-meta {
   display: block;
-  color: #9ca3af;
+  color: var(--crm-text-muted);
   font-size: 0.75rem;
   margin-top: 0.1rem;
   overflow: hidden;
@@ -14099,11 +14100,12 @@ a.task-tag:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--crm-border);
   text-decoration: none;
-  color: #374151;
+  color: var(--crm-text);
   font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
   transition: background 0.1s;
 }
 
@@ -14112,7 +14114,7 @@ a.task-tag:hover {
 }
 
 .kb-quick-link:hover {
-  background: #f9fafb;
+  background: var(--crm-surface-2);
 }
 
 .kb-quick-link i {
@@ -14125,14 +14127,19 @@ a.task-tag:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.35rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--crm-border);
   font-size: 0.8125rem;
-  color: #374151;
+  color: var(--crm-text);
+  border-radius: var(--radius-sm);
 }
 
 .kb-type-row:last-child {
   border-bottom: none;
+}
+
+.kb-type-row:hover {
+  background: var(--crm-surface-2);
 }
 
 .kb-type-row span:first-child {

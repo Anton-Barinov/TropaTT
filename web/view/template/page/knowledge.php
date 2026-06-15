@@ -67,7 +67,7 @@
     <div class="row g-3 kb-workspace">
 
       <!-- LEFT: Spaces tree -->
-      <div class="col-12 col-xl-3 col-xxl-2">
+      <div class="col-12 col-xl-4">
         <div class="kb-panel kb-spaces-panel">
           <div class="kb-panel-head d-flex align-items-center justify-content-between mb-2">
             <h2 class="h6 mb-0 fw-bold">Разделы</h2>
@@ -80,7 +80,7 @@
       </div>
 
       <!-- CENTER: Articles list -->
-      <div class="col-12 col-xl-9">
+      <div class="col-12 col-xl-8">
         <div class="kb-panel kb-center-panel">
           <!-- Space header -->
           <div id="kbSpaceHeader" class="kb-space-header">
@@ -149,25 +149,14 @@
 
     </div>
 
-    <!-- ─── BOTTOM SECTION: Recent, Quick Links, Types ─── -->
+    <!-- ─── BOTTOM: Quick Links + Types + Recent ─── -->
     <div class="row g-3 mt-1">
 
-      <!-- Recently updated -->
-      <div class="col-12">
-        <div class="kb-side-card">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h3 class="h6 mb-0 fw-bold"><i class="fa-regular fa-clock text-muted me-1" aria-hidden="true"></i> Недавно обновлено</h3>
-            <a href="#" class="small text-decoration-none">Смотреть все</a>
-          </div>
-          <div id="kbRecentList" class="kb-side-list"></div>
-        </div>
-      </div>
-
       <!-- Quick links -->
-      <div class="col-12">
-        <div class="kb-side-card">
-          <h3 class="h6 mb-2 fw-bold">Быстрые ссылки</h3>
-          <div class="d-flex flex-wrap gap-2" id="kbQuickLinks">
+      <div class="col-12 col-md-4">
+        <div class="crm-card crm-section-card p-3">
+          <h3 class="h6 mb-3 fw-bold">Быстрые ссылки</h3>
+          <div class="d-flex flex-column" id="kbQuickLinks">
             <a href="#" class="kb-quick-link" data-status="draft">
               <i class="fa-regular fa-pen-to-square text-muted" aria-hidden="true"></i>
               <span>Черновики</span>
@@ -193,16 +182,24 @@
       </div>
 
       <!-- Document types -->
-      <div class="col-12">
-        <div class="kb-side-card">
-          <h3 class="h6 mb-2 fw-bold">Типы документов</h3>
-          <div class="d-flex flex-wrap gap-2" id="kbTypes">
+      <div class="col-12 col-md-4">
+        <div class="crm-card crm-section-card p-3">
+          <h3 class="h6 mb-3 fw-bold">Типы документов</h3>
+          <div class="d-flex flex-column" id="kbTypes">
             <div class="kb-type-row"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
             <div class="kb-type-row"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
             <div class="kb-type-row"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
             <div class="kb-type-row"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
             <div class="kb-type-row"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Recently updated -->
+      <div class="col-12 col-md-4">
+        <div class="crm-card crm-section-card p-3">
+          <h3 class="h6 mb-3 fw-bold"><i class="fa-regular fa-clock text-muted me-1" aria-hidden="true"></i> Недавно обновлено</h3>
+          <div id="kbRecentList" class="kb-side-list"></div>
         </div>
       </div>
 
