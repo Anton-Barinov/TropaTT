@@ -514,6 +514,7 @@
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){n.classList.remove('active');});
     btn.classList.add('active');
     state.activeStatus = btn.getAttribute('data-status')||'';
+    checkFilters();
     loadArticles();
   });
 
@@ -523,7 +524,8 @@
       || document.getElementById('kbFilterStatus').value
       || document.getElementById('kbFilterType').value
       || document.getElementById('kbFilterTag').value
-      || document.getElementById('kbFilterSpace').value;
+      || document.getElementById('kbFilterSpace').value
+      || state.activeStatus;
     document.getElementById('kbFilterReset').style.display = active ? '' : 'none';
   }
 
