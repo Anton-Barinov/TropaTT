@@ -1103,7 +1103,8 @@
       }
     } else {
       var text = data.summary || data.explanation || data.text || '';
-      sidebarBodyEl.innerHTML = text ? '<div style="font-size:0.75rem;line-height:1.4">' + (data.mode === 'fallback' ? '<span class="text-muted" style="font-size:0.65rem">' + esc(t('knowledge_page.ai_fallback_note_short', 'Структура документа')) + '</span><br>' : '') + textToHtml(text.substring(0, 300)) + (text.length > 300 ? '<span class="text-muted">…</span>' : '') + '</div>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
+      var isFallbackOrError = data.mode === 'fallback' || data.mode === 'error';
+      sidebarBodyEl.innerHTML = text ? '<div style="font-size:0.75rem;line-height:1.4">' + (isFallbackOrError ? '<span class="text-muted" style="font-size:0.65rem">' + (data.mode === 'error' ? esc(t('knowledge_page.ai_error_short', 'Ошибка AI')) : esc(t('knowledge_page.ai_fallback_note_short', 'Структура документа'))) + '</span><br>' : '') + textToHtml(text.substring(0, 300)) + (text.length > 300 ? '<span class="text-muted">…</span>' : '') + '</div>' : '<em>' + esc(t('knowledge_page.ai_no_result', 'Нет результата')) + '</em>';
     }
   }
 

@@ -127,6 +127,7 @@
     <div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('knowledge.create_space_title', 'Новый раздел'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div>
     <div class="modal-body">
       <label class="crm-filter-label" for="knowledgeSpaceTitle"><?= htmlspecialchars($t('knowledge.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input id="knowledgeSpaceTitle" class="form-control mb-3" name="title" required>
+      <label class="crm-filter-label" for="knowledgeSpaceParent"><?= htmlspecialchars($t('knowledge.field_parent', 'Родительский раздел'), ENT_QUOTES, 'UTF-8') ?></label><select id="knowledgeSpaceParent" class="form-select mb-3" name="parent_public_id"><option value=""><?= htmlspecialchars($t('knowledge.no_parent', 'Без родителя (корневой)'), ENT_QUOTES, 'UTF-8') ?></option></select>
       <label class="crm-filter-label" for="knowledgeSpaceDescription"><?= htmlspecialchars($t('knowledge.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea id="knowledgeSpaceDescription" class="form-control" name="description" rows="4"></textarea>
       <div class="alert alert-danger d-none mt-3" id="knowledgeSpaceError"></div>
     </div>
@@ -260,11 +261,14 @@
       var active = state.activeSpace === space.public_id ? ' is-active' : '';
       var hasChildren = space.children && space.children.length;
       var paddingLeft = depth > 0 ? ' style="padding-left:' + (depth * 16) + 'px"' : '';
-      var html = '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '"' + paddingLeft + '>';
+      var html = '<div class="crm-knowledge-space-row"' + paddingLeft + '>';
+      html += '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '">';
       if (hasChildren) {
         html += '<i class="fa-solid fa-chevron-right crm-knowledge-space-toggle" style="font-size:0.6rem;color:var(--crm-muted);margin-right:0.3rem;transition:transform 0.15s"></i>';
       }
       html += '<span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
+      html += '<button type="button" class="crm-knowledge-space-add-sub" data-add-sub="' + esc(space.public_id) + '" title="' + esc(t('knowledge.btn_add_subspace', 'Добавить подраздел')) + '"><i class="fa-solid fa-plus"></i></button>';
+      html += '</div>';
       if (hasChildren) {
         html += '<div class="crm-knowledge-space-children">' + renderSpaceTree(space.children, depth + 1) + '</div>';
       }
@@ -412,8 +416,33 @@
       }
     });
   });
+  document.addEventListener('click', function (e) {
+    var addSubBtn = e.target.closest('[data-add-sub]');
+    if (addSubBtn) {
+      e.preventDefault();
+      var parentId = addSubBtn.getAttribute('data-add-sub');
+      var parentSelect = document.getElementById('knowledgeSpaceParent');
+      if (parentSelect) {
+        var flat = flattenSpaces(state.spaces);
+        parentSelect.innerHTML = '<option value="">' + esc(t('knowledge.no_parent', 'Без родителя (корневой)')) + '</option>' + flat.map(function (s) {
+          return '<option value="' + esc(s.public_id) + '"' + (s.public_id === parentId ? ' selected' : '') + '>' + esc(s.title) + '</option>';
+        }).join('');
+      }
+      window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).show();
+      return;
+    }
+  });
   document.querySelectorAll('[data-knowledge-open-space]').forEach(function (btn) {
-    btn.addEventListener('click', function () { window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).show(); });
+    btn.addEventListener('click', function () {
+      var parentSelect = document.getElementById('knowledgeSpaceParent');
+      if (parentSelect) {
+        var flat = flattenSpaces(state.spaces);
+        parentSelect.innerHTML = '<option value="">' + esc(t('knowledge.no_parent', 'Без родителя (корневой)')) + '</option>' + flat.map(function (s) {
+          return '<option value="' + esc(s.public_id) + '">' + esc(s.title) + '</option>';
+        }).join('');
+      }
+      window.bootstrap && bootstrap.Modal.getOrCreateInstance(document.getElementById('knowledgeSpaceModal')).show();
+    });
   });
   if (els.search) {
     els.search.addEventListener('input', debouncedSearch);

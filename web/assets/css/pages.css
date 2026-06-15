@@ -13868,6 +13868,38 @@ textarea.form-control.crm-knowledge-editor {
   display: contents;
 }
 
+.crm-knowledge-space-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.crm-knowledge-space-row .crm-knowledge-space-link {
+  flex: 1 1 auto;
+}
+
+.crm-knowledge-space-add-sub {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-muted);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.crm-knowledge-space-row:hover .crm-knowledge-space-add-sub {
+  display: inline-flex;
+}
+
+.crm-knowledge-space-add-sub:hover {
+  background: rgba(var(--color-primary-rgb, 15, 143, 114), 0.1);
+  color: var(--crm-accent);
+}
+
 .crm-knowledge-space-toggle {
   transition: transform 0.15s;
 }
@@ -14414,4 +14446,81 @@ textarea.form-control.crm-knowledge-editor {
 
 #knowledgeAiModal .modal-footer .btn i {
   font-size: 0.85rem;
+}
+
+/* ===== Knowledge Page AI Error Styles ===== */
+
+.crm-ai-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.crm-ai-error-icon {
+  font-size: 2rem;
+  color: var(--crm-danger, #dc3545);
+  opacity: 0.8;
+}
+
+.crm-ai-error h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--crm-text, #1e293b);
+}
+
+.crm-ai-error-msg {
+  font-size: 0.875rem;
+  color: var(--crm-text-secondary, #475569);
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.crm-ai-error-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.crm-ai-error-details span {
+  background: var(--crm-bg-secondary, #f1f5f9);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+}
+
+.crm-ai-error-code {
+  color: var(--crm-warning, #d97706);
+}
+
+.crm-ai-error-http {
+  color: var(--crm-text-muted, #64748b);
+}
+
+.crm-ai-error-nonretryable {
+  color: var(--crm-danger, #dc3545);
+}
+
+.crm-ai-error-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.crm-ai-fallback-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--crm-bg-secondary, #f1f5f9);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--crm-text-muted, #64748b);
+  margin-bottom: 0.75rem;
 }
