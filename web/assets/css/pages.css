@@ -13865,7 +13865,12 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-space-children {
-  display: contents;
+  border-left: 1px solid var(--crm-border);
+  margin-left: 0.65rem;
+}
+
+.crm-knowledge-space-children.is-collapsed {
+  display: none;
 }
 
 .crm-knowledge-space-row {
@@ -13878,30 +13883,53 @@ textarea.form-control.crm-knowledge-editor {
 }
 
 .crm-knowledge-space-add-sub {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 28px;
+  flex: 0 0 30px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--crm-muted);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  opacity: 0.4;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
 }
 
 .crm-knowledge-space-row:hover .crm-knowledge-space-add-sub {
-  display: inline-flex;
+  opacity: 1;
 }
 
 .crm-knowledge-space-add-sub:hover {
   background: rgba(var(--color-primary-rgb, 15, 143, 114), 0.1);
   color: var(--crm-accent);
+  opacity: 1;
 }
 
 .crm-knowledge-space-toggle {
-  transition: transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--crm-muted);
+  cursor: pointer;
+  font-size: 0.55rem;
+  transition: background 0.12s, transform 0.15s;
+}
+
+.crm-knowledge-space-toggle:hover {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+.crm-knowledge-space-toggle.is-open i {
+  transform: rotate(90deg);
 }
 
 .crm-knowledge-content-panel {

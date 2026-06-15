@@ -260,17 +260,17 @@
       var count = space.pages_count || 0;
       var active = state.activeSpace === space.public_id ? ' is-active' : '';
       var hasChildren = space.children && space.children.length;
-      var paddingLeft = depth > 0 ? ' style="padding-left:' + (depth * 16) + 'px"' : '';
+      var paddingLeft = depth > 0 ? ' style="padding-left:' + (depth * 18) + 'px"' : '';
       var html = '<div class="crm-knowledge-space-row"' + paddingLeft + '>';
-      html += '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '">';
       if (hasChildren) {
-        html += '<i class="fa-solid fa-chevron-right crm-knowledge-space-toggle" style="font-size:0.6rem;color:var(--crm-muted);margin-right:0.3rem;transition:transform 0.15s"></i>';
+        html += '<button type="button" class="crm-knowledge-space-toggle is-open" data-space-toggle="' + esc(space.public_id) + '"><i class="fa-solid fa-chevron-right"></i></button>';
       }
+      html += '<a href="javascript:void(0)" class="crm-knowledge-space-link' + active + '" data-space="' + esc(space.public_id) + '">';
       html += '<span class="crm-knowledge-space-info"><strong>' + esc(space.title) + '</strong><small>' + esc(desc) + '</small></span><span class="crm-knowledge-space-count">' + esc(count) + '</span></a>';
       html += '<button type="button" class="crm-knowledge-space-add-sub" data-add-sub="' + esc(space.public_id) + '" title="' + esc(t('knowledge.btn_add_subspace', 'Добавить подраздел')) + '"><i class="fa-solid fa-plus"></i></button>';
       html += '</div>';
       if (hasChildren) {
-        html += '<div class="crm-knowledge-space-children">' + renderSpaceTree(space.children, depth + 1) + '</div>';
+        html += '<div class="crm-knowledge-space-children" data-space-children="' + esc(space.public_id) + '">' + renderSpaceTree(space.children, depth + 1) + '</div>';
       }
       return html;
     }).join('');
@@ -307,11 +307,27 @@
     if (recentPanel) recentPanel.classList.add('is-active');
     document.querySelectorAll('[data-kb-tab]').forEach(function (btn) { btn.classList.toggle('is-active', btn.getAttribute('data-kb-tab') === 'recent'); });
   }
+  function expandParents(spaceId) {
+    var flat = flattenSpaces(state.spaces);
+    var space = flat.find(function (s) { return s.public_id === spaceId; });
+    if (!space) return;
+    var pid = space.parent_id;
+    while (pid) {
+      var parent = flat.find(function (s) { return s.id === pid; });
+      if (!parent) break;
+      var toggle = els.spaces.querySelector('[data-space-toggle="' + parent.public_id + '"]');
+      var children = els.spaces.querySelector('[data-space-children="' + parent.public_id + '"]');
+      if (toggle) toggle.classList.add('is-open');
+      if (children) children.classList.remove('is-collapsed');
+      pid = parent.parent_id;
+    }
+  }
   function selectSpace(spaceId) {
     state.activeSpace = spaceId;
     els.spaces.querySelectorAll('.crm-knowledge-space-link').forEach(function (link) {
       link.classList.toggle('is-active', link.getAttribute('data-space') === spaceId);
     });
+    if (spaceId) expandParents(spaceId);
     showTabView();
     load(spaceId);
   }
@@ -417,6 +433,18 @@
     });
   });
   document.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('[data-space-toggle]');
+    if (toggleBtn) {
+      e.preventDefault();
+      var spaceId = toggleBtn.getAttribute('data-space-toggle');
+      var children = els.spaces.querySelector('[data-space-children="' + spaceId + '"]');
+      if (children) {
+        var isOpen = toggleBtn.classList.contains('is-open');
+        toggleBtn.classList.toggle('is-open', !isOpen);
+        children.classList.toggle('is-collapsed', isOpen);
+      }
+      return;
+    }
     var addSubBtn = e.target.closest('[data-add-sub]');
     if (addSubBtn) {
       e.preventDefault();
