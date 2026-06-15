@@ -102,34 +102,33 @@
               <button class="nav-link active" data-status="" type="button">Все</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-status="published" type="button">Опубликованные <span class="badge bg-success bg-opacity-10 text-success ms-1" id="kbTabPublished">0</span></button>
+              <button class="nav-link" data-status="published" type="button">Опубликованные <span class="kb-tab-badge kb-tab-published" id="kbTabPublished">0</span></button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-status="draft" type="button">Черновики <span class="badge bg-primary bg-opacity-10 text-primary ms-1" id="kbTabDrafts">0</span></button>
+              <button class="nav-link" data-status="draft" type="button">Черновики <span class="kb-tab-badge kb-tab-draft" id="kbTabDrafts">0</span></button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-status="review" type="button">На проверке <span class="badge bg-warning bg-opacity-10 text-warning ms-1" id="kbTabReview">0</span></button>
+              <button class="nav-link" data-status="review" type="button">На проверке <span class="kb-tab-badge kb-tab-review" id="kbTabReview">0</span></button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-status="needs_update" type="button">Требуют обновления <span class="badge bg-danger bg-opacity-10 text-danger ms-1" id="kbTabOutdated">0</span></button>
+              <button class="nav-link" data-status="needs_update" type="button">Требуют обновления <span class="kb-tab-badge kb-tab-outdated" id="kbTabOutdated">0</span></button>
             </li>
           </ul>
 
           <!-- Articles table -->
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="kbArticlesTable">
+          <div class="kb-articles-wrap">
+            <table class="table align-middle mb-0" id="kbArticlesTable">
               <thead>
-                <tr class="text-muted small">
-                  <th style="width:45%">Страница</th>
-                  <th>Тип</th>
+                <tr>
+                  <th>Страница</th>
+                  <th class="d-none d-md-table-cell">Тип</th>
                   <th>Статус</th>
                   <th class="d-none d-md-table-cell">Обновлено</th>
-                  <th class="d-none d-lg-table-cell" style="width:60px">Просм.</th>
-                  <th style="width:40px"></th>
+                  <th class="d-none d-lg-table-cell kb-col-views">Просм.</th>
                 </tr>
               </thead>
               <tbody id="kbArticlesBody">
-                <tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>
+                <tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>
               </tbody>
             </table>
           </div>
@@ -146,7 +145,6 @@
         </div>
       </div>
 
-
     </div>
 
     <!-- ─── BOTTOM: Quick Links + Types + Recent ─── -->
@@ -157,25 +155,25 @@
         <div class="crm-card crm-section-card p-3">
           <h3 class="h6 mb-3 fw-bold">Быстрые ссылки</h3>
           <div class="d-flex flex-column" id="kbQuickLinks">
-            <a href="#" class="kb-quick-link" data-status="draft">
+            <a href="javascript:void(0)" class="kb-quick-link" data-status="draft">
               <i class="fa-regular fa-pen-to-square text-muted" aria-hidden="true"></i>
               <span>Черновики</span>
-              <span class="badge bg-primary bg-opacity-10 text-primary ms-auto">0</span>
+              <span class="badge ms-auto" id="kbQLDrafts">0</span>
             </a>
-            <a href="#" class="kb-quick-link" data-status="review">
+            <a href="javascript:void(0)" class="kb-quick-link" data-status="review">
               <i class="fa-regular fa-circle-check text-muted" aria-hidden="true"></i>
               <span>На проверке</span>
-              <span class="badge bg-warning bg-opacity-10 text-warning ms-auto">0</span>
+              <span class="badge ms-auto" id="kbQLReview">0</span>
             </a>
-            <a href="#" class="kb-quick-link" data-status="needs_update">
+            <a href="javascript:void(0)" class="kb-quick-link" data-status="needs_update">
               <i class="fa-regular fa-clock text-muted" aria-hidden="true"></i>
               <span>Просрочено</span>
-              <span class="badge bg-danger bg-opacity-10 text-danger ms-auto">0</span>
+              <span class="badge ms-auto" id="kbQLOutdated">0</span>
             </a>
-            <a href="#" class="kb-quick-link" data-status="archived">
+            <a href="javascript:void(0)" class="kb-quick-link" data-status="archived">
               <i class="fa-regular fa-eye text-muted" aria-hidden="true"></i>
               <span>Архив</span>
-              <span class="badge bg-secondary bg-opacity-10 text-secondary ms-auto">0</span>
+              <span class="badge ms-auto" id="kbQLArchived">0</span>
             </a>
           </div>
         </div>
@@ -186,11 +184,11 @@
         <div class="crm-card crm-section-card p-3">
           <h3 class="h6 mb-3 fw-bold">Типы документов</h3>
           <div class="d-flex flex-column" id="kbTypes">
-            <div class="kb-type-row"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
-            <div class="kb-type-row"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row" data-type="regulation"><span><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i> Регламент</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row" data-type="instruction"><span><i class="fa-regular fa-file-code text-muted" aria-hidden="true"></i> Инструкция</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row" data-type="article"><span><i class="fa-regular fa-file text-muted" aria-hidden="true"></i> Документ</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row" data-type="checklist"><span><i class="fa-solid fa-list-check text-muted" aria-hidden="true"></i> Чек-лист</span><span class="text-muted">0</span></div>
+            <div class="kb-type-row" data-type="faq"><span><i class="fa-regular fa-clone text-muted" aria-hidden="true"></i> Шаблон</span><span class="text-muted">0</span></div>
           </div>
         </div>
       </div>
@@ -260,7 +258,7 @@
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label fw-semibold">Название</label>
-          <input id="kbSpaceTitle" class="form-control" type="text" required>
+          <input id="kbSpaceTitleInput" class="form-control" type="text" required>
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold">Родительский раздел</label>
@@ -270,7 +268,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold">Описание</label>
-          <textarea id="kbSpaceDesc" class="form-control" rows="3"></textarea>
+          <textarea id="kbSpaceDescInput" class="form-control" rows="3"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -299,7 +297,7 @@
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
 
-  /* ── Cookie helpers for tree state ── */
+  /* ── Cookie helpers ── */
   function getCookie(name){
     var m = document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));
     return m ? decodeURIComponent(m[1]) : '';
@@ -325,6 +323,19 @@
     return result;
   }
 
+  function toggleSpaceNode(id){
+    var toggle = document.querySelector('.kb-space-toggle[data-toggle="'+id+'"]');
+    var ch = document.querySelector('[data-children="'+id+'"]');
+    if(!toggle || !ch) return;
+    toggle.classList.toggle('is-open');
+    ch.classList.toggle('kb-collapsed');
+    var openIds = [];
+    document.querySelectorAll('.kb-space-toggle.is-open[data-toggle]').forEach(function(t){
+      openIds.push(t.getAttribute('data-toggle'));
+    });
+    saveOpenSpaces(openIds);
+  }
+
   /* ── Load Spaces Tree ── */
   async function loadSpaces(){
     try {
@@ -340,14 +351,12 @@
     var sel = document.getElementById('kbFilterSpace');
     if(!el) return;
 
-    /* populate filter */
     if(sel){
       sel.innerHTML = '<option value="">Все разделы</option>' + flatSpaces.map(function(s){
         return '<option value="'+esc(s.public_id)+'">'+esc(s.title)+'</option>';
       }).join('');
     }
 
-    /* build tree */
     var html = '<a href="javascript:void(0)" class="kb-space-item'+(!state.activeSpace?' active':'')+'" data-space="">'
       +'<span class="kb-space-name">Все разделы</span>'
       +'<span class="kb-space-count">'+flatSpaces.length+'</span></a>';
@@ -368,7 +377,7 @@
       h += '<div class="kb-space-row"'+indent+'>';
       if(hasKids) h += '<button type="button" class="kb-space-toggle'+(isOpen?' is-open':'')+'" data-toggle="'+esc(s.public_id)+'"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>';
       else h += '<span class="kb-space-toggle" style="visibility:hidden"></span>';
-      h += '<a href="javascript:void(0)" class="kb-space-item'+active+'" data-space="'+esc(s.public_id)+'">'
+      h += '<a href="javascript:void(0)" class="kb-space-item'+active+'" data-space="'+esc(s.public_id)+'"'+(hasKids?' data-has-children="'+esc(s.public_id)+'"':'')+'>'
         +'<span class="kb-space-name">'+esc(s.title)+'</span>'
         +'<span class="kb-space-count">'+(s.pages_count||0)+'</span></a></div>';
       if(hasKids) h += '<div class="kb-space-children'+(isOpen?'':' kb-collapsed')+'" data-children="'+esc(s.public_id)+'">'+renderSpaceTree(s.children, depth+1)+'</div>';
@@ -376,7 +385,6 @@
     return h;
   }
 
-  /* ── Select Space ── */
   function selectSpace(id){
     state.activeSpace = id;
     document.querySelectorAll('.kb-space-item').forEach(function(el){
@@ -404,11 +412,24 @@
     countEl.textContent = s.pages_count || 0;
   }
 
+  /* ── Load Tags ── */
+  async function loadTags(){
+    try {
+      var r = await req('api/v1/tags', {method:'GET'});
+      var items = r.data && r.data.items || [];
+      var sel = document.getElementById('kbFilterTag');
+      if(!sel) return;
+      sel.innerHTML = '<option value="">Все теги</option>' + items.map(function(t){
+        return '<option value="'+esc(t.public_id)+'">'+esc(t.title)+'</option>';
+      }).join('');
+    } catch(e){}
+  }
+
   /* ── Load Articles ── */
   async function loadArticles(){
     var body = document.getElementById('kbArticlesBody');
     if(!body) return;
-    body.innerHTML = '<tr><td colspan="6" class="text-muted small text-center py-4">Загрузка...</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>';
 
     var params = {};
     if(state.activeSpace) params.space_public_id = state.activeSpace;
@@ -426,13 +447,16 @@
       var items = r.data && r.data.items || [];
       renderArticles(items);
       updateTabs(items);
-    } catch(e){ body.innerHTML='<tr><td colspan="6" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
+      updatePagInfo(items);
+    } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
   function renderArticles(items){
     var body = document.getElementById('kbArticlesBody');
     if(!items.length){
-      body.innerHTML = '<tr><td colspan="6"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn btn-sm btn-success" onclick="document.getElementById(\'btnCreatePage\').click()"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
+      body.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="fa-regular fa-folder-open"></i><p>В этом разделе пока нет страниц</p><button class="btn crm-btn-primary btn-sm" id="kbEmptyCreate"><i class="fa-solid fa-plus" aria-hidden="true"></i> Создать страницу</button></div></td></tr>';
+      var eb = document.getElementById('kbEmptyCreate');
+      if(eb) eb.addEventListener('click', function(){ document.getElementById('btnCreatePage').click(); });
       return;
     }
     var statusMap = {published:'kb-status-published',draft:'kb-status-draft',review:'kb-status-review',needs_update:'kb-status-needs_update',archived:'kb-status-archived'};
@@ -443,33 +467,50 @@
       var st = statusMap[p.status]||'kb-status-draft';
       var stLabel = statusLabels[p.status]||p.status||'';
       var typeLabel = typeLabels[p.page_type]||p.page_type||'';
-      var desc = p.content_text ? p.content_text.substring(0,80) : (p.title||'');
+      var desc = p.content_text ? p.content_text.substring(0,60) : '';
       var date = p.updated_at ? p.updated_at.substring(0,10) : '';
-      return '<tr onclick="window.open(\'index.php?route=knowledge-page&id='+esc(p.public_id)+'\',\'_self\')">'
-        +'<td><div class="d-flex align-items-center gap-2"><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i><div><div class="kb-article-title text-truncate">'+esc(p.title)+'</div><div class="kb-article-desc">'+esc(desc)+'</div></div></div></td>'
-        +'<td><span class="kb-type-badge">'+esc(typeLabel)+'</span></td>'
+      return '<tr class="kb-article-row" data-id="'+esc(p.public_id)+'">'
+        +'<td><div class="d-flex align-items-center gap-2"><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i><div class="min-w-0"><div class="kb-article-title text-truncate">'+esc(p.title)+'</div>'+(desc?'<div class="kb-article-desc">'+esc(desc)+'</div>':'')+'</div></div></td>'
+        +'<td class="d-none d-md-table-cell"><span class="kb-type-badge">'+esc(typeLabel)+'</span></td>'
         +'<td><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
-        +'<td class="d-none d-md-table-cell text-muted">'+esc(date)+'</td>'
-        +'<td class="d-none d-lg-table-cell text-muted">'+esc(p.views_count||0)+'</td>'
-        +'<td><div class="kb-article-actions"><button class="btn btn-sm btn-light" type="button" aria-label="Действия"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button></div></td>'
+        +'<td class="d-none d-md-table-cell text-muted kb-col-date">'+esc(date)+'</td>'
+        +'<td class="d-none d-lg-table-cell text-muted kb-col-views">'+esc(p.views_count||0)+'</td>'
         +'</tr>';
     }).join('');
+
+    body.querySelectorAll('.kb-article-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        window.location.href = 'index.php?route=knowledge-page&id='+this.getAttribute('data-id');
+      });
+    });
   }
 
   function updateTabs(items){
-    var counts = {published:0,draft:0,review:0,needs_update:0};
+    var counts = {published:0,draft:0,review:0,needs_update:0,archived:0};
     items.forEach(function(p){ if(counts[p.status]!==undefined) counts[p.status]++; });
     document.getElementById('kbTabPublished').textContent = counts.published;
     document.getElementById('kbTabDrafts').textContent = counts.draft;
     document.getElementById('kbTabReview').textContent = counts.review;
     document.getElementById('kbTabOutdated').textContent = counts.needs_update;
 
-    var qLinks = document.querySelectorAll('#kbQuickLinks .badge');
-    if(qLinks.length>=4){
-      qLinks[0].textContent = counts.draft;
-      qLinks[1].textContent = counts.review;
-      qLinks[2].textContent = counts.needs_update;
-    }
+    document.getElementById('kbQLDrafts').textContent = counts.draft;
+    document.getElementById('kbQLReview').textContent = counts.review;
+    document.getElementById('kbQLOutdated').textContent = counts.needs_update;
+    document.getElementById('kbQLArchived').textContent = counts.archived;
+  }
+
+  function updatePagInfo(items){
+    var el = document.getElementById('kbPagInfo');
+    if(el) el.textContent = items.length + ' ' + declension(items.length, 'статей', 'статья', 'статьи');
+  }
+
+  function declension(n, one, few, many){
+    var abs = Math.abs(n) % 100;
+    var last = abs % 10;
+    if(abs > 10 && abs < 20) return many;
+    if(last > 1 && last < 5) return few;
+    if(last === 1) return one;
+    return many;
   }
 
   /* ── Load Recent ── */
@@ -496,42 +537,43 @@
       var items = r.data && r.data.items || [];
       var counts = {};
       items.forEach(function(p){ counts[p.page_type] = (counts[p.page_type]||0)+1; });
-      var typeIcons = {regulation:'fa-regular fa-file-lines',instruction:'fa-regular fa-file-code',article:'fa-regular fa-file',checklist:'fa-solid fa-list-check',faq:'fa-regular fa-clone'};
-      var typeNames = {regulation:'Регламент',instruction:'Инструкция',article:'Документ',checklist:'Чек-лист',faq:'Шаблон'};
       var el = document.getElementById('kbTypes');
       if(!el) return;
-      var h = '';
-      Object.keys(typeNames).forEach(function(k){
-        h += '<div class="kb-type-row"><span><i class="'+(typeIcons[k]||'fa-regular fa-file')+' text-muted" aria-hidden="true"></i> '+esc(typeNames[k])+'</span><span class="text-muted">'+(counts[k]||0)+'</span></div>';
+      el.querySelectorAll('.kb-type-row').forEach(function(row){
+        var type = row.getAttribute('data-type');
+        var c = counts[type] || 0;
+        row.querySelector('span:last-child').textContent = c;
+        row.setAttribute('data-count', c);
       });
-      el.innerHTML = h;
     } catch(e){}
   }
 
   /* ── Events ── */
+
+  /* 1. Space tree: click on name toggles children AND selects space */
   document.getElementById('kbSpaces').addEventListener('click', function(e){
-    var toggle = e.target.closest('[data-toggle]');
+    var toggle = e.target.closest('.kb-space-toggle[data-toggle]');
     if(toggle){
-      var id = toggle.getAttribute('data-toggle');
-      var ch = document.querySelector('[data-children="'+id+'"]');
-      if(ch){
-        toggle.classList.toggle('is-open');
-        ch.classList.toggle('kb-collapsed');
-        var openIds = [];
-        document.querySelectorAll('.kb-space-toggle.is-open[data-toggle]').forEach(function(t){
-          openIds.push(t.getAttribute('data-toggle'));
-        });
-        saveOpenSpaces(openIds);
-      }
+      e.stopPropagation();
+      toggleSpaceNode(toggle.getAttribute('data-toggle'));
       return;
     }
     var item = e.target.closest('.kb-space-item[data-space]');
     if(item){
       e.preventDefault();
-      selectSpace(item.getAttribute('data-space'));
+      var spaceId = item.getAttribute('data-space');
+      selectSpace(spaceId);
+      var childAttr = item.getAttribute('data-has-children');
+      if(childAttr) toggleSpaceNode(childAttr);
     }
   });
 
+  /* 2. btnAddSpace → same modal as btnCreateSpace */
+  document.getElementById('btnAddSpace').addEventListener('click', function(){
+    document.getElementById('btnCreateSpace').click();
+  });
+
+  /* Tabs */
   document.getElementById('kbTabs').addEventListener('click', function(e){
     var btn = e.target.closest('[data-status]');
     if(!btn) return;
@@ -541,11 +583,36 @@
     loadArticles();
   });
 
+  /* 7. Quick links → set status filter and reload */
+  document.getElementById('kbQuickLinks').addEventListener('click', function(e){
+    var link = e.target.closest('.kb-quick-link[data-status]');
+    if(!link) return;
+    e.preventDefault();
+    var status = link.getAttribute('data-status');
+    document.getElementById('kbFilterStatus').value = status;
+    document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
+      n.classList.toggle('active', n.getAttribute('data-status')===status);
+    });
+    state.activeStatus = status;
+    loadArticles();
+  });
+
+  /* 8. Types → set type filter and reload */
+  document.getElementById('kbTypes').addEventListener('click', function(e){
+    var row = e.target.closest('.kb-type-row[data-type]');
+    if(!row) return;
+    var type = row.getAttribute('data-type');
+    document.getElementById('kbFilterType').value = type;
+    loadArticles();
+  });
+
+  /* Search */
   document.getElementById('kbSearch').addEventListener('input', function(){
     clearTimeout(this._t);
     this._t = setTimeout(loadArticles, 300);
   });
 
+  /* Filters */
   document.getElementById('kbFilterStatus').addEventListener('change', loadArticles);
   document.getElementById('kbFilterType').addEventListener('change', loadArticles);
   document.getElementById('kbFilterTag').addEventListener('change', loadArticles);
@@ -562,6 +629,10 @@
     document.getElementById('kbFilterTag').value='';
     document.getElementById('kbFilterSpace').value='';
     state.activeSpace='';
+    document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
+      n.classList.toggle('active', n.getAttribute('data-status')==='');
+    });
+    state.activeStatus='';
     updateSpaceHeader();
     loadArticles();
   });
@@ -576,6 +647,8 @@
   document.getElementById('btnCreateSpace').addEventListener('click', function(){
     var sel = document.getElementById('kbSpaceParent');
     sel.innerHTML = '<option value="">Без родителя</option>' + flatSpaces.map(function(s){ return '<option value="'+esc(s.public_id)+'">'+esc(s.title)+'</option>'; }).join('');
+    document.getElementById('kbSpaceTitleInput').value='';
+    document.getElementById('kbSpaceDescInput').value='';
     new bootstrap.Modal(document.getElementById('kbSpaceModal')).show();
   });
 
@@ -590,15 +663,17 @@
         content_html: document.getElementById('kbPageContent').value
       }});
       bootstrap.Modal.getInstance(document.getElementById('kbPageModal')).hide();
+      document.getElementById('kbPageTitle').value='';
+      document.getElementById('kbPageContent').value='';
       loadArticles();
     } catch(e){ alert('Ошибка создания'); }
   });
 
   document.getElementById('kbSpaceSubmit').addEventListener('click', async function(){
-    var title = document.getElementById('kbSpaceTitle').value.trim();
+    var title = document.getElementById('kbSpaceTitleInput').value.trim();
     if(!title){ alert('Укажите название'); return; }
     try {
-      var body = {title: title, description: document.getElementById('kbSpaceDesc').value};
+      var body = {title: title, description: document.getElementById('kbSpaceDescInput').value};
       var parentId = document.getElementById('kbSpaceParent').value;
       if(parentId) body.parent_public_id = parentId;
       await req('api/v1/knowledge/spaces', {method:'POST', body: body});
@@ -614,6 +689,7 @@
     loadRecent();
     loadTypes();
     loadArticles();
+    loadTags();
   });
 })();
 </script>

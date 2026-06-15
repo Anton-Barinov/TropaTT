@@ -13910,15 +13910,28 @@ a.task-tag:hover {
   background: none;
 }
 
-.kb-tabs .badge {
+.kb-tabs .badge,
+.kb-tab-badge {
   font-size: 0.65rem;
   padding: 0.15rem 0.4rem;
   vertical-align: 1px;
+  background: transparent !important;
+  font-weight: 600;
 }
 
+.kb-tab-published { color: var(--crm-success); }
+.kb-tab-draft { color: var(--color-primary-500); }
+.kb-tab-review { color: var(--color-warning-500); }
+.kb-tab-outdated { color: var(--crm-danger); }
+
 /* ── Table ── */
+.kb-articles-wrap {
+  overflow-x: auto;
+}
+
 #kbArticlesTable {
   font-size: 0.8125rem;
+  table-layout: auto;
 }
 
 #kbArticlesTable thead th {
@@ -13937,13 +13950,16 @@ a.task-tag:hover {
 }
 
 #kbArticlesTable tbody tr:hover {
-  background: #f9fafb;
+  background: var(--crm-surface-2);
 }
 
 #kbArticlesTable tbody td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.45rem 0.6rem;
   vertical-align: middle;
 }
+
+.kb-col-views { width: 50px; text-align: right; }
+.kb-col-date { white-space: nowrap; }
 
 .kb-article-title {
   font-weight: 600;
@@ -14136,6 +14152,8 @@ a.task-tag:hover {
   font-size: 0.8125rem;
   color: var(--crm-text);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
 }
 
 .kb-type-row:last-child {
