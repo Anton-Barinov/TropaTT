@@ -279,9 +279,13 @@
 
 <script>
 (function(){
-  var api = window.CRM && window.CRM.api;
-  if(!api) return;
-  function req(route, opts){ return api.request(route, opts); }
+  function getApi(){ return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null; }
+  function waitForApi(cb, n){
+    if(getApi()){ cb(); return; }
+    if((n||0)>80){ console.error('CRM API not ready'); return; }
+    setTimeout(function(){ waitForApi(cb, (n||0)+1); }, 50);
+  }
+  function req(route, opts){ return getApi().request(route, opts); }
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
@@ -575,9 +579,11 @@
   });
 
   /* ── Init ── */
-  loadSpaces();
-  loadRecent();
-  loadTypes();
+  waitForApi(function(){
+    loadSpaces();
+    loadRecent();
+    loadTypes();
+  });
 })();
 </script>
 </body>
