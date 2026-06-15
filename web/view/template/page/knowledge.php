@@ -592,6 +592,7 @@
     loadSpaces();
     loadRecent();
     loadTypes();
+    loadArticles();
   });
 })();
 </script>
