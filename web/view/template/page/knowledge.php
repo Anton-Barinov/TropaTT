@@ -45,6 +45,9 @@
           <option value="runbook">Runbook</option>
           <option value="meeting_note">Протокол</option>
           <option value="decision">Решение</option>
+          <option value="client_note">Заметка клиента</option>
+          <option value="project_note">Заметка проекта</option>
+          <option value="onboarding">Онбординг</option>
         </select>
         <select id="kbFilterTag" class="form-select form-select-sm" style="width:auto;min-width:110px">
           <option value="">Все теги</option>
@@ -189,6 +192,12 @@
               <option value="regulation">Регламент</option>
               <option value="faq">FAQ</option>
               <option value="checklist">Чек-лист</option>
+              <option value="runbook">Runbook</option>
+              <option value="meeting_note">Протокол</option>
+              <option value="decision">Решение</option>
+              <option value="client_note">Заметка клиента</option>
+              <option value="project_note">Заметка проекта</option>
+              <option value="onboarding">Онбординг</option>
             </select>
           </div>
         </div>
@@ -418,16 +427,18 @@
     }
     var statusMap = {published:'kb-status-published',draft:'kb-status-draft',review:'kb-status-review',needs_update:'kb-status-needs_update',archived:'kb-status-archived'};
     var statusLabels = {published:'Опубликовано',draft:'Черновик',review:'На проверке',needs_update:'Требует обновления',archived:'Архив'};
-    var typeLabels = {article:'Статья',instruction:'Инструкция',regulation:'Регламент',faq:'FAQ',checklist:'Чек-лист',runbook:'Runbook',meeting_note:'Протокол',decision:'Решение'};
+    var typeLabels = {article:'Статья',instruction:'Инструкция',regulation:'Регламент',faq:'FAQ',checklist:'Чек-лист',runbook:'Runbook',meeting_note:'Протокол',decision:'Решение',client_note:'Заметка клиента',project_note:'Заметка проекта',onboarding:'Онбординг'};
+    var typeIcons = {article:'fa-regular fa-file-lines',instruction:'fa-solid fa-list-check',regulation:'fa-solid fa-shield-halved',faq:'fa-regular fa-circle-question',checklist:'fa-regular fa-square-check',runbook:'fa-solid fa-book',meeting_note:'fa-regular fa-calendar-check',decision:'fa-solid fa-gavel',client_note:'fa-regular fa-address-card',project_note:'fa-solid fa-diagram-project',onboarding:'fa-solid fa-user-plus'};
 
     body.innerHTML = items.map(function(p){
       var st = statusMap[p.status]||'kb-status-draft';
       var stLabel = statusLabels[p.status]||p.status||'';
       var typeLabel = typeLabels[p.page_type]||p.page_type||'';
+      var typeIcon = typeIcons[p.page_type]||'fa-regular fa-file';
       var desc = p.content_text ? p.content_text.substring(0,60) : '';
       var date = p.updated_at ? p.updated_at.substring(0,10) : '';
       return '<tr class="kb-article-row" data-id="'+esc(p.public_id)+'">'
-        +'<td><div class="d-flex align-items-center gap-2"><i class="fa-regular fa-file-lines text-muted" aria-hidden="true"></i><div class="min-w-0"><div class="kb-article-title text-truncate">'+esc(p.title)+'</div>'+(desc?'<div class="kb-article-desc">'+esc(desc)+'</div>':'')+'</div></div></td>'
+        +'<td><div class="d-flex align-items-center gap-2"><i class="'+typeIcon+' text-muted" aria-hidden="true"></i><div class="min-w-0"><div class="kb-article-title text-truncate">'+esc(p.title)+'</div>'+(desc?'<div class="kb-article-desc">'+esc(desc)+'</div>':'')+'</div></div></td>'
         +'<td class="d-none d-md-table-cell"><span class="kb-type-badge">'+esc(typeLabel)+'</span></td>'
         +'<td><span class="kb-status-badge '+st+'">'+esc(stLabel)+'</span></td>'
         +'<td class="d-none d-md-table-cell text-muted kb-col-date">'+esc(date)+'</td>'
