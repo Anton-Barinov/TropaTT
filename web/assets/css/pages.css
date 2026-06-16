@@ -15066,7 +15066,7 @@ a.task-tag:hover {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #fff;
-  overflow: hidden;
+  overflow: initial;
 }
 
 .kb-side-card .card-header {
