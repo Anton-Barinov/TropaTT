@@ -175,6 +175,7 @@ TropaTT works for anyone managing clients and executing work. Here's who uses it
 | **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
 | **AI (20+ tools)** | Idea analysis, plans, decomposition, summaries, checklists, risk review, meeting prep | AI that saves time in real workflows |
 | **Admin** | Users, roles, permissions, feature flags, modules, logs | Full control over your workspace |
+| **Intake** | Capture, triage, and accept incoming client requests before turning them into tasks | Separate raw requests from real work, accept into tasks in one click |
 | **Privacy** | 100% local data, no cloud access | Zero vendor lock-in, GDPR under your control |
 | **No plan caps** | Users, tasks, projects, clients, files are not capped by SaaS pricing | Scales with your infrastructure, not your bill |
 | **Install** | Browser wizard for any PHP/MySQL host | First launch in minutes, no terminal |

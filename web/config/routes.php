@@ -68,6 +68,8 @@ return [
     'admin-modules' => [Web\Controller\Page\AdminModulesController::class, 'index'],
     'admin-modules-install' => [Web\Controller\Page\AdminModulesInstallController::class, 'index'],
     'admin-module-detail' => [Web\Controller\Page\AdminModuleDetailController::class, 'index'],
+    'intake' => [Web\Controller\Page\IntakeController::class, 'index'],
+
     'ideas' => [Web\Controller\Page\IdeasController::class, 'index'],
     'idea-detail' => [Web\Controller\Page\IdeaDetailController::class, 'index'],
     'chat' => [Web\Controller\Page\ChatController::class, 'index'],
