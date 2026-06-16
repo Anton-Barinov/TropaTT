@@ -24,8 +24,7 @@
     <div class="dropdown">
       <button class="btn btn-light border btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('common.more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="#" data-export-format="json"><?= htmlspecialchars($t('knowledge_page.export_json', 'Экспорт JSON'), ENT_QUOTES, 'UTF-8') ?></a></li>
-        <li><a class="dropdown-item" href="#" data-export-format="markdown"><?= htmlspecialchars($t('knowledge_page.export_md', 'Экспорт Markdown'), ENT_QUOTES, 'UTF-8') ?></a></li>
+        <li><button class="dropdown-item" type="button" id="knowledgeCopyLinkBtn"><i class="fa-regular fa-copy" aria-hidden="true"></i> <?= htmlspecialchars($t('knowledge_page.copy_link', 'Копировать ссылку'), ENT_QUOTES, 'UTF-8') ?></button></li>
       </ul>
     </div>
   </div>
