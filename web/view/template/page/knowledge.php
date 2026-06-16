@@ -412,10 +412,19 @@
       var r = await req('api/v1/knowledge/search', {method:'GET', query:params});
       var items = r.data && r.data.items || [];
       renderArticles(items);
-      updateTabs(items);
       updatePagInfo(items);
       var countEl = document.getElementById('kbSpaceCount');
       if(countEl) countEl.textContent = items.length;
+      if(sf){
+        var cparams = Object.assign({}, params);
+        delete cparams.status;
+        try {
+          var cr = await req('api/v1/knowledge/search', {method:'GET', query:cparams});
+          updateTabs(cr.data && cr.data.items || []);
+        } catch(e){}
+      } else {
+        updateTabs(items);
+      }
     } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
