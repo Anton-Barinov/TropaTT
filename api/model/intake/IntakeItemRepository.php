@@ -134,9 +134,9 @@ final class IntakeItemRepository
         $whereClause = implode(' AND ', $where);
 
         $fromClause = 'FROM intake_items ii
-            LEFT JOIN projects p ON p.id = ii.project_id AND p.deleted_at IS NULL
-            LEFT JOIN counterparties cl ON cl.id = ii.client_id AND cl.deleted_at IS NULL
-            LEFT JOIN contacts co ON co.id = ii.contact_id AND co.deleted_at IS NULL
+            LEFT JOIN projects p ON p.id = ii.project_id
+            LEFT JOIN counterparties cl ON cl.id = ii.client_id
+            LEFT JOIN contacts co ON co.id = ii.contact_id
             LEFT JOIN users assignee ON assignee.id = ii.assignee_user_id
             LEFT JOIN users creator ON creator.id = ii.creator_user_id
             LEFT JOIN tasks accepted_task ON accepted_task.id = ii.accepted_task_id AND accepted_task.deleted_at IS NULL
@@ -210,9 +210,9 @@ final class IntakeItemRepository
                 dii.public_id AS duplicate_intake_item_public_id,
                 dt.public_id AS duplicate_task_public_id
             FROM intake_items ii
-            LEFT JOIN projects p ON p.id = ii.project_id AND p.deleted_at IS NULL
-            LEFT JOIN counterparties cl ON cl.id = ii.client_id AND cl.deleted_at IS NULL
-            LEFT JOIN contacts co ON co.id = ii.contact_id AND co.deleted_at IS NULL
+            LEFT JOIN projects p ON p.id = ii.project_id
+            LEFT JOIN counterparties cl ON cl.id = ii.client_id
+            LEFT JOIN contacts co ON co.id = ii.contact_id
             LEFT JOIN users assignee ON assignee.id = ii.assignee_user_id
             LEFT JOIN users creator ON creator.id = ii.creator_user_id
             LEFT JOIN tasks accepted_task ON accepted_task.id = ii.accepted_task_id AND accepted_task.deleted_at IS NULL
@@ -342,7 +342,7 @@ final class IntakeItemRepository
 
     public function projectIdByPublicId(string $projectPublicId): ?int
     {
-        $stmt = $this->db->prepare("SELECT id FROM projects WHERE public_id = :public_id AND deleted_at IS NULL");
+        $stmt = $this->db->prepare("SELECT id FROM projects WHERE public_id = :public_id");
         $stmt->execute(['public_id' => $projectPublicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? (int)$row['id'] : null;
@@ -350,7 +350,7 @@ final class IntakeItemRepository
 
     public function clientIdByPublicId(string $clientPublicId): ?int
     {
-        $stmt = $this->db->prepare("SELECT id FROM counterparties WHERE public_id = :public_id AND deleted_at IS NULL");
+        $stmt = $this->db->prepare("SELECT id FROM counterparties WHERE public_id = :public_id");
         $stmt->execute(['public_id' => $clientPublicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? (int)$row['id'] : null;
@@ -358,7 +358,7 @@ final class IntakeItemRepository
 
     public function contactIdByPublicId(string $contactPublicId): ?int
     {
-        $stmt = $this->db->prepare("SELECT id FROM contacts WHERE public_id = :public_id AND deleted_at IS NULL");
+        $stmt = $this->db->prepare("SELECT id FROM contacts WHERE public_id = :public_id");
         $stmt->execute(['public_id' => $contactPublicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ? (int)$row['id'] : null;
