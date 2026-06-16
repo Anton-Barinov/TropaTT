@@ -15217,6 +15217,11 @@ a.task-tag:hover {
   padding: 0.25rem 1.75rem 0.25rem 0.5rem;
 }
 
+.kb-tag-add-row .crm-searchable-input {
+  min-height: 30px;
+  height: 34px;
+}
+
 .kb-tag-add-btn {
   flex: 0 0 auto;
   width: 34px;
