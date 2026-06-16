@@ -14157,6 +14157,13 @@ a.task-tag:hover {
    ══════════════════════════════════════════ */
 
 /* ── Workspace Grid ── */
+.crm-knowledge-page .form-control:focus,
+.crm-knowledge-page .form-select:focus,
+.crm-knowledge-page .input-group:focus-within {
+  box-shadow: none;
+  border-color: var(--crm-border);
+}
+
 .kb-workspace {
   padding-top: 1rem;
   padding-bottom: 2rem;

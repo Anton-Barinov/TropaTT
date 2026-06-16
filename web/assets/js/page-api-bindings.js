@@ -26311,6 +26311,23 @@ window.CRM.pageApiBindings = (function () {
     clientSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     taskFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     projectFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    var knowledgeFilterSelectors = [
+      '#kbFilterSpace',
+      '#kbFilterType',
+      '#kbFilterTag',
+      '#kbFilterStatus'
+    ];
+    knowledgeFilterSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
+    // Knowledge page modal/sidebar selects
+    var knowledgeExtraSelectors = [
+      '#kbPageSpace',
+      '#kbSpaceParent',
+      '#knowledgeTagSelect',
+      '#knowledgePagePermSubjectType',
+      '#knowledgePagePermSubjectId',
+      '#knowledgePagePermAccessLevel'
+    ];
+    knowledgeExtraSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     // Tag multi-selects
     root.querySelectorAll('select[name="tag_public_ids"]').forEach(function (el) {
       if (!el.dataset.searchable) makeSelectSearchable(el);
