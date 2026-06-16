@@ -262,7 +262,6 @@
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
-  var cachedTabCounts = null;
 
   /* ── Cookie helpers ── */
   function getCookie(name){
@@ -398,46 +397,25 @@
     if(!body) return;
     body.innerHTML = '<tr><td colspan="5" class="text-muted small text-center py-4">Загрузка...</td></tr>';
 
-    var params = {};
-    if(state.activeSpace) params.space_public_id = state.activeSpace;
-    var sf = state.activeStatus || document.getElementById('kbFilterStatus').value;
+    var baseParams = {};
+    if(state.activeSpace) baseParams.space_public_id = state.activeSpace;
     var tf = document.getElementById('kbFilterType').value;
     var tg = document.getElementById('kbFilterTag').value;
     var q = document.getElementById('kbSearch').value.trim();
-    if(sf) params.status = sf;
-    if(tf) params.page_type = tf;
-    if(tg) params.tag_public_id = tg;
-    if(q) params.q = q;
+    if(tf) baseParams.page_type = tf;
+    if(tg) baseParams.tag_public_id = tg;
+    if(q) baseParams.q = q;
 
     try {
-      var r = await req('api/v1/knowledge/search', {method:'GET', query:params});
-      var items = r.data && r.data.items || [];
-      renderArticles(items);
-      updatePagInfo(items);
+      var r = await req('api/v1/knowledge/search', {method:'GET', query:baseParams});
+      var allItems = r.data && r.data.items || [];
+      updateTabs(allItems);
       var countEl = document.getElementById('kbSpaceCount');
-      if(countEl) countEl.textContent = items.length;
-      if(!sf){
-        cachedTabCounts = items;
-        updateTabs(items);
-      } else {
-        if(cachedTabCounts){
-          updateTabs(cachedTabCounts);
-        } else {
-          var cparams = {};
-          if(state.activeSpace) cparams.space_public_id = state.activeSpace;
-          var tf2 = document.getElementById('kbFilterType').value;
-          var tg2 = document.getElementById('kbFilterTag').value;
-          var q2 = document.getElementById('kbSearch').value.trim();
-          if(tf2) cparams.page_type = tf2;
-          if(tg2) cparams.tag_public_id = tg2;
-          if(q2) cparams.q = q2;
-          try {
-            var cr = await req('api/v1/knowledge/search', {method:'GET', query:cparams});
-            cachedTabCounts = cr.data && cr.data.items || [];
-            updateTabs(cachedTabCounts);
-          } catch(e){}
-        }
-      }
+      if(countEl) countEl.textContent = allItems.length;
+      var sf = state.activeStatus || document.getElementById('kbFilterStatus').value;
+      var filtered = sf ? allItems.filter(function(p){ return p.status === sf; }) : allItems;
+      renderArticles(filtered);
+      updatePagInfo(filtered);
     } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
@@ -568,7 +546,7 @@
   /* Search */
   document.getElementById('kbSearch').addEventListener('input', function(){
     clearTimeout(this._t);
-    this._t = setTimeout(function(){ cachedTabCounts=null; checkFilters(); loadArticles(); }, 300);
+    this._t = setTimeout(function(){ checkFilters(); loadArticles(); }, 300);
   });
 
   /* Filters */
@@ -580,11 +558,10 @@
     checkFilters();
     loadArticles();
   });
-  document.getElementById('kbFilterType').addEventListener('change', function(){ cachedTabCounts=null; checkFilters(); loadArticles(); });
-  document.getElementById('kbFilterTag').addEventListener('change', function(){ cachedTabCounts=null; checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterType').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterTag').addEventListener('change', function(){ checkFilters(); loadArticles(); });
   document.getElementById('kbFilterSpace').addEventListener('change', function(){
     state.activeSpace = this.value;
-    cachedTabCounts=null;
     updateSpaceHeader();
     checkFilters();
     loadArticles();
@@ -601,7 +578,6 @@
       n.classList.toggle('active', n.getAttribute('data-status')==='');
     });
     state.activeStatus='';
-    cachedTabCounts=null;
     updateSpaceHeader();
     checkFilters();
     loadArticles();
