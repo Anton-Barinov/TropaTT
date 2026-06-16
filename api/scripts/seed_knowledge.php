@@ -653,20 +653,22 @@ foreach ($comments as $pageSlug => $commentList) {
     $pagePubId = (string)$stmt->fetchColumn();
     if ($pagePubId === '') continue;
 
+    $prevCommentId = null;
     foreach ($commentList as $idx => $c) {
         $commentPubId = publicId('kbc');
         insert($pdo, 'knowledge_comments', [
             'public_id' => $commentPubId,
             'page_id' => $pageId,
-            'parent_id' => null,
+            'parent_id' => $prevCommentId,
             'user_id' => $guestUserId,
             'body' => $c['body'],
-            'resolved_at' => $idx === 2 ? now() : null,
+            'resolved_at' => $idx === 2 && count($commentList) > 2 ? now() : null,
             'created_at' => ago($c['days']),
             'updated_at' => ago($c['days']),
         ]);
 
         $pdo->prepare("UPDATE knowledge_pages SET comments_count = comments_count + 1 WHERE id = :id")->execute(['id' => $pageId]);
+        $prevCommentId = (int)$pdo->lastInsertId();
     }
     echo "  ✓ Added " . count($commentList) . " comments to: {$pageSlug}\n";
 }
