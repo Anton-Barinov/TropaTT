@@ -15406,12 +15406,42 @@ a.task-tag:hover {
 
 /* ── Knowledge comments override for new layout ── */
 .kb-bottom-panels .crm-knowledge-comment {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  position: relative;
 }
 
-.kb-bottom-panels .crm-knowledge-comment:last-child {
-  border-bottom: none;
+.kb-bottom-panels .crm-knowledge-comment-inner {
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.kb-bottom-panels .crm-knowledge-comment-nested::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--crm-border, #e5e7eb);
+}
+
+.kb-bottom-panels .crm-knowledge-comment-nested:last-child::before {
+  height: 28px;
+  bottom: auto;
+}
+
+.kb-bottom-panels .crm-knowledge-comment-nested > .crm-knowledge-comment-inner {
+  margin-left: 28px;
+  padding-left: 16px;
+}
+
+.kb-bottom-panels .crm-knowledge-comment-nested > .crm-knowledge-comment-inner::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 14px;
+  width: 12px;
+  height: 2px;
+  background: var(--crm-border, #e5e7eb);
 }
 
 .kb-bottom-panels .crm-knowledge-comment-head {
@@ -15432,6 +15462,16 @@ a.task-tag:hover {
   display: flex;
   gap: 0.35rem;
   margin-top: 0.25rem;
+}
+
+.kb-bottom-panels .crm-comment-reply-to {
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+.kb-bottom-panels .crm-comment-reply-name {
+  color: #059669;
+  font-weight: 600;
 }
 
 .kb-bottom-panels .crm-knowledge-attach-list {

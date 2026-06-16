@@ -859,7 +859,7 @@ final class KnowledgeRepository
         if (!$page) {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT c.*, u.public_id AS user_public_id, u.full_name AS user_name FROM knowledge_comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.page_id = :page_id ORDER BY c.created_at ASC');
+        $stmt = $this->pdo->prepare('SELECT c.*, u.public_id AS user_public_id, u.full_name AS user_name, pu.full_name AS parent_user_name FROM knowledge_comments c LEFT JOIN users u ON u.id = c.user_id LEFT JOIN knowledge_comments pc ON pc.id = c.parent_id LEFT JOIN users pu ON pu.id = pc.user_id WHERE c.page_id = :page_id ORDER BY c.created_at ASC');
         $stmt->execute(['page_id' => (int)$page['id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }

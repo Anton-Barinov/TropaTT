@@ -895,14 +895,16 @@
       var kids = byParent[parentId] || [];
       if (!kids.length) return '';
       return kids.map(function (c) {
-        var ml = Math.min(depth * 24, 72);
+        var hasChildren = byParent[c.id] && byParent[c.id].length > 0;
         var resolved = c.resolved_at ? ' <span class="text-success small">' + esc(t('knowledge_page.comments_resolved', ' resolved')) + '</span>' : '';
         var resolveBtn = c.resolved_at
           ? '<button class="btn btn-sm crm-btn-secondary" data-comment-reopen="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_reopen', 'Открыть')) + '</button>'
           : '<button class="btn btn-sm crm-btn-secondary" data-comment-resolve="' + esc(c.public_id) + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_resolve', 'Решено')) + '</button>';
         var replyBtn = '<button class="btn btn-sm crm-btn-secondary" data-comment-reply="' + esc(c.public_id) + '" data-comment-reply-name="' + esc(c.user_name || '') + '" style="font-size:0.7rem">' + esc(t('knowledge_page.comments_reply', 'Ответить')) + '</button>';
         var childrenHtml = renderThread(c.id, depth + 1);
-        return '<div class="crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + '" style="margin-left:' + ml + 'px"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + replyBtn + resolveBtn + '</div>' + childrenHtml + '</div>';
+        var replyTo = depth > 0 && c.parent_user_name ? ' <span class="crm-comment-reply-to">' + esc(t('knowledge_page.comments_reply_to', 'reply to')) + ' <span class="crm-comment-reply-name">@' + esc(c.parent_user_name) + '</span></span>' : '';
+        var cls = 'crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + (hasChildren ? ' crm-knowledge-comment-has-children' : '') + (depth > 0 ? ' crm-knowledge-comment-nested' : '');
+        return '<div class="' + cls + '" data-depth="' + depth + '"><div class="crm-knowledge-comment-inner"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + replyTo + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + replyBtn + resolveBtn + '</div></div>' + childrenHtml + '</div>';
       }).join('');
     }
     els.commentsList.innerHTML = renderThread('root', 0);
