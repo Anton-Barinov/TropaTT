@@ -659,6 +659,8 @@ final class App
         $this->container->factory('repository.auth', fn(Container $c) => new \Api\Model\Auth\AuthRepository($c->get('db.pdo')));
         $this->container->factory('repository.project', fn(Container $c) => new \Api\Model\Project\ProjectRepository($c->get('db.pdo')));
         $this->container->factory('repository.task', fn(Container $c) => new \Api\Model\Task\TaskRepository($c->get('db.pdo')));
+        $this->container->factory('repository.task_key_counter', fn(Container $c) => new \Api\Model\Task\TaskKeyCounterRepository($c->get('db.pdo')));
+        $this->container->factory('repository.task_relation', fn(Container $c) => new \Api\Model\Task\TaskRelationRepository($c->get('db.pdo')));
         $this->container->factory('repository.comment', fn(Container $c) => new \Api\Model\Comment\CommentRepository($c->get('db.pdo')));
         $this->container->factory('repository.comment_draft', fn(Container $c) => new \Api\Model\Comment\CommentDraftRepository($c->get('db.pdo')));
         $this->container->factory('repository.mention', fn(Container $c) => new \Api\Model\Comment\MentionRepository($c->get('db.pdo')));
@@ -871,6 +873,10 @@ final class App
         ));
         $this->container->factory('service.dependency', fn(Container $c) => new DependencyService(
             $c->get('repository.dependency'),
+            $c->get('service.task')
+        ));
+        $this->container->factory('service.task_relation', fn(Container $c) => new \Api\System\Library\Service\TaskRelationService(
+            $c->get('repository.task_relation'),
             $c->get('service.task')
         ));
         $this->container->factory('service.template', fn(Container $c) => new \Api\System\Library\Service\TemplateService(

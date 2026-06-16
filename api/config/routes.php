@@ -135,6 +135,12 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/risks', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'risksSummary', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/workload', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'workloadSummary', 'auth' => true, 'required_permissions' => ['project.manage']],
 
+    // task relations v2
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/task-relations/{public_id}', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/task-relations/search-tasks', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'searchTasks', 'auth' => true, 'required_permissions' => ['task.manage']],
+
     // tasks BR-1
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
