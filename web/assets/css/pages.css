@@ -15412,6 +15412,15 @@ a.task-tag:hover {
 .kb-bottom-panels .crm-knowledge-comment-inner {
   position: relative;
   padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.kb-bottom-panels .crm-knowledge-comment-nested > .crm-knowledge-comment-inner {
+  border-bottom: none;
+}
+
+.kb-bottom-panels .crm-knowledge-comment:last-child > .crm-knowledge-comment-inner {
+  border-bottom: none;
 }
 
 .kb-bottom-panels .crm-knowledge-comment-nested::before {
@@ -15437,9 +15446,9 @@ a.task-tag:hover {
 .kb-bottom-panels .crm-knowledge-comment-nested > .crm-knowledge-comment-inner::before {
   content: '';
   position: absolute;
-  left: -16px;
+  left: calc(-28px + 8px);
   top: 14px;
-  width: 12px;
+  width: calc(28px + 16px - 8px);
   height: 2px;
   background: var(--crm-border, #e5e7eb);
 }
