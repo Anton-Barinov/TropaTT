@@ -399,7 +399,7 @@
 
     var params = {};
     if(state.activeSpace) params.space_public_id = state.activeSpace;
-    var sf = document.getElementById('kbFilterStatus').value;
+    var sf = state.activeStatus || document.getElementById('kbFilterStatus').value;
     var tf = document.getElementById('kbFilterType').value;
     var tg = document.getElementById('kbFilterTag').value;
     var q = document.getElementById('kbSearch').value.trim();
@@ -414,6 +414,8 @@
       renderArticles(items);
       updateTabs(items);
       updatePagInfo(items);
+      var countEl = document.getElementById('kbSpaceCount');
+      if(countEl) countEl.textContent = items.length;
     } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
 
@@ -525,6 +527,7 @@
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){n.classList.remove('active');});
     btn.classList.add('active');
     state.activeStatus = btn.getAttribute('data-status')||'';
+    document.getElementById('kbFilterStatus').value = state.activeStatus;
     checkFilters();
     loadArticles();
   });
@@ -547,7 +550,14 @@
   });
 
   /* Filters */
-  document.getElementById('kbFilterStatus').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterStatus').addEventListener('change', function(){
+    state.activeStatus = this.value;
+    document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
+      n.classList.toggle('active', n.getAttribute('data-status')===state.activeStatus);
+    });
+    checkFilters();
+    loadArticles();
+  });
   document.getElementById('kbFilterType').addEventListener('change', function(){ checkFilters(); loadArticles(); });
   document.getElementById('kbFilterTag').addEventListener('change', function(){ checkFilters(); loadArticles(); });
   document.getElementById('kbFilterSpace').addEventListener('change', function(){

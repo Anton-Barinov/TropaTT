@@ -12801,7 +12801,7 @@ a.task-tag:hover {
 .crm-knowledge-page .crm-section-card,
 .crm-knowledge-page-detail .crm-section-card,
 .crm-admin-knowledge-page .crm-section-card {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .crm-knowledge-spaces-panel {
@@ -14161,6 +14161,7 @@ a.task-tag:hover {
 .crm-knowledge-page .kb-filter-bar .crm-searchable-select {
   width: auto;
   min-width: 120px;
+  z-index: 100;
 }
 
 .crm-knowledge-page .kb-filter-bar .crm-searchable-input {
@@ -14206,7 +14207,7 @@ a.task-tag:hover {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .kb-panel-head {
