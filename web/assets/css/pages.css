@@ -14177,6 +14177,16 @@ a.task-tag:hover {
   white-space: nowrap;
 }
 
+.crm-knowledge-page > .crm-section-card {
+  position: relative;
+  z-index: 2;
+}
+
+.crm-knowledge-page > .container-fluid {
+  position: relative;
+  z-index: 1;
+}
+
 .crm-knowledge-page .form-control:focus,
 .crm-knowledge-page .form-select:focus,
 .crm-knowledge-page .input-group:focus-within,
