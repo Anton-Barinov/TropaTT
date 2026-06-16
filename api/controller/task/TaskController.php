@@ -235,15 +235,14 @@ final class TaskController extends BaseController
         ]);
     }
 
-    public function getByKey(): \Api\System\Library\Http\JsonResponse
+    public function getByKey(array $params): \Api\System\Library\Http\JsonResponse
     {
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->request()->allInput();
-        $key = trim((string)($input['key'] ?? $this->request()->query('key', '')));
+        $key = trim((string)($params['task_key'] ?? $this->request()->query('key', '')));
         if ($key === '') {
             return $this->error('TASK_KEY_INVALID', $this->t('task/messages.invalid_task_key', 'Invalid task key'), 422);
         }

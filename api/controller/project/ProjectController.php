@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Project;
 
 use Api\Controller\Common\BaseController;
+use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Service\GanttService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\ProjectSummaryService;
@@ -323,6 +324,17 @@ final class ProjectController extends BaseController
 
         if ($taskKeys->isReservedPrefix($normalized)) {
             return ['code' => 'PROJECT_TASK_PREFIX_RESERVED', 'message' => $this->t('project/messages.reserved_prefix', 'This prefix is reserved for system use'), 'status' => 422];
+        }
+
+        // Check for duplicate prefix
+        try {
+            /** @var \Api\Model\Project\ProjectRepository $projectRepo */
+            $projectRepo = $this->container->get('repository.project');
+            if ($projectRepo->taskKeyPrefixExists($normalized, $projectPublicId)) {
+                return ['code' => 'PROJECT_TASK_PREFIX_ALREADY_EXISTS', 'message' => $this->t('project/messages.prefix_already_exists', 'This prefix is already used by another project'), 'status' => 409];
+            }
+        } catch (\Throwable) {
+            // If container lookup fails, skip server-side check (rare edge case)
         }
 
         return null;
