@@ -275,6 +275,20 @@ final class KnowledgeRepository
         return $result ?: null;
     }
 
+    public function getSpacePublicIdByPermissionId(int $permissionId): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT s.public_id FROM knowledge_space_permissions p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.id = :id LIMIT 1');
+        $stmt->execute(['id' => $permissionId]);
+        return ($val = $stmt->fetchColumn()) !== false ? (string)$val : null;
+    }
+
+    public function getPagePublicIdByPermissionId(int $permissionId): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT p.public_id FROM knowledge_page_permissions perm JOIN knowledge_pages p ON p.id = perm.page_id WHERE perm.id = :id LIMIT 1');
+        $stmt->execute(['id' => $permissionId]);
+        return ($val = $stmt->fetchColumn()) !== false ? (string)$val : null;
+    }
+
     public function removeSpacePermission(int $permissionId): bool
     {
         $lookup = $this->pdo->prepare('SELECT space_id FROM knowledge_space_permissions WHERE id = :id LIMIT 1');

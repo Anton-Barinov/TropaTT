@@ -45,6 +45,43 @@ final class KnowledgeController extends BaseController
         return $this->repo()->page($publicId, $this->actor(), $minAccess);
     }
 
+    private function actorCanManagePermissions(): bool
+    {
+        $actor = $this->actor();
+        if (empty($actor)) {
+            return false;
+        }
+        if (!empty($actor['is_root'])) {
+            return true;
+        }
+        $permissions = array_map('strval', (array)($actor['permission_codes'] ?? []));
+        return in_array('*', $permissions, true) || in_array('knowledge.admin', $permissions, true);
+    }
+
+    private function requireSpaceOwnerOrAdmin(string $publicId): ?array
+    {
+        $space = $this->repo()->space($publicId, $this->actor());
+        if (!$space) {
+            return null;
+        }
+        if ($this->actorCanManagePermissions()) {
+            return $space;
+        }
+        return (int)($space['owner_user_id'] ?? 0) === $this->actorUserId() ? $space : null;
+    }
+
+    private function requirePageOwnerOrAdmin(string $publicId): ?array
+    {
+        $page = $this->repo()->page($publicId, $this->actor());
+        if (!$page) {
+            return null;
+        }
+        if ($this->actorCanManagePermissions()) {
+            return $page;
+        }
+        return (int)($page['owner_user_id'] ?? 0) === $this->actorUserId() ? $page : null;
+    }
+
     public function overview(): JsonResponse
     {
         $actor = $this->actor();
@@ -157,6 +194,9 @@ final class KnowledgeController extends BaseController
 
     public function spacePermissions(array $params): JsonResponse
     {
+        if (!$this->requireSpaceOwnerOrAdmin((string)$params['public_id'])) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
         $items = $this->repo()->spacePermissions((string)$params['public_id']);
         return $this->success('KNOWLEDGE_SPACE_PERMISSIONS', $this->t('knowledge/messages.space_permissions', 'Space permissions loaded'), [
             'items' => $items,
@@ -165,6 +205,9 @@ final class KnowledgeController extends BaseController
 
     public function addSpacePermission(array $params): JsonResponse
     {
+        if (!$this->requireSpaceOwnerOrAdmin((string)$params['public_id'])) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
         $auth = $this->user();
         $input = $this->request()->allInput();
         $subjectType = trim((string)($input['subject_type'] ?? ''));
@@ -192,6 +235,10 @@ final class KnowledgeController extends BaseController
         if ($id <= 0) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
         }
+        $spacePublicId = $this->repo()->getSpacePublicIdByPermissionId($id);
+        if (!$spacePublicId || !$this->requireSpaceOwnerOrAdmin($spacePublicId)) {
+            return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
+        }
         $this->repo()->removeSpacePermission($id);
         $this->invalidateCache('knowledge');
         return $this->success('KNOWLEDGE_SPACE_PERMISSION_REMOVED', $this->t('knowledge/messages.space_permission_removed', 'Space permission removed'));
@@ -199,7 +246,7 @@ final class KnowledgeController extends BaseController
 
     public function pagePermissions(array $params): JsonResponse
     {
-        if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
+        if (!$this->requirePageOwnerOrAdmin((string)$params['public_id'])) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $items = $this->repo()->pagePermissions((string)$params['public_id']);
@@ -210,7 +257,7 @@ final class KnowledgeController extends BaseController
 
     public function addPagePermission(array $params): JsonResponse
     {
-        if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
+        if (!$this->requirePageOwnerOrAdmin((string)$params['public_id'])) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $input = $this->request()->allInput();
@@ -238,6 +285,10 @@ final class KnowledgeController extends BaseController
         $id = (int)($params['permission_id'] ?? 0);
         if ($id <= 0) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422);
+        }
+        $pagePublicId = $this->repo()->getPagePublicIdByPermissionId($id);
+        if (!$pagePublicId || !$this->requirePageOwnerOrAdmin($pagePublicId)) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $this->repo()->removePagePermission($id);
         $this->invalidateCache('knowledge');
