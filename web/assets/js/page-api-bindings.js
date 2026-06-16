@@ -685,6 +685,8 @@ window.CRM.pageApiBindings = (function () {
       aiRow = '<div class="crm-task-card-ai-meta"><span>AI</span><strong>#' + safeText(String(aiMeta.order)) + (aiReason ? (': ' + safeText(aiReason)) : '') + '</strong></div>';
     }
     var tagChips = taskTagsHtml(item.tags, 5);
+    var taskKey = item.task_key || '';
+    var taskKeyHtml = taskKey ? '<span class="crm-task-key-badge" title="' + window.CRM.i18n.t('js.pab.task_key', 'Task key') + '">' + safeText(taskKey) + '</span> ' : '';
     return '<div class="crm-task-card-meta">'
       + '<div><span>' + window.CRM.i18n.t('js.pab.project', 'Project') + '</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></div>'
       + '<div><span>' + window.CRM.i18n.t('js.pab.deadline', 'Deadline') + '</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></div>'
@@ -814,6 +816,7 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="crm-task-tree-body">'
       + '<div class="crm-task-tree-main">'
       + '<div class="crm-task-tree-title-wrap">'
+      + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span> ' : '')
       + '<a class="crm-task-tree-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
       + '<div class="crm-task-row-meta">' + taskTreeBadges(item, childCount, level) + '</div>'
       + '</div>'
@@ -885,6 +888,7 @@ window.CRM.pageApiBindings = (function () {
       return '<article class="crm-task-card">'
         + '<div class="crm-task-card-head">'
         + '<div class="crm-task-card-title-wrap">'
+        + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span> ' : '')
         + '<a class="crm-task-card-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
         + '</div>'
         + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span>'
