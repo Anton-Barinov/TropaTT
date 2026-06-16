@@ -47,6 +47,7 @@ final class MigrationManager
             new IntakeItemsMigration(),
             new TaskHumanReadableKeysMigration(),
             new TaskRelationsV2Migration(),
+            new SavedViewsV2Migration(),
         ];
     }
 
