@@ -14834,7 +14834,7 @@ a.task-tag:hover {
   gap: 0.65rem;
   padding: 0.55rem 1rem;
   min-width: 0;
-  flex: 0 0 auto;
+  flex: 1 1 0;
 }
 
 .kb-meta-item i {
