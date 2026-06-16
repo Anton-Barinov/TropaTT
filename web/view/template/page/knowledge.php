@@ -262,6 +262,7 @@
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
+  var cachedTabCounts = null;
 
   /* ── Cookie helpers ── */
   function getCookie(name){
@@ -415,15 +416,27 @@
       updatePagInfo(items);
       var countEl = document.getElementById('kbSpaceCount');
       if(countEl) countEl.textContent = items.length;
-      if(sf){
-        var cparams = Object.assign({}, params);
-        delete cparams.status;
-        try {
-          var cr = await req('api/v1/knowledge/search', {method:'GET', query:cparams});
-          updateTabs(cr.data && cr.data.items || []);
-        } catch(e){}
-      } else {
+      if(!sf){
+        cachedTabCounts = items;
         updateTabs(items);
+      } else {
+        if(cachedTabCounts){
+          updateTabs(cachedTabCounts);
+        } else {
+          var cparams = {};
+          if(state.activeSpace) cparams.space_public_id = state.activeSpace;
+          var tf2 = document.getElementById('kbFilterType').value;
+          var tg2 = document.getElementById('kbFilterTag').value;
+          var q2 = document.getElementById('kbSearch').value.trim();
+          if(tf2) cparams.page_type = tf2;
+          if(tg2) cparams.tag_public_id = tg2;
+          if(q2) cparams.q = q2;
+          try {
+            var cr = await req('api/v1/knowledge/search', {method:'GET', query:cparams});
+            cachedTabCounts = cr.data && cr.data.items || [];
+            updateTabs(cachedTabCounts);
+          } catch(e){}
+        }
       }
     } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">Ошибка загрузки</td></tr>'; }
   }
@@ -555,7 +568,7 @@
   /* Search */
   document.getElementById('kbSearch').addEventListener('input', function(){
     clearTimeout(this._t);
-    this._t = setTimeout(function(){ checkFilters(); loadArticles(); }, 300);
+    this._t = setTimeout(function(){ cachedTabCounts=null; checkFilters(); loadArticles(); }, 300);
   });
 
   /* Filters */
@@ -567,10 +580,11 @@
     checkFilters();
     loadArticles();
   });
-  document.getElementById('kbFilterType').addEventListener('change', function(){ checkFilters(); loadArticles(); });
-  document.getElementById('kbFilterTag').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterType').addEventListener('change', function(){ cachedTabCounts=null; checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterTag').addEventListener('change', function(){ cachedTabCounts=null; checkFilters(); loadArticles(); });
   document.getElementById('kbFilterSpace').addEventListener('change', function(){
     state.activeSpace = this.value;
+    cachedTabCounts=null;
     updateSpaceHeader();
     checkFilters();
     loadArticles();
@@ -587,6 +601,7 @@
       n.classList.toggle('active', n.getAttribute('data-status')==='');
     });
     state.activeStatus='';
+    cachedTabCounts=null;
     updateSpaceHeader();
     checkFilters();
     loadArticles();
