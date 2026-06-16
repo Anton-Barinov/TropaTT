@@ -14157,11 +14157,34 @@ a.task-tag:hover {
    ══════════════════════════════════════════ */
 
 /* ── Workspace Grid ── */
+/* KB filter bar searchable selects — inline row */
+.crm-knowledge-page .kb-filter-bar .crm-searchable-select {
+  width: auto;
+  min-width: 120px;
+}
+
+.crm-knowledge-page .kb-filter-bar .crm-searchable-input {
+  width: auto;
+  min-width: 100px;
+}
+
 .crm-knowledge-page .form-control:focus,
 .crm-knowledge-page .form-select:focus,
-.crm-knowledge-page .input-group:focus-within {
+.crm-knowledge-page .input-group:focus-within,
+.crm-knowledge-page .crm-searchable-input:focus {
   box-shadow: none;
   border-color: var(--crm-border);
+}
+
+/* Search input group — fix border radius */
+#kbSearch {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.crm-knowledge-page .input-group .input-group-text {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .kb-workspace {

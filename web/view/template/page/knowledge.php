@@ -24,7 +24,7 @@
 
   <!-- ─── SEARCH & FILTERS ─── -->
   <div class="crm-card crm-section-card mb-3">
-    <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="d-flex flex-wrap align-items-center gap-2 kb-filter-bar">
       <div class="flex-grow-1" style="min-width:220px">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-transparent border-end-0"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
@@ -208,7 +208,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-success" id="kbPageSubmit">Создать черновик</button>
+        <button type="button" class="btn crm-btn-primary" id="kbPageSubmit">Создать черновик</button>
       </div>
     </div>
   </div>

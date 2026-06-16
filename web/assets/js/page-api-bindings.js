@@ -26209,7 +26209,7 @@ window.CRM.pageApiBindings = (function () {
 
       function syncSingleSearchableInput() {
         var selectedOpt = select.options[select.selectedIndex];
-        if (selectedOpt) {
+        if (selectedOpt && select.value && select.selectedIndex > 0) {
           input.value = selectedOpt.textContent || selectedOpt.text || '';
         } else {
           input.value = '';
