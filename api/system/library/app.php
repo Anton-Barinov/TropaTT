@@ -713,8 +713,8 @@ final class App
         $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo'), $c->get('lang')));
         $this->container->factory('repository.custom_field', fn(Container $c) => new \Api\Model\Custom_field\CustomFieldRepository($c->get('db.pdo')));
         $this->container->factory('repository.workflow', fn(Container $c) => new \Api\Model\Workflow\WorkflowRepository($c->get('db.pdo')));
-        $this->container->factory('repository.intake_item', fn(Container $c) => new IntakeItemRepository($c->get('db.pdo')));
-        $this->container->factory('repository.intake_item_activity', fn(Container $c) => new IntakeItemActivityRepository($c->get('db.pdo')));
+        $this->container->factory('repository.intake_item', fn(Container $c) => new \Api\Model\Intake\IntakeItemRepository($c->get('db.pdo')));
+        $this->container->factory('repository.intake_item_activity', fn(Container $c) => new \Api\Model\Intake\IntakeItemActivityRepository($c->get('db.pdo')));
         $this->container->factory('repository.sla', fn(Container $c) => new \Api\Model\Sla\SlaRepository($c->get('db.pdo')));
         $this->container->factory('repository.approval', fn(Container $c) => new \Api\Model\Approval\ApprovalRepository($c->get('db.pdo')));
         $this->container->factory('repository.recycle_bin', fn(Container $c) => new \Api\Model\Recycle_bin\RecycleBinRepository($c->get('db.pdo')));
