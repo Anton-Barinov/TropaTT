@@ -51,7 +51,6 @@ final class SavedViewRepository
                 'v.is_system',
                 'v.sort_order',
                 'v.archived_at',
-                'v.row_version',
                 'v.created_at',
                 'v.updated_at',
                 'v.user_id',
@@ -194,7 +193,6 @@ final class SavedViewRepository
         }
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
-        $set['row_version'] = new Expression('row_version + 1');
 
         return (new QueryBuilder($this->pdo))
             ->from('saved_views')
@@ -213,7 +211,6 @@ final class SavedViewRepository
             ->update([
                 'archived_at' => $archivedAt,
                 'updated_at' => $archivedAt,
-                'row_version' => new Expression('row_version + 1'),
             ]) > 0;
     }
 
