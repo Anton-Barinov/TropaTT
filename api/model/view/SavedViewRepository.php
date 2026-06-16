@@ -58,11 +58,8 @@ final class SavedViewRepository
                 'u.public_id AS user_public_id',
                 'u.login AS user_login',
                 'u.full_name AS user_name',
-                'pref.is_pinned',
-                'pref.sort_order AS user_sort_order',
-                'pref.last_used_at',
             ])
-            ->orderBy('pref.is_pinned', 'DESC')
+            ->orderBy('v.is_system', 'DESC')
             ->orderBy('v.is_system', 'DESC')
             ->orderBy('v.' . $sort, $order)
             ->limit($limit)
@@ -81,11 +78,7 @@ final class SavedViewRepository
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('saved_views v')
-            ->leftJoin('users u', 'u.id', '=', 'v.user_id')
-            ->leftJoin('saved_view_user_preferences pref', function (QueryBuilder $join) use ($actorUserId): void {
-                $join->on('pref.saved_view_id', '=', 'v.id')
-                     ->where('pref.user_id', '=', $actorUserId);
-            });
+            ->leftJoin('users u', 'u.id', '=', 'v.user_id');
 
         // Visibility: private views of owner, public views, system views; root sees all
         if (!$actorIsRoot) {
@@ -116,9 +109,12 @@ final class SavedViewRepository
             $qb->where('v.is_system', '=', (int)$filters['system']);
         }
 
-        // Filter pinned
+        // Filter pinned (separate subquery check)
         if (!empty($filters['pinned'])) {
-            $qb->where('pref.is_pinned', '=', 1);
+            $qb->whereRaw(
+                'EXISTS (SELECT 1 FROM saved_view_user_preferences sp WHERE sp.saved_view_id = v.id AND sp.user_id = ? AND sp.is_pinned = 1)',
+                [$actorUserId]
+            );
         }
 
         // Search by title
