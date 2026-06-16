@@ -53,7 +53,7 @@
         <i class="fa-regular fa-circle-check" aria-hidden="true"></i>
         <div class="kb-meta-text">
           <span class="kb-meta-label"><?= htmlspecialchars($t('knowledge_page.status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></span>
-          <span class="kb-meta-value"><span id="knowledgePageStatus" class="crm-badge" style="font-size:0.75rem;padding:0.15rem 0.5rem">—</span></span>
+          <span class="kb-meta-value kb-meta-status"><span id="knowledgePageStatus" class="crm-badge">—</span></span>
         </div>
       </div>
       <div class="kb-meta-divider"></div>
@@ -169,7 +169,7 @@
             <div class="mt-2">
               <div id="knowledgeCommentReplyIndicator" class="small text-muted d-none mb-1">
                 <span id="knowledgeCommentReplyLabel"></span>
-                <button type="button" class="btn btn-sm btn-light border" id="knowledgeCommentCancelReply" style="font-size:0.7rem;margin-left:8px"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button type="button" class="btn crm-btn-secondary btn-sm" id="knowledgeCommentCancelReply"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>
               <div class="d-flex gap-2">
                 <textarea id="knowledgeCommentInput" class="form-control form-control-sm" rows="2" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>" style="min-height:44px;resize:none"></textarea>

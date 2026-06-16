@@ -14816,31 +14816,31 @@ a.task-tag:hover {
 
 /* ── Meta Card ── */
 .kb-meta-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid #dde5e2;
+  border-radius: 10px;
   background: #fff;
 }
 
 .kb-meta-grid {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
 }
 
 .kb-meta-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.45rem 0.85rem;
+  gap: 0.65rem;
+  padding: 0.55rem 1rem;
   min-width: 0;
   flex: 0 0 auto;
 }
 
 .kb-meta-item i {
-  font-size: 0.9rem;
-  color: #667085;
-  width: 16px;
+  font-size: 0.95rem;
+  color: #9ca3af;
+  width: 18px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -14853,14 +14853,26 @@ a.task-tag:hover {
 
 .kb-meta-label {
   font-size: 0.6875rem;
-  color: #667085;
+  color: #9ca3af;
   font-weight: 500;
   line-height: 1.2;
+  letter-spacing: 0.01em;
 }
 
 .kb-meta-value {
   font-size: 0.8125rem;
-  color: #101828;
+  color: #111827;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.kb-meta-item .crm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.3;
   white-space: nowrap;
@@ -14868,22 +14880,42 @@ a.task-tag:hover {
 
 .kb-meta-divider {
   width: 1px;
-  height: 32px;
+  height: 36px;
   background: #e5e7eb;
   flex-shrink: 0;
+  align-self: center;
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 991.98px) {
   .kb-meta-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem 0;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
   }
   .kb-meta-divider {
     display: none;
   }
   .kb-meta-item {
-    padding: 0.3rem 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .kb-meta-item:nth-last-child(-n+3) {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .kb-meta-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .kb-meta-item {
+    padding: 0.35rem 0.65rem;
+  }
+  .kb-meta-item:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+  .kb-meta-item:nth-last-child(-n+3) {
+    border-bottom: 1px solid #f3f4f6;
   }
 }
 
