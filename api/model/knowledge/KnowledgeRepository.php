@@ -172,9 +172,9 @@ final class KnowledgeRepository
         }
     }
 
-    public function updateSpace(string $publicId, array $payload): array|string|null
+    public function updateSpace(string $publicId, array $payload, ?array $actor = null): array|string|null
     {
-        $current = $this->space($publicId);
+        $current = $this->space($publicId, $actor, 'manage');
         if (!$current) {
             return null;
         }
@@ -391,8 +391,12 @@ final class KnowledgeRepository
         return false;
     }
 
-    public function archiveSpace(string $publicId, bool $archived): bool
+    public function archiveSpace(string $publicId, bool $archived, ?array $actor = null): bool
     {
+        $space = $this->space($publicId, $actor, 'manage');
+        if (!$space) {
+            return false;
+        }
         $stmt = $this->pdo->prepare('UPDATE knowledge_spaces SET is_archived = :archived, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
         $stmt->execute(['archived' => $archived ? 1 : 0, 'updated_at' => gmdate('Y-m-d H:i:s'), 'public_id' => $publicId]);
         return $stmt->rowCount() > 0;
@@ -992,20 +996,27 @@ final class KnowledgeRepository
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function analytics(): array
+    public function analytics(?array $actor = null): array
     {
-        $stmt = $this->pdo->query("SELECT
-            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL) AS total_pages,
-            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'published') AS published,
-            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'draft') AS drafts,
-            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'review') AS review_queue,
-            (SELECT COUNT(*) FROM knowledge_pages WHERE deleted_at IS NULL AND status = 'archived') AS archived,
-            (SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 0) AS active_spaces,
-            (SELECT COUNT(*) FROM knowledge_spaces WHERE is_archived = 1) AS archived_spaces,
+        [$pageAclSql, $pageAclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        [$spaceAclSql, $spaceAclParams] = $this->spaceAccessSql('s', $actor, 'view');
+        $pageWhere = 'p.deleted_at IS NULL AND ' . $pageAclSql;
+        $spaceWhere = 's.is_archived = 0 AND ' . $spaceAclSql;
+        $archivedSpaceWhere = 's.is_archived = 1 AND ' . $spaceAclSql;
+        $params = array_merge($pageAclParams, $spaceAclParams);
+        $stmt = $this->pdo->prepare("SELECT
+            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere}) AS total_pages,
+            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'published') AS published,
+            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'draft') AS drafts,
+            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'review') AS review_queue,
+            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'archived') AS archived,
+            (SELECT COUNT(*) FROM knowledge_spaces s WHERE {$spaceWhere}) AS active_spaces,
+            (SELECT COUNT(*) FROM knowledge_spaces s WHERE {$archivedSpaceWhere}) AS archived_spaces,
             (SELECT COUNT(*) FROM knowledge_comments) AS total_comments,
             (SELECT COUNT(*) FROM knowledge_page_versions) AS total_versions,
             (SELECT COUNT(*) FROM knowledge_entity_links) AS total_links
         ");
+        $stmt->execute($params);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return is_array($row) ? $row : [];
     }

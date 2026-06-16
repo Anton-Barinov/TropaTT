@@ -109,7 +109,7 @@ final class KnowledgeController extends BaseController
 
     public function updateSpace(array $params): JsonResponse
     {
-        $result = $this->repo()->updateSpace((string)$params['public_id'], $this->request()->allInput());
+        $result = $this->repo()->updateSpace((string)$params['public_id'], $this->request()->allInput(), $this->actor());
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The record was changed by another user'), 409);
         }
@@ -125,7 +125,7 @@ final class KnowledgeController extends BaseController
 
     public function archiveSpace(array $params): JsonResponse
     {
-        if (!$this->repo()->archiveSpace((string)$params['public_id'], true)) {
+        if (!$this->repo()->archiveSpace((string)$params['public_id'], true, $this->actor())) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
         $this->invalidateCache('knowledge');
@@ -134,7 +134,7 @@ final class KnowledgeController extends BaseController
 
     public function restoreSpace(array $params): JsonResponse
     {
-        if (!$this->repo()->archiveSpace((string)$params['public_id'], false)) {
+        if (!$this->repo()->archiveSpace((string)$params['public_id'], false, $this->actor())) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }
         $this->invalidateCache('knowledge');
@@ -567,7 +567,7 @@ final class KnowledgeController extends BaseController
     public function analytics(): JsonResponse
     {
         return $this->success('KNOWLEDGE_ANALYTICS', $this->t('knowledge/messages.analytics', 'Analytics loaded'), [
-            'stats' => $this->repo()->analytics(),
+            'stats' => $this->repo()->analytics($this->actor()),
         ]);
     }
 
