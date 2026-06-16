@@ -475,7 +475,7 @@
 
   function updatePagInfo(items){
     var el = document.getElementById('kbPagInfo');
-    if(el) el.textContent = items.length + ' ' + declension(items.length, 'статей', 'статья', 'статьи');
+    if(el) el.textContent = items.length + ' ' + declension(items.length, 'страница', 'страницы', 'страниц');
   }
 
   function declension(n, one, few, many){
