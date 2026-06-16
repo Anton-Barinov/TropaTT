@@ -15204,6 +15204,10 @@ a.task-tag:hover {
   opacity: 1;
 }
 
+.kb-tags-empty {
+  font-size: 13px;
+}
+
 /* Tag add row */
 .kb-tag-add-row {
   display: flex;

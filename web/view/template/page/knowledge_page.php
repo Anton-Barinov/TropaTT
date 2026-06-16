@@ -230,7 +230,7 @@
           <h5 class="h6 mb-0"><?= htmlspecialchars($t('knowledge_page.tags_title', 'Теги'), ENT_QUOTES, 'UTF-8') ?></h5>
         </div>
         <div class="card-body py-2 px-3">
-          <div id="knowledgeTagsList" class="kb-tags-list"><span class="text-muted" style="font-size:13px"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span></div>
+          <div id="knowledgeTagsList" class="kb-tags-list"><span class="text-muted kb-tags-empty"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span></div>
           <div class="kb-tag-add-row">
             <select id="knowledgeTagSelect" class="form-select form-select-sm"><option value=""><?= htmlspecialchars($t('knowledge_page.tag_select_hint', 'Добавить тег...'), ENT_QUOTES, 'UTF-8') ?></option></select>
             <button class="btn btn-sm crm-btn-primary kb-tag-add-btn" type="button" id="knowledgeTagAddBtn" disabled aria-label="<?= htmlspecialchars($t('knowledge_page.tag_add', 'Добавить тег'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
@@ -1614,7 +1614,7 @@
       var env = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/tags', { method: 'GET' });
       var items = env.data && env.data.items || [];
       if (!items.length) {
-        els.tagsList.innerHTML = '<span class="text-muted" style="font-size:13px"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span>';
+        els.tagsList.innerHTML = '<span class="text-muted kb-tags-empty"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span>';
       } else {
         els.tagsList.innerHTML = items.map(function (tag) {
           var color = tag.color || '#6c757d';
@@ -1630,7 +1630,7 @@
           }).join('');
         els.tagAddBtn.disabled = true;
       }
-    } catch (e) { els.tagsList.innerHTML = '<span class="text-muted" style="font-size:13px"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span>'; }
+    } catch (e) { els.tagsList.innerHTML = '<span class="text-muted kb-tags-empty"><?= htmlspecialchars($t('knowledge_page.no_tags', 'Теги не добавлены'), ENT_QUOTES, 'UTF-8') ?></span>'; }
   }
   if (els.tagSelect) els.tagSelect.addEventListener('change', function () {
     els.tagAddBtn.disabled = !els.tagSelect.value;
