@@ -1157,7 +1157,7 @@
     if (diffBtn) {
       var vNum = parseInt(diffBtn.getAttribute('data-diff-version'), 10);
       if (current) {
-        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/diff?from=' + (vNum - 1) + '&to=' + vNum, { method: 'GET' }).then(function (envelope) {
+        request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/versions/diff', { method: 'GET', query: { from: vNum - 1, to: vNum } }).then(function (envelope) {
           var diff = envelope.data || {};
           els.diffContainer.classList.remove('d-none');
           els.diffContent.innerHTML = '<div class="text-muted small">' + esc(t('knowledge_page.diff_version', 'Версия')) + ' ' + vNum + ': ' + esc(diff.text_changed ? t('knowledge_page.diff_changed', 'Есть изменения') : t('knowledge_page.diff_unchanged', 'Без изменений')) + '</div>';
