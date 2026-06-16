@@ -44,6 +44,9 @@ final class MigrationManager
             new GanttPerformanceIndexesMigration(),
             new KnowledgeBaseMigration(),
             new KnowledgeCommentsRepairMigration(),
+            new IntakeItemsMigration(),
+            new TaskHumanReadableKeysMigration(),
+            new TaskRelationsV2Migration(),
         ];
     }
 
