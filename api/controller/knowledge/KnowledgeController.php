@@ -696,8 +696,9 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
+        $items = $this->repo()->comments((string)$params['public_id']);
         return $this->success('KNOWLEDGE_COMMENTS', $this->t('knowledge/messages.comments', 'Comments loaded'), [
-            'items' => $this->repo()->comments((string)$params['public_id']),
+            'items' => $items,
         ]);
     }
 
