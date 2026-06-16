@@ -15135,11 +15135,84 @@ a.task-tag:hover {
   color: #374151;
 }
 
+/* ── Tags ── */
+.kb-side-card #knowledgeTagsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.kb-side-card #knowledgeTagsList .crm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 999px;
+  line-height: 1.3;
+}
+
+.kb-side-card #knowledgeTagsList .crm-badge i {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.1s;
+  color: inherit !important;
+}
+
+.kb-side-card #knowledgeTagsList .crm-badge i:hover {
+  opacity: 1;
+}
+
 /* ── Version List ── */
 .kb-version-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.crm-knowledge-version {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.8125rem;
+}
+
+.crm-knowledge-version:last-child {
+  border-bottom: none;
+}
+
+.crm-knowledge-version > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.crm-knowledge-version > div:first-child strong {
+  font-weight: 700;
+  color: #059669;
+  font-size: 0.8125rem;
+}
+
+.crm-knowledge-version > div:first-child > span {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.crm-knowledge-version .text-muted {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #9ca3af !important;
+}
+
+.crm-knowledge-version .d-flex.gap-1 {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 /* ── Section Pages ── */
@@ -15149,19 +15222,24 @@ a.task-tag:hover {
   margin: 0;
 }
 
+.kb-section-pages .crm-knowledge-tree-item {
+  position: relative;
+}
+
 .kb-section-pages .crm-knowledge-tree-item-row {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.15rem;
+  min-height: 30px;
 }
 
 .kb-section-pages .crm-knowledge-tree-item > a {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0.3rem 0.5rem;
+  padding: 0.25rem 0.45rem;
   border-radius: 6px;
   color: #374151;
   text-decoration: none;
@@ -15171,6 +15249,20 @@ a.task-tag:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.kb-section-pages .crm-knowledge-tree-item > a::before {
+  content: "\f15c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.kb-section-pages .crm-knowledge-tree-active > a::before {
+  color: #059669;
+  font-weight: 900;
 }
 
 .kb-section-pages .crm-knowledge-tree-item > a:hover {
@@ -15188,15 +15280,15 @@ a.task-tag:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: 4px;
   background: transparent;
   color: #9ca3af;
   cursor: pointer;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   transition: background 0.1s, color 0.1s;
 }
 
@@ -15214,9 +15306,18 @@ a.task-tag:hover {
 }
 
 .kb-section-pages ul ul {
-  margin-left: 0.5rem;
-  padding-left: 0.5rem;
+  margin-left: 0.4rem;
+  padding-left: 0.4rem;
   border-left: 1px solid #e5e7eb;
+}
+
+.kb-section-pages + .border-top a {
+  color: #059669;
+  font-weight: 500;
+}
+
+.kb-section-pages + .border-top a:hover {
+  color: #047857;
 }
 
 /* ── Bottom Panels ── */
