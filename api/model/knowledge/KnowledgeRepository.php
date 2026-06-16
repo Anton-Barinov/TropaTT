@@ -480,7 +480,7 @@ final class KnowledgeRepository
     public function page(string $publicId, ?array $actor = null, string $minAccess = 'view'): ?array
     {
         [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, $minAccess);
-        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.public_id = :public_id AND p.deleted_at IS NULL AND {$aclSql} LIMIT 1");
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, u.full_name AS author_name FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id LEFT JOIN users u ON u.id = p.owner_user_id WHERE p.public_id = :public_id AND p.deleted_at IS NULL AND {$aclSql} LIMIT 1");
         $stmt->execute(['public_id' => $publicId] + $aclParams);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($page) ? $page : null;
