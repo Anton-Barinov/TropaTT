@@ -142,6 +142,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/task-relations/search-tasks', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'searchTasks', 'auth' => true, 'required_permissions' => ['task.manage']],
 
     // tasks BR-1
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/board', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'board', 'auth' => true, 'required_permissions' => ['task.manage']],

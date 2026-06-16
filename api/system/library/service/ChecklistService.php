@@ -10,7 +10,8 @@ final class ChecklistService
 {
     public function __construct(
         private readonly ChecklistRepository $checklists,
-        private readonly TaskService $tasks
+        private readonly TaskService $tasks,
+        private readonly ?TaskActivityService $activity = null
     ) {
     }
 
@@ -47,7 +48,15 @@ final class ChecklistService
             'updated_at' => $now,
         ]);
 
-        return $this->checklists->findByPublicId($publicId);
+        $created = $this->checklists->findByPublicId($publicId);
+        if ($created && $task) {
+            $this->activity?->recordChecklistEvent($task, 'task.checklist_created', [
+                'checklist_public_id' => $publicId,
+                'title' => trim((string)$input['title']),
+            ], $actor);
+        }
+
+        return $created;
     }
 
     public function get(string $publicId, array $actor): ?array
@@ -85,7 +94,15 @@ final class ChecklistService
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
         $this->checklists->updateByPublicId($publicId, $set);
 
-        return $this->checklists->findByPublicId($publicId);
+        $updated = $this->checklists->findByPublicId($publicId);
+        if ($updated && $task) {
+            $this->activity?->recordChecklistEvent($task, 'task.checklist_updated', [
+                'checklist_public_id' => $publicId,
+                'title' => $updated['title'] ?? '',
+            ], $actor);
+        }
+
+        return $updated;
     }
 
     public function delete(string $publicId, array $actor): bool
@@ -100,7 +117,14 @@ final class ChecklistService
             return false;
         }
 
-        return $this->checklists->deleteByPublicId($publicId);
+        $deleted = $this->checklists->deleteByPublicId($publicId);
+        if ($deleted && $task) {
+            $this->activity?->recordChecklistEvent($task, 'task.checklist_deleted', [
+                'checklist_public_id' => $publicId,
+                'title' => $current['title'] ?? '',
+            ], $actor);
+        }
+        return $deleted;
     }
 
     public function listItems(string $checklistPublicId, array $actor): ?array
@@ -148,7 +172,15 @@ final class ChecklistService
             'updated_at' => $now,
         ]);
 
-        return $this->checklists->findItemByPublicId($publicId);
+        $createdItem = $this->checklists->findItemByPublicId($publicId);
+        if ($createdItem && $task) {
+            $this->activity?->recordChecklistEvent($task, 'task.checklist_item_created', [
+                'checklist_public_id' => $checklistPublicId,
+                'item_public_id' => $publicId,
+                'item_title' => trim((string)$input['title']),
+            ], $actor);
+        }
+        return $createdItem;
     }
 
     public function getItem(string $publicId, array $actor): ?array
@@ -192,7 +224,26 @@ final class ChecklistService
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
         $this->checklists->updateItemByPublicId($publicId, $set);
 
-        return $this->checklists->findItemByPublicId($publicId);
+        $updatedItem = $this->checklists->findItemByPublicId($publicId);
+        if ($updatedItem && $task) {
+            $wasDone = (int)($item['is_done'] ?? 0);
+            $nowDone = (int)($updatedItem['is_done'] ?? 0);
+            if ($wasDone !== $nowDone) {
+                $eventType = $nowDone ? 'task.checklist_item_completed' : 'task.checklist_item_reopened';
+                $this->activity?->recordChecklistEvent($task, $eventType, [
+                    'checklist_public_id' => $item['checklist_public_id'] ?? '',
+                    'item_public_id' => $publicId,
+                    'item_title' => $updatedItem['title'] ?? '',
+                ], $actor);
+            } else {
+                $this->activity?->recordChecklistEvent($task, 'task.checklist_item_updated', [
+                    'checklist_public_id' => $item['checklist_public_id'] ?? '',
+                    'item_public_id' => $publicId,
+                    'item_title' => $updatedItem['title'] ?? '',
+                ], $actor);
+            }
+        }
+        return $updatedItem;
     }
 
     public function deleteItem(string $publicId, array $actor): bool
@@ -207,6 +258,14 @@ final class ChecklistService
             return false;
         }
 
-        return $this->checklists->deleteItemByPublicId($publicId);
+        $deleted = $this->checklists->deleteItemByPublicId($publicId);
+        if ($deleted && $task) {
+            $this->activity?->recordChecklistEvent($task, 'task.checklist_item_deleted', [
+                'checklist_public_id' => $item['checklist_public_id'] ?? '',
+                'item_public_id' => $publicId,
+                'item_title' => $item['title'] ?? '',
+            ], $actor);
+        }
+        return $deleted;
     }
 }

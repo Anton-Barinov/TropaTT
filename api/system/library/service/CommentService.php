@@ -13,7 +13,8 @@ final class CommentService
         private readonly CommentRepository $comments,
         private readonly TaskRepository $tasks,
         private readonly ?NotificationService $notifications = null,
-        private readonly ?AiSemanticIndexService $semanticIndex = null
+        private readonly ?AiSemanticIndexService $semanticIndex = null,
+        private readonly ?TaskActivityService $activity = null
     )
     {
     }
@@ -64,6 +65,12 @@ final class CommentService
                 'public_id' => $comment['author_public_id'] ?? null,
                 'full_name' => $comment['author_name'] ?? null,
             ], $existingParticipants);
+
+            $this->activity?->recordCommentAdded($task, $comment, [
+                'id' => $authorUserId,
+                'public_id' => $comment['author_public_id'] ?? null,
+                'full_name' => $comment['author_name'] ?? null,
+            ], ['source_type' => 'web']);
         }
 
         return true;
@@ -92,7 +99,15 @@ final class CommentService
         $this->comments->updateByPublicId($commentPublicId, $set);
         $this->semanticIndex?->removeEntityDocument('comment', $commentPublicId);
 
-        return $this->comments->findByPublicId($commentPublicId);
+        $updatedComment = $this->comments->findByPublicId($commentPublicId);
+        if ($updatedComment && isset($updatedComment['task_public_id'])) {
+            $task = $this->tasks->findByPublicId((string)$updatedComment['task_public_id']);
+            if ($task) {
+                $this->activity?->recordCommentUpdated($task, $updatedComment, $actor);
+            }
+        }
+
+        return $updatedComment;
     }
 
     public function delete(string $commentPublicId, array $actor): bool
@@ -108,6 +123,11 @@ final class CommentService
         $deleted = $this->comments->softDelete($commentPublicId, gmdate('Y-m-d H:i:s'));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('comment', $commentPublicId);
+
+            $task = $this->tasks->findByPublicId((string)($comment['task_public_id'] ?? ''));
+            if ($task) {
+                $this->activity?->recordCommentDeleted($task, $comment, $actor);
+            }
         }
 
         return $deleted;

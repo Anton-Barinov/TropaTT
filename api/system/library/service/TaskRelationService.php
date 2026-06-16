@@ -29,14 +29,6 @@ final class TaskRelationService
         'child_of' => 'parent_of',
     ];
 
-    private const MAX_NOTE_LENGTH = 2000;
-
-    public function __construct(
-        private readonly TaskRelationRepository $relations,
-        private readonly TaskService $tasks,
-    ) {
-    }
-
     /**
      * List relations for a task, grouped by display groups.
      *
@@ -144,7 +136,31 @@ final class TaskRelationService
             'created_by_user_id' => (int)($actor['id'] ?? 0),
         ];
 
-        return $this->relations->create($payload);
+        $created = $this->relations->create($payload);
+        if (is_array($created)) {
+            $sourceKey = (string)($sourceTask['task_key'] ?? $sourceTaskPublicId);
+            $targetKey = (string)($targetTask['task_key'] ?? $targetPublicId);
+            $this->activity?->recordRelationEvent($sourceTask, 'task.relation_added', [
+                'relation_public_id' => (string)($created['public_id'] ?? ''),
+                'relation_type' => $normalized,
+                'source_task_public_id' => $sourceTaskPublicId,
+                'target_task_public_id' => $targetPublicId,
+                'source_task_key' => $sourceKey,
+                'target_task_key' => $targetKey,
+            ], $actor);
+            // Also record on target task for its activity feed
+            if ($targetTask) {
+                $this->activity?->recordRelationEvent($targetTask, 'task.relation_added', [
+                    'relation_public_id' => (string)($created['public_id'] ?? ''),
+                    'relation_type' => $normalized,
+                    'source_task_public_id' => $sourceTaskPublicId,
+                    'target_task_public_id' => $targetPublicId,
+                    'source_task_key' => $sourceKey,
+                    'target_task_key' => $targetKey,
+                ], $actor);
+            }
+        }
+        return $created;
     }
 
     /**
@@ -169,8 +185,26 @@ final class TaskRelationService
         }
 
         $now = gmdate('Y-m-d H:i:s');
-
-        return $this->relations->softDeleteByPublicId($relationPublicId, $now);
+        $deleted = $this->relations->softDeleteByPublicId($relationPublicId, $now);
+        if ($deleted) {
+            if ($sourceTask) {
+                $this->activity?->recordRelationEvent($sourceTask, 'task.relation_deleted', [
+                    'relation_public_id' => $relationPublicId,
+                    'relation_type' => (string)($relation['relation_type'] ?? ''),
+                    'source_task_public_id' => $sourcePublicId,
+                    'target_task_public_id' => $targetPublicId,
+                ], $actor);
+            }
+            if ($targetTask) {
+                $this->activity?->recordRelationEvent($targetTask, 'task.relation_deleted', [
+                    'relation_public_id' => $relationPublicId,
+                    'relation_type' => (string)($relation['relation_type'] ?? ''),
+                    'source_task_public_id' => $sourcePublicId,
+                    'target_task_public_id' => $targetPublicId,
+                ], $actor);
+            }
+        }
+        return $deleted;
     }
 
     /**

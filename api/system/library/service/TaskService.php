@@ -14,7 +14,8 @@ final class TaskService
         private readonly ProjectService $projects,
         private readonly TeamRepository $teams,
         private readonly ?NotificationService $notifications = null,
-        private readonly ?AiSemanticIndexService $semanticIndex = null
+        private readonly ?AiSemanticIndexService $semanticIndex = null,
+        private readonly ?TaskActivityService $activity = null
     )
     {
     }
@@ -148,6 +149,7 @@ final class TaskService
         $createdTask = $this->tasks->findByPublicId($publicId) ?: ['public_id' => $publicId];
         if (is_array($createdTask)) {
             $this->notifications?->notifyTaskCreated($createdTask, $actor);
+            $this->activity?->recordTaskCreated($createdTask, $actor, ['source_type' => $input['source_type'] ?? 'web']);
         }
 
         return $createdTask;
@@ -326,6 +328,14 @@ final class TaskService
             $this->notifications?->notifyTaskDueChanged($task, $updatedTask, $actor);
         }
 
+        // Record activity for relevant field changes
+        if ($this->activity !== null) {
+            $changes = $this->activity->detectChanges($task, $updatedTask);
+            if ($changes !== []) {
+                $this->activity->recordManyFieldChanges($updatedTask, $changes, $actor, ['source_type' => $input['source_type'] ?? 'web']);
+            }
+        }
+
         return $updatedTask;
     }
 
@@ -345,6 +355,7 @@ final class TaskService
         $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'));
         if ($deleted) {
             $this->semanticIndex?->removeEntityDocument('task', $publicId);
+            $this->activity?->recordFieldChanged($task, 'archived_at', null, gmdate('Y-m-d H:i:s'), $actor, ['source_type' => 'web']);
         }
 
         return $deleted;

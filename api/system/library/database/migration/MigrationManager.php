@@ -48,6 +48,7 @@ final class MigrationManager
             new TaskHumanReadableKeysMigration(),
             new TaskRelationsV2Migration(),
             new SavedViewsV2Migration(),
+            new TaskActivityFeedMigration(),
         ];
     }
 

@@ -670,6 +670,7 @@ final class App
         $this->container->factory('repository.subscription', fn(Container $c) => new \Api\Model\Subscription\SubscriptionRepository($c->get('db.pdo')));
         $this->container->factory('repository.favorite', fn(Container $c) => new \Api\Model\Favorite\FavoriteRepository($c->get('db.pdo')));
         $this->container->factory('repository.saved_view', fn(Container $c) => new \Api\Model\View\SavedViewRepository($c->get('db.pdo')));
+        $this->container->factory('repository.task_activity', fn(Container $c) => new \Api\Model\Task\TaskActivityRepository($c->get('db.pdo')));
         $this->container->factory('repository.status', fn(Container $c) => new \Api\Model\Status\StatusRepository($c->get('db.pdo')));
         $this->container->factory('repository.priority', fn(Container $c) => new \Api\Model\Priority\PriorityRepository($c->get('db.pdo')));
         $this->container->factory('repository.tag', fn(Container $c) => new \Api\Model\Tag\TagRepository($c->get('db.pdo')));
@@ -808,7 +809,8 @@ final class App
             $c->get('service.project'),
             $c->get('repository.team'),
             $c->get('service.notification'),
-            $c->get('service.ai_semantic_index')
+            $c->get('service.ai_semantic_index'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -825,7 +827,8 @@ final class App
             $c->get('repository.comment'),
             $c->get('repository.task'),
             $c->get('service.notification'),
-            $c->get('service.ai_semantic_index')
+            $c->get('service.ai_semantic_index'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.comment_draft', fn(Container $c) => new CommentDraftService(
             $c->get('repository.comment_draft'),
@@ -863,7 +866,8 @@ final class App
         ));
         $this->container->factory('service.checklist', fn(Container $c) => new ChecklistService(
             $c->get('repository.checklist'),
-            $c->get('service.task')
+            $c->get('service.task'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.status', fn(Container $c) => new StatusService($c->get('repository.status')));
         $this->container->factory('service.priority', fn(Container $c) => new PriorityService($c->get('repository.priority')));
@@ -873,11 +877,13 @@ final class App
         ));
         $this->container->factory('service.dependency', fn(Container $c) => new DependencyService(
             $c->get('repository.dependency'),
-            $c->get('service.task')
+            $c->get('service.task'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.task_relation', fn(Container $c) => new \Api\System\Library\Service\TaskRelationService(
             $c->get('repository.task_relation'),
-            $c->get('service.task')
+            $c->get('service.task'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.template', fn(Container $c) => new \Api\System\Library\Service\TemplateService(
             $c->get('repository.template'),
@@ -951,7 +957,8 @@ final class App
             $c->get('repository.knowledge'),
             $c->get('repository.recycle_bin'),
             $c->get('logger'),
-            $c->get('service.ai_semantic_index')
+            $c->get('service.ai_semantic_index'),
+            $c->get('service.task_activity')
         ));
         $this->container->factory('service.user', fn(Container $c) => new UserService(
             $c->get('repository.user_management'),
@@ -1109,6 +1116,10 @@ final class App
         $this->container->factory('service.analytics', fn(Container $c) => new AnalyticsService(
             $c->get('repository.analytics')
         ));
+        $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
+            $c->get('repository.task_activity')
+        ));
+
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(
             $c->get('repository.activity')
         ));

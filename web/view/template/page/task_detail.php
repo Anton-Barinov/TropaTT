@@ -651,5 +651,17 @@
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] || ch;
     });
   }
+
+  // Load activity feed when the Activity tab is first shown
+  var activityTab = document.querySelector('[data-bs-target="#detailActivity"]');
+  if (activityTab && typeof window.loadTaskActivity === 'function') {
+    var loaded = false;
+    activityTab.addEventListener('shown.bs.tab', function () {
+      if (!loaded) {
+        loaded = true;
+        window.loadTaskActivity(taskId, 1, {});
+      }
+    });
+  }
 })();
 </script>

@@ -9,7 +9,8 @@ final class DependencyService
 {
     public function __construct(
         private readonly DependencyRepository $dependencies,
-        private readonly TaskService $tasks
+        private readonly TaskService $tasks,
+        private readonly ?TaskActivityService $activity = null
     ) {
     }
 
@@ -50,7 +51,16 @@ final class DependencyService
             return 'INVALID_DEPENDENCY_TYPE';
         }
 
-        return $this->dependencies->create($taskPublicId, $dependsOnTaskPublicId, $type);
+        $created = $this->dependencies->create($taskPublicId, $dependsOnTaskPublicId, $type);
+        if (is_array($created) && $task) {
+            $this->activity?->recordDependencyEvent($task, 'task.dependency_added', [
+                'dependency_public_id' => (string)($created['public_id'] ?? ''),
+                'type' => $type,
+                'task_public_id' => $taskPublicId,
+                'depends_on_task_public_id' => $dependsOnTaskPublicId,
+            ], $actor);
+        }
+        return $created;
     }
 
     public function delete(string $publicId, array $actor): bool|string
@@ -66,6 +76,15 @@ final class DependencyService
             return 'TASK_NOT_FOUND';
         }
 
-        return $this->dependencies->deleteByPublicId($publicId);
+        $deleted = $this->dependencies->deleteByPublicId($publicId);
+        if ($deleted && $task) {
+            $this->activity?->recordDependencyEvent($task, 'task.dependency_deleted', [
+                'dependency_public_id' => $publicId,
+                'type' => (string)($item['dependency_type'] ?? ''),
+                'task_public_id' => (string)($item['task_public_id'] ?? ''),
+                'depends_on_task_public_id' => (string)($item['depends_on_task_public_id'] ?? ''),
+            ], $actor);
+        }
+        return $deleted;
     }
 }

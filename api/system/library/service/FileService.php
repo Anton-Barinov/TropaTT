@@ -25,7 +25,8 @@ final class FileService
         private readonly KnowledgeRepository $knowledge,
         private readonly RecycleBinRepository $recycleBin,
         private readonly JsonLogger $logger,
-        private readonly ?AiSemanticIndexService $semanticIndex = null
+        private readonly ?AiSemanticIndexService $semanticIndex = null,
+        private readonly ?TaskActivityService $activity = null
     ) {
     }
 
@@ -99,6 +100,19 @@ final class FileService
         ]);
 
         $created = $this->files->findByPublicId($publicId) ?: ['public_id' => $publicId];
+
+        if ($entityType === 'task' && $entityPublicId !== '') {
+            $task = $this->tasks->findByPublicId($entityPublicId);
+            if ($task) {
+                $this->activity?->recordFileEvent($task, 'task.file_added', [
+                    'file_public_id' => $publicId,
+                    'original_name' => $name,
+                    'mime_type' => $mime,
+                    'size_bytes' => $size,
+                ], $actor);
+            }
+        }
+
         $actorPublicId = (string)($actor['public_id'] ?? '');
         $this->logger->audit([
             'actor_public_id' => $actorPublicId,
@@ -177,6 +191,15 @@ final class FileService
             $path = (string)$file['storage_path'];
             if ($path !== '' && is_file($path)) {
                 @rename($path, $path . '.deleted');
+            }
+            if (($file['entity_type'] ?? '') === 'task' && ($file['entity_public_id'] ?? '') !== '') {
+                $task = $this->tasks->findByPublicId((string)$file['entity_public_id']);
+                if ($task) {
+                    $this->activity?->recordFileEvent($task, 'task.file_deleted', [
+                        'file_public_id' => $publicId,
+                        'original_name' => (string)($file['original_name'] ?? ''),
+                    ], $actor);
+                }
             }
             $this->queueRecycleBinEntry($file, $actor);
             $this->logger->audit([

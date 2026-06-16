@@ -55,6 +55,9 @@ $needsNotificationsPush = in_array($currentRoute, [
   'admin',
   'admin-settings',
 ], true);
+$needsTaskActivity = in_array($currentRoute, [
+  'task-detail',
+], true);
 $needsPageApiBindings = !in_array($currentRoute, [
   'login',
   'password-reset-request',
@@ -94,10 +97,13 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php if ($needsRichText): ?>
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
-<script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<?php if ($needsPageApiBindings): ?>
-<script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<?php endif; ?>
+<script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script><?php if ($needsPageApiBindings):
+?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif;
+?><?php if ($needsTaskActivity):
+?><script defer src="assets/js/task/task-activity.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif;
+?>
 <?php if ($needsNotificationsPush): ?>
 <script defer src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
