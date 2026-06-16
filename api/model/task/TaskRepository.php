@@ -30,6 +30,9 @@ final class TaskRepository
             ->leftJoin('users tm', 'tm.id', '=', 'pt.manager_user_id')
             ->select([
                 't.public_id',
+                't.task_key',
+                't.task_key_prefix',
+                't.task_sequence_number',
                 't.title',
                 't.description',
                 't.status_code',
@@ -152,6 +155,9 @@ final class TaskRepository
             ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
             ->select([
                 't.*',
+                't.task_key',
+                't.task_key_prefix',
+                't.task_sequence_number',
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
                 'p.created_by_user_id AS project_creator_user_id',
@@ -279,6 +285,63 @@ final class TaskRepository
         return $id !== false ? (int)$id : null;
     }
 
+    public function findByTaskKey(string $taskKey): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('tasks t')
+            ->leftJoin('projects p', 'p.id', '=', 't.project_id')
+            ->leftJoin('users cu', 'cu.id', '=', 't.creator_user_id')
+            ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
+            ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
+            ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
+            ->select([
+                't.*',
+                't.task_key',
+                't.task_key_prefix',
+                't.task_sequence_number',
+                'p.public_id AS project_public_id',
+                'p.title AS project_title',
+                'p.created_by_user_id AS project_creator_user_id',
+                'p.manager_user_id AS project_manager_user_id',
+                'p.team_public_id AS project_team_public_id',
+                'pt.title AS project_team_title',
+                'pt.manager_user_id AS project_team_manager_user_id',
+                'pt.member_user_ids AS project_team_member_user_ids',
+                'cu.public_id AS creator_user_public_id',
+                'au.public_id AS assignee_user_public_id',
+                'au.full_name AS assignee_name',
+                'pm.public_id AS project_manager_user_public_id',
+                'pm.full_name AS project_manager_name',
+            ])
+            ->where('t.task_key', '=', $taskKey)
+            ->first();
+    }
+
+    public function taskKeyExists(string $taskKey): bool
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['id'])
+            ->where('task_key', '=', $taskKey)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return $row !== false;
+    }
+
+    public function taskIdByTaskKey(string $taskKey): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['id'])
+            ->where('task_key', '=', $taskKey)
+            ->whereNull('deleted_at')
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
     public function createStatusHistory(array $payload): void
     {
         (new QueryBuilder($this->pdo))
@@ -309,6 +372,9 @@ final class TaskRepository
             ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
             ->select([
                 't.public_id',
+                't.task_key',
+                't.task_key_prefix',
+                't.task_sequence_number',
                 't.title',
                 't.description',
                 't.status_code',
@@ -360,6 +426,7 @@ final class TaskRepository
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
             ->select([
                 't.public_id',
+                't.task_key',
                 't.title',
                 't.due_at',
                 't.status_code',
@@ -464,8 +531,16 @@ final class TaskRepository
         }
 
         if (!empty($filters['search'])) {
-            $term = '%' . (string)$filters['search'] . '%';
-            $qb->whereRaw('(t.title LIKE ? OR t.description LIKE ?)', [$term, $term]);
+            $search = (string)$filters['search'];
+            $term = '%' . $search . '%';
+            // Check if search looks like a task key (e.g. CRM-123)
+            $isTaskKeySearch = preg_match('/^[A-Za-z][A-Za-z0-9]{1,9}-[0-9]+$/', $search) === 1;
+            $normalizedKey = strtoupper($search);
+            if ($isTaskKeySearch) {
+                $qb->whereRaw('(t.title LIKE ? OR t.description LIKE ? OR t.task_key = ?)', [$term, $term, $normalizedKey]);
+            } else {
+                $qb->whereRaw('(t.title LIKE ? OR t.description LIKE ? OR t.task_key LIKE ?)', [$term, $term, $term]);
+            }
         }
 
         if (!empty($filters['updated_since'])) {

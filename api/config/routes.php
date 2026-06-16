@@ -143,6 +143,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/by-key', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'getByKey', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/move', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'move', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'listByTask', 'auth' => true, 'required_permissions' => ['task.manage']],

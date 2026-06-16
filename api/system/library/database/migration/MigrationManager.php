@@ -45,6 +45,7 @@ final class MigrationManager
             new KnowledgeBaseMigration(),
             new KnowledgeCommentsRepairMigration(),
             new IntakeItemsMigration(),
+            new TaskHumanReadableKeysMigration(),
         ];
     }
 

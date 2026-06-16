@@ -65,6 +65,16 @@ final class ProjectController extends BaseController
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('project/messages.max_255'));
 
+        // Validate task_key_prefix
+        if ($v->fails() || !empty($input['task_key_prefix'])) {
+            $prefixError = $this->validateTaskKeyPrefix((string)($input['task_key_prefix'] ?? ''), null);
+            if ($prefixError !== null) {
+                return $this->error($prefixError['code'], $prefixError['message'], $prefixError['status'], [
+                    'task_key_prefix' => [$prefixError['message']],
+                ]);
+            }
+        }
+
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
@@ -118,6 +128,16 @@ final class ProjectController extends BaseController
         $v->maxLen($input, 'title', 255, $this->t('project/messages.max_255'));
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        }
+
+        // Validate task_key_prefix
+        if (!empty($input['task_key_prefix'])) {
+            $prefixError = $this->validateTaskKeyPrefix((string)$input['task_key_prefix'], (string)$params['public_id']);
+            if ($prefixError !== null) {
+                return $this->error($prefixError['code'], $prefixError['message'], $prefixError['status'], [
+                    'task_key_prefix' => [$prefixError['message']],
+                ]);
+            }
         }
 
         /** @var ProjectService $service */
@@ -280,4 +300,31 @@ final class ProjectController extends BaseController
         ]);
     }
 
+    /**
+     * @return array{code: string, message: string, status: int}|null
+     */
+    private function validateTaskKeyPrefix(string $rawPrefix, ?string $projectPublicId): ?array
+    {
+        /** @var \Api\System\Library\Service\TaskKeyService $taskKeys */
+        try {
+            $taskKeys = $this->container->get('service.task_key');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $normalized = $taskKeys->normalizePrefix($rawPrefix);
+        if ($normalized === '') {
+            return ['code' => 'PROJECT_TASK_PREFIX_INVALID', 'message' => $this->t('project/messages.invalid_prefix', 'Invalid task key prefix'), 'status' => 422];
+        }
+
+        if (!$taskKeys->isValidPrefix($normalized)) {
+            return ['code' => 'PROJECT_TASK_PREFIX_INVALID', 'message' => $this->t('project/messages.invalid_prefix_format', 'Prefix must be 2-10 uppercase letters/digits, starting with a letter'), 'status' => 422];
+        }
+
+        if ($taskKeys->isReservedPrefix($normalized)) {
+            return ['code' => 'PROJECT_TASK_PREFIX_RESERVED', 'message' => $this->t('project/messages.reserved_prefix', 'This prefix is reserved for system use'), 'status' => 422];
+        }
+
+        return null;
+    }
 }

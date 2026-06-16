@@ -6,12 +6,13 @@ namespace Api\Model\Project;
 use Api\System\Library\Database\Builder\Expression;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Sync\CursorCodec;
+use PDO;
 
 final class ProjectRepository
 {
     private CursorCodec $cursorCodec;
 
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private readonly PDO $pdo)
     {
         $this->cursorCodec = new CursorCodec();
     }
@@ -32,6 +33,8 @@ final class ProjectRepository
                 'p.status_code',
                 'p.priority_code',
                 'p.client_public_id',
+                'p.task_key_prefix',
+                'p.task_key_prefix_locked',
                 'p.manager_user_id',
                 'p.team_public_id',
                 'p.archived_at',
@@ -117,6 +120,8 @@ final class ProjectRepository
             ->leftJoin('teams t', 't.public_id', '=', 'p.team_public_id')
             ->select([
                 'p.*',
+                'p.task_key_prefix',
+                'p.task_key_prefix_locked',
                 'mu.public_id AS manager_user_public_id',
                 'mu.full_name AS manager_user_name',
                 'cu.public_id AS creator_user_public_id',
@@ -154,6 +159,57 @@ final class ProjectRepository
                 'updated_at' => $archivedAt,
                 'row_version' => new Expression('row_version + 1'),
             ]) > 0;
+    }
+
+    public function findByTaskKeyPrefix(string $prefix): ?array
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['public_id', 'id', 'title', 'task_key_prefix'])
+            ->where('task_key_prefix', '=', $prefix)
+            ->first();
+
+        return $row !== false ? $row : null;
+    }
+
+    public function taskKeyPrefixExists(string $prefix, ?string $exceptPublicId = null): bool
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['id'])
+            ->where('task_key_prefix', '=', $prefix);
+
+        if ($exceptPublicId !== null && $exceptPublicId !== '') {
+            $qb->where('public_id', '!=', $exceptPublicId);
+        }
+
+        $row = $qb->first();
+
+        return $row !== false;
+    }
+
+    public function projectIdByPublicId(string $projectPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['id'])
+            ->where('public_id', '=', $projectPublicId)
+            ->first();
+        $id = $row['id'] ?? false;
+
+        return $id !== false ? (int)$id : null;
+    }
+
+    public function taskKeyPrefixById(int $projectId): ?string
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('projects')
+            ->select(['task_key_prefix'])
+            ->where('id', '=', $projectId)
+            ->first();
+        $prefix = $row['task_key_prefix'] ?? false;
+
+        return $prefix !== false ? (string)$prefix : null;
     }
 
     private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC'): QueryBuilder

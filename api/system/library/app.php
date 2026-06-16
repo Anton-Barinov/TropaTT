@@ -128,6 +128,7 @@ use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Service\TaskAiContextBuilder;
 use Api\System\Library\Service\TaskService;
+use Api\System\Library\Service\TaskKeyService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserProfileService;
 use Api\System\Library\Service\AuthzService;
@@ -660,6 +661,7 @@ final class App
         $this->container->factory('repository.auth', fn(Container $c) => new \Api\Model\Auth\AuthRepository($c->get('db.pdo')));
         $this->container->factory('repository.project', fn(Container $c) => new \Api\Model\Project\ProjectRepository($c->get('db.pdo')));
         $this->container->factory('repository.task', fn(Container $c) => new \Api\Model\Task\TaskRepository($c->get('db.pdo')));
+        $this->container->factory('repository.task_key_counter', fn(Container $c) => new \Api\Model\Task\TaskKeyCounterRepository($c->get('db.pdo')));
         $this->container->factory('repository.comment', fn(Container $c) => new \Api\Model\Comment\CommentRepository($c->get('db.pdo')));
         $this->container->factory('repository.comment_draft', fn(Container $c) => new \Api\Model\Comment\CommentDraftRepository($c->get('db.pdo')));
         $this->container->factory('repository.mention', fn(Container $c) => new \Api\Model\Comment\MentionRepository($c->get('db.pdo')));
@@ -792,7 +794,9 @@ final class App
             $c->get('repository.team'),
             $c->get('service.notification'),
             $c->get('service.ai_semantic_index'),
-            $c->get('service.chat')
+            $c->get('service.chat'),
+            $c->get('service.task_key'),
+            $c->get('repository.task_key_counter')
         ));
         $this->container->factory('service.project_summary', fn(Container $c) => new ProjectSummaryService(
             $c->get('repository.project_summary'),
@@ -804,12 +808,19 @@ final class App
             $c->get('repository.milestone'),
             $c->get('repository.dependency')
         ));
+        $this->container->factory('service.task_key', fn(Container $c) => new TaskKeyService(
+            $c->get('repository.task_key_counter'),
+            $c->get('repository.project')
+        ));
         $this->container->factory('service.task', fn(Container $c) => new TaskService(
             $c->get('repository.task'),
             $c->get('service.project'),
             $c->get('repository.team'),
             $c->get('service.notification'),
-            $c->get('service.ai_semantic_index')
+            $c->get('service.ai_semantic_index'),
+            $c->get('service.task_key'),
+            $c->get('repository.task_key_counter'),
+            $c->get('repository.project')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
