@@ -15255,7 +15255,9 @@ a.task-tag:hover {
 }
 
 .kb-section-pages .crm-knowledge-tree-item {
-  position: relative;
+  list-style: circle;
+  margin-left: 10px;
+  font-size: 13px;
 }
 
 .kb-section-pages .crm-knowledge-tree-item-row {
@@ -15281,20 +15283,6 @@ a.task-tag:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.kb-section-pages .crm-knowledge-tree-item > a::before {
-  content: "\f15c";
-  font-family: "Font Awesome 6 Free";
-  font-weight: 400;
-  font-size: 0.75rem;
-  color: #9ca3af;
-  flex-shrink: 0;
-}
-
-.kb-section-pages .crm-knowledge-tree-active > a::before {
-  color: #059669;
-  font-weight: 900;
 }
 
 .kb-section-pages .crm-knowledge-tree-item > a:hover {
