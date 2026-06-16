@@ -195,9 +195,9 @@
       <div id="knowledgePermList" class="mb-3"><div class="text-muted"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       <hr>
       <h6><?= htmlspecialchars($t('admin_knowledge.permissions_add_title', 'Добавить доступ'), ENT_QUOTES, 'UTF-8') ?></h6>
-      <div class="row g-2">
+      <div class="row g-1">
         <div class="col-md-4">
-          <select id="knowledgePermSubjectType" class="form-select">
+          <select id="knowledgePermSubjectType" class="form-select form-select-sm">
             <option value="user"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="role"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_role', 'Роль'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="team"><?= htmlspecialchars($t('admin_knowledge.permissions_subject_team', 'Команда'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -205,10 +205,10 @@
           </select>
         </div>
         <div class="col-md-4">
-          <select id="knowledgePermSubjectId" class="form-select" style="max-width:100%"><option value=""><?= htmlspecialchars($t('admin_knowledge.permissions_select_subject', 'Выберите...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+          <select id="knowledgePermSubjectId" class="form-select form-select-sm" style="max-width:100%"><option value=""><?= htmlspecialchars($t('admin_knowledge.permissions_select_subject', 'Выберите...'), ENT_QUOTES, 'UTF-8') ?></option></select>
         </div>
         <div class="col-md-2">
-          <select id="knowledgePermAccessLevel" class="form-select">
+          <select id="knowledgePermAccessLevel" class="form-select form-select-sm">
             <option value="view"><?= htmlspecialchars($t('admin_knowledge.permissions_level_view', 'Просмотр'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="comment"><?= htmlspecialchars($t('admin_knowledge.permissions_level_comment', 'Комментирование'), ENT_QUOTES, 'UTF-8') ?></option>
             <option value="edit"><?= htmlspecialchars($t('admin_knowledge.permissions_level_edit', 'Редактирование'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -216,7 +216,7 @@
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
-          <button class="btn crm-btn-primary w-100" type="button" id="knowledgePermAddBtn"><?= htmlspecialchars($t('common.add', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn btn-sm crm-btn-primary w-100" type="button" id="knowledgePermAddBtn"><?= htmlspecialchars($t('common.add', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </div>
     </div>
@@ -333,17 +333,26 @@
       listEl.innerHTML = '<div class="text-muted">' + esc(t('admin_knowledge.permissions_empty', 'Нет назначенных прав доступа')) + '</div>';
       return;
     }
+    var typeMap = {
+      user: t('admin_knowledge.permissions_subject_user', 'Пользователь'),
+      role: t('admin_knowledge.permissions_subject_role', 'Роль'),
+      team: t('admin_knowledge.permissions_subject_team', 'Команда'),
+      department: t('admin_knowledge.permissions_subject_department', 'Отдел')
+    };
+    var levelMap = {
+      view: { label: t('admin_knowledge.permissions_level_view', 'Просмотр'), cls: 'crm-badge crm-badge-secondary' },
+      comment: { label: t('admin_knowledge.permissions_level_comment', 'Комментирование'), cls: 'crm-badge crm-badge-info' },
+      edit: { label: t('admin_knowledge.permissions_level_edit', 'Редактирование'), cls: 'crm-badge crm-badge-success' },
+      manage: { label: t('admin_knowledge.permissions_level_manage', 'Управление'), cls: 'crm-badge crm-badge-warning' },
+      owner: { label: t('admin_knowledge.permissions_level_owner', 'Владелец'), cls: 'crm-badge crm-badge-danger' }
+    };
     listEl.innerHTML = '<table class="table crm-table mb-0"><thead><tr><th>' + esc(t('admin_knowledge.permissions_th_subject', 'Субъект')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_level', 'Уровень')) + '</th><th>' + esc(t('admin_knowledge.permissions_th_created', 'Добавлено')) + '</th><th></th></tr></thead><tbody>' + items.map(function (p) {
-      var typeMap = {
-        user: t('admin_knowledge.permissions_subject_user', 'Пользователь'),
-        role: t('admin_knowledge.permissions_subject_role', 'Роль'),
-        team: t('admin_knowledge.permissions_subject_team', 'Команда'),
-        department: t('admin_knowledge.permissions_subject_department', 'Отдел')
-      };
       var label = p.user_name || p.role_title || p.team_title || p.department_title || p.user_public_id || p.role_public_id || p.team_public_id || p.department_public_id || p.subject_id;
       var typeLabel = esc(typeMap[p.subject_type] || p.subject_type || '') + ':';
       var permissionId = p.permission_key || p.permission_id || p.id || '';
-      return '<tr><td><strong>' + typeLabel + ' ' + esc(label) + '</strong></td><td>' + esc(p.access_level) + '</td><td class="small text-muted">' + esc(p.created_at || '') + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-perm-delete="' + esc(permissionId) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
+      var lev = levelMap[p.access_level] || { label: esc(p.access_level), cls: 'crm-badge crm-badge-secondary' };
+      var dateStr = p.created_at ? p.created_at.substring(0, 10) : '';
+      return '<tr><td><strong>' + typeLabel + ' ' + esc(label) + '</strong></td><td><span class="' + lev.cls + '" style="font-size:0.75rem">' + lev.label + '</span></td><td class="small text-muted">' + esc(dateStr) + '</td><td><button class="btn btn-sm crm-btn-danger-soft" data-perm-delete="' + esc(permissionId) + '">' + esc(t('common.delete', 'Удалить')) + '</button></td></tr>';
     }).join('') + '</tbody></table>';
   }
 
@@ -437,6 +446,8 @@
     var subjectId = parseInt(rawSubjectId, 10);
     var level = document.getElementById('knowledgePermAccessLevel').value;
     if (!rawSubjectId) return;
+    var btn = this;
+    btn.disabled = true;
     var body = { subject_type: type, access_level: level };
     if (/^\d+$/.test(rawSubjectId) && subjectId > 0) {
       body.subject_id = subjectId;
@@ -449,6 +460,7 @@
       });
       loadPermModal(currentPermSpaceId);
     } catch (e) {}
+    btn.disabled = false;
   });
 
   document.getElementById('knowledgePermissionsModal').addEventListener('show.bs.modal', function () {

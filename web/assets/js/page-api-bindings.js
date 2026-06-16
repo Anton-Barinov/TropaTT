@@ -26325,7 +26325,10 @@ window.CRM.pageApiBindings = (function () {
       '#knowledgeTagSelect',
       '#knowledgePagePermSubjectType',
       '#knowledgePagePermSubjectId',
-      '#knowledgePagePermAccessLevel'
+      '#knowledgePagePermAccessLevel',
+      '#knowledgePermSubjectType',
+      '#knowledgePermSubjectId',
+      '#knowledgePermAccessLevel'
     ];
     knowledgeExtraSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     // Tag multi-selects
