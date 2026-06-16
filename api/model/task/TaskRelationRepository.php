@@ -156,7 +156,7 @@ final class TaskRelationRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false;
+        return $row !== null;
     }
 
     /**
