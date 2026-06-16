@@ -850,7 +850,7 @@
     nodes.forEach(function (n) {
       var active = n.public_id === pageId ? ' crm-knowledge-tree-active' : '';
       var hasChildren = n.children && n.children.length;
-      var toggleHtml = hasChildren ? '<button type="button" class="crm-knowledge-tree-toggle is-open" data-tree-toggle aria-label="Toggle"><i class="fa-solid fa-chevron-right"></i></button>' : '';
+      var toggleHtml = hasChildren ? '<button type="button" class="crm-knowledge-tree-toggle is-open" data-tree-toggle aria-label="' + esc(t('knowledge_page.tree_toggle_aria', 'Toggle')) + '"><i class="fa-solid fa-chevron-right"></i></button>' : '';
       html += '<li class="crm-knowledge-tree-item' + active + '">';
       html += '<div class="crm-knowledge-tree-item-row">' + toggleHtml + '<a href="index.php?route=knowledge-page&amp;id=' + esc(n.public_id) + '">' + esc(n.title) + '</a></div>';
       if (hasChildren) html += renderTreeNodes(n.children, depth + 1);
@@ -1429,7 +1429,7 @@
       errorHtml += '<h4>' + esc(categoryLabel) + '</h4>';
       if (errMsg) errorHtml += '<p class="crm-ai-error-msg">' + esc(errMsg) + '</p>';
       errorHtml += '<div class="crm-ai-error-details small text-muted">';
-      if (errCode) errorHtml += '<span class="crm-ai-error-code">Код: ' + esc(errCode) + '</span>';
+      if (errCode) errorHtml += '<span class="crm-ai-error-code">' + esc(t('knowledge_page.ai_error_code_prefix', 'Код: ')) + esc(errCode) + '</span>';
       if (errHttpStatus) errorHtml += '<span class="crm-ai-error-http">HTTP: ' + errHttpStatus + '</span>';
       if (!retryable) errorHtml += '<span class="crm-ai-error-nonretryable">' + esc(t('knowledge_page.ai_error_nonretryable', 'Требуется настройка')) + '</span>';
       errorHtml += '</div>';

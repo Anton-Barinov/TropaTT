@@ -674,16 +674,16 @@
   // ── Page types tab ──
   var pageTypes = [
     { id: 'article', icon: 'fa-file-lines', title: t('knowledge.type_article', 'Article'), desc: t('admin_knowledge.page_types_hint', 'General informational article.') },
-    { id: 'instruction', icon: 'fa-list-check', title: t('knowledge.type_instruction', 'Instruction'), desc: 'Step-by-step guide.' },
-    { id: 'regulation', icon: 'fa-scale-balanced', title: t('knowledge.type_regulation', 'Regulation'), desc: 'Official policy or rule.' },
-    { id: 'faq', icon: 'fa-circle-question', title: t('knowledge.type_faq', 'FAQ'), desc: 'Frequently asked questions.' },
-    { id: 'checklist', icon: 'fa-check-square', title: t('knowledge.type_checklist', 'Checklist'), desc: 'Action item checklist.' },
-    { id: 'runbook', icon: 'fa-book-open', title: t('knowledge.type_runbook', 'Runbook'), desc: 'Operational runbook.' },
-    { id: 'meeting_note', icon: 'fa-clipboard', title: t('knowledge.type_meeting_note', 'Meeting note'), desc: 'Meeting minutes and notes.' },
-    { id: 'decision', icon: 'fa-gavel', title: t('knowledge.type_decision', 'Decision'), desc: 'Recorded decision log.' },
-    { id: 'client_note', icon: 'fa-user', title: t('knowledge.type_client_note', 'Client note'), desc: 'Client-specific notes.' },
-    { id: 'project_note', icon: 'fa-diagram-project', title: t('knowledge.type_project_note', 'Project note'), desc: 'Project documentation.' },
-    { id: 'onboarding', icon: 'fa-graduation-cap', title: t('knowledge.type_onboarding', 'Onboarding'), desc: 'New member onboarding.' },
+    { id: 'instruction', icon: 'fa-list-check', title: t('knowledge.type_instruction', 'Instruction'), desc: t('knowledge.desc_instruction', 'Step-by-step guide.') },
+    { id: 'regulation', icon: 'fa-scale-balanced', title: t('knowledge.type_regulation', 'Regulation'), desc: t('knowledge.desc_regulation', 'Official policy or rule.') },
+    { id: 'faq', icon: 'fa-circle-question', title: t('knowledge.type_faq', 'FAQ'), desc: t('knowledge.desc_faq', 'Frequently asked questions.') },
+    { id: 'checklist', icon: 'fa-check-square', title: t('knowledge.type_checklist', 'Checklist'), desc: t('knowledge.desc_checklist', 'Action item checklist.') },
+    { id: 'runbook', icon: 'fa-book-open', title: t('knowledge.type_runbook', 'Runbook'), desc: t('knowledge.desc_runbook', 'Operational runbook.') },
+    { id: 'meeting_note', icon: 'fa-clipboard', title: t('knowledge.type_meeting_note', 'Meeting note'), desc: t('knowledge.desc_meeting_note', 'Meeting minutes and notes.') },
+    { id: 'decision', icon: 'fa-gavel', title: t('knowledge.type_decision', 'Decision'), desc: t('knowledge.desc_decision', 'Recorded decision log.') },
+    { id: 'client_note', icon: 'fa-user', title: t('knowledge.type_client_note', 'Client note'), desc: t('knowledge.desc_client_note', 'Client-specific notes.') },
+    { id: 'project_note', icon: 'fa-diagram-project', title: t('knowledge.type_project_note', 'Project note'), desc: t('knowledge.desc_project_note', 'Project documentation.') },
+    { id: 'onboarding', icon: 'fa-graduation-cap', title: t('knowledge.type_onboarding', 'Onboarding'), desc: t('knowledge.desc_onboarding', 'New member onboarding.') },
   ];
   var ptEl = document.getElementById('adminKnowledgePageTypes');
   if (ptEl) {

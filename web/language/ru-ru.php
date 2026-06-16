@@ -280,6 +280,16 @@ return array (
     'pages_count_one' => 'страница',
     'pages_count_few' => 'страницы',
     'pages_count_many' => 'страниц',
+    'desc_instruction' => 'Пошаговое руководство.',
+    'desc_regulation' => 'Официальный политика или правило.',
+    'desc_faq' => 'Часто задаваемые вопросы.',
+    'desc_checklist' => 'Чеклист задач.',
+    'desc_runbook' => 'Операционное руководство.',
+    'desc_meeting_note' => 'Протокол встречи.',
+    'desc_decision' => 'Запись принятого решения.',
+    'desc_client_note' => 'Заметки по клиенту.',
+    'desc_project_note' => 'Документация проекта.',
+    'desc_onboarding' => 'Онбординг нового сотрудника.',
   ),
   'knowledge_page' => 
   array (
@@ -380,6 +390,8 @@ return array (
     'ai_no_result' => 'Нет результата',
     'ai_no_similar' => 'Похожих страниц не найдено',
     'ai_error' => 'Ошибка AI',
+    'tree_toggle_aria' => 'Свернуть/развернуть',
+    'ai_error_code_prefix' => 'Код: ',
   ),
   'admin_knowledge' => 
   array (
