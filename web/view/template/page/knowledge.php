@@ -573,6 +573,11 @@
     document.getElementById('kbFilterType').value='';
     document.getElementById('kbFilterTag').value='';
     document.getElementById('kbFilterSpace').value='';
+    document.querySelectorAll('.kb-filter-bar .crm-searchable-input').forEach(function(inp){
+      inp.value='';
+      var clear = inp.parentElement.querySelector('.crm-searchable-clear');
+      if(clear) clear.style.display='none';
+    });
     state.activeSpace='';
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
       n.classList.toggle('active', n.getAttribute('data-status')==='');
