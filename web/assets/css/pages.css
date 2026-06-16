@@ -15475,6 +15475,15 @@ a.task-tag:hover {
 }
 
 /* ── Comment form ── */
+#knowledgeCommentInput,
+#knowledgeFileInput {
+  min-height: 30px;
+  padding: 6px 9px;
+  height: 34px;
+  font-size: 12px;
+  resize: none;
+}
+
 .kb-bottom-panels .kb-comment-form .form-control {
   font-size: 0.875rem;
 }
