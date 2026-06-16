@@ -16,13 +16,17 @@ final class ViewController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        /** @var SavedViewService $service */
-        $service = $this->container->get('service.saved_view');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        try {
+            /** @var SavedViewService $service */
+            $service = $this->container->get('service.saved_view');
+            $result = $service->list($this->request()->allInput(), $auth['user']);
 
-        return $this->success('SAVED_VIEW_LIST', $this->t('view/messages.list'), [
-            'items' => $result['items'],
-        ], meta: $result['meta']);
+            return $this->success('SAVED_VIEW_LIST', $this->t('view/messages.list'), [
+                'items' => $result['items'],
+            ], meta: $result['meta']);
+        } catch (\Throwable $e) {
+            return $this->error('DEBUG_ERROR', $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 500);
+        }
     }
 
     public function create(): \Api\System\Library\Http\JsonResponse
