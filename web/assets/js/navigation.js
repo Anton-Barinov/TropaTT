@@ -56,6 +56,7 @@ window.CRM.navigation = (function () {
       'admin-modules': '<i class="fa-solid fa-cubes"></i>',
       'admin-estimates': '<i class="fa-solid fa-ruler-combined"></i>',
       'ideas': '<i class="fa-regular fa-lightbulb"></i>',
+      intake: '<i class="fa-solid fa-inbox"></i>',
       docs: '<i class="fa-solid fa-book-open"></i>',
       api: '<i class="fa-solid fa-code"></i>'
     };
@@ -143,6 +144,7 @@ window.CRM.navigation = (function () {
       { key: 'teams', i18n: 'nav.teams', label: t('nav.teams', 'Teams and departments'), href: 'index.php?route=teams' },
       { key: 'knowledge', i18n: 'nav.knowledge', label: t('nav.knowledge', 'Knowledge base'), href: 'index.php?route=knowledge' },
       { key: 'analytics', i18n: 'nav.analytics', label: t('nav.analytics', 'Analytics'), href: 'index.php?route=analytics' },
+      { key: 'intake', i18n: 'nav.intake', label: t('nav.intake', 'Intake'), href: 'index.php?route=intake' },
       { key: 'notifications', i18n: 'nav.notifications', label: t('nav.notifications', 'Notifications'), href: 'index.php?route=notifications' },
       { key: 'chat', i18n: 'nav.chat', label: t('nav.chat', 'Chats'), href: 'index.php?route=chat' },
       { key: 'admin', i18n: 'nav.admin', label: t('nav.admin', 'Administration'), href: 'index.php?route=admin' },

@@ -72,6 +72,9 @@ $needsTaskEstimates = in_array($currentRoute, [
 $needsSavedViews = in_array($currentRoute, [
   'tasks',
 ], true);
+$needsIntake = in_array($currentRoute, [
+  'intake',
+], true);
 $needsProjectModules = in_array($currentRoute, [
   'project-modules',
 ], true);
@@ -135,6 +138,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsSavedViews): ?>
 <script defer src="assets/js/saved-views.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsIntake): ?>
+<script defer src="assets/js/intake.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if ($needsProjectModules): ?>
 <script defer src="assets/js/project-modules.js?v=<?= urlencode($assetsVersion) ?>"></script>

@@ -199,7 +199,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button type="submit" class="btn crm-btn-danger" id="intakeRejectConfirmBtn" data-i18n="intake.reject_confirm_btn"><?= htmlspecialchars($t('intake.reject_confirm_btn', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="submit" class="btn crm-btn-danger-soft" id="intakeRejectConfirmBtn" data-i18n="intake.reject_confirm_btn"><?= htmlspecialchars($t('intake.reject_confirm_btn', 'Отклонить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
@@ -323,7 +323,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn crm-btn-danger" id="intakeDeleteConfirmBtn" data-i18n="intake.delete_confirm_btn"><?= htmlspecialchars($t('intake.delete_confirm_btn', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-danger-soft" id="intakeDeleteConfirmBtn" data-i18n="intake.delete_confirm_btn"><?= htmlspecialchars($t('intake.delete_confirm_btn', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
     </div>
   </div>
