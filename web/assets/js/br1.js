@@ -6800,6 +6800,7 @@ window.CRM.br1 = (function () {
       renderTaskDescription(currentTask.description);
       renderTaskProgressByStatus(currentTask.status_code);
       renderTaskRiskBanner();
+      window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
       renderTaskSidebarSummary();
       var userObj = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
       var isRoot = !!(userObj && userObj.is_root);

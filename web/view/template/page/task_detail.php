@@ -223,6 +223,18 @@
 
   <aside class="col-lg-4 crm-task-side-column">
     <div class="crm-task-side-rail">
+    <div class="crm-card mb-3" id="taskEstimatesPanel">
+      <div class="crm-side-card-head">
+        <div>
+          <div class="crm-task-eyebrow" data-i18n="task_detail.estimates_eyebrow"><?= htmlspecialchars($t('task_detail.estimates_eyebrow', 'Task Estimates'), ENT_QUOTES, 'UTF-8') ?></div>
+          <h2 class="h6 mb-0" data-i18n="task_detail.estimates_title"><?= htmlspecialchars($t('task_detail.estimates_title', 'Оценки'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="taskEstimateAddBtn" data-i18n="task_detail.estimates_add_btn"><?= htmlspecialchars($t('task_detail.estimates_add_btn', '+ Оценить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+      <div id="taskEstimatesList">
+        <div class="text-muted small" data-i18n="task_detail.estimates_loading"><?= htmlspecialchars($t('task_detail.estimates_loading', 'Загрузка оценок...'), ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+    </div>
     <div class="crm-card mb-3" id="taskTimerPanel">
       <div class="crm-side-card-head">
         <div>
@@ -639,6 +651,7 @@
             <select id="depTargetTaskSelect" class="form-select" name="target_task_public_id">
               <option value=""><?= htmlspecialchars($t('dependency.modal_task_placeholder', 'Поиск задачи по названию...'), ENT_QUOTES, 'UTF-8') ?></option>
             </select>
+            <small class="text-muted" data-i18n="dependency.modal_same_project_hint"><?= htmlspecialchars($t('dependency.modal_same_project_hint', 'Показаны только задачи из того же проекта'), ENT_QUOTES, 'UTF-8') ?></small>
           </div>
           <div class="mb-3">
             <label class="form-label" data-i18n="dependency.modal_type_label"><?= htmlspecialchars($t('dependency.modal_type_label', 'Тип зависимости'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -656,6 +669,36 @@
           <button class="btn crm-btn-primary" type="submit" data-i18n="dependency.modal_add_btn"><?= htmlspecialchars($t('dependency.modal_add_btn', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Task Estimate Assign Modal -->
+<div class="modal fade" id="taskEstimateAssignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="task_detail.estimates_modal_title"><?= htmlspecialchars($t('task_detail.estimates_modal_title', 'Назначить оценку'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="taskEstimateSetSelect" data-i18n="task_detail.estimates_modal_set_label"><?= htmlspecialchars($t('task_detail.estimates_modal_set_label', 'Набор оценок'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select class="form-select" id="taskEstimateSetSelect">
+            <option value="" data-i18n="task_detail.estimates_modal_select_set"><?= htmlspecialchars($t('task_detail.estimates_modal_select_set', 'Выберите набор...'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="taskEstimateOptionSelect" data-i18n="task_detail.estimates_modal_option_label"><?= htmlspecialchars($t('task_detail.estimates_modal_option_label', 'Значение'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select class="form-select" id="taskEstimateOptionSelect" disabled>
+            <option value="" data-i18n="task_detail.estimates_modal_select_option"><?= htmlspecialchars($t('task_detail.estimates_modal_select_option', 'Выберите значение...'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="taskEstimateAssignBtn" data-i18n="task_detail.estimates_modal_assign_btn"><?= htmlspecialchars($t('task_detail.estimates_modal_assign_btn', 'Назначить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
     </div>
   </div>
 </div>

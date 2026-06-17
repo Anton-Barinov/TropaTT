@@ -8,6 +8,7 @@ return [
     'invalid_type' => 'Invalid dependency type',
     'supported_types' => 'Supported: FS, SS, FF, SF, BLOCKS',
     'self_forbidden' => 'Task cannot depend on itself',
+    'different_projects' => 'Dependencies can only be created between tasks in the same project',
     'empty' => 'No dependencies',
     'th_type' => 'Type',
     'th_task' => 'Task',

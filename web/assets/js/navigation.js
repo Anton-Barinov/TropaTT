@@ -54,6 +54,7 @@ window.CRM.navigation = (function () {
       'admin-tags': '<i class="fa-solid fa-tags"></i>',
       'admin-webhooks': '<i class="fa-solid fa-webhook"></i>',
       'admin-modules': '<i class="fa-solid fa-cubes"></i>',
+      'admin-estimates': '<i class="fa-solid fa-ruler-combined"></i>',
       'ideas': '<i class="fa-regular fa-lightbulb"></i>',
       docs: '<i class="fa-solid fa-book-open"></i>',
       api: '<i class="fa-solid fa-code"></i>'
@@ -146,6 +147,7 @@ window.CRM.navigation = (function () {
       { key: 'chat', i18n: 'nav.chat', label: t('nav.chat', 'Chats'), href: 'index.php?route=chat' },
       { key: 'admin', i18n: 'nav.admin', label: t('nav.admin', 'Administration'), href: 'index.php?route=admin' },
       { key: 'admin-modules', i18n: 'nav.admin_modules', label: t('nav.admin_modules', 'Modules'), href: 'index.php?route=admin-modules' },
+      { key: 'admin-estimates', i18n: 'nav.admin_estimates', label: t('nav.admin_estimates', 'Estimates'), href: 'index.php?route=admin-estimates' },
       { key: 'docs', i18n: 'nav.docs', label: t('nav.docs', 'Documentation'), href: 'index.php?route=docs' }
     ];
   }

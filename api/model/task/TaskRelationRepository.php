@@ -196,7 +196,7 @@ final class TaskRelationRepository
      *
      * @return array<int,array<string,mixed>>
      */
-    public function searchTasks(string $query, array $actor, int $limit = 20): array
+    public function searchTasks(string $query, array $actor, int $limit = 20, string $projectPublicId = ''): array
     {
         $safeLimit = min(50, max(1, $limit));
         $term = '%' . $query . '%';
@@ -216,6 +216,10 @@ final class TaskRelationRepository
             ->whereNull('t.archived_at')
             ->orderBy('t.updated_at', 'DESC')
             ->limit($safeLimit);
+
+        if ($projectPublicId !== '') {
+            $qb->where('p.public_id', '=', $projectPublicId);
+        }
 
         // Support search by task_key, public_id, or title
         $isTaskKeySearch = preg_match('/^[A-Za-z][A-Za-z0-9]{1,9}-[0-9]+$/', $query) === 1;

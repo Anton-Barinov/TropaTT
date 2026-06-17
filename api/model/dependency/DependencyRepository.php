@@ -100,6 +100,11 @@ final class DependencyRepository
             return 'DEPENDENCY_SELF_FORBIDDEN';
         }
 
+        $projects = $this->taskProjects([$taskId, $dependsOnTaskId]);
+        if (count(array_unique($projects)) > 1) {
+            return 'DEPENDENCY_DIFFERENT_PROJECTS';
+        }
+
         $existing = $this->findByTaskPair($taskId, $dependsOnTaskId);
         if ($existing) {
             return $this->findByPublicId((string)$existing['public_id']) ?? [];
@@ -148,5 +153,27 @@ final class DependencyRepository
             ->where('task_id', '=', $taskId)
             ->where('depends_on_task_id', '=', $dependsOnTaskId)
             ->first();
+    }
+
+    private function taskProjects(array $taskIds): array
+    {
+        if ($taskIds === []) {
+            return [];
+        }
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['id', 'project_id'])
+            ->whereIn('id', $taskIds)
+            ->whereNull('deleted_at')
+            ->get();
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int)$row['id']] = $row['project_id'] ?? null;
+        }
+        $result = [];
+        foreach ($taskIds as $id) {
+            $result[] = $map[$id] ?? null;
+        }
+        return $result;
     }
 }

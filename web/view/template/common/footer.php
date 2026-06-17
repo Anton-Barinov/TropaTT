@@ -63,6 +63,12 @@ $needsStickyNotes = in_array($currentRoute, [
   '',
   'index',
 ], true);
+$needsAdminEstimates = in_array($currentRoute, [
+  'admin-estimates',
+], true);
+$needsTaskEstimates = in_array($currentRoute, [
+  'task-detail',
+], true);
 $needsPageApiBindings = !in_array($currentRoute, [
   'login',
   'password-reset-request',
@@ -114,6 +120,12 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsStickyNotes): ?>
 <script defer src="assets/js/sticky-notes.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsAdminEstimates): ?>
+<script defer src="assets/js/admin-estimates.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsTaskEstimates): ?>
+<script defer src="assets/js/task-estimates.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script defer src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>

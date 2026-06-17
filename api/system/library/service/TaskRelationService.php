@@ -227,8 +227,9 @@ final class TaskRelationService
         }
 
         $limit = min(50, max(1, (int)($filters['limit'] ?? 20)));
+        $projectPublicId = trim((string)($filters['project_public_id'] ?? ''));
 
-        return $this->relations->searchTasks($query, $actor, $limit);
+        return $this->relations->searchTasks($query, $actor, $limit, $projectPublicId);
     }
 
     /**

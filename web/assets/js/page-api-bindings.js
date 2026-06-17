@@ -25564,7 +25564,11 @@ window.CRM.pageApiBindings = (function () {
           dropdown.innerHTML = '<div class="crm-searchable-item text-muted"><small>' + _t('page.loading', '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...') + '</small></div>';
           dropdown.style.display = 'block';
           debounceTimer = setTimeout(function () {
-            request('api/v1/task-relations/search-tasks', { query: { q: q, limit: 20 }, silent: true })
+            var searchParams = { q: q, limit: 20 };
+            var curTaskProject = window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.getCurrentTaskProjectId === 'function'
+              ? window.CRM.pageApiBindings.getCurrentTaskProjectId() : '';
+            if (curTaskProject) searchParams.project_public_id = curTaskProject;
+            request('api/v1/task-relations/search-tasks', { query: searchParams, silent: true })
               .then(function (envelope) {
                 var results = mapItems(envelope);
                 dropdown.innerHTML = '';
@@ -26754,12 +26758,17 @@ window.CRM.pageApiBindings = (function () {
     return domainRegistry;
   }
 
+  function getCurrentTaskProjectId() {
+    return String((window.CRM && window.CRM.currentTaskProjectId) || '');
+  }
+
   return {
     init: init,
     refreshCurrentPage: refreshCurrentPage,
     refreshNotificationsWidgets: refreshNotificationsWidgets,
     refreshNotificationsCenterIfActive: refreshNotificationsCenterIfActive,
     bindTaskDependencies: bindTaskDependencies,
+    getCurrentTaskProjectId: getCurrentTaskProjectId,
     registerDomain: registerDomain,
     getDomainRegistry: getDomainRegistry
   };

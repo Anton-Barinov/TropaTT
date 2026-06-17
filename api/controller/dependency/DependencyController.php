@@ -65,6 +65,9 @@ final class DependencyController extends BaseController
         if ($item === 'DEPENDENCY_SELF_FORBIDDEN') {
             return $this->error('DEPENDENCY_SELF_FORBIDDEN', $this->t('dependency/messages.self_forbidden'), 422);
         }
+        if ($item === 'DEPENDENCY_DIFFERENT_PROJECTS') {
+            return $this->error('DEPENDENCY_DIFFERENT_PROJECTS', $this->t('dependency/messages.different_projects'), 422);
+        }
 
         $this->invalidateCache('dependency');
 
