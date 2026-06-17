@@ -16039,7 +16039,6 @@ window.CRM.pageApiBindings = (function () {
             dependency_type: String(d.dependency_type || d.type || 'FS')
           };
         }).filter(function (d) { return d.from_task_id && d.to_task_id; });
-        console.log('[GANTT-DEPS] Loaded', window.CRM.ganttDependencies.length, 'dependencies:', window.CRM.ganttDependencies);
       }
     } catch (e) {
       console.warn('[GANTT] Failed to load dependencies', e);
@@ -16154,12 +16153,8 @@ window.CRM.pageApiBindings = (function () {
 
   // 2. Dependency lines rendering
   function crmGanttRenderDependencies(groups, windowInfo) {
-    var svg = document.getElementById('ganttDependenciesSvg');
-    if (!svg) {
-      console.warn('[GANTT-DEPS] SVG element not found!');
-      return;
-    }
-    console.log('[GANTT-DEPS] SVG found:', svg.tagName, svg.className.baseVal, 'parent:', svg.parentElement?.tagName, svg.parentElement?.className);
+    var canvas = document.getElementById('ganttDependenciesCanvas');
+    if (!canvas) return;
 
     // Collect all tasks with their positions
     var taskPositions = {};
@@ -16172,15 +16167,14 @@ window.CRM.pageApiBindings = (function () {
     // Load dependencies from state
     var dependencies = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
     if (!dependencies.length) {
-      console.warn('[GANTT-DEPS] No dependencies found in window.CRM.ganttDependencies');
-      svg.innerHTML = '';
+      canvas.width = 0;
+      canvas.height = 0;
       return;
     }
 
     var lanesContainer = document.querySelector('.crm-gantt .crm-gantt-lanes');
     if (!lanesContainer) return;
 
-    var lanes = lanesContainer.querySelectorAll('.crm-gantt-lane--task');
     var laneIndex = 0;
     var rowOffsets = {};
 
@@ -16193,21 +16187,26 @@ window.CRM.pageApiBindings = (function () {
 
     var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
     var trackWidth = windowInfo.trackWidth;
+    var canvasHeight = laneIndex * rowHeight;
 
-    var matched = 0;
-    var skippedNoPos = 0;
-    var skippedNoRow = 0;
-    var paths = [];
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = trackWidth * dpr;
+    canvas.height = canvasHeight * dpr;
+    canvas.style.width = trackWidth + 'px';
+    canvas.style.height = canvasHeight + 'px';
+
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, trackWidth, canvasHeight);
+
     dependencies.forEach(function (dep) {
       var fromItem = taskPositions[dep.from_task_id];
       var toItem = taskPositions[dep.to_task_id];
-      if (!fromItem || !toItem) { skippedNoPos++; return; }
+      if (!fromItem || !toItem) return;
 
       var fromRow = rowOffsets[fromItem.id];
       var toRow = rowOffsets[toItem.id];
-      if (fromRow === undefined || toRow === undefined) { skippedNoRow++; return; }
-
-      matched++;
+      if (fromRow === undefined || toRow === undefined) return;
 
       var fromStartPct = crmGanttClamp(crmGanttPercent(fromItem.start, windowInfo), 0, 100);
       var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end + 86400000, windowInfo), 0, 100);
@@ -16218,41 +16217,40 @@ window.CRM.pageApiBindings = (function () {
       var x2 = (toStartPct / 100) * trackWidth;
       var y2 = toRow * rowHeight + rowHeight / 2;
 
-      var midX = x1 + Math.max(20, (x2 - x1) / 2);
       var isCritical = dep.dependency_type === 'FS';
+      var midX = x1 + Math.max(20, (x2 - x1) / 2);
 
-      var d = 'M ' + x1 + ' ' + y1
-        + ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2;
-
-      paths.push('<path d="' + d + '"' + (isCritical ? ' class="is-critical"' : '') + '/>');
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
+      ctx.strokeStyle = isCritical ? '#ef4444' : '#94a3b8';
+      ctx.lineWidth = isCritical ? 2.5 : 2;
+      if (!isCritical) ctx.setLineDash([4, 3]);
+      else ctx.setLineDash([]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
       // Arrow head
-      var arrowSize = 6;
+      var arrowSize = 8;
       var angle = Math.atan2(y2 - y1, x2 - x1);
-      var ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-      var ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-      var ax2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-      var ay2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
-
-      paths.push('<path d="M ' + ax1 + ' ' + ay1 + ' L ' + x2 + ' ' + y2 + ' L ' + ax2 + ' ' + ay2 + '"' + (isCritical ? ' class="is-critical"' : '') + ' fill="none"/>');
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - arrowSize * Math.cos(angle - Math.PI / 6), y2 - arrowSize * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - arrowSize * Math.cos(angle + Math.PI / 6), y2 - arrowSize * Math.sin(angle + Math.PI / 6));
+      ctx.strokeStyle = isCritical ? '#ef4444' : '#94a3b8';
+      ctx.lineWidth = isCritical ? 2.5 : 2;
+      ctx.stroke();
     });
 
-    svg.setAttribute('width', trackWidth);
-    svg.setAttribute('height', laneIndex * rowHeight);
-    // Add a bright debug rectangle to verify SVG visibility
-    paths.unshift('<rect x="0" y="0" width="' + trackWidth + '" height="' + (laneIndex * rowHeight) + '" fill="rgba(255,0,0,0.03)" stroke="red" stroke-width="1" stroke-dasharray="10,5"/>');
-    svg.innerHTML = paths.join('');
-    console.log('[GANTT-DEPS] Rendered', paths.length, 'paths into SVG', {
-      svgWidth: trackWidth,
-      svgHeight: laneIndex * rowHeight,
-      svgId: svg.id,
-      svgParent: svg.parentElement ? svg.parentElement.className : 'none',
-      svgDisplay: getComputedStyle(svg).display,
-      svgVisibility: getComputedStyle(svg).visibility,
-      svgPosition: getComputedStyle(svg).position,
-      svgRect: svg.getBoundingClientRect(),
-      firstPath: paths[0] ? paths[0].substring(0, 120) : 'none'
-    });
+    // Position canvas to align with .crm-gantt
+    var ganttEl = document.querySelector('.crm-gantt');
+    if (ganttEl) {
+      var rect = ganttEl.getBoundingClientRect();
+      var boardRect = canvas.parentElement.getBoundingClientRect();
+      canvas.style.left = (rect.left - boardRect.left) + 'px';
+      canvas.style.top = (rect.top - boardRect.top) + 'px';
+    }
   }
 
   // 9. Milestones rendering on chart

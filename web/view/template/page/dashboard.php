@@ -256,6 +256,16 @@
           </div>
         </div>
       </section>
+
+      <section class="crm-card crm-dashboard-section" id="dashboardStickyNotes">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <h2 class="h5 mb-0" data-i18n="dashboard.sticky_notes_title"><?= htmlspecialchars($t('dashboard.sticky_notes_title', 'Липкие заметки'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <button class="btn crm-btn-primary btn-sm" type="button" id="stickyNoteAddBtn" data-i18n="dashboard.sticky_notes_add"><?= htmlspecialchars($t('dashboard.sticky_notes_add', '+ Добавить заметку'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+        <div class="row g-2" id="stickyNotesList">
+          <div class="col-12 text-muted small" data-i18n="dashboard.sticky_notes_loading"><?= htmlspecialchars($t('dashboard.sticky_notes_loading', 'Загрузка заметок...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
     </main>
   </div>
 </div>
