@@ -89,12 +89,15 @@ final class ModuleJobDispatcher
                 $attempts = (int)($job['attempts']) + 1;
 
                 if ($attempts >= $maxAttempts) {
-                    $stmt = $this->pdo->prepare("UPDATE {$this->tableName} SET status = 'failed', completed_at = datetime('now') WHERE id = :id");
-                    $stmt->execute(['id' => $jobId]);
+                    $now = gmdate('Y-m-d H:i:s');
+                    $stmt = $this->pdo->prepare("UPDATE {$this->tableName} SET status = 'failed', completed_at = :now WHERE id = :id");
+                    $stmt->execute(['id' => $jobId, 'now' => $now]);
                     return ['id' => $jobId, 'status' => 'failed'];
                 }
 
-                $stmt = $this->pdo->prepare("UPDATE {$this->tableName} SET status = 'pending', delay_until = datetime('now', '+60 seconds') WHERE id = :id");
+                $delayUntil = gmdate('Y-m-d H:i:s', time() + 60);
+                $stmt = $this->pdo->prepare("UPDATE {$this->tableName} SET status = 'pending', delay_until = :delay WHERE id = :id");
+                $stmt->execute(['id' => $jobId, 'delay' => $delayUntil]);
                 $stmt->execute(['id' => $jobId]);
 
                 return ['id' => $jobId, 'status' => 'retrying'];
