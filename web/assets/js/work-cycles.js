@@ -533,12 +533,12 @@
       delete selectedTasks[publicId];
     }
     var count = Object.keys(selectedTasks).length;
-    document.getElementById('addTasksConfirmBtn').textContent = ' + t('cycles.btn_add_selected', 'Добавить выбранные') + ' (' + count + ')';
+    document.getElementById('addTasksConfirmBtn').textContent = t('cycles.btn_add_selected', 'Добавить выбранные') + ' (' + count + ')';
   };
 
   window.confirmAddTasks = function () {
     var ids = Object.keys(selectedTasks);
-    if (!ids.length) { alert(' + t('cycles.select_tasks', 'Выберите задачи.') + '); return; }
+    if (!ids.length) { alert(t('cycles.select_tasks', 'Выберите задачи.')); return; }
 
     document.getElementById('addTasksConfirmBtn').disabled = true;
     apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/tasks', {
@@ -552,7 +552,7 @@
       })
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;
-        alert('Ошибка добавления: ' + (err && err.message || ' + t('cycles.unknown_error', 'неизвестная ошибка') + '));
+        alert('Ошибка добавления: ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')));
       });
   };
 
