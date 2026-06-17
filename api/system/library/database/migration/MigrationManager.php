@@ -51,6 +51,7 @@ final class MigrationManager
             new TaskActivityFeedMigration(),
             new WorkCyclesMigration(),
             new ProjectModulesMigration(),
+            new KnowledgePageVersionsMigration(),
         ];
     }
 

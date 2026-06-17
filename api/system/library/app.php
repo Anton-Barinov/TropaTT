@@ -130,6 +130,8 @@ use Api\System\Library\Service\TaskAiContextBuilder;
 use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\ProjectModuleService;
+use Api\System\Library\Service\KnowledgePageVersionService;
+use Api\System\Library\Service\KnowledgePageService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TaskKeyService;
 use Api\System\Library\Service\TwoFactorService;
@@ -1156,6 +1158,13 @@ final class App
             $c->get('repository.project'),
             $c->get('repository.task'),
             $c->get('service.task')
+        ));
+
+        $this->container->factory('service.knowledge_page_version', fn(Container $c) => new KnowledgePageVersionService(
+            new \Api\Model\Knowledge\KnowledgePageVersionRepository($c->get('db.pdo')),
+            $c->get('service.project'),
+            $c->get('logger'),
+            $c->get('request')->requestId
         ));
 
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(
