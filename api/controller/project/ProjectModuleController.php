@@ -19,7 +19,7 @@ final class ProjectModuleController extends BaseController
     public function list(): JsonResponse
     {
         $filters = $this->request()->allInput();
-        $result = $this->service()->list($filters, $this->user());
+        $result = $this->service()->list($filters, ($this->user())['user'] ?? []);
 
         return $this->success('PROJECT_MODULE_LIST', 'Project modules', $result);
     }
@@ -27,7 +27,7 @@ final class ProjectModuleController extends BaseController
     public function create(): JsonResponse
     {
         $input = $this->request()->allInput();
-        $result = $this->service()->create($input, $this->user());
+        $result = $this->service()->create($input, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -39,7 +39,7 @@ final class ProjectModuleController extends BaseController
     public function get(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->get($publicId, $this->user());
+        $result = $this->service()->get($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -52,7 +52,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
-        $result = $this->service()->update($publicId, $input, $this->user());
+        $result = $this->service()->update($publicId, $input, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -64,7 +64,7 @@ final class ProjectModuleController extends BaseController
     public function delete(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->delete($publicId, $this->user());
+        $result = $this->service()->delete($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -76,7 +76,7 @@ final class ProjectModuleController extends BaseController
     public function archive(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->archive($publicId, $this->user());
+        $result = $this->service()->archive($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -91,7 +91,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $filters = $this->request()->allInput();
-        $result = $this->service()->tasks($publicId, $filters, $this->user());
+        $result = $this->service()->tasks($publicId, $filters, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -104,7 +104,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
-        $result = $this->service()->addTasks($publicId, $input, $this->user());
+        $result = $this->service()->addTasks($publicId, $input, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -121,7 +121,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $taskPublicId = (string)($params['task_public_id'] ?? '');
-        $result = $this->service()->removeTask($publicId, $taskPublicId, $this->user());
+        $result = $this->service()->removeTask($publicId, $taskPublicId, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -139,7 +139,7 @@ final class ProjectModuleController extends BaseController
     public function members(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->members($publicId, $this->user());
+        $result = $this->service()->members($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -152,7 +152,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
-        $result = $this->service()->addMembers($publicId, $input, $this->user());
+        $result = $this->service()->addMembers($publicId, $input, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -165,7 +165,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $userPublicId = (string)($params['user_public_id'] ?? '');
-        $result = $this->service()->removeMember($publicId, $userPublicId, $this->user());
+        $result = $this->service()->removeMember($publicId, $userPublicId, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -179,7 +179,7 @@ final class ProjectModuleController extends BaseController
     public function links(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->links($publicId, $this->user());
+        $result = $this->service()->links($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -192,7 +192,7 @@ final class ProjectModuleController extends BaseController
     {
         $publicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
-        $result = $this->service()->addLink($publicId, $input, $this->user());
+        $result = $this->service()->addLink($publicId, $input, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -205,7 +205,7 @@ final class ProjectModuleController extends BaseController
     {
         $linkPublicId = (string)($params['public_id'] ?? '');
         $input = $this->request()->allInput();
-        $result = $this->service()->updateLink($linkPublicId, $input, $this->user());
+        $result = $this->service()->updateLink($linkPublicId, $input, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);
@@ -217,7 +217,7 @@ final class ProjectModuleController extends BaseController
     public function deleteLink(array $params): JsonResponse
     {
         $linkPublicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->deleteLink($linkPublicId, $this->user());
+        $result = $this->service()->deleteLink($linkPublicId, ($this->user())['user'] ?? []);
 
         if (is_string($result)) {
             return $this->mapError($result);
@@ -231,7 +231,7 @@ final class ProjectModuleController extends BaseController
     public function summary(array $params): JsonResponse
     {
         $publicId = (string)($params['public_id'] ?? '');
-        $result = $this->service()->summary($publicId, $this->user());
+        $result = $this->service()->summary($publicId, ($this->user())['user'] ?? []);
 
         if (is_string($result) || $result === null) {
             return $this->mapError($result);

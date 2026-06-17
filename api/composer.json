@@ -12,6 +12,9 @@
   },
   "scripts": {
     "test:fast": "php scripts/test_runner.php fast",
+    "test:modules": "php scripts/test_runner.php all",
+    "test:sticky": "php scripts/test_runner.php sticky",
+    "test:project-modules": "php scripts/test_runner.php modules",
     "test:unit": "php scripts/test_runner.php unit",
     "test:integration": "php scripts/test_runner.php integration",
     "test:contract": "php scripts/test_runner.php contract",
