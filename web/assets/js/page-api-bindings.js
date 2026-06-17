@@ -16252,23 +16252,16 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function _crmGanttDepsDrawConflictMarker(parts, src, tgt, isFS) {
-    // Compact orange warning marker at target bar left edge
+    // Compact orange warning triangle at target bar left edge — NO connecting line
     var mx = tgt.left - 14;
     var my = tgt.centerY;
     var color = '#ea580c';
 
-    // Small warning triangle
     parts.push('<polygon points="'
       + mx + ',' + (my - 5) + ' '
       + mx + ',' + (my + 5) + ' '
       + (mx + 8) + ',' + my
-      + '" fill="' + color + '" opacity="0.85"/>');
-
-    // Short dashed line connecting source to marker
-    var sx = src.right;
-    var sy = src.centerY;
-    var d = 'M ' + sx + ' ' + sy + ' L ' + mx + ' ' + my;
-    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" opacity="0.6"/>');
+      + '" fill="' + color + '"/>');
   }
 
   function _crmGanttDepsScrollTick() {
