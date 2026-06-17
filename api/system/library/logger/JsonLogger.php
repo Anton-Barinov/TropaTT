@@ -62,9 +62,37 @@ final class JsonLogger
     }
 
     /** @param array<string,mixed> $context */
-    public function error(array $context): void
+    public function error(string|array $message, array $context = []): void
     {
-        $this->log('error', 'error', 'unhandled_error', $context);
+        if (is_array($message)) {
+            $context = $message;
+            $message = 'unhandled_error';
+        }
+        $this->log('error', 'error', $message, $context);
+    }
+
+    /** @param array<string,mixed> $context */
+    public function warning(string $message, array $context = []): void
+    {
+        $this->log('application', 'warning', $message, $context);
+    }
+
+    /** @param array<string,mixed> $context */
+    public function info(string $message, array $context = []): void
+    {
+        $this->log('application', 'info', $message, $context);
+    }
+
+    /** @param array<string,mixed> $context */
+    public function notice(string $message, array $context = []): void
+    {
+        $this->log('application', 'notice', $message, $context);
+    }
+
+    /** @param array<string,mixed> $context */
+    public function debug(string $message, array $context = []): void
+    {
+        $this->log('application', 'debug', $message, $context);
     }
 
     /** @param array<string,mixed> $context */

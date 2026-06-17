@@ -6,7 +6,7 @@ namespace Api\System\Library\Service;
 use Api\Model\Sticky\StickyNoteRepository;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Project\ProjectRepository;
-use Psr\Log\LoggerInterface;
+use Api\System\Library\Logger\JsonLogger;
 
 final class StickyNoteService
 {
@@ -21,7 +21,7 @@ final class StickyNoteService
         private readonly KnowledgeRepository $knowledgeRepo,
         private readonly ProjectRepository $projectRepo,
         private readonly ?TaskService $taskService,
-        private readonly LoggerInterface $logger,
+        private readonly JsonLogger $logger,
         private readonly string $requestId,
     ) {
     }
