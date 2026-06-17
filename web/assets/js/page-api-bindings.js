@@ -16166,7 +16166,9 @@ window.CRM.pageApiBindings = (function () {
       overlay.id = 'ganttDepsOverlay';
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;overflow:visible;';
       document.body.appendChild(overlay);
+      console.log('[DEPS-DEBUG] Overlay created and appended to body');
     }
+    console.log('[DEPS-DEBUG] Drawing', paths.length, 'paths, overlay exists:', !!overlay, 'body children:', document.body.children.length);
 
     var paths = [];
     var barPositions = {};
@@ -16239,7 +16241,8 @@ window.CRM.pageApiBindings = (function () {
 
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + vw + '" height="' + vh + '">'
+    overlay.innerHTML = '<div style="position:fixed;top:50px;left:50px;width:200px;height:100px;background:red;z-index:999999;color:white;font-size:20px;padding:10px;">TEST</div>'
+      + '<svg xmlns="http://www.w3.org/2000/svg" width="' + vw + '" height="' + vh + '">'
       + paths.join('') + '</svg>';
   }
 

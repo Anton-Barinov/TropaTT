@@ -30,4 +30,21 @@ return [
     'unassigned' => 'Не назначено',
     'no_project' => 'Без проекта',
     'all_tasks' => 'Все задачи',
+
+    // Task Key
+    'th_key' => 'Ключ',
+
+    // Saved Views on tasks page
+    'views_btn' => 'Представления',
+    'views_aria' => 'Сохранённые представления',
+    'views_save_current' => '💾 Сохранить текущие фильтры',
+    'views_modal_title' => 'Сохранить представление',
+    'views_name_label' => 'Название',
+    'views_name_placeholder' => 'Мои задачи',
+    'views_desc_label' => 'Описание',
+    'views_desc_placeholder' => 'Необязательное описание',
+    'views_access_label' => 'Доступ',
+    'views_access_private' => 'Приватное',
+    'views_access_public' => 'Публичное',
+    'views_save_btn' => 'Сохранить',
 ];

@@ -16,6 +16,8 @@ return [
     'notifications' => 'Уведомления',
     'admin' => 'Администрирование',
     'admin_modules' => 'Модули',
+    'project_modules' => 'Модули проектов',
+    'admin_estimates' => 'Оценки',
     'chat' => 'Чаты',
     'api' => 'Справка',
     'menu_loaded' => 'Меню загружено',
