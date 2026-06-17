@@ -25362,18 +25362,9 @@ window.CRM.pageApiBindings = (function () {
 
     function statusBadge(statusCode) {
       if (!statusCode) return '';
-      var map = {
-        open: 'bg-secondary',
-        in_progress: 'bg-primary',
-        done: 'bg-success',
-        review: 'bg-info',
-        blocked: 'bg-warning text-dark',
-        cancelled: 'bg-danger',
-        closed: 'bg-secondary'
-      };
-      var cls = map[statusCode] || 'bg-secondary';
-      var label = statusCode.replace(/_/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
-      return '<span class="badge ' + cls + '">' + safeText(label) + '</span>';
+      var cls = statusClass(statusCode);
+      var label = statusLabel(statusCode);
+      return '<span class="crm-badge ' + cls + '">' + safeText(label) + '</span>';
     }
 
     function typeChip(type) {
