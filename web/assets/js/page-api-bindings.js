@@ -16224,16 +16224,11 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
-    // Rail lanes for conflicts
+    // Rail lanes for conflicts — each gets own compact rail near its bars
     var svgParts = [];
     var conflictByTarget = {};
     _ganttDepsConflictData = [];
-    var railSpacing = 10;
-    var maxLanes = 3;
-    for (var c = 0; c < conflictDeps.length; c++) {
-      var laneIdx = c % maxLanes;
-      conflictDeps[c].railX = minBarLeft - 12 - laneIdx * railSpacing;
-    }
+    var laneCounters = {}; // per-target lane counter for spacing
 
     for (var n = 0; n < normalDeps.length; n++) {
       _crmGanttDepsDrawArrow(svgParts, normalDeps[n].src, normalDeps[n].tgt, normalDeps[n].dep.dependency_type === 'FS');
@@ -16241,6 +16236,12 @@ window.CRM.pageApiBindings = (function () {
 
     for (var c = 0; c < conflictDeps.length; c++) {
       var cd = conflictDeps[c];
+      // Compact rail: just to the left of source and target
+      var tgtId = cd.dep.to_task_id;
+      if (!laneCounters[tgtId]) laneCounters[tgtId] = 0;
+      var laneOff = laneCounters[tgtId] * 8;
+      laneCounters[tgtId]++;
+      cd.railX = Math.min(cd.src.left, cd.tgt.left) - 16 - laneOff;
       _crmGanttDepsDrawConflictLine(svgParts, cd);
       if (!conflictByTarget[cd.dep.to_task_id]) {
         conflictByTarget[cd.dep.to_task_id] = { pos: cd.tgt, sources: [], types: [], sourcePositions: [] };
