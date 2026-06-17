@@ -11136,7 +11136,7 @@ window.CRM.pageApiBindings = (function () {
       if (!dateStr) return '—';
       var d = new Date(dateStr);
       if (isNaN(d.getTime())) return '—';
-      return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return d.toLocaleDateString(tpLocale('ru-RU'), { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     function debounce(fn, delay) {
@@ -14635,7 +14635,7 @@ window.CRM.pageApiBindings = (function () {
     } else if (zoomMode === 'months') {
       var startMonth = new Date(windowStart.getFullYear(), windowStart.getMonth(), 1);
       for (var m = new Date(startMonth); m <= windowEnd; m.setMonth(m.getMonth() + 1)) {
-        var label = m.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        var label = m.toLocaleDateString(tpLocale('ru-RU'), { month: 'long', year: 'numeric' });
         scale.push({
           date: new Date(m),
           label: label,
