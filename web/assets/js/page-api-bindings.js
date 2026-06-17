@@ -16140,43 +16140,26 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines rendering — overlay OUTSIDE the scrollable board
+  // 2. Dependency lines — fixed overlay on document.body
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    if (!deps.length) return;
-
-    var board = document.querySelector('.crm-gantt-board');
-    if (!board) return;
-
-    // Remove old overlay
     var oldOverlay = document.getElementById('ganttDepsOverlay');
     if (oldOverlay) oldOverlay.remove();
-
-    // Place overlay in the shell (parent of board), not inside board
-    var shell = board.closest('.crm-gantt-shell') || board.parentElement;
-    if (!shell) return;
-    shell.style.position = shell.style.position || 'relative';
-
-    var overlay = document.createElement('div');
-    overlay.id = 'ganttDepsOverlay';
-    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:999;overflow:visible;';
-    shell.appendChild(overlay);
+    if (!deps.length) return;
 
     setTimeout(function () {
-      var boardRect = board.getBoundingClientRect();
-      var matchedDeps = 0;
-      var paths = [];
+      var board = document.querySelector('.crm-gantt-board');
+      if (!board) return;
 
+      var paths = [];
       deps.forEach(function (dep) {
         var fromBar = document.querySelector('[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
         var toBar = document.querySelector('[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
         if (!fromBar || !toBar) return;
-        matchedDeps++;
 
         var fromRect = fromBar.getBoundingClientRect();
         var toRect = toBar.getBoundingClientRect();
 
-        // Coordinates relative to the page (overlay is in shell, not scrolled board)
         var x1 = fromRect.right;
         var y1 = fromRect.top + fromRect.height / 2;
         var x2 = toRect.left;
@@ -16184,35 +16167,48 @@ window.CRM.pageApiBindings = (function () {
 
         var isCritical = dep.dependency_type === 'FS';
         var color = isCritical ? '#ef4444' : '#94a3b8';
-        var strokeW = isCritical ? 2.5 : 1.5;
+        var sw = isCritical ? 2.5 : 1.5;
         var dash = isCritical ? '' : ' stroke-dasharray="5,3"';
 
         var gap = 10;
-        var sx = x1 + gap;
-        var ex = x2 - gap;
-        var midX = (sx + ex) / 2;
-
+        var sx = x1 + gap, ex = x2 - gap, midX = (sx + ex) / 2;
         var d;
         if (y1 === y2) {
           d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
         } else if (sx >= ex) {
-          var bendX = Math.max(sx, ex) + gap;
-          d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + bendX + ' ' + y1 + ' L ' + bendX + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+          var bx = Math.max(sx, ex) + gap;
+          d = 'M '+x1+' '+y1+' L '+sx+' '+y1+' L '+bx+' '+y1+' L '+bx+' '+y2+' L '+x2+' '+y2;
         } else {
-          d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + midX + ' ' + y1 + ' L ' + midX + ' ' + y2 + ' L ' + ex + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+          d = 'M '+x1+' '+y1+' L '+sx+' '+y1+' L '+midX+' '+y1+' L '+midX+' '+y2+' L '+ex+' '+y2+' L '+x2+' '+y2;
         }
-
-        paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '"' + dash + '/>');
-
-        var aSize = 6;
-        paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
+        paths.push('<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'"'+dash+'/>');
+        var a = 6;
+        paths.push('<path d="M '+(x2-a)+' '+(y2-a/2)+' L '+x2+' '+y2+' L '+(x2-a)+' '+(y2+a/2)+' Z" fill="'+color+'"/>');
       });
 
-      var pageWidth = document.documentElement.clientWidth;
-      var pageHeight = document.documentElement.clientHeight;
-      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageWidth + '" height="' + pageHeight + '" style="position:fixed;top:0;left:0;pointer-events:none;z-index:9999;">'
-        + paths.join('') + '</svg>';
-      overlay.innerHTML = svgHtml;
+      if (!paths.length) return;
+
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      var overlay = document.createElement('div');
+      overlay.id = 'ganttDepsOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:'+vw+'px;height:'+vh+'px;pointer-events:none;z-index:99999;overflow:visible;';
+      overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="'+vw+'" height="'+vh+'">'+paths.join('')+'</svg>';
+      document.body.appendChild(overlay);
+
+      // Re-render on scroll/resize to track bar positions
+      var scrollHandler = function () {
+        overlay.remove();
+        crmGanttRenderDependencies(groups, windowInfo);
+      };
+      var boardEl = board;
+      boardEl.addEventListener('scroll', scrollHandler, { passive: true });
+      window.addEventListener('resize', scrollHandler, { passive: true });
+      // Auto-cleanup after 30s to avoid stale listeners
+      setTimeout(function () {
+        boardEl.removeEventListener('scroll', scrollHandler);
+        window.removeEventListener('resize', scrollHandler);
+      }, 30000);
     }, 200);
   }
 
