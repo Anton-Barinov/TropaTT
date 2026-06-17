@@ -350,8 +350,6 @@ final class WorkCycleService
         return $this->get($cyclePublicId, $actor);
     }
 
-    public function complete(
-
     public function complete(string $cyclePublicId, array $input, array $actor): array|string|null
     {
         $cycle = $this->cycles->findByPublicId($cyclePublicId);
