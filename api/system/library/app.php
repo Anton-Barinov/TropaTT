@@ -126,6 +126,7 @@ use Api\System\Library\Service\TagService;
 use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Service\TaskAiContextBuilder;
+use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserProfileService;
