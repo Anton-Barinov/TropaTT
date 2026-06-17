@@ -21,7 +21,6 @@ final class StickyNoteController extends BaseController
         'TASK_CREATION_FAILED' => 500,
         'PAGE_CREATION_FAILED' => 500,
         'TASK_SERVICE_UNAVAILABLE' => 500,
-        'KNOWLEDGE_SERVICE_UNAVAILABLE' => 500,
     ];
 
     public function list(): JsonResponse

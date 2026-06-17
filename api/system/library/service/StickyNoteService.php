@@ -6,8 +6,6 @@ namespace Api\System\Library\Service;
 use Api\Model\Sticky\StickyNoteRepository;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Project\ProjectRepository;
-use Api\Model\Common\UserRepository;
-use Api\Model\Task\TaskRepository;
 use Psr\Log\LoggerInterface;
 
 final class StickyNoteService
@@ -17,14 +15,11 @@ final class StickyNoteService
     private const ALLOWED_CONTEXT = ['personal', 'dashboard', 'project', 'task'];
     private const ALLOWED_VISIBILITY = ['private', 'shared'];
     private const ALLOWED_COLORS = ['yellow', 'green', 'blue', 'purple', 'pink', 'red', 'orange', 'teal', 'gray', 'white'];
-    private const SORT_STEP = 10;
 
     public function __construct(
         private readonly StickyNoteRepository $repo,
         private readonly KnowledgeRepository $knowledgeRepo,
         private readonly ProjectRepository $projectRepo,
-        private readonly UserRepository $userRepo,
-        private readonly TaskRepository $taskRepo,
         private readonly ?TaskService $taskService,
         private readonly LoggerInterface $logger,
         private readonly string $requestId,
@@ -309,15 +304,15 @@ final class StickyNoteService
             'project_public_id' => $projectPublicId,
             'title' => $title,
             'description' => $description,
-            'status_code' => $payload['status_code'] ?? 'new',
-            'priority_code' => $payload['priority_code'] ?? 'normal',
+            'status' => $payload['status'] ?? $payload['status_code'] ?? 'new',
+            'priority' => $payload['priority'] ?? $payload['priority_code'] ?? 'normal',
         ];
 
-        if (isset($payload['assignee_public_id'])) {
-            $taskPayload['assignee_public_id'] = $payload['assignee_public_id'];
+        if (isset($payload['assignee_user_id'])) {
+            $taskPayload['assignee_user_id'] = (int)$payload['assignee_user_id'];
         }
-        if (isset($payload['due_date'])) {
-            $taskPayload['due_date'] = $payload['due_date'];
+        if (isset($payload['due_at'])) {
+            $taskPayload['due_at'] = $payload['due_at'];
         }
 
         // Use task service to create task
@@ -333,6 +328,14 @@ final class StickyNoteService
             return ['error' => 'TASK_CREATION_FAILED'];
         }
 
+        if (is_string($task)) {
+            $this->logger->warning('sticky_note_convert_task_failed', [
+                'public_id' => $publicId,
+                'error_code' => $task,
+                'request_id' => $this->requestId,
+            ]);
+            return ['error' => 'TASK_CREATION_FAILED'];
+        }
         if (isset($task['error'])) {
             return $task;
         }
@@ -391,7 +394,7 @@ final class StickyNoteService
             'space_public_id' => $spacePublicId,
             'title' => $title,
             'content' => $content,
-            'page_type' => $payload['page_type'] ?? 'documentation',
+            'page_type' => $payload['page_type'] ?? 'article',
             'status' => $payload['status'] ?? 'draft',
         ];
 
@@ -405,11 +408,6 @@ final class StickyNoteService
                 'request_id' => $this->requestId,
             ]);
             return ['error' => 'PAGE_CREATION_FAILED'];
-        }
-
-        // createPage throws RuntimeException on validation failure, but returns array on success
-        if (isset($page['error'])) {
-            return $page;
         }
 
         // Mark note as converted
@@ -427,11 +425,6 @@ final class StickyNoteService
             'request_id' => $this->requestId,
         ]);
 
-        return [
-            'success' => true,
-            'note_public_id' => $publicId,
-            'page' => $page,
-        ];
         return [
             'success' => true,
             'note_public_id' => $publicId,
@@ -472,8 +465,12 @@ final class StickyNoteService
 
     private function validateContext(string $contextType, ?string $contextPublicId, int $actorUserId): ?array
     {
+        // 'personal' and 'dashboard' don't require context_public_id
         if ($contextPublicId === null || $contextPublicId === '') {
-            return ['error' => 'VALIDATION_ERROR', 'errors' => ['context_public_id' => 'Required when context_type is not personal']];
+            if ($contextType === 'task' || $contextType === 'project') {
+                return ['error' => 'VALIDATION_ERROR', 'errors' => ['context_public_id' => 'Required when context_type is ' . $contextType]];
+            }
+            return null;
         }
 
         if ($contextType === 'task') {

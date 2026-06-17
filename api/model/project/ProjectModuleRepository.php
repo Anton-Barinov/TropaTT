@@ -103,6 +103,14 @@ final class ProjectModuleRepository
                 ->where('module_id', '=', $moduleId)
                 ->whereNull('deleted_at')
                 ->count();
+            $item['completed_tasks_count'] = (int)(new QueryBuilder($this->pdo))
+                ->from('project_module_tasks pmt')
+                ->leftJoin('tasks t', 't.id', '=', 'pmt.task_id')
+                ->where('pmt.module_id', '=', $moduleId)
+                ->whereNull('pmt.deleted_at')
+                ->whereNull('t.deleted_at')
+                ->whereRaw('t.status_code IN (?, ?, ?)', ['done', 'closed', 'archived'])
+                ->count();
             $item['members_count'] = (int)(new QueryBuilder($this->pdo))
                 ->from('project_module_members')
                 ->where('module_id', '=', $moduleId)
@@ -142,7 +150,40 @@ final class ProjectModuleRepository
             ->whereNull('pm.deleted_at')
             ->first();
 
-        return $row !== false ? $row : null;
+        if ($row === null || $row === false) {
+            return null;
+        }
+
+        $moduleId = (int)$row['id'];
+
+        $row['tasks_count'] = (int)(new QueryBuilder($this->pdo))
+            ->from('project_module_tasks')
+            ->where('module_id', '=', $moduleId)
+            ->whereNull('deleted_at')
+            ->count();
+
+        $row['completed_tasks_count'] = (int)(new QueryBuilder($this->pdo))
+            ->from('project_module_tasks pmt')
+            ->leftJoin('tasks t', 't.id', '=', 'pmt.task_id')
+            ->where('pmt.module_id', '=', $moduleId)
+            ->whereNull('pmt.deleted_at')
+            ->whereNull('t.deleted_at')
+            ->whereRaw('t.status_code IN (?, ?, ?)', ['done', 'closed', 'archived'])
+            ->count();
+
+        $row['members_count'] = (int)(new QueryBuilder($this->pdo))
+            ->from('project_module_members')
+            ->where('module_id', '=', $moduleId)
+            ->whereNull('deleted_at')
+            ->count();
+
+        $row['links_count'] = (int)(new QueryBuilder($this->pdo))
+            ->from('project_module_links')
+            ->where('module_id', '=', $moduleId)
+            ->whereNull('deleted_at')
+            ->count();
+
+        return $row;
     }
 
     public function findById(int $id): ?array
@@ -203,7 +244,7 @@ final class ProjectModuleRepository
             ->from('projects')
             ->select(['id'])
             ->where('public_id', '=', $projectPublicId)
-            ->whereNull('deleted_at')
+            ->whereNull('archived_at')
             ->first();
 
         return isset($row['id']) ? (int)$row['id'] : null;

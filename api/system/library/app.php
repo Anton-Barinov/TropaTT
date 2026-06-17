@@ -1156,7 +1156,7 @@ final class App
             new \Api\Model\Project\ProjectModuleTaskRepository($c->get('db.pdo')),
             new \Api\Model\Project\ProjectModuleMemberRepository($c->get('db.pdo')),
             new \Api\Model\Project\ProjectModuleLinkRepository($c->get('db.pdo')),
-            $c->get('repository.project'),
+            $c->get('service.project'),
             $c->get('repository.task'),
             $c->get('service.task')
         ));
@@ -1167,8 +1167,6 @@ final class App
             $c->get('repository.sticky_note'),
             $c->get('repository.knowledge'),
             $c->get('repository.project'),
-            $c->get('repository.user'),
-            $c->get('repository.task'),
             $c->get('service.task'),
             $c->get('logger'),
             $c->get('request')->requestId

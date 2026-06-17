@@ -147,18 +147,24 @@ final class ProjectModuleService
 
         // Auto-add lead as member
         if ($leadUserId !== null) {
-            $memberPublicId = Ulid::generate('pmm');
-            $this->moduleMembers->addMember([
-                'public_id' => $memberPublicId,
-                'module_id' => $projectId, // Will be updated after we get the actual module ID
-                'user_id' => $leadUserId,
-                'role_code' => 'lead',
-                'active_key' => null,
-                'added_by_user_id' => $creatorUserId,
-                'added_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            $createdModule = $this->modules->findByPublicId($publicId);
+            $moduleId = (int)($createdModule['id'] ?? 0);
+
+            if ($moduleId > 0) {
+                $memberPublicId = Ulid::generate('pmm');
+                $activeKey = 'module:' . $moduleId . ':user:' . $leadUserId;
+                $this->moduleMembers->addMember([
+                    'public_id' => $memberPublicId,
+                    'module_id' => $moduleId,
+                    'user_id' => $leadUserId,
+                    'role_code' => 'lead',
+                    'active_key' => $activeKey,
+                    'added_by_user_id' => $creatorUserId,
+                    'added_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
         }
 
         return $this->get($publicId, $actor);

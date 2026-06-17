@@ -22,7 +22,6 @@ final class ProjectModuleMemberRepository
                 'u.public_id AS user_public_id',
                 'u.full_name AS user_name',
                 'u.email AS user_email',
-                'u.avatar_url AS user_avatar',
             ])
             ->where('pmm.module_id', '=', $moduleId)
             ->whereNull('pmm.deleted_at')
@@ -75,7 +74,7 @@ final class ProjectModuleMemberRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false;
+        return $row !== null && $row !== false;
     }
 
     public function userIdByPublicId(string $userPublicId): ?int

@@ -137,7 +137,7 @@ final class ProjectModuleTaskRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false;
+        return $row !== null && $row !== false;
     }
 
     public function moduleSummary(int $moduleId): array
