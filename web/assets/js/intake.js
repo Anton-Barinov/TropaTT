@@ -70,15 +70,7 @@ window.CRM.intake = (function () {
   }
 
   function statusBadgeHtml(status) {
-    var colorMap = {
-      pending: '#0d6efd',
-      snoozed: '#ffc107',
-      accepted: '#198754',
-      rejected: '#dc3545',
-      duplicate: '#6c757d'
-    };
-    var color = colorMap[status] || '#6c757d';
-    return '<span class="badge" style="background:' + color + '">' + esc(statusLabel(status)) + '</span>';
+    return '<span class="crm-intake-status-badge" data-status="' + esc(status) + '">' + esc(statusLabel(status)) + '</span>';
   }
 
   function priorityLabel(code) {
@@ -92,14 +84,7 @@ window.CRM.intake = (function () {
   }
 
   function priorityBadgeHtml(code) {
-    var colorMap = {
-      low: '#6c757d',
-      normal: '#0d6efd',
-      high: '#fd7e14',
-      urgent: '#dc3545'
-    };
-    var color = colorMap[code] || '#6c757d';
-    return '<span class="badge" style="background:' + color + '">' + esc(priorityLabel(code)) + '</span>';
+    return '<span class="crm-intake-priority-badge" data-priority="' + esc(code) + '">' + esc(priorityLabel(code)) + '</span>';
   }
 
   function sourceLabel(source) {
@@ -242,7 +227,21 @@ window.CRM.intake = (function () {
 
     var items = state.items;
     if (!items.length) {
-      body.innerHTML = '<tr><td colspan="11" class="text-muted">' + esc(t('intake.no_items', 'Нет заявок. Создайте первую заявку.')) + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="11"><div class="crm-intake-empty">'
+        + '<i class="fa-solid fa-inbox"></i>'
+        + '<h5>' + esc(t('intake.no_items_title', 'Заявок пока нет')) + '</h5>'
+        + '<p>' + esc(t('intake.no_items', 'Создайте первую заявку или настройте автоматический сбор входящих.')) + '</p>'
+        + '<button class="btn btn-sm crm-btn-primary intake-create-empty-btn" type="button">'
+        + '<i class="fa-solid fa-plus"></i> ' + esc(t('intake.create_btn', 'Создать заявку'))
+        + '</button>'
+        + '</div></td></tr>';
+      var emptyBtn = body.querySelector('.intake-create-empty-btn');
+      if (emptyBtn) {
+        emptyBtn.addEventListener('click', function () {
+          var createBtn = document.getElementById('intakeCreateBtn');
+          if (createBtn) createBtn.click();
+        });
+      }
       return;
     }
 
@@ -261,20 +260,20 @@ window.CRM.intake = (function () {
       var isActive = isPending || isSnoozed;
 
       return '<tr>'
-        + '<td><code class="small">' + esc(publicId.slice(0, 8)) + '</code></td>'
-        + '<td>'
+        + '<td class="crm-intake-id-cell"><code>' + esc(publicId.slice(0, 8)) + '</code></td>'
+        + '<td class="crm-intake-title-cell">'
           + '<strong>' + esc(item.title) + '</strong>'
-          + (item.description ? '<br><small class="text-muted">' + esc(item.description.slice(0, 80)) + '</small>' : '')
+          + (item.description ? '<small>' + esc(item.description.slice(0, 80)) + '</small>' : '')
         + '</td>'
         + '<td>' + statusBadgeHtml(item.status) + '</td>'
         + '<td>' + priorityBadgeHtml(item.priority_code || 'normal') + '</td>'
-        + '<td><small>' + esc(sourceLabel(item.source_type)) + '</small></td>'
+        + '<td>' + '<span class="crm-intake-source-label">' + esc(sourceLabel(item.source_type)) + '</span>' + '</td>'
         + '<td>' + esc(projectTitle || '—') + '</td>'
         + '<td>' + esc(clientName || '—') + '</td>'
         + '<td>' + esc(assigneeName || '—') + '</td>'
-        + '<td><small>' + esc(dueStr || '—') + '</small></td>'
-        + '<td><small class="text-muted">' + esc(createdStr || '—') + '</small></td>'
-        + '<td class="text-end" style="white-space:nowrap">'
+        + '<td class="crm-intake-date-cell">' + esc(dueStr || '—') + '</td>'
+        + '<td class="crm-intake-date-cell">' + esc(createdStr || '—') + '</td>'
+        + '<td class="crm-intake-actions">'
         + actionButtons(item)
         + '</td></tr>';
     }).join('');
@@ -284,25 +283,25 @@ window.CRM.intake = (function () {
 
   function actionButtons(item) {
     var id = esc(item.public_id);
-    var editBtn = '<button class="btn btn-sm crm-btn-secondary intake-edit-btn" data-intake-id="' + id + '" title="' + esc(t('page.edit', 'Edit')) + '" style="font-size:11px;padding:2px 8px"><i class="fa-solid fa-pen"></i></button>';
-    var actBtn = '<button class="btn btn-sm crm-btn-secondary intake-activities-btn" data-intake-id="' + id + '" title="' + esc(t('intake.activities_btn', 'History')) + '" style="font-size:11px;padding:2px 8px"><i class="fa-solid fa-clock-rotate-left"></i></button>';
-    var delBtn = '<button class="btn btn-sm crm-btn-secondary intake-delete-btn" data-intake-id="' + id + '" title="' + esc(t('page.delete', 'Delete')) + '" style="font-size:11px;padding:2px 8px"><i class="fa-solid fa-trash-can"></i></button>';
+    var editBtn = '<button class="btn btn-sm crm-btn-secondary intake-edit-btn" data-intake-id="' + id + '" title="' + esc(t('page.edit', 'Edit')) + '"><i class="fa-solid fa-pen"></i></button>';
+    var actBtn = '<button class="btn btn-sm crm-btn-secondary intake-activities-btn" data-intake-id="' + id + '" title="' + esc(t('intake.activities_btn', 'History')) + '"><i class="fa-solid fa-clock-rotate-left"></i></button>';
+    var delBtn = '<button class="btn btn-sm crm-btn-secondary intake-delete-btn" data-intake-id="' + id + '" title="' + esc(t('page.delete', 'Delete')) + '"><i class="fa-solid fa-trash-can"></i></button>';
 
     var statusBtns = '';
     if (item.status === 'pending' || item.status === 'snoozed') {
-      statusBtns += '<button class="btn btn-sm crm-btn-primary intake-accept-btn" data-intake-id="' + id + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.accept_btn', 'Accept')) + '"><i class="fa-solid fa-check"></i></button> ';
-      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-reject-btn" data-intake-id="' + id + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.reject_btn', 'Reject')) + '"><i class="fa-solid fa-xmark"></i></button> ';
-      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-snooze-btn" data-intake-id="' + id + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.snooze_btn', 'Snooze')) + '"><i class="fa-solid fa-clock"></i></button> ';
-      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-duplicate-btn" data-intake-id="' + id + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.duplicate_btn', 'Duplicate')) + '"><i class="fa-solid fa-copy"></i></button> ';
+      statusBtns += '<button class="btn btn-sm intake-accept-btn" data-intake-id="' + id + '" title="' + esc(t('intake.accept_btn', 'Accept')) + '"><i class="fa-solid fa-check"></i></button> ';
+      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-reject-btn" data-intake-id="' + id + '" title="' + esc(t('intake.reject_btn', 'Reject')) + '"><i class="fa-solid fa-xmark"></i></button> ';
+      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-snooze-btn" data-intake-id="' + id + '" title="' + esc(t('intake.snooze_btn', 'Snooze')) + '"><i class="fa-solid fa-clock"></i></button> ';
+      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-duplicate-btn" data-intake-id="' + id + '" title="' + esc(t('intake.duplicate_btn', 'Duplicate')) + '"><i class="fa-solid fa-copy"></i></button> ';
     }
     if (item.status === 'rejected' || item.status === 'duplicate') {
-      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-reopen-btn" data-intake-id="' + id + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.reopen_btn', 'Reopen')) + '"><i class="fa-solid fa-rotate-left"></i></button> ';
+      statusBtns += '<button class="btn btn-sm crm-btn-secondary intake-reopen-btn" data-intake-id="' + id + '" title="' + esc(t('intake.reopen_btn', 'Reopen')) + '"><i class="fa-solid fa-rotate-left"></i></button> ';
     }
     if (item.accepted_task_id) {
-      statusBtns += '<a class="btn btn-sm crm-btn-secondary" href="index.php?route=task-detail&task_public_id=' + esc(item.accepted_task_id) + '" style="font-size:11px;padding:2px 8px" title="' + esc(t('intake.view_task_btn', 'View task')) + '"><i class="fa-solid fa-arrow-up-right-from-square"></i></a> ';
+      statusBtns += '<a class="btn btn-sm crm-btn-secondary" href="index.php?route=task-detail&task_public_id=' + esc(item.accepted_task_id) + '" title="' + esc(t('intake.view_task_btn', 'View task')) + '"><i class="fa-solid fa-arrow-up-right-from-square"></i></a> ';
     }
 
-    return editBtn + ' ' + actBtn + ' ' + delBtn + ' ' + statusBtns;
+    return editBtn + actBtn + delBtn + statusBtns;
   }
 
   function bindTableEvents() {

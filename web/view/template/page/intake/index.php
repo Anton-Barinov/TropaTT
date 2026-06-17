@@ -2,14 +2,14 @@
 <?php $title = $t('intake.page_title', 'TropaTT — Входящие'); ?>
 <body data-page="intake" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content">
+<main class="crm-content crm-intake-page">
 
 <div class="crm-page-head">
   <div>
     <h1 class="crm-page-title" data-i18n="intake.page_title"><?= htmlspecialchars($t('intake.page_title', 'Входящие'), ENT_QUOTES, 'UTF-8') ?></h1>
     <p class="crm-subtitle" data-i18n="intake.subtitle"><?= htmlspecialchars($t('intake.subtitle', 'Сбор и обработка входящих заявок: фиксация, triage, принятие в задачу или отклонение.'), ENT_QUOTES, 'UTF-8') ?></p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 crm-intake-filter-bar">
     <select id="intakeStatusFilter" class="form-select crm-field-w-180">
       <option value="" data-i18n="intake.filter_all_statuses"><?= htmlspecialchars($t('intake.filter_all_statuses', 'Все статусы'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="pending" data-i18n="intake.status_pending"><?= htmlspecialchars($t('intake.status_pending', 'Ожидает'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -59,7 +59,7 @@
           </tr>
         </thead>
         <tbody id="intakeBody">
-          <tr><td colspan="11" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+          <tr><td colspan="11" class="text-muted" data-i18n="page.loading"><div class="d-flex align-items-center gap-2 py-3"><div class="spinner-border spinner-border-sm text-muted" role="status"></div> <?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></td></tr>
         </tbody>
       </table>
       </div>
