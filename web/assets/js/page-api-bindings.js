@@ -16364,68 +16364,81 @@ window.CRM.pageApiBindings = (function () {
     return obstacles;
   }
 
-  // ── Route normal dependency: right edge of source → left edge of target
+  // ── Route normal dependency: right edge of source → left edge of target ──
+  // Uses corridor routing: exit source → corridor between rows → enter target
   function crmGanttRouteNormal(src, tgt, obstacles) {
     var sx = src.right + 2;
     var sy = src.centerY;
     var tx = tgt.left - 2;
     var ty = tgt.centerY;
 
-    // If same row (or nearly), straight horizontal line
+    // Same row: straight line
     if (Math.abs(sy - ty) < 3) {
       return [{ x: sx, y: sy }, { x: tx, y: ty }];
     }
 
-    // Z-route: horizontal from source → vertical turn → horizontal to target
-    // Try the midpoint X first
-    var mx = (sx + tx) / 2;
-    var points = [{ x: sx, y: sy }, { x: mx, y: sy }, { x: mx, y: ty }, { x: tx, y: ty }];
+    // Find a safe corridorY between source and target rows
+    var corridorY = crmGanttFindCorridorY(src, tgt, obstacles);
 
-    // Check if the vertical segment (mx, sy→ty) hits any obstacle
-    // If it does, try offset lanes ±16px, ±24px
-    var offsets = [0, -16, 16, -24, 24, -32, 32];
-    for (var o = 0; o < offsets.length; o++) {
-      var testMx = mx + offsets[o];
-      if (testMx <= sx || testMx >= tx) continue; // must be between source and target
-      var segH1 = { x1: sx, y: sy, x2: testMx, y2: sy }; // horizontal
-      var segV = { x1: testMx, y1: sy, x2: testMx, y2: ty }; // vertical
-      var segH2 = { x1: testMx, y: sy === ty ? sy : ty, x2: tx, y2: ty }; // horizontal
-      var blocked = crmGanttSegmentHitsObstacle(segH1, obstacles) || crmGanttSegmentHitsObstacle(segV, obstacles) || crmGanttSegmentHitsObstacle(segH2, obstacles);
-      if (!blocked) {
-        points = [{ x: sx, y: sy }, { x: testMx, y: sy }, { x: testMx, y: ty }, { x: tx, y: ty }];
-        break;
-      }
-    }
-
-    return points;
+    // Route: exit source → corridorY → enter target
+    return [{ x: sx, y: sy }, { x: sx, y: corridorY }, { x: tx, y: corridorY }, { x: tx, y: ty }];
   }
 
-  // ── Route conflict dependency: side rail to the left of bars ────
-  function crmGanttRouteConflict(src, tgt, obstacles, laneIndex) {
-    var srcPortX = src.left - 6;
-    var srcPortY = src.centerY;
-    var tgtPortX = tgt.left - 6;
-    var tgtPortY = tgt.centerY;
+  // Find a safe Y between rows where horizontal segments won't hit obstacles
+  function crmGanttFindCorridorY(src, tgt, obstacles) {
+    var yMin = Math.min(src.bottom, tgt.bottom);
+    var yMax = Math.max(src.top, tgt.top);
+    var preferred = (yMin + yMax) / 2;
 
-    // Rail position: to the left of the leftmost bar
-    var baseLeft = Math.min(src.left, tgt.left);
-    var railX = baseLeft - 20 - laneIndex * 8;
-
-    // Clamp rail: don't go too far left
-    var maxRailOffset = 64;
-    if (baseLeft - railX > maxRailOffset) {
-      railX = baseLeft - maxRailOffset;
+    // Try preferred first
+    if (!crmGanttHLineHitsObstacle(src.right, tgt.left, preferred, obstacles)) {
+      return preferred;
     }
-    // Don't go past container left edge (0)
-    if (railX < 4) railX = 4;
 
-    // Path: sourcePort → railX (horiz) → railX/targetPortY (vert) → tgtPort (horiz)
-    return [
-      { x: srcPortX, y: srcPortY },
-      { x: railX, y: srcPortY },
-      { x: railX, y: tgtPortY },
-      { x: tgtPortX, y: tgtPortY }
+    // Try corridors above/below each bar
+    var candidates = [
+      src.top - 6, src.bottom + 6,
+      tgt.top - 6, tgt.bottom + 6,
+      preferred - 8, preferred + 8, preferred - 16, preferred + 16
     ];
+    for (var i = 0; i < candidates.length; i++) {
+      var cy = candidates[i];
+      if (cy < 0) continue;
+      if (!crmGanttHLineHitsObstacle(src.right, tgt.left, cy, obstacles)) {
+        return cy;
+      }
+    }
+    return preferred; // fallback
+  }
+
+  // Check if a horizontal line at y from x1 to x2 hits any obstacle
+  function crmGanttHLineHitsObstacle(x1, x2, y, obstacles) {
+    var minX = Math.min(x1, x2);
+    var maxX = Math.max(x1, x2);
+    for (var i = 0; i < obstacles.length; i++) {
+      var ob = obstacles[i];
+      if (y >= ob.top && y <= ob.bottom && maxX > ob.left && minX < ob.right) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ── Route conflict dependency: compact L-route from source bottom ────
+  function crmGanttRouteConflict(src, tgt, obstacles, laneIndex) {
+    // Start from right edge of source bar, go down below source, then right to target
+    var sx = src.right + 2;
+    var sy = src.bottom + 2 + laneIndex * 6; // stagger per lane
+    var tx = tgt.left - 2;
+    var ty = tgt.centerY;
+
+    // If source bottom is below or at target, route further down
+    if (sy >= ty) {
+      sy = ty + (laneIndex + 1) * 6;
+    }
+
+    // Simple L-route: right from source → down to target row → right to target
+    return [{ x: sx, y: sy }, { x: tx, y: sy }, { x: tx, y: ty }];
   }
 
   // ── Render path as SVG polyline + arrowhead ─────────────────────
