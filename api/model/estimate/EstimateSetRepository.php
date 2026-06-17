@@ -86,7 +86,7 @@ final class EstimateSetRepository
         $whereClause = implode(' AND ', $where);
 
         $fromClause = 'FROM estimate_sets es
-            LEFT JOIN projects p ON p.id = es.project_id AND p.deleted_at IS NULL';
+            LEFT JOIN projects p ON p.id = es.project_id';
 
         $countStmt = $this->db->prepare("SELECT COUNT(*) {$fromClause} WHERE {$whereClause}");
         $countStmt->execute($params);
@@ -133,7 +133,7 @@ final class EstimateSetRepository
         $stmt = $this->db->prepare(
             "SELECT es.*, p.public_id AS project_public_id, p.title AS project_title
             FROM estimate_sets es
-            LEFT JOIN projects p ON p.id = es.project_id AND p.deleted_at IS NULL
+            LEFT JOIN projects p ON p.id = es.project_id
             WHERE es.public_id = :public_id"
         );
         $stmt->execute(['public_id' => $publicId]);
