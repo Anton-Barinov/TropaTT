@@ -16141,12 +16141,16 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — overlay inside gantt timeline area with rail routing
+  // 2. Dependency lines — overlay inside gantt timeline area
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
   var _ganttDepsConflictData = [];
+  var _ganttDepsWindowInfo = null;
+  var _ganttDepsGroups = null;
 
   function crmGanttRenderDependencies(groups, windowInfo) {
+    _ganttDepsWindowInfo = windowInfo;
+    _ganttDepsGroups = groups;
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
     if (!deps.length) {
       var old = document.getElementById('ganttDepsOverlay');
@@ -16154,10 +16158,14 @@ window.CRM.pageApiBindings = (function () {
       _ganttDepsConflictData = [];
       return;
     }
-    _crmGanttDepsDraw(deps);
+    _crmGanttDepsDraw(deps, groups);
   }
 
-  function _crmGanttDepsDraw(deps) {
+  function _crmGanttDepsDraw(deps, groups) {
+    if (!groups) return;
+    var wi = _ganttDepsWindowInfo;
+    if (!wi || !wi.trackWidth) return;
+
     var lanesContainer = document.querySelector('.crm-gantt-lanes');
     if (!lanesContainer) return;
 
@@ -16169,45 +16177,43 @@ window.CRM.pageApiBindings = (function () {
       lanesContainer.appendChild(overlay);
     }
 
-    var lanesRect = lanesContainer.getBoundingClientRect();
-    var boardEl = lanesContainer.closest('.crm-gantt-board');
-    var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
+    // Build task lookup from groups (same data source as bars)
+    var taskLookup = {};
+    var rowY = 0;
+    var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
 
-    var barPositions = {};
-    var allBars = [];
-    var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
-    for (var i = 0; i < barEls.length; i++) {
-      var bar = barEls[i];
-      var lane = bar.closest('.crm-gantt-lane--task');
-      if (!lane) continue;
-      var rowId = lane.getAttribute('data-gantt-row-id');
-      if (!rowId || rowId.indexOf('task-') !== 0) continue;
-      var taskId = rowId.substring(5);
-      var r = bar.getBoundingClientRect();
-      var pos = {
-        left: r.left - lanesRect.left + scrollLeft,
-        right: r.right - lanesRect.left + scrollLeft,
-        top: r.top - lanesRect.top,
-        bottom: r.bottom - lanesRect.top,
-        centerY: (r.top + r.bottom) / 2 - lanesRect.top
-      };
-      barPositions[taskId] = pos;
-      allBars.push(pos);
-    }
+    groups.forEach(function (group) {
+      rowY += rowHeight; // skip project header row
+      group.items.forEach(function (item) {
+        var startPct = crmGanttClamp(crmGanttPercent(item.start, wi), 0, 100);
+        var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, wi), 0, 100);
+        var leftPx = (startPct / 100) * wi.trackWidth;
+        var rightPx = (endPct / 100) * wi.trackWidth;
+        taskLookup[item.id] = {
+          left: leftPx,
+          right: rightPx,
+          centerY: rowY + rowHeight / 2,
+          rowY: rowY
+        };
+        rowY += rowHeight;
+      });
+    });
 
+    var svgParts = [];
+    var conflictByTarget = {};
+    _ganttDepsConflictData = [];
     var minBarLeft = Infinity;
-    for (var b = 0; b < allBars.length; b++) {
-      if (allBars[b].left < minBarLeft) minBarLeft = allBars[b].left;
-    }
 
-    // Separate normal vs conflict deps
+    // Classify deps
     var normalDeps = [];
     var conflictDeps = [];
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
-      var src = barPositions[dep.from_task_id];
-      var tgt = barPositions[dep.to_task_id];
+      var src = taskLookup[dep.from_task_id];
+      var tgt = taskLookup[dep.to_task_id];
       if (!src || !tgt) continue;
+      if (src.left < minBarLeft) minBarLeft = src.left;
+      if (tgt.left < minBarLeft) minBarLeft = tgt.left;
       var gap = tgt.left - src.right;
       if (gap > 24) {
         normalDeps.push({ dep: dep, src: src, tgt: tgt });
@@ -16216,7 +16222,7 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
-    // Rail lanes: compact, max 3 lanes at fixed offsets from bar left edge
+    // Rail lanes for conflicts
     var svgParts = [];
     var conflictByTarget = {};
     _ganttDepsConflictData = [];
@@ -16248,8 +16254,8 @@ window.CRM.pageApiBindings = (function () {
       _ganttDepsConflictData.push({ idx: k, info: conflictByTarget[cKeys[k]] });
     }
 
-    var totalH = lanesContainer.scrollHeight;
-    var totalW = lanesContainer.scrollWidth;
+    var totalH = rowY;
+    var totalW = wi.trackWidth;
     overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + svgParts.join('') + '</svg>';
     _crmGanttDepsBindHover(overlay);
   }
@@ -16345,7 +16351,7 @@ window.CRM.pageApiBindings = (function () {
     requestAnimationFrame(function () {
       _ganttDepsRenderQueued = false;
       var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-      if (deps.length) _crmGanttDepsDraw(deps);
+      if (deps.length && _ganttDepsGroups) _crmGanttDepsDraw(deps, _ganttDepsGroups);
     });
   }
 
