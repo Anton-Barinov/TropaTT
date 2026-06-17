@@ -16386,24 +16386,34 @@ window.CRM.pageApiBindings = (function () {
 
   // Find a safe Y between rows where horizontal segments won't hit obstacles
   function crmGanttFindCorridorY(src, tgt, obstacles) {
-    var yMin = Math.min(src.bottom, tgt.bottom);
-    var yMax = Math.max(src.top, tgt.top);
-    var preferred = (yMin + yMax) / 2;
+    // Preferred: midpoint between the two bars' closest edges
+    var gapTop = Math.max(src.top, tgt.top);
+    var gapBottom = Math.min(src.bottom, tgt.bottom);
+    var preferred;
+    if (gapBottom > gapTop) {
+      // Bars overlap vertically — use midpoint of overlap
+      preferred = (gapTop + gapBottom) / 2;
+    } else {
+      // Bars don't overlap — use midpoint of gap between them
+      preferred = (gapBottom + gapTop) / 2;
+    }
 
     // Try preferred first
     if (!crmGanttHLineHitsObstacle(src.right, tgt.left, preferred, obstacles)) {
       return preferred;
     }
 
-    // Try corridors above/below each bar
+    // Try corridors: above source, below source, above target, below target
     var candidates = [
-      src.top - 6, src.bottom + 6,
-      tgt.top - 6, tgt.bottom + 6,
-      preferred - 8, preferred + 8, preferred - 16, preferred + 16
+      src.top - 4, src.bottom + 4,
+      tgt.top - 4, tgt.bottom + 4,
+      preferred - 6, preferred + 6,
+      preferred - 12, preferred + 12,
+      preferred - 18, preferred + 18
     ];
     for (var i = 0; i < candidates.length; i++) {
       var cy = candidates[i];
-      if (cy < 0) continue;
+      if (cy < 2) continue;
       if (!crmGanttHLineHitsObstacle(src.right, tgt.left, cy, obstacles)) {
         return cy;
       }
