@@ -16141,7 +16141,7 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — fixed overlay on document.body
+  // 2. Dependency lines — fixed overlay on document.body, synced with board scroll
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
 
@@ -16167,6 +16167,9 @@ window.CRM.pageApiBindings = (function () {
       document.body.appendChild(overlay);
     }
 
+    // Sync overlay position with board horizontal scroll
+    overlay.style.transform = 'translateX(' + (-board.scrollLeft) + 'px)';
+
     var paths = [];
 
     // Collect all bar positions
@@ -16189,36 +16192,53 @@ window.CRM.pageApiBindings = (function () {
       var toRect = barPositions[dep.to_task_id];
       if (!fromRect || !toRect) continue;
 
-      // Fixed overlay: use getBoundingClientRect directly (viewport coords)
-      var x1 = fromRect.right;
-      var y1 = fromRect.top + fromRect.height / 2;
-      var x2 = toRect.left;
-      var y2 = toRect.top + toRect.height / 2;
+      // Source: right edge, center Y
+      var srcX = fromRect.right;
+      var srcY = fromRect.top + fromRect.height / 2;
+      // Target: left edge, center Y
+      var tgtX = toRect.left;
+      var tgtY = toRect.top + toRect.height / 2;
 
       var isCritical = dep.dependency_type === 'FS';
       var color = isCritical ? '#3b82f6' : '#94a3b8';
       var sw = isCritical ? 2 : 1.5;
       var dashAttr = isCritical ? '' : ' stroke-dasharray="5,3"';
 
-      var gap = 16;
-      var sx = x1 + gap;
-      var ex = x2 - gap;
-      var midX = (sx + ex) / 2;
+      var offset = 20; // horizontal offset from bar edge
+      var routeX = srcX + offset; // vertical segment X position
 
       var d;
-      if (Math.abs(y1 - y2) < 2) {
-        d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
-      } else if (sx >= ex) {
-        var bendX = Math.max(sx, ex) + gap;
-        d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + bendX + ' ' + y1 + ' L ' + bendX + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+      if (Math.abs(srcY - tgtY) < 2) {
+        // Same row: simple horizontal line with arrow
+        d = 'M ' + srcX + ' ' + srcY + ' L ' + tgtX + ' ' + tgtY;
+      } else if (tgtX > srcX + offset) {
+        // Normal FS: target is to the right — go right, down, right
+        var midX = (srcX + offset + tgtX) / 2;
+        d = 'M ' + srcX + ' ' + srcY
+          + ' L ' + (srcX + offset) + ' ' + srcY
+          + ' L ' + midX + ' ' + srcY
+          + ' L ' + midX + ' ' + tgtY
+          + ' L ' + (tgtX - 4) + ' ' + tgtY;
       } else {
-        d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + midX + ' ' + y1 + ' L ' + midX + ' ' + y2 + ' L ' + ex + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+        // Target overlaps or is to the left — go right past both, down, then left
+        var detourX = Math.max(srcX, tgtX) + offset * 2;
+        d = 'M ' + srcX + ' ' + srcY
+          + ' L ' + (srcX + offset) + ' ' + srcY
+          + ' L ' + detourX + ' ' + srcY
+          + ' L ' + detourX + ' ' + tgtY
+          + ' L ' + (tgtX - 4) + ' ' + tgtY;
       }
 
-      paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round"/>');
+      paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
 
-      var aSize = 7;
-      paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
+      // Arrow head at target point (filled triangle pointing right)
+      var aLen = 8;
+      var aW = 5;
+      paths.push('<polygon points="'
+        + (tgtX) + ',' + tgtY + ' '
+        + (tgtX - aLen) + ',' + (tgtY - aW) + ' '
+        + (tgtX - aLen) + ',' + (tgtY + aW)
+        + '" fill="' + color + '"/>');
     }
 
     var vw = window.innerWidth;
@@ -16239,10 +16259,8 @@ window.CRM.pageApiBindings = (function () {
   function _crmGanttDepsBindScroll() {
     if (_ganttDepsScrollHandler) return;
     _ganttDepsScrollHandler = _crmGanttDepsScrollTick;
-    // Board internal scroll
     var board = document.querySelector('.crm-gantt-board');
     if (board) board.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
-    // Page scroll
     window.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
     window.addEventListener('resize', _ganttDepsScrollHandler, { passive: true });
   }
