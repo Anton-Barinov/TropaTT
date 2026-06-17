@@ -7,7 +7,7 @@
     <div class="crm-login-panel-inner">
       <div class="crm-login-brand">
         <span class="crm-brand-mark" aria-hidden="true"></span>
-        <span>TropaTT</span>
+        <span><?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></span>
       </div>
       <div class="crm-login-copy">
         <div class="crm-login-kicker" data-i18n="login.kicker"><?= htmlspecialchars($t('login.kicker', 'Локальная рабочая система'), ENT_QUOTES, 'UTF-8') ?></div>
