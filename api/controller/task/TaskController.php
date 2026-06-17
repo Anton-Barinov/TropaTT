@@ -204,6 +204,11 @@ final class TaskController extends BaseController
                 'parent_task_public_id' => [$this->t('common/messages.validation_error')],
             ]);
         }
+        if ($item === 'TASK_KEY_FIELD_NOT_EDITABLE') {
+            return $this->error('TASK_KEY_FIELD_NOT_EDITABLE', $this->t('task/messages.not_editable', 'Task key fields are not editable'), 422, [
+                'task_key' => [$this->t('task/messages.not_editable', 'Task key fields are not editable')],
+            ]);
+        }
         if ($item === 'FORBIDDEN_TASK_IDENTITY_EDIT') {
             return $this->error('FORBIDDEN_TASK_IDENTITY_EDIT', $this->t('task/messages.identity_edit_forbidden'), 403, [
                 'task' => [$this->t('task/messages.identity_edit_forbidden')],
@@ -224,6 +229,33 @@ final class TaskController extends BaseController
         $this->invalidateCache('task');
 
         return $this->success('TASK_UPDATED', $this->t('task/messages.updated'), [
+            'task' => $item,
+        ], meta: [
+            'row_version' => (int)($item['row_version'] ?? 1),
+        ]);
+    }
+
+    public function getByKey(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $key = trim((string)($params['task_key'] ?? $this->request()->query('key', '')));
+        if ($key === '') {
+            return $this->error('TASK_KEY_INVALID', $this->t('task/messages.invalid_task_key', 'Invalid task key'), 422);
+        }
+
+        /** @var TaskService $service */
+        $service = $this->container->get('service.task');
+        $item = $service->getByTaskKey($key, $authUser['user']);
+
+        if (!$item) {
+            return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
+        }
+
+        return $this->success('TASK_DETAIL', $this->t('task/messages.detail'), [
             'task' => $item,
         ], meta: [
             'row_version' => (int)($item['row_version'] ?? 1),

@@ -1,3 +1,24 @@
+.crm-task-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-primary-700, #047857);
+  background: var(--color-primary-50, #ECFDF5);
+  border: 1px solid var(--color-primary-100, #D1FAE5);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.crm-task-key-badge:hover {
+  background: var(--color-primary-100, #D1FAE5);
+  border-color: var(--color-primary-300, #A7F3D0);
+}
+
 .card,
 .crm-card {
   border: 1px solid var(--crm-border);

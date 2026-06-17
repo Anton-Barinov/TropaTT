@@ -303,6 +303,13 @@
         </div>
       </div>
       <div class="crm-info-panel mb-2">
+        <small class="text-muted" data-i18n="task_detail.summary_task_key_label"><?= htmlspecialchars($t('task_detail.summary_task_key_label', 'Ключ задачи'), ENT_QUOTES, 'UTF-8') ?></small>
+        <div class="crm-summary-value d-flex align-items-center gap-2">
+          <span id="taskKeyValue">—</span>
+          <button class="btn btn-sm crm-btn-ghost crm-btn-icon" id="taskKeyCopyBtn" title="<?= htmlspecialchars($t('task_detail.copy_key_title', 'Копировать ключ'), ENT_QUOTES, 'UTF-8') ?>" style="display:none" data-i18n-title="task_detail.copy_key_title"></button>
+        </div>
+      </div>
+      <div class="crm-info-panel mb-2">
         <small class="text-muted" data-i18n="task_detail.summary_author_label"><?= htmlspecialchars($t('task_detail.summary_author_label', 'Автор задачи'), ENT_QUOTES, 'UTF-8') ?></small>
         <div class="crm-summary-value" id="taskAuthorValue">—</div>
       </div>

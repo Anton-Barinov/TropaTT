@@ -58,6 +58,11 @@ final class PermissionService
             'ai.view_audit' => $this->t('permission/messages.perm_ai_view_audit'),
             'ai.view_cron_results' => $this->t('permission/messages.perm_ai_view_cron'),
             'ai.manage_cron_jobs' => $this->t('permission/messages.perm_ai_manage_cron'),
+            'intake.view' => $this->t('permission/messages.perm_intake_view', 'Intake: view items'),
+            'intake.create' => $this->t('permission/messages.perm_intake_create', 'Intake: create items'),
+            'intake.manage' => $this->t('permission/messages.perm_intake_manage', 'Intake: manage items'),
+            'intake.accept' => $this->t('permission/messages.perm_intake_accept', 'Intake: accept to task'),
+            'intake.delete' => $this->t('permission/messages.perm_intake_delete', 'Intake: soft delete items'),
         ];
 
         $this->permissions->ensureRegistry($registry);

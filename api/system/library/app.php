@@ -91,6 +91,7 @@ use Api\System\Library\Service\ImportAiContextBuilder;
 use Api\System\Library\Service\ImpersonationService;
 use Api\System\Library\Service\InvitationService;
 use Api\System\Library\Service\InstallService;
+use Api\System\Library\Service\IntakeItemService;
 use Api\System\Library\Service\LogsService;
 use Api\System\Library\Service\MigrationService;
 use Api\System\Library\Service\MilestoneService;
@@ -130,6 +131,7 @@ use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\TaskService;
+use Api\System\Library\Service\TaskKeyService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserProfileService;
 use Api\System\Library\Service\AuthzService;
@@ -721,6 +723,8 @@ final class App
         $this->container->factory('repository.recurring', fn(Container $c) => new \Api\Model\Recurring\RecurringRepository($c->get('db.pdo'), $c->get('lang')));
         $this->container->factory('repository.custom_field', fn(Container $c) => new \Api\Model\Custom_field\CustomFieldRepository($c->get('db.pdo')));
         $this->container->factory('repository.workflow', fn(Container $c) => new \Api\Model\Workflow\WorkflowRepository($c->get('db.pdo')));
+        $this->container->factory('repository.intake_item', fn(Container $c) => new \Api\Model\Intake\IntakeItemRepository($c->get('db.pdo')));
+        $this->container->factory('repository.intake_item_activity', fn(Container $c) => new \Api\Model\Intake\IntakeItemActivityRepository($c->get('db.pdo')));
         $this->container->factory('repository.sla', fn(Container $c) => new \Api\Model\Sla\SlaRepository($c->get('db.pdo')));
         $this->container->factory('repository.approval', fn(Container $c) => new \Api\Model\Approval\ApprovalRepository($c->get('db.pdo')));
         $this->container->factory('repository.recycle_bin', fn(Container $c) => new \Api\Model\Recycle_bin\RecycleBinRepository($c->get('db.pdo')));
@@ -798,7 +802,9 @@ final class App
             $c->get('repository.team'),
             $c->get('service.notification'),
             $c->get('service.ai_semantic_index'),
-            $c->get('service.chat')
+            $c->get('service.chat'),
+            $c->get('service.task_key'),
+            $c->get('repository.task_key_counter')
         ));
         $this->container->factory('service.project_summary', fn(Container $c) => new ProjectSummaryService(
             $c->get('repository.project_summary'),
@@ -810,13 +816,20 @@ final class App
             $c->get('repository.milestone'),
             $c->get('repository.dependency')
         ));
+        $this->container->factory('service.task_key', fn(Container $c) => new TaskKeyService(
+            $c->get('repository.task_key_counter'),
+            $c->get('repository.project')
+        ));
         $this->container->factory('service.task', fn(Container $c) => new TaskService(
             $c->get('repository.task'),
             $c->get('service.project'),
             $c->get('repository.team'),
             $c->get('service.notification'),
             $c->get('service.ai_semantic_index'),
-            $c->get('service.task_activity')
+            $c->get('service.task_activity'),
+            $c->get('service.task_key'),
+            $c->get('repository.task_key_counter'),
+            $c->get('repository.project')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -1373,6 +1386,14 @@ final class App
         $this->container->factory('controller.module', fn(Container $c) => new \Api\Controller\Module\ModuleController($c));
         $this->container->factory('service.idea', fn(Container $c) => new \Api\System\Library\Service\IdeaService(
             $c->get('db.pdo')
+        ));
+
+        $this->container->factory('service.intake_item', fn(Container $c) => new IntakeItemService(
+            $c->get('repository.intake_item'),
+            $c->get('repository.intake_item_activity'),
+            $c->get('service.task'),
+            $c->get('service.project'),
+            $c->get('service.notification')
         ));
 
         $router = new Router();

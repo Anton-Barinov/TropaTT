@@ -139,7 +139,7 @@ TropaTT works for anyone managing clients and executing work. Here's who uses it
 
 **CRM.** Clients, counterparties, companies, contacts, organizations, departments, teams. Custom fields for your industry. Full history: every project, task, and communication tied to each client.
 
-**Task manager.** Full hierarchy: parent tasks, subtasks, checklists. Statuses, priorities, due dates, assignees, tags. Task dependencies. WIP limits. Comments with file attachments and @mentions. Templates for recurring work. Mass actions when you need to update 20 tasks at once.
+**Task manager.** Full hierarchy: parent tasks, subtasks, checklists. Statuses, priorities, due dates, assignees, tags. Task dependencies. WIP limits. Comments with file attachments and @mentions. Templates for recurring work. Human-readable task keys (PRJ-001). Mass actions when you need to update 20 tasks at once.
 
 **Projects.** Milestones, risks, workload context, timeline views. Kanban boards for flow. Gantt charts for deadlines and dependencies. Project templates for repeatable delivery.
 
@@ -164,7 +164,7 @@ TropaTT works for anyone managing clients and executing work. Here's who uses it
 | Area | What you get | Why it matters |
 |---|---|---|
 | **CRM** | Clients, counterparties, companies, contacts, orgs | All business relationships in one place |
-| **Tasks** | Hierarchy, subtasks, checklists, WIP limits, dependencies, templates | One task tracker instead of a separate subscription |
+| **Tasks** | Hierarchy, subtasks, checklists, WIP limits, dependencies, templates, human-readable keys (PRJ-001) | One task tracker instead of a separate subscription |
 | **Projects** | Milestones, risks, Gantt, workload context, templates | Delivery control with timeline and responsibility |
 | **Kanban** | Drag-and-drop board for task flow | Visual status management, fewer bottlenecks |
 | **Gantt** | Timeline with dependency-aware scheduling | Deadline visibility and resource planning |
@@ -175,6 +175,7 @@ TropaTT works for anyone managing clients and executing work. Here's who uses it
 | **Automation** | Workflow rules, SLA, approvals, webhooks, jobs | Less manual coordination, fewer errors |
 | **AI (20+ tools)** | Idea analysis, plans, decomposition, summaries, checklists, risk review, meeting prep | AI that saves time in real workflows |
 | **Admin** | Users, roles, permissions, feature flags, modules, logs | Full control over your workspace |
+| **Intake** | Capture, triage, and accept incoming client requests before turning them into tasks | Separate raw requests from real work, accept into tasks in one click |
 | **Privacy** | 100% local data, no cloud access | Zero vendor lock-in, GDPR under your control |
 | **No plan caps** | Users, tasks, projects, clients, files are not capped by SaaS pricing | Scales with your infrastructure, not your bill |
 | **Install** | Browser wizard for any PHP/MySQL host | First launch in minutes, no terminal |
@@ -603,7 +604,7 @@ TropaTT подходит всем, кто управляет клиентами 
 | Область | Что даёт TropaTT | Почему это важно |
 |---|---|---|
 | **CRM** | Клиенты, контрагенты, компании, контакты, организации, отделы | Единое место для всех деловых связей и контекста |
-| **Таск-менеджер** | Иерархия, подзадачи, чеклисты, WIP-лимиты, зависимости, шаблоны | Замена отдельных подписок на таск-трекеры |
+| **Таск-менеджер** | Иерархия, подзадачи, чеклисты, WIP-лимиты, зависимости, шаблоны, человекочитаемые ключи (PRJ-001) | Замена отдельных подписок на таск-трекеры |
 | **Проекты** | Вехи, риски, Гант, контекст загрузки, шаблоны | Контроль поставки со сроками и ответственностью |
 | **Канбан** | Доска с перетаскиванием задач по статусам | Визуальное управление потоком, уменьшение заторов |
 | **Гант** | Временная шкала с зависимостями | Обзор сроков и ресурсное планирование |

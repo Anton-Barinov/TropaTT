@@ -6,6 +6,7 @@ namespace Api\System\Library\Service;
 use Api\Model\Common\UserRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\Model\Team\TeamRepository;
+use Api\Model\Task\TaskKeyCounterRepository;
 use Api\System\Library\Support\Ulid;
 
 final class ProjectService
@@ -16,7 +17,9 @@ final class ProjectService
         private readonly TeamRepository $teams,
         private readonly ?NotificationService $notifications = null,
         private readonly ?AiSemanticIndexService $semanticIndex = null,
-        private readonly ?ChatService $chats = null
+        private readonly ?ChatService $chats = null,
+        private readonly ?TaskKeyService $taskKeys = null,
+        private readonly ?TaskKeyCounterRepository $keyCounters = null
     )
     {
     }
@@ -90,6 +93,15 @@ final class ProjectService
             $managerUserId = (int)$input['manager_user_id'];
         }
 
+        // Resolve task_key_prefix
+        $taskKeyPrefix = null;
+        if (!empty($input['task_key_prefix'])) {
+            $taskKeyPrefix = $this->resolveTaskKeyPrefix((string)$input['task_key_prefix'], null);
+        } else {
+            $taskKeyPrefix = $this->taskKeys?->generateProjectPrefix((string)($input['title'] ?? ''));
+            $taskKeyPrefix = $this->taskKeys?->ensureUniqueProjectPrefix($taskKeyPrefix ?? 'PRJ', null) ?? 'PRJ';
+        }
+
         $this->projects->create([
             'public_id' => $publicId,
             'title' => trim((string)$input['title']),
@@ -97,6 +109,7 @@ final class ProjectService
             'status_code' => (string)($input['status'] ?? 'active'),
             'priority_code' => (string)($input['priority'] ?? 'normal'),
             'client_public_id' => (string)($input['client_public_id'] ?? ''),
+            'task_key_prefix' => $taskKeyPrefix,
             'manager_user_id' => $managerUserId,
             'team_public_id' => $teamPublicId,
             'created_by_user_id' => $creatorUserId,
@@ -108,6 +121,11 @@ final class ProjectService
         $project = $this->projects->findByPublicId($publicId);
 
         if (is_array($project)) {
+            // Initialize task key counter for this project
+            if ($taskKeyPrefix !== null && $this->keyCounters !== null) {
+                $this->keyCounters->ensureProjectCounter((int)$project['id'], $taskKeyPrefix);
+            }
+
             if ($managerUserId !== null && $managerUserId > 0) {
                 $this->notifications?->notifyProjectManagerAssigned($project, $managerUserId, $actor);
             }
@@ -195,8 +213,24 @@ final class ProjectService
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
+        if (array_key_exists('task_key_prefix', $input)) {
+            $resolved = $this->resolveTaskKeyPrefix((string)$input['task_key_prefix'], $publicId);
+            if ($resolved === null) {
+                return null;
+            }
+            $set['task_key_prefix'] = $resolved;
+        }
+
         $this->projects->updateByPublicId($publicId, $set);
         $this->semanticIndex?->removeEntityDocument('project', $publicId);
+
+        // Sync counter prefix when project prefix changes
+        if (array_key_exists('task_key_prefix', $set) && $this->keyCounters !== null) {
+            $projectId = (int)($project['id'] ?? 0);
+            if ($projectId > 0) {
+                $this->keyCounters->ensureProjectCounter($projectId, (string)$set['task_key_prefix']);
+            }
+        }
 
         $updated = $this->projects->findByPublicId($publicId);
         if (!$updated || !$this->canAccess($updated, $actor)) {
@@ -348,5 +382,33 @@ final class ProjectService
         }
 
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
+    }
+
+    private function resolveTaskKeyPrefix(string $rawPrefix, ?string $exceptProjectPublicId): ?string
+    {
+        if ($this->taskKeys === null) {
+            return null;
+        }
+
+        $normalized = $this->taskKeys->normalizePrefix($rawPrefix);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (!$this->taskKeys->isValidPrefix($normalized)) {
+            return null;
+        }
+
+        if ($this->taskKeys->isReservedPrefix($normalized)) {
+            return null;
+        }
+
+        // Check for duplicate prefix - return null so controller can return PROJECT_TASK_PREFIX_ALREADY_EXISTS
+        if ($this->projects->taskKeyPrefixExists($normalized, $exceptProjectPublicId)) {
+            return null;
+        }
+
+        return $normalized;
     }
 }

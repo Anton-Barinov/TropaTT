@@ -182,6 +182,7 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/board', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'board', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/bulk', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'bulkUpdate', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/by-key/{task_key}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'getByKey', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -516,6 +517,19 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/organizations/{public_id}/members', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'listMembers', 'auth' => true, 'required_permissions' => ['organization.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/organizations/{public_id}/members', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'addMember', 'auth' => true, 'required_permissions' => ['organization.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/organizations/{public_id}/members/{user_public_id}', 'controller' => Api\Controller\Organization\OrganizationController::class, 'action' => 'removeMember', 'auth' => true, 'required_permissions' => ['organization.manage']],
+
+    // intake items
+    ['methods' => ['GET'], 'pattern' => '/api/v1/intake-items', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['intake.view']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['intake.create']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['intake.view']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['intake.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/intake-items/{public_id}', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['intake.delete']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/{public_id}/accept', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'accept', 'auth' => true, 'required_permissions' => ['intake.accept']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/{public_id}/reject', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'reject', 'auth' => true, 'required_permissions' => ['intake.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/{public_id}/snooze', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'snooze', 'auth' => true, 'required_permissions' => ['intake.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/{public_id}/duplicate', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'duplicate', 'auth' => true, 'required_permissions' => ['intake.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/intake-items/{public_id}/reopen', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'reopen', 'auth' => true, 'required_permissions' => ['intake.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/intake-items/{public_id}/activities', 'controller' => Api\Controller\Intake\IntakeItemController::class, 'action' => 'activities', 'auth' => true, 'required_permissions' => ['intake.view']],
 
     // docs/logs/events
     ['methods' => ['GET'], 'pattern' => '/api/v1/docs/openapi', 'controller' => Api\Controller\Docs\DocsController::class, 'action' => 'openapi', 'auth' => true, 'required_permissions' => ['logs.view']],

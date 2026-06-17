@@ -5,6 +5,8 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Team\TeamRepository;
 use Api\Model\Task\TaskRepository;
+use Api\Model\Task\TaskKeyCounterRepository;
+use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Support\Ulid;
 
 final class TaskService
@@ -15,7 +17,10 @@ final class TaskService
         private readonly TeamRepository $teams,
         private readonly ?NotificationService $notifications = null,
         private readonly ?AiSemanticIndexService $semanticIndex = null,
-        private readonly ?TaskActivityService $activity = null
+        private readonly ?TaskActivityService $activity = null,
+        private readonly ?TaskKeyService $taskKeys = null,
+        private readonly ?TaskKeyCounterRepository $keyCounters = null,
+        private readonly ?ProjectRepository $projectRepo = null
     )
     {
     }
@@ -106,12 +111,21 @@ final class TaskService
             $projectId ??= isset($parentTask['project_id']) ? (int)$parentTask['project_id'] : null;
         }
 
+        // Generate task key
+        $taskKeyData = $this->generateTaskKey($projectId, $input);
+        $taskKey = $taskKeyData['task_key'] ?? null;
+        $taskKeyPrefix = $taskKeyData['task_key_prefix'] ?? null;
+        $taskSequenceNumber = $taskKeyData['task_sequence_number'] ?? null;
+
         $createdAt = !empty($input['created_at']) ? (string)$input['created_at'] : gmdate('Y-m-d H:i:s');
         $updatedAt = !empty($input['updated_at']) ? (string)$input['updated_at'] : $createdAt;
 
         $this->tasks->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
+            'task_key' => $taskKey,
+            'task_key_prefix' => $taskKeyPrefix,
+            'task_sequence_number' => $taskSequenceNumber,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
             'status_code' => (string)($input['status'] ?? 'new'),
@@ -172,6 +186,30 @@ final class TaskService
         return $task;
     }
 
+    public function getByTaskKey(string $taskKey, array $actor): ?array
+    {
+        $normalized = strtoupper(trim($taskKey));
+
+        // Validate format
+        if (preg_match('/^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*$/', $normalized) !== 1) {
+            return null;
+        }
+
+        $task = $this->tasks->findByTaskKey($normalized);
+        if (!$task) {
+            return null;
+        }
+        if ((string)($task['deleted_at'] ?? '') !== '') {
+            return null;
+        }
+
+        if (!$this->canAccess($task, $actor)) {
+            return null;
+        }
+
+        return $task;
+    }
+
     /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT' */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
     {
@@ -218,6 +256,11 @@ final class TaskService
         if (array_key_exists('assignee_user_id', $input)) {
             $set['assignee_user_id'] = $input['assignee_user_id'] !== null ? (int)$input['assignee_user_id'] : null;
         }
+        // task_key is not editable
+        if (array_key_exists('task_key', $input) || array_key_exists('task_key_prefix', $input) || array_key_exists('task_sequence_number', $input)) {
+            return 'TASK_KEY_FIELD_NOT_EDITABLE';
+        }
+
         if (array_key_exists('project_public_id', $input)) {
             $projectPublicId = trim((string)$input['project_public_id']);
             if ($projectPublicId === '') {
@@ -405,5 +448,35 @@ final class TaskService
         }
 
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
+    }
+
+    /** @return array{task_key: string|null, task_key_prefix: string|null, task_sequence_number: int|null} */
+    private function generateTaskKey(?int $projectId, array $input): array
+    {
+        if ($this->taskKeys === null) {
+            return ['task_key' => null, 'task_key_prefix' => null, 'task_sequence_number' => null];
+        }
+
+        // Determine project prefix
+        $projectPrefix = null;
+        if ($projectId !== null && $projectId > 0 && $this->projectRepo !== null) {
+            $projectPrefix = $this->projectRepo->taskKeyPrefixById($projectId);
+            if ($projectPrefix === null || $projectPrefix === '') {
+                // Try to get from project
+                if (!empty($input['project_public_id'])) {
+                    $project = $this->projects->get((string)$input['project_public_id'], []);
+                    if ($project && !empty($project['task_key_prefix'])) {
+                        $projectPrefix = (string)$project['task_key_prefix'];
+                    }
+                }
+            }
+        }
+
+        $result = $this->taskKeys->assignNextTaskKey($projectId, $projectPrefix);
+        if ($result === null) {
+            throw new \RuntimeException('Failed to generate task key');
+        }
+
+        return $result;
     }
 }

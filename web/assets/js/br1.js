@@ -2208,6 +2208,49 @@ window.CRM.br1 = (function () {
       }
     }
 
+    var taskKeyEl = document.getElementById('taskKeyValue');
+    if (taskKeyEl) {
+      if (currentTask.task_key) {
+        taskKeyEl.textContent = currentTask.task_key;
+      } else {
+        taskKeyEl.textContent = window.CRM.i18n.t('js.br1.bez_klyucha', 'Без ключа');
+      }
+    }
+
+    var copyBtn = document.getElementById('taskKeyCopyBtn');
+    if (copyBtn) {
+      var keyText = currentTask.task_key || '';
+      if (keyText) {
+        copyBtn.style.display = '';
+        var iconSpan = document.createElement('span');
+        iconSpan.className = 'crm-icon';
+        iconSpan.setAttribute('aria-hidden', 'true');
+        var iconI = document.createElement('i');
+        iconI.className = 'fa-solid fa-copy';
+        iconSpan.appendChild(iconI);
+        copyBtn.innerHTML = '';
+        copyBtn.appendChild(iconSpan);
+        copyBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          navigator.clipboard.writeText(keyText).then(function () {
+            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>';
+            copyBtn.classList.add('crm-btn-success');
+            setTimeout(function () {
+              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+              copyBtn.classList.remove('crm-btn-success');
+            }, 1500);
+          })['catch'](function () {
+            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>';
+            setTimeout(function () {
+              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+            }, 1500);
+          });
+        });
+      } else {
+        copyBtn.style.display = 'none';
+      }
+    }
+
     var datesEl = document.getElementById('taskDatesValue');
     if (datesEl) {
       var parts = [];
