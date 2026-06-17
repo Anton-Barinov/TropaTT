@@ -368,7 +368,11 @@ window.CRM.notificationsRealtime = (function () {
 
     var wasNew = registerSeenNotification(item.public_id);
     if (wasNew) {
-      var title = String(item.title || window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
+      var rawTitle = String(item.title || window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
+      var title = rawTitle;
+      if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.notificationText === 'function') {
+        title = window.CRM.pageApiBindings.notificationText(item.title, rawTitle) || rawTitle;
+      }
       var category = normalizeCategory(item.category || 'system');
       if (isChannelEnabled(category, 'in_app')) {
         notify(title);

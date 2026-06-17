@@ -26785,6 +26785,7 @@ window.CRM.pageApiBindings = (function () {
     refreshCurrentPage: refreshCurrentPage,
     refreshNotificationsWidgets: refreshNotificationsWidgets,
     refreshNotificationsCenterIfActive: refreshNotificationsCenterIfActive,
+    notificationText: notificationText,
     bindTaskDependencies: bindTaskDependencies,
     getCurrentTaskProjectId: getCurrentTaskProjectId,
     registerDomain: registerDomain,

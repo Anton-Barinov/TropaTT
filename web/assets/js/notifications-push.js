@@ -118,7 +118,11 @@ window.CRM.notificationsPush = (function () {
   }
 
   function buildNotificationPayload(item) {
-    var title = String(item && item.title ? item.title : window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
+    var rawTitle = String(item && item.title ? item.title : window.CRM.i18n.t('js.notify.new_notification', 'New notification'));
+    var title = rawTitle;
+    if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.notificationText === 'function') {
+      title = window.CRM.pageApiBindings.notificationText(item && item.title, rawTitle) || rawTitle;
+    }
     var body = String(item && item.body ? item.body : '');
     var link = String(item && item.link ? item.link : 'index.php?route=notifications');
     return {
