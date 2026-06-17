@@ -636,7 +636,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" data-i18n="dependency.modal_task_label"><?= htmlspecialchars($t('dependency.modal_task_label', 'Задача'), ENT_QUOTES, 'UTF-8') ?></label>
-            <select id="depTargetTaskSelect" class="form-select" name="target_task_public_id" required>
+            <select id="depTargetTaskSelect" class="form-select" name="target_task_public_id">
               <option value=""><?= htmlspecialchars($t('dependency.modal_task_placeholder', 'Поиск задачи по названию...'), ENT_QUOTES, 'UTF-8') ?></option>
             </select>
           </div>
