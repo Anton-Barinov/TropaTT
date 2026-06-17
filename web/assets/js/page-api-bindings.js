@@ -16281,26 +16281,13 @@ window.CRM.pageApiBindings = (function () {
     tipLines.push('Задача начинается раньше завершения предшественника');
     var tooltipText = tipLines.join(' | ').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
+    // Warning badge — NO permanent connecting lines
     parts.push('<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
       + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round" style="pointer-events:auto;cursor:pointer;"/>'
       + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
       + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
       + '<title>' + tooltipText + '</title>'
       + '</g>');
-
-    // Draw compact orthogonal dashed line from each source to target
-    if (info.sourcePositions) {
-      for (var s = 0; s < info.sourcePositions.length; s++) {
-        var src = info.sourcePositions[s];
-        var sx = src.right;
-        var sy = src.centerY;
-        var tx = tgt.left;
-        var ty = tgt.centerY;
-        var lineLen = Math.abs(tx - sx) + Math.abs(ty - sy);
-        if (lineLen > _GANTT_DEP_MAX_CONFLICT_LINE) continue; // skip long lines
-        _crmGanttDepsDrawCompactLine(parts, sx, sy, tx, ty);
-      }
-    }
   }
 
   function _crmGanttDepsDrawCompactLine(parts, sx, sy, tx, ty) {
@@ -16352,26 +16339,40 @@ window.CRM.pageApiBindings = (function () {
     }
     var parts = [];
     var tgt = info.pos;
+    var pad = 4;
+
     // Highlight target
-    parts.push('<rect x="' + (tgt.left - 3) + '" y="' + (tgt.top - 3) + '" width="' + (tgt.right - tgt.left + 6) + '" height="' + (tgt.bottom - tgt.top + 6) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,2"/>');
-    // Draw line from each source to target
+    parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+
     if (info.sourcePositions) {
       for (var s = 0; s < info.sourcePositions.length; s++) {
         var src = info.sourcePositions[s];
-        var sx = src.right, sy = src.centerY, tx = tgt.left, ty = tgt.centerY;
+
         // Highlight source
-        parts.push('<rect x="' + (src.left - 3) + '" y="' + (src.top - 3) + '" width="' + (src.right - src.left + 6) + '" height="' + (src.bottom - src.top + 6) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="4,2"/>');
-        // Orthogonal line
-        _crmGanttDepsDrawCompactLine(parts, sx, sy, tx, ty);
-        // Override opacity to full for hover
-        parts[parts.length - 1] = parts[parts.length - 1].replace('opacity="0.5"', 'opacity="1"');
-        if (parts.length > 1) parts[parts.length - 2] = parts[parts.length - 2].replace('opacity="0.5"', 'opacity="1"');
-        if (parts.length > 1) {
-          // Fix arrow head opacity too
-          for (var p = parts.length - 3; p < parts.length; p++) {
-            parts[p] = parts[p].replace('opacity="0.5"', 'opacity="1"');
-          }
-        }
+        parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+
+        // Route through rail LEFT of both bars
+        var railX = Math.min(src.left, tgt.left) - 16;
+        if (railX < 0) railX = 4;
+
+        var sx = railX;
+        var sy = src.centerY;
+        var tx = railX;
+        var ty = tgt.centerY;
+
+        var d = 'M ' + (src.right) + ' ' + sy
+          + ' L ' + sx + ' ' + sy
+          + ' L ' + tx + ' ' + ty
+          + ' L ' + tgt.left + ' ' + ty;
+        parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
+
+        // Arrow head at target left edge
+        var aLen = 6, aW = 3;
+        parts.push('<polygon points="'
+          + tgt.left + ',' + ty + ' '
+          + (tgt.left + aLen) + ',' + (ty - aW) + ' '
+          + (tgt.left + aLen) + ',' + (ty + aW)
+          + '" fill="#ea580c"/>');
       }
     }
     hoverSvg.innerHTML = parts.join('');
