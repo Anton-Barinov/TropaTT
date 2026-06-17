@@ -16141,7 +16141,7 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — fixed overlay on document.body
+  // 2. Dependency lines — absolute overlay on document.body
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
 
@@ -16159,42 +16159,51 @@ window.CRM.pageApiBindings = (function () {
     var board = document.querySelector('.crm-gantt-board');
     if (!board) return;
 
-    // Build or reuse SVG overlay on body
+    // Build or reuse overlay on body
     var overlay = document.getElementById('ganttDepsOverlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;overflow:visible;';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;';
       document.body.appendChild(overlay);
-      console.log('[DEPS-DEBUG] Overlay created and appended to body');
     }
-    console.log('[DEPS-DEBUG] Drawing', paths.length, 'paths, overlay exists:', !!overlay, 'body children:', document.body.children.length);
+
+    var scrollX = window.scrollX || 0;
+    var scrollY = window.scrollY || 0;
 
     var paths = [];
-    var barPositions = {};
 
     // Collect all bar positions once
+    var barPositions = {};
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
     for (var i = 0; i < barEls.length; i++) {
       var bar = barEls[i];
-      var rowId = bar.getAttribute('data-gantt-row-id') || bar.closest('.crm-gantt-lane--task').getAttribute('data-gantt-row-id');
+      var lane = bar.closest('.crm-gantt-lane--task');
+      if (!lane) continue;
+      var rowId = lane.getAttribute('data-gantt-row-id');
       if (rowId && rowId.indexOf('task-') === 0) {
         var taskId = rowId.substring(5);
-        barPositions[taskId] = bar.getBoundingClientRect();
+        var rect = bar.getBoundingClientRect();
+        barPositions[taskId] = {
+          right: rect.right + scrollX,
+          left: rect.left + scrollX,
+          top: rect.top + scrollY,
+          height: rect.height
+        };
       }
     }
 
     // Draw each dependency
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
-      var fromRect = barPositions[dep.from_task_id];
-      var toRect = barPositions[dep.to_task_id];
-      if (!fromRect || !toRect) continue;
+      var fromPos = barPositions[dep.from_task_id];
+      var toPos = barPositions[dep.to_task_id];
+      if (!fromPos || !toPos) continue;
 
-      var x1 = fromRect.right;
-      var y1 = fromRect.top + fromRect.height / 2;
-      var x2 = toRect.left;
-      var y2 = toRect.top + toRect.height / 2;
+      var x1 = fromPos.right;
+      var y1 = fromPos.top + fromPos.height / 2;
+      var x2 = toPos.left;
+      var y2 = toPos.top + toPos.height / 2;
 
       var isCritical = dep.dependency_type === 'FS';
       var color = isCritical ? '#3b82f6' : '#94a3b8';
@@ -16209,29 +16218,16 @@ window.CRM.pageApiBindings = (function () {
 
       var d;
       if (Math.abs(y1 - y2) < 2) {
-        // Same row or very close
         d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
       } else if (sx >= ex) {
-        // Target is to the left — go right, down, left
         var bendX = Math.max(sx, ex) + gap;
-        d = 'M ' + x1 + ' ' + y1
-          + ' L ' + sx + ' ' + y1
-          + ' L ' + bendX + ' ' + y1
-          + ' L ' + bendX + ' ' + y2
-          + ' L ' + x2 + ' ' + y2;
+        d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + bendX + ' ' + y1 + ' L ' + bendX + ' ' + y2 + ' L ' + x2 + ' ' + y2;
       } else {
-        // Normal FS: right → down → right
-        d = 'M ' + x1 + ' ' + y1
-          + ' L ' + sx + ' ' + y1
-          + ' L ' + midX + ' ' + y1
-          + ' L ' + midX + ' ' + y2
-          + ' L ' + ex + ' ' + y2
-          + ' L ' + x2 + ' ' + y2;
+        d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + midX + ' ' + y1 + ' L ' + midX + ' ' + y2 + ' L ' + ex + ' ' + y2 + ' L ' + x2 + ' ' + y2;
       }
 
       paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round"/>');
 
-      // Arrow head
       var aSize = 7;
       paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2)
         + ' L ' + x2 + ' ' + y2
@@ -16239,10 +16235,11 @@ window.CRM.pageApiBindings = (function () {
         + ' Z" fill="' + color + '"/>');
     }
 
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    overlay.innerHTML = '<div style="position:fixed;top:50px;left:50px;width:200px;height:100px;background:red;z-index:999999;color:white;font-size:20px;padding:10px;">TEST</div>'
-      + '<svg xmlns="http://www.w3.org/2000/svg" width="' + vw + '" height="' + vh + '">'
+    var docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    var docWidth = Math.max(document.body.scrollWidth, document.documentElement.scrollWidth);
+    overlay.style.width = docWidth + 'px';
+    overlay.style.height = docHeight + 'px';
+    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + docWidth + '" height="' + docHeight + '">'
       + paths.join('') + '</svg>';
   }
 
