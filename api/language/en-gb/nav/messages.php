@@ -15,8 +15,13 @@ return [
     'analytics' => 'Analytics',
     'notifications' => 'Notifications',
     'admin' => 'Administration',
+    'intake' => 'Intake',
+    'cycles' => 'Cycles',
+    'project_modules' => 'Project Modules',
+    'admin_estimates' => 'Task Estimates',
     'admin_modules' => 'Modules',
     'chat' => 'Chats',
+    'docs' => 'Documentation',
     'api' => 'Documentation',
     'menu_loaded' => 'Menu loaded',
 ];
