@@ -16028,7 +16028,6 @@ window.CRM.pageApiBindings = (function () {
             dependency_type: String(d.dependency_type || d.type || 'FS')
           };
         }).filter(function (d) { return d.from_task_id && d.to_task_id; });
-        console.log('[DEPS] loaded', window.CRM.ganttDependencies.length, 'dependencies:', JSON.stringify(window.CRM.ganttDependencies));
       }
     } catch (e) {
       console.warn('[GANTT] Failed to load dependencies', e);
@@ -16141,30 +16140,30 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines rendering — uses actual bar DOM positions
+  // 2. Dependency lines rendering — overlay OUTSIDE the scrollable board
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    console.log('[DEPS] render called, deps:', deps.length, 'groups:', groups.length);
     if (!deps.length) return;
 
     var board = document.querySelector('.crm-gantt-board');
-    if (!board) { console.log('[DEPS] no board found'); return; }
+    if (!board) return;
 
     // Remove old overlay
     var oldOverlay = document.getElementById('ganttDepsOverlay');
     if (oldOverlay) oldOverlay.remove();
 
-    // Create overlay
+    // Place overlay in the shell (parent of board), not inside board
+    var shell = board.closest('.crm-gantt-shell') || board.parentElement;
+    if (!shell) return;
+    shell.style.position = shell.style.position || 'relative';
+
     var overlay = document.createElement('div');
     overlay.id = 'ganttDepsOverlay';
-    overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:999;overflow:visible;background:rgba(255,0,0,0.05);';
-    board.style.position = 'relative';
-    board.appendChild(overlay);
+    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:999;overflow:visible;';
+    shell.appendChild(overlay);
 
-    // Use setTimeout to ensure layout is complete
     setTimeout(function () {
       var boardRect = board.getBoundingClientRect();
-      var barCount = 0;
       var matchedDeps = 0;
       var paths = [];
 
@@ -16172,19 +16171,16 @@ window.CRM.pageApiBindings = (function () {
         var fromBar = document.querySelector('[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
         var toBar = document.querySelector('[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
         if (!fromBar || !toBar) return;
-        barCount += 2;
         matchedDeps++;
 
         var fromRect = fromBar.getBoundingClientRect();
         var toRect = toBar.getBoundingClientRect();
 
-        var scrollLeft = board.scrollLeft;
-        var scrollTop = board.scrollTop;
-
-        var x1 = fromRect.right - boardRect.left + scrollLeft;
-        var y1 = fromRect.top + fromRect.height / 2 - boardRect.top + scrollTop;
-        var x2 = toRect.left - boardRect.left + scrollLeft;
-        var y2 = toRect.top + toRect.height / 2 - boardRect.top + scrollTop;
+        // Coordinates relative to the page (overlay is in shell, not scrolled board)
+        var x1 = fromRect.right;
+        var y1 = fromRect.top + fromRect.height / 2;
+        var x2 = toRect.left;
+        var y2 = toRect.top + toRect.height / 2;
 
         var isCritical = dep.dependency_type === 'FS';
         var color = isCritical ? '#ef4444' : '#94a3b8';
@@ -16212,9 +16208,9 @@ window.CRM.pageApiBindings = (function () {
         paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
       });
 
-      console.log('[DEPS] matched:', matchedDeps, 'bars found:', barCount, 'paths:', paths.length);
-
-      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible;">'
+      var pageWidth = document.documentElement.clientWidth;
+      var pageHeight = document.documentElement.clientHeight;
+      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageWidth + '" height="' + pageHeight + '" style="position:fixed;top:0;left:0;pointer-events:none;z-index:9999;">'
         + paths.join('') + '</svg>';
       overlay.innerHTML = svgHtml;
     }, 200);
