@@ -16245,8 +16245,8 @@ window.CRM.pageApiBindings = (function () {
       var laneIdx = laneCounters[tgtId];
       laneCounters[tgtId]++;
 
-      var route = crmGanttRouteConflict(cd.src, cd.tgt, obstacles, laneIdx);
-      crmGanttRenderPath(svgParts, route, '#ea580c', 1.2, true);
+      var route = crmGanttRouteNormal(cd.src, cd.tgt, obstacles);
+      crmGanttRenderPath(svgParts, route, '#ea580c', 1.5, true);
 
       if (!conflictByTarget[tgtId]) {
         conflictByTarget[tgtId] = { pos: cd.tgt, sources: [], types: [], sourceTitles: [], sourcePositions: [] };
