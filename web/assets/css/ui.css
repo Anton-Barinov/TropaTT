@@ -5110,3 +5110,82 @@ body.crm-login-page .crm-login-proof-grid span {
     padding: 18px;
   }
 }
+
+/* ===== Sticky Notes ===== */
+.crm-sticky-note {
+  position: relative;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 80px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-sticky-note:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.crm-sticky-note.crm-sticky-pinned {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18), inset 0 0 0 2px rgba(0,0,0,0.08);
+}
+
+.crm-sticky-pin-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  opacity: 0.6;
+  user-select: none;
+}
+
+.crm-sticky-content {
+  cursor: text;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 40px;
+}
+
+.crm-sticky-edit-textarea {
+  background: transparent;
+  border: 1px dashed #666;
+  width: 100%;
+  resize: vertical;
+  font-size: 13px;
+  min-height: 60px;
+}
+
+.crm-sticky-edit-textarea:focus {
+  border-style: solid;
+  border-color: var(--crm-primary);
+  outline: none;
+}
+
+.crm-sticky-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  opacity: 0.7;
+  margin-top: 8px;
+}
+
+.crm-sticky-note:hover .crm-sticky-actions {
+  opacity: 1;
+}
+
+.crm-sticky-actions .btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  min-height: 28px;
+  height: 28px;
+}
+
+#dashboardStickyNotes {
+  break-inside: avoid;
+}
+
+#dashboardStickyNotes .crm-sticky-note {
+  margin-bottom: 8px;
+}
