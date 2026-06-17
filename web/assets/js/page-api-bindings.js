@@ -16210,23 +16210,45 @@ window.CRM.pageApiBindings = (function () {
       var x2 = (toStartPct / 100) * trackWidth;
       var y2 = toRow * rowHeight + rowHeight / 2;
 
-      var midX = x1 + Math.max(20, (x2 - x1) / 2);
       var isCritical = dep.dependency_type === 'FS';
+      var gap = 12;
 
-      var d = 'M ' + x1 + ' ' + y1
-        + ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2;
+      // Orthogonal routing: horizontal → vertical → horizontal
+      var startX = x1 + gap;
+      var endX = x2 - gap;
+      var midX2 = (startX + endX) / 2;
+
+      var d;
+      if (y1 === y2) {
+        // Same row: simple straight line
+        d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
+      } else if (startX >= endX) {
+        // Source is to the right of target: go down/up first, then left
+        var bendX = Math.max(startX, endX) + gap;
+        d = 'M ' + x1 + ' ' + y1
+          + ' L ' + startX + ' ' + y1
+          + ' L ' + bendX + ' ' + y1
+          + ' L ' + bendX + ' ' + y2
+          + ' L ' + x2 + ' ' + y2;
+      } else {
+        // Normal FS: go right, then down/up, then right
+        d = 'M ' + x1 + ' ' + y1
+          + ' L ' + startX + ' ' + y1
+          + ' L ' + midX2 + ' ' + y1
+          + ' L ' + midX2 + ' ' + y2
+          + ' L ' + endX + ' ' + y2
+          + ' L ' + x2 + ' ' + y2;
+      }
 
       paths.push('<path d="' + d + '"' + (isCritical ? ' class="is-critical"' : '') + '/>');
 
-      // Arrow head
-      var arrowSize = 6;
-      var angle = Math.atan2(y2 - y1, x2 - x1);
-      var ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-      var ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-      var ax2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-      var ay2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
-
-      paths.push('<path d="M ' + ax1 + ' ' + ay1 + ' L ' + x2 + ' ' + y2 + ' L ' + ax2 + ' ' + ay2 + '"' + (isCritical ? ' class="is-critical"' : '') + ' fill="none"/>');
+      // Arrow head (right-pointing triangle)
+      var arrowSize = 7;
+      var ax1 = x2 - arrowSize;
+      var ay1 = y2 - arrowSize / 2;
+      var ax2 = x2 - arrowSize;
+      var ay2 = y2 + arrowSize / 2;
+      paths.push('<path d="M ' + ax1 + ' ' + ay1 + ' L ' + x2 + ' ' + y2 + ' L ' + ax2 + ' ' + ay2 + ' Z"' + (isCritical ? ' class="is-critical"' : '') + ' fill="' + (isCritical ? '#ef4444' : '#94a3b8') + '"/>');
     });
 
     svg.innerHTML = paths.join('');
