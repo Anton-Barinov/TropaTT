@@ -5099,6 +5099,7 @@ return array (
   ),
   'cycles' => 
   array (
+    'title' => 'TropaTT — Циклы',
     'page_title' => 'Циклы',
     'subtitle_badge' => 'Спринты / Итерации',
     'btn_create' => 'Создать цикл',
@@ -5215,6 +5216,7 @@ return array (
   ),
   'intake' => 
   array (
+    'title' => 'TropaTT — Входящие',
     'page_title' => 'TropaTT — Входящие',
     'subtitle' => 'Сбор и обработка входящих заявок: фиксация, triage, принятие в задачу или отклонение.',
     'filter_all_statuses' => 'Все статусы',

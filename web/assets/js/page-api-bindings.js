@@ -16206,12 +16206,6 @@ window.CRM.pageApiBindings = (function () {
       var laneIdx = c % maxLanes;
       conflictDeps[c].railX = minBarLeft - 12 - laneIdx * railSpacing;
     }
-    }
-
-    var railSpacing = 8;
-    for (var c = 0; c < conflictDeps.length; c++) {
-      conflictDeps[c].railX = railBaseX - c * railSpacing;
-    }
 
     for (var n = 0; n < normalDeps.length; n++) {
       _crmGanttDepsDrawArrow(svgParts, normalDeps[n].src, normalDeps[n].tgt, normalDeps[n].dep.dependency_type === 'FS');
