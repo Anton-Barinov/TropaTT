@@ -53,7 +53,7 @@ final class ModuleCronScheduler
             $nextRun = $this->parser->getNextRunDate($task->schedule);
             $now = gmdate('Y-m-d H:i:s');
 
-            $stmt = $this->pdo->prepare("INSERT INTO {$this->tasksTable} (module_name, task_name, description, schedule, handler_class, handler_method, enabled, timeout, overlap_allowed, last_run_at, next_run_at, created_at, updated_at) VALUES (:module, :task, :desc, :schedule, :class, :method, :enabled, :timeout, :overlap, NULL, :next, :now, :now)");
+            $stmt = $this->pdo->prepare("INSERT INTO {$this->tasksTable} (module_name, task_name, description, schedule, handler_class, handler_method, enabled, timeout, overlap_allowed, last_run_at, next_run_at, created_at, updated_at) VALUES (:module, :task, :desc, :schedule, :class, :method, :enabled, :timeout, :overlap, NULL, :next, :created_at, :updated_at)");
             $stmt->execute([
                 'module' => $moduleName,
                 'task' => $task->name,
@@ -65,7 +65,8 @@ final class ModuleCronScheduler
                 'timeout' => $task->timeout,
                 'overlap' => $task->overlapAllowed ? 1 : 0,
                 'next' => $nextRun->format('Y-m-d H:i:s'),
-                'now' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
         } catch (\Throwable $e) {
             $code = $e->getCode();
