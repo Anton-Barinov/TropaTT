@@ -16155,7 +16155,11 @@ window.CRM.pageApiBindings = (function () {
   // 2. Dependency lines rendering
   function crmGanttRenderDependencies(groups, windowInfo) {
     var svg = document.getElementById('ganttDependenciesSvg');
-    if (!svg) return;
+    if (!svg) {
+      console.warn('[GANTT-DEPS] SVG element not found!');
+      return;
+    }
+    console.log('[GANTT-DEPS] SVG found:', svg.tagName, svg.className.baseVal, 'parent:', svg.parentElement?.tagName, svg.parentElement?.className);
 
     // Collect all tasks with their positions
     var taskPositions = {};
@@ -16236,7 +16240,17 @@ window.CRM.pageApiBindings = (function () {
     svg.setAttribute('width', trackWidth);
     svg.setAttribute('height', laneIndex * rowHeight);
     svg.innerHTML = paths.join('');
-    console.log('[GANTT-DEPS]', { deps: dependencies.length, matched: matched, skippedNoPos: skippedNoPos, skippedNoRow: skippedNoRow, paths: paths.length, taskKeys: Object.keys(taskPositions).length, rowKeys: Object.keys(rowOffsets).length });
+    console.log('[GANTT-DEPS] Rendered', paths.length, 'paths into SVG', {
+      svgWidth: trackWidth,
+      svgHeight: laneIndex * rowHeight,
+      svgId: svg.id,
+      svgParent: svg.parentElement ? svg.parentElement.className : 'none',
+      svgDisplay: getComputedStyle(svg).display,
+      svgVisibility: getComputedStyle(svg).visibility,
+      svgPosition: getComputedStyle(svg).position,
+      svgRect: svg.getBoundingClientRect(),
+      firstPath: paths[0] ? paths[0].substring(0, 120) : 'none'
+    });
   }
 
   // 9. Milestones rendering on chart
