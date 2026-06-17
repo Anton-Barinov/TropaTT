@@ -16199,25 +16199,13 @@ window.CRM.pageApiBindings = (function () {
     for (var b = 0; b < allBars.length; b++) {
       if (allBars[b].left < minBarLeft) minBarLeft = allBars[b].left;
     }
-    var railBaseX = Math.max(0, minBarLeft - 20);
-
-    var svgParts = [];
-    var conflictByTarget = {};
-    _ganttDepsConflictData = [];
-
-    var normalDeps = [];
-    var conflictDeps = [];
-    for (var j = 0; j < deps.length; j++) {
-      var dep = deps[j];
-      var src = barPositions[dep.from_task_id];
-      var tgt = barPositions[dep.to_task_id];
-      if (!src || !tgt) continue;
-      var gap = tgt.left - src.right;
-      if (gap > 24) {
-        normalDeps.push({ dep: dep, src: src, tgt: tgt });
-      } else {
-        conflictDeps.push({ dep: dep, src: src, tgt: tgt });
-      }
+    // Rail lanes: compact, max 3 lanes at fixed offsets from bar left edge
+    var railSpacing = 10;
+    var maxLanes = 3;
+    for (var c = 0; c < conflictDeps.length; c++) {
+      var laneIdx = c % maxLanes;
+      conflictDeps[c].railX = minBarLeft - 12 - laneIdx * railSpacing;
+    }
     }
 
     var railSpacing = 8;
@@ -16267,10 +16255,17 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function _crmGanttDepsDrawConflictLine(parts, cd) {
-    var d = 'M ' + cd.src.right + ' ' + cd.src.centerY
-      + ' L ' + cd.railX + ' ' + cd.src.centerY
-      + ' L ' + cd.railX + ' ' + cd.tgt.centerY
-      + ' L ' + cd.tgt.left + ' ' + cd.tgt.centerY;
+    // Route through LEFT rail, outside all bars
+    var srcPortX = cd.src.left - 4;   // left edge of source, offset left
+    var srcPortY = cd.src.centerY;
+    var tgtPortX = cd.tgt.left - 4;   // left edge of target, offset left
+    var tgtPortY = cd.tgt.centerY;
+    var railX = cd.railX;             // computed in _crmGanttDepsDraw
+
+    var d = 'M ' + srcPortX + ' ' + srcPortY
+      + ' L ' + railX + ' ' + srcPortY
+      + ' L ' + railX + ' ' + tgtPortY
+      + ' L ' + tgtPortX + ' ' + tgtPortY;
     parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
   }
 
@@ -16311,12 +16306,15 @@ window.CRM.pageApiBindings = (function () {
     var parts = [], tgt = info.pos, pad = 4;
     parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
     if (info.sourcePositions) {
+      var minLeft = tgt.left;
+      for (var s = 0; s < info.sourcePositions.length; s++) {
+        if (info.sourcePositions[s].left < minLeft) minLeft = info.sourcePositions[s].left;
+      }
       for (var s = 0; s < info.sourcePositions.length; s++) {
         var src = info.sourcePositions[s];
         parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
-        var railX = Math.min(src.left, tgt.left) - 20;
-        if (railX < 4) railX = 4;
-        parts.push('<path d="M ' + src.right + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + tgt.left + ' ' + tgt.centerY + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
+        var railX = minLeft - 12;
+        parts.push('<path d="M ' + (src.left - 4) + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + (tgt.left - 4) + ' ' + tgt.centerY + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
       }
     }
     hoverSvg.innerHTML = parts.join('');
