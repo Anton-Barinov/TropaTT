@@ -25530,7 +25530,6 @@ window.CRM.pageApiBindings = (function () {
           var q = this.value.trim();
           if (q.length < 2) {
             dropdown.style.display = 'none';
-            select.value = '';
             return;
           }
           dropdown.innerHTML = '<div class="crm-searchable-item text-muted"><small>' + _t('page.loading', '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...') + '</small></div>';
@@ -25557,6 +25556,7 @@ window.CRM.pageApiBindings = (function () {
                   item.addEventListener('click', function () {
                     select.value = this.dataset.value;
                     input.value = this.textContent;
+                    input.dataset.value = this.dataset.value;
                     dropdown.style.display = 'none';
                     select.dispatchEvent(new Event('change', { bubbles: true }));
                   });
@@ -25587,6 +25587,13 @@ window.CRM.pageApiBindings = (function () {
           var select = document.getElementById('depTargetTaskSelect');
           var typeSelect = form.querySelector('[name="dependency_type"]');
           var targetTaskPublicId = select ? select.value : '';
+          if (!targetTaskPublicId && select) {
+            var wrapper = select.previousElementSibling;
+            if (wrapper && wrapper.classList.contains('crm-searchable-select')) {
+              var inp = wrapper.querySelector('.crm-searchable-input');
+              if (inp && inp.dataset.value) targetTaskPublicId = inp.dataset.value;
+            }
+          }
           var depType = typeSelect ? typeSelect.value : 'FS';
           if (!targetTaskPublicId) {
             notify(_t('dependency.task_id_empty', 'ID \u0437\u0430\u0434\u0430\u0447\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043F\u0443\u0441\u0442\u044B\u043C'), 'warning');
@@ -25615,7 +25622,10 @@ window.CRM.pageApiBindings = (function () {
           var wrapper = select.previousElementSibling;
           if (wrapper && wrapper.classList.contains('crm-searchable-select')) {
             var searchInput = wrapper.querySelector('.crm-searchable-input');
-            if (searchInput) searchInput.value = '';
+            if (searchInput) {
+              searchInput.value = '';
+              delete searchInput.dataset.value;
+            }
           }
         }
       });
