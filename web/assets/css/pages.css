@@ -7423,10 +7423,6 @@ font-size: 0.72rem;
 }
 
 /* 2. Dependency lines canvas overlay */
-.crm-gantt-board {
-  position: relative;
-}
-
 #ganttDependenciesCanvas {
   position: absolute;
   top: 0;

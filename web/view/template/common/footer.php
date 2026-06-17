@@ -58,6 +58,11 @@ $needsNotificationsPush = in_array($currentRoute, [
 $needsTaskActivity = in_array($currentRoute, [
   'task-detail',
 ], true);
+$needsStickyNotes = in_array($currentRoute, [
+  'dashboard',
+  '',
+  'index',
+], true);
 $needsPageApiBindings = !in_array($currentRoute, [
   'login',
   'password-reset-request',
@@ -106,6 +111,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 ?>
 <?php if ($needsNotificationsPush): ?>
 <script defer src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsStickyNotes): ?>
+<script defer src="assets/js/sticky-notes.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script defer src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>

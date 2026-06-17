@@ -16153,8 +16153,8 @@ window.CRM.pageApiBindings = (function () {
 
   // 2. Dependency lines rendering
   function crmGanttRenderDependencies(groups, windowInfo) {
-    var canvas = document.getElementById('ganttDependenciesCanvas');
-    if (!canvas) return;
+    var lanesContainer = document.querySelector('.crm-gantt .crm-gantt-lanes');
+    if (!lanesContainer) return;
 
     // Collect all tasks with their positions
     var taskPositions = {};
@@ -16166,14 +16166,6 @@ window.CRM.pageApiBindings = (function () {
 
     // Load dependencies from state
     var dependencies = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    if (!dependencies.length) {
-      canvas.width = 0;
-      canvas.height = 0;
-      return;
-    }
-
-    var lanesContainer = document.querySelector('.crm-gantt .crm-gantt-lanes');
-    if (!lanesContainer) return;
 
     var laneIndex = 0;
     var rowOffsets = {};
@@ -16188,6 +16180,21 @@ window.CRM.pageApiBindings = (function () {
     var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
     var trackWidth = windowInfo.trackWidth;
     var canvasHeight = laneIndex * rowHeight;
+
+    // Create or reuse canvas inside lanes container
+    var canvas = lanesContainer.querySelector('#ganttDependenciesCanvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'ganttDependenciesCanvas';
+      canvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:10;';
+      lanesContainer.appendChild(canvas);
+    }
+
+    if (!dependencies.length) {
+      canvas.width = 0;
+      canvas.height = 0;
+      return;
+    }
 
     var dpr = window.devicePixelRatio || 1;
     canvas.width = trackWidth * dpr;
@@ -16208,7 +16215,6 @@ window.CRM.pageApiBindings = (function () {
       var toRow = rowOffsets[toItem.id];
       if (fromRow === undefined || toRow === undefined) return;
 
-      var fromStartPct = crmGanttClamp(crmGanttPercent(fromItem.start, windowInfo), 0, 100);
       var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end + 86400000, windowInfo), 0, 100);
       var toStartPct = crmGanttClamp(crmGanttPercent(toItem.start, windowInfo), 0, 100);
 
@@ -16242,15 +16248,6 @@ window.CRM.pageApiBindings = (function () {
       ctx.lineWidth = isCritical ? 2.5 : 2;
       ctx.stroke();
     });
-
-    // Position canvas to align with .crm-gantt
-    var ganttEl = document.querySelector('.crm-gantt');
-    if (ganttEl) {
-      var rect = ganttEl.getBoundingClientRect();
-      var boardRect = canvas.parentElement.getBoundingClientRect();
-      canvas.style.left = (rect.left - boardRect.left) + 'px';
-      canvas.style.top = (rect.top - boardRect.top) + 'px';
-    }
   }
 
   // 9. Milestones rendering on chart
