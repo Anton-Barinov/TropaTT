@@ -5078,6 +5078,7 @@ return array (
     'empty' => 'No dependencies',
     'th_type' => 'Type',
     'th_task' => 'Task',
+    'th_status' => 'Status',
     'btn_delete' => 'Delete',
     'load_error' => 'Failed to load dependencies',
     'prompt_task_id' => 'Task ID (public_id)',

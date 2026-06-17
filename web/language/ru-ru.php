@@ -5055,6 +5055,7 @@ return array (
     'empty' => 'Нет зависимостей',
     'th_type' => 'Тип',
     'th_task' => 'Задача',
+    'th_status' => 'Статус',
     'btn_delete' => 'Удалить',
     'load_error' => 'Ошибка загрузки зависимостей',
     'prompt_task_id' => 'ID задачи (public_id)',

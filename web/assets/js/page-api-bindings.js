@@ -25354,91 +25354,264 @@ window.CRM.pageApiBindings = (function () {
   function bindTaskDependencies(taskPublicId) {
     if (!taskPublicId) return;
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
+    var currentTaskId = taskPublicId;
+
+    function statusBadge(statusCode) {
+      if (!statusCode) return '';
+      var map = {
+        open: 'bg-secondary',
+        in_progress: 'bg-primary',
+        done: 'bg-success',
+        review: 'bg-info',
+        blocked: 'bg-warning text-dark',
+        cancelled: 'bg-danger',
+        closed: 'bg-secondary'
+      };
+      var cls = map[statusCode] || 'bg-secondary';
+      var label = statusCode.replace(/_/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
+      return '<span class="badge ' + cls + '">' + safeText(label) + '</span>';
+    }
+
+    function typeChip(type) {
+      var labels = {
+        FS: _t('dependency.type_desc_fs', 'Финиш \u2192 Старт'),
+        SS: _t('dependency.type_desc_ss', 'Старт \u2192 Старт'),
+        FF: _t('dependency.type_desc_ff', 'Финиш \u2192 Финиш'),
+        SF: _t('dependency.type_desc_sf', 'Старт \u2192 Финиш'),
+        BLOCKS: _t('dependency.type_desc_blocks', 'Блокирует')
+      };
+      var icons = {
+        FS: '<i class="fa-regular fa-arrow-right-to-bracket me-1"></i>',
+        SS: '<i class="fa-regular fa-arrows-left-right me-1"></i>',
+        FF: '<i class="fa-regular fa-arrows-left-right me-1"></i>',
+        SF: '<i class="fa-regular fa-arrow-right-from-bracket me-1"></i>',
+        BLOCKS: '<i class="fa-regular fa-ban me-1"></i>'
+      };
+      return '<span class="crm-chip">' + (icons[type] || '') + safeText(labels[type] || type) + '</span>';
+    }
+
+    function taskLink(publicId, title, taskKey) {
+      if (!publicId) return '\u2014';
+      var href = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(publicId);
+      var display = safeText(title || taskKey || publicId);
+      var keyHtml = taskKey ? ' <span class="text-muted small">(' + safeText(taskKey) + ')</span>' : '';
+      return '<a href="' + href + '">' + display + '</a>' + keyHtml;
+    }
+
+    function renderSection(items, direction) {
+      if (!items || !items.length) {
+        return '<div class="text-muted small">' + (direction === 'outgoing' ? _t('dependency.section_empty_depends_on', '\u042D\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u043D\u0435 \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043E\u0442 \u0434\u0440\u0443\u0433\u0438\u0445') : _t('dependency.section_empty_blocked_by', '\u041E\u0442 \u044D\u0442\u043E\u0439 \u0437\u0430\u0434\u0430\u0447\u0438 \u043D\u0438\u043A\u0442\u043E \u043D\u0435 \u0437\u0430\u0432\u0438\u0441\u0438\u0442')) + '</div>';
+      }
+
+      var rows = items.map(function (item) {
+        var depId = item.public_id || '';
+        var depType = item.dependency_type || 'FS';
+        var targetId, targetTitle, targetKey, targetStatus;
+
+        if (direction === 'outgoing') {
+          targetId = item.depends_on_task_public_id;
+          targetTitle = item.depends_on_task_title;
+          targetKey = item.depends_on_task_key;
+          targetStatus = item.depends_on_task_status_code;
+        } else {
+          targetId = item.task_public_id;
+          targetTitle = item.task_title;
+          targetKey = item.task_key;
+          targetStatus = item.task_status_code;
+        }
+
+        if (targetId === currentTaskId) return '';
+
+        return '<tr data-dependency-id="' + safeText(depId) + '">'
+          + '<td>' + typeChip(depType) + '</td>'
+          + '<td>' + taskLink(targetId, targetTitle, targetKey) + '</td>'
+          + '<td>' + statusBadge(targetStatus) + '</td>'
+          + '<td class="text-end" style="width:40px"><button class="btn btn-sm crm-btn-danger-soft crm-btn-compact" data-dependency-delete="' + safeText(depId) + '" title="' + _t('dependency.btn_delete', '\u0423\u0434\u0430\u043B\u0438\u0442\u044C') + '"><i class="fa-regular fa-trash-can"></i></button></td>'
+          + '</tr>';
+      }).filter(function (r) { return r !== ''; });
+
+      if (!rows.length) {
+        return '<div class="text-muted small">' + (direction === 'outgoing' ? _t('dependency.section_empty_depends_on', '\u042D\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u043D\u0435 \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043E\u0442 \u0434\u0440\u0443\u0433\u0438\u0445') : _t('dependency.section_empty_blocked_by', '\u041E\u0442 \u044D\u0442\u043E\u0439 \u0437\u0430\u0434\u0430\u0447\u0438 \u043D\u0438\u043A\u0442\u043E \u043D\u0435 \u0437\u0430\u0432\u0438\u0441\u0438\u0442')) + '</div>';
+      }
+
+      return '<table class="table table-sm crm-table mb-0"><thead><tr>'
+        + '<th>' + _t('dependency.th_type', '\u0422\u0438\u043F') + '</th>'
+        + '<th>' + _t('dependency.th_task', '\u0417\u0430\u0434\u0430\u0447\u0430') + '</th>'
+        + '<th>' + _t('dependency.th_status', '\u0421\u0442\u0430\u0442\u0443\u0441') + '</th>'
+        + '<th></th>'
+        + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    }
 
     async function loadDependencies() {
-      var container = document.getElementById('dependenciesList');
-      if (!container) return;
-      try {
-        var envelope = await request('api/v1/dependency/list', { query: { task_public_id: taskPublicId }, silent: true });
-        var items = mapItems(envelope);
-        if (!items.length) {
-          container.innerHTML = '<div class="text-muted small">' + _t('dependency.empty', 'Нет зависимостей') + '</div>';
-          var counter = document.getElementById('detailDependenciesCounter');
-          if (counter) { counter.textContent = '0'; counter.classList.add('d-none'); }
-          return;
-        }
-        var counter = document.getElementById('detailDependenciesCounter');
-        if (counter) { counter.textContent = String(items.length); counter.classList.remove('d-none'); }
+      var outgoingContainer = document.getElementById('dependenciesOutgoing');
+      var incomingContainer = document.getElementById('dependenciesIncoming');
+      var counter = document.getElementById('detailDependenciesCounter');
+      if (!outgoingContainer && !incomingContainer) return;
 
-        container.innerHTML = '<table class="table table-sm crm-table mb-0"><thead><tr><th>' + _t('dependency.th_type', 'Тип') + '</th><th>' + _t('dependency.th_task', 'Задача') + '</th><th></th></tr></thead><tbody>'
-          + items.map(function (item) {
-            var depId = item.public_id || '';
-            var depType = String(item.dependency_type || item.type || 'FS');
-            var typeLabels = { FS: _t('dependency.type_fs', 'Финиш-Старт'), SS: _t('dependency.type_ss', 'Старт-Старт'), FF: _t('dependency.type_ff', 'Финиш-Финиш'), SF: _t('dependency.type_sf', 'Старт-Финиш') };
-            var depTaskTitle = String(item.dependent_task_title || item.target_task_title || item.task_title || '—');
-            var depTaskId = String(item.dependent_task_public_id || item.target_task_public_id || item.task_public_id || '');
-            var depTaskLink = depTaskId ? 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(depTaskId) : '#';
-            return '<tr data-dependency-id="' + safeText(depId) + '">'
-              + '<td><span class="crm-chip">' + safeText(typeLabels[depType] || depType) + '</span></td>'
-              + '<td><a href="' + depTaskLink + '">' + safeText(depTaskTitle) + '</a></td>'
-              + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-dependency-delete="' + safeText(depId) + '">' + _t('dependency.btn_delete', 'Удалить') + '</button></td>'
-              + '</tr>';
-          }).join('')
-          + '</tbody></table>';
+      try {
+        var results = await Promise.all([
+          request('api/v1/dependency/list', { query: { task_public_id: currentTaskId, direction: 'outgoing' }, silent: true }),
+          request('api/v1/dependency/list', { query: { task_public_id: currentTaskId, direction: 'incoming' }, silent: true })
+        ]);
+
+        var outgoing = mapItems(results[0]);
+        var incoming = mapItems(results[1]);
+        var total = (outgoing ? outgoing.length : 0) + (incoming ? incoming.length : 0);
+
+        if (counter) {
+          counter.textContent = String(total);
+          counter.classList.toggle('d-none', total === 0);
+        }
+
+        if (outgoingContainer) outgoingContainer.innerHTML = renderSection(outgoing, 'outgoing');
+        if (incomingContainer) incomingContainer.innerHTML = renderSection(incoming, 'incoming');
       } catch (error) {
-        container.innerHTML = '<div class="text-danger small">' + _t('dependency.load_error', 'Ошибка загрузки зависимостей') + '</div>';
+        var errMsg = _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u0435\u0439');
+        if (outgoingContainer) outgoingContainer.innerHTML = '<div class="text-danger small">' + errMsg + '</div>';
+        if (incomingContainer) incomingContainer.innerHTML = '<div class="text-danger small">' + errMsg + '</div>';
       }
     }
 
-    var createBtn = document.getElementById('openCreateDependencyBtn');
-    if (createBtn && createBtn.dataset.bound !== '1') {
-      createBtn.dataset.bound = '1';
-      createBtn.addEventListener('click', async function () {
-        var targetTaskId = window.prompt(_t('dependency.prompt_task_id', 'ID задачи (public_id)'), '');
-        if (targetTaskId === null) return;
-        var trimmedId = String(targetTaskId || '').trim();
-        if (!trimmedId) {
-          notify(_t('dependency.task_id_empty', 'ID задачи не может быть пустым'), 'warning');
-          return;
-        }
-        var depType = window.prompt(_t('dependency.prompt_dep_type', 'Тип зависимости (FS, SS, FF, SF)'), 'FS');
-        if (depType === null) return;
+    document.addEventListener('click', function depDeleteHandler(event) {
+      var deleteBtn = event.target.closest('[data-dependency-delete]');
+      if (!deleteBtn) return;
+      var section = deleteBtn.closest('#detailDependencies');
+      if (!section) return;
+      var depId = String(deleteBtn.getAttribute('data-dependency-delete') || '').trim();
+      if (!depId) return;
+      if (!window.confirm(_t('dependency.delete_confirm', '\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C?'))) return;
+      (async function () {
         try {
-          await request('api/v1/dependency/create', {
-            method: 'POST',
-            body: {
-              task_public_id: taskPublicId,
-              dependent_task_public_id: trimmedId,
-              dependency_type: String(depType || '').trim()
-            }
-          });
-          notify(_t('dependency.created_notify', 'Зависимость добавлена'));
+          await request('api/v1/dependency/delete/' + encodeURIComponent(depId), { method: 'DELETE' });
+          notify(_t('dependency.deleted_notify', '\u0417\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0430'));
           loadDependencies();
         } catch (error) {
-          var normalized = window.CRM.api.normalizeError(error, _t('dependency.create_failed', 'Не удалось добавить зависимость'));
+          var normalized = window.CRM.api.normalizeError(error, _t('dependency.delete_failed', '\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
         }
-      });
-    }
+      })();
+    });
 
-    var listContainer = document.getElementById('dependenciesList');
-    if (listContainer && listContainer.dataset.depBound !== '1') {
-      listContainer.dataset.depBound = '1';
-      listContainer.addEventListener('click', async function (event) {
-        var deleteBtn = event.target.closest('[data-dependency-delete]');
-        if (deleteBtn) {
-          var depId = String(deleteBtn.getAttribute('data-dependency-delete') || '').trim();
-          if (!depId) return;
-          if (!window.confirm(_t('dependency.confirm_delete', 'Удалить зависимость?'))) return;
+    var modalEl = document.getElementById('createDependencyModal');
+    if (modalEl && !modalEl.dataset.depBound) {
+      modalEl.dataset.depBound = '1';
+
+      modalEl.addEventListener('shown.bs.modal', function () {
+        var select = document.getElementById('depTargetTaskSelect');
+        if (!select || select.dataset.depSearchReady) return;
+        select.dataset.depSearchReady = '1';
+        select.style.display = 'none';
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'crm-searchable-select';
+        wrapper.style.position = 'relative';
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control crm-searchable-input';
+        input.placeholder = _t('dependency.modal_task_placeholder', '\u041F\u043E\u0438\u0441\u043A \u0437\u0430\u0434\u0430\u0447\u0438 \u043F\u043E \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044E...');
+        input.autocomplete = 'off';
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'crm-searchable-dropdown';
+        dropdown.style.display = 'none';
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(dropdown);
+        select.parentNode.insertBefore(wrapper, select);
+
+        var debounceTimer;
+        input.addEventListener('input', function () {
+          clearTimeout(debounceTimer);
+          var q = this.value.trim();
+          if (q.length < 2) {
+            dropdown.style.display = 'none';
+            select.value = '';
+            return;
+          }
+          dropdown.innerHTML = '<div class="crm-searchable-item text-muted"><small>' + _t('page.loading', '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...') + '</small></div>';
+          dropdown.style.display = 'block';
+          debounceTimer = setTimeout(function () {
+            request('api/v1/task-relations/search-tasks', { query: { q: q, limit: 20 }, silent: true })
+              .then(function (envelope) {
+                var results = mapItems(envelope);
+                dropdown.innerHTML = '';
+                if (!results || !results.length) {
+                  dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('page.select_empty', '\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E') + '</div>';
+                  dropdown.style.display = 'block';
+                  return;
+                }
+                results.forEach(function (task) {
+                  var item = document.createElement('div');
+                  item.className = 'crm-searchable-item';
+                  var pk = task.public_id || task.task_public_id || '';
+                  var label = task.title || '';
+                  var keyStr = task.task_key || pk;
+                  if (keyStr) label += ' (' + keyStr + ')';
+                  item.textContent = label;
+                  item.dataset.value = pk;
+                  item.addEventListener('click', function () {
+                    select.value = this.dataset.value;
+                    input.value = this.textContent;
+                    dropdown.style.display = 'none';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                  });
+                  dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
+              })
+              .catch(function () {
+                dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438') + '</div>';
+                dropdown.style.display = 'block';
+              });
+          }, 300);
+        });
+
+        input.addEventListener('blur', function () {
+          setTimeout(function () { dropdown.style.display = 'none'; }, 200);
+        });
+        input.addEventListener('focus', function () {
+          if (select.value && this.value) dropdown.style.display = 'block';
+        });
+      });
+
+      var form = modalEl.querySelector('#dependencyCreateForm');
+      if (form) {
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          var select = document.getElementById('depTargetTaskSelect');
+          var typeSelect = form.querySelector('[name="dependency_type"]');
+          var targetTaskPublicId = select ? select.value : '';
+          var depType = typeSelect ? typeSelect.value : 'FS';
+          if (!targetTaskPublicId) {
+            notify(_t('dependency.task_id_empty', 'ID \u0437\u0430\u0434\u0430\u0447\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043F\u0443\u0441\u0442\u044B\u043C'), 'warning');
+            return;
+          }
           try {
-            await request('api/v1/dependency/delete/' + encodeURIComponent(depId), { method: 'DELETE' });
-            notify(_t('dependency.deleted_notify', 'Зависимость удалена'));
+            await request('api/v1/dependency/create', {
+              method: 'POST',
+              body: { task_public_id: currentTaskId, depends_on_task_public_id: targetTaskPublicId, dependency_type: depType }
+            });
+            notify(_t('dependency.created_notify', '\u0417\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430'));
+            var modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
             loadDependencies();
           } catch (error) {
-            var normalized = window.CRM.api.normalizeError(error, _t('dependency.delete_failed', 'Не удалось удалить зависимость'));
+            var normalized = window.CRM.api.normalizeError(error, _t('dependency.create_failed', '\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u044C'));
             notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
           }
-          return;
+        });
+      }
+
+      modalEl.addEventListener('hidden.bs.modal', function () {
+        var select = document.getElementById('depTargetTaskSelect');
+        if (select) {
+          select.selectedIndex = 0;
+          var wrapper = select.previousElementSibling;
+          if (wrapper && wrapper.classList.contains('crm-searchable-select')) {
+            var searchInput = wrapper.querySelector('.crm-searchable-input');
+            if (searchInput) searchInput.value = '';
+          }
         }
       });
     }

@@ -758,8 +758,27 @@ final class WorkCycleService
 
         $transferred = $this->cycleTasks->moveUnfinishedTasks($cycleId, $targetCycleId, $actorUserId);
 
-        // Activity
+        // Record individual task.moved_to_cycle events
         if ($this->activity !== null) {
+            foreach ($transferred as $taskPublicId) {
+                $movedTask = $this->tasks->findByPublicId((string)$taskPublicId);
+                if ($movedTask) {
+                    $this->activity->recordRelationEvent(
+                        $movedTask,
+                        'task.moved_to_cycle',
+                        [
+                            'type' => 'cycle',
+                            'source_cycle_public_id' => $cyclePublicId,
+                            'source_cycle_title' => (string)$cycle['title'],
+                            'target_cycle_public_id' => $targetCyclePublicId,
+                            'target_cycle_title' => (string)$targetCycle['title'],
+                        ],
+                        $actor,
+                        ['source_type' => 'web']
+                    );
+                }
+            }
+
             $this->activity->recordSystemEvent(
                 $cycle,
                 'cycle.unfinished_transferred',
