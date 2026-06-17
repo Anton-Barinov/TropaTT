@@ -16164,7 +16164,7 @@ window.CRM.pageApiBindings = (function () {
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:5;overflow:visible;';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;opacity:0.7;';
       document.body.appendChild(overlay);
     }
 
