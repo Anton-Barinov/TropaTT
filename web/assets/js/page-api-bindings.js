@@ -16199,6 +16199,23 @@ window.CRM.pageApiBindings = (function () {
     for (var b = 0; b < allBars.length; b++) {
       if (allBars[b].left < minBarLeft) minBarLeft = allBars[b].left;
     }
+
+    // Separate normal vs conflict deps
+    var normalDeps = [];
+    var conflictDeps = [];
+    for (var j = 0; j < deps.length; j++) {
+      var dep = deps[j];
+      var src = barPositions[dep.from_task_id];
+      var tgt = barPositions[dep.to_task_id];
+      if (!src || !tgt) continue;
+      var gap = tgt.left - src.right;
+      if (gap > 24) {
+        normalDeps.push({ dep: dep, src: src, tgt: tgt });
+      } else {
+        conflictDeps.push({ dep: dep, src: src, tgt: tgt });
+      }
+    }
+
     // Rail lanes: compact, max 3 lanes at fixed offsets from bar left edge
     var railSpacing = 10;
     var maxLanes = 3;

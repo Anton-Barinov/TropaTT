@@ -21,4 +21,5 @@ return [
     'method_not_allowed' => 'Используйте POST для передачи данных проверки установки',
     'bootstrap_not_configured' => 'Токен bootstrap установки не настроен',
     'bootstrap_token_required' => 'Требуется токен bootstrap установки',
+    'role_root_title' => 'Root',
 ];

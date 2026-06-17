@@ -119,7 +119,7 @@ final class InstallService
                 $roleStmt->execute([
                     'public_id' => $rolePublicId,
                     'code' => 'root',
-                    'title' => 'Root',
+                    'title' => $this->t('install/role_root_title', 'Root'),
                     'is_system' => 1,
                     'created_at' => $now,
                     'updated_at' => $now,
