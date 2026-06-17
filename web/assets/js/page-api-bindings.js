@@ -15861,17 +15861,6 @@ window.CRM.pageApiBindings = (function () {
     lanesContainer.innerHTML = '';
     scaleTrack.innerHTML     = '';
 
-    if (!items.length) {
-      var hasScopedFilter = Boolean(state.searchQuery || state.projectFilter || activeFilter !== 'all' || (state.statusFilters && state.statusFilters.length));
-      scaleTrack.innerHTML = '<span class="text-muted small px-3">' + safeText(tp('gantt.no_tasks', 'No tasks')) + '</span>';
-      rowsContainer.innerHTML  = '<div class="crm-gantt-row crm-gantt-row--empty"><strong>' + safeText(hasScopedFilter ? tp('gantt.no_tasks_for_filters', 'No tasks for selected filters') : tp('gantt.no_tasks_to_show', 'No tasks to display')) + '</strong></div>';
-      lanesContainer.innerHTML = '<div class="crm-gantt-lane crm-gantt-lane--empty"><span class="crm-chip">' + safeText(hasScopedFilter ? tp('gantt.clear_filters_hint', 'Clear search or filters to bring tasks back') : tp('gantt.create_task_with_dates_hint', 'Create a task with start and end dates')) + '</span></div>';
-      // Still populate project filter with all projects
-      var allGroups = crmGanttGroupItems(allItems);
-      crmGanttPopulateProjectFilter(allGroups);
-      return;
-    }
-
     // ── Шкала ────────────────────────────────────────────────
     var zoomMode = state.zoom || 'weeks';
     var windowInfo = crmGanttBuildWindow(items, zoomMode);
@@ -16151,11 +16140,8 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines rendering
+  // 2. Dependency lines rendering — uses actual bar DOM positions
   function crmGanttRenderDependencies(groups, windowInfo) {
-    var svg = document.getElementById('ganttDependenciesSvg');
-    if (!svg) return;
-
     // Collect all tasks with their positions
     var taskPositions = {};
     groups.forEach(function (group) {
@@ -16164,94 +16150,79 @@ window.CRM.pageApiBindings = (function () {
       });
     });
 
-    // Load dependencies from state
     var dependencies = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    if (!dependencies.length) {
-      svg.innerHTML = '';
-      return;
-    }
+    if (!dependencies.length) return;
 
-    var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
-    var trackWidth = windowInfo.trackWidth;
+    var board = document.querySelector('.crm-gantt-board');
+    if (!board) return;
 
-    // Build rowOffsets matching DOM order: project lane + task lanes per group
-    var laneIndex = 0;
-    var rowOffsets = {};
-    groups.forEach(function (group) {
-      laneIndex++; // project lane
-      group.items.forEach(function (item) {
-        rowOffsets[item.id] = laneIndex;
-        laneIndex++;
+    // Remove old overlay
+    var oldOverlay = document.getElementById('ganttDepsOverlay');
+    if (oldOverlay) oldOverlay.remove();
+
+    // Create overlay div positioned over the board
+    var overlay = document.createElement('div');
+    overlay.id = 'ganttDepsOverlay';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:10;overflow:visible;';
+    board.style.position = board.style.position || 'relative';
+    board.appendChild(overlay);
+
+    // Wait one frame for layout to settle
+    requestAnimationFrame(function () {
+      var boardRect = board.getBoundingClientRect();
+      var paths = [];
+
+      dependencies.forEach(function (dep) {
+        var fromBar = document.querySelector('.crm-gantt-lane--task[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
+        var toBar = document.querySelector('.crm-gantt-lane--task[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
+        if (!fromBar || !toBar) return;
+
+        var fromRect = fromBar.getBoundingClientRect();
+        var toRect = toBar.getBoundingClientRect();
+
+        // Coordinates relative to the board (accounting for scroll)
+        var scrollLeft = board.scrollLeft;
+        var scrollTop = board.scrollTop;
+
+        var x1 = fromRect.right - boardRect.left + scrollLeft;
+        var y1 = fromRect.top + fromRect.height / 2 - boardRect.top + scrollTop;
+        var x2 = toRect.left - boardRect.left + scrollLeft;
+        var y2 = toRect.top + toRect.height / 2 - boardRect.top + scrollTop;
+
+        var isCritical = dep.dependency_type === 'FS';
+        var color = isCritical ? '#ef4444' : '#94a3b8';
+        var strokeW = isCritical ? 2.5 : 1.5;
+        var dash = isCritical ? '' : ' stroke-dasharray="5,3"';
+
+        // Orthogonal routing
+        var gap = 10;
+        var sx = x1 + gap;
+        var ex = x2 - gap;
+        var midX = (sx + ex) / 2;
+
+        var d;
+        if (y1 === y2) {
+          d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
+        } else if (sx >= ex) {
+          var bendX = Math.max(sx, ex) + gap;
+          d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + bendX + ' ' + y1 + ' L ' + bendX + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+        } else {
+          d = 'M ' + x1 + ' ' + y1 + ' L ' + sx + ' ' + y1 + ' L ' + midX + ' ' + y1 + ' L ' + midX + ' ' + y2 + ' L ' + ex + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+        }
+
+        paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '"' + dash + '/>');
+
+        // Arrow head (filled triangle)
+        var aSize = 6;
+        paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
       });
+
+      var maxW = board.scrollWidth;
+      var maxH = board.scrollHeight;
+      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="' + maxW + '" height="' + maxH + '" style="position:absolute;top:0;left:0;pointer-events:none;">'
+        + paths.join('') + '</svg>';
+      overlay.innerHTML = svgHtml;
     });
-
-    var totalHeight = laneIndex * rowHeight;
-    svg.setAttribute('width', trackWidth);
-    svg.setAttribute('height', totalHeight);
-    svg.style.width = trackWidth + 'px';
-    svg.style.height = totalHeight + 'px';
-
-    var paths = [];
-    dependencies.forEach(function (dep) {
-      var fromItem = taskPositions[dep.from_task_id];
-      var toItem = taskPositions[dep.to_task_id];
-      if (!fromItem || !toItem) return;
-
-      var fromRow = rowOffsets[fromItem.id];
-      var toRow = rowOffsets[toItem.id];
-      if (fromRow === undefined || toRow === undefined) return;
-
-      var fromStartPct = crmGanttClamp(crmGanttPercent(fromItem.start, windowInfo), 0, 100);
-      var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end + 86400000, windowInfo), 0, 100);
-      var toStartPct = crmGanttClamp(crmGanttPercent(toItem.start, windowInfo), 0, 100);
-
-      var x1 = (fromEndPct / 100) * trackWidth;
-      var y1 = fromRow * rowHeight + rowHeight / 2;
-      var x2 = (toStartPct / 100) * trackWidth;
-      var y2 = toRow * rowHeight + rowHeight / 2;
-
-      var isCritical = dep.dependency_type === 'FS';
-      var gap = 12;
-
-      // Orthogonal routing: horizontal → vertical → horizontal
-      var startX = x1 + gap;
-      var endX = x2 - gap;
-      var midX2 = (startX + endX) / 2;
-
-      var d;
-      if (y1 === y2) {
-        // Same row: simple straight line
-        d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
-      } else if (startX >= endX) {
-        // Source is to the right of target: go down/up first, then left
-        var bendX = Math.max(startX, endX) + gap;
-        d = 'M ' + x1 + ' ' + y1
-          + ' L ' + startX + ' ' + y1
-          + ' L ' + bendX + ' ' + y1
-          + ' L ' + bendX + ' ' + y2
-          + ' L ' + x2 + ' ' + y2;
-      } else {
-        // Normal FS: go right, then down/up, then right
-        d = 'M ' + x1 + ' ' + y1
-          + ' L ' + startX + ' ' + y1
-          + ' L ' + midX2 + ' ' + y1
-          + ' L ' + midX2 + ' ' + y2
-          + ' L ' + endX + ' ' + y2
-          + ' L ' + x2 + ' ' + y2;
-      }
-
-      paths.push('<path d="' + d + '"' + (isCritical ? ' class="is-critical"' : '') + '/>');
-
-      // Arrow head (right-pointing triangle)
-      var arrowSize = 7;
-      var ax1 = x2 - arrowSize;
-      var ay1 = y2 - arrowSize / 2;
-      var ax2 = x2 - arrowSize;
-      var ay2 = y2 + arrowSize / 2;
-      paths.push('<path d="M ' + ax1 + ' ' + ay1 + ' L ' + x2 + ' ' + y2 + ' L ' + ax2 + ' ' + ay2 + ' Z"' + (isCritical ? ' class="is-critical"' : '') + ' fill="' + (isCritical ? '#ef4444' : '#94a3b8') + '"/>');
-    });
-
-    svg.innerHTML = paths.join('');
   }
 
   // 9. Milestones rendering on chart

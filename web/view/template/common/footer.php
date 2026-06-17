@@ -69,6 +69,9 @@ $needsAdminEstimates = in_array($currentRoute, [
 $needsTaskEstimates = in_array($currentRoute, [
   'task-detail',
 ], true);
+$needsSavedViews = in_array($currentRoute, [
+  'tasks',
+], true);
 $needsPageApiBindings = !in_array($currentRoute, [
   'login',
   'password-reset-request',
@@ -126,6 +129,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsTaskEstimates): ?>
 <script defer src="assets/js/task-estimates.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsSavedViews): ?>
+<script defer src="assets/js/saved-views.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <script defer src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>

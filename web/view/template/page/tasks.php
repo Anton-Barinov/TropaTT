@@ -12,6 +12,19 @@
 <div id="tasksAiPriorityCard" data-ai-state="idle"><div class="crm-tasks-local-actions"><div class="btn-group crm-tasks-view-toggle" role="group" aria-label="<?= htmlspecialchars($t('tasks.view_toggle_aria', 'Вид списка задач'), ENT_QUOTES, 'UTF-8') ?>" data-tasks-view-toggle data-i18n-aria-label="tasks.view_toggle_aria"><button class="btn crm-btn-secondary" type="button" data-tasks-view="list" data-i18n="tasks.view_list"><?= htmlspecialchars($t('tasks.view_list', 'Список'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-secondary" type="button" data-tasks-view="tree" data-i18n="tasks.view_tree"><?= htmlspecialchars($t('tasks.view_tree', 'Иерархия'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-secondary" type="button" data-tasks-view="cards" data-i18n="tasks.view_cards"><?= htmlspecialchars($t('tasks.view_cards', 'Карточки'), ENT_QUOTES, 'UTF-8') ?></button></div><a class="btn crm-btn-secondary" href="index.php?route=kanban" data-i18n="tasks.kanban_link"><?= htmlspecialchars($t('tasks.kanban_link', 'Канбан'), ENT_QUOTES, 'UTF-8') ?></a><button id="tasksAiPriorityBtn" class="btn crm-btn-secondary" type="button" data-requires-ai-use="1" title="<?= htmlspecialchars($t('tasks.ai_priority_title', 'Сформировать AI-ранжирование задач по риску и срочности'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="tasks.ai_priority_title" data-i18n="tasks.ai_priority"><?= htmlspecialchars($t('tasks.ai_priority', 'AI-приоритет'), ENT_QUOTES, 'UTF-8') ?></button><button id="tasksAiPriorityResetBtn" class="btn crm-btn-muted d-none" type="button" data-requires-ai-use="1" title="<?= htmlspecialchars($t('tasks.ai_priority_reset_title', 'Вернуть обычный порядок задач'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-title="tasks.ai_priority_reset_title" data-i18n="tasks.ai_priority_reset"><?= htmlspecialchars($t('tasks.ai_priority_reset', 'Сброс AI-порядка'), ENT_QUOTES, 'UTF-8') ?></button></div>
 <div id="tasksAiPriorityState" class="small text-muted mb-2"></div></div>
 
+<div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+  <div class="dropdown" id="savedViewsDropdown">
+    <button class="btn crm-btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-i18n="tasks.views_btn">
+      <?= htmlspecialchars($t('tasks.views_btn', 'Представления'), ENT_QUOTES, 'UTF-8') ?>
+    </button>
+    <ul class="dropdown-menu crm-saved-views-menu" aria-label="<?= htmlspecialchars($t('tasks.views_aria', 'Сохранённые представления'), ENT_QUOTES, 'UTF-8') ?>">
+      <li><button class="dropdown-item crm-sv-save-btn" type="button" id="savedViewsSaveBtn" data-i18n="tasks.views_save_current"><?= htmlspecialchars($t('tasks.views_save_current', '💾 Сохранить текущие фильтры'), ENT_QUOTES, 'UTF-8') ?></button></li>
+      <li><hr class="dropdown-divider my-1"></li>
+      <li class="crm-saved-views-list"></li>
+    </ul>
+  </div>
+</div>
+
 <section class="crm-kanban-filters crm-filters-card">
   <div class="crm-kanban-search">
     <label class="crm-filter-label" for="tasksSearchInput" data-i18n="tasks.filter_search"><?= htmlspecialchars($t('tasks.filter_search', 'Поиск'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -86,3 +99,37 @@
 <div id="tasksPager" class="crm-table-pager d-none" aria-live="polite"></div>
 
 </main></div></div>
+
+<!-- Saved View Create/Edit Modal -->
+<div class="modal fade" id="savedViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="savedViewModalTitle" data-i18n="tasks.views_modal_title"><?= htmlspecialchars($t('tasks.views_modal_title', 'Сохранить представление'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close_aria', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.close_aria"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="savedViewPublicIdInput" value="">
+        <div class="mb-3">
+          <label for="savedViewNameInput" class="form-label" data-i18n="tasks.views_name_label"><?= htmlspecialchars($t('tasks.views_name_label', 'Название'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input id="savedViewNameInput" class="form-control" type="text" maxlength="255" placeholder="<?= htmlspecialchars($t('tasks.views_name_placeholder', 'Мои задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_name_placeholder">
+        </div>
+        <div class="mb-3">
+          <label for="savedViewDescInput" class="form-label" data-i18n="tasks.views_desc_label"><?= htmlspecialchars($t('tasks.views_desc_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
+          <textarea id="savedViewDescInput" class="form-control" rows="2" maxlength="2000" placeholder="<?= htmlspecialchars($t('tasks.views_desc_placeholder', 'Необязательное описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_desc_placeholder"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="savedViewAccessSelect" class="form-label" data-i18n="tasks.views_access_label"><?= htmlspecialchars($t('tasks.views_access_label', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></label>
+          <select id="savedViewAccessSelect" class="form-select">
+            <option value="private" data-i18n="tasks.views_access_private"><?= htmlspecialchars($t('tasks.views_access_private', 'Приватное'), ENT_QUOTES, 'UTF-8') ?></option>
+            <option value="public" data-i18n="tasks.views_access_public"><?= htmlspecialchars($t('tasks.views_access_public', 'Публичное'), ENT_QUOTES, 'UTF-8') ?></option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel_btn"><?= htmlspecialchars($t('common.cancel_btn', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="savedViewModalSaveBtn" data-i18n="tasks.views_save_btn"><?= htmlspecialchars($t('tasks.views_save_btn', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
+  </div>
+</div>

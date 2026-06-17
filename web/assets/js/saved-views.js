@@ -18,18 +18,13 @@ window.CRM.savedViews = (function () {
   /**
    * Wait for the API client to be ready.
    */
-  function waitForApi(cb) {
+  function waitForApi(cb, n) {
     if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') {
       cb();
       return;
     }
-    var check = setInterval(function () {
-      if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') {
-        clearInterval(check);
-        cb();
-      }
-    }, 50);
-    setTimeout(function () { clearInterval(check); }, 10000);
+    if ((n || 0) > 80) return;
+    setTimeout(function () { waitForApi(cb, (n || 0) + 1); }, 50);
   }
 
   /**
@@ -542,6 +537,13 @@ window.CRM.savedViews = (function () {
 
     // Load views after API is ready
     loadViews();
+  }
+
+  // Auto-initialize on tasks page
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
   return {

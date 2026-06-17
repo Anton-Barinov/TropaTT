@@ -7422,19 +7422,7 @@ font-size: 0.72rem;
   pointer-events: none;
 }
 
-/* 2. Dependency lines SVG overlay */
-.crm-gantt-page .crm-gantt {
-  position: relative;
-}
-
-.crm-gantt-page .crm-gantt-dependencies {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 5;
-  pointer-events: none;
-  overflow: visible;
-}
+/* 2. Dependency lines overlay */
 
 .crm-gantt-page .crm-gantt-dependencies path {
   fill: none;
