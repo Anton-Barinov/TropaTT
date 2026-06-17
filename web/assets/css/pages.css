@@ -7699,7 +7699,10 @@ font-size: 0.72rem;
   pointer-events: none;
 }
 
-/* 2. Dependency lines overlay — rendered via JS on document.body */
+/* 2. Dependency lines SVG overlay */
+.crm-gantt-page .crm-gantt-lanes {
+  position: relative !important;
+}
 
 /* 10. Adaptive row height */
 .crm-gantt-page .crm-gantt-row--task.is-tall,
@@ -9472,7 +9475,7 @@ font-size: 0.72rem;
 
 /* Rows and lanes */
 .crm-gantt-page .crm-gantt-rows { min-width: var(--gantt-left-width) !important; }
-.crm-gantt-page .crm-gantt-lanes { min-width: var(--gantt-track-width) !important; background: #fff; }
+.crm-gantt-page .crm-gantt-lanes { min-width: var(--gantt-track-width) !important; background: #fff; position: relative !important; }
 
 .crm-gantt-page .crm-gantt-row,
 .crm-gantt-page .crm-gantt-lane {
@@ -9946,6 +9949,14 @@ font-size: 0.72rem;
   outline: 2px solid rgba(5, 150, 105, 0.28);
   outline-offset: 2px;
   filter: saturate(1.08);
+}
+
+/* ===== GANTT DEPENDENCY HIGHLIGHT ===== */
+.crm-gantt-page .crm-gantt-bar.gantt-dep-highlight {
+  outline: 2px solid #ea580c !important;
+  outline-offset: 2px;
+  filter: saturate(1.15) brightness(1.05);
+  z-index: 12;
 }
 
 /* ===== GANTT ROW/LANE VERTICAL SYNC ===== */

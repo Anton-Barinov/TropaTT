@@ -15991,7 +15991,6 @@ window.CRM.pageApiBindings = (function () {
 
     // 2. Render dependency lines
     crmGanttRenderDependencies(groups, windowInfo);
-    _crmGanttDepsBindScroll();
 
     // 9. Render milestones on chart
     if (window.CRM && window.CRM.ganttMilestones) {
@@ -16141,233 +16140,424 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — overlay inside gantt timeline area
-  var _ganttDepsScrollHandler = null;
-  var _ganttDepsRenderQueued = false;
+  // ===== GANTT DEPENDENCY LINES — correct coordinate system =====
+  //
+  // Architecture:
+  //   .crm-gantt-board (overflow-x: auto — scrollable)
+  //     .crm-gantt (CSS grid: left labels | timeline)
+  //       .crm-gantt-lanes (position: relative — SVG reference frame)
+  //         .crm-gantt-lane--project (position: relative)
+  //         .crm-gantt-lane--task   (position: relative)
+  //           .crm-gantt-bar (position: absolute; left: X%; top: 50%; transform: translateY(-50%))
+  //         ... more lanes ...
+  //         #ganttDepsSvg (position: absolute; top:0; left:0; width:100%; height:100%)
+  //           <path .../>  (one per dependency)
+  //           <polygon .../>  (arrowhead)
+  //           <g class="gantt-conflict-marker">  (warning markers)
+  //
+  // Key: bars and SVG live inside the SAME positioned container (.crm-gantt-lanes).
+  // Scroll is natural — no manual scrollLeft compensation, no re-draw on scroll.
+  // Coordinates are measured from actual DOM elements via getBoundingClientRect.
+
   var _ganttDepsConflictData = [];
-  var _ganttDepsWindowInfo = null;
-  var _ganttDepsGroups = null;
 
   function crmGanttRenderDependencies(groups, windowInfo) {
-    _ganttDepsWindowInfo = windowInfo;
-    _ganttDepsGroups = groups;
+    var lanesContainer = document.querySelector('.crm-gantt-lanes');
+    if (!lanesContainer || !windowInfo || !windowInfo.trackWidth) return;
+
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
+
+    // Remove old overlay if no deps
     if (!deps.length) {
-      var old = document.getElementById('ganttDepsOverlay');
-      if (old) old.remove();
+      var oldOverlay = document.getElementById('ganttDepsSvg');
+      if (oldOverlay) oldOverlay.remove();
       _ganttDepsConflictData = [];
       return;
     }
-    _crmGanttDepsDraw(deps, groups);
-  }
 
-  function _crmGanttDepsDraw(deps, groups) {
-    if (!groups) return;
-    var wi = _ganttDepsWindowInfo;
-    if (!wi || !wi.trackWidth) return;
+    // ── 1. Build task lookup from real DOM positions ────────────
+    var taskLookup = crmGanttBuildTaskLookup(lanesContainer, groups, windowInfo);
 
-    var lanesContainer = document.querySelector('.crm-gantt-lanes');
-    if (!lanesContainer) return;
-
-    var overlay = document.getElementById('ganttDepsOverlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;';
-      lanesContainer.appendChild(overlay);
-    }
-
-    // Build task lookup from groups (same data source as bars)
-    var taskLookup = {};
-    var rowY = 0;
-    var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
-
-    groups.forEach(function (group) {
-      rowY += rowHeight; // skip project header row
-      group.items.forEach(function (item) {
-        var startPct = crmGanttClamp(crmGanttPercent(item.start, wi), 0, 100);
-        var endPct = crmGanttClamp(crmGanttPercent(item.end + 86400000, wi), 0, 100);
-        var leftPx = (startPct / 100) * wi.trackWidth;
-        var rightPx = (endPct / 100) * wi.trackWidth;
-        taskLookup[item.id] = {
-          left: leftPx,
-          right: rightPx,
-          top: rowY,
-          bottom: rowY + rowHeight,
-          centerY: rowY + rowHeight / 2,
-          rowY: rowY
-        };
-        rowY += rowHeight;
-      });
-    });
-
-    var svgParts = [];
-    var conflictByTarget = {};
-    _ganttDepsConflictData = [];
-    var minBarLeft = Infinity;
-
-    // Classify deps
+    // ── 2. Classify dependencies ─────────────────────────────────
     var normalDeps = [];
     var conflictDeps = [];
-    for (var j = 0; j < deps.length; j++) {
-      var dep = deps[j];
-      var src = taskLookup[dep.from_task_id];
-      var tgt = taskLookup[dep.to_task_id];
-      if (!src || !tgt) continue;
-      if (src.left < minBarLeft) minBarLeft = src.left;
-      if (tgt.left < minBarLeft) minBarLeft = tgt.left;
-      var gap = tgt.left - src.right;
-      if (gap > 24) {
-        normalDeps.push({ dep: dep, src: src, tgt: tgt });
+    var diag = { totalTasks: 0, visibleTasks: 0, depRecords: deps.length, sourceFound: 0, targetFound: 0, bothVisible: 0, skippedReasons: [] };
+
+    var taskIds = Object.keys(taskLookup);
+    diag.totalTasks = taskIds.length;
+    for (var ti = 0; ti < taskIds.length; ti++) {
+      if (taskLookup[taskIds[ti]]) diag.visibleTasks++;
+    }
+
+    for (var d = 0; d < deps.length; d++) {
+      var dep = deps[d];
+      var fromId = dep.from_task_id || '';
+      var toId = dep.to_task_id || '';
+      var src = taskLookup[fromId];
+      var tgt = taskLookup[toId];
+
+      if (!src) {
+        diag.skippedReasons.push('dep[' + d + '] no source: ' + fromId);
+        continue;
+      }
+      diag.sourceFound++;
+      if (!tgt) {
+        diag.skippedReasons.push('dep[' + d + '] no target: ' + toId);
+        continue;
+      }
+      diag.targetFound++;
+      if (!src.visible || !tgt.visible) {
+        diag.skippedReasons.push('dep[' + d + '] hidden (src.vis=' + src.visible + ' tgt.vis=' + tgt.visible + ')');
+        continue;
+      }
+      diag.bothVisible++;
+
+      var entry = { dep: dep, src: src, tgt: tgt };
+      // Conflict: target.start < source.end (FS violation)
+      if (dep.dependency_type === 'FS' && tgt.startMs < src.endMs) {
+        conflictDeps.push(entry);
       } else {
-        conflictDeps.push({ dep: dep, src: src, tgt: tgt });
+        normalDeps.push(entry);
       }
     }
 
-    // Rail lanes for conflicts — each gets own compact rail near its bars
+    // ── 3. Build obstacle boxes for routing ─────────────────────
+    var obstacles = crmGanttBuildObstacles(taskLookup);
+
+    // ── 4. Route and render normal deps ──────────────────────────
     var svgParts = [];
+    for (var n = 0; n < normalDeps.length; n++) {
+      var nd = normalDeps[n];
+      var route = crmGanttRouteNormal(nd.src, nd.tgt, obstacles);
+      crmGanttRenderPath(svgParts, route, '#3b82f6', 1.8, false);
+    }
+
+    // ── 5. Route and render conflict deps ────────────────────────
     var conflictByTarget = {};
     _ganttDepsConflictData = [];
-    var laneCounters = {}; // per-target lane counter for spacing
 
-    for (var n = 0; n < normalDeps.length; n++) {
-      _crmGanttDepsDrawArrow(svgParts, normalDeps[n].src, normalDeps[n].tgt, normalDeps[n].dep.dependency_type === 'FS');
-    }
-
+    // Assign lane indices per-target
+    var laneCounters = {};
     for (var c = 0; c < conflictDeps.length; c++) {
       var cd = conflictDeps[c];
-      // Compact rail: just to the left of source and target
       var tgtId = cd.dep.to_task_id;
       if (!laneCounters[tgtId]) laneCounters[tgtId] = 0;
-      var laneOff = laneCounters[tgtId] * 8;
+      var laneIdx = laneCounters[tgtId];
       laneCounters[tgtId]++;
-      cd.railX = Math.min(cd.src.left, cd.tgt.left) - 16 - laneOff;
-      _crmGanttDepsDrawConflictLine(svgParts, cd);
-      if (!conflictByTarget[cd.dep.to_task_id]) {
-        conflictByTarget[cd.dep.to_task_id] = { pos: cd.tgt, sources: [], types: [], sourcePositions: [] };
+
+      var route = crmGanttRouteConflict(cd.src, cd.tgt, obstacles, laneIdx);
+      crmGanttRenderPath(svgParts, route, '#ea580c', 1.2, true);
+
+      if (!conflictByTarget[tgtId]) {
+        conflictByTarget[tgtId] = { pos: cd.tgt, sources: [], types: [], sourceTitles: [], sourcePositions: [] };
       }
-      conflictByTarget[cd.dep.to_task_id].sources.push(cd.dep.from_task_id);
-      conflictByTarget[cd.dep.to_task_id].types.push(cd.dep.dependency_type);
-      conflictByTarget[cd.dep.to_task_id].sourcePositions.push(cd.src);
+      conflictByTarget[tgtId].sources.push(cd.dep.from_task_id);
+      conflictByTarget[tgtId].types.push(cd.dep.dependency_type);
+      conflictByTarget[tgtId].sourceTitles.push(cd.src.title || cd.dep.from_task_id);
+      conflictByTarget[tgtId].sourcePositions.push(cd.src);
     }
 
+    // ── 6. Render warning markers for conflict targets ────────────
     var cKeys = Object.keys(conflictByTarget);
     for (var k = 0; k < cKeys.length; k++) {
-      _crmGanttDepsDrawConflictMarker(svgParts, conflictByTarget[cKeys[k]], k);
+      crmGanttRenderConflictMarker(svgParts, conflictByTarget[cKeys[k]], k);
       _ganttDepsConflictData.push({ idx: k, info: conflictByTarget[cKeys[k]] });
     }
 
-    var totalH = rowY;
-    var totalW = wi.trackWidth;
-    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + svgParts.join('') + '</svg>';
-    _crmGanttDepsBindHover(overlay);
-  }
-
-  function _crmGanttDepsDrawArrow(parts, src, tgt, isFS) {
-    var sx = src.right, sy = src.centerY, tx = tgt.left, ty = tgt.centerY;
-    var color = isFS ? '#3b82f6' : '#94a3b8';
-    var sw = isFS ? 1.8 : 1.2;
-    var dashAttr = !isFS ? ' stroke-dasharray="5,3"' : '';
-    if (Math.abs(sy - ty) < 2) {
-      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty + '" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linecap="round"/>');
-    } else {
-      var mx = (sx + tx) / 2;
-      parts.push('<path d="M ' + sx + ' ' + sy + ' L ' + mx + ' ' + sy + ' L ' + mx + ' ' + ty + ' L ' + tx + ' ' + ty + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
+    // ── 7. Create/update SVG element ────────────────────────────
+    var svgEl = document.getElementById('ganttDepsSvg');
+    if (!svgEl) {
+      svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svgEl.id = 'ganttDepsSvg';
+      svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svgEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;';
+      lanesContainer.appendChild(svgEl);
     }
-    parts.push('<polygon points="' + tx + ',' + ty + ' ' + (tx + 7) + ',' + (ty - 4) + ' ' + (tx + 7) + ',' + (ty + 4) + '" fill="' + color + '"/>');
-  }
+    svgEl.setAttribute('width', lanesContainer.scrollWidth);
+    svgEl.setAttribute('height', lanesContainer.scrollHeight);
+    svgEl.innerHTML = svgParts.join('');
 
-  function _crmGanttDepsDrawConflictLine(parts, cd) {
-    // Simple orthogonal route: from source bottom → down to target row → right to target
-    var sx = cd.src.right + 4;   // start just right of source bar
-    var sy = cd.src.bottom;       // bottom edge of source bar
-    var tx = cd.tgt.left - 4;    // end just left of target bar
-    var ty = cd.tgt.centerY;     // center of target bar
+    // ── 8. Bind hover events on conflict markers ─────────────────
+    crmGanttDepsBindHover(svgEl);
 
-    // If source and target are on same or adjacent rows, simple horizontal
-    if (Math.abs(sy - ty) < 2) {
-      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty + '" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.65"/>');
-    } else {
-      // Orthogonal: down from source, then right to target
-      var d = 'M ' + sx + ' ' + sy
-        + ' L ' + sx + ' ' + ty
-        + ' L ' + tx + ' ' + ty;
-      parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
+    // ── 9. Dev diagnostics ───────────────────────────────────────
+    if (typeof console !== 'undefined' && console.info) {
+      console.info(
+        '[GANTT DEPS] tasks: ' + diag.totalTasks + ', visible: ' + diag.visibleTasks +
+        ', depRecords: ' + diag.depRecords +
+        ', sourceFound: ' + diag.sourceFound + ', targetFound: ' + diag.targetFound +
+        ', bothVisible: ' + diag.bothVisible +
+        ', normal: ' + normalDeps.length + ', conflict: ' + conflictDeps.length +
+        ', paths: ' + svgParts.length + ', markers: ' + cKeys.length
+      );
+      if (diag.skippedReasons.length) {
+        console.info('[GANTT DEPS] skipped (' + diag.skippedReasons.length + '):', diag.skippedReasons.slice(0, 10));
+      }
     }
   }
 
-  function _crmGanttDepsDrawConflictMarker(parts, info, idx) {
+  // ── Task lookup: measure real DOM bar positions ──────────────────
+  function crmGanttBuildTaskLookup(lanesContainer, groups, windowInfo) {
+    var lookup = {};
+    var containerRect = lanesContainer.getBoundingClientRect();
+
+    // Iterate all task lanes in the DOM (same order as rendered)
+    var allLanes = lanesContainer.querySelectorAll('.crm-gantt-lane--task');
+    for (var li = 0; li < allLanes.length; li++) {
+      var lane = allLanes[li];
+
+      // Skip collapsed lanes (height: 0, opacity: 0)
+      if (lane.offsetHeight < 4) continue;
+
+      var bar = lane.querySelector('.crm-gantt-bar[data-task-id]');
+      if (!bar) continue;
+
+      var taskId = bar.getAttribute('data-task-id');
+      var barRect = bar.getBoundingClientRect();
+
+      // Position relative to the lanes container (our SVG reference frame)
+      lookup[taskId] = {
+        taskId: taskId,
+        left: barRect.left - containerRect.left,
+        right: barRect.right - containerRect.left,
+        top: barRect.top - containerRect.top,
+        bottom: barRect.bottom - containerRect.top,
+        centerY: (barRect.top + barRect.bottom) / 2 - containerRect.top,
+        title: bar.getAttribute('aria-label') || taskId,
+        visible: true,
+        startMs: 0,
+        endMs: 0
+      };
+    }
+
+    // Enrich with actual task dates for conflict detection
+    groups.forEach(function (group) {
+      group.items.forEach(function (item) {
+        var entry = lookup[item.id];
+        if (entry) {
+          entry.startMs = item.start || 0;
+          entry.endMs = item.end || 0;
+          entry.title = item.title || entry.title;
+        }
+      });
+    });
+
+    return lookup;
+  }
+
+  // ── Obstacle boxes for routing ──────────────────────────────────
+  function crmGanttBuildObstacles(taskLookup) {
+    var obstacles = [];
+    var PAD_X = 8;
+    var PAD_Y = 4;
+    var keys = Object.keys(taskLookup);
+    for (var i = 0; i < keys.length; i++) {
+      var t = taskLookup[keys[i]];
+      if (!t.visible) continue;
+      obstacles.push({
+        left: t.left - PAD_X,
+        right: t.right + PAD_X,
+        top: t.top - PAD_Y,
+        bottom: t.bottom + PAD_Y
+      });
+    }
+    return obstacles;
+  }
+
+  // ── Route normal dependency: right edge of source → left edge of target
+  function crmGanttRouteNormal(src, tgt, obstacles) {
+    var sx = src.right + 2;
+    var sy = src.centerY;
+    var tx = tgt.left - 2;
+    var ty = tgt.centerY;
+
+    // If same row (or nearly), straight horizontal line
+    if (Math.abs(sy - ty) < 3) {
+      return [{ x: sx, y: sy }, { x: tx, y: ty }];
+    }
+
+    // Z-route: horizontal from source → vertical turn → horizontal to target
+    // Try the midpoint X first
+    var mx = (sx + tx) / 2;
+    var points = [{ x: sx, y: sy }, { x: mx, y: sy }, { x: mx, y: ty }, { x: tx, y: ty }];
+
+    // Check if the vertical segment (mx, sy→ty) hits any obstacle
+    // If it does, try offset lanes ±16px, ±24px
+    var offsets = [0, -16, 16, -24, 24, -32, 32];
+    for (var o = 0; o < offsets.length; o++) {
+      var testMx = mx + offsets[o];
+      if (testMx <= sx || testMx >= tx) continue; // must be between source and target
+      var segH1 = { x1: sx, y: sy, x2: testMx, y2: sy }; // horizontal
+      var segV = { x1: testMx, y1: sy, x2: testMx, y2: ty }; // vertical
+      var segH2 = { x1: testMx, y: sy === ty ? sy : ty, x2: tx, y2: ty }; // horizontal
+      var blocked = crmGanttSegmentHitsObstacle(segH1, obstacles) || crmGanttSegmentHitsObstacle(segV, obstacles) || crmGanttSegmentHitsObstacle(segH2, obstacles);
+      if (!blocked) {
+        points = [{ x: sx, y: sy }, { x: testMx, y: sy }, { x: testMx, y: ty }, { x: tx, y: ty }];
+        break;
+      }
+    }
+
+    return points;
+  }
+
+  // ── Route conflict dependency: side rail to the left of bars ────
+  function crmGanttRouteConflict(src, tgt, obstacles, laneIndex) {
+    var srcPortX = src.left - 6;
+    var srcPortY = src.centerY;
+    var tgtPortX = tgt.left - 6;
+    var tgtPortY = tgt.centerY;
+
+    // Rail position: to the left of the leftmost bar
+    var baseLeft = Math.min(src.left, tgt.left);
+    var railX = baseLeft - 20 - laneIndex * 8;
+
+    // Clamp rail: don't go too far left
+    var maxRailOffset = 64;
+    if (baseLeft - railX > maxRailOffset) {
+      railX = baseLeft - maxRailOffset;
+    }
+    // Don't go past container left edge (0)
+    if (railX < 4) railX = 4;
+
+    // Path: sourcePort → railX (horiz) → railX/targetPortY (vert) → tgtPort (horiz)
+    return [
+      { x: srcPortX, y: srcPortY },
+      { x: railX, y: srcPortY },
+      { x: railX, y: tgtPortY },
+      { x: tgtPortX, y: tgtPortY }
+    ];
+  }
+
+  // ── Render path as SVG polyline + arrowhead ─────────────────────
+  function crmGanttRenderPath(parts, points, color, strokeWidth, dashed) {
+    if (points.length < 2) return;
+
+    var dashAttr = dashed ? ' stroke-dasharray="5,3"' : '';
+    var d = 'M ' + points[0].x.toFixed(1) + ' ' + points[0].y.toFixed(1);
+    for (var i = 1; i < points.length; i++) {
+      d += ' L ' + points[i].x.toFixed(1) + ' ' + points[i].y.toFixed(1);
+    }
+    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + strokeWidth + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
+
+    // Arrowhead at the last point
+    var last = points[points.length - 1];
+    var prev = points[points.length - 2];
+    // Arrow direction: from prev to last
+    var dx = last.x - prev.x;
+    var dy = last.y - prev.y;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) return;
+    // Normalize and perpendicular
+    var ux = dx / len;
+    var uy = dy / len;
+    // Arrow tip at last point, pointing in direction of (dx,dy)
+    var ax = last.x;
+    var ay = last.y;
+    // Two wing points, 7px back and 4px to each side
+    var wingLen = 7;
+    var wingWidth = 4;
+    var tipX = ax;
+    var tipY = ay;
+    var baseX = ax - ux * wingLen;
+    var baseY = ay - uy * wingLen;
+    var leftX = baseX + (-uy) * wingWidth;
+    var leftY = baseY + ux * wingWidth;
+    var rightX = baseX - (-uy) * wingWidth;
+    var rightY = baseY - ux * wingWidth;
+    parts.push('<polygon points="' + tipX.toFixed(1) + ',' + tipY.toFixed(1) + ' ' + leftX.toFixed(1) + ',' + leftY.toFixed(1) + ' ' + rightX.toFixed(1) + ',' + rightY.toFixed(1) + '" fill="' + color + '"/>');
+  }
+
+  // ── Render warning marker for conflict target ──────────────────
+  function crmGanttRenderConflictMarker(parts, info, idx) {
     var tgt = info.pos;
-    var bx = tgt.left + 10, by = tgt.top + 5, r = 8;
-    var tipLines = ['Зависимость нарушена'];
-    for (var i = 0; i < info.sources.length; i++) tipLines.push('Предшественник: ' + info.sources[i].substring(0, 16) + '… (' + info.types[i] + ')');
-    tipLines.push('Задача начинается раньше завершения предшественника');
-    parts.push('<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
-      + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round" style="pointer-events:auto;cursor:pointer;"/>'
-      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
-      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
-      + '<title>' + tipLines.join(' | ').replace(/"/g, '&quot;') + '</title></g>');
+    var bx = tgt.left + 14;
+    var by = tgt.top + 8;
+    var r = 8;
+
+    var tipLines = [tp('gantt.dep_violation', 'Dependency violated')];
+    for (var i = 0; i < info.sources.length; i++) {
+      tipLines.push(tp('gantt.dep_predecessor', 'Predecessor') + ': ' + safeText(info.sourceTitles[i] || info.sources[i].substring(0, 24)) + ' (' + safeText(info.types[i]) + ')');
+    }
+    tipLines.push(tp('gantt.dep_starts_before_predecessor_ends', 'Task starts before predecessor ends'));
+
+    // ⚠ warning icon: circle with ! mark
+    parts.push(
+      '<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
+      + '<circle cx="' + bx + '" cy="' + by + '" r="' + r + '" fill="white" stroke="#ea580c" stroke-width="1.5" style="pointer-events:auto;cursor:pointer;"/>'
+      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round" style="pointer-events:none;"/>'
+      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1.2" fill="#ea580c" style="pointer-events:none;"/>'
+      + '<title>' + tipLines.join('\n').replace(/"/g, '&quot;') + '</title>'
+      + '</g>'
+    );
   }
 
-  function _crmGanttDepsBindHover(overlay) {
-    var markers = overlay.querySelectorAll('.gantt-conflict-marker');
+  // ── Bind hover on conflict markers: highlight source/target bars ──
+  function crmGanttDepsBindHover(svgEl) {
+    var markers = svgEl.querySelectorAll('.gantt-conflict-marker');
     for (var i = 0; i < markers.length; i++) {
       (function (m) {
         var idx = parseInt(m.getAttribute('data-conflict-idx'));
-        m.addEventListener('mouseenter', function () { _crmGanttDepsShowHoverLine(overlay, idx); });
-        m.addEventListener('mouseleave', function () { _crmGanttDepsHideHoverLine(overlay); });
+        m.addEventListener('mouseenter', function () { crmGanttDepsHighlightConflict(idx); });
+        m.addEventListener('mouseleave', function () { crmGanttDepsClearHighlight(); });
       })(markers[i]);
     }
   }
 
-  function _crmGanttDepsShowHoverLine(overlay, idx) {
+  function crmGanttDepsHighlightConflict(idx) {
     var info = _ganttDepsConflictData[idx];
     if (!info) return;
-    var hoverSvg = document.getElementById('ganttDepsHover');
-    if (!hoverSvg) {
-      hoverSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      hoverSvg.id = 'ganttDepsHover';
-      hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;overflow:visible;';
-      overlay.appendChild(hoverSvg);
-    }
-    var parts = [], tgt = info.pos, pad = 4;
-    parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+
+    // Highlight target bar
+    var tgtBar = document.querySelector('.crm-gantt-bar[data-task-id="' + info.pos.taskId + '"]');
+    if (tgtBar) tgtBar.classList.add('gantt-dep-highlight');
+
+    // Highlight source bars
     if (info.sourcePositions) {
-      var minLeft = tgt.left;
       for (var s = 0; s < info.sourcePositions.length; s++) {
-        if (info.sourcePositions[s].left < minLeft) minLeft = info.sourcePositions[s].left;
-      }
-      for (var s = 0; s < info.sourcePositions.length; s++) {
-        var src = info.sourcePositions[s];
-        parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
-        var railX = minLeft - 12;
-        parts.push('<path d="M ' + (src.left - 4) + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + (tgt.left - 4) + ' ' + tgt.centerY + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
+        var srcBar = document.querySelector('.crm-gantt-bar[data-task-id="' + info.sources[s] + '"]');
+        if (srcBar) srcBar.classList.add('gantt-dep-highlight');
       }
     }
-    hoverSvg.innerHTML = parts.join('');
   }
 
-  function _crmGanttDepsHideHoverLine(overlay) {
-    var hoverSvg = document.getElementById('ganttDepsHover');
-    if (hoverSvg) hoverSvg.innerHTML = '';
+  function crmGanttDepsClearHighlight() {
+    var highlighted = document.querySelectorAll('.crm-gantt-bar.gantt-dep-highlight');
+    for (var i = 0; i < highlighted.length; i++) {
+      highlighted[i].classList.remove('gantt-dep-highlight');
+    }
   }
 
-  function _crmGanttDepsScrollTick() {
-    if (_ganttDepsRenderQueued) return;
-    _ganttDepsRenderQueued = true;
-    requestAnimationFrame(function () {
-      _ganttDepsRenderQueued = false;
-      var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-      if (deps.length && _ganttDepsGroups) _crmGanttDepsDraw(deps, _ganttDepsGroups);
-    });
+  // ── Segment-obstacle intersection check ──────────────────────────
+  function crmGanttSegmentHitsObstacle(seg, obstacles) {
+    for (var i = 0; i < obstacles.length; i++) {
+      var ob = obstacles[i];
+      if (crmGanttHSegIntersectsOb(seg, ob) || crmGanttVSegIntersectsOb(seg, ob)) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  function _crmGanttDepsBindScroll() {
-    if (_ganttDepsScrollHandler) return;
-    _ganttDepsScrollHandler = _crmGanttDepsScrollTick;
-    var board = document.querySelector('.crm-gantt-board');
-    if (board) board.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
-    window.addEventListener('resize', _ganttDepsScrollHandler, { passive: true });
+  // Horizontal segment: y is same, x varies
+  function crmGanttHSegIntersectsOb(seg, ob) {
+    if (Math.abs(seg.y1 - seg.y2) > 2) return false; // not horizontal
+    var sy = (seg.y1 + seg.y2) / 2;
+    if (sy <= ob.top || sy >= ob.bottom) return false;
+    var xMin = Math.min(seg.x1, seg.x2);
+    var xMax = Math.max(seg.x1, seg.x2);
+    if (xMax <= ob.left || xMin >= ob.right) return false;
+    return true;
+  }
+
+  // Vertical segment: x is same, y varies
+  function crmGanttVSegIntersectsOb(seg, ob) {
+    if (Math.abs(seg.x1 - seg.x2) > 2) return false; // not vertical
+    var sx = (seg.x1 + seg.x2) / 2;
+    if (sx <= ob.left || sx >= ob.right) return false;
+    var yMin = Math.min(seg.y1, seg.y2);
+    var yMax = Math.max(seg.y1, seg.y2);
+    if (yMax <= ob.top || yMin >= ob.bottom) return false;
+    return true;
   }
 
   // 9. Milestones rendering on chart
