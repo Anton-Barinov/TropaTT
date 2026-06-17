@@ -16028,6 +16028,7 @@ window.CRM.pageApiBindings = (function () {
             dependency_type: String(d.dependency_type || d.type || 'FS')
           };
         }).filter(function (d) { return d.from_task_id && d.to_task_id; });
+        console.log('[DEPS] loaded', window.CRM.ganttDependencies.length, 'dependencies:', JSON.stringify(window.CRM.ganttDependencies));
       }
     } catch (e) {
       console.warn('[GANTT] Failed to load dependencies', e);
@@ -16142,45 +16143,41 @@ window.CRM.pageApiBindings = (function () {
 
   // 2. Dependency lines rendering — uses actual bar DOM positions
   function crmGanttRenderDependencies(groups, windowInfo) {
-    // Collect all tasks with their positions
-    var taskPositions = {};
-    groups.forEach(function (group) {
-      group.items.forEach(function (item) {
-        taskPositions[item.id] = item;
-      });
-    });
-
-    var dependencies = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    if (!dependencies.length) return;
+    var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
+    console.log('[DEPS] render called, deps:', deps.length, 'groups:', groups.length);
+    if (!deps.length) return;
 
     var board = document.querySelector('.crm-gantt-board');
-    if (!board) return;
+    if (!board) { console.log('[DEPS] no board found'); return; }
 
     // Remove old overlay
     var oldOverlay = document.getElementById('ganttDepsOverlay');
     if (oldOverlay) oldOverlay.remove();
 
-    // Create overlay div positioned over the board
+    // Create overlay
     var overlay = document.createElement('div');
     overlay.id = 'ganttDepsOverlay';
-    overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:10;overflow:visible;';
-    board.style.position = board.style.position || 'relative';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:999;overflow:visible;background:rgba(255,0,0,0.05);';
+    board.style.position = 'relative';
     board.appendChild(overlay);
 
-    // Wait one frame for layout to settle
-    requestAnimationFrame(function () {
+    // Use setTimeout to ensure layout is complete
+    setTimeout(function () {
       var boardRect = board.getBoundingClientRect();
+      var barCount = 0;
+      var matchedDeps = 0;
       var paths = [];
 
-      dependencies.forEach(function (dep) {
-        var fromBar = document.querySelector('.crm-gantt-lane--task[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
-        var toBar = document.querySelector('.crm-gantt-lane--task[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
+      deps.forEach(function (dep) {
+        var fromBar = document.querySelector('[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
+        var toBar = document.querySelector('[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
         if (!fromBar || !toBar) return;
+        barCount += 2;
+        matchedDeps++;
 
         var fromRect = fromBar.getBoundingClientRect();
         var toRect = toBar.getBoundingClientRect();
 
-        // Coordinates relative to the board (accounting for scroll)
         var scrollLeft = board.scrollLeft;
         var scrollTop = board.scrollTop;
 
@@ -16194,7 +16191,6 @@ window.CRM.pageApiBindings = (function () {
         var strokeW = isCritical ? 2.5 : 1.5;
         var dash = isCritical ? '' : ' stroke-dasharray="5,3"';
 
-        // Orthogonal routing
         var gap = 10;
         var sx = x1 + gap;
         var ex = x2 - gap;
@@ -16212,17 +16208,16 @@ window.CRM.pageApiBindings = (function () {
 
         paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '"' + dash + '/>');
 
-        // Arrow head (filled triangle)
         var aSize = 6;
         paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
       });
 
-      var maxW = board.scrollWidth;
-      var maxH = board.scrollHeight;
-      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="' + maxW + '" height="' + maxH + '" style="position:absolute;top:0;left:0;pointer-events:none;">'
+      console.log('[DEPS] matched:', matchedDeps, 'bars found:', barCount, 'paths:', paths.length);
+
+      var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible;">'
         + paths.join('') + '</svg>';
       overlay.innerHTML = svgHtml;
-    });
+    }, 200);
   }
 
   // 9. Milestones rendering on chart
