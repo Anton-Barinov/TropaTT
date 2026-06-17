@@ -25564,7 +25564,8 @@ window.CRM.pageApiBindings = (function () {
                 });
                 dropdown.style.display = 'block';
               })
-              .catch(function () {
+              .catch(function (err) {
+                console.error('[DependencySearch] API error:', err);
                 dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438') + '</div>';
                 dropdown.style.display = 'block';
               });
