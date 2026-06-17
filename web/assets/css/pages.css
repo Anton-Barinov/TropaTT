@@ -7422,20 +7422,7 @@ font-size: 0.72rem;
   pointer-events: none;
 }
 
-/* 2. Dependency lines overlay */
-
-.crm-gantt-page .crm-gantt-dependencies path {
-  fill: none;
-  stroke: #94a3b8;
-  stroke-width: 2;
-  stroke-dasharray: 4 3;
-}
-
-.crm-gantt-page .crm-gantt-dependencies path.is-critical {
-  stroke: #ef4444;
-  stroke-width: 2.5;
-  stroke-dasharray: none;
-}
+/* 2. Dependency lines overlay — rendered via JS on document.body */
 
 /* 10. Adaptive row height */
 .crm-gantt-page .crm-gantt-row--task.is-tall,

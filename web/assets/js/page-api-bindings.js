@@ -15991,6 +15991,7 @@ window.CRM.pageApiBindings = (function () {
 
     // 2. Render dependency lines
     crmGanttRenderDependencies(groups, windowInfo);
+    _crmGanttDepsBindScroll();
 
     // 9. Render milestones on chart
     if (window.CRM && window.CRM.ganttMilestones) {
@@ -16141,75 +16142,124 @@ window.CRM.pageApiBindings = (function () {
   }
 
   // 2. Dependency lines — fixed overlay on document.body
+  var _ganttDepsScrollHandler = null;
+  var _ganttDepsRenderQueued = false;
+
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-    var oldOverlay = document.getElementById('ganttDepsOverlay');
-    if (oldOverlay) oldOverlay.remove();
-    if (!deps.length) return;
+    if (!deps.length) {
+      var old = document.getElementById('ganttDepsOverlay');
+      if (old) old.remove();
+      return;
+    }
+    _crmGanttDepsDraw(deps);
+  }
 
-    setTimeout(function () {
-      var board = document.querySelector('.crm-gantt-board');
-      if (!board) return;
+  function _crmGanttDepsDraw(deps) {
+    var board = document.querySelector('.crm-gantt-board');
+    if (!board) return;
 
-      var paths = [];
-      deps.forEach(function (dep) {
-        var fromBar = document.querySelector('[data-gantt-row-id="task-' + dep.from_task_id + '"] .crm-gantt-bar');
-        var toBar = document.querySelector('[data-gantt-row-id="task-' + dep.to_task_id + '"] .crm-gantt-bar');
-        if (!fromBar || !toBar) return;
-
-        var fromRect = fromBar.getBoundingClientRect();
-        var toRect = toBar.getBoundingClientRect();
-
-        var x1 = fromRect.right;
-        var y1 = fromRect.top + fromRect.height / 2;
-        var x2 = toRect.left;
-        var y2 = toRect.top + toRect.height / 2;
-
-        var isCritical = dep.dependency_type === 'FS';
-        var color = isCritical ? '#ef4444' : '#94a3b8';
-        var sw = isCritical ? 2.5 : 1.5;
-        var dash = isCritical ? '' : ' stroke-dasharray="5,3"';
-
-        var gap = 10;
-        var sx = x1 + gap, ex = x2 - gap, midX = (sx + ex) / 2;
-        var d;
-        if (y1 === y2) {
-          d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
-        } else if (sx >= ex) {
-          var bx = Math.max(sx, ex) + gap;
-          d = 'M '+x1+' '+y1+' L '+sx+' '+y1+' L '+bx+' '+y1+' L '+bx+' '+y2+' L '+x2+' '+y2;
-        } else {
-          d = 'M '+x1+' '+y1+' L '+sx+' '+y1+' L '+midX+' '+y1+' L '+midX+' '+y2+' L '+ex+' '+y2+' L '+x2+' '+y2;
-        }
-        paths.push('<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'"'+dash+'/>');
-        var a = 6;
-        paths.push('<path d="M '+(x2-a)+' '+(y2-a/2)+' L '+x2+' '+y2+' L '+(x2-a)+' '+(y2+a/2)+' Z" fill="'+color+'"/>');
-      });
-
-      if (!paths.length) return;
-
-      var vw = window.innerWidth;
-      var vh = window.innerHeight;
-      var overlay = document.createElement('div');
+    // Build or reuse SVG overlay on body
+    var overlay = document.getElementById('ganttDepsOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
       overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:'+vw+'px;height:'+vh+'px;pointer-events:none;z-index:99999;overflow:visible;';
-      overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="'+vw+'" height="'+vh+'">'+paths.join('')+'</svg>';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;overflow:visible;';
       document.body.appendChild(overlay);
+    }
 
-      // Re-render on scroll/resize to track bar positions
-      var scrollHandler = function () {
-        overlay.remove();
-        crmGanttRenderDependencies(groups, windowInfo);
-      };
-      var boardEl = board;
-      boardEl.addEventListener('scroll', scrollHandler, { passive: true });
-      window.addEventListener('resize', scrollHandler, { passive: true });
-      // Auto-cleanup after 30s to avoid stale listeners
-      setTimeout(function () {
-        boardEl.removeEventListener('scroll', scrollHandler);
-        window.removeEventListener('resize', scrollHandler);
-      }, 30000);
-    }, 200);
+    var paths = [];
+    var barPositions = {};
+
+    // Collect all bar positions once
+    var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
+    for (var i = 0; i < barEls.length; i++) {
+      var bar = barEls[i];
+      var rowId = bar.getAttribute('data-gantt-row-id') || bar.closest('.crm-gantt-lane--task').getAttribute('data-gantt-row-id');
+      if (rowId && rowId.indexOf('task-') === 0) {
+        var taskId = rowId.substring(5);
+        barPositions[taskId] = bar.getBoundingClientRect();
+      }
+    }
+
+    // Draw each dependency
+    for (var j = 0; j < deps.length; j++) {
+      var dep = deps[j];
+      var fromRect = barPositions[dep.from_task_id];
+      var toRect = barPositions[dep.to_task_id];
+      if (!fromRect || !toRect) continue;
+
+      var x1 = fromRect.right;
+      var y1 = fromRect.top + fromRect.height / 2;
+      var x2 = toRect.left;
+      var y2 = toRect.top + toRect.height / 2;
+
+      var isCritical = dep.dependency_type === 'FS';
+      var color = isCritical ? '#3b82f6' : '#94a3b8';
+      var sw = isCritical ? 2 : 1.5;
+      var dashAttr = isCritical ? '' : ' stroke-dasharray="5,3"';
+
+      // Orthogonal routing
+      var gap = 12;
+      var sx = x1 + gap;
+      var ex = x2 - gap;
+      var midX = (sx + ex) / 2;
+
+      var d;
+      if (Math.abs(y1 - y2) < 2) {
+        // Same row or very close
+        d = 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
+      } else if (sx >= ex) {
+        // Target is to the left — go right, down, left
+        var bendX = Math.max(sx, ex) + gap;
+        d = 'M ' + x1 + ' ' + y1
+          + ' L ' + sx + ' ' + y1
+          + ' L ' + bendX + ' ' + y1
+          + ' L ' + bendX + ' ' + y2
+          + ' L ' + x2 + ' ' + y2;
+      } else {
+        // Normal FS: right → down → right
+        d = 'M ' + x1 + ' ' + y1
+          + ' L ' + sx + ' ' + y1
+          + ' L ' + midX + ' ' + y1
+          + ' L ' + midX + ' ' + y2
+          + ' L ' + ex + ' ' + y2
+          + ' L ' + x2 + ' ' + y2;
+      }
+
+      paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round"/>');
+
+      // Arrow head
+      var aSize = 7;
+      paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2)
+        + ' L ' + x2 + ' ' + y2
+        + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2)
+        + ' Z" fill="' + color + '"/>');
+    }
+
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + vw + '" height="' + vh + '">'
+      + paths.join('') + '</svg>';
+  }
+
+  function _crmGanttDepsScrollTick() {
+    if (_ganttDepsRenderQueued) return;
+    _ganttDepsRenderQueued = true;
+    requestAnimationFrame(function () {
+      _ganttDepsRenderQueued = false;
+      var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
+      if (deps.length) _crmGanttDepsDraw(deps);
+    });
+  }
+
+  function _crmGanttDepsBindScroll() {
+    if (_ganttDepsScrollHandler) return;
+    var board = document.querySelector('.crm-gantt-board');
+    if (!board) return;
+    _ganttDepsScrollHandler = _crmGanttDepsScrollTick;
+    board.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
+    window.addEventListener('resize', _ganttDepsScrollHandler, { passive: true });
   }
 
   // 9. Milestones rendering on chart
