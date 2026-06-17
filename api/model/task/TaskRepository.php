@@ -86,6 +86,12 @@ final class TaskRepository
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
                 ) AS tags",
                 "(SELECT COUNT(*) FROM knowledge_entity_links kel WHERE kel.entity_type = 'task' AND kel.entity_public_id COLLATE utf8mb4_unicode_ci = t.public_id) AS knowledge_links_count",
+                "(SELECT COUNT(*) FROM task_dependencies td
+                    INNER JOIN tasks blocker ON blocker.id = td.depends_on_task_id
+                    WHERE td.task_id = t.id
+                      AND blocker.deleted_at IS NULL
+                      AND blocker.status_code NOT IN ('done','cancelled')
+                ) AS blocked_by_count",
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",

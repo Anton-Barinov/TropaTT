@@ -10,7 +10,8 @@ final class DependencyService
     public function __construct(
         private readonly DependencyRepository $dependencies,
         private readonly TaskService $tasks,
-        private readonly ?TaskActivityService $activity = null
+        private readonly ?TaskActivityService $activity = null,
+        private readonly ?WorkflowService $workflow = null
     ) {
     }
 
@@ -59,6 +60,12 @@ final class DependencyService
                 'task_public_id' => $taskPublicId,
                 'depends_on_task_public_id' => $dependsOnTaskPublicId,
             ], $actor);
+            $this->workflow?->fireTrigger('task_dependency_added', [
+                'task_public_id' => $taskPublicId,
+                'depends_on_task_public_id' => $dependsOnTaskPublicId,
+                'dependency_type' => $type,
+                'dependency_public_id' => (string)($created['public_id'] ?? ''),
+            ]);
         }
         return $created;
     }
@@ -84,6 +91,12 @@ final class DependencyService
                 'task_public_id' => (string)($item['task_public_id'] ?? ''),
                 'depends_on_task_public_id' => (string)($item['depends_on_task_public_id'] ?? ''),
             ], $actor);
+            $this->workflow?->fireTrigger('task_dependency_deleted', [
+                'task_public_id' => (string)($item['task_public_id'] ?? ''),
+                'depends_on_task_public_id' => (string)($item['depends_on_task_public_id'] ?? ''),
+                'dependency_type' => (string)($item['dependency_type'] ?? ''),
+                'dependency_public_id' => $publicId,
+            ]);
         }
         return $deleted;
     }

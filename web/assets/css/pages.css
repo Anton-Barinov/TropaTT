@@ -12246,6 +12246,30 @@ a.task-tag:hover {
   color: #b71c1c;
 }
 
+.kanban-priority-blocked {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.crm-kanban-card--blocked {
+  border-left: 3px solid #ef4444;
+}
+
+.crm-task-card--blocked {
+  border-left: 3px solid #ef4444;
+}
+
+.crm-chip-blocked {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* Show more button */
 .crm-kanban-show-more {
   display: block;

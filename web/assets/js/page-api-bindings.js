@@ -594,6 +594,11 @@ window.CRM.pageApiBindings = (function () {
     }
     hierarchyMeta += taskAiPriorityBadge(taskId, false);
 
+    var blockedCount = parseInt(item.blocked_by_count, 10) || 0;
+    if (blockedCount > 0) {
+      hierarchyMeta += '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + ' (' + blockedCount + ')</span>';
+    }
+
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
     return '<tr>'
@@ -885,13 +890,16 @@ window.CRM.pageApiBindings = (function () {
   function renderTaskCards(items) {
     return '<div class="crm-task-card-grid">' + items.map(function (item) {
       var taskId = item.public_id || '';
-      return '<article class="crm-task-card">'
+      var blockedCount = parseInt(item.blocked_by_count, 10) || 0;
+      var blockedChip = blockedCount > 0 ? '<span class="crm-chip crm-chip-blocked" title="' + window.CRM.i18n.t('js.pab.blocked_title', 'Blocked by dependencies') + '"><i class="fa-solid fa-lock"></i> ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked') + '</span>' : '';
+      return '<article class="crm-task-card' + (blockedCount > 0 ? ' crm-task-card--blocked' : '') + '">'
         + '<div class="crm-task-card-head">'
         + '<div class="crm-task-card-title-wrap">'
         + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span> ' : '')
         + '<a class="crm-task-card-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
         + '</div>'
         + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span>'
+        + blockedChip
         + '</div>'
         + '<div class="crm-task-row-meta">' + taskHierarchyLabel(item) + '</div>'
         + '<p class="crm-task-card-description">' + safeText(item.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
@@ -16781,6 +16789,8 @@ window.CRM.pageApiBindings = (function () {
       var label = kanbanPriorityLabel(priority);
       priorityBadge = '<span class="crm-kanban-priority ' + cls + '">' + safeText(label) + '</span>';
     }
+    var blockedCount = parseInt(task.blocked_by_count, 10) || 0;
+    var blockedBadge = blockedCount > 0 ? '<span class="crm-kanban-priority kanban-priority-blocked" title="' + safeText(kanbanT('kanban.blocked_title', 'Заблокирована зависимостями')) + '"><i class="fa-solid fa-lock"></i> ' + blockedCount + '</span>' : '';
     var dueBadge = due ? '<span class="crm-kanban-date crm-kanban-date-' + safeText(due.tone) + '" title="' + safeText(kanbanFormatShortDate(due.day)) + '"><i class="fa-regular fa-calendar"></i> ' + safeText(due.label) + '</span>' : '';
     var shownAssignees = assignees.slice(0, 3);
     var extraAssignees = Math.max(0, assignees.length - shownAssignees.length);
@@ -16803,8 +16813,8 @@ window.CRM.pageApiBindings = (function () {
     var desc = task.description ? safeText(task.description).slice(0, 120) : '';
     var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
     var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
-    return '<div class="crm-kanban-card" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
-      + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + '</div>'
+    return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
+      + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + blockedBadge + '</div>'
       + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
       + (desc ? '<p>' + desc + '</p>' : '')
       + tagChips
@@ -25460,6 +25470,21 @@ window.CRM.pageApiBindings = (function () {
 
         if (outgoingContainer) outgoingContainer.innerHTML = renderSection(outgoing, 'outgoing');
         if (incomingContainer) incomingContainer.innerHTML = renderSection(incoming, 'incoming');
+
+        // Update risk banner based on unresolved blockers
+        var unresolvedBlockers = (outgoing || []).filter(function (d) {
+          var status = String(d.depends_on_task_status_code || '').toLowerCase();
+          return status !== 'done' && status !== 'cancelled';
+        });
+        if (unresolvedBlockers.length > 0) {
+          var alert = document.getElementById('taskRiskAlert');
+          if (alert) {
+            alert.className = 'alert alert-warning mb-2';
+            alert.innerHTML = '<strong>' + _t('dependency.risk_blocked', 'Зависимости:') + '</strong> '
+              + _t('dependency.risk_blocked_detail', 'задача заблокирована незавершёнными зависимостями')
+              + ' (' + unresolvedBlockers.length + ').';
+          }
+        }
       } catch (error) {
         var errMsg = _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E\u0441\u0442\u0435\u0439');
         if (outgoingContainer) outgoingContainer.innerHTML = '<div class="text-danger small">' + errMsg + '</div>';
@@ -26598,11 +26623,9 @@ window.CRM.pageApiBindings = (function () {
     try {
       if (route === 'gantt') {
         try {
-          // Parallelize additional data loading with first render
-          await Promise.all([
-            crmGanttLoadAdditionalData(),
-            renderGanttPage()
-          ]);
+          // Load dependencies first so they are available during render
+          await crmGanttLoadAdditionalData();
+          await renderGanttPage();
           // Initialize controls (zoom, interactions)
           initGanttControls();
           // Initialize new enhancements

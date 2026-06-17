@@ -83,6 +83,8 @@
                       <option value="task_created" data-i18n="admin_workflow.trigger_task_created"><?= htmlspecialchars($t('admin_workflow.trigger_task_created', 'Задача создана'), ENT_QUOTES, 'UTF-8') ?></option>
                       <option value="task_updated" data-i18n="admin_workflow.trigger_task_updated"><?= htmlspecialchars($t('admin_workflow.trigger_task_updated', 'Задача изменена'), ENT_QUOTES, 'UTF-8') ?></option>
                       <option value="task_status_changed" data-i18n="admin_workflow.trigger_task_status_changed"><?= htmlspecialchars($t('admin_workflow.trigger_task_status_changed', 'Статус задачи изменен'), ENT_QUOTES, 'UTF-8') ?></option>
+                      <option value="task_dependency_added" data-i18n="admin_workflow.trigger_task_dependency_added"><?= htmlspecialchars($t('admin_workflow.trigger_task_dependency_added', 'Добавлена зависимость'), ENT_QUOTES, 'UTF-8') ?></option>
+                      <option value="task_dependency_deleted" data-i18n="admin_workflow.trigger_task_dependency_deleted"><?= htmlspecialchars($t('admin_workflow.trigger_task_dependency_deleted', 'Удалена зависимость'), ENT_QUOTES, 'UTF-8') ?></option>
                     </select>
                   </div>
                   <div class="col-md-6">

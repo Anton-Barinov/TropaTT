@@ -900,7 +900,8 @@ final class App
         $this->container->factory('service.dependency', fn(Container $c) => new DependencyService(
             $c->get('repository.dependency'),
             $c->get('service.task'),
-            $c->get('service.task_activity')
+            $c->get('service.task_activity'),
+            $c->get('service.workflow')
         ));
         $this->container->factory('service.task_relation', fn(Container $c) => new \Api\System\Library\Service\TaskRelationService(
             $c->get('repository.task_relation'),
