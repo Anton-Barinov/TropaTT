@@ -16141,7 +16141,7 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — overlay inside gantt timeline area
+  // 2. Dependency lines — overlay inside gantt timeline area with obstacle-aware routing
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
 
@@ -16171,10 +16171,11 @@ window.CRM.pageApiBindings = (function () {
     var boardEl = lanesContainer.closest('.crm-gantt-board');
     var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
 
-    var paths = [];
-
-    // Collect bar positions in LOCAL coords (relative to lanesContainer content)
+    // Collect all bar positions in LOCAL coords
     var barPositions = {};
+    var obstacles = []; // padded bounding boxes for collision detection
+    var padX = 8, padY = 6;
+
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
     for (var i = 0; i < barEls.length; i++) {
       var bar = barEls[i];
@@ -16184,14 +16185,24 @@ window.CRM.pageApiBindings = (function () {
       if (!rowId || rowId.indexOf('task-') !== 0) continue;
       var taskId = rowId.substring(5);
       var r = bar.getBoundingClientRect();
-      barPositions[taskId] = {
+      var pos = {
         left: r.left - lanesRect.left + scrollLeft,
         right: r.right - lanesRect.left + scrollLeft,
         top: r.top - lanesRect.top,
         bottom: r.bottom - lanesRect.top,
         centerY: (r.top + r.bottom) / 2 - lanesRect.top
       };
+      barPositions[taskId] = pos;
+      obstacles.push({
+        left: pos.left - padX,
+        right: pos.right + padX,
+        top: pos.top - padY,
+        bottom: pos.bottom + padY,
+        centerY: pos.centerY
+      });
     }
+
+    var paths = [];
 
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
@@ -16210,22 +16221,24 @@ window.CRM.pageApiBindings = (function () {
       var tx = tgt.left;
       var ty = tgt.centerY;
 
+      // Find safe corridor Y for horizontal segment
+      var corridorY = _crmGanttDepsFindCorridor(src, tgt, obstacles);
+
+      var rightEdge = Math.max(src.right, tgt.right) + 16;
+      var leftEdge = Math.min(src.left, tgt.left) - 12;
+      if (leftEdge < 0) leftEdge = 0;
+
       var d;
       if (tgt.left > src.right + 4) {
-        // Normal FS: target clearly to the right of source
-        var mx = (src.right + tgt.left) / 2;
+        // Normal FS: route through corridor
+        var bendX = (src.right + tgt.left) / 2;
         d = 'M ' + sx + ' ' + sy
-          + ' L ' + mx + ' ' + sy
-          + ' L ' + mx + ' ' + ty
+          + ' L ' + bendX + ' ' + sy
+          + ' L ' + bendX + ' ' + corridorY
+          + ' L ' + tx + ' ' + corridorY
           + ' L ' + tx + ' ' + ty;
       } else {
-        // Overlapping/conflict: route through corridor between rows
-        var rightEdge = Math.max(src.right, tgt.right) + 20;
-        var leftEdge = Math.max(0, Math.min(src.left, tgt.left) - 16);
-        var corridorY = src.centerY < tgt.centerY
-          ? (src.bottom + tgt.top) / 2
-          : (tgt.bottom + src.top) / 2;
-
+        // Overlapping: route right → corridor → left → target
         d = 'M ' + sx + ' ' + sy
           + ' L ' + rightEdge + ' ' + sy
           + ' L ' + rightEdge + ' ' + corridorY
@@ -16236,20 +16249,68 @@ window.CRM.pageApiBindings = (function () {
 
       paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
 
-      // Arrow head — small triangle at target edge, offset from bar
-      var ax = tx - 2;
-      var aLen = 7;
-      var aW = 4;
+      // Arrow head
+      var aLen = 7, aW = 4;
       paths.push('<polygon points="'
-        + ax + ',' + ty + ' '
-        + (ax + aLen) + ',' + (ty - aW) + ' '
-        + (ax + aLen) + ',' + (ty + aW)
+        + (tx - 2) + ',' + ty + ' '
+        + (tx + aLen - 2) + ',' + (ty - aW) + ' '
+        + (tx + aLen - 2) + ',' + (ty + aW)
         + '" fill="' + color + '"/>');
     }
 
     var totalH = lanesContainer.scrollHeight;
     var totalW = lanesContainer.scrollWidth;
     overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + paths.join('') + '</svg>';
+  }
+
+  // Find a safe Y coordinate for horizontal segment that avoids all obstacles
+  function _crmGanttDepsFindCorridor(src, tgt, obstacles) {
+    var preferred = (src.centerY + tgt.centerY) / 2;
+
+    // Collect all obstacle Y ranges that overlap horizontally with the route
+    var minX = Math.min(src.right, tgt.left) - 20;
+    var maxX = Math.max(src.right, tgt.left) + 20;
+
+    var blockedRanges = [];
+    for (var i = 0; i < obstacles.length; i++) {
+      var ob = obstacles[i];
+      // Check if this obstacle overlaps horizontally with our route
+      if (ob.right < minX || ob.left > maxX) continue;
+      blockedRanges.push({ top: ob.top - 4, bottom: ob.bottom + 4 });
+    }
+
+    if (!blockedRanges.length) return preferred;
+
+    // Sort by top
+    blockedRanges.sort(function (a, b) { return a.top - b.top; });
+
+    // Find gaps between obstacles
+    var gaps = [];
+    // Gap above first obstacle
+    if (blockedRanges[0].top > 0) {
+      gaps.push({ top: 0, bottom: blockedRanges[0].top, mid: blockedRanges[0].top / 2 });
+    }
+    // Gaps between obstacles
+    for (var k = 1; k < blockedRanges.length; k++) {
+      var gapTop = blockedRanges[k - 1].bottom;
+      var gapBottom = blockedRanges[k].top;
+      if (gapBottom > gapTop) {
+        gaps.push({ top: gapTop, bottom: gapBottom, mid: (gapTop + gapBottom) / 2 });
+      }
+    }
+
+    // Pick the gap closest to preferred
+    var best = preferred;
+    var bestDist = Infinity;
+    for (var g = 0; g < gaps.length; g++) {
+      var dist = Math.abs(gaps[g].mid - preferred);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = gaps[g].mid;
+      }
+    }
+
+    return best;
   }
 
   function _crmGanttDepsScrollTick() {
