@@ -7,6 +7,8 @@ use Api\Model\Task\TaskRelationRepository;
 
 final class TaskRelationService
 {
+    private const MAX_NOTE_LENGTH = 2000;
+
     public function __construct(
         private readonly TaskRelationRepository $relations,
         private readonly TaskService $tasks,
