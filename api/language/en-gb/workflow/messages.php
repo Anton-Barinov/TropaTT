@@ -23,4 +23,5 @@ return [
     'action_no_task_for_sla' => 'No task selected for SLA',
     'test_task_title' => 'Test task',
     'follow_up_description' => 'Created by automation rule from task',
+    'follow_up_prefix' => 'Follow-up: ',
 ];

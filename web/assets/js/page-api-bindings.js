@@ -16261,17 +16261,29 @@ window.CRM.pageApiBindings = (function () {
       + '" fill="' + color + '"/>');
   }
 
-  function _crmGanttDepsDrawConflictMarker(parts, src, tgt, isFS) {
-    // Warning badge at target bar — white circle + orange exclamation, NOT an arrow
-    var bx = tgt.left - 18;
-    var by = tgt.centerY;
-    var r = 7;
+  function _crmGanttDepsDrawConflictMarker(parts, conflictInfo) {
+    var tgt = conflictInfo.pos;
 
-    // White background circle
-    parts.push('<circle cx="' + bx + '" cy="' + by + '" r="' + r + '" fill="white" stroke="#ea580c" stroke-width="1.5"/>');
-    // Orange exclamation mark
-    parts.push('<line x1="' + bx + '" y1="' + (by - 3) + '" x2="' + bx + '" y2="' + (by + 1) + '" stroke="#ea580c" stroke-width="1.8" stroke-linecap="round"/>');
-    parts.push('<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="0.9" fill="#ea580c"/>');
+    // Position: inside the bar's left edge area, above center to avoid today line
+    var bx = tgt.left + 10;
+    var by = tgt.top + 5;
+    var r = 8;
+
+    // Build tooltip text
+    var tipLines = ['Зависимость нарушена'];
+    for (var i = 0; i < conflictInfo.sources.length; i++) {
+      tipLines.push('Предшественник: ' + conflictInfo.sources[i].substring(0, 16) + '… (' + conflictInfo.types[i] + ')');
+    }
+    tipLines.push('Задача начинается раньше завершения предшественника');
+    var tooltipText = tipLines.join(' | ');
+    tooltipText = tooltipText.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+    // Wrapped in <g> with <title> for tooltip
+    parts.push('<g><title>' + tooltipText + '</title>'
+      + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round"/>'
+      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
+      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
+      + '</g>');
   }
 
   function _crmGanttDepsScrollTick() {

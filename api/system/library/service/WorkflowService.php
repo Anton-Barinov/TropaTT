@@ -374,7 +374,7 @@ final class WorkflowService
                         : ['success' => false, 'error' => $this->t('workflow/messages.action_no_user_for_reminder')];
 
                 case 'create_follow_up_task':
-                    $followUpTitle = trim((string)($payload['task_title'] ?? $payload['title'] ?? 'Follow-up: ' . ($context['task_title'] ?? '')));
+                    $followUpTitle = trim((string)($payload['task_title'] ?? $payload['title'] ?? $this->t('workflow/messages.follow_up_prefix', 'Follow-up: ') . ($context['task_title'] ?? '')));
                     $followUpAssignee = $this->resolveUserId($payload['assignee_user_id'] ?? $payload['assignee_user_public_id'] ?? $context['actor_id'] ?? 0);
                     $followUpProject = $this->resolveProjectId($payload['project_id'] ?? $payload['project_public_id'] ?? $context['project_id'] ?? 0);
                     if ($followUpTitle !== '') {

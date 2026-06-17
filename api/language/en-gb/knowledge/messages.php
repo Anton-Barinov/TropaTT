@@ -107,4 +107,9 @@ return [
     'ai_structure' => 'Structure suggestion',
     'ai_structure_too_few' => 'Add at least 3 pages to get a structure suggestion',
     'task_not_found' => 'Task not found',
+    'settings_loaded' => 'Settings loaded',
+    'settings_updated' => 'Settings updated',
+    'reindex_completed' => 'Search index rebuild completed',
+    'permissions_rebuilt' => 'Permissions version bumped',
+    'drafts_cleaned' => 'Old drafts cleaned',
 ];

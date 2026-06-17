@@ -23,4 +23,5 @@ return [
     'action_no_task_for_sla' => 'Не выбрана задача для SLA',
     'test_task_title' => 'Тестовая задача',
     'follow_up_description' => 'Создано правилом автоматизации из задачи',
+    'follow_up_prefix' => 'Follow-up: ',
 ];
