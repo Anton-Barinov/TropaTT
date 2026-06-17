@@ -963,7 +963,8 @@ final class App
         $this->container->factory('service.organization', fn(Container $c) => new OrganizationService(
             $c->get('repository.organization'),
             $c->get('repository.user'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('lang')
         ));
         $this->container->factory('service.tag', fn(Container $c) => new TagService(
             $c->get('repository.tag'),
@@ -1110,7 +1111,8 @@ final class App
             $c->get('repository.notification_push_subscription'),
             $c->get('repository.notification_push_queue'),
             $c->get('logger'),
-            $this->config
+            $this->config,
+            $c->get('lang')
         ));
         $this->container->factory('service.reminder', fn(Container $c) => new ReminderService(
             $c->get('repository.reminder'),
@@ -1260,7 +1262,8 @@ final class App
             $c->get('service.feature_flag'),
             $c->get('service.ai_rate_limit'),
             $c->get('service.ai_cost_limit'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('lang')
         ));
         $this->container->factory('service.ai_rate_limit', fn(Container $c) => new AiRateLimitService(
             $c->get('repository.ai_runtime'),
@@ -1349,7 +1352,8 @@ final class App
             $c->get('service.ai_provider'),
             $c->get('service.feature_flag'),
             $c->get('logger'),
-            $c->get('config')
+            $c->get('config'),
+            $c->get('lang')
         ));
         $this->container->factory('service.ai_usage', fn(Container $c) => new AiUsageService(
             $c->get('repository.ai_runtime'),
@@ -1388,7 +1392,8 @@ final class App
             $c->get('repository.ai_provider'),
             $c->get('service.setting'),
             $c->get('logger'),
-            $c->get('config')
+            $c->get('config'),
+            $c->get('lang')
         ));
         $this->container->factory('service.ai_prompt_schema', fn(Container $c) => new AiPromptSchemaService(
             $c->get('service.ai_prompt_template'),
@@ -1421,7 +1426,8 @@ final class App
 
         $this->container->factory('controller.module', fn(Container $c) => new \Api\Controller\Module\ModuleController($c));
         $this->container->factory('service.idea', fn(Container $c) => new \Api\System\Library\Service\IdeaService(
-            $c->get('db.pdo')
+            $c->get('db.pdo'),
+            $c->get('lang')
         ));
 
         $this->container->factory('service.intake_item', fn(Container $c) => new IntakeItemService(
