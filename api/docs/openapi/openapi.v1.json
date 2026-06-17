@@ -99,6 +99,9 @@
             "name": "custom-fields"
         },
         {
+            "name": "cycles"
+        },
+        {
             "name": "dashboard"
         },
         {
@@ -207,6 +210,12 @@
             "name": "project"
         },
         {
+            "name": "project-module-links"
+        },
+        {
+            "name": "project-modules"
+        },
+        {
             "name": "projects"
         },
         {
@@ -277,6 +286,9 @@
         },
         {
             "name": "task"
+        },
+        {
+            "name": "task-relations"
         },
         {
             "name": "tasks"
@@ -25765,6 +25777,1385 @@
                         "cookieSession": []
                     }
                 ]
+            }
+        },
+        "/api/v1/cycles": {
+            "get": {
+                "operationId": "workcyclecontroller_list_get",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::list",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "workcyclecontroller_create_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::create",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}": {
+            "get": {
+                "operationId": "workcyclecontroller_get_get",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::get",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "workcyclecontroller_update_patch",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::update",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "workcyclecontroller_update_put",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::update",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "workcyclecontroller_delete_delete",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::delete",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/cycles/{public_id}/archive": {
+            "post": {
+                "operationId": "workcyclecontroller_archive_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::archive",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}/complete": {
+            "post": {
+                "operationId": "workcyclecontroller_complete_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::complete",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}/reopen": {
+            "post": {
+                "operationId": "workcyclecontroller_reopen_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::reopen",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}/start": {
+            "post": {
+                "operationId": "workcyclecontroller_start_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::start",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}/summary": {
+            "get": {
+                "operationId": "workcyclecontroller_summary_get",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::summary",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/cycles/{public_id}/tasks": {
+            "get": {
+                "operationId": "workcyclecontroller_tasks_get",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::tasks",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "workcyclecontroller_addtasks_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::addTasks",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/cycles/{public_id}/tasks/{task_public_id}": {
+            "delete": {
+                "operationId": "workcyclecontroller_removetask_delete",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::removeTask",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/cycles/{public_id}/transfer-unfinished": {
+            "post": {
+                "operationId": "workcyclecontroller_transferunfinished_post",
+                "tags": [
+                    "cycles"
+                ],
+                "summary": "WorkCycleController::transferUnfinished",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "project.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/dashboard/get-summary": {
@@ -53524,6 +54915,1659 @@
                 }
             }
         },
+        "/api/v1/project-module-links/{public_id}": {
+            "patch": {
+                "operationId": "projectmodulecontroller_updatelink_patch",
+                "tags": [
+                    "project-module-links"
+                ],
+                "summary": "ProjectModuleController::updateLink",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "projectmodulecontroller_updatelink_put",
+                "tags": [
+                    "project-module-links"
+                ],
+                "summary": "ProjectModuleController::updateLink",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "projectmodulecontroller_deletelink_delete",
+                "tags": [
+                    "project-module-links"
+                ],
+                "summary": "ProjectModuleController::deleteLink",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/project-modules": {
+            "get": {
+                "operationId": "projectmodulecontroller_list_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::list",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "projectmodulecontroller_create_post",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::create",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/project-modules/{public_id}": {
+            "get": {
+                "operationId": "projectmodulecontroller_get_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::get",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "projectmodulecontroller_update_patch",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::update",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "projectmodulecontroller_update_put",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::update",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "projectmodulecontroller_delete_delete",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::delete",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/project-modules/{public_id}/archive": {
+            "post": {
+                "operationId": "projectmodulecontroller_archive_post",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::archive",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/project-modules/{public_id}/links": {
+            "get": {
+                "operationId": "projectmodulecontroller_links_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::links",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "projectmodulecontroller_addlink_post",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::addLink",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/project-modules/{public_id}/members": {
+            "get": {
+                "operationId": "projectmodulecontroller_members_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::members",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "projectmodulecontroller_addmembers_post",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::addMembers",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/project-modules/{public_id}/members/{user_public_id}": {
+            "delete": {
+                "operationId": "projectmodulecontroller_removemember_delete",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::removeMember",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/project-modules/{public_id}/summary": {
+            "get": {
+                "operationId": "projectmodulecontroller_summary_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::summary",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/project-modules/{public_id}/tasks": {
+            "get": {
+                "operationId": "projectmodulecontroller_tasks_get",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::tasks",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "projectmodulecontroller_addtasks_post",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::addTasks",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/project-modules/{public_id}/tasks/{task_public_id}": {
+            "delete": {
+                "operationId": "projectmodulecontroller_removetask_delete",
+                "tags": [
+                    "project-modules"
+                ],
+                "summary": "ProjectModuleController::removeTask",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
         "/api/v1/project/create": {
             "post": {
                 "operationId": "projectcontroller_create_post",
@@ -69082,6 +72126,169 @@
                 ]
             }
         },
+        "/api/v1/task-relations/search-tasks": {
+            "get": {
+                "operationId": "taskrelationcontroller_searchtasks_get",
+                "tags": [
+                    "task-relations"
+                ],
+                "summary": "TaskRelationController::searchTasks",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/task-relations/{public_id}": {
+            "delete": {
+                "operationId": "taskrelationcontroller_delete_delete",
+                "tags": [
+                    "task-relations"
+                ],
+                "summary": "TaskRelationController::delete",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
         "/api/v1/task/board": {
             "get": {
                 "operationId": "taskcontroller_board_get",
@@ -71278,6 +74485,77 @@
                 ]
             }
         },
+        "/api/v1/tasks/{public_id}/activity": {
+            "get": {
+                "operationId": "taskactivitycontroller_list_get",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskActivityController::list",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
         "/api/v1/tasks/{public_id}/checklists": {
             "get": {
                 "operationId": "checklistcontroller_listbytask_get",
@@ -72158,6 +75436,178 @@
                     "tasks"
                 ],
                 "summary": "TaskController::move",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tasks/{public_id}/relations": {
+            "get": {
+                "operationId": "taskrelationcontroller_list_get",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskRelationController::list",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "taskrelationcontroller_create_post",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskRelationController::create",
                 "description": "Generated route contract entry.",
                 "parameters": [
                     {
@@ -78121,6 +81571,75 @@
             }
         },
         "/api/v1/views/{public_id}": {
+            "get": {
+                "operationId": "viewcontroller_get_get",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::get",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            },
             "patch": {
                 "operationId": "viewcontroller_update_patch",
                 "tags": [
@@ -78406,6 +81925,489 @@
                         "cookieSession": []
                     }
                 ]
+            }
+        },
+        "/api/v1/views/{public_id}/archive": {
+            "post": {
+                "operationId": "viewcontroller_archive_post",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::archive",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/views/{public_id}/duplicate": {
+            "post": {
+                "operationId": "viewcontroller_duplicate_post",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::duplicate",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/views/{public_id}/pin": {
+            "post": {
+                "operationId": "viewcontroller_pin_post",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::pin",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/views/{public_id}/task-filters": {
+            "get": {
+                "operationId": "viewcontroller_taskfilters_get",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::taskFilters",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/views/{public_id}/touch-last-used": {
+            "post": {
+                "operationId": "viewcontroller_touchlastused_post",
+                "tags": [
+                    "views"
+                ],
+                "summary": "ViewController::touchLastUsed",
+                "description": "Generated route contract entry.",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Correlation-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "X-Locale",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ru-ru",
+                                "en-gb"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Required for cookie-auth write requests"
+                    },
+                    {
+                        "name": "X-Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Recommended for idempotent write operations"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/Success200"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden403"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/Validation422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited429"
+                    },
+                    "201": {
+                        "$ref": "#/components/responses/Success200"
+                    }
+                },
+                "x-auth-required": true,
+                "x-required-permissions": [
+                    "task.manage"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    },
+                    {
+                        "cookieSession": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/webhook/create": {

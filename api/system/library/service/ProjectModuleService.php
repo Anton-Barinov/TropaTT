@@ -7,7 +7,6 @@ use Api\Model\Project\ProjectModuleRepository;
 use Api\Model\Project\ProjectModuleTaskRepository;
 use Api\Model\Project\ProjectModuleMemberRepository;
 use Api\Model\Project\ProjectModuleLinkRepository;
-use Api\Model\Project\ProjectRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Support\Ulid;
 
@@ -21,7 +20,7 @@ final class ProjectModuleService
         private readonly ProjectModuleTaskRepository $moduleTasks,
         private readonly ProjectModuleMemberRepository $moduleMembers,
         private readonly ProjectModuleLinkRepository $moduleLinks,
-        private readonly ProjectRepository $projects,
+        private readonly ProjectService $projectService,
         private readonly TaskRepository $tasks,
         private readonly TaskService $taskService,
     ) {
@@ -76,7 +75,7 @@ final class ProjectModuleService
         if ($projectPublicId === '') {
             return 'PROJECT_MODULE_PROJECT_REQUIRED';
         }
-        $project = $this->projects->get($projectPublicId, $actor);
+        $project = $this->projectService->get($projectPublicId, $actor);
         if (!$project) {
             return 'PROJECT_MODULE_PROJECT_NOT_FOUND';
         }
@@ -173,7 +172,7 @@ final class ProjectModuleService
         }
 
         // Check project access
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -189,7 +188,7 @@ final class ProjectModuleService
         }
 
         // Check project access
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -338,7 +337,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -354,7 +353,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -372,7 +371,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -387,7 +386,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -487,7 +486,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -513,7 +512,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -528,7 +527,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -597,7 +596,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -623,7 +622,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -646,7 +645,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -708,7 +707,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -770,7 +769,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
@@ -788,7 +787,7 @@ final class ProjectModuleService
             return 'PROJECT_MODULE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$module['project_public_id'], $actor);
+        $project = $this->projectService->get((string)$module['project_public_id'], $actor);
         if (!$project) {
             return 'PROJECT_MODULE_FORBIDDEN';
         }
