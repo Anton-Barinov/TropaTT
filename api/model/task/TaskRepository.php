@@ -86,6 +86,11 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status))
+                  FROM project_module_tasks pmt
+                  INNER JOIN project_modules pm ON pm.id = pmt.module_id
+                  WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
+                ) AS modules",
             ])
             ->orderBy('t.' . $sort, $order)
             ->orderBy('t.public_id', $order);
@@ -193,6 +198,11 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status))
+                  FROM project_module_tasks pmt
+                  INNER JOIN project_modules pm ON pm.id = pmt.module_id
+                  WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
+                ) AS modules",
             ])
             ->where('t.public_id', '=', $publicId)
             ->first();
@@ -336,6 +346,11 @@ final class TaskRepository
                 "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
                 "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
                 "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status))
+                  FROM project_module_tasks pmt
+                  INNER JOIN project_modules pm ON pm.id = pmt.module_id
+                  WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
+                ) AS modules",
             ]);
 
         if (!empty($filters['assignee_user_public_id'])) {
@@ -468,6 +483,13 @@ final class TaskRepository
             $qb->whereRaw(
                 'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id = ? AND wc.deleted_at IS NULL)',
                 [(string)$filters['cycle_public_id']]
+            );
+        }
+
+        if (!empty($filters['module_public_id'])) {
+            $qb->whereRaw(
+                'EXISTS (SELECT 1 FROM project_module_tasks pmt INNER JOIN project_modules pm ON pm.id = pmt.module_id WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.public_id = ? AND pm.deleted_at IS NULL)',
+                [(string)$filters['module_public_id']]
             );
         }
 

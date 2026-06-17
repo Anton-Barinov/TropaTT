@@ -128,6 +128,7 @@ use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Service\TaskAiContextBuilder;
 use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\WorkCycleService;
+use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserProfileService;
@@ -1132,6 +1133,16 @@ final class App
             $c->get('service.task'),
             $c->get('service.project'),
             $c->get('service.task_activity')
+        ));
+
+        $this->container->factory('service.project_module', fn(Container $c) => new ProjectModuleService(
+            new \Api\Model\Project\ProjectModuleRepository($c->get('db.pdo')),
+            new \Api\Model\Project\ProjectModuleTaskRepository($c->get('db.pdo')),
+            new \Api\Model\Project\ProjectModuleMemberRepository($c->get('db.pdo')),
+            new \Api\Model\Project\ProjectModuleLinkRepository($c->get('db.pdo')),
+            $c->get('repository.project'),
+            $c->get('repository.task'),
+            $c->get('service.task')
         ));
 
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(

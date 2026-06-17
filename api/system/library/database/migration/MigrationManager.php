@@ -50,6 +50,7 @@ final class MigrationManager
             new SavedViewsV2Migration(),
             new TaskActivityFeedMigration(),
             new WorkCyclesMigration(),
+            new ProjectModulesMigration(),
         ];
     }
 

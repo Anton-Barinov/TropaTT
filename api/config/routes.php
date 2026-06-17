@@ -157,6 +157,25 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/summary', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['project.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/transfer-unfinished', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'transferUnfinished', 'auth' => true, 'required_permissions' => ['project.manage']],
 
+    // project modules
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'list', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/project-modules', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'create', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'get', 'auth' => true],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/project-modules/{public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'update', 'auth' => true],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/project-modules/{public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'delete', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/project-modules/{public_id}/archive', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'archive', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/tasks', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'tasks', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/project-modules/{public_id}/tasks', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'addTasks', 'auth' => true],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/project-modules/{public_id}/tasks/{task_public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'removeTask', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/members', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'members', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/project-modules/{public_id}/members', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'addMembers', 'auth' => true],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/project-modules/{public_id}/members/{user_public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'removeMember', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/links', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'links', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/project-modules/{public_id}/links', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'addLink', 'auth' => true],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/project-module-links/{public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'updateLink', 'auth' => true],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/project-module-links/{public_id}', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'deleteLink', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/summary', 'controller' => Api\Controller\Project\ProjectModuleController::class, 'action' => 'summary', 'auth' => true],
+
     // tasks BR-1
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],

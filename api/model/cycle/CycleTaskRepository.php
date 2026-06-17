@@ -63,6 +63,19 @@ final class CycleTaskRepository
 
     public function addTask(array $payload): array
     {
+        // Clear the active_key on any existing non-deleted cycle_task for this
+        // task to avoid unique constraint violation (uq_cycle_tasks_active_key).
+        // This happens when a task was in a cycle that was soft-deleted or
+        // completed without explicit removal — the old row's active_key
+        // remains, preventing re-adding the task to a new cycle.
+        if (!empty($payload['active_key'])) {
+            (new QueryBuilder($this->pdo))
+                ->from('cycle_tasks')
+                ->where('active_key', '=', $payload['active_key'])
+                ->whereNull('deleted_at')
+                ->update(['active_key' => null]);
+        }
+
         (new QueryBuilder($this->pdo))
             ->from('cycle_tasks')
             ->insert($payload);
