@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  function t(key, fallback) {
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      return window.CRM.i18n.t(key, fallback || key);
+    }
+    return fallback || key;
+  }
+
   var TASK_ACTIVITY_ICONS = {
     created: 'fa-plus-circle',
     status: 'fa-exchange-alt',
@@ -46,11 +53,11 @@
     if (filters.event_type) params.push('event_type=' + encodeURIComponent(filters.event_type));
     if (filters.actor_type) params.push('actor_type=' + encodeURIComponent(filters.actor_type));
 
-    listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>Загрузка...</small></div>';
+    listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.loading', 'Загрузка...')) + '</small></div>';
 
     var api = window.CRM && window.CRM.api;
     if (!api || typeof api.request !== 'function') {
-      listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>API not available</small></div>';
+      listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.api_not_available', 'API not available')) + '</small></div>';
       return;
     }
 
@@ -58,7 +65,7 @@
       .then(function (envelope) {
         var items = envelope.data && envelope.data.items || [];
         if (!items.length) {
-          listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>История пока пуста. Новые изменения по задаче появятся здесь.</small></div>';
+          listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.empty', 'История пока пуста. Новые изменения по задаче появятся здесь.')) + '</small></div>';
           return;
         }
         renderTaskActivity(items, false, listEl);
@@ -69,10 +76,10 @@
         if (page < totalPages) {
           var loadMoreBtn = document.createElement('button');
           loadMoreBtn.className = 'btn btn-sm crm-btn-secondary mt-2';
-          loadMoreBtn.textContent = 'Показать еще';
+          loadMoreBtn.textContent = t('task_activity.load_more', 'Показать еще');
           loadMoreBtn.addEventListener('click', function () {
             loadMoreBtn.disabled = true;
-            loadMoreBtn.textContent = 'Загрузка...';
+            loadMoreBtn.textContent = t('task_activity.loading', 'Загрузка...');
             api.request('api/v1/tasks/' + encodeURIComponent(taskPublicId) + '/activity?' + params.join('&') + '&page=' + (page + 1), { method: 'GET' })
               .then(function (env2) {
                 var moreItems = env2.data && env2.data.items || [];
@@ -83,21 +90,21 @@
                 var pag2 = meta2.pagination || {};
                 if ((page + 1) < (pag2.pages || 1)) {
                   loadMoreBtn.disabled = false;
-                  loadMoreBtn.textContent = 'Показать еще';
+                  loadMoreBtn.textContent = t('task_activity.load_more', 'Показать еще');
                 } else {
                   loadMoreBtn.remove();
                 }
               })
               .catch(function () {
                 loadMoreBtn.disabled = false;
-                loadMoreBtn.textContent = 'Показать еще';
+                loadMoreBtn.textContent = t('task_activity.load_more', 'Показать еще');
               });
           });
           listEl.appendChild(loadMoreBtn);
         }
       })
       .catch(function () {
-        listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>Ошибка загрузки истории</small></div>';
+        listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.load_error', 'Ошибка загрузки истории')) + '</small></div>';
       });
   };
 
@@ -120,7 +127,7 @@
 
     var icon = getIconForEvent(item.event_type || '');
 
-    var actorName = escapeActivityText(item.actor_display_name || 'System');
+    var actorName = escapeActivityText(item.actor_display_name || t('task_activity.system_actor', 'System'));
     var msgText = item.message_text || item.event_type || '';
     var createdAt = item.created_at || '';
     var formattedDate = formatActivityDate(createdAt);

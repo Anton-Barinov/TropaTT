@@ -5210,4 +5210,13 @@ return array (
     'all_projects' => 'Все проекты',
     'locale' => 'ru-RU',
   ),
+  'task_activity' => 
+  array (
+    'loading' => 'Загрузка...',
+    'api_not_available' => 'API не доступен',
+    'empty' => 'История пока пуста. Новые изменения по задаче появятся здесь.',
+    'load_more' => 'Показать еще',
+    'load_error' => 'Ошибка загрузки истории',
+    'system_actor' => 'Система',
+  ),
 );

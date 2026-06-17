@@ -5233,4 +5233,13 @@ return array (
     'all_projects' => 'All projects',
     'locale' => 'en-GB',
   ),
+  'task_activity' => 
+  array (
+    'loading' => 'Loading...',
+    'api_not_available' => 'API not available',
+    'empty' => 'History is empty. New task changes will appear here.',
+    'load_more' => 'Show more',
+    'load_error' => 'Error loading history',
+    'system_actor' => 'System',
+  ),
 );
