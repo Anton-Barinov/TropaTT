@@ -26,8 +26,12 @@ final class DependencyRepository
                 'd.created_at',
                 'tf.public_id AS task_public_id',
                 'tf.title AS task_title',
+                'tf.task_key AS task_key',
+                'tf.status_code AS task_status_code',
                 'td.public_id AS depends_on_task_public_id',
                 'td.title AS depends_on_task_title',
+                'td.task_key AS depends_on_task_key',
+                'td.status_code AS depends_on_task_status_code',
                 'pf.public_id AS project_public_id',
             ]);
 
@@ -46,10 +50,19 @@ final class DependencyRepository
         }
 
         if (!empty($filters['task_public_id'])) {
-            $query->whereRaw(
-                '(tf.public_id = ? OR td.public_id = ?)',
-                [(string)$filters['task_public_id'], (string)$filters['task_public_id']]
-            );
+            $taskPublicId = (string)$filters['task_public_id'];
+            $direction = !empty($filters['direction']) ? $filters['direction'] : 'both';
+
+            if ($direction === 'outgoing') {
+                $query->where('tf.public_id', '=', $taskPublicId);
+            } elseif ($direction === 'incoming') {
+                $query->where('td.public_id', '=', $taskPublicId);
+            } else {
+                $query->whereRaw(
+                    '(tf.public_id = ? OR td.public_id = ?)',
+                    [$taskPublicId, $taskPublicId]
+                );
+            }
         }
 
         return $query

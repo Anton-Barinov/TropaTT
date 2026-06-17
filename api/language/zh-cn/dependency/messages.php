@@ -23,4 +23,5 @@ return [
     'type_ss' => '开始-开始',
     'type_ff' => '完成-完成',
     'type_sf' => '开始-完成',
+    'type_blocks' => '阻塞',
 ];

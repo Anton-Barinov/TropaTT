@@ -23,4 +23,5 @@ return [
     'type_ss' => 'Début-Début',
     'type_ff' => 'Fin-Fin',
     'type_sf' => 'Début-Fin',
+    'type_blocks' => 'Bloque',
 ];

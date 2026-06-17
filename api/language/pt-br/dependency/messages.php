@@ -23,4 +23,5 @@ return [
     'type_ss' => 'Iniciar-Iniciar',
     'type_ff' => 'Finalizar-Finalizar',
     'type_sf' => 'Iniciar-Finalizar',
+    'type_blocks' => 'Bloqueia',
 ];

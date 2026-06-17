@@ -20,7 +20,7 @@ final class CycleTaskRepository
 
         $qb = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
             ->select([
@@ -105,7 +105,7 @@ final class CycleTaskRepository
     {
         $row = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('work_cycles wc', 'wc.id', '=', 'ct.cycle_id')
+            ->leftJoin('work_cycles wc', 'wc.id', '=', 'ct.cycle_id')
             ->select([
                 'ct.*',
                 'wc.public_id AS cycle_public_id',
@@ -147,7 +147,7 @@ final class CycleTaskRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->select([
                 'ct.id AS cycle_task_id',
                 't.id AS task_id',
@@ -206,7 +206,7 @@ final class CycleTaskRepository
 
         $statusCounts = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->select(['t.status_code', 'COUNT(*) AS cnt'])
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
@@ -216,7 +216,7 @@ final class CycleTaskRepository
 
         $priorityCounts = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->select(['t.priority_code', 'COUNT(*) AS cnt'])
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
@@ -226,7 +226,7 @@ final class CycleTaskRepository
 
         $assigneeSummary = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
             ->select([
                 'u.public_id AS user_public_id',
@@ -268,7 +268,7 @@ final class CycleTaskRepository
         // Count overdue and unassigned
         $overdueRows = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->select(['COUNT(*) AS cnt'])
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')
@@ -281,7 +281,7 @@ final class CycleTaskRepository
 
         $unassignedRows = (new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->select(['COUNT(*) AS cnt'])
             ->where('ct.cycle_id', '=', $cycleId)
             ->whereNull('ct.deleted_at')

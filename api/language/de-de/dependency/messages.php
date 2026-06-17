@@ -23,4 +23,5 @@ return [
     'type_ss' => 'Start-Start',
     'type_ff' => 'Finish-Finish',
     'type_sf' => 'Start-Finish',
+    'type_blocks' => 'Blockiert',
 ];

@@ -23,4 +23,5 @@ return [
     'type_ss' => 'Inicio-Inicio',
     'type_ff' => 'Fin-Fin',
     'type_sf' => 'Inicio-Fin',
+    'type_blocks' => 'Bloquea',
 ];

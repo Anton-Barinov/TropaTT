@@ -96,10 +96,19 @@
           <h2 class="h6 mb-0" data-i18n="task_detail.dependencies_title"><?= htmlspecialchars($t('task_detail.dependencies_title', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?></h2>
           <div class="d-flex align-items-center gap-2">
             <small class="text-muted" data-i18n="task_detail.dependencies_hint"><?= htmlspecialchars($t('task_detail.dependencies_hint', 'Связи с другими задачами'), ENT_QUOTES, 'UTF-8') ?></small>
-            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateDependencyBtn" data-i18n="task_detail.dependencies_add_btn"><?= htmlspecialchars($t('task_detail.dependencies_add_btn', 'Добавить зависимость'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" id="openCreateDependencyBtn" data-open-modal="createDependencyModal" data-i18n="task_detail.dependencies_add_btn"><?= htmlspecialchars($t('task_detail.dependencies_add_btn', 'Добавить зависимость'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </div>
-        <div id="dependenciesList"><div class="text-muted" data-i18n="task_detail.dependencies_loading"><?= htmlspecialchars($t('task_detail.dependencies_loading', 'Зависимости загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+
+        <div class="mb-3">
+          <h3 class="h6 text-muted mb-2" data-i18n="dependency.section_depends_on"><?= htmlspecialchars($t('dependency.section_depends_on', 'Зависит от'), ENT_QUOTES, 'UTF-8') ?></h3>
+          <div id="dependenciesOutgoing"><div class="text-muted small" data-i18n="task_detail.dependencies_loading"><?= htmlspecialchars($t('task_detail.dependencies_loading', 'Зависимости загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+        </div>
+
+        <div>
+          <h3 class="h6 text-muted mb-2" data-i18n="dependency.section_blocked_by"><?= htmlspecialchars($t('dependency.section_blocked_by', 'От этой задачи зависят'), ENT_QUOTES, 'UTF-8') ?></h3>
+          <div id="dependenciesIncoming"><div class="text-muted small" data-i18n="task_detail.dependencies_loading"><?= htmlspecialchars($t('task_detail.dependencies_loading', 'Зависимости загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+        </div>
       </section>
 
       <section id="detailChecklists" class="tab-pane fade crm-card crm-task-section">
@@ -605,6 +614,41 @@
         <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
         <button type="button" class="btn crm-btn-warning" id="taskAiHighRiskConfirmBtn" data-i18n="task_detail.modal_ai_high_risk_confirm_btn"><?= htmlspecialchars($t('task_detail.modal_ai_high_risk_confirm_btn', 'Продолжить'), ENT_QUOTES, 'UTF-8') ?></button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="createDependencyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="dependency.modal_title"><?= htmlspecialchars($t('dependency.modal_title', 'Добавить зависимость'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <form id="dependencyCreateForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" data-i18n="dependency.modal_task_label"><?= htmlspecialchars($t('dependency.modal_task_label', 'Задача'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select id="depTargetTaskSelect" class="form-select" name="target_task_public_id" required>
+              <option value=""><?= htmlspecialchars($t('dependency.modal_task_placeholder', 'Поиск задачи по названию...'), ENT_QUOTES, 'UTF-8') ?></option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" data-i18n="dependency.modal_type_label"><?= htmlspecialchars($t('dependency.modal_type_label', 'Тип зависимости'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select class="form-select" name="dependency_type" required>
+              <option value="FS"><?= htmlspecialchars($t('dependency.type_fs', 'Финиш-Старт'), ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars($t('dependency.modal_type_fs_desc', 'Начинается после завершения'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="SS"><?= htmlspecialchars($t('dependency.type_ss', 'Старт-Старт'), ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars($t('dependency.modal_type_ss_desc', 'Начинается одновременно'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="FF"><?= htmlspecialchars($t('dependency.type_ff', 'Финиш-Финиш'), ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars($t('dependency.modal_type_ff_desc', 'Заканчивается одновременно'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="SF"><?= htmlspecialchars($t('dependency.type_sf', 'Старт-Финиш'), ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars($t('dependency.modal_type_sf_desc', 'Заканчивается после начала'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="BLOCKS"><?= htmlspecialchars($t('dependency.type_blocks', 'Блокирует'), ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars($t('dependency.modal_type_blocks_desc', 'Блокирует выполнение'), ENT_QUOTES, 'UTF-8') ?></option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="dependency.modal_cancel_btn"><?= htmlspecialchars($t('dependency.modal_cancel_btn', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-primary" type="submit" data-i18n="dependency.modal_add_btn"><?= htmlspecialchars($t('dependency.modal_add_btn', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
