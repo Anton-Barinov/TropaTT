@@ -16172,6 +16172,7 @@ window.CRM.pageApiBindings = (function () {
     // Load dependencies from state
     var dependencies = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
     if (!dependencies.length) {
+      console.warn('[GANTT-DEPS] No dependencies found in window.CRM.ganttDependencies');
       svg.innerHTML = '';
       return;
     }
@@ -16193,15 +16194,20 @@ window.CRM.pageApiBindings = (function () {
     var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
     var trackWidth = windowInfo.trackWidth;
 
+    var matched = 0;
+    var skippedNoPos = 0;
+    var skippedNoRow = 0;
     var paths = [];
     dependencies.forEach(function (dep) {
       var fromItem = taskPositions[dep.from_task_id];
       var toItem = taskPositions[dep.to_task_id];
-      if (!fromItem || !toItem) return;
+      if (!fromItem || !toItem) { skippedNoPos++; return; }
 
       var fromRow = rowOffsets[fromItem.id];
       var toRow = rowOffsets[toItem.id];
-      if (fromRow === undefined || toRow === undefined) return;
+      if (fromRow === undefined || toRow === undefined) { skippedNoRow++; return; }
+
+      matched++;
 
       var fromStartPct = crmGanttClamp(crmGanttPercent(fromItem.start, windowInfo), 0, 100);
       var fromEndPct = crmGanttClamp(crmGanttPercent(fromItem.end + 86400000, windowInfo), 0, 100);
@@ -16234,6 +16240,7 @@ window.CRM.pageApiBindings = (function () {
     svg.setAttribute('width', trackWidth);
     svg.setAttribute('height', laneIndex * rowHeight);
     svg.innerHTML = paths.join('');
+    console.log('[GANTT-DEPS]', { deps: dependencies.length, matched: matched, skippedNoPos: skippedNoPos, skippedNoRow: skippedNoRow, paths: paths.length, taskKeys: Object.keys(taskPositions).length, rowKeys: Object.keys(rowOffsets).length });
   }
 
   // 9. Milestones rendering on chart

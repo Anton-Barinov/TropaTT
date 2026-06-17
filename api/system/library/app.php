@@ -132,6 +132,7 @@ use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\KnowledgePageVersionService;
 use Api\System\Library\Service\StickyNoteService;
+use Api\System\Library\Service\TaskEstimateService;
 use Api\System\Library\Service\KnowledgePageService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TaskKeyService;
