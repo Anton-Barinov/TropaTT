@@ -16217,6 +16217,9 @@ window.CRM.pageApiBindings = (function () {
     }
 
     // Rail lanes: compact, max 3 lanes at fixed offsets from bar left edge
+    var svgParts = [];
+    var conflictByTarget = {};
+    _ganttDepsConflictData = [];
     var railSpacing = 10;
     var maxLanes = 3;
     for (var c = 0; c < conflictDeps.length; c++) {

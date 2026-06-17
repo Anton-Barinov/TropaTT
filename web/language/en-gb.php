@@ -2640,6 +2640,10 @@ return array (
       'placeholder_description' => 'Goals, context and key expectations for the project',
       'hint' => 'The project will be created directly in the working API model, including client, team and manager.',
     ),
+    'sticky_notes_title' => 'Sticky Notes',
+    'sticky_notes_add' => '+ Add note',
+    'sticky_notes_loading' => 'Loading notes...',
+    'sticky_notes_empty' => 'No notes yet. Create a quick note to capture an idea.',
   ),
   'tasks' => 
   array (
