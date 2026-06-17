@@ -16141,12 +16141,10 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — overlay inside gantt timeline area
+  // 2. Dependency lines — overlay inside gantt timeline area with rail routing
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
-  var _GANTT_DEP_MIN_GAP = 24;
-  var _GANTT_DEP_MAX_CONFLICT_LINE = 350;
-  var _ganttDepsConflictData = []; // store conflict info for hover
+  var _ganttDepsConflictData = [];
 
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
@@ -16156,6 +16154,230 @@ window.CRM.pageApiBindings = (function () {
       _ganttDepsConflictData = [];
       return;
     }
+    _crmGanttDepsDraw(deps);
+  }
+
+  function _crmGanttDepsDraw(deps) {
+    var lanesContainer = document.querySelector('.crm-gantt-lanes');
+    if (!lanesContainer) return;
+
+    var overlay = document.getElementById('ganttDepsOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'ganttDepsOverlay';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;';
+      lanesContainer.appendChild(overlay);
+    }
+
+    var lanesRect = lanesContainer.getBoundingClientRect();
+    var boardEl = lanesContainer.closest('.crm-gantt-board');
+    var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
+
+    // Collect bar positions in local coords
+    var barPositions = {};
+    var allBars = [];
+    var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
+    for (var i = 0; i < barEls.length; i++) {
+      var bar = barEls[i];
+      var lane = bar.closest('.crm-gantt-lane--task');
+      if (!lane) continue;
+      var rowId = lane.getAttribute('data-gantt-row-id');
+      if (!rowId || rowId.indexOf('task-') !== 0) continue;
+      var taskId = rowId.substring(5);
+      var r = bar.getBoundingClientRect();
+      var pos = {
+        left: r.left - lanesRect.left + scrollLeft,
+        right: r.right - lanesRect.left + scrollLeft,
+        top: r.top - lanesRect.top,
+        bottom: r.bottom - lanesRect.top,
+        centerY: (r.top + r.bottom) / 2 - lanesRect.top
+      };
+      barPositions[taskId] = pos;
+      allBars.push(pos);
+    }
+
+    // Find the leftmost edge of all bars to place rail channels
+    var minBarLeft = Infinity;
+    for (var b = 0; b < allBars.length; b++) {
+      if (allBars[b].left < minBarLeft) minBarLeft = allBars[b].left;
+    }
+    var railBaseX = Math.max(0, minBarLeft - 20);
+
+    var svgParts = [];
+    var conflictTargets = {};
+    _ganttDepsConflictData = [];
+
+    // First pass: collect conflicts and check which deps need rails
+    var normalDeps = [];
+    var conflictDeps = [];
+    for (var j = 0; j < deps.length; j++) {
+      var dep = deps[j];
+      var src = barPositions[dep.from_task_id];
+      var tgt = barPositions[dep.to_task_id];
+      if (!src || !tgt) continue;
+      var gap = tgt.left - src.right;
+      if (gap > 24) {
+        normalDeps.push({ dep: dep, src: src, tgt: tgt });
+      } else {
+        conflictDeps.push({ dep: dep, src: src, tgt: tgt });
+      }
+    }
+
+    // Assign rail lanes to conflict deps (each gets its own vertical channel)
+    var railSpacing = 8;
+    for (var c = 0; c < conflictDeps.length; c++) {
+      conflictDeps[c].railX = railBaseX - c * railSpacing;
+    }
+
+    // Draw normal arrows
+    for (var n = 0; n < normalDeps.length; n++) {
+      var nd = normalDeps[n];
+      _crmGanttDepsDrawArrow(svgParts, nd.src, nd.tgt, nd.dep.dependency_type === 'FS');
+    }
+
+    // Draw conflict lines through rails + markers
+    var conflictByTarget = {};
+    for (var c = 0; c < conflictDeps.length; c++) {
+      var cd = conflictDeps[c];
+      _crmGanttDepsDrawConflictLine(svgParts, cd);
+
+      if (!conflictByTarget[cd.dep.to_task_id]) {
+        conflictByTarget[cd.dep.to_task_id] = { pos: cd.tgt, sources: [], types: [], sourcePositions: [] };
+      }
+      conflictByTarget[cd.dep.to_task_id].sources.push(cd.dep.from_task_id);
+      conflictByTarget[cd.dep.to_task_id].types.push(cd.dep.dependency_type);
+      conflictByTarget[cd.dep.to_task_id].sourcePositions.push(cd.src);
+    }
+
+    // Draw warning markers (one per conflicting target)
+    var cKeys = Object.keys(conflictByTarget);
+    for (var k = 0; k < cKeys.length; k++) {
+      _crmGanttDepsDrawConflictMarker(svgParts, conflictByTarget[cKeys[k]], k);
+      _ganttDepsConflictData.push({ idx: k, info: conflictByTarget[cKeys[k]] });
+    }
+
+    var totalH = lanesContainer.scrollHeight;
+    var totalW = lanesContainer.scrollWidth;
+    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + svgParts.join('') + '</svg>';
+    _crmGanttDepsBindHover(overlay);
+  }
+
+  // Normal arrow: orthogonal path from source.right to target.left
+  function _crmGanttDepsDrawArrow(parts, src, tgt, isFS) {
+    var sx = src.right;
+    var sy = src.centerY;
+    var tx = tgt.left;
+    var ty = tgt.centerY;
+    var color = isFS ? '#3b82f6' : '#94a3b8';
+    var sw = isFS ? 1.8 : 1.2;
+    var dashAttr = !isFS ? ' stroke-dasharray="5,3"' : '';
+
+    if (Math.abs(sy - ty) < 2) {
+      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty + '" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linecap="round"/>');
+    } else {
+      var mx = (sx + tx) / 2;
+      var d = 'M ' + sx + ' ' + sy + ' L ' + mx + ' ' + sy + ' L ' + mx + ' ' + ty + ' L ' + tx + ' ' + ty;
+      parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
+    }
+    // Arrow head at target
+    var aLen = 7, aW = 4;
+    parts.push('<polygon points="' + tx + ',' + ty + ' ' + (tx + aLen) + ',' + (ty - aW) + ' ' + (tx + aLen) + ',' + (ty + aW) + '" fill="' + color + '"/>');
+  }
+
+  // Conflict line: route through rail channel to the left of all bars
+  function _crmGanttDepsDrawConflictLine(parts, cd) {
+    var sx = cd.src.right;
+    var sy = cd.src.centerY;
+    var tx = cd.tgt.left;
+    var ty = cd.tgt.centerY;
+    var railX = cd.railX;
+
+    var color = '#ea580c';
+    var d = 'M ' + sx + ' ' + sy
+      + ' L ' + railX + ' ' + sy
+      + ' L ' + railX + ' ' + ty
+      + ' L ' + tx + ' ' + ty;
+    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
+  }
+
+  // Warning marker: white badge with orange ! at target
+  function _crmGanttDepsDrawConflictMarker(parts, info, idx) {
+    var tgt = info.pos;
+    var bx = tgt.left + 10;
+    var by = tgt.top + 5;
+    var r = 8;
+
+    var tipLines = ['Зависимость нарушена'];
+    for (var i = 0; i < info.sources.length; i++) {
+      tipLines.push('Предшественник: ' + info.sources[i].substring(0, 16) + '… (' + info.types[i] + ')');
+    }
+    tipLines.push('Задача начинается раньше завершения предшественника');
+    var tooltipText = tipLines.join(' | ').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+    parts.push('<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
+      + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round" style="pointer-events:auto;cursor:pointer;"/>'
+      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
+      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
+      + '<title>' + tooltipText + '</title>'
+      + '</g>');
+  }
+
+  function _crmGanttDepsBindHover(overlay) {
+    var markers = overlay.querySelectorAll('.gantt-conflict-marker');
+    for (var i = 0; i < markers.length; i++) {
+      (function (marker) {
+        var idx = parseInt(marker.getAttribute('data-conflict-idx'));
+        marker.addEventListener('mouseenter', function () {
+          _crmGanttDepsShowHoverLine(overlay, idx);
+        });
+        marker.addEventListener('mouseleave', function () {
+          _crmGanttDepsHideHoverLine(overlay);
+        });
+      })(markers[i]);
+    }
+  }
+
+  function _crmGanttDepsShowHoverLine(overlay, idx) {
+    var info = _ganttDepsConflictData[idx];
+    if (!info) return;
+    var hoverSvg = document.getElementById('ganttDepsHover');
+    if (!hoverSvg) {
+      hoverSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      hoverSvg.id = 'ganttDepsHover';
+      hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;overflow:visible;';
+      overlay.appendChild(hoverSvg);
+    }
+    var parts = [];
+    var tgt = info.pos;
+    var pad = 4;
+    parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+    if (info.sourcePositions) {
+      for (var s = 0; s < info.sourcePositions.length; s++) {
+        var src = info.sourcePositions[s];
+        parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+        var railX = Math.min(src.left, tgt.left) - 20;
+        if (railX < 4) railX = 4;
+        var d = 'M ' + src.right + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + tgt.left + ' ' + tgt.centerY;
+        parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
+      }
+    }
+    hoverSvg.innerHTML = parts.join('');
+  }
+
+  function _crmGanttDepsHideHoverLine(overlay) {
+    var hoverSvg = document.getElementById('ganttDepsHover');
+    if (hoverSvg) hoverSvg.innerHTML = '';
+  }
+
+  function _crmGanttDepsScrollTick() {
+    if (_ganttDepsRenderQueued) return;
+    _ganttDepsRenderQueued = true;
+    requestAnimationFrame(function () {
+      _ganttDepsRenderQueued = false;
+      var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
+      if (deps.length) _crmGanttDepsDraw(deps);
+    });
+  }
     _crmGanttDepsDraw(deps);
   }
 
