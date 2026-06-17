@@ -1162,6 +1162,18 @@ final class App
             $c->get('service.task')
         ));
 
+        $this->container->factory('repository.estimate_set', fn(Container $c) => new \Api\Model\Estimate\EstimateSetRepository($c->get('db.pdo')));
+        $this->container->factory('repository.estimate_option', fn(Container $c) => new \Api\Model\Estimate\EstimateOptionRepository($c->get('db.pdo')));
+        $this->container->factory('repository.task_estimate', fn(Container $c) => new \Api\Model\Estimate\TaskEstimateRepository($c->get('db.pdo')));
+
+        $this->container->factory('service.task_estimate', fn(Container $c) => new TaskEstimateService(
+            $c->get('repository.estimate_set'),
+            $c->get('repository.estimate_option'),
+            $c->get('repository.task_estimate'),
+            $c->get('service.task'),
+            $c->get('db.pdo')
+        ));
+
         $this->container->factory('repository.sticky_note', fn(Container $c) => new \Api\Model\Sticky\StickyNoteRepository($c->get('db.pdo')));
 
         $this->container->factory('service.sticky_note', fn(Container $c) => new StickyNoteService(

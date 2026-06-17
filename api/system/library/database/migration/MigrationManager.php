@@ -53,6 +53,7 @@ final class MigrationManager
             new ProjectModulesMigration(),
             new KnowledgePageVersionsMigration(),
             new StickyNotesMigration(),
+            new TaskEstimatesMigration(),
         ];
     }
 
