@@ -16378,8 +16378,6 @@ window.CRM.pageApiBindings = (function () {
       if (deps.length) _crmGanttDepsDraw(deps);
     });
   }
-    _crmGanttDepsDraw(deps);
-  }
 
   function _crmGanttDepsDraw(deps) {
     var lanesContainer = document.querySelector('.crm-gantt-lanes');
@@ -17178,7 +17176,7 @@ window.CRM.pageApiBindings = (function () {
     var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
       + '<div class="crm-kanban-card-top">' + projectBadge + priorityBadge + blockedBadge + '</div>'
-      + '<h6><a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
+      + '<h6>' + (task.task_key ? '<span class="crm-task-key-badge">' + safeText(task.task_key) + '</span> ' : '') + '<a href="' + taskLink(task.public_id) + '">' + safeText(task.title || kanbanT('kanban.no_title', 'Без названия')) + '</a></h6>'
       + (desc ? '<p>' + desc + '</p>' : '')
       + tagChips
       + '<div class="crm-kanban-card-bottom"><div>' + knowledgeBadge + dueBadge + '</div>' + avatarStack + '</div>'

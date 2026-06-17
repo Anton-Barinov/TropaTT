@@ -402,11 +402,11 @@
         var items = env.data && env.data.items || [];
         if (!items.length) {
           container.innerHTML = '<div class="text-center py-3 text-muted"><p>Нет задач в этом цикле.</p>' +
-            '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">" + t('cycles.btn_add_tasks', 'Добавить задачи') + "</button></div>';
+            '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button></div>';
           return;
         }
         var html = '<div class="d-flex justify-content-between mb-2"><span><strong>Задачи (' + items.length + ')</strong></span>' +
-          '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus"></i>" + t('cycles.btn_add', 'Добавить') + "</button></div>' +
+          '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus"></i>' + t('cycles.btn_add', 'Добавить') + '</button></div>' +
           '<div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">';
         items.forEach(function (task) {
           var statusClass = '';

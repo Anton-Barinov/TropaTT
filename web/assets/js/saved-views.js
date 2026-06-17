@@ -171,7 +171,7 @@ window.CRM.savedViews = (function () {
     }
 
     waitForApi(function () {
-      window.CRM.api.request('GET', '/api/v1/views', { entity_type: 'task' })
+      window.CRM.api.request('/api/v1/views', { method: 'GET', query: { entity_type: 'task' } })
         .then(function (resp) {
           if (resp && resp.success && resp.data && resp.data.items) {
             state.views = resp.data.items;
@@ -306,20 +306,20 @@ window.CRM.savedViews = (function () {
 
       // Touch last-used
       waitForApi(function () {
-        window.CRM.api.request('POST', '/api/v1/views/' + publicId + '/touch-last-used', {});
+              window.CRM.api.request('/api/v1/views/' + publicId + '/touch-last-used', { method: 'POST', body: {} });
       });
 
       notify(esc(t('saved_views.applied', 'Представление применено: ')) + (view.title || ''), 'success');
     } else {
       // Load from API
       waitForApi(function () {
-        window.CRM.api.request('GET', '/api/v1/views/' + publicId)
+        window.CRM.api.request('/api/v1/views/' + publicId, { method: 'GET' })
           .then(function (resp) {
             if (resp && resp.success && resp.data && resp.data.saved_view) {
               var sv = resp.data.saved_view;
               if (sv.filters) applyFilters(sv.filters);
               state.activePublicId = publicId;
-              window.CRM.api.request('POST', '/api/v1/views/' + publicId + '/touch-last-used', {});
+        window.CRM.api.request('/api/v1/views/' + publicId + '/touch-last-used', { method: 'POST', body: {} });
               notify(esc(t('saved_views.applied', 'Представление применено: ')) + (sv.title || ''), 'success');
             }
           })
@@ -412,7 +412,7 @@ window.CRM.savedViews = (function () {
 
     waitForApi(function () {
       if (isEdit) {
-        window.CRM.api.request('PATCH', '/api/v1/views/' + publicId, payload)
+        window.CRM.api.request('/api/v1/views/' + publicId, { method: 'PATCH', body: payload })
           .then(function (resp) {
             if (resp && resp.success) {
               notify(esc(t('saved_views.updated', 'Представление обновлено')), 'success');
@@ -431,7 +431,7 @@ window.CRM.savedViews = (function () {
             console.error(err);
           });
       } else {
-        window.CRM.api.request('POST', '/api/v1/views', payload)
+        window.CRM.api.request('/api/v1/views', { method: 'POST', body: payload })
           .then(function (resp) {
             if (resp && resp.success) {
               notify(esc(t('saved_views.created', 'Представление создано')), 'success');
@@ -458,7 +458,7 @@ window.CRM.savedViews = (function () {
    */
   function togglePin(publicId, isPinned) {
     waitForApi(function () {
-      window.CRM.api.request('POST', '/api/v1/views/' + publicId + '/pin', { is_pinned: isPinned })
+      window.CRM.api.request('/api/v1/views/' + publicId + '/pin', { method: 'POST', body: { is_pinned: isPinned } })
         .then(function (resp) {
           if (resp && resp.success) {
             var action = isPinned ? t('saved_views.pinned', 'Закреплено') : t('saved_views.unpinned', 'Откреплено');
@@ -477,7 +477,7 @@ window.CRM.savedViews = (function () {
    */
   function duplicateView(publicId) {
     waitForApi(function () {
-      window.CRM.api.request('POST', '/api/v1/views/' + publicId + '/duplicate', {})
+      window.CRM.api.request('/api/v1/views/' + publicId + '/duplicate', { method: 'POST', body: {} })
         .then(function (resp) {
           if (resp && resp.success) {
             notify(esc(t('saved_views.duplicated', 'Представление дублировано')), 'success');
@@ -497,7 +497,7 @@ window.CRM.savedViews = (function () {
     if (!confirm(esc(t('saved_views.confirm_archive', 'Архивировать это представление?')))) return;
 
     waitForApi(function () {
-      window.CRM.api.request('POST', '/api/v1/views/' + publicId + '/archive', {})
+      window.CRM.api.request('/api/v1/views/' + publicId + '/archive', { method: 'POST', body: {} })
         .then(function (resp) {
           if (resp && resp.success) {
             notify(esc(t('saved_views.archived', 'Представление архивировано')), 'success');
