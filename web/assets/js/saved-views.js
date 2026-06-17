@@ -110,16 +110,19 @@ window.CRM.savedViews = (function () {
     var assigneeEl = document.getElementById('tasksAssigneeFilter');
     if (assigneeEl && filters.assignee_user_public_id != null) {
       assigneeEl.value = filters.assignee_user_public_id;
+      assigneeEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     var managerEl = document.getElementById('tasksManagerFilter');
     if (managerEl && filters.manager_user_public_id != null) {
       managerEl.value = filters.manager_user_public_id;
+      managerEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     var projectEl = document.getElementById('tasksProjectFilter');
     if (projectEl && filters.project_public_id != null) {
       projectEl.value = filters.project_public_id;
+      projectEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     // Due date buttons
@@ -141,7 +144,7 @@ window.CRM.savedViews = (function () {
       }
     }
 
-    // Trigger search if there's a trigger mechanism
+    // Trigger search
     var searchInput = document.getElementById('tasksSearchInput');
     if (searchInput) {
       searchInput.dispatchEvent(new Event('input', { bubbles: true }));

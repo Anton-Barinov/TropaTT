@@ -5229,3 +5229,100 @@ body.crm-login-page .crm-login-proof-grid span {
   font-size: 11px;
   font-weight: 600;
 }
+
+/* ===== Saved Views ===== */
+.crm-saved-views-menu {
+  min-width: 300px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.crm-saved-views-menu .dropdown-item {
+  font-size: 13px;
+  border-radius: 4px;
+  margin: 1px 4px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.crm-saved-views-menu .dropdown-item.active {
+  background: rgba(15, 143, 114, 0.08);
+  color: var(--crm-primary, #0f8f72);
+  font-weight: 500;
+}
+
+.crm-saved-views-menu .dropdown-item:hover .crm-sv-actions {
+  opacity: 1;
+}
+
+.crm-sv-save-btn {
+  font-weight: 500;
+  color: var(--crm-primary, #0f8f72) !important;
+}
+
+.crm-sv-save-btn:hover {
+  background: rgba(15, 143, 114, 0.06) !important;
+}
+
+.crm-sv-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.crm-sv-action {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+  color: #666;
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.crm-sv-action:hover {
+  background: rgba(0,0,0,0.06);
+  color: #222;
+}
+
+.crm-sv-action-pin {
+  color: #d4a017;
+}
+
+.crm-sv-action-pin:hover {
+  color: #b8860b;
+}
+
+.crm-sv-action-archive:hover {
+  color: #dc3545;
+}
+
+.crm-sv-badge {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 14px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.crm-sv-badge-private {
+  border: 1px solid #adb5bd;
+  background: transparent;
+}
+
+.crm-sv-badge-public {
+  background: #0f8f72;
+  color: #fff;
+}
+
+.crm-sv-badge-system {
+  background: #6c757d;
+  color: #fff;
+}
