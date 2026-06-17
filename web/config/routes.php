@@ -71,6 +71,7 @@ return [
     'admin-module-detail' => [Web\Controller\Page\AdminModuleDetailController::class, 'index'],
     'intake' => [Web\Controller\Page\IntakeController::class, 'index'],
     'admin-estimates' => [Web\Controller\Page\AdminEstimatesController::class, 'index'],
+    'project-modules' => [Web\Controller\Page\ProjectModulesController::class, 'index'],
 
     'ideas' => [Web\Controller\Page\IdeasController::class, 'index'],
     'idea-detail' => [Web\Controller\Page\IdeaDetailController::class, 'index'],

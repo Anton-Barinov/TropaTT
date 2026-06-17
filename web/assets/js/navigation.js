@@ -147,6 +147,7 @@ window.CRM.navigation = (function () {
       { key: 'chat', i18n: 'nav.chat', label: t('nav.chat', 'Chats'), href: 'index.php?route=chat' },
       { key: 'admin', i18n: 'nav.admin', label: t('nav.admin', 'Administration'), href: 'index.php?route=admin' },
       { key: 'admin-modules', i18n: 'nav.admin_modules', label: t('nav.admin_modules', 'Modules'), href: 'index.php?route=admin-modules' },
+      { key: 'project-modules', i18n: 'nav.project_modules', label: t('nav.project_modules', 'Project modules'), href: 'index.php?route=project-modules' },
       { key: 'admin-estimates', i18n: 'nav.admin_estimates', label: t('nav.admin_estimates', 'Estimates'), href: 'index.php?route=admin-estimates' },
       { key: 'docs', i18n: 'nav.docs', label: t('nav.docs', 'Documentation'), href: 'index.php?route=docs' }
     ];

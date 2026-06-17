@@ -5326,3 +5326,22 @@ body.crm-login-page .crm-login-proof-grid span {
   background: #6c757d;
   color: #fff;
 }
+
+/* ===== Project Modules ===== */
+#projectModulesProjectFilter {
+  min-width: 200px;
+}
+
+#projectModulesBody .progress {
+  border-radius: 3px;
+  background: #e9ecef;
+}
+
+#projectModulesBody .progress-bar {
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+#projectModulesBody td {
+  vertical-align: middle;
+}
