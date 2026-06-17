@@ -945,7 +945,8 @@ final class App
             $c->get('repository.import'),
             $c->get('service.project'),
             $c->get('service.task'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('lang')
         ));
         $this->container->factory('service.export', fn(Container $c) => new ExportService(
             $c->get('repository.export'),

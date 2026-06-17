@@ -21,7 +21,9 @@ final class KnowledgeCronTaskHandler
     {
         if ($this->service === null) {
             $pdo = $this->getPdo();
-            $this->service = new KnowledgeCronService($pdo, null);
+            $basePath = dirname(__DIR__, 3);
+            $lang = new \Api\System\Library\Language\LanguageManager($basePath . '/language');
+            $this->service = new KnowledgeCronService($pdo, null, $lang);
         }
         return $this->service;
     }

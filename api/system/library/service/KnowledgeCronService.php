@@ -4,13 +4,19 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use PDO;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 
 final class KnowledgeCronService
 {
+    use TranslatableTrait;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly ?NotificationService $notifications = null,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     /**
@@ -57,12 +63,13 @@ final class KnowledgeCronService
             // Notify owner if notification service is available
             if ($this->notifications !== null && !empty($page['owner_user_id'])) {
                 $dueDate = (string)($page['review_due_at'] ?? '');
+                $pageTitle = (string)($page['title'] ?? '');
                 $this->notifications->notifyUsers(
                     [(int)$page['owner_user_id']],
                     [
                         'category' => 'knowledge',
-                        'title' => 'Review due: ' . ($page['title'] ?? ''),
-                        'body' => 'Page "' . ($page['title'] ?? '') . '" requires a review. Due date: ' . $dueDate,
+                        'title' => $this->t('knowledge/notif_review_due_title', 'Review due: ') . $pageTitle,
+                        'body' => sprintf($this->t('knowledge/notif_review_due_body', 'Page "%s" requires a review.'), $pageTitle) . ' ' . $dueDate,
                     'entity_type' => 'knowledge_page',
                         'entity_public_id' => (string)($page['public_id'] ?? ''),
                         'action_code' => 'knowledge_review_due',
