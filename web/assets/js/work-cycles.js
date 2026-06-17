@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  function t(key, fallback) {
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      return window.CRM.i18n.t(key, fallback || key);
+    }
+    return fallback || key;
+  }
+
   var currentPage = 1;
   var currentCyclePublicId = null;
   var selectedTasks = {};
@@ -29,13 +36,13 @@
     try {
       var dt = new Date(d.replace(' ', 'T') + 'Z');
       if (isNaN(dt.getTime())) return d;
-      return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+      return dt.toLocaleDateString(t('cycles.locale', 'ru-RU'), { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (e) { return d; }
   }
 
   function statusBadge(status) {
     var cls = 'crm-cycle-badge crm-cycle-badge-' + status;
-    var labels = { planned: 'Запланирован', active: 'Активен', completed: 'Завершён', archived: 'Архив' };
+    var labels = { planned: t('cycles.status_planned', 'Запланирован'), active: t('cycles.status_active', 'Активен'), completed: t('cycles.status_completed', 'Завершён'), archived: t('cycles.status_archived', 'Архив') };
     return '<span class="' + cls + '">' + (labels[status] || status) + '</span>';
   }
 
@@ -91,7 +98,7 @@
       .catch(function (err) {
         loadingEl.classList.add('d-none');
         errorEl.classList.remove('d-none');
-        document.getElementById('cycleErrorText').textContent = err && err.message || 'Не удалось загрузить циклы.';
+        document.getElementById('cycleErrorText').textContent = err && err.message || t('cycles.error_load', 'Не удалось загрузить циклы.');
       });
   };
 
@@ -109,10 +116,10 @@
     card.className = 'crm-cycle-card';
 
     var progress = cycle.progress_percent || 0;
-    var tasksCount = (cycle.tasks_count || 0) + ' задач';
+    var tasksCount = (cycle.tasks_count || 0) + t('cycles.tasks_suffix', ' задач');
     var completedCount = cycle.completed_tasks_count || 0;
     var timeState = cycle.time_state || '';
-    var timeLabel = timeState === 'running' ? 'Идёт' : timeState === 'not_started' ? 'Не начат' : timeState === 'ended' ? 'Завершён по дате' : '';
+    var timeLabel = timeState === 'running' ? t('cycles.time_running', 'Идёт') : timeState === 'not_started' ? t('cycles.time_not_started', 'Не начат') : timeState === 'ended' ? t('cycles.time_ended', 'Завершён по дате') : '';
 
     card.innerHTML =
       '<div class="d-flex justify-content-between align-items-start">' +
@@ -170,8 +177,8 @@
   // ====== Create / Edit ======
   window.openCycleModal = function (publicId) {
     var modal = new bootstrap.Modal(document.getElementById('cycleModal'));
-    document.getElementById('cycleModalTitle').textContent = publicId ? 'Редактировать цикл' : 'Создать цикл';
-    document.getElementById('cycleFormSubmit').textContent = publicId ? 'Сохранить' : 'Создать';
+    document.getElementById('cycleModalTitle').textContent =publicId ? t('cycles.modal_edit_title', 'Редактировать цикл') : t('cycles.modal_create_title', 'Создать цикл');
+    document.getElementById('cycleFormSubmit').textContent =publicId ? t('cycles.btn_save', 'Сохранить') : t('cycles.btn_submit_create', 'Создать');
     document.getElementById('cycleFormPublicId').value = publicId || '';
     document.getElementById('cycleFormRowVersion').value = '';
     document.getElementById('cycleFormTitle').value = '';
@@ -259,31 +266,31 @@
       })
       .catch(function (err) {
         document.getElementById('cycleFormSubmit').disabled = false;
-        document.getElementById('cycleModalAlert').textContent = err && err.message || 'Ошибка сохранения.';
+        document.getElementById('cycleModalAlert').textContent = err && err.message || t('cycles.error_save', 'Ошибка сохранения.');
         document.getElementById('cycleModalAlert').classList.remove('d-none');
       });
   };
 
   // ====== Actions ======
   window.startCycle = function (publicId) {
-    if (!confirm('Запустить этот цикл?')) return;
+    if (!confirm(t('cycles.confirm_start', 'Запустить этот цикл?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/start', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert('Ошибка запуска цикла.'); });
+      .catch(function () { alert(t('cycles.error_start', 'Ошибка запуска цикла.')); });
   };
 
   window.reopenCycle = function (publicId) {
-    if (!confirm('Открыть этот цикл заново?')) return;
+    if (!confirm(t('cycles.confirm_reopen', 'Открыть этот цикл заново?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/reopen', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert('Ошибка открытия цикла.'); });
+      .catch(function () { alert(t('cycles.error_reopen', 'Ошибка открытия цикла.')); });
   };
 
   window.archiveCycle = function (publicId) {
-    if (!confirm('Архивировать этот цикл? Задачи не будут удалены.')) return;
+    if (!confirm(t('cycles.confirm_archive', 'Архивировать этот цикл? Задачи не будут удалены.'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/archive', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert('Ошибка архивирования.'); });
+      .catch(function () { alert(t('cycles.error_archive', 'Ошибка архивирования.')); });
   };
 
   // ====== Complete Cycle ======
@@ -294,7 +301,7 @@
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/summary', { method: 'GET' })
       .then(function (env) {
         var s = env.data && env.data.summary || {};
-        var html = '<h6>Итого по циклу:</h6>' +
+        var html = '<h6>' + t('cycles.summary_title', 'Итого по циклу:') + '</h6>' +
           '<table class="table table-sm table-borderless">' +
           '<tr><td>Всего задач:</td><td><strong>' + (s.total_tasks || 0) + '</strong></td></tr>' +
           '<tr><td>Завершено:</td><td><strong>' + (s.completed_tasks || 0) + '</strong></td></tr>' +
@@ -335,7 +342,7 @@
       })
       .catch(function () {
         document.getElementById('completeCycleConfirmBtn').disabled = false;
-        alert('Ошибка завершения цикла.');
+        alert(t('cycles.error_complete', 'Ошибка завершения цикла.'));
       });
   };
 
@@ -348,7 +355,7 @@
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId), { method: 'GET' })
       .then(function (env) {
         var c = env.data || {};
-        document.getElementById('cycleDetailTitle').textContent = c.title || 'Цикл';
+        document.getElementById('cycleDetailTitle').textContent = c.title || t('cycles.modal_detail_title', 'Цикл');
         renderCycleOverview(c);
         loadCycleTasks(publicId);
         loadCycleSummary(publicId);
@@ -364,24 +371,24 @@
     var html =
       '<div class="row g-3">' +
         '<div class="col-md-6">' +
-          '<div class="mb-2"><small class="text-muted">Статус</small><br>' + statusBadge(cycle.status) + '</div>' +
-          '<div class="mb-2"><small class="text-muted">Проект</small><br>' + escapeHtml(cycle.project_title || '') + '</div>' +
-          '<div class="mb-2"><small class="text-muted">Владелец</small><br>' + escapeHtml(cycle.owner_name || '—') + '</div>' +
-          (cycle.goal ? '<div class="mb-2"><small class="text-muted">Цель</small><br>' + escapeHtml(cycle.goal) + '</div>' : '') +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_status', 'Статус') + '</small><br>' + statusBadge(cycle.status) + '</div>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_project', 'Проект') + '</small><br>' + escapeHtml(cycle.project_title || '') + '</div>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_owner', 'Владелец') + '</small><br>' + escapeHtml(cycle.owner_name || '—') + '</div>' +
+          (cycle.goal ? '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_goal', 'Цель') + '</small><br>' + escapeHtml(cycle.goal) + '</div>' : '') +
         '</div>' +
         '<div class="col-md-6">' +
-          '<div class="mb-2"><small class="text-muted">Дата начала</small><br>' + formatDate(cycle.start_at) + '</div>' +
-          '<div class="mb-2"><small class="text-muted">Дата окончания</small><br>' + formatDate(cycle.end_at) + '</div>' +
-          '<div class="mb-2"><small class="text-muted">Прогресс</small><br>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_start', 'Дата начала') + '</small><br>' + formatDate(cycle.start_at) + '</div>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_end', 'Дата окончания') + '</small><br>' + formatDate(cycle.end_at) + '</div>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_progress', 'Прогресс') + '</small><br>' +
             '<div class="d-flex align-items-center gap-2">' +
               '<div class="crm-cycle-progress flex-grow-1"><div class="crm-cycle-progress-bar" style="width:' + (cycle.progress_percent || 0) + '%;"></div></div>' +
               '<small>' + (cycle.progress_percent || 0) + '%</small>' +
             '</div>' +
           '</div>' +
-          '<div class="mb-2"><small class="text-muted">Задачи</small><br>' + (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0) + ' завершено</div>' +
+          '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_tasks', 'Задачи') + '</small><br>' + (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0) + ' ' + t('cycles.completed_short', 'завершено') + '</div>' +
         '</div>' +
       '</div>' +
-      (cycle.description ? '<div class="mt-2"><small class="text-muted">Описание</small><p class="mb-0">' + escapeHtml(cycle.description) + '</p></div>' : '');
+      (cycle.description ? '<div class="mt-2"><small class="text-muted">' + t('cycles.overview_description', 'Описание') + '</small><p class="mb-0">' + escapeHtml(cycle.description) + '</p></div>' : '');
 
     document.getElementById('cycleOverviewContent').innerHTML = html;
   }
@@ -395,19 +402,19 @@
         var items = env.data && env.data.items || [];
         if (!items.length) {
           container.innerHTML = '<div class="text-center py-3 text-muted"><p>Нет задач в этом цикле.</p>' +
-            '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">Добавить задачи</button></div>';
+            '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">" + t('cycles.btn_add_tasks', 'Добавить задачи') + "</button></div>';
           return;
         }
         var html = '<div class="d-flex justify-content-between mb-2"><span><strong>Задачи (' + items.length + ')</strong></span>' +
-          '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus"></i> Добавить</button></div>' +
+          '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus"></i>" + t('cycles.btn_add', 'Добавить') + "</button></div>' +
           '<div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">';
-        items.forEach(function (t) {
+        items.forEach(function (task) {
           var statusClass = '';
-          if (t.task_status === 'done' || t.task_status === 'closed') statusClass = 'text-decoration-line-through text-muted';
+          if (task.task_status === 'done' || task.task_status === 'closed') statusClass = 'text-decoration-line-through text-muted';
           html += '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">' +
-            '<div><a href="/?route=task-detail&task_public_id=' + encodeURIComponent(t.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(t.task_title) + '</a>' +
-            '<br><small class="text-muted">' + escapeHtml(t.task_status || '') + (t.assignee_name ? ' &middot; ' + escapeHtml(t.assignee_name) : '') + '</small></div>' +
-            '<button class="btn btn-sm btn-outline-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(t.task_public_id) + '\')"><i class="fa-solid fa-xmark"></i></button>' +
+            '<div><a href="/?route=task-detail&task_public_id=' + encodeURIComponent(task.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(task.task_title) + '</a>' +
+            '<br><small class="text-muted">' + escapeHtml(task.task_status || '') + (task.assignee_name ? ' &middot; ' + escapeHtml(task.assignee_name) : '') + '</small></div>' +
+            '<button class="btn btn-sm btn-outline-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(task.task_public_id) + '\')"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>';
         });
         html += '</div>';
@@ -526,12 +533,12 @@
       delete selectedTasks[publicId];
     }
     var count = Object.keys(selectedTasks).length;
-    document.getElementById('addTasksConfirmBtn').textContent = 'Добавить выбранные (' + count + ')';
+    document.getElementById('addTasksConfirmBtn').textContent = ' + t('cycles.btn_add_selected', 'Добавить выбранные') + ' (' + count + ')';
   };
 
   window.confirmAddTasks = function () {
     var ids = Object.keys(selectedTasks);
-    if (!ids.length) { alert('Выберите задачи.'); return; }
+    if (!ids.length) { alert(' + t('cycles.select_tasks', 'Выберите задачи.') + '); return; }
 
     document.getElementById('addTasksConfirmBtn').disabled = true;
     apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/tasks', {
@@ -545,15 +552,15 @@
       })
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;
-        alert('Ошибка добавления: ' + (err && err.message || 'неизвестная ошибка'));
+        alert('Ошибка добавления: ' + (err && err.message || ' + t('cycles.unknown_error', 'неизвестная ошибка') + '));
       });
   };
 
   window.removeTaskFromCycle = function (cyclePublicId, taskPublicId) {
-    if (!confirm('Удалить задачу из цикла?')) return;
+    if (!confirm(t('cycles.confirm_remove_task', 'Удалить задачу из цикла?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(cyclePublicId) + '/tasks/' + encodeURIComponent(taskPublicId), { method: 'DELETE' })
       .then(function () { loadCycleTasks(cyclePublicId); })
-      .catch(function () { alert('Ошибка удаления задачи из цикла.'); });
+      .catch(function () { alert(t('cycles.error_remove_task', 'Ошибка удаления задачи из цикла.')); });
   };
 
   // ====== Select Loaders ======
