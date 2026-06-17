@@ -135,7 +135,7 @@ final class WorkCycleRepository
 
         $completed = (int)(new QueryBuilder($this->pdo))
             ->from('cycle_tasks ct')
-            ->innerJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
             ->where('ct.cycle_id', '=', (int)$row['id'])
             ->whereNull('ct.deleted_at')
             ->whereRaw("t.status_code IN (?, ?, ?)", ['done', 'closed', 'archived'])
