@@ -16192,6 +16192,8 @@ window.CRM.pageApiBindings = (function () {
         taskLookup[item.id] = {
           left: leftPx,
           right: rightPx,
+          top: rowY,
+          bottom: rowY + rowHeight,
           centerY: rowY + rowHeight / 2,
           rowY: rowY
         };
