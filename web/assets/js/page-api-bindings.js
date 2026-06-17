@@ -16278,18 +16278,22 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function _crmGanttDepsDrawConflictLine(parts, cd) {
-    // Route through LEFT rail, outside all bars
-    var srcPortX = cd.src.left - 4;   // left edge of source, offset left
-    var srcPortY = cd.src.centerY;
-    var tgtPortX = cd.tgt.left - 4;   // left edge of target, offset left
-    var tgtPortY = cd.tgt.centerY;
-    var railX = cd.railX;             // computed in _crmGanttDepsDraw
+    // Simple orthogonal route: from source bottom → down to target row → right to target
+    var sx = cd.src.right + 4;   // start just right of source bar
+    var sy = cd.src.bottom;       // bottom edge of source bar
+    var tx = cd.tgt.left - 4;    // end just left of target bar
+    var ty = cd.tgt.centerY;     // center of target bar
 
-    var d = 'M ' + srcPortX + ' ' + srcPortY
-      + ' L ' + railX + ' ' + srcPortY
-      + ' L ' + railX + ' ' + tgtPortY
-      + ' L ' + tgtPortX + ' ' + tgtPortY;
-    parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
+    // If source and target are on same or adjacent rows, simple horizontal
+    if (Math.abs(sy - ty) < 2) {
+      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty + '" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.65"/>');
+    } else {
+      // Orthogonal: down from source, then right to target
+      var d = 'M ' + sx + ' ' + sy
+        + ' L ' + sx + ' ' + ty
+        + ' L ' + tx + ' ' + ty;
+      parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
+    }
   }
 
   function _crmGanttDepsDrawConflictMarker(parts, info, idx) {
