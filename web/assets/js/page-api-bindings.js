@@ -16164,7 +16164,7 @@ window.CRM.pageApiBindings = (function () {
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;opacity:0.7;';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;';
       document.body.appendChild(overlay);
     }
 
@@ -16200,9 +16200,9 @@ window.CRM.pageApiBindings = (function () {
       var toPos = barPositions[dep.to_task_id];
       if (!fromPos || !toPos) continue;
 
-      var x1 = fromPos.right;
+      var x1 = fromPos.right + 3;
       var y1 = fromPos.top + fromPos.height / 2;
-      var x2 = toPos.left;
+      var x2 = toPos.left - 3;
       var y2 = toPos.top + toPos.height / 2;
 
       var isCritical = dep.dependency_type === 'FS';
@@ -16211,7 +16211,7 @@ window.CRM.pageApiBindings = (function () {
       var dashAttr = isCritical ? '' : ' stroke-dasharray="5,3"';
 
       // Orthogonal routing
-      var gap = 12;
+      var gap = 16;
       var sx = x1 + gap;
       var ex = x2 - gap;
       var midX = (sx + ex) / 2;

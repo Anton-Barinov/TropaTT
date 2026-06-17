@@ -254,7 +254,7 @@ final class NotificationService
             $created += $this->notifyUsers([$beforeAssigneeId], [
                 'category' => 'assignments',
                 'title' => $afterAssigneeId > 0 ? $this->t('notification/messages.unassigned_from_task') : $this->t('notification/messages.task_assignee_removed'),
-                'body' => $actorName . ' ' . $this->t('notification.messages.removed_from_task') . ' "' . $taskTitle . '".',
+                'body' => $actorName . ' ' . $this->t('notification/messages.removed_from_task') . ' "' . $taskTitle . '".',
                 'entity_type' => 'task',
                 'entity_public_id' => $taskPublicId,
                 'action_code' => $afterAssigneeId > 0 ? 'task_reassigned' : 'task_unassigned',
@@ -830,8 +830,8 @@ final class NotificationService
             'category' => 'approvals',
             'title' => $status === 'rejected' ? $this->t('notification/messages.approval_rejected') : $this->t('notification/messages.approval_completed'),
             'body' => $status === 'rejected'
-                ? $actorName . ' ' . $this->t('notification.messages.completed_approval_rejected') . '.'
-                : $actorName . ' ' . $this->t('notification.messages.completed_approval_approved') . '.',
+                ? $actorName . ' ' . $this->t('notification/messages.completed_approval_rejected') . '.'
+                : $actorName . ' ' . $this->t('notification/messages.completed_approval_approved') . '.',
             'entity_type' => 'approval_request',
             'entity_public_id' => $approvalPublicId,
             'action_code' => 'approval_finalized',
@@ -862,7 +862,7 @@ final class NotificationService
 
         $taskTitle = trim((string)($reminder['task_title'] ?? ''));
         $title = $this->t('notification/messages.reminder');
-        $body = $taskTitle !== '' ? $this->t('notification/messages.reminder_fired_for_task') . ' "' . $taskTitle . '".' : $this->t('notification.messages.reminder_fired_scheduled') . '.';
+        $body = $taskTitle !== '' ? $this->t('notification/messages.reminder_fired_for_task') . ' "' . $taskTitle . '".' : $this->t('notification/messages.reminder_fired_scheduled') . '.';
 
         return $this->notifyUsers([$ownerUserId], [
             'category' => 'reminders',
@@ -933,7 +933,7 @@ final class NotificationService
         return $this->notifyUsers([$ownerUserId], [
             'category' => 'reminders',
             'title' => $this->t('notification/messages.reminder_completed'),
-            'body' => $actorName . ' ' . $this->t('notification.messages.marked_reminder_completed') . '.',
+            'body' => $actorName . ' ' . $this->t('notification/messages.marked_reminder_completed') . '.',
             'entity_type' => 'reminder',
             'entity_public_id' => $reminderPublicId,
             'action_code' => 'reminder_completed',
