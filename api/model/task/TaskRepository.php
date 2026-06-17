@@ -83,6 +83,9 @@ final class TaskRepository
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
                 ) AS tags",
                 "(SELECT COUNT(*) FROM knowledge_entity_links kel WHERE kel.entity_type = 'task' AND kel.entity_public_id COLLATE utf8mb4_unicode_ci = t.public_id) AS knowledge_links_count",
+                "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
+                "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
+                "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
             ])
             ->orderBy('t.' . $sort, $order)
             ->orderBy('t.public_id', $order);
@@ -187,6 +190,9 @@ final class TaskRepository
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
                 ) AS tags",
+                "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
+                "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
+                "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
             ])
             ->where('t.public_id', '=', $publicId)
             ->first();
@@ -327,6 +333,9 @@ final class TaskRepository
                   INNER JOIN tags tg ON tg.id = et.tag_id
                   WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
                 ) AS tags",
+                "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
+                "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
+                "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
             ]);
 
         if (!empty($filters['assignee_user_public_id'])) {
@@ -453,6 +462,13 @@ final class TaskRepository
 
         if (!empty($filters['project_public_id'])) {
             $qb->where('p.public_id', '=', (string)$filters['project_public_id']);
+        }
+
+        if (!empty($filters['cycle_public_id'])) {
+            $qb->whereRaw(
+                'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id = ? AND wc.deleted_at IS NULL)',
+                [(string)$filters['cycle_public_id']]
+            );
         }
 
         if (!empty($filters['client_public_id'])) {

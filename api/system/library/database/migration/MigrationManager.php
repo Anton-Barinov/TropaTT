@@ -49,6 +49,7 @@ final class MigrationManager
             new TaskRelationsV2Migration(),
             new SavedViewsV2Migration(),
             new TaskActivityFeedMigration(),
+            new WorkCyclesMigration(),
         ];
     }
 

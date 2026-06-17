@@ -25,6 +25,7 @@ return [
 
     'notifications' => [Web\Controller\Page\NotificationsController::class, 'index'],
     'profile' => [Web\Controller\Page\ProfileController::class, 'index'],
+    'cycles' => [Web\Controller\Page\CyclesController::class, 'index'],
     'teams' => [Web\Controller\Page\TeamsController::class, 'index'],
     'departments' => [Web\Controller\Page\DepartmentsController::class, 'index'],
     'clients' => [Web\Controller\Page\ClientsController::class, 'index'],

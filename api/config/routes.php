@@ -141,6 +141,22 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/task-relations/{public_id}', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/task-relations/search-tasks', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'searchTasks', 'auth' => true, 'required_permissions' => ['task.manage']],
 
+    // work cycles
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/cycles/{public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/start', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'start', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/complete', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'complete', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/reopen', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'reopen', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/archive', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'archive', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/tasks', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'tasks', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/tasks', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'addTasks', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/cycles/{public_id}/tasks/{task_public_id}', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'removeTask', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/summary', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'summary', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/cycles/{public_id}/transfer-unfinished', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'transferUnfinished', 'auth' => true, 'required_permissions' => ['project.manage']],
+
     // tasks BR-1
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/activity', 'controller' => Api\Controller\Task\TaskActivityController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],

@@ -127,6 +127,7 @@ use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Service\TaskAiContextBuilder;
 use Api\System\Library\Service\TaskActivityService;
+use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserProfileService;
@@ -672,6 +673,9 @@ final class App
         $this->container->factory('repository.favorite', fn(Container $c) => new \Api\Model\Favorite\FavoriteRepository($c->get('db.pdo')));
         $this->container->factory('repository.saved_view', fn(Container $c) => new \Api\Model\View\SavedViewRepository($c->get('db.pdo')));
         $this->container->factory('repository.task_activity', fn(Container $c) => new \Api\Model\Task\TaskActivityRepository($c->get('db.pdo')));
+        $this->container->factory('repository.work_cycle', fn(Container $c) => new \Api\Model\Cycle\WorkCycleRepository($c->get('db.pdo')));
+        $this->container->factory('repository.cycle_task', fn(Container $c) => new \Api\Model\Cycle\CycleTaskRepository($c->get('db.pdo')));
+        $this->container->factory('repository.cycle_snapshot', fn(Container $c) => new \Api\Model\Cycle\CycleSnapshotRepository($c->get('db.pdo')));
         $this->container->factory('repository.status', fn(Container $c) => new \Api\Model\Status\StatusRepository($c->get('db.pdo')));
         $this->container->factory('repository.priority', fn(Container $c) => new \Api\Model\Priority\PriorityRepository($c->get('db.pdo')));
         $this->container->factory('repository.tag', fn(Container $c) => new \Api\Model\Tag\TagRepository($c->get('db.pdo')));
@@ -1119,6 +1123,15 @@ final class App
         ));
         $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
             $c->get('repository.task_activity')
+        ));
+        $this->container->factory('service.work_cycle', fn(Container $c) => new WorkCycleService(
+            $c->get('repository.work_cycle'),
+            $c->get('repository.cycle_task'),
+            $c->get('repository.cycle_snapshot'),
+            $c->get('repository.task'),
+            $c->get('service.task'),
+            $c->get('service.project'),
+            $c->get('service.task_activity')
         ));
 
         $this->container->factory('service.activity', fn(Container $c) => new ActivityService(
