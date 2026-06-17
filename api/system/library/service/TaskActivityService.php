@@ -240,6 +240,15 @@ final class TaskActivityService
 
     public function recordRelationEvent(array $task, string $eventType, array $relationData, array $actor, array $context = []): void
     {
+        $actorName = $this->buildActorName($actor);
+
+        $messageText = match ($eventType) {
+            'task.added_to_cycle' => $actorName . ' добавил в цикл: ' . ($relationData['cycle_title'] ?? ''),
+            'task.removed_from_cycle' => $actorName . ' удалил из цикла: ' . ($relationData['cycle_title'] ?? ''),
+            'task.moved_to_cycle' => $actorName . ' перенес в цикл: ' . ($relationData['target_cycle_title'] ?? '') . ' (из ' . ($relationData['source_cycle_title'] ?? '') . ')',
+            default => $actorName . ' ' . ($eventType === 'task.relation_added' ? 'добавил' : 'удалил') . ' связь: ' . ($relationData['relation_type'] ?? '') . ' ' . ($relationData['target_task_key'] ?? $relationData['target_task_public_id'] ?? ''),
+        };
+
         $this->createEvent([
             'event_type' => $eventType,
             'task' => $task,
@@ -248,7 +257,7 @@ final class TaskActivityService
             'related_entity_type' => 'task_relation',
             'related_entity_public_id' => (string)($relationData['relation_public_id'] ?? ''),
             'related_entity_label' => (string)($relationData['target_task_key'] ?? $relationData['target_task_public_id'] ?? ''),
-            'message_text' => $this->buildActorName($actor) . ' ' . ($eventType === 'task.relation_added' ? 'добавил' : 'удалил') . ' связь: ' . ($relationData['relation_type'] ?? '') . ' ' . ($relationData['target_task_key'] ?? $relationData['target_task_public_id'] ?? ''),
+            'message_text' => $messageText,
             'message_key' => 'task.activity.' . str_replace('.', '_', $eventType),
             'payload_json' => $relationData + ['source' => $context['source_type'] ?? 'web'],
         ]);
