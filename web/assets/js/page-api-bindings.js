@@ -16141,9 +16141,10 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — overlay inside gantt timeline area with obstacle-aware routing
+  // 2. Dependency lines — overlay inside gantt timeline area
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
+  var _GANTT_DEP_MIN_GAP = 24;
 
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
@@ -16171,11 +16172,8 @@ window.CRM.pageApiBindings = (function () {
     var boardEl = lanesContainer.closest('.crm-gantt-board');
     var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
 
-    // Collect all bar positions in LOCAL coords
+    // Collect all bar positions in local coords
     var barPositions = {};
-    var obstacles = []; // padded bounding boxes for collision detection
-    var padX = 8, padY = 6;
-
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
     for (var i = 0; i < barEls.length; i++) {
       var bar = barEls[i];
@@ -16185,24 +16183,16 @@ window.CRM.pageApiBindings = (function () {
       if (!rowId || rowId.indexOf('task-') !== 0) continue;
       var taskId = rowId.substring(5);
       var r = bar.getBoundingClientRect();
-      var pos = {
+      barPositions[taskId] = {
         left: r.left - lanesRect.left + scrollLeft,
         right: r.right - lanesRect.left + scrollLeft,
         top: r.top - lanesRect.top,
         bottom: r.bottom - lanesRect.top,
         centerY: (r.top + r.bottom) / 2 - lanesRect.top
       };
-      barPositions[taskId] = pos;
-      obstacles.push({
-        left: pos.left - padX,
-        right: pos.right + padX,
-        top: pos.top - padY,
-        bottom: pos.bottom + padY,
-        centerY: pos.centerY
-      });
     }
 
-    var paths = [];
+    var svgParts = [];
 
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
@@ -16211,106 +16201,74 @@ window.CRM.pageApiBindings = (function () {
       if (!src || !tgt) continue;
 
       var isFS = dep.dependency_type === 'FS';
-      var isConflict = isFS && src.right >= tgt.left;
-      var color = isConflict ? '#ea580c' : (isFS ? '#3b82f6' : '#94a3b8');
-      var sw = isConflict ? 2 : (isFS ? 1.8 : 1.2);
-      var dashAttr = (!isFS || isConflict) ? ' stroke-dasharray="6,3"' : '';
+      var gap = tgt.left - src.right;
+      var isNormal = gap > _GANTT_DEP_MIN_GAP;
 
-      var sx = src.right;
-      var sy = src.centerY;
-      var tx = tgt.left;
-      var ty = tgt.centerY;
-
-      // Find safe corridor Y for horizontal segment
-      var corridorY = _crmGanttDepsFindCorridor(src, tgt, obstacles);
-
-      var rightEdge = Math.max(src.right, tgt.right) + 16;
-      var leftEdge = Math.min(src.left, tgt.left) - 12;
-      if (leftEdge < 0) leftEdge = 0;
-
-      var d;
-      if (tgt.left > src.right + 4) {
-        // Normal FS: route through corridor
-        var bendX = (src.right + tgt.left) / 2;
-        d = 'M ' + sx + ' ' + sy
-          + ' L ' + bendX + ' ' + sy
-          + ' L ' + bendX + ' ' + corridorY
-          + ' L ' + tx + ' ' + corridorY
-          + ' L ' + tx + ' ' + ty;
+      if (isNormal) {
+        // Type A: draw proper arrow line
+        _crmGanttDepsDrawArrow(svgParts, src, tgt, isFS);
       } else {
-        // Overlapping: route right → corridor → left → target
-        d = 'M ' + sx + ' ' + sy
-          + ' L ' + rightEdge + ' ' + sy
-          + ' L ' + rightEdge + ' ' + corridorY
-          + ' L ' + leftEdge + ' ' + corridorY
-          + ' L ' + leftEdge + ' ' + ty
-          + ' L ' + tx + ' ' + ty;
+        // Type B: compact conflict marker
+        _crmGanttDepsDrawConflictMarker(svgParts, src, tgt, isFS);
       }
-
-      paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
-
-      // Arrow head
-      var aLen = 7, aW = 4;
-      paths.push('<polygon points="'
-        + (tx - 2) + ',' + ty + ' '
-        + (tx + aLen - 2) + ',' + (ty - aW) + ' '
-        + (tx + aLen - 2) + ',' + (ty + aW)
-        + '" fill="' + color + '"/>');
     }
 
     var totalH = lanesContainer.scrollHeight;
     var totalW = lanesContainer.scrollWidth;
-    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + paths.join('') + '</svg>';
+    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + svgParts.join('') + '</svg>';
   }
 
-  // Find a safe Y coordinate for horizontal segment that avoids all obstacles
-  function _crmGanttDepsFindCorridor(src, tgt, obstacles) {
-    var preferred = (src.centerY + tgt.centerY) / 2;
+  function _crmGanttDepsDrawArrow(parts, src, tgt, isFS) {
+    var sx = src.right;
+    var sy = src.centerY;
+    var tx = tgt.left;
+    var ty = tgt.centerY;
 
-    // Collect all obstacle Y ranges that overlap horizontally with the route
-    var minX = Math.min(src.right, tgt.left) - 20;
-    var maxX = Math.max(src.right, tgt.left) + 20;
+    var color = isFS ? '#3b82f6' : '#94a3b8';
+    var sw = isFS ? 1.8 : 1.2;
+    var dashAttr = !isFS ? ' stroke-dasharray="5,3"' : '';
 
-    var blockedRanges = [];
-    for (var i = 0; i < obstacles.length; i++) {
-      var ob = obstacles[i];
-      // Check if this obstacle overlaps horizontally with our route
-      if (ob.right < minX || ob.left > maxX) continue;
-      blockedRanges.push({ top: ob.top - 4, bottom: ob.bottom + 4 });
+    if (Math.abs(sy - ty) < 2) {
+      // Same row — simple horizontal line
+      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty
+        + '" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linecap="round"/>');
+    } else {
+      // Different rows — route through corridor
+      var mx = (sx + tx) / 2;
+      var d = 'M ' + sx + ' ' + sy
+        + ' L ' + mx + ' ' + sy
+        + ' L ' + mx + ' ' + ty
+        + ' L ' + tx + ' ' + ty;
+      parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
     }
 
-    if (!blockedRanges.length) return preferred;
+    // Arrow head at target
+    var aLen = 7, aW = 4;
+    parts.push('<polygon points="'
+      + (tx - 1) + ',' + ty + ' '
+      + (tx + aLen - 1) + ',' + (ty - aW) + ' '
+      + (tx + aLen - 1) + ',' + (ty + aW)
+      + '" fill="' + color + '"/>');
+  }
 
-    // Sort by top
-    blockedRanges.sort(function (a, b) { return a.top - b.top; });
+  function _crmGanttDepsDrawConflictMarker(parts, src, tgt, isFS) {
+    // Compact orange warning marker at target bar left edge
+    var mx = tgt.left - 14;
+    var my = tgt.centerY;
+    var color = '#ea580c';
 
-    // Find gaps between obstacles
-    var gaps = [];
-    // Gap above first obstacle
-    if (blockedRanges[0].top > 0) {
-      gaps.push({ top: 0, bottom: blockedRanges[0].top, mid: blockedRanges[0].top / 2 });
-    }
-    // Gaps between obstacles
-    for (var k = 1; k < blockedRanges.length; k++) {
-      var gapTop = blockedRanges[k - 1].bottom;
-      var gapBottom = blockedRanges[k].top;
-      if (gapBottom > gapTop) {
-        gaps.push({ top: gapTop, bottom: gapBottom, mid: (gapTop + gapBottom) / 2 });
-      }
-    }
+    // Small warning triangle
+    parts.push('<polygon points="'
+      + mx + ',' + (my - 5) + ' '
+      + mx + ',' + (my + 5) + ' '
+      + (mx + 8) + ',' + my
+      + '" fill="' + color + '" opacity="0.85"/>');
 
-    // Pick the gap closest to preferred
-    var best = preferred;
-    var bestDist = Infinity;
-    for (var g = 0; g < gaps.length; g++) {
-      var dist = Math.abs(gaps[g].mid - preferred);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = gaps[g].mid;
-      }
-    }
-
-    return best;
+    // Short dashed line connecting source to marker
+    var sx = src.right;
+    var sy = src.centerY;
+    var d = 'M ' + sx + ' ' + sy + ' L ' + mx + ' ' + my;
+    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" opacity="0.6"/>');
   }
 
   function _crmGanttDepsScrollTick() {
