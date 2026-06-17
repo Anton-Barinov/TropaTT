@@ -16290,6 +16290,50 @@ window.CRM.pageApiBindings = (function () {
       + '</g>');
   }
 
+  function _crmGanttDepsShowHoverLine(overlay, idx) {
+    var info = _ganttDepsConflictData[idx];
+    if (!info) return;
+    var hoverSvg = document.getElementById('ganttDepsHover');
+    if (!hoverSvg) {
+      hoverSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      hoverSvg.id = 'ganttDepsHover';
+      hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;overflow:visible;';
+      overlay.appendChild(hoverSvg);
+    }
+    var parts = [];
+    var tgt = info.pos;
+    var pad = 4;
+
+    // Highlight target
+    parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+
+    if (info.sourcePositions) {
+      for (var s = 0; s < info.sourcePositions.length; s++) {
+        var src = info.sourcePositions[s];
+        parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
+
+        // Route through rail LEFT of both bars (outside task-bar area)
+        var railX = Math.min(src.left, tgt.left) - 16;
+        if (railX < 4) railX = 4;
+
+        var d = 'M ' + src.right + ' ' + src.centerY
+          + ' L ' + railX + ' ' + src.centerY
+          + ' L ' + railX + ' ' + tgt.centerY
+          + ' L ' + tgt.left + ' ' + tgt.centerY;
+        parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
+
+        // Arrow head
+        var aLen = 6, aW = 3;
+        parts.push('<polygon points="'
+          + tgt.left + ',' + tgt.centerY + ' '
+          + (tgt.left + aLen) + ',' + (tgt.centerY - aW) + ' '
+          + (tgt.left + aLen) + ',' + (tgt.centerY + aW)
+          + '" fill="#ea580c"/>');
+      }
+    }
+    hoverSvg.innerHTML = parts.join('');
+  }
+
   function _crmGanttDepsHideHoverLine(overlay) {
     var hoverSvg = document.getElementById('ganttDepsHover');
     if (hoverSvg) hoverSvg.innerHTML = '';
