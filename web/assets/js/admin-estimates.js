@@ -283,28 +283,16 @@ window.CRM.adminEstimates = (function () {
     }
 
     req(url, { method: method, body: body })
-      .then(function (result) {
-        if (isEdit) {
-          // Update existing options: delete removed, create new, update existing
-          return syncOptions(state.editingId, options);
-        }
-        if (isEdit) {
-          notify(t('admin_estimates.updated', 'Set updated'), 'success');
-        } else {
-          notify(t('admin_estimates.created', 'Set created'), 'success');
-        }
-        var modalEl = document.getElementById('estimateSetModal');
-        var modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-        loadSets();
-        return null;
-      })
       .then(function () {
         if (isEdit) {
-          notify(t('admin_estimates.updated', 'Set updated'), 'success');
-        } else {
-          notify(t('admin_estimates.created', 'Set created'), 'success');
+          return syncOptions(state.editingId, options);
         }
+      })
+      .then(function () {
+        var msg = isEdit
+          ? t('admin_estimates.updated', 'Set updated')
+          : t('admin_estimates.created', 'Set created');
+        notify(msg, 'success');
         var modalEl = document.getElementById('estimateSetModal');
         var modal = bootstrap.Modal.getInstance(modalEl);
         if (modal) modal.hide();
