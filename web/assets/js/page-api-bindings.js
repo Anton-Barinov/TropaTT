@@ -16144,6 +16144,7 @@ window.CRM.pageApiBindings = (function () {
   // 2. Dependency lines — overlay inside gantt timeline area
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
+  var _ganttDepsDebug = false;
 
   function crmGanttRenderDependencies(groups, windowInfo) {
     var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
@@ -16159,7 +16160,6 @@ window.CRM.pageApiBindings = (function () {
     var lanesContainer = document.querySelector('.crm-gantt-lanes');
     if (!lanesContainer) return;
 
-    // Ensure overlay is inside lanesContainer (sibling of lane elements)
     var overlay = document.getElementById('ganttDepsOverlay');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -16168,15 +16168,14 @@ window.CRM.pageApiBindings = (function () {
       lanesContainer.appendChild(overlay);
     }
 
-    // Reference rect of the lanes container for coordinate conversion
     var lanesRect = lanesContainer.getBoundingClientRect();
-    var scrollLeft = lanesContainer.closest('.crm-gantt-board') ?
-      lanesContainer.closest('.crm-gantt-board').scrollLeft : 0;
+    var boardEl = lanesContainer.closest('.crm-gantt-board');
+    var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
 
     var paths = [];
-    var debugDots = [];
+    var debugShapes = [];
 
-    // Collect all bar positions in LOCAL coordinates (relative to lanesContainer)
+    // Collect bar positions in local coordinates
     var barPositions = {};
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
     for (var i = 0; i < barEls.length; i++) {
@@ -16192,8 +16191,7 @@ window.CRM.pageApiBindings = (function () {
         right: r.right - lanesRect.left + scrollLeft,
         top: r.top - lanesRect.top,
         bottom: r.bottom - lanesRect.top,
-        centerY: (r.top + r.bottom) / 2 - lanesRect.top,
-        height: r.height
+        centerY: (r.top + r.bottom) / 2 - lanesRect.top
       };
     }
 
@@ -16203,49 +16201,52 @@ window.CRM.pageApiBindings = (function () {
       var tgt = barPositions[dep.to_task_id];
       if (!src || !tgt) continue;
 
+      var isConflict = dep.dependency_type === 'FS' && src.right >= tgt.left;
       var isCritical = dep.dependency_type === 'FS';
-      var color = isCritical ? '#3b82f6' : '#94a3b8';
-      var sw = isCritical ? 2 : 1.5;
-      var dashAttr = isCritical ? '' : ' stroke-dasharray="5,3"';
+      var color = isConflict ? '#ef4444' : (isCritical ? '#3b82f6' : '#94a3b8');
+      var sw = isConflict ? 2.5 : (isCritical ? 2 : 1.5);
+      var dashAttr = (isConflict || !isCritical) ? ' stroke-dasharray="5,3"' : '';
 
       var startX = src.right;
       var startY = src.centerY;
       var endX = tgt.left;
       var endY = tgt.centerY;
 
-      var rightLaneX = Math.max(src.right, tgt.right) + 20;
-      var leftLaneX = Math.min(src.left, tgt.left) - 20;
-      if (leftLaneX < 0) leftLaneX = 0;
-
-      var rowGap = 8;
-      var midY;
-      if (src.centerY < tgt.centerY) {
-        midY = src.bottom + rowGap;
-      } else {
-        midY = tgt.bottom + rowGap;
-      }
+      var offR = 24;  // offset right from bar edges
+      var offL = 16;  // offset left from bar edges
+      var rowGap = 12;
 
       var d;
-      if (tgt.left > src.right + 10) {
-        // Normal case: target is clearly to the right
+      if (tgt.left > src.right + offR) {
+        // Normal FS: target starts clearly after source ends
         var bendX = (src.right + tgt.left) / 2;
         d = 'M ' + startX + ' ' + startY
           + ' L ' + bendX + ' ' + startY
           + ' L ' + bendX + ' ' + endY
           + ' L ' + endX + ' ' + endY;
       } else {
-        // Overlapping: route through corridor between rows
+        // Overlapping or conflicting: route through corridor between rows
+        var rightX = Math.max(src.right, tgt.right) + offR;
+        var leftX = Math.max(0, Math.min(src.left, tgt.left) - offL);
+        var midY;
+        if (src.centerY < tgt.centerY) {
+          midY = src.bottom + rowGap;
+        } else if (src.centerY > tgt.centerY) {
+          midY = tgt.bottom + rowGap;
+        } else {
+          midY = src.bottom + rowGap;
+        }
         d = 'M ' + startX + ' ' + startY
-          + ' L ' + rightLaneX + ' ' + startY
-          + ' L ' + rightLaneX + ' ' + midY
-          + ' L ' + leftLaneX + ' ' + midY
-          + ' L ' + leftLaneX + ' ' + endY
+          + ' L ' + rightX + ' ' + startY
+          + ' L ' + rightX + ' ' + midY
+          + ' L ' + leftX + ' ' + midY
+          + ' L ' + leftX + ' ' + endY
           + ' L ' + endX + ' ' + endY;
       }
 
       paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
 
-      // Arrow head at target (filled triangle pointing LEFT into target)
+      // Arrow head at target — filled triangle pointing LEFT into the target bar
       var aLen = 8;
       var aW = 5;
       paths.push('<polygon points="'
@@ -16254,15 +16255,23 @@ window.CRM.pageApiBindings = (function () {
         + (endX + aLen) + ',' + (endY + aW)
         + '" fill="' + color + '"/>');
 
-      // Debug dots: source.right (green) and target.left (red)
-      debugDots.push('<circle cx="' + startX + '" cy="' + startY + '" r="3" fill="#22c55e" opacity="0.7"/>');
-      debugDots.push('<circle cx="' + endX + '" cy="' + endY + '" r="3" fill="#ef4444" opacity="0.7"/>');
+      // Conflict warning marker (small exclamation icon near source)
+      if (isConflict) {
+        var warnX = src.right + 6;
+        var warnY = src.top - 2;
+        paths.push('<text x="' + warnX + '" y="' + warnY + '" font-size="11" fill="#ef4444" font-weight="bold">⚠</text>');
+      }
+
+      if (_ganttDepsDebug) {
+        debugShapes.push('<circle cx="' + startX + '" cy="' + startY + '" r="3" fill="#22c55e"/>');
+        debugShapes.push('<circle cx="' + endX + '" cy="' + endY + '" r="3" fill="#ef4444"/>');
+      }
     }
 
     var totalH = lanesContainer.scrollHeight;
     var totalW = lanesContainer.scrollWidth;
     overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">'
-      + paths.join('') + debugDots.join('') + '</svg>';
+      + paths.join('') + debugShapes.join('') + '</svg>';
   }
 
   function _crmGanttDepsScrollTick() {
