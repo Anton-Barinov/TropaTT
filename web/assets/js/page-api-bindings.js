@@ -16173,7 +16173,6 @@ window.CRM.pageApiBindings = (function () {
     var boardEl = lanesContainer.closest('.crm-gantt-board');
     var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
 
-    // Collect bar positions in local coords
     var barPositions = {};
     var allBars = [];
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
@@ -16196,7 +16195,6 @@ window.CRM.pageApiBindings = (function () {
       allBars.push(pos);
     }
 
-    // Find the leftmost edge of all bars to place rail channels
     var minBarLeft = Infinity;
     for (var b = 0; b < allBars.length; b++) {
       if (allBars[b].left < minBarLeft) minBarLeft = allBars[b].left;
@@ -16204,10 +16202,9 @@ window.CRM.pageApiBindings = (function () {
     var railBaseX = Math.max(0, minBarLeft - 20);
 
     var svgParts = [];
-    var conflictTargets = {};
+    var conflictByTarget = {};
     _ganttDepsConflictData = [];
 
-    // First pass: collect conflicts and check which deps need rails
     var normalDeps = [];
     var conflictDeps = [];
     for (var j = 0; j < deps.length; j++) {
@@ -16223,24 +16220,18 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
-    // Assign rail lanes to conflict deps (each gets its own vertical channel)
     var railSpacing = 8;
     for (var c = 0; c < conflictDeps.length; c++) {
       conflictDeps[c].railX = railBaseX - c * railSpacing;
     }
 
-    // Draw normal arrows
     for (var n = 0; n < normalDeps.length; n++) {
-      var nd = normalDeps[n];
-      _crmGanttDepsDrawArrow(svgParts, nd.src, nd.tgt, nd.dep.dependency_type === 'FS');
+      _crmGanttDepsDrawArrow(svgParts, normalDeps[n].src, normalDeps[n].tgt, normalDeps[n].dep.dependency_type === 'FS');
     }
 
-    // Draw conflict lines through rails + markers
-    var conflictByTarget = {};
     for (var c = 0; c < conflictDeps.length; c++) {
       var cd = conflictDeps[c];
       _crmGanttDepsDrawConflictLine(svgParts, cd);
-
       if (!conflictByTarget[cd.dep.to_task_id]) {
         conflictByTarget[cd.dep.to_task_id] = { pos: cd.tgt, sources: [], types: [], sourcePositions: [] };
       }
@@ -16249,7 +16240,6 @@ window.CRM.pageApiBindings = (function () {
       conflictByTarget[cd.dep.to_task_id].sourcePositions.push(cd.src);
     }
 
-    // Draw warning markers (one per conflicting target)
     var cKeys = Object.keys(conflictByTarget);
     for (var k = 0; k < cKeys.length; k++) {
       _crmGanttDepsDrawConflictMarker(svgParts, conflictByTarget[cKeys[k]], k);
@@ -16262,77 +16252,48 @@ window.CRM.pageApiBindings = (function () {
     _crmGanttDepsBindHover(overlay);
   }
 
-  // Normal arrow: orthogonal path from source.right to target.left
   function _crmGanttDepsDrawArrow(parts, src, tgt, isFS) {
-    var sx = src.right;
-    var sy = src.centerY;
-    var tx = tgt.left;
-    var ty = tgt.centerY;
+    var sx = src.right, sy = src.centerY, tx = tgt.left, ty = tgt.centerY;
     var color = isFS ? '#3b82f6' : '#94a3b8';
     var sw = isFS ? 1.8 : 1.2;
     var dashAttr = !isFS ? ' stroke-dasharray="5,3"' : '';
-
     if (Math.abs(sy - ty) < 2) {
       parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty + '" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linecap="round"/>');
     } else {
       var mx = (sx + tx) / 2;
-      var d = 'M ' + sx + ' ' + sy + ' L ' + mx + ' ' + sy + ' L ' + mx + ' ' + ty + ' L ' + tx + ' ' + ty;
-      parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
+      parts.push('<path d="M ' + sx + ' ' + sy + ' L ' + mx + ' ' + sy + ' L ' + mx + ' ' + ty + ' L ' + tx + ' ' + ty + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
     }
-    // Arrow head at target
-    var aLen = 7, aW = 4;
-    parts.push('<polygon points="' + tx + ',' + ty + ' ' + (tx + aLen) + ',' + (ty - aW) + ' ' + (tx + aLen) + ',' + (ty + aW) + '" fill="' + color + '"/>');
+    parts.push('<polygon points="' + tx + ',' + ty + ' ' + (tx + 7) + ',' + (ty - 4) + ' ' + (tx + 7) + ',' + (ty + 4) + '" fill="' + color + '"/>');
   }
 
-  // Conflict line: route through rail channel to the left of all bars
   function _crmGanttDepsDrawConflictLine(parts, cd) {
-    var sx = cd.src.right;
-    var sy = cd.src.centerY;
-    var tx = cd.tgt.left;
-    var ty = cd.tgt.centerY;
-    var railX = cd.railX;
-
-    var color = '#ea580c';
-    var d = 'M ' + sx + ' ' + sy
-      + ' L ' + railX + ' ' + sy
-      + ' L ' + railX + ' ' + ty
-      + ' L ' + tx + ' ' + ty;
-    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
+    var d = 'M ' + cd.src.right + ' ' + cd.src.centerY
+      + ' L ' + cd.railX + ' ' + cd.src.centerY
+      + ' L ' + cd.railX + ' ' + cd.tgt.centerY
+      + ' L ' + cd.tgt.left + ' ' + cd.tgt.centerY;
+    parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.2" stroke-dasharray="4,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.65"/>');
   }
 
-  // Warning marker: white badge with orange ! at target
   function _crmGanttDepsDrawConflictMarker(parts, info, idx) {
     var tgt = info.pos;
-    var bx = tgt.left + 10;
-    var by = tgt.top + 5;
-    var r = 8;
-
+    var bx = tgt.left + 10, by = tgt.top + 5, r = 8;
     var tipLines = ['Зависимость нарушена'];
-    for (var i = 0; i < info.sources.length; i++) {
-      tipLines.push('Предшественник: ' + info.sources[i].substring(0, 16) + '… (' + info.types[i] + ')');
-    }
+    for (var i = 0; i < info.sources.length; i++) tipLines.push('Предшественник: ' + info.sources[i].substring(0, 16) + '… (' + info.types[i] + ')');
     tipLines.push('Задача начинается раньше завершения предшественника');
-    var tooltipText = tipLines.join(' | ').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-
     parts.push('<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
       + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round" style="pointer-events:auto;cursor:pointer;"/>'
       + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
       + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
-      + '<title>' + tooltipText + '</title>'
-      + '</g>');
+      + '<title>' + tipLines.join(' | ').replace(/"/g, '&quot;') + '</title></g>');
   }
 
   function _crmGanttDepsBindHover(overlay) {
     var markers = overlay.querySelectorAll('.gantt-conflict-marker');
     for (var i = 0; i < markers.length; i++) {
-      (function (marker) {
-        var idx = parseInt(marker.getAttribute('data-conflict-idx'));
-        marker.addEventListener('mouseenter', function () {
-          _crmGanttDepsShowHoverLine(overlay, idx);
-        });
-        marker.addEventListener('mouseleave', function () {
-          _crmGanttDepsHideHoverLine(overlay);
-        });
+      (function (m) {
+        var idx = parseInt(m.getAttribute('data-conflict-idx'));
+        m.addEventListener('mouseenter', function () { _crmGanttDepsShowHoverLine(overlay, idx); });
+        m.addEventListener('mouseleave', function () { _crmGanttDepsHideHoverLine(overlay); });
       })(markers[i]);
     }
   }
@@ -16347,9 +16308,7 @@ window.CRM.pageApiBindings = (function () {
       hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;overflow:visible;';
       overlay.appendChild(hoverSvg);
     }
-    var parts = [];
-    var tgt = info.pos;
-    var pad = 4;
+    var parts = [], tgt = info.pos, pad = 4;
     parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
     if (info.sourcePositions) {
       for (var s = 0; s < info.sourcePositions.length; s++) {
@@ -16357,213 +16316,7 @@ window.CRM.pageApiBindings = (function () {
         parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
         var railX = Math.min(src.left, tgt.left) - 20;
         if (railX < 4) railX = 4;
-        var d = 'M ' + src.right + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + tgt.left + ' ' + tgt.centerY;
-        parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
-      }
-    }
-    hoverSvg.innerHTML = parts.join('');
-  }
-
-  function _crmGanttDepsHideHoverLine(overlay) {
-    var hoverSvg = document.getElementById('ganttDepsHover');
-    if (hoverSvg) hoverSvg.innerHTML = '';
-  }
-
-  function _crmGanttDepsScrollTick() {
-    if (_ganttDepsRenderQueued) return;
-    _ganttDepsRenderQueued = true;
-    requestAnimationFrame(function () {
-      _ganttDepsRenderQueued = false;
-      var deps = window.CRM && window.CRM.ganttDependencies ? window.CRM.ganttDependencies : [];
-      if (deps.length) _crmGanttDepsDraw(deps);
-    });
-  }
-
-  function _crmGanttDepsDraw(deps) {
-    var lanesContainer = document.querySelector('.crm-gantt-lanes');
-    if (!lanesContainer) return;
-
-    var overlay = document.getElementById('ganttDepsOverlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;';
-      lanesContainer.appendChild(overlay);
-    }
-
-    var lanesRect = lanesContainer.getBoundingClientRect();
-    var boardEl = lanesContainer.closest('.crm-gantt-board');
-    var scrollLeft = boardEl ? boardEl.scrollLeft : 0;
-
-    var barPositions = {};
-    var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
-    for (var i = 0; i < barEls.length; i++) {
-      var bar = barEls[i];
-      var lane = bar.closest('.crm-gantt-lane--task');
-      if (!lane) continue;
-      var rowId = lane.getAttribute('data-gantt-row-id');
-      if (!rowId || rowId.indexOf('task-') !== 0) continue;
-      var taskId = rowId.substring(5);
-      var r = bar.getBoundingClientRect();
-      barPositions[taskId] = {
-        left: r.left - lanesRect.left + scrollLeft,
-        right: r.right - lanesRect.left + scrollLeft,
-        top: r.top - lanesRect.top,
-        bottom: r.bottom - lanesRect.top,
-        centerY: (r.top + r.bottom) / 2 - lanesRect.top
-      };
-    }
-
-    var svgParts = [];
-    var conflictTargets = {};
-    _ganttDepsConflictData = [];
-
-    for (var j = 0; j < deps.length; j++) {
-      var dep = deps[j];
-      var src = barPositions[dep.from_task_id];
-      var tgt = barPositions[dep.to_task_id];
-      if (!src || !tgt) continue;
-
-      var isFS = dep.dependency_type === 'FS';
-      var gap = tgt.left - src.right;
-
-      if (gap > _GANTT_DEP_MIN_GAP) {
-        // Type A: normal arrow
-        _crmGanttDepsDrawArrow(svgParts, src, tgt, isFS);
-      } else {
-        // Type B: conflict — collect for marker + compact line
-        if (!conflictTargets[dep.to_task_id]) {
-          conflictTargets[dep.to_task_id] = { pos: tgt, sources: [], types: [] };
-        }
-        conflictTargets[dep.to_task_id].sources.push(dep.from_task_id);
-        conflictTargets[dep.to_task_id].types.push(dep.dependency_type);
-        conflictTargets[dep.to_task_id].sourcePositions = conflictTargets[dep.to_task_id].sourcePositions || [];
-        conflictTargets[dep.to_task_id].sourcePositions.push(src);
-      }
-    }
-
-    // Draw conflict markers + compact lines
-    var cKeys = Object.keys(conflictTargets);
-    for (var k = 0; k < cKeys.length; k++) {
-      var info = conflictTargets[cKeys[k]];
-      _crmGanttDepsDrawConflictMarker(svgParts, info, k);
-      _ganttDepsConflictData.push({ idx: k, info: info });
-    }
-
-    var totalH = lanesContainer.scrollHeight;
-    var totalW = lanesContainer.scrollWidth;
-    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + totalW + '" height="' + totalH + '">' + svgParts.join('') + '</svg>';
-
-    // Bind hover on conflict markers
-    _crmGanttDepsBindHover(overlay);
-  }
-
-  function _crmGanttDepsDrawArrow(parts, src, tgt, isFS) {
-    var sx = src.right;
-    var sy = src.centerY;
-    var tx = tgt.left;
-    var ty = tgt.centerY;
-
-    var color = isFS ? '#3b82f6' : '#94a3b8';
-    var sw = isFS ? 1.8 : 1.2;
-    var dashAttr = !isFS ? ' stroke-dasharray="5,3"' : '';
-
-    if (Math.abs(sy - ty) < 2) {
-      parts.push('<line x1="' + sx + '" y1="' + sy + '" x2="' + tx + '" y2="' + ty
-        + '" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linecap="round"/>');
-    } else {
-      var mx = (sx + tx) / 2;
-      var d = 'M ' + sx + ' ' + sy
-        + ' L ' + mx + ' ' + sy
-        + ' L ' + mx + ' ' + ty
-        + ' L ' + tx + ' ' + ty;
-      parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
-    }
-
-    var aLen = 7, aW = 4;
-    parts.push('<polygon points="'
-      + (tx - 1) + ',' + ty + ' '
-      + (tx + aLen - 1) + ',' + (ty - aW) + ' '
-      + (tx + aLen - 1) + ',' + (ty + aW)
-      + '" fill="' + color + '"/>');
-  }
-
-  function _crmGanttDepsDrawConflictMarker(parts, info, idx) {
-    var tgt = info.pos;
-    var bx = tgt.left + 10;
-    var by = tgt.top + 5;
-    var r = 8;
-
-    var tipLines = ['Зависимость нарушена'];
-    for (var i = 0; i < info.sources.length; i++) {
-      tipLines.push('Предшественник: ' + info.sources[i].substring(0, 16) + '… (' + info.types[i] + ')');
-    }
-    tipLines.push('Задача начинается раньше завершения предшественника');
-    var tooltipText = tipLines.join(' | ').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-
-    // Warning badge — NO permanent connecting lines
-    parts.push('<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
-      + '<rect x="' + (bx - r) + '" y="' + (by - r) + '" width="' + (r * 2) + '" height="' + (r * 2) + '" rx="3" fill="white" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round" style="pointer-events:auto;cursor:pointer;"/>'
-      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
-      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1" fill="#ea580c"/>'
-      + '<title>' + tooltipText + '</title>'
-      + '</g>');
-  }
-
-  function _crmGanttDepsBindHover(overlay) {
-    var markers = overlay.querySelectorAll('.gantt-conflict-marker');
-    for (var i = 0; i < markers.length; i++) {
-      (function (marker) {
-        var idx = parseInt(marker.getAttribute('data-conflict-idx'));
-        marker.addEventListener('mouseenter', function () {
-          _crmGanttDepsShowHoverLine(overlay, idx);
-        });
-        marker.addEventListener('mouseleave', function () {
-          _crmGanttDepsHideHoverLine(overlay);
-        });
-      })(markers[i]);
-    }
-  }
-
-  function _crmGanttDepsShowHoverLine(overlay, idx) {
-    var info = _ganttDepsConflictData[idx];
-    if (!info) return;
-    var hoverSvg = document.getElementById('ganttDepsHover');
-    if (!hoverSvg) {
-      hoverSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      hoverSvg.id = 'ganttDepsHover';
-      hoverSvg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;overflow:visible;';
-      overlay.appendChild(hoverSvg);
-    }
-    var parts = [];
-    var tgt = info.pos;
-    var pad = 4;
-
-    // Highlight target
-    parts.push('<rect x="' + (tgt.left - pad) + '" y="' + (tgt.top - pad) + '" width="' + (tgt.right - tgt.left + pad * 2) + '" height="' + (tgt.bottom - tgt.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
-
-    if (info.sourcePositions) {
-      for (var s = 0; s < info.sourcePositions.length; s++) {
-        var src = info.sourcePositions[s];
-        parts.push('<rect x="' + (src.left - pad) + '" y="' + (src.top - pad) + '" width="' + (src.right - src.left + pad * 2) + '" height="' + (src.bottom - src.top + pad * 2) + '" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/>');
-
-        // Route through rail LEFT of both bars (outside task-bar area)
-        var railX = Math.min(src.left, tgt.left) - 16;
-        if (railX < 4) railX = 4;
-
-        var d = 'M ' + src.right + ' ' + src.centerY
-          + ' L ' + railX + ' ' + src.centerY
-          + ' L ' + railX + ' ' + tgt.centerY
-          + ' L ' + tgt.left + ' ' + tgt.centerY;
-        parts.push('<path d="' + d + '" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
-
-        // Arrow head
-        var aLen = 6, aW = 3;
-        parts.push('<polygon points="'
-          + tgt.left + ',' + tgt.centerY + ' '
-          + (tgt.left + aLen) + ',' + (tgt.centerY - aW) + ' '
-          + (tgt.left + aLen) + ',' + (tgt.centerY + aW)
-          + '" fill="#ea580c"/>');
+        parts.push('<path d="M ' + src.right + ' ' + src.centerY + ' L ' + railX + ' ' + src.centerY + ' L ' + railX + ' ' + tgt.centerY + ' L ' + tgt.left + ' ' + tgt.centerY + '" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5,3" stroke-linejoin="round" stroke-linecap="round"/>');
       }
     }
     hoverSvg.innerHTML = parts.join('');

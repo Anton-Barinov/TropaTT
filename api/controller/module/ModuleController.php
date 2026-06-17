@@ -166,7 +166,7 @@ final class ModuleController
         }
 
         if (!$pm->checkCoreCompatibility($manifest, '1.0.0')) {
-            return JsonResponse::error('CORE_INCOMPATIBLE', 'Module requires core ' . $manifest->coreVersion, 400);
+            return JsonResponse::error('CORE_INCOMPATIBLE', $this->t('module/messages.core_incompatible') . ' ' . $manifest->coreVersion, 400);
         }
 
         $pm->load($name);
