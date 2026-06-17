@@ -58,7 +58,9 @@ final class IntakeItemService
         private readonly TaskService $taskService,
         private readonly ProjectService $projectService,
         private readonly ?NotificationService $notificationService = null,
+        ?LanguageManager $lang = null
     ) {
+        $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
     /**
@@ -102,7 +104,7 @@ final class IntakeItemService
 
         $description = trim((string)($input['description'] ?? ''));
         if (mb_strlen($description) > 65535) {
-            return $this->error('FIELD_TOO_LONG', 'Description exceeds 65535 characters');
+            return $this->error('FIELD_TOO_LONG', $this->t('intake/field_too_long', 'Description exceeds 65535 characters'));
         }
 
         $sourceType = (string)($input['source_type'] ?? 'manual');
@@ -114,7 +116,7 @@ final class IntakeItemService
         if (isset($input['extra'])) {
             $encoded = json_encode($input['extra'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($encoded === false || strlen($encoded) > 65535) {
-                return $this->error('VALIDATION_ERROR', 'Extra JSON exceeds 65535 characters or invalid');
+                return $this->error('VALIDATION_ERROR', $this->t('intake/extra_json_invalid', 'Extra JSON exceeds 65535 characters or invalid'));
             }
             $extraJson = $encoded;
         }
@@ -235,7 +237,7 @@ final class IntakeItemService
         if (array_key_exists('description', $input)) {
             $desc = trim((string)$input['description']);
             if (mb_strlen($desc) > 65535) {
-                return $this->error('VALIDATION_ERROR', 'Description exceeds 65535 characters');
+                return $this->error('VALIDATION_ERROR', $this->t('intake/field_too_long', 'Description exceeds 65535 characters'));
             }
             $set['description'] = $desc !== '' ? $desc : null;
             $changedFields[] = 'description';
@@ -313,7 +315,7 @@ final class IntakeItemService
         if (array_key_exists('extra', $input)) {
             $encoded = json_encode($input['extra'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($encoded === false || strlen($encoded) > 65535) {
-                return $this->error('VALIDATION_ERROR', 'Extra JSON exceeds 65535 characters or invalid');
+                return $this->error('VALIDATION_ERROR', $this->t('intake/extra_json_invalid', 'Extra JSON exceeds 65535 characters or invalid'));
             }
             $set['extra_json'] = $encoded;
         }

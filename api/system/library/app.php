@@ -1436,7 +1436,8 @@ final class App
             $c->get('repository.intake_item_activity'),
             $c->get('service.task'),
             $c->get('service.project'),
-            $c->get('service.notification')
+            $c->get('service.notification'),
+            $c->get('lang')
         ));
 
         $router = new Router();
