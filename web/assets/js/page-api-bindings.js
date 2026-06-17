@@ -16239,6 +16239,8 @@ window.CRM.pageApiBindings = (function () {
 
     svg.setAttribute('width', trackWidth);
     svg.setAttribute('height', laneIndex * rowHeight);
+    // Add a bright debug rectangle to verify SVG visibility
+    paths.unshift('<rect x="0" y="0" width="' + trackWidth + '" height="' + (laneIndex * rowHeight) + '" fill="rgba(255,0,0,0.03)" stroke="red" stroke-width="1" stroke-dasharray="10,5"/>');
     svg.innerHTML = paths.join('');
     console.log('[GANTT-DEPS] Rendered', paths.length, 'paths into SVG', {
       svgWidth: trackWidth,
