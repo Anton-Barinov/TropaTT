@@ -7,6 +7,13 @@ use Api\Model\Task\TaskRelationRepository;
 
 final class TaskRelationService
 {
+    public function __construct(
+        private readonly TaskRelationRepository $relations,
+        private readonly TaskService $tasks,
+        private readonly ?TaskActivityService $activity = null
+    ) {
+    }
+
     private const VALID_TYPES = [
         'blocked_by',
         'relates_to',
