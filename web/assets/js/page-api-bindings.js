@@ -15860,8 +15860,8 @@ window.CRM.pageApiBindings = (function () {
     rowsContainer.innerHTML  = '';
     lanesContainer.innerHTML = '';
     // Re-create dependency SVG overlay after clearing lanes
-    var depsSvg = document.createElement('svg');
-    depsSvg.className = 'crm-gantt-dependencies';
+    var depsSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    depsSvg.className.baseVal = 'crm-gantt-dependencies';
     depsSvg.id = 'ganttDependenciesSvg';
     lanesContainer.appendChild(depsSvg);
     scaleTrack.innerHTML     = '';
@@ -16044,6 +16044,7 @@ window.CRM.pageApiBindings = (function () {
             dependency_type: String(d.dependency_type || d.type || 'FS')
           };
         }).filter(function (d) { return d.from_task_id && d.to_task_id; });
+        console.log('[GANTT-DEPS] Loaded', window.CRM.ganttDependencies.length, 'dependencies:', window.CRM.ganttDependencies);
       }
     } catch (e) {
       console.warn('[GANTT] Failed to load dependencies', e);
