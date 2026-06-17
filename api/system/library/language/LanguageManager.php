@@ -48,6 +48,9 @@ final class LanguageManager
         foreach ([$this->fallbackLocale, $this->locale] as $locale) {
             $path = $this->basePath . '/' . $locale . '/' . $group . '.php';
             if (!is_file($path)) {
+                $path = $this->basePath . '/' . $locale . '/' . $group . '/messages.php';
+            }
+            if (!is_file($path)) {
                 continue;
             }
 
