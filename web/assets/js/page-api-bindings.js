@@ -16290,6 +16290,21 @@ window.CRM.pageApiBindings = (function () {
       + '</g>');
   }
 
+  function _crmGanttDepsBindHover(overlay) {
+    var markers = overlay.querySelectorAll('.gantt-conflict-marker');
+    for (var i = 0; i < markers.length; i++) {
+      (function (marker) {
+        var idx = parseInt(marker.getAttribute('data-conflict-idx'));
+        marker.addEventListener('mouseenter', function () {
+          _crmGanttDepsShowHoverLine(overlay, idx);
+        });
+        marker.addEventListener('mouseleave', function () {
+          _crmGanttDepsHideHoverLine(overlay);
+        });
+      })(markers[i]);
+    }
+  }
+
   function _crmGanttDepsShowHoverLine(overlay, idx) {
     var info = _ganttDepsConflictData[idx];
     if (!info) return;
