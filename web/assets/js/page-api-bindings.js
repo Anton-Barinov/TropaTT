@@ -16193,6 +16193,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var svgParts = [];
+    var conflictTargets = {}; // deduplicate: one marker per target task
 
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
@@ -16205,12 +16206,21 @@ window.CRM.pageApiBindings = (function () {
       var isNormal = gap > _GANTT_DEP_MIN_GAP;
 
       if (isNormal) {
-        // Type A: draw proper arrow line
         _crmGanttDepsDrawArrow(svgParts, src, tgt, isFS);
       } else {
-        // Type B: compact conflict marker
-        _crmGanttDepsDrawConflictMarker(svgParts, src, tgt, isFS);
+        // Collect conflict info per target task
+        if (!conflictTargets[dep.to_task_id]) {
+          conflictTargets[dep.to_task_id] = { pos: tgt, sources: [], types: [] };
+        }
+        conflictTargets[dep.to_task_id].sources.push(dep.from_task_id);
+        conflictTargets[dep.to_task_id].types.push(dep.dependency_type);
       }
+    }
+
+    // Draw one marker per conflicting target task
+    var keys = Object.keys(conflictTargets);
+    for (var k = 0; k < keys.length; k++) {
+      _crmGanttDepsDrawConflictMarker(svgParts, conflictTargets[keys[k]]);
     }
 
     var totalH = lanesContainer.scrollHeight;
