@@ -3,7 +3,7 @@
 <body data-page="clients" data-protected="1">
 <div class="crm-app">
   <aside class="crm-sidebar">
-    <div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div>
+    <div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div>
     <nav class="nav flex-column crm-nav"></nav>
   </aside>
   <div class="crm-main-wrap">

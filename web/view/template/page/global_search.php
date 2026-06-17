@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('global_search.title', 'TropaTT — Поиск'); ?>
-<body data-page="global-search" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="global-search" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-global-search-page"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="global_search.page_title"><?= htmlspecialchars($t('global_search.page_title', 'Поиск'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="global_search.subtitle"><?= htmlspecialchars($t('global_search.subtitle', 'Результаты поиска по всем разделам.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
 

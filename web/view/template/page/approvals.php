@@ -2,7 +2,7 @@
 <?php $title = $t('approvals.title', 'TropaTT — Согласования'); ?>
 <body data-page="approvals" data-protected="1">
 <div class="crm-app">
-  <aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+  <aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
   <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
   <main class="crm-content crm-automation-page">
     <div class="crm-page-head">

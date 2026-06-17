@@ -58,7 +58,7 @@ if (!str_starts_with($docsLocale, 'ru')) {
     'install_text' => 'Upload the project to a PHP/MySQL host, open /web/install.php and follow the browser installer to configure the database and administrator account.',
   ];
 ?>
-<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title"><?= htmlspecialchars($t('docs.page_title', $isZhDocs ? '文档' : 'Documentation'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle"><?= htmlspecialchars($docsCopy['subtitle'], ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard"><?= htmlspecialchars($docsCopy['dashboard'], ENT_QUOTES, 'UTF-8') ?></a></div>
 <div class="row g-3">
@@ -76,7 +76,7 @@ if (!str_starts_with($docsLocale, 'ru')) {
 </div></main></div></div></body>
 <?php return; ?>
 <?php } ?>
-<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="docs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="docs.page_title"><?= htmlspecialchars($t('docs.page_title', 'Справка'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="docs.subtitle"><?= htmlspecialchars($t('docs.subtitle', 'Полное руководство по разделам, функциям и рабочим сценариям TropaTT.'), ENT_QUOTES, 'UTF-8') ?></p></div><a class="btn crm-btn-primary" href="index.php?route=dashboard" data-i18n="docs.btn_dashboard"><?= htmlspecialchars($t('docs.btn_dashboard', 'Открыть главную'), ENT_QUOTES, 'UTF-8') ?></a></div>
 

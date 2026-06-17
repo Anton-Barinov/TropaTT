@@ -3,7 +3,7 @@
 <body data-page="password-reset-request">
 <div class="crm-login-wrap">
   <section class="crm-login-panel">
-    <div class="crm-brand mb-4"><span class="crm-brand-mark"></span> TropaTT</div>
+    <div class="crm-brand mb-4"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div>
     <h1 class="h3 mb-2" data-i18n="password_reset_request.page_title"><?= htmlspecialchars($t('password_reset_request.page_title', 'Восстановление пароля'), ENT_QUOTES, 'UTF-8') ?></h1>
     <p class="text-muted mb-4" data-i18n="password_reset_request.subtitle"><?= htmlspecialchars($t('password_reset_request.subtitle', 'Укажите логин или email. Если учетная запись существует, мы примем запрос на сброс.'), ENT_QUOTES, 'UTF-8') ?></p>
 

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('ideas.title', 'TropaTT — Идеи'); $publicId = htmlspecialchars((string)($_GET['id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
 <?php if ($publicId !== ''): ?>
-<body data-page="ideas" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="ideas" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-idea-detail-page"><div class="crm-page-head crm-idea-detail-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=ideas" data-i18n="ideas.breadcrumb_ideas"><?= htmlspecialchars($t('ideas.breadcrumb_ideas', 'Идеи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" id="ideaBreadcrumb" data-i18n="ideas.loading"><?= htmlspecialchars($t('ideas.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" id="ideaTitle" data-i18n="ideas.loading"><?= htmlspecialchars($t('ideas.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></h1></div><div><span id="ideaStatus" class="badge"></span></div></div>
 
@@ -1500,7 +1500,7 @@ load();
 </script>
 </body>
 <?php else: ?>
-<body data-page="ideas" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="ideas" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-ideas-page"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="ideas.list_page_title"><?= htmlspecialchars($t('ideas.list_page_title', 'Идеи'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="ideas.list_subtitle"><?= htmlspecialchars($t('ideas.list_subtitle', 'Предложения по улучшению. Голосуйте, обсуждайте, анализируйте с AI.'), ENT_QUOTES, 'UTF-8') ?></p></div><div><button class="btn crm-btn-primary" id="newIdeaBtn" data-bs-toggle="modal" data-bs-target="#newIdeaModal" data-i18n="ideas.btn_new_idea"><i class="fa-solid fa-lightbulb me-1"></i> <?= htmlspecialchars($t('ideas.btn_new_idea', 'Предложить идею'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
 

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('projects.title', 'TropaTT — Проекты'); ?>
 <body data-page="projects" data-protected="1"><div class="crm-app">
-<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-projects-page"><div class="crm-page-head"><div class="crm-page-intro"><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard" data-i18n="page.dashboard"><?= htmlspecialchars($t('page.dashboard', 'Главная'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="projects.breadcrumb"><?= htmlspecialchars($t('projects.breadcrumb', 'Проекты'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="projects.page_title"><?= htmlspecialchars($t('projects.page_title', 'Проекты'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="projects.page_subtitle"><?= htmlspecialchars($t('projects.page_subtitle', 'Список проектов со статусами, клиентами, командами и сроками.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-open-modal="createProjectModal" data-i18n="projects.btn_create_project"><?= htmlspecialchars($t('projects.btn_create_project', 'Создать проект'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
 

@@ -3,7 +3,7 @@
 <body data-page="invitation-accept">
 <div class="crm-login-wrap">
   <section class="crm-login-panel">
-    <div class="crm-brand mb-4"><span class="crm-brand-mark"></span> TropaTT</div>
+    <div class="crm-brand mb-4"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div>
     <h1 class="h3 mb-2" data-i18n="invitation_accept.page_title"><?= htmlspecialchars($t('invitation_accept.page_title', 'Принятие приглашения'), ENT_QUOTES, 'UTF-8') ?></h1>
     <p class="text-muted mb-4" data-i18n="invitation_accept.subtitle"><?= htmlspecialchars($t('invitation_accept.subtitle', 'Завершите создание учетной записи по приглашению администратора.'), ENT_QUOTES, 'UTF-8') ?></p>
 

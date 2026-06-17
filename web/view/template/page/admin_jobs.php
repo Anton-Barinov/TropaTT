@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('admin_jobs.title', 'TropaTT — Задания'); ?>
-<body data-page="admin-jobs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="admin-jobs" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-page crm-admin-jobs-page">
   <div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="admin_jobs.page_title"><?= htmlspecialchars($t('admin_jobs.page_title', 'Задания: импорт, экспорт и AI'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_jobs.subtitle"><?= htmlspecialchars($t('admin_jobs.subtitle', 'Запуск заданий импорта и экспорта, мониторинг их статусов без перезагрузки страницы.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>

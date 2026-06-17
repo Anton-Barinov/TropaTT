@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php $title = htmlspecialchars($t('my_week.title', 'TropaTT — Моя неделя'), ENT_QUOTES, 'UTF-8'); ?>
-<body data-page="week" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="week" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-my-week-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=dashboard"><?= htmlspecialchars($t('page.home', 'Главная'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active"><?= htmlspecialchars($t('my_week.page_title', 'Моя неделя'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title"><?= htmlspecialchars($t('my_week.page_title', 'Моя неделя'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle"><?= htmlspecialchars($t('my_week.subtitle', 'Задачи, события и рабочая нагрузка на неделю.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="d-flex gap-2"><a class="btn crm-btn-secondary" href="index.php?route=gantt"><?= htmlspecialchars($t('my_week.open_gantt', 'Открыть Гант'), ENT_QUOTES, 'UTF-8') ?></a></div></div>
 
