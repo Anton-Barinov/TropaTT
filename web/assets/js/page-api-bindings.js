@@ -16141,7 +16141,7 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
-  // 2. Dependency lines — absolute overlay on document.body
+  // 2. Dependency lines — fixed overlay on document.body
   var _ganttDepsScrollHandler = null;
   var _ganttDepsRenderQueued = false;
 
@@ -16159,21 +16159,17 @@ window.CRM.pageApiBindings = (function () {
     var board = document.querySelector('.crm-gantt-board');
     if (!board) return;
 
-    // Build or reuse overlay on body
     var overlay = document.getElementById('ganttDepsOverlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'ganttDepsOverlay';
-      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:99999;overflow:visible;';
       document.body.appendChild(overlay);
     }
 
-    var scrollX = window.scrollX || 0;
-    var scrollY = window.scrollY || 0;
-
     var paths = [];
 
-    // Collect all bar positions once
+    // Collect all bar positions
     var barPositions = {};
     var barEls = document.querySelectorAll('.crm-gantt-lane--task .crm-gantt-bar');
     for (var i = 0; i < barEls.length; i++) {
@@ -16183,34 +16179,27 @@ window.CRM.pageApiBindings = (function () {
       var rowId = lane.getAttribute('data-gantt-row-id');
       if (rowId && rowId.indexOf('task-') === 0) {
         var taskId = rowId.substring(5);
-        var rect = bar.getBoundingClientRect();
-        barPositions[taskId] = {
-          right: rect.right + scrollX,
-          left: rect.left + scrollX,
-          top: rect.top + scrollY,
-          height: rect.height
-        };
+        barPositions[taskId] = bar.getBoundingClientRect();
       }
     }
 
-    // Draw each dependency
     for (var j = 0; j < deps.length; j++) {
       var dep = deps[j];
-      var fromPos = barPositions[dep.from_task_id];
-      var toPos = barPositions[dep.to_task_id];
-      if (!fromPos || !toPos) continue;
+      var fromRect = barPositions[dep.from_task_id];
+      var toRect = barPositions[dep.to_task_id];
+      if (!fromRect || !toRect) continue;
 
-      var x1 = fromPos.right + 3;
-      var y1 = fromPos.top + fromPos.height / 2;
-      var x2 = toPos.left - 3;
-      var y2 = toPos.top + toPos.height / 2;
+      // Fixed overlay: use getBoundingClientRect directly (viewport coords)
+      var x1 = fromRect.right;
+      var y1 = fromRect.top + fromRect.height / 2;
+      var x2 = toRect.left;
+      var y2 = toRect.top + toRect.height / 2;
 
       var isCritical = dep.dependency_type === 'FS';
       var color = isCritical ? '#3b82f6' : '#94a3b8';
       var sw = isCritical ? 2 : 1.5;
       var dashAttr = isCritical ? '' : ' stroke-dasharray="5,3"';
 
-      // Orthogonal routing
       var gap = 16;
       var sx = x1 + gap;
       var ex = x2 - gap;
@@ -16229,18 +16218,12 @@ window.CRM.pageApiBindings = (function () {
       paths.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '"' + dashAttr + ' stroke-linejoin="round"/>');
 
       var aSize = 7;
-      paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2)
-        + ' L ' + x2 + ' ' + y2
-        + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2)
-        + ' Z" fill="' + color + '"/>');
+      paths.push('<path d="M ' + (x2 - aSize) + ' ' + (y2 - aSize / 2) + ' L ' + x2 + ' ' + y2 + ' L ' + (x2 - aSize) + ' ' + (y2 + aSize / 2) + ' Z" fill="' + color + '"/>');
     }
 
-    var docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    var docWidth = Math.max(document.body.scrollWidth, document.documentElement.scrollWidth);
-    overlay.style.width = docWidth + 'px';
-    overlay.style.height = docHeight + 'px';
-    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + docWidth + '" height="' + docHeight + '">'
-      + paths.join('') + '</svg>';
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="' + vw + '" height="' + vh + '">' + paths.join('') + '</svg>';
   }
 
   function _crmGanttDepsScrollTick() {
@@ -16255,10 +16238,12 @@ window.CRM.pageApiBindings = (function () {
 
   function _crmGanttDepsBindScroll() {
     if (_ganttDepsScrollHandler) return;
-    var board = document.querySelector('.crm-gantt-board');
-    if (!board) return;
     _ganttDepsScrollHandler = _crmGanttDepsScrollTick;
-    board.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
+    // Board internal scroll
+    var board = document.querySelector('.crm-gantt-board');
+    if (board) board.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
+    // Page scroll
+    window.addEventListener('scroll', _ganttDepsScrollHandler, { passive: true });
     window.addEventListener('resize', _ganttDepsScrollHandler, { passive: true });
   }
 
