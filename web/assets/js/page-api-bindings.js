@@ -16462,32 +16462,15 @@ window.CRM.pageApiBindings = (function () {
     }
     parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + strokeWidth + '"' + dashAttr + ' stroke-linejoin="round" stroke-linecap="round"/>');
 
-    // Arrowhead at the last point
-    var last = points[points.length - 1];
-    var prev = points[points.length - 2];
-    // Arrow direction: from prev to last
-    var dx = last.x - prev.x;
-    var dy = last.y - prev.y;
-    var len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 1) return;
-    // Normalize and perpendicular
-    var ux = dx / len;
-    var uy = dy / len;
-    // Arrow tip at last point, pointing in direction of (dx,dy)
-    var ax = last.x;
-    var ay = last.y;
-    // Two wing points, 7px back and 4px to each side
-    var wingLen = 7;
-    var wingWidth = 4;
-    var tipX = ax;
-    var tipY = ay;
-    var baseX = ax - ux * wingLen;
-    var baseY = ay - uy * wingLen;
-    var leftX = baseX + (-uy) * wingWidth;
-    var leftY = baseY + ux * wingWidth;
-    var rightX = baseX - (-uy) * wingWidth;
-    var rightY = baseY - ux * wingWidth;
-    parts.push('<polygon points="' + tipX.toFixed(1) + ',' + tipY.toFixed(1) + ' ' + leftX.toFixed(1) + ',' + leftY.toFixed(1) + ' ' + rightX.toFixed(1) + ',' + rightY.toFixed(1) + '" fill="' + color + '"/>');
+    // Arrowhead at target (last point)
+    var tip = points[points.length - 1];
+    var aSize = 6;
+    // Simple left-pointing triangle at the target connection point
+    parts.push('<polygon points="'
+      + tip.x + ',' + tip.y + ' '
+      + (tip.x + aSize) + ',' + (tip.y - aSize / 2) + ' '
+      + (tip.x + aSize) + ',' + (tip.y + aSize / 2)
+      + '" fill="' + color + '"/>');
   }
 
   // ── Render warning marker for conflict target ──────────────────
