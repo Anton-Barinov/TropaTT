@@ -243,6 +243,6 @@ final class StickyNoteController extends BaseController
     private function isRoot(): bool
     {
         $user = $this->authUser();
-        return !empty($user['user']['root']);
+        return !empty($user['user']['is_root']);
     }
 }
