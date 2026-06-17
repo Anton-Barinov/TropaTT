@@ -1098,7 +1098,8 @@ final class App
             $c->get('repository.user'),
             $c->get('logger'),
             $c->get('repository.task'),
-            $c->get('service.notification_push')
+            $c->get('service.notification_push'),
+            $c->get('lang')
         ));
         $this->container->factory('service.chat', fn(Container $c) => new ChatService(
             $c->get('db.pdo'),
