@@ -16183,18 +16183,25 @@ window.CRM.pageApiBindings = (function () {
       return;
     }
 
+    var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
+    var trackWidth = windowInfo.trackWidth;
+
+    // Build rowOffsets matching DOM order: project lane + task lanes per group
     var laneIndex = 0;
     var rowOffsets = {};
-
     groups.forEach(function (group) {
+      laneIndex++; // project lane
       group.items.forEach(function (item) {
         rowOffsets[item.id] = laneIndex;
         laneIndex++;
       });
     });
 
-    var rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gantt-row-height')) || 72;
-    var trackWidth = windowInfo.trackWidth;
+    var totalHeight = laneIndex * rowHeight;
+    svg.setAttribute('width', trackWidth);
+    svg.setAttribute('height', totalHeight);
+    svg.style.width = trackWidth + 'px';
+    svg.style.height = totalHeight + 'px';
 
     var paths = [];
     dependencies.forEach(function (dep) {
@@ -16234,8 +16241,6 @@ window.CRM.pageApiBindings = (function () {
       paths.push('<path d="M ' + ax1 + ' ' + ay1 + ' L ' + x2 + ' ' + y2 + ' L ' + ax2 + ' ' + ay2 + '"' + (isCritical ? ' class="is-critical"' : '') + ' fill="none"/>');
     });
 
-    svg.setAttribute('width', trackWidth);
-    svg.setAttribute('height', laneIndex * rowHeight);
     svg.innerHTML = paths.join('');
   }
 
