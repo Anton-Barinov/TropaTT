@@ -25376,11 +25376,11 @@ window.CRM.pageApiBindings = (function () {
         BLOCKS: _t('dependency.type_desc_blocks', 'Блокирует')
       };
       var icons = {
-        FS: '<i class="fa-regular fa-arrow-right-to-bracket me-1"></i>',
-        SS: '<i class="fa-regular fa-arrows-left-right me-1"></i>',
-        FF: '<i class="fa-regular fa-arrows-left-right me-1"></i>',
-        SF: '<i class="fa-regular fa-arrow-right-from-bracket me-1"></i>',
-        BLOCKS: '<i class="fa-regular fa-ban me-1"></i>'
+        FS: '<i class="fa-solid fa-arrow-right-to-bracket me-1"></i>',
+        SS: '<i class="fa-solid fa-arrows-left-right me-1"></i>',
+        FF: '<i class="fa-solid fa-arrows-left-right me-1"></i>',
+        SF: '<i class="fa-solid fa-arrow-right-from-bracket me-1"></i>',
+        BLOCKS: '<i class="fa-solid fa-ban me-1"></i>'
       };
       return '<span class="crm-chip">' + (icons[type] || '') + safeText(labels[type] || type) + '</span>';
     }
