@@ -24,4 +24,5 @@ return [
     'test_task_title' => 'Тестовая задача',
     'follow_up_description' => 'Создано правилом автоматизации из задачи',
     'follow_up_prefix' => 'Follow-up: ',
+    'unknown_action' => 'Неизвестное действие: ',
 ];
