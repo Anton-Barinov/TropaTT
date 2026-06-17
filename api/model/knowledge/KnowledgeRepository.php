@@ -490,7 +490,7 @@ final class KnowledgeRepository
         $this->refreshPagePath((int)$page['id']);
         $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
         if (($page['status'] ?? '') === 'published') {
-            $this->addVersion($publicId, $actorId, 'Initial publish');
+            $this->legacyAddVersion($publicId, $actorId, 'Initial publish');
         }
         return $this->page($publicId) ?? $page;
     }
@@ -554,6 +554,9 @@ final class KnowledgeRepository
         $this->pdo->prepare('UPDATE knowledge_pages SET title = :title, space_id = :space_id, parent_id = :parent_id, page_type = :page_type, status = :status, content_html = :content_html, content_text = :content_text, content_json = :content_json, excerpt = :excerpt, last_editor_user_id = :last_editor_user_id, review_due_at = :review_due_at, sort_order = :sort_order, depth = :depth, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute($params);
         $page = $this->page($publicId);
         if ($page) {
+            $this->legacyAddVersion($publicId, $actorId, 'Updated page');
+        }
+        if ($page) {
             $this->refreshPagePath((int)$page['id']);
             $this->refreshChildrenCount(isset($current['parent_id']) ? (int)$current['parent_id'] : null);
             $this->refreshChildrenCount($page['parent_id'] !== null ? (int)$page['parent_id'] : null);
@@ -578,7 +581,7 @@ final class KnowledgeRepository
             'updated_at' => $now,
             'public_id' => $publicId,
         ]);
-        $this->addVersion($publicId, $actorId, $summary !== '' ? $summary : 'Published');
+        $this->legacyAddVersion($publicId, $actorId, $summary !== '' ? $summary : 'Published');
         return $this->page($publicId);
     }
 
@@ -698,18 +701,19 @@ final class KnowledgeRepository
         if (!$page) {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_versions WHERE page_id = :page_id ORDER BY version_number DESC');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_public_id, version_number, title, change_type, change_note, created_by_display_name, content_hash, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND deleted_at IS NULL ORDER BY version_number DESC');
         $stmt->execute(['page_id' => (int)$page['id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function restoreVersion(string $pagePublicId, int $versionNumber, ?int $actorId, ?array $actor = null): ?array
+    // Restore is now handled by KnowledgePageVersionController and service
+    public function legacyRestoreVersion(string $pagePublicId, int $versionNumber, ?int $actorId, ?array $actor = null): ?array
     {
         $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return null;
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['page_id' => (int)$page['id'], 'version_number' => $versionNumber]);
         $version = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($version)) {
@@ -717,14 +721,14 @@ final class KnowledgeRepository
         }
         $this->updatePage($pagePublicId, [
             'title' => $version['title'],
-            'content_html' => $version['content_html'],
-            'content_json' => $version['content_json'] ? json_decode((string)$version['content_json'], true) : null,
+            'content_html' => $version['content'] ?? '',
         ], $actorId, $actor);
-        $this->addVersion($pagePublicId, $actorId, 'Restored version ' . $versionNumber);
+        $this->legacyAddVersion($pagePublicId, $actorId, 'Restored version ' . $versionNumber);
         return $this->page($pagePublicId);
     }
 
-    public function diff(string $pagePublicId, int $from, int $to): array
+    // Diff is now handled by KnowledgePageVersionController and service
+    public function legacyDiff(string $pagePublicId, int $from, int $to): array
     {
         $versions = [];
         foreach ($this->versions($pagePublicId) as $version) {
@@ -1074,25 +1078,26 @@ final class KnowledgeRepository
         return $stmt->rowCount() > 0;
     }
 
-    private function addVersion(string $pagePublicId, ?int $actorId, string $summary): void
+    private function legacyAddVersion(string $pagePublicId, ?int $actorId, string $summary): void
     {
         $page = $this->page($pagePublicId);
         if (!$page) {
             return;
         }
-        $stmt = $this->pdo->prepare('SELECT MAX(version_number) FROM knowledge_page_versions WHERE page_id = :page_id');
+        $stmt = $this->pdo->prepare('SELECT COALESCE(MAX(version_number), 0) + 1 FROM knowledge_page_versions WHERE page_id = :page_id');
         $stmt->execute(['page_id' => (int)$page['id']]);
-        $next = ((int)$stmt->fetchColumn()) + 1;
-        $insert = $this->pdo->prepare('INSERT INTO knowledge_page_versions (public_id, page_id, version_number, title, content_html, content_text, content_json, change_summary, created_by_user_id, created_at) VALUES (:public_id, :page_id, :version_number, :title, :content_html, :content_text, :content_json, :change_summary, :created_by_user_id, :created_at)');
+        $next = (int)$stmt->fetchColumn();
+        $insert = $this->pdo->prepare('INSERT INTO knowledge_page_versions (public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at) VALUES (:public_id, :page_id, :page_public_id, :version_number, :title, :content, :content_text, :change_type, :change_note, :created_by_user_id, :created_at)');
         $insert->execute([
-            'public_id' => $this->publicId('kbv'),
+            'public_id' => 'kpv_' . bin2hex(random_bytes(16)),
             'page_id' => (int)$page['id'],
+            'page_public_id' => (string)$page['public_id'],
             'version_number' => $next,
-            'title' => $page['title'],
-            'content_html' => $page['content_html'],
-            'content_text' => $page['content_text'],
-            'content_json' => $page['content_json'],
-            'change_summary' => $summary,
+            'title' => (string)$page['title'],
+            'content' => (string)$page['content_html'],
+            'content_text' => (string)$page['content_text'],
+            'change_type' => 'update',
+            'change_note' => $summary,
             'created_by_user_id' => $actorId,
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);

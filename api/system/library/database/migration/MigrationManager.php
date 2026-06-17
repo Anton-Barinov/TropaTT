@@ -52,6 +52,7 @@ final class MigrationManager
             new WorkCyclesMigration(),
             new ProjectModulesMigration(),
             new KnowledgePageVersionsMigration(),
+            new StickyNotesMigration(),
         ];
     }
 

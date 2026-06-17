@@ -345,6 +345,18 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/lock', 'controller' => Api\Controller\Knowledge\KnowledgePageVersionController::class, 'action' => 'lock', 'auth' => true, 'required_permissions' => ['knowledge.publish']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/unlock', 'controller' => Api\Controller\Knowledge\KnowledgePageVersionController::class, 'action' => 'unlock', 'auth' => true, 'required_permissions' => ['knowledge.publish']],
 
+    // sticky notes
+    ['methods' => ['GET'], 'pattern' => '/api/v1/sticky-notes', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'list', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'create', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/sticky-notes/{public_id}', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'get', 'auth' => true],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/sticky-notes/{public_id}', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'update', 'auth' => true],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/sticky-notes/{public_id}', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'delete', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes/{public_id}/archive', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'archive', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes/{public_id}/unarchive', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'unarchive', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes/reorder', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'reorder', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes/{public_id}/convert-to-task', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'convertToTask', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/sticky-notes/{public_id}/convert-to-page', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'convertToKnowledgePage', 'auth' => true],
+
     // knowledge admin settings
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/knowledge/settings', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminGetSettings', 'auth' => true, 'required_permissions' => ['knowledge.admin']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/admin/knowledge/settings', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'adminUpdateSettings', 'auth' => true, 'required_permissions' => ['knowledge.admin']],

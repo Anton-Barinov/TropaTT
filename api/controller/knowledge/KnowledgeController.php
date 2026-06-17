@@ -527,42 +527,6 @@ final class KnowledgeController extends BaseController
         return $this->success('KNOWLEDGE_DRAFT_DELETED', $this->t('knowledge/messages.draft_deleted', 'Draft deleted'));
     }
 
-    public function versions(array $params): JsonResponse
-    {
-        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
-            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
-        }
-        return $this->success('KNOWLEDGE_VERSIONS', $this->t('knowledge/messages.versions', 'Versions loaded'), [
-            'items' => $this->repo()->versions((string)$params['public_id']),
-        ]);
-    }
-
-    public function restoreVersion(array $params): JsonResponse
-    {
-        if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
-            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
-        }
-        $auth = $this->user();
-        $page = $this->repo()->restoreVersion((string)$params['public_id'], (int)$params['version_number'], $this->actorUserId() ?: null, $this->actor());
-        if (!$page) {
-            return $this->error('KNOWLEDGE_VERSION_NOT_FOUND', $this->t('knowledge/messages.version_not_found', 'Version not found'), 404);
-        }
-        $this->invalidateCache('knowledge');
-        return $this->success('KNOWLEDGE_VERSION_RESTORED', $this->t('knowledge/messages.version_restored', 'Version restored'), [
-            'page' => $page,
-        ]);
-    }
-
-    public function diff(array $params): JsonResponse
-    {
-        if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
-            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
-        }
-        $from = (int)$this->request()->input('from', 0);
-        $to = (int)$this->request()->input('to', 0);
-        return $this->success('KNOWLEDGE_VERSION_DIFF', $this->t('knowledge/messages.diff', 'Version diff loaded'), $this->repo()->diff((string)$params['public_id'], $from, $to));
-    }
-
     public function search(): JsonResponse
     {
         $query = (string)$this->request()->input('q', '');

@@ -131,6 +131,7 @@ use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\KnowledgePageVersionService;
+use Api\System\Library\Service\StickyNoteService;
 use Api\System\Library\Service\KnowledgePageService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TaskKeyService;
@@ -1158,6 +1159,19 @@ final class App
             $c->get('repository.project'),
             $c->get('repository.task'),
             $c->get('service.task')
+        ));
+
+        $this->container->factory('repository.sticky_note', fn(Container $c) => new \Api\Model\Sticky\StickyNoteRepository($c->get('db.pdo')));
+
+        $this->container->factory('service.sticky_note', fn(Container $c) => new StickyNoteService(
+            $c->get('repository.sticky_note'),
+            $c->get('repository.knowledge'),
+            $c->get('repository.project'),
+            $c->get('repository.user'),
+            $c->get('repository.task'),
+            $c->get('service.task'),
+            $c->get('logger'),
+            $c->get('request')->requestId
         ));
 
         $this->container->factory('service.knowledge_page_version', fn(Container $c) => new KnowledgePageVersionService(
