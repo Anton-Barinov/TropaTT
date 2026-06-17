@@ -15859,6 +15859,11 @@ window.CRM.pageApiBindings = (function () {
 
     rowsContainer.innerHTML  = '';
     lanesContainer.innerHTML = '';
+    // Re-create dependency SVG overlay after clearing lanes
+    var depsSvg = document.createElement('svg');
+    depsSvg.className = 'crm-gantt-dependencies';
+    depsSvg.id = 'ganttDependenciesSvg';
+    lanesContainer.appendChild(depsSvg);
     scaleTrack.innerHTML     = '';
 
     if (!items.length) {
