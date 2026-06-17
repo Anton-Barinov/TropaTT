@@ -19,6 +19,7 @@ return array (
     'gantt' => 'Гант',
     'kanban' => 'Канбан',
     'analytics' => 'Аналитика',
+    'intake' => 'Входящие',
     'notifications' => 'Уведомления',
     'chat' => 'Чаты',
     'chats' => 'Чаты',
