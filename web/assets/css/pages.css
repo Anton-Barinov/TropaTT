@@ -7423,7 +7423,7 @@ font-size: 0.72rem;
 }
 
 /* 2. Dependency lines SVG overlay */
-.crm-gantt-page .crm-gantt-lanes {
+.crm-gantt-page .crm-gantt {
   position: relative;
 }
 

@@ -15857,27 +15857,15 @@ window.CRM.pageApiBindings = (function () {
     // Dispose tooltips before clearing DOM
     crmGanttDisposeTooltips(board);
 
-    // Save and preserve the dependency SVG overlay before clearing lanes
-    var depsSvg = document.getElementById('ganttDependenciesSvg');
-
     rowsContainer.innerHTML  = '';
     lanesContainer.innerHTML = '';
     scaleTrack.innerHTML     = '';
-
-    // Re-attach dependency SVG after clearing lanes
-    if (depsSvg) {
-      lanesContainer.appendChild(depsSvg);
-    }
 
     if (!items.length) {
       var hasScopedFilter = Boolean(state.searchQuery || state.projectFilter || activeFilter !== 'all' || (state.statusFilters && state.statusFilters.length));
       scaleTrack.innerHTML = '<span class="text-muted small px-3">' + safeText(tp('gantt.no_tasks', 'No tasks')) + '</span>';
       rowsContainer.innerHTML  = '<div class="crm-gantt-row crm-gantt-row--empty"><strong>' + safeText(hasScopedFilter ? tp('gantt.no_tasks_for_filters', 'No tasks for selected filters') : tp('gantt.no_tasks_to_show', 'No tasks to display')) + '</strong></div>';
       lanesContainer.innerHTML = '<div class="crm-gantt-lane crm-gantt-lane--empty"><span class="crm-chip">' + safeText(hasScopedFilter ? tp('gantt.clear_filters_hint', 'Clear search or filters to bring tasks back') : tp('gantt.create_task_with_dates_hint', 'Create a task with start and end dates')) + '</span></div>';
-      // Re-attach dependency SVG after clearing lanes
-      if (depsSvg) {
-        lanesContainer.appendChild(depsSvg);
-      }
       // Still populate project filter with all projects
       var allGroups = crmGanttGroupItems(allItems);
       crmGanttPopulateProjectFilter(allGroups);

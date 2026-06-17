@@ -39,9 +39,7 @@
   <div class="crm-mobile-work-mode-hint" data-i18n="gantt.mobile_hint"><?= htmlspecialchars($t('gantt.mobile_hint', 'Таймлайн можно прокручивать по горизонтали.'), ENT_QUOTES, 'UTF-8') ?></div>
   <div class="crm-gantt-board">
     <div class="crm-gantt-scale"><div class="crm-gantt-scale-label" data-i18n="gantt.scale_label"><?= htmlspecialchars($t('gantt.scale_label', 'Проект / задача'), ENT_QUOTES, 'UTF-8') ?></div><div class="crm-gantt-scale-track" id="ganttScaleTrack"><span data-i18n="gantt.loading_scale"><?= htmlspecialchars($t('gantt.loading_scale', 'Загрузка шкалы...'), ENT_QUOTES, 'UTF-8') ?></span></div>
-      <div class="crm-gantt"><div class="crm-gantt-rows"></div><div class="crm-gantt-lanes">
-        <svg class="crm-gantt-dependencies" id="ganttDependenciesSvg"></svg>
-      </div></div>
+      <div class="crm-gantt"><div class="crm-gantt-rows"></div><div class="crm-gantt-lanes"></div><svg class="crm-gantt-dependencies" id="ganttDependenciesSvg"></svg></div>
     </div>
   </div>
 </section>
