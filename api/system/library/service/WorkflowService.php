@@ -402,7 +402,7 @@ final class WorkflowService
                     return ['success' => false, 'error' => $this->t('workflow/messages.action_no_task_for_sla')];
 
                 default:
-                    return ['success' => false, 'error' => 'Unknown action: ' . $actionCode];
+                    return ['success' => false, 'error' => $this->t('workflow/messages.unknown_action', 'Unknown action: ') . $actionCode];
             }
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];

@@ -5,10 +5,13 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Intake\IntakeItemActivityRepository;
 use Api\Model\Intake\IntakeItemRepository;
+use Api\System\Library\Language\LanguageManager;
+use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Support\Ulid;
 
 final class IntakeItemService
 {
+    use TranslatableTrait;
     private const VALID_SOURCE_TYPES = ['manual', 'client', 'api', 'webhook', 'email', 'ai', 'import', 'system'];
 
     private const VALID_STATUS_TRANSITIONS = [

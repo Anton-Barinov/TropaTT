@@ -24,4 +24,5 @@ return [
     'test_task_title' => 'Test task',
     'follow_up_description' => 'Created by automation rule from task',
     'follow_up_prefix' => 'Follow-up: ',
+    'unknown_action' => 'Unknown action: ',
 ];
