@@ -1,0 +1,136 @@
+<?php
+declare(strict_types=1);
+
+namespace Api\Controller\System;
+
+use Api\Controller\Common\BaseController;
+use Api\System\Library\Update\CoreUpdateClient;
+use Api\System\Library\Update\CoreUpdateConfig;
+use Api\System\Library\Update\CoreUpdateHistoryRepository;
+use Api\System\Library\Update\CoreUpdateLogRepository;
+use Api\System\Library\Update\CoreUpdatePlanner;
+use Api\System\Library\Update\CoreUpdateSessionService;
+use Api\System\Library\Update\CoreUpdateStatusService;
+use Api\System\Library\Update\CoreVersion;
+
+final class CoreUpdateController extends BaseController
+{
+    public function status(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        return $this->success('CORE_UPDATE_STATUS', 'Core update status', (new CoreUpdateStatusService((string)$config['storage_dir']))->status());
+    }
+
+    public function check(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $client = new CoreUpdateClient($config);
+        $version = new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3));
+        return $this->success('CORE_UPDATE_CHECK', 'Core update check', (new CoreUpdatePlanner($client, $version))->check());
+    }
+
+    public function changes(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $client = new CoreUpdateClient($config);
+        $from = $this->request()->input('from', null);
+        $to = (string)$this->request()->input('to', '');
+        if ($to === '') {
+            $check = (new CoreUpdatePlanner($client, new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3))))->check();
+            $to = (string)($check['plan']['target_build'] ?? '');
+            $from = $check['current']['core_build'] ?? $from;
+        }
+        return $this->success('CORE_UPDATE_CHANGES', 'Core update changes', $client->changes(is_string($from) ? $from : null, $to));
+    }
+
+    public function preflight(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $payload = $this->request()->allInput();
+        $payload['dry_run'] = true;
+        $result = $this->callUpdater('preflight', $payload, $config);
+        return $this->success('CORE_UPDATE_PREFLIGHT', 'Core update preflight', $this->normalizeUpdaterResult($result));
+    }
+
+    public function session(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $userId = (int)($this->user()['user']['id'] ?? 0);
+        return $this->success('CORE_UPDATE_SESSION', 'Core update session', (new CoreUpdateSessionService((string)$config['storage_dir']))->create($userId));
+    }
+
+    public function history(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        return $this->success('CORE_UPDATE_HISTORY', 'Core update history', ['items' => (new CoreUpdateHistoryRepository((string)$config['storage_dir']))->list()]);
+    }
+
+    public function log(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $jobId = (string)($params['job_id'] ?? '');
+        return $this->success('CORE_UPDATE_LOG', 'Core update log', ['job_id' => $jobId, 'lines' => (new CoreUpdateLogRepository((string)$config['storage_dir']))->read($jobId)]);
+    }
+
+    private function allowed(): bool
+    {
+        $user = $this->user()['user'] ?? null;
+        if (!is_array($user)) {
+            return false;
+        }
+        if ((bool)($user['is_root'] ?? false)) {
+            return true;
+        }
+        $permissions = is_array($user['permission_codes'] ?? null) ? $user['permission_codes'] : [];
+        return in_array('*', $permissions, true) || in_array('system.update', $permissions, true);
+    }
+
+    private function callUpdater(string $action, array $payload, array $config): array
+    {
+        $url = 'http://crm.ru/updater/index.php?action=' . rawurlencode($action);
+        $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+        $response = @file_get_contents($url, false, stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n",
+                'content' => $body,
+                'ignore_errors' => true,
+                'timeout' => (int)($config['timeouts']['apply_step'] ?? 60),
+            ],
+        ]));
+        $decoded = json_decode((string)$response, true);
+        return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
+    }
+
+    private function normalizeUpdaterResult(array $result): array
+    {
+        $data = is_array($result['data'] ?? null) ? $result['data'] : [];
+        return [
+            'success' => (bool)($result['success'] ?? false),
+            'job_id' => $data['job_id'] ?? null,
+            'preflight' => $data['preflight'] ?? null,
+            'updater' => $result,
+        ];
+    }
+}

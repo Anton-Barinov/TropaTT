@@ -12,6 +12,19 @@ use Api\System\Library\Support\EnvLoader;
 
 header('X-Powered-By: Tropa-CRM-API');
 
+$maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
+if (is_file($maintenanceFlag)) {
+    http_response_code(503);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'code' => 'MAINTENANCE_MODE',
+        'message' => 'Core update maintenance mode is active',
+        'data' => json_decode((string) file_get_contents($maintenanceFlag), true) ?: ['enabled' => true],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 require_once __DIR__ . '/system/library/support/Autoloader.php';
 require_once __DIR__ . '/system/library/ai_diag.php';
 

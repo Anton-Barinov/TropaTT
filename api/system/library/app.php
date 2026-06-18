@@ -467,6 +467,7 @@ final class App
             'ai',
             'feature_flags',
             'logging',
+            'update',
         ];
 
         foreach ($files as $name) {

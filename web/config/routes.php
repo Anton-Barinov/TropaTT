@@ -67,6 +67,7 @@ return [
     'admin-tags' => [Web\Controller\Page\AdminTagsController::class, 'index'],
     'admin-webhooks' => [Web\Controller\Page\AdminWebhooksController::class, 'index'],
     'admin-modules' => [Web\Controller\Page\AdminModulesController::class, 'index'],
+    'admin-updates' => [Web\Controller\Page\AdminUpdatesController::class, 'index'],
     'admin-modules-install' => [Web\Controller\Page\AdminModulesInstallController::class, 'index'],
     'admin-module-detail' => [Web\Controller\Page\AdminModuleDetailController::class, 'index'],
     'intake' => [Web\Controller\Page\IntakeController::class, 'index'],

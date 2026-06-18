@@ -7,12 +7,22 @@ set_time_limit(0);
 
 $baseDir = __DIR__;
 
+$maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
+if (is_file($maintenanceFlag)) {
+    http_response_code(503);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><meta charset="utf-8"><title>Maintenance</title><body style="font-family:sans-serif;padding:40px"><h1>TropaTT maintenance</h1><p>Core update maintenance mode is active. Recovery is available at <code>/updater/rescue.php</code>.</p></body>';
+    exit;
+}
+
 // Redirect to installer when .env is missing
 $scriptFile = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+$rootEnvFile = dirname(__DIR__) . '/.env';
+$rootEnvLocal = dirname(__DIR__) . '/.env.local';
 $envFile = dirname(__DIR__) . '/api/.env';
 $envLocal = dirname(__DIR__) . '/api/.env.local';
 $envIsSet = (getenv('DB_CONNECTION') || getenv('CRM_DB_DRIVER') || getenv('CRM_STORAGE_BASE'));
-$hasConfig = $envIsSet || is_file($envFile) || is_file($envLocal);
+$hasConfig = $envIsSet || is_file($rootEnvFile) || is_file($rootEnvLocal) || is_file($envFile) || is_file($envLocal);
 if ($scriptFile !== 'install.php' && !$hasConfig) {
     $webDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/web'), '/');
     header('Location: ' . $webDir . '/install.php', true, 302);
