@@ -158,10 +158,11 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
 
 <footer class="crm-footer">
   <span>
-    <a href="https://github.com/Anton-Barinov" target="_blank" rel="noopener">Anton-Barinov</a>
+    Автор и разработчик: <a href="https://github.com/Anton-Barinov" target="_blank" rel="noopener">Anton-Barinov</a>
     · © <?= date('Y') ?>
     · TropaTT v<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>
     · <a href="https://github.com/Anton-Barinov/TropaTT" target="_blank" rel="noopener">GitHub</a>
+    · <a href="index.php?route=admin-updates" data-i18n="footer.updates_link">Обновления</a>
     <span id="crmUpdateBadge" class="crm-footer-update-badge d-none"></span>
   </span>
 </footer>

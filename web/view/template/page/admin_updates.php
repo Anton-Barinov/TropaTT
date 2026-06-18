@@ -41,7 +41,12 @@
 (function () {
   let lastPreflightJobId = null;
   const api = async (url, options = {}) => {
-    const res = await fetch(url, Object.assign({credentials: 'same-origin', headers: {'Content-Type': 'application/json'}}, options));
+    const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function')
+      ? window.CRM.api.getCsrfToken()
+      : (document.cookie.match(/crm_csrf_token=([^;]+)/) || [])[1] || '';
+    const headers = Object.assign({'Content-Type': 'application/json'}, options.headers || {});
+    if (csrfToken && !headers['X-CSRF-Token']) headers['X-CSRF-Token'] = csrfToken;
+    const res = await fetch(url, Object.assign({credentials: 'same-origin', headers: headers}, options));
     return res.json();
   };
   const pretty = (value) => JSON.stringify(value, null, 2);
@@ -76,7 +81,9 @@
     await loadStatus();
   }
   document.addEventListener('click', (event) => {
-    const action = event.target && event.target.getAttribute && event.target.getAttribute('data-update-action');
+    const btn = event.target.closest && event.target.closest('[data-update-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-update-action');
     if (!action) return;
     if (action === 'status') loadStatus();
     if (action === 'check') check();
