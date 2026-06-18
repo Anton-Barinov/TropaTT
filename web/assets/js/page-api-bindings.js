@@ -16348,8 +16348,8 @@ window.CRM.pageApiBindings = (function () {
   // ── Obstacle boxes for routing ──────────────────────────────────
   function crmGanttBuildObstacles(taskLookup) {
     var obstacles = [];
-    var PAD_X = 8;
-    var PAD_Y = 4;
+    var PAD_X = 12;
+    var PAD_Y = 6;
     var keys = Object.keys(taskLookup);
     for (var i = 0; i < keys.length; i++) {
       var t = taskLookup[keys[i]];
@@ -16389,17 +16389,17 @@ window.CRM.pageApiBindings = (function () {
 
       // Check all three segments against obstacles
       var segH = { x1: sx, y1: cy, x2: tx, y2: cy };
-      var segV1 = { x1: sx, y1: sy, x2: sx, y2: cy };
-      var segV2 = { x1: tx, y1: cy, x2: tx, y2: ty };
+      var segV1 = { x1: sx, y1: src.bottom + 2, x2: sx, y2: cy };
+      var segV2 = { x1: tx, y1: cy, x2: tx, y2: tgt.top - 2 };
 
       if (crmGanttSegmentHitsObstacle(segH, obstacles) ||
           crmGanttSegmentHitsObstacle(segV1, obstacles) ||
           crmGanttSegmentHitsObstacle(segV2, obstacles)) {
-        continue; // this corridor hits an obstacle, try next
+        continue;
       }
 
-      // Safe route found
-      return [{ x: sx, y: sy }, { x: sx, y: cy }, { x: tx, y: cy }, { x: tx, y: ty }];
+      // Safe route found — connect to bar edges, not centers
+      return [{ x: sx, y: src.bottom + 2 }, { x: sx, y: cy }, { x: tx, y: cy }, { x: tx, y: tgt.top - 2 }];
     }
 
     // Fallback: use original corridorY even if it hits obstacles
