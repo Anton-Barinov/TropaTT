@@ -16282,8 +16282,33 @@ window.CRM.pageApiBindings = (function () {
 
     svgEl.innerHTML = svgParts.join('');
 
-    // ── 9. Bind hover events on conflict markers ─────────────────
-    crmGanttDepsBindHover(svgEl);
+    // ── 9. HTML markers for conflict targets (interactive) ──────────
+    // Remove old markers
+    var oldMarkers = lanesContainer.querySelectorAll('.gantt-dep-marker');
+    for (var m = 0; m < oldMarkers.length; m++) oldMarkers[m].remove();
+
+    // Create HTML markers that are clickable
+    var cKeys = Object.keys(conflictByTarget);
+    for (var k = 0; k < cKeys.length; k++) {
+      var info = conflictByTarget[cKeys[k]];
+      var tgtPos = info.pos;
+      if (!tgtPos) continue;
+
+      var marker = document.createElement('div');
+      marker.className = 'gantt-dep-marker';
+      marker.style.cssText = 'position:absolute;left:' + (tgtPos.left + 10) + 'px;top:' + (tgtPos.top + 4) + 'px;width:16px;height:16px;border-radius:50%;background:white;border:1.5px solid #ea580c;cursor:pointer;z-index:11;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ea580c;';
+      marker.textContent = '!';
+      marker.title = 'Dependency violated — ' + (info.sourceTitles ? info.sourceTitles.join(', ') : '') + ' → ' + (tgtPos.title || '');
+      marker.setAttribute('data-conflict-idx', k);
+
+      (function (marker, idx) {
+        marker.addEventListener('mouseenter', function () { crmGanttDepsHighlightConflict(idx); });
+        marker.addEventListener('mouseleave', function () { crmGanttDepsClearHighlight(); });
+      })(marker, k);
+
+      lanesContainer.appendChild(marker);
+      _ganttDepsConflictData.push({ idx: k, info: info });
+    }
 
     // ── 9. Dev diagnostics ───────────────────────────────────────
     if (typeof console !== 'undefined' && console.info) {
@@ -16484,26 +16509,8 @@ window.CRM.pageApiBindings = (function () {
 
   // ── Render warning marker for conflict target ──────────────────
   function crmGanttRenderConflictMarker(parts, info, idx) {
-    var tgt = info.pos;
-    var bx = tgt.left + 14;
-    var by = tgt.top + 8;
-    var r = 8;
-
-    var tipLines = [tp('gantt.dep_violation', 'Dependency violated')];
-    for (var i = 0; i < info.sources.length; i++) {
-      tipLines.push(tp('gantt.dep_predecessor', 'Predecessor') + ': ' + safeText(info.sourceTitles[i] || info.sources[i].substring(0, 24)) + ' (' + safeText(info.types[i]) + ')');
-    }
-    tipLines.push(tp('gantt.dep_starts_before_predecessor_ends', 'Task starts before predecessor ends'));
-
-    // ⚠ warning icon: circle with ! mark
-    parts.push(
-      '<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '" style="pointer-events:auto;cursor:pointer;">'
-      + '<circle cx="' + bx + '" cy="' + by + '" r="' + r + '" fill="white" stroke="#ea580c" stroke-width="1.5"/>'
-      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
-      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1.2" fill="#ea580c"/>'
-      + '<title>' + tipLines.join('\n').replace(/"/g, '&quot;') + '</title>'
-      + '</g>'
-    );
+    // Markers are now rendered as HTML elements, not SVG groups
+    // This function is kept for compatibility but does nothing
   }
 
   // ── Bind hover on conflict markers: highlight source/target bars ──
