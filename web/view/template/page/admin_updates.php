@@ -205,7 +205,11 @@ $auJs = [
     .crm-admin-updates-page .updates-pill-row,
     .crm-admin-updates-page .updates-raw,
     .crm-admin-updates-page #nextPlanBadge,
-    .crm-admin-updates-page #detailsBadge {
+    .crm-admin-updates-page #detailsBadge,
+    .crm-admin-updates-page .updates-details-grid [data-update-action="preflight"],
+    .crm-admin-updates-page .updates-details-grid [data-update-action="download"],
+    .crm-admin-updates-page .updates-details-grid [data-update-action="apply"],
+    .crm-admin-updates-page .updates-details-grid [data-update-action="rollback"] {
       display:none !important;
     }
     @media (max-width:1120px) { .updates-control-main { grid-template-columns:56px minmax(0,1fr); } .updates-control-actions { grid-column:1 / -1; justify-content:flex-start; } .updates-control-meta,.updates-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -362,6 +366,7 @@ $auJs = [
     refresh: tr('loadingRefresh', 'обновляем статус'),
     check: tr('loadingCheck', 'проверяем обновления'),
     changes: tr('loadingChanges', 'загружаем изменения'),
+    install: tr('loadingApply', 'устанавливаем обновление'),
     preflight: tr('loadingPreflight', 'проверяем безопасность'),
     download: tr('loadingDownload', 'подготавливаем архив'),
     apply: tr('loadingApply', 'устанавливаем обновление'),
@@ -539,15 +544,15 @@ $auJs = [
     } else if (state.download) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
-      setPrimary('apply', tr('primaryApply', 'Установить обновление'));
+      setPrimary('install', tr('primaryApply', 'Установить обновление'));
     } else if (state.preflight) {
       $('nextTitle').textContent = tr('recommendPreflightTitle', 'Проверка пройдена');
       $('nextText').textContent = tr('recommendPreflightText', 'Теперь можно подготовить архив во временной папке. Рабочие файлы CRM еще не меняются.');
-      setPrimary('download', tr('primaryDownload', 'Подготовить архив'));
+      setPrimary('install', tr('primaryApply', 'Установить обновление'));
     } else if (plan && plan.update_available === true) {
       $('nextTitle').textContent = tr('recommendFoundTitle', 'Найдено обновление');
       $('nextText').textContent = tr('recommendFoundText', 'Сначала запустите безопасную проверку. Файлы CRM на этом шаге не меняются.');
-      setPrimary('preflight', tr('primaryApply', 'Установить обновление'));
+      setPrimary('install', tr('primaryApply', 'Установить обновление'));
     } else if (plan) {
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
@@ -766,8 +771,6 @@ $auJs = [
 
   async function applyUpdate() {
     if (!state.lastJobId) throw new Error(tr('needJobApply', 'Нет job_id. Сначала выполните проверку безопасности и подготовку архива.'));
-    const confirmation = window.prompt(tr('confirmApply', 'Для реального применения обновления введите APPLY'));
-    if (confirmation !== 'APPLY') return;
     const token = await updaterSession();
     const result = await api('/updater/index.php?action=apply', {method: 'POST', body: JSON.stringify({job_id: state.lastJobId, confirm_apply: true, token})});
     ensureSuccess(result, tr('errApply', 'Не удалось установить обновление.'));
@@ -777,12 +780,21 @@ $auJs = [
     await check();
   }
 
+  async function installUpdate() {
+    if (!state.plan) await check();
+    if (!state.plan || state.plan.update_available !== true) {
+      await loadStatus();
+      return;
+    }
+    if (!state.preflight || !state.lastJobId) await preflight();
+    if (!state.download) await download();
+    await applyUpdate();
+  }
+
   async function rollback() {
     const latest = state.status && state.status.latest_job;
     const jobId = state.lastJobId || (latest && latest.job_id);
     if (!jobId) throw new Error(tr('needJobRollback', 'Нет job_id для восстановления.'));
-    const confirmation = window.prompt(tr('confirmRollback', 'Rollback восстановит файлы из backup. Введите ROLLBACK'));
-    if (confirmation !== 'ROLLBACK') return;
     const token = await updaterSession();
     const result = await api('/updater/index.php?action=rollback', {method: 'POST', body: JSON.stringify({job_id: jobId, token})});
     ensureSuccess(result, tr('errRollback', 'Не удалось восстановить backup.'));
@@ -795,7 +807,7 @@ $auJs = [
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh: () => loadStatus(), check, changes, preflight, download, apply: applyUpdate, rollback };
+    const actions = { refresh: () => loadStatus(), check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback };
     if (actions[action]) withAction(action, actions[action]);
   });
 
