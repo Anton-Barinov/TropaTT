@@ -16385,30 +16385,8 @@ window.CRM.pageApiBindings = (function () {
     // Find a safe corridorY between source and target rows
     var corridorY = crmGanttFindCorridorY(src, tgt, obstacles);
 
-    // Check if vertical segments hit obstacles; if so, shift X positions
-    var vsx = sx; // source vertical X
-    var vtx = tx; // target vertical X
-    var segV1 = { x1: vsx, y1: sy, x2: vsx, y2: corridorY };
-    var segV2 = { x1: vtx, y1: corridorY, x2: vtx, y2: ty };
-
-    // Try shifting source-side vertical segment right until clear
-    for (var attempt = 0; attempt < 5; attempt++) {
-      segV1.x1 = vsx;
-      segV1.x2 = vsx;
-      if (!crmGanttSegmentHitsObstacle(segV1, obstacles)) break;
-      vsx += 16;
-    }
-
-    // Try shifting target-side vertical segment right until clear
-    for (var attempt = 0; attempt < 5; attempt++) {
-      segV2.x1 = vtx;
-      segV2.x2 = vtx;
-      if (!crmGanttSegmentHitsObstacle(segV2, obstacles)) break;
-      vtx += 16;
-    }
-
-    // Route: exit source → vertical to corridor → horizontal → vertical to target
-    return [{ x: sx, y: sy }, { x: vsx, y: sy }, { x: vsx, y: corridorY }, { x: vtx, y: corridorY }, { x: vtx, y: ty }];
+    // Route: exit source → corridorY → enter target
+    return [{ x: sx, y: sy }, { x: sx, y: corridorY }, { x: tx, y: corridorY }, { x: tx, y: ty }];
   }
 
   // Find a safe Y between rows where horizontal segments won't hit obstacles
