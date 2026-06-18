@@ -4309,6 +4309,11 @@ return array (
     'modal_delete_title' => 'Удалить правило?',
     'modal_delete_subtitle' => 'Это действие нельзя отменить. Все связанные записи в журнале сохранятся.',
   ),
+  'admin_updates' =>
+  array (
+    'title' => 'TropaTT — Обновления',
+    'page_title' => 'Обновления ядра TropaTT',
+  ),
   'admin_webhooks' => 
   array (
     'title' => 'TropaTT — Вебхуки',
