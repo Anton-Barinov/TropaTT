@@ -386,11 +386,11 @@
 	      nextTitle.textContent = 'Проверка пройдена, подготовьте архив';
 	      nextText.textContent = 'Следующий шаг скачает готовый пакет обновления во временную папку. Рабочие файлы CRM еще не меняются.';
 	      setPrimary('download', 'Подготовить архив');
-	    } else if (plan && plan.update_available) {
+	    } else if (plan && plan.update_available === true) {
 	      nextTitle.textContent = 'Найдено обновление, сначала нужна проверка';
 	      nextText.textContent = 'CRM проверит подпись архива, доступ к файлам и свободное место. Это безопасный шаг до установки.';
 	      setPrimary('preflight', 'Проверить безопасность');
-	    } else if (plan && plan.update_available === false) {
+	    } else if (plan) {
 	      nextTitle.textContent = 'CRM уже актуальна';
 	      nextText.textContent = 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.';
 	      setPrimary('check', 'Проверить еще раз');
@@ -400,7 +400,7 @@
 	      setPrimary('check', 'Проверить обновления');
 	    }
 	    setBadge('nextStatusBadge', pipelineKind(), pipelineText());
-	    setBadge('nextPlanBadge', plan ? (plan.update_available ? 'warn' : 'ok') : 'neutral', plan ? (plan.update_available ? 'Есть обновление' : 'Обновлений нет') : 'Не проверено');
+		    setBadge('nextPlanBadge', plan ? (plan.update_available === true ? 'warn' : 'ok') : 'neutral', plan ? (plan.update_available === true ? 'Есть обновление' : 'Обновлений нет') : 'Не проверено');
 	  }
 
   function setLoading(action, loading) {
@@ -422,7 +422,7 @@
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
-    if (state.plan && state.plan.update_available === false) return 'ok';
+	    if (state.plan && state.plan.update_available !== true) return 'ok';
     if (latest && latest.state === 'applied') return 'ok';
     if (state.download) return 'warn';
     if (state.preflight) return 'warn';
@@ -431,7 +431,7 @@
 
   function pipelineText() {
     const latest = state.status && state.status.latest_job;
-    if (state.plan && state.plan.update_available === false) return 'Обновлений нет';
+	    if (state.plan && state.plan.update_available !== true) return 'Обновлений нет';
     if (latest && latest.state === 'applied') return 'Применено';
     if (state.download) return 'Staging готов';
     if (state.preflight) return 'Preflight готов';
