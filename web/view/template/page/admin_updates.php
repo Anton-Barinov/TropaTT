@@ -377,7 +377,8 @@
     $('changesBadge').textContent = `${data.summary.commits || 0} commits / ${data.summary.files || 0} files`;
     const commits = (data.commits || []).slice(0, 6).map((c) => `<li><span><strong>${esc(c.short_sha || '')}</strong> ${esc(c.title || '')}</span><span>${esc(c.committed_at || '')}</span></li>`).join('');
     const files = (data.files || []).slice(0, 12).map((f) => `<tr><td>${esc(f.path)}</td><td>${esc(f.scope)}</td><td>${esc(f.change_type)}</td><td>${f.included_in_package ? '<span class="updates-badge ok">included</span>' : '<span class="updates-badge neutral">excluded</span>'}</td></tr>`).join('');
-    const message = data.message ? `<div class="updates-empty mb-3">${esc(data.message)}</div>` : '';
+    const messageText = Number(payload.status || 0) === 204 ? 'Целевая сборка не определена: CRM уже считает доступное состояние актуальным, поэтому изменений для установки нет.' : data.message;
+    const message = messageText ? `<div class="updates-empty mb-3">${esc(messageText)}</div>` : '';
     $('changesContent').innerHTML = `
       ${message}
       <div class="updates-split">
