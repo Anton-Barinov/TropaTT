@@ -156,15 +156,35 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
 </script>
 <?php endif; ?>
 
-<footer class="crm-footer">
-  <span>
-    Автор и разработчик: <a href="https://github.com/Anton-Barinov" target="_blank" rel="noopener">Anton-Barinov</a>
-    · © <?= date('Y') ?>
-    · TropaTT v<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>
-    · <a href="https://github.com/Anton-Barinov/TropaTT" target="_blank" rel="noopener">GitHub</a>
-    · <a href="index.php?route=admin-updates" data-i18n="footer.updates_link">Обновления</a>
-    <span id="crmUpdateBadge" class="crm-footer-update-badge d-none"></span>
-  </span>
+<?php
+$footerEnglishPath = dirname(__DIR__, 3) . '/language/en-gb.php';
+$footerEnglish = is_file($footerEnglishPath) ? (require $footerEnglishPath) : [];
+$footerT = static function (string $key, string $default = '') use ($t, $footerEnglish): string {
+  $value = $t('footer.' . $key, '__missing_footer_key__');
+  if ($value !== '__missing_footer_key__') {
+    return $value;
+  }
+  $english = is_array($footerEnglish['footer'] ?? null) ? $footerEnglish['footer'] : [];
+  return is_string($english[$key] ?? null) ? $english[$key] : $default;
+};
+$footerVersionRaw = file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0';
+$footerVersion = htmlspecialchars($footerVersionRaw, ENT_QUOTES, 'UTF-8');
+$footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version} is available');
+?>
+<footer class="crm-footer" aria-label="<?= htmlspecialchars($footerT('aria', 'System information'), ENT_QUOTES, 'UTF-8') ?>">
+  <div class="crm-footer-inner">
+    <div class="crm-footer-product">
+      <strong><?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></strong>
+      <span><?= htmlspecialchars($footerT('version', 'Version'), ENT_QUOTES, 'UTF-8') ?> <?= $footerVersion ?></span>
+      <span>© <?= date('Y') ?></span>
+    </div>
+    <nav class="crm-footer-links" aria-label="<?= htmlspecialchars($footerT('links_aria', 'Footer links'), ENT_QUOTES, 'UTF-8') ?>">
+      <a href="index.php?route=admin-updates" data-i18n="footer.updates_link"><?= htmlspecialchars($footerT('updates_link', 'Updates'), ENT_QUOTES, 'UTF-8') ?></a>
+      <a href="https://github.com/Anton-Barinov/TropaTT" target="_blank" rel="noopener"><?= htmlspecialchars($footerT('github_link', 'GitHub'), ENT_QUOTES, 'UTF-8') ?></a>
+      <a href="https://github.com/Anton-Barinov" target="_blank" rel="noopener"><?= htmlspecialchars($footerT('author_link', 'Developer'), ENT_QUOTES, 'UTF-8') ?></a>
+      <span id="crmUpdateBadge" class="crm-footer-update-badge d-none"></span>
+    </nav>
+  </div>
 </footer>
 
 <script>
@@ -178,14 +198,14 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
       try {
         var data = JSON.parse(cached);
         if (data && data.hasUpdate && data.latestVersion) {
-          badge.textContent = '\u{1F514} ' + data.latestVersion + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
+          badge.textContent = <?= json_encode($footerUpdateBadgeTemplate, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>.replace('{version}', data.latestVersion);
           badge.classList.remove('d-none');
         }
       } catch (e) {}
       return;
     }
     // Use the current core update API. Keep this quiet: the footer badge is optional.
-    var currentVersion = '<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>';
+    var currentVersion = <?= json_encode($footerVersionRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/index.php?route=api/v1/core/updates/status', true);
     xhr.timeout = 5000;
@@ -199,7 +219,7 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
         // If update center has a newer build, show badge
         if (latestVersion && currentVersion && latestVersion !== currentVersion) {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latestVersion }));
-          badge.textContent = '\u{1F514} ' + latestVersion + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
+          badge.textContent = <?= json_encode($footerUpdateBadgeTemplate, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>.replace('{version}', latestVersion);
           badge.classList.remove('d-none');
         } else {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: false }));
