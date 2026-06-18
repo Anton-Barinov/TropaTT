@@ -69,7 +69,7 @@
     <div class="updates-hero-main">
       <div>
         <p class="updates-eyebrow">Core update center</p>
-        <h1 class="updates-title">Обновления ядра TropaTT</h1>
+        <h1 class="updates-title" data-i18n="admin_updates.page_title"><?= htmlspecialchars($t('admin_updates.page_title', 'Обновления ядра TropaTT'), ENT_QUOTES, 'UTF-8') ?></h1>
         <p class="updates-subtitle">Один экран для проверки update.crm.ru, просмотра changelog, preflight, скачивания готового архива, применения обновления и аварийного восстановления.</p>
       </div>
       <div class="updates-actions">
@@ -353,13 +353,33 @@
   function renderChanges() {
     const payload = state.changes;
     $('updatesChangesRaw').textContent = pretty(payload);
+    if (!payload) {
+      $('changesBadge').className = badgeClass('');
+      $('changesBadge').textContent = 'Не загружено';
+      $('changesContent').innerHTML = '<div class="updates-empty">Нажмите «Показать изменения».</div>';
+      return;
+    }
+    if (payload.ok === false || Number(payload.status || 0) >= 400) {
+      $('changesBadge').className = badgeClass('danger');
+      $('changesBadge').textContent = `Ошибка ${payload.status || ''}`.trim();
+      $('changesContent').innerHTML = `<div class="updates-empty">Сервер обновлений не вернул список изменений. ${payload.url ? `URL: <code>${esc(payload.url)}</code>` : ''}</div>`;
+      return;
+    }
     const data = payload && (payload.data || payload);
-    if (!data || !data.summary) return;
+    if (!data || !data.summary) {
+      const isLatest = state.plan && state.plan.update_available === false;
+      $('changesBadge').className = badgeClass(isLatest ? 'ok' : '');
+      $('changesBadge').textContent = isLatest ? 'Latest' : 'Нет данных';
+      $('changesContent').innerHTML = `<div class="updates-empty">${isLatest ? 'CRM уже считает текущую сборку последней, изменений для установки нет.' : 'Сервер не прислал summary изменений.'}</div>`;
+      return;
+    }
     $('changesBadge').className = badgeClass('ok');
     $('changesBadge').textContent = `${data.summary.commits || 0} commits / ${data.summary.files || 0} files`;
     const commits = (data.commits || []).slice(0, 6).map((c) => `<li><span><strong>${esc(c.short_sha || '')}</strong> ${esc(c.title || '')}</span><span>${esc(c.committed_at || '')}</span></li>`).join('');
     const files = (data.files || []).slice(0, 12).map((f) => `<tr><td>${esc(f.path)}</td><td>${esc(f.scope)}</td><td>${esc(f.change_type)}</td><td>${f.included_in_package ? '<span class="updates-badge ok">included</span>' : '<span class="updates-badge neutral">excluded</span>'}</td></tr>`).join('');
+    const message = data.message ? `<div class="updates-empty mb-3">${esc(data.message)}</div>` : '';
     $('changesContent').innerHTML = `
+      ${message}
       <div class="updates-split">
         <div>
           <h3 class="h6">Коммиты</h3>

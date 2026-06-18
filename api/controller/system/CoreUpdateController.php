@@ -46,8 +46,13 @@ final class CoreUpdateController extends BaseController
         $to = (string)$this->request()->input('to', '');
         if ($to === '') {
             $check = (new CoreUpdatePlanner($client, new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3))))->check();
-            $to = (string)($check['plan']['target_build'] ?? '');
-            $from = $check['current']['core_build'] ?? $from;
+            $plan = is_array($check['plan'] ?? null) ? $check['plan'] : [];
+            $current = is_array($check['current'] ?? null) ? $check['current'] : [];
+            $to = (string)($plan['target_build'] ?? '');
+            $from = $current['core_build'] ?? ($plan['current_build'] ?? $from);
+            if ($to === '' || (($plan['update_available'] ?? null) === false && (string)$from === $to)) {
+                return $this->success('CORE_UPDATE_CHANGES', 'Core update changes', $this->emptyChanges(is_string($from) ? $from : null, $to));
+            }
         }
         return $this->success('CORE_UPDATE_CHANGES', 'Core update changes', $client->changes(is_string($from) ? $from : null, $to));
     }
@@ -131,6 +136,32 @@ final class CoreUpdateController extends BaseController
             'job_id' => $data['job_id'] ?? null,
             'preflight' => $data['preflight'] ?? null,
             'updater' => $result,
+        ];
+    }
+
+    private function emptyChanges(?string $from, string $to): array
+    {
+        return [
+            'ok' => true,
+            'status' => 204,
+            'data' => [
+                'summary' => [
+                    'commits' => 0,
+                    'files' => 0,
+                    'risk_level' => 'none',
+                    'from' => $from,
+                    'to' => $to !== '' ? $to : null,
+                ],
+                'commits' => [],
+                'files' => [],
+                'changes' => [
+                    'added' => [],
+                    'modified' => [],
+                    'deleted' => [],
+                    'renamed' => [],
+                ],
+                'message' => 'No target build is available, so there are no update changes to show.',
+            ],
         ];
     }
 }
