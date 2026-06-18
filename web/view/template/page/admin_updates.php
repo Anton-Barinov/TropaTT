@@ -328,11 +328,11 @@
     $('kpiPackage').textContent = pkg ? String(pkg.type || 'package').toUpperCase() : 'не требуется';
     $('kpiPackageMeta').textContent = pkg ? `${bytes(pkg.size_bytes)} | SHA ${String(pkg.sha256 || '').slice(0, 12)}...` : 'Пакет не требуется.';
     $('kpiRisk').textContent = risk;
-    $('kpiRiskMeta').textContent = plan.requires ? [
+    $('kpiRiskMeta').textContent = !plan.update_available ? 'Изменений нет.' : (plan.requires ? [
       plan.requires.backup ? 'backup' : null,
       plan.requires.maintenance ? 'maintenance' : null,
       plan.requires.db_migration ? 'db migration' : null,
-    ].filter(Boolean).join(' + ') || 'без особых требований' : 'нет данных';
+    ].filter(Boolean).join(' + ') || 'без особых требований' : 'нет данных');
 
     $('planBadge').className = badgeClass(plan.update_available ? 'warn' : 'ok');
     $('planBadge').textContent = plan.update_available ? 'Есть обновление' : 'Latest';
