@@ -28,6 +28,7 @@ return [
         'SECURITY.md',
         'AGENTS.md',
         'docs/**',
+        'updater/**',
     ],
     'protected_paths' => [
         'modules/**',
@@ -43,7 +44,6 @@ return [
         'api/.env.local',
         'api/config/*.local.php',
         'web/config/*.local.php',
-        'updater/**',
     ],
     'endpoints' => [
         'health' => '/api/v1/health',
