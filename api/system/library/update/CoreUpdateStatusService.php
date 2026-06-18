@@ -5,7 +5,11 @@ namespace Api\System\Library\Update;
 
 final class CoreUpdateStatusService
 {
-    public function __construct(private readonly string $storageDir)
+    public function __construct(
+        private readonly string $storageDir,
+        private readonly ?CoreUpdateClient $client = null,
+        private readonly array $config = []
+    )
     {
     }
 
@@ -20,9 +24,33 @@ final class CoreUpdateStatusService
         }
         return [
             'audit' => $audit,
+            'update_center' => $this->updateCenter(),
             'latest_job' => is_array($latestJob) ? $latestJob : null,
             'maintenance' => is_file(dirname($this->storageDir) . '/maintenance.flag'),
             'storage_dir' => $this->storageDir,
+        ];
+    }
+
+    private function updateCenter(): array
+    {
+        $url = rtrim((string)($this->config['update_center_url'] ?? ''), '/');
+        if (!$this->client) {
+            return [
+                'url' => $url,
+                'ok' => null,
+                'status' => null,
+                'error' => null,
+                'message' => null,
+            ];
+        }
+        $health = $this->client->health();
+        return [
+            'url' => $url,
+            'ok' => (bool)($health['ok'] ?? false),
+            'status' => (int)($health['status'] ?? 0),
+            'error' => (string)($health['error'] ?? ''),
+            'message' => (string)($health['message'] ?? ''),
+            'health' => $health,
         ];
     }
 

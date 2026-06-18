@@ -21,7 +21,8 @@ final class CoreUpdateController extends BaseController
             return $this->error('FORBIDDEN', 'Forbidden', 403);
         }
         $config = CoreUpdateConfig::load();
-        return $this->success('CORE_UPDATE_STATUS', 'Core update status', (new CoreUpdateStatusService((string)$config['storage_dir']))->status());
+        $client = new CoreUpdateClient($config);
+        return $this->success('CORE_UPDATE_STATUS', 'Core update status', (new CoreUpdateStatusService((string)$config['storage_dir'], $client, $config))->status());
     }
 
     public function check(): \Api\System\Library\Http\JsonResponse

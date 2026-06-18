@@ -48,7 +48,15 @@ final class CoreUpdateClient
     {
         $body = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => (int)($this->config['timeouts']['check'] ?? 10), 'ignore_errors' => true]]));
         if ($body === false) {
-            return ['ok' => false, 'error' => 'request_failed', 'url' => $url];
+            $lastError = error_get_last();
+            return [
+                'ok' => false,
+                'status' => 0,
+                'error' => 'update_center_unavailable',
+                'message' => 'Update center is unavailable',
+                'url' => $url,
+                'detail' => is_array($lastError) ? (string)($lastError['message'] ?? '') : '',
+            ];
         }
         $status = 200;
         foreach ($http_response_header ?? [] as $header) {
@@ -57,6 +65,26 @@ final class CoreUpdateClient
             }
         }
         $json = json_decode($body, true);
-        return ['ok' => $status < 400 && is_array($json), 'status' => $status, 'url' => $url, 'data' => is_array($json) ? $json : null];
+        if (!is_array($json)) {
+            return [
+                'ok' => false,
+                'status' => $status,
+                'error' => 'invalid_update_center_response',
+                'message' => 'Update center returned an invalid response',
+                'url' => $url,
+                'data' => null,
+            ];
+        }
+        if ($status >= 400) {
+            return [
+                'ok' => false,
+                'status' => $status,
+                'error' => 'update_center_http_error',
+                'message' => 'Update center returned HTTP ' . $status,
+                'url' => $url,
+                'data' => $json,
+            ];
+        }
+        return ['ok' => true, 'status' => $status, 'url' => $url, 'data' => $json];
     }
 }

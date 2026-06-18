@@ -49,6 +49,11 @@ $auJs = [
   'centerOk' => $au('center_ok', 'Сервер обновлений доступен'),
   'centerWarn' => $au('center_warn', 'Сервер обновлений требует проверки'),
   'centerMissing' => $au('center_missing', 'Сервер обновлений еще не проверен'),
+  'centerUnavailable' => $au('center_unavailable', 'Сервер обновлений недоступен'),
+  'centerUnavailableWithUrl' => $au('center_unavailable_with_url', 'Сервер обновлений недоступен: {url}'),
+  'statusCenterDown' => $au('status_center_down', 'Сервер обновлений недоступен'),
+  'recommendCenterDownTitle' => $au('recommend_center_down_title', 'Сервер обновлений недоступен'),
+  'recommendCenterDownText' => $au('recommend_center_down_text', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.'),
   'versionKnown' => $au('version_known', 'Текущая сборка: {build}'),
   'versionUnknown' => $au('version_unknown', 'Текущая сборка не принята updater'),
   'jobKnown' => $au('job_known', 'Последняя операция: {state}'),
@@ -471,9 +476,28 @@ $auJs = [
     icon.textContent = normalized === 'ok' ? '✓' : (normalized === 'danger' ? '!' : (normalized === 'warn' ? '↑' : '?'));
   }
 
+  function updateCenterStatus() {
+    const statusCenter = state.status && state.status.update_center ? state.status.update_center : null;
+    const planCenter = state.plan && state.plan.update_center ? state.plan.update_center : null;
+    const rawPlan = state.plan && state.plan.raw && state.plan.raw.ok === false ? state.plan.raw : null;
+    return statusCenter || planCenter || rawPlan;
+  }
+
+  function updateCenterUnavailable() {
+    const center = updateCenterStatus();
+    return !!(center && center.ok === false);
+  }
+
+  function updateCenterUrl() {
+    const center = updateCenterStatus();
+    const url = center && center.url ? String(center.url) : 'https://update.tropatt.com';
+    return url.replace(/\/api\/v1\/.*$/, '').replace(/\/$/, '');
+  }
+
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
+    if (updateCenterUnavailable()) return 'danger';
     if (state.plan && state.plan.update_available !== true) return 'ok';
     if (latest && latest.state === 'applied') return 'ok';
     if (state.download || state.preflight) return 'warn';
@@ -482,6 +506,7 @@ $auJs = [
 
   function pipelineText() {
     const latest = state.status && state.status.latest_job;
+    if (updateCenterUnavailable()) return tr('statusCenterDown', 'Сервер обновлений недоступен');
     if (state.plan && state.plan.update_available !== true) return tr('statusNoUpdates', 'Обновлений нет');
     if (latest && latest.state === 'applied') return tr('statusApplied', 'Обновление установлено');
     if (state.download) return tr('statusPrepared', 'Архив подготовлен');
@@ -493,7 +518,12 @@ $auJs = [
   function updateRecommendation() {
     const latest = state.status && state.status.latest_job;
     const plan = state.plan;
-    if (latest && latest.state === 'failed') {
+    if (updateCenterUnavailable()) {
+      const url = updateCenterUrl();
+      $('nextTitle').textContent = tr('recommendCenterDownTitle', 'Сервер обновлений недоступен');
+      $('nextText').textContent = tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url});
+      setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
+    } else if (latest && latest.state === 'failed') {
       $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
       $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
@@ -519,7 +549,7 @@ $auJs = [
       setPrimary('check', tr('primaryCheck', 'Проверить обновления'));
     }
     setBadge('nextStatusBadge', pipelineKind(), pipelineText());
-    setBadge('nextPlanBadge', plan ? (plan.update_available === true ? 'warn' : 'ok') : 'neutral', plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : tr('statusNoUpdates', 'Обновлений нет')) : tr('plan_not_checked', 'Не проверено'));
+    setBadge('nextPlanBadge', updateCenterUnavailable() ? 'danger' : (plan ? (plan.update_available === true ? 'warn' : 'ok') : 'neutral'), updateCenterUnavailable() ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : tr('statusNoUpdates', 'Обновлений нет')) : tr('plan_not_checked', 'Не проверено')));
     setBadge('detailsBadge', pipelineKind(), pipelineText());
     renderControlState(pipelineKind());
   }
@@ -546,9 +576,13 @@ $auJs = [
     const latest = status.latest_job || null;
     const auditExists = !!status.audit;
     const auditOk = !!(status.audit && status.audit.health_ok);
+    const center = updateCenterStatus();
+    const centerOk = !!(center && center.ok === true);
+    const centerDown = !!(center && center.ok === false);
+    const centerUrl = updateCenterUrl();
     const maintenance = !!status.maintenance;
-    $('pillCenter').className = dotClass(auditOk ? 'ok' : (auditExists ? 'warn' : ''));
-    $('pillCenterText').textContent = auditOk ? tr('centerOk', 'Сервер обновлений доступен') : (auditExists ? tr('centerWarn', 'Сервер обновлений требует проверки') : tr('centerMissing', 'Сервер обновлений еще не проверен'));
+    $('pillCenter').className = dotClass(centerDown ? 'danger' : ((centerOk || auditOk) ? 'ok' : (auditExists ? 'warn' : '')));
+    $('pillCenterText').textContent = centerDown ? tr('centerUnavailableWithUrl', 'Сервер обновлений недоступен: {url}', {url: centerUrl}) : ((centerOk || auditOk) ? tr('centerOk', 'Сервер обновлений доступен') : (auditExists ? tr('centerWarn', 'Сервер обновлений требует проверки') : tr('centerMissing', 'Сервер обновлений еще не проверен')));
     $('pillVersion').className = dotClass(installed.core_build ? 'ok' : 'warn');
     $('pillVersionText').textContent = installed.core_build ? tr('versionKnown', 'Текущая сборка: {build}', {build: installed.core_build}) : tr('versionUnknown', 'Текущая сборка не принята updater');
     $('pillJob').className = dotClass(latest && latest.state === 'failed' ? 'danger' : latest ? 'ok' : 'warn');
@@ -575,18 +609,19 @@ $auJs = [
     if (!plan) return;
     const pkg = plan.recommended_package;
     const hasUpdate = plan.update_available === true;
+    const centerDown = updateCenterUnavailable();
     const risk = plan.summary && plan.summary.risk_level ? plan.summary.risk_level : (hasUpdate ? tr('statusUnknown', 'Неизвестно') : tr('kpiRiskNone', 'нет'));
-    const displayTarget = plan.target_build || plan.current_build || (hasUpdate ? tr('statusUnknown', 'Неизвестно') : tr('kpiTargetLatest', 'latest'));
+    const displayTarget = centerDown ? tr('statusUnknown', 'Неизвестно') : (plan.target_build || plan.current_build || (hasUpdate ? tr('statusUnknown', 'Неизвестно') : tr('kpiTargetLatest', 'latest')));
     $('kpiTarget').textContent = displayTarget;
-    $('kpiTargetMeta').textContent = hasUpdate ? tr('kpiTargetMetaFound', 'Доступно обновление с {build}.', {build: plan.current_build || tr('statusUnknown', 'Неизвестно')}) : tr('kpiTargetMetaLatest', 'Новых сборок для установки нет.');
-    $('kpiPackage').textContent = pkg ? String(pkg.type || 'package').toUpperCase() : tr('kpiPackageNone', 'не требуется');
-    $('kpiPackageMeta').textContent = pkg ? `${bytes(pkg.size_bytes)} | SHA ${String(pkg.sha256 || '').slice(0, 12)}...` : tr('kpiPackageMetaNone', 'Архив скачивать не нужно.');
-    $('kpiRisk').textContent = risk;
-    $('kpiRiskMeta').textContent = !hasUpdate ? tr('kpiRiskMetaNone', 'Изменений для установки нет.') : (plan.requires ? [
+    $('kpiTargetMeta').textContent = centerDown ? tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url: updateCenterUrl()}) : (hasUpdate ? tr('kpiTargetMetaFound', 'Доступно обновление с {build}.', {build: plan.current_build || tr('statusUnknown', 'Неизвестно')}) : tr('kpiTargetMetaLatest', 'Новых сборок для установки нет.'));
+    $('kpiPackage').textContent = centerDown ? tr('statusUnknown', 'Неизвестно') : (pkg ? String(pkg.type || 'package').toUpperCase() : tr('kpiPackageNone', 'не требуется'));
+    $('kpiPackageMeta').textContent = centerDown ? tr('centerUnavailableWithUrl', 'Сервер обновлений недоступен: {url}', {url: updateCenterUrl()}) : (pkg ? `${bytes(pkg.size_bytes)} | SHA ${String(pkg.sha256 || '').slice(0, 12)}...` : tr('kpiPackageMetaNone', 'Архив скачивать не нужно.'));
+    $('kpiRisk').textContent = centerDown ? tr('statusUnknown', 'Неизвестно') : risk;
+    $('kpiRiskMeta').textContent = centerDown ? tr('statusCenterDown', 'Сервер обновлений недоступен') : (!hasUpdate ? tr('kpiRiskMetaNone', 'Изменений для установки нет.') : (plan.requires ? [
       plan.requires.backup ? 'backup' : null,
       plan.requires.maintenance ? 'maintenance' : null,
       plan.requires.db_migration ? 'db migration' : null,
-    ].filter(Boolean).join(' + ') || tr('no_special_requirements', 'без особых требований') : tr('statusUnknown', 'Неизвестно'));
+    ].filter(Boolean).join(' + ') || tr('no_special_requirements', 'без особых требований') : tr('statusUnknown', 'Неизвестно')));
     updateRecommendation();
   }
 
