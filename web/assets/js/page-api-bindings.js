@@ -16471,6 +16471,10 @@ window.CRM.pageApiBindings = (function () {
       + (tip.x + aSize) + ',' + (tip.y - aSize / 2) + ' '
       + (tip.x + aSize) + ',' + (tip.y + aSize / 2)
       + '" fill="' + color + '"/>');
+
+    // Small connector dot at source (first point)
+    var src = points[0];
+    parts.push('<circle cx="' + src.x + '" cy="' + src.y + '" r="2.5" fill="' + color + '"/>');
   }
 
   // ── Render warning marker for conflict target ──────────────────
