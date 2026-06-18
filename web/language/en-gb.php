@@ -4439,6 +4439,10 @@ return array (
     'bytes_mb' => 'MB',
     'bytes_gb' => 'GB',
     'none' => 'none',
+    'risk_low' => 'low',
+    'risk_medium' => 'medium',
+    'risk_high' => 'high',
+    'risk_critical' => 'critical',
     'no_special_requirements' => 'no special requirements',
   ),
   'admin_webhooks' => 

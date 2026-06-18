@@ -4473,6 +4473,10 @@ return array (
     'bytes_mb' => 'МБ',
     'bytes_gb' => 'ГБ',
     'none' => 'нет',
+    'risk_low' => 'низкий',
+    'risk_medium' => 'средний',
+    'risk_high' => 'высокий',
+    'risk_critical' => 'критичный',
     'no_special_requirements' => 'без особых требований',
   ),
   'admin_webhooks' => 
