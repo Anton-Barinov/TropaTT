@@ -130,7 +130,23 @@ $auJs = [
       --update-ok:#0f766e; --update-warn:#b45309; --update-danger:#b42318; --update-ink:#111827; --update-line:#e5e7eb;
     }
     .updates-shell { max-width:1180px; margin:0 auto; }
-    .updates-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.58fr); gap:16px; margin-bottom:16px; }
+    .updates-control { border:1px solid var(--update-line); border-radius:18px; background:#fff; box-shadow:0 12px 30px rgba(15,23,42,.05); margin-bottom:16px; overflow:hidden; }
+    .updates-control-main { display:grid; grid-template-columns:72px minmax(0,1fr) auto; gap:18px; align-items:center; padding:24px; }
+    .updates-state-icon { width:56px; height:56px; border-radius:16px; display:grid; place-items:center; background:#f1f5f9; color:#64748b; font-weight:900; font-size:1.55rem; }
+    .updates-control[data-kind="ok"] .updates-state-icon { background:#ecfdf3; color:var(--update-ok); }
+    .updates-control[data-kind="warn"] .updates-state-icon { background:#fffaeb; color:var(--update-warn); }
+    .updates-control[data-kind="danger"] .updates-state-icon { background:#fef3f2; color:var(--update-danger); }
+    .updates-control-title { margin:0; color:var(--update-ink); font-size:1.55rem; line-height:1.18; font-weight:850; letter-spacing:-.02em; }
+    .updates-control-text { margin:.45rem 0 0; color:#64748b; line-height:1.55; max-width:760px; }
+    .updates-control-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .updates-control-actions .btn { border-radius:10px; padding:.62rem .95rem; font-weight:750; white-space:nowrap; }
+    .updates-control-meta { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border-top:1px solid var(--update-line); background:#f8fafc; }
+    .updates-meta-item { padding:14px 16px; border-right:1px solid var(--update-line); min-width:0; }
+    .updates-meta-item:last-child { border-right:0; }
+    .updates-kpi-label { color:#64748b; font-size:.77rem; font-weight:700; }
+    .updates-kpi-value { margin-top:6px; font-size:1.08rem; font-weight:820; color:var(--update-ink); line-height:1.15; overflow-wrap:anywhere; }
+    .updates-muted { color:#667085; font-size:.86rem; line-height:1.45; margin-top:4px; }
+    .updates-hero { display:none; }
     .updates-panel, .updates-card { border:1px solid var(--update-line); border-radius:18px; background:#fff; box-shadow:0 12px 30px rgba(15,23,42,.05); }
     .updates-panel { padding:20px; }
     .updates-kicker { display:none; }
@@ -145,11 +161,7 @@ $auJs = [
     .updates-status-foot { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .updates-notice { display:none; margin:0 0 16px; border-radius:14px; padding:12px 14px; border:1px solid #fecaca; background:#fff1f2; color:#9f1239; font-weight:700; }
     .updates-notice.show { display:block; }
-    .updates-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .updates-metric { border:1px solid var(--update-line); border-radius:16px; background:#fff; padding:16px; min-height:118px; box-shadow:0 10px 24px rgba(15,23,42,.04); }
-    .updates-kpi-label { color:#64748b; font-size:.78rem; font-weight:700; }
-    .updates-kpi-value { margin-top:10px; font-size:1.35rem; font-weight:800; color:var(--update-ink); line-height:1.08; overflow-wrap:anywhere; }
-    .updates-muted { color:#667085; font-size:.9rem; line-height:1.5; }
+    .updates-metrics { display:none; }
     .updates-pill-row { display:grid; gap:8px; margin-top:14px; }
     .updates-pill { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9; color:#344054; font-size:.84rem; font-weight:650; }
     .updates-pill:last-child { border-bottom:0; }
@@ -182,8 +194,8 @@ $auJs = [
     .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-size:.78rem; }
     .updates-danger-zone { border-color:#fecdca; background:linear-gradient(180deg,#fff,#fffbfa); }
     .updates-danger-zone h2 { color:#b42318; }
-    @media (max-width:1120px) { .updates-hero,.updates-details-grid { grid-template-columns:1fr; } .updates-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width:720px) { .updates-shell { padding:0 2px; } .updates-panel,.updates-card,.updates-status-card { border-radius:16px; padding:16px; } .updates-metrics { grid-template-columns:1fr; } }
+    @media (max-width:1120px) { .updates-control-main { grid-template-columns:56px minmax(0,1fr); } .updates-control-actions { grid-column:1 / -1; justify-content:flex-start; } .updates-control-meta,.updates-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:720px) { .updates-shell { padding:0 2px; } .updates-control-main { grid-template-columns:1fr; padding:18px; } .updates-state-icon { width:48px; height:48px; border-radius:14px; } .updates-control-title { font-size:1.3rem; } .updates-control-actions .btn { width:100%; justify-content:center; } .updates-control-meta { grid-template-columns:1fr; } .updates-meta-item { border-right:0; border-bottom:1px solid var(--update-line); } .updates-meta-item:last-child { border-bottom:0; } .updates-panel,.updates-card,.updates-status-card { border-radius:16px; padding:16px; } }
   </style>
 
   <div class="updates-shell">
@@ -196,65 +208,53 @@ $auJs = [
       </div>
       <div class="crm-page-actions">
         <button class="btn crm-btn-secondary" type="button" data-update-action="refresh"><?= htmlspecialchars($au('btn_refresh', 'Обновить статус'), ENT_QUOTES, 'UTF-8') ?></button>
-        <a class="btn crm-btn-secondary" href="/updater/rescue.php" target="_blank" rel="noopener"><?= htmlspecialchars($au('btn_recovery', 'Аварийное восстановление'), ENT_QUOTES, 'UTF-8') ?></a>
       </div>
     </div>
-    <section class="updates-hero">
-      <div class="updates-panel">
-        <h2 class="updates-title"><?= htmlspecialchars($au('recommendation_label', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <p class="updates-subtitle"><?= htmlspecialchars($au('recommend_check_text', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.'), ENT_QUOTES, 'UTF-8') ?></p>
-        <div class="updates-actions">
-          <button id="primaryActionBtn" class="btn crm-btn-primary" type="button" data-update-action="check"><?= htmlspecialchars($au('btn_check', 'Проверить обновления'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-secondary" type="button" data-update-action="changes"><?= htmlspecialchars($au('btn_changes', 'Что изменится?'), ENT_QUOTES, 'UTF-8') ?></button>
-        </div>
-      </div>
-      <aside class="updates-card updates-status-card">
+    <section id="updatesControl" class="updates-control" data-kind="neutral">
+      <div class="updates-control-main">
+        <div id="updatesStateIcon" class="updates-state-icon">?</div>
         <div>
-          <div class="updates-status-label"><?= htmlspecialchars($au('recommendation_label', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?></div>
-          <h2 id="nextTitle" class="updates-status-title"><?= htmlspecialchars($au('recommend_check_title', 'Проверьте наличие обновлений'), ENT_QUOTES, 'UTF-8') ?></h2>
-          <p id="nextText" class="updates-status-text"><?= htmlspecialchars($au('recommend_check_text', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.'), ENT_QUOTES, 'UTF-8') ?></p>
+          <h2 id="nextTitle" class="updates-control-title"><?= htmlspecialchars($au('recommend_check_title', 'Проверьте наличие обновлений'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <p id="nextText" class="updates-control-text"><?= htmlspecialchars($au('recommend_check_text', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.'), ENT_QUOTES, 'UTF-8') ?></p>
+          <div class="updates-status-foot mt-3">
+            <span id="nextStatusBadge" class="updates-badge neutral"><?= htmlspecialchars($au('status_checking', 'Проверяем...'), ENT_QUOTES, 'UTF-8') ?></span>
+            <span id="nextPlanBadge" class="updates-badge neutral"><?= htmlspecialchars($au('plan_not_checked', 'Не проверено'), ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <div class="updates-pill-row">
+            <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText"><?= htmlspecialchars($au('center_checking', 'Сервер обновлений проверяется'), ENT_QUOTES, 'UTF-8') ?></span></span>
+            <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText"><?= htmlspecialchars($au('version_checking', 'Версия пока неизвестна'), ENT_QUOTES, 'UTF-8') ?></span></span>
+            <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText"><?= htmlspecialchars($au('job_checking', 'Операций еще не было'), ENT_QUOTES, 'UTF-8') ?></span></span>
+            <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText"><?= htmlspecialchars($au('maintenance_checking', 'CRM работает штатно'), ENT_QUOTES, 'UTF-8') ?></span></span>
+          </div>
         </div>
-        <div class="updates-status-foot">
-          <span id="nextStatusBadge" class="updates-badge neutral"><?= htmlspecialchars($au('status_checking', 'Проверяем...'), ENT_QUOTES, 'UTF-8') ?></span>
-          <span id="nextPlanBadge" class="updates-badge neutral"><?= htmlspecialchars($au('plan_not_checked', 'Не проверено'), ENT_QUOTES, 'UTF-8') ?></span>
+        <div class="updates-control-actions">
+          <button id="primaryActionBtn" class="btn crm-btn-primary" type="button" data-update-action="check"><?= htmlspecialchars($au('btn_check', 'Проверить обновления'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button class="btn crm-btn-secondary" type="button" data-update-action="rollback"><?= htmlspecialchars($au('btn_rollback', 'Восстановить из backup'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
-        <div class="updates-pill-row">
-          <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText"><?= htmlspecialchars($au('center_checking', 'Сервер обновлений проверяется'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText"><?= htmlspecialchars($au('version_checking', 'Версия пока неизвестна'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText"><?= htmlspecialchars($au('job_checking', 'Операций еще не было'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText"><?= htmlspecialchars($au('maintenance_checking', 'CRM работает штатно'), ENT_QUOTES, 'UTF-8') ?></span></span>
+      </div>
+      <div class="updates-control-meta">
+        <div class="updates-meta-item">
+          <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_installed', 'Текущая версия'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div id="kpiInstalled" class="updates-kpi-value">...</div>
+          <p id="kpiInstalledMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_installed_loading', 'Загружаем состояние CRM.'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
-      </aside>
+        <div class="updates-meta-item">
+          <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_target', 'Доступная версия'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div id="kpiTarget" class="updates-kpi-value">...</div>
+          <p id="kpiTargetMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_target_loading', 'Покажем после проверки.'), ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+        <div class="updates-meta-item">
+          <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_package', 'Что скачается'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div id="kpiPackage" class="updates-kpi-value">...</div>
+          <p id="kpiPackageMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_package_loading', 'Готовый архив или ничего.'), ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+        <div class="updates-meta-item">
+          <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_risk', 'Уровень риска'), ENT_QUOTES, 'UTF-8') ?></div>
+          <div id="kpiRisk" class="updates-kpi-value">...</div>
+          <p id="kpiRiskMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_risk_loading', 'Оценим перед установкой.'), ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+      </div>
     </section>
-
-    <div class="updates-info">
-      <strong><?= htmlspecialchars($au('how_title', 'Как это работает:'), ENT_QUOTES, 'UTF-8') ?></strong>
-      <?= htmlspecialchars($au('how_text', 'Архив обновления заранее собирается кроном на update.crm.ru. Эта CRM не генерирует архив при каждом открытии страницы, а только скачивает готовый пакет, проверяет его и применяет после вашего подтверждения.'), ENT_QUOTES, 'UTF-8') ?>
-    </div>
-
-    <section class="updates-metrics">
-      <article class="updates-metric">
-        <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_installed', 'Текущая версия'), ENT_QUOTES, 'UTF-8') ?></div>
-        <div id="kpiInstalled" class="updates-kpi-value">...</div>
-        <p id="kpiInstalledMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_installed_loading', 'Загружаем состояние CRM.'), ENT_QUOTES, 'UTF-8') ?></p>
-      </article>
-      <article class="updates-metric">
-        <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_target', 'Доступная версия'), ENT_QUOTES, 'UTF-8') ?></div>
-        <div id="kpiTarget" class="updates-kpi-value">...</div>
-        <p id="kpiTargetMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_target_loading', 'Покажем после проверки.'), ENT_QUOTES, 'UTF-8') ?></p>
-      </article>
-      <article class="updates-metric">
-        <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_package', 'Что скачается'), ENT_QUOTES, 'UTF-8') ?></div>
-        <div id="kpiPackage" class="updates-kpi-value">...</div>
-        <p id="kpiPackageMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_package_loading', 'Готовый архив или ничего.'), ENT_QUOTES, 'UTF-8') ?></p>
-      </article>
-      <article class="updates-metric">
-        <div class="updates-kpi-label"><?= htmlspecialchars($au('kpi_risk', 'Уровень риска'), ENT_QUOTES, 'UTF-8') ?></div>
-        <div id="kpiRisk" class="updates-kpi-value">...</div>
-        <p id="kpiRiskMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_risk_loading', 'Оценим перед установкой.'), ENT_QUOTES, 'UTF-8') ?></p>
-      </article>
-    </section>
-
     <section class="updates-card">
       <div class="updates-card-head">
         <div>
@@ -265,7 +265,7 @@ $auJs = [
       </div>
       <div class="updates-details-grid">
         <div>
-          <details open>
+          <details>
             <summary><strong><?= htmlspecialchars($au('changes_title', 'Что изменится'), ENT_QUOTES, 'UTF-8') ?></strong></summary>
             <div class="mt-3">
               <div class="d-flex justify-content-between gap-2 align-items-center mb-2">
@@ -291,7 +291,7 @@ $auJs = [
           </details>
         </div>
         <div>
-          <details open>
+          <details>
             <summary><strong><?= htmlspecialchars($au('last_operation_title', 'Последняя операция'), ENT_QUOTES, 'UTF-8') ?></strong></summary>
             <div class="mt-3">
               <div class="d-flex justify-content-between gap-2 align-items-center mb-2">
@@ -462,6 +462,15 @@ $auJs = [
     btn.textContent = label;
   }
 
+  function renderControlState(kind) {
+    const control = $('updatesControl');
+    const icon = $('updatesStateIcon');
+    if (!control || !icon) return;
+    const normalized = kind || 'neutral';
+    control.dataset.kind = normalized;
+    icon.textContent = normalized === 'ok' ? '✓' : (normalized === 'danger' ? '!' : (normalized === 'warn' ? '↑' : '?'));
+  }
+
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
@@ -499,7 +508,7 @@ $auJs = [
     } else if (plan && plan.update_available === true) {
       $('nextTitle').textContent = tr('recommendFoundTitle', 'Найдено обновление');
       $('nextText').textContent = tr('recommendFoundText', 'Сначала запустите безопасную проверку. Файлы CRM на этом шаге не меняются.');
-      setPrimary('preflight', tr('primaryPreflight', 'Проверить безопасность'));
+      setPrimary('preflight', tr('primaryApply', 'Установить обновление'));
     } else if (plan) {
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
@@ -512,6 +521,7 @@ $auJs = [
     setBadge('nextStatusBadge', pipelineKind(), pipelineText());
     setBadge('nextPlanBadge', plan ? (plan.update_available === true ? 'warn' : 'ok') : 'neutral', plan ? (plan.update_available === true ? tr('statusUpdateFound', 'Есть обновление') : tr('statusNoUpdates', 'Обновлений нет')) : tr('plan_not_checked', 'Не проверено'));
     setBadge('detailsBadge', pipelineKind(), pipelineText());
+    renderControlState(pipelineKind());
   }
 
   function setLoading(action, loading) {
@@ -526,6 +536,7 @@ $auJs = [
     });
     setBadge('nextStatusBadge', loading ? 'warn' : pipelineKind(), loading ? actionLabels[action] || action : pipelineText());
     setBadge('detailsBadge', loading ? 'warn' : pipelineKind(), loading ? actionLabels[action] || action : pipelineText());
+    renderControlState(loading ? 'warn' : pipelineKind());
   }
 
   function renderStatus() {
