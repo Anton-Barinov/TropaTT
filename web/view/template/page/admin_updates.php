@@ -265,10 +265,57 @@
 	    rollback: 'восстанавливаем backup'
 	  };
 
-  async function api(url, options = {}) {
-    const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function')
-      ? window.CRM.api.getCsrfToken()
-      : decodeURIComponent((document.cookie.match(/crm_csrf_token=([^;]+)/) || [])[1] || '');
+	  function apiRouteFromUrl(url) {
+	    const raw = String(url || '');
+	    const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+	    const params = new URLSearchParams(query);
+	    const route = params.get('route') || raw.replace(/^\/+/, '');
+	    return String(route || '').replace(/^\/+/, '');
+	  }
+
+	  async function waitForCrmApi() {
+	    if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') return window.CRM.api;
+	    const started = Date.now();
+	    while (Date.now() - started < 5000) {
+	      await new Promise((resolve) => setTimeout(resolve, 100));
+	      if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') return window.CRM.api;
+	    }
+	    return null;
+	  }
+
+	  function normalizeApiError(err) {
+	    const envelope = err && err.envelope ? err.envelope : null;
+	    if (envelope) {
+	      envelope.http_status = envelope.meta && envelope.meta.status ? Number(envelope.meta.status) : 0;
+	      return envelope;
+	    }
+	    return {success: false, code: 'API_ERROR', message: String(err && err.message ? err.message : err), http_status: 0};
+	  }
+
+	  async function api(url, options = {}) {
+	    const route = apiRouteFromUrl(url);
+	    if (route.indexOf('api/v1/') === 0) {
+	      const crmApi = await waitForCrmApi();
+	      if (crmApi) {
+	        try {
+	          let body = options.body;
+	          if (typeof body === 'string' && body !== '') {
+	            try { body = JSON.parse(body); } catch (e) {}
+	          }
+	          return await crmApi.request(route, {
+	            method: options.method || 'GET',
+	            body,
+	            headers: options.headers || {},
+	            timeoutMs: options.timeoutMs || 30000
+	          });
+	        } catch (err) {
+	          return normalizeApiError(err);
+	        }
+	      }
+	    }
+	    const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function')
+	      ? window.CRM.api.getCsrfToken()
+	      : decodeURIComponent((document.cookie.match(/crm_csrf_token=([^;]+)/) || [])[1] || '');
     const headers = Object.assign({'Content-Type': 'application/json'}, options.headers || {});
     if (csrfToken && !headers['X-CSRF-Token']) headers['X-CSRF-Token'] = csrfToken;
     const res = await fetch(url, Object.assign({credentials: 'same-origin', headers}, options));
