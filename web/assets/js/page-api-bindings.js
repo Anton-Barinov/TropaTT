@@ -16386,7 +16386,7 @@ window.CRM.pageApiBindings = (function () {
     var xShifts = [0, 12, 24, 36, 48, -12, -24];
 
     for (var xi = 0; xi < xShifts.length; xi++) {
-      var vsx = sx + xShifts[i]; // vertical segment X for source side
+      var vsx = sx + xShifts[xi]; // vertical segment X for source side
       var vtx = tx + xShifts[xi]; // vertical segment X for target side
 
       for (var yi = 0; yi < yShifts.length; yi++) {
