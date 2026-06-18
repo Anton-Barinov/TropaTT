@@ -508,3 +508,40 @@ a:focus-visible {
   background: linear-gradient(150deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
   color: #fff;
 }
+
+/* Site-wide footer */
+.crm-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-topbar, 1030);
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--crm-text-muted, #6b7280);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid var(--crm-border, #e5e7eb);
+  padding: 4px 0;
+}
+
+.crm-footer a {
+  color: var(--crm-text-muted, #6b7280);
+  text-decoration: none;
+}
+
+.crm-footer a:hover {
+  color: var(--color-primary-600, #2563eb);
+  text-decoration: underline;
+}
+
+.crm-footer-update-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}

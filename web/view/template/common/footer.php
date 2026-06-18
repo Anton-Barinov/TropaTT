@@ -156,6 +156,56 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
 </script>
 <?php endif; ?>
 
+<footer class="crm-footer">
+  <span>
+    <a href="https://github.com/Anton-Barinov" target="_blank" rel="noopener">Anton-Barinov</a>
+    · © <?= date('Y') ?>
+    · TropaTT v<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>
+    · <a href="https://github.com/Anton-Barinov/TropaTT" target="_blank" rel="noopener">GitHub</a>
+    <span id="crmUpdateBadge" class="crm-footer-update-badge d-none"></span>
+  </span>
+</footer>
+
+<script>
+(function () {
+  try {
+    var badge = document.getElementById('crmUpdateBadge');
+    if (!badge) return;
+    var cached = sessionStorage.getItem('crm_update_check');
+    if (cached) {
+      try {
+        var data = JSON.parse(cached);
+        if (data && data.hasUpdate && data.latestVersion) {
+          badge.textContent = '\u{1F514} ' + data.latestVersion + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
+          badge.classList.remove('d-none');
+        }
+      } catch (e) {}
+      return;
+    }
+    // Check GitHub for latest release
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.github.com/repos/Anton-Barinov/TropaTT/releases/latest', true);
+    xhr.timeout = 8000;
+    xhr.onload = function () {
+      try {
+        var resp = JSON.parse(xhr.responseText);
+        var latest = resp && resp.tag_name;
+        var current = '<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>';
+        if (latest && current && latest !== current) {
+          sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latest }));
+          badge.textContent = '\u{1F514} ' + latest + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
+          badge.classList.remove('d-none');
+        } else {
+          sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: false }));
+        }
+      } catch (e) {}
+    };
+    xhr.onerror = function () {};
+    xhr.send();
+  } catch (e) {}
+})();
+</script>
+
 <div class="modal fade" id="crmConfirmModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">

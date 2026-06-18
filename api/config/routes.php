@@ -15,6 +15,19 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/health/status', 'controller' => Api\Controller\Health\HealthController::class, 'action' => 'status', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/health/deep', 'controller' => Api\Controller\Health\HealthController::class, 'action' => 'deep', 'auth' => true],
 
+    // public version check (no auth required)
+    ['methods' => ['GET'], 'pattern' => '/api/v1/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => false],
+
+    // core update system
+    ['methods' => ['GET'], 'pattern' => '/api/v1/core/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/status', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'status', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/check', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'check', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/changes', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'changes', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/preflight', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'preflight', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/session', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'session', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/history', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'history', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/log/{job_id}', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'log', 'auth' => true],
+
     // auth
     ['methods' => ['POST'], 'pattern' => '/api/v1/auth/login', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'login', 'auth' => false],
     ['methods' => ['POST'], 'pattern' => '/api/v1/auth/logout', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'logout', 'auth' => true],
