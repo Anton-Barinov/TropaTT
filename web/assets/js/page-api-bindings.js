@@ -16348,8 +16348,8 @@ window.CRM.pageApiBindings = (function () {
   // ── Obstacle boxes for routing ──────────────────────────────────
   function crmGanttBuildObstacles(taskLookup) {
     var obstacles = [];
-    var PAD_X = 12;
-    var PAD_Y = 6;
+    var PAD_X = 8;
+    var PAD_Y = 4;
     var keys = Object.keys(taskLookup);
     for (var i = 0; i < keys.length; i++) {
       var t = taskLookup[keys[i]];
@@ -16366,7 +16366,6 @@ window.CRM.pageApiBindings = (function () {
 
   // ── Route normal dependency: right edge of source → left edge of target ──
   // Uses corridor routing: exit source → corridor between rows → enter target
-  // Checks ALL segments against obstacles, not just horizontal
   function crmGanttRouteNormal(src, tgt, obstacles) {
     var sx = src.right + 2;
     var sy = src.centerY;
@@ -16378,35 +16377,11 @@ window.CRM.pageApiBindings = (function () {
       return [{ x: sx, y: sy }, { x: tx, y: ty }];
     }
 
-    // Find a safe corridorY and verify the full route avoids obstacles
+    // Find a safe corridorY between source and target rows
     var corridorY = crmGanttFindCorridorY(src, tgt, obstacles);
 
-    // Try multiple corridor positions AND X offsets for vertical segments
-    var yShifts = [0, -8, 8, -16, 16, -24, 24, -32, 32];
-    var xShifts = [0, 12, 24, 36, 48, -12, -24];
-
-    for (var xi = 0; xi < xShifts.length; xi++) {
-      var vsx = sx + xShifts[xi]; // vertical segment X for source side
-      var vtx = tx + xShifts[xi]; // vertical segment X for target side
-
-      for (var yi = 0; yi < yShifts.length; yi++) {
-        var cy = corridorY + yShifts[yi];
-        if (cy < 2) continue;
-
-        var segH = { x1: vsx, y1: cy, x2: vtx, y2: cy };
-        var segV1 = { x1: vsx, y1: src.bottom + 2, x2: vsx, y2: cy };
-        var segV2 = { x1: vtx, y1: cy, x2: vtx, y2: tgt.top - 2 };
-
-        if (!crmGanttSegmentHitsObstacle(segH, obstacles) &&
-            !crmGanttSegmentHitsObstacle(segV1, obstacles) &&
-            !crmGanttSegmentHitsObstacle(segV2, obstacles)) {
-          return [{ x: sx, y: src.bottom + 2 }, { x: vsx, y: src.bottom + 2 }, { x: vsx, y: cy }, { x: vtx, y: cy }, { x: vtx, y: tgt.top - 2 }, { x: tx, y: tgt.top - 2 }];
-        }
-      }
-    }
-
-    // Fallback: original route
-    return [{ x: sx, y: src.bottom + 2 }, { x: sx, y: corridorY }, { x: tx, y: corridorY }, { x: tx, y: tgt.top - 2 }];
+    // Route: exit source → corridorY → enter target
+    return [{ x: sx, y: sy }, { x: sx, y: corridorY }, { x: tx, y: corridorY }, { x: tx, y: ty }];
   }
 
   // Find a safe Y between rows where horizontal segments won't hit obstacles
