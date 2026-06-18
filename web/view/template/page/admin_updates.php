@@ -554,6 +554,10 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
       $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
+    } else if (plan && plan.update_available !== true) {
+      $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
+      $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
+      setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
     } else if (state.download) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
@@ -566,10 +570,6 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendFoundTitle', 'Найдено обновление');
       $('nextText').textContent = tr('recommendFoundText', 'Сначала запустите безопасную проверку. Файлы CRM на этом шаге не меняются.');
       setPrimary('install', tr('primaryApply', 'Установить обновление'));
-    } else if (plan) {
-      $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
-      $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
-      setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
     } else {
       $('nextTitle').textContent = tr('recommendCheckTitle', 'Проверьте наличие обновлений');
       $('nextText').textContent = tr('recommendCheckText', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.');
@@ -792,6 +792,9 @@ $auJs = [
     ensureSuccess(result, tr('errApply', 'Не удалось установить обновление.'));
     state.apply = result;
     renderApply();
+    state.preflight = null;
+    state.download = null;
+    state.changes = null;
     await loadStatus();
     await check();
   }
@@ -816,6 +819,9 @@ $auJs = [
     ensureSuccess(result, tr('errRollback', 'Не удалось восстановить backup.'));
     state.apply = result;
     renderApply();
+    state.preflight = null;
+    state.download = null;
+    state.changes = null;
     await loadStatus();
   }
 
