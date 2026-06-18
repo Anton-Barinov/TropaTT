@@ -16366,6 +16366,7 @@ window.CRM.pageApiBindings = (function () {
 
   // ── Route normal dependency: right edge of source → left edge of target ──
   // Uses corridor routing: exit source → corridor between rows → enter target
+  // Checks ALL segments against obstacles, not just horizontal
   function crmGanttRouteNormal(src, tgt, obstacles) {
     var sx = src.right + 2;
     var sy = src.centerY;
@@ -16377,10 +16378,31 @@ window.CRM.pageApiBindings = (function () {
       return [{ x: sx, y: sy }, { x: tx, y: ty }];
     }
 
-    // Find a safe corridorY between source and target rows
+    // Find a safe corridorY and verify the full route avoids obstacles
     var corridorY = crmGanttFindCorridorY(src, tgt, obstacles);
 
-    // Route: exit source → corridorY → enter target
+    // Build candidate routes: try corridorY, then shift up/down
+    var shifts = [0, -8, 8, -16, 16, -24, 24, -32, 32];
+    for (var s = 0; s < shifts.length; s++) {
+      var cy = corridorY + shifts[s];
+      if (cy < 2) continue;
+
+      // Check all three segments against obstacles
+      var segH = { x1: sx, y1: cy, x2: tx, y2: cy };
+      var segV1 = { x1: sx, y1: sy, x2: sx, y2: cy };
+      var segV2 = { x1: tx, y1: cy, x2: tx, y2: ty };
+
+      if (crmGanttSegmentHitsObstacle(segH, obstacles) ||
+          crmGanttSegmentHitsObstacle(segV1, obstacles) ||
+          crmGanttSegmentHitsObstacle(segV2, obstacles)) {
+        continue; // this corridor hits an obstacle, try next
+      }
+
+      // Safe route found
+      return [{ x: sx, y: sy }, { x: sx, y: cy }, { x: tx, y: cy }, { x: tx, y: ty }];
+    }
+
+    // Fallback: use original corridorY even if it hits obstacles
     return [{ x: sx, y: sy }, { x: sx, y: corridorY }, { x: tx, y: corridorY }, { x: tx, y: ty }];
   }
 
