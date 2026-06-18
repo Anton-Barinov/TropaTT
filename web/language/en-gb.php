@@ -4275,6 +4275,11 @@ return array (
     'modal_delete_title' => 'Delete rule?',
     'modal_delete_subtitle' => 'This action cannot be undone. All related log entries will be preserved.',
   ),
+  'admin_updates' =>
+  array (
+    'title' => 'TropaTT — Updates',
+    'page_title' => 'TropaTT Core Updates',
+  ),
   'admin_webhooks' => 
   array (
     'title' => 'TropaTT — Webhooks',
