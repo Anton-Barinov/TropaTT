@@ -6,6 +6,7 @@
 !/docs/
 !/modules/
 !/web/
+!/updater/
 
 # Allow only these root files
 !/AGENTS.md
@@ -20,6 +21,13 @@
 !/SUPPORT.md
 
 !/.gitignore
+
+# Local one-click update runtime. Keep this deployable with the core,
+# but do not ever allow private updater keys to be committed.
+!/updater/**
+/updater/keys/*
+/updater/**/*.key
+/updater/**/*private*
 
 # Public documentation
 /docs/*
@@ -43,6 +51,8 @@
 *.csr
 *.jks
 *.keystore
+
+!/updater/keys/update_public.pem
 
 id_rsa
 id_rsa.*
