@@ -282,11 +282,12 @@
     const version = state.version || {};
     const installed = version.state ? version : (status.installed_core || {});
     const latest = status.latest_job || null;
+    const auditExists = !!status.audit;
     const auditOk = !!(status.audit && status.audit.health_ok);
     const maintenance = !!status.maintenance;
 
-    $('pillCenter').className = dotClass(auditOk ? 'ok' : 'warn');
-    $('pillCenterText').textContent = auditOk ? 'Update center: OK' : 'Update center: требует проверки';
+    $('pillCenter').className = dotClass(auditOk ? 'ok' : (auditExists ? 'warn' : ''));
+    $('pillCenterText').textContent = auditOk ? 'Update center: OK' : (auditExists ? 'Update center: требует проверки' : 'Update center: audit не создан');
     $('pillVersion').className = dotClass(installed.core_build ? 'ok' : 'warn');
     $('pillVersionText').textContent = installed.core_build ? `Версия: ${installed.core_build}` : 'Версия: не принята';
     $('pillJob').className = dotClass(latest && latest.state === 'failed' ? 'danger' : latest ? 'ok' : 'warn');
@@ -319,11 +320,12 @@
     $('updatesPlanRaw').textContent = pretty(plan);
     if (!plan) return;
     const pkg = plan.recommended_package;
-    const risk = plan.summary && plan.summary.risk_level ? plan.summary.risk_level : 'unknown';
+    const risk = plan.summary && plan.summary.risk_level ? plan.summary.risk_level : (plan.update_available ? 'unknown' : 'нет');
+    const displayTarget = plan.target_build || plan.current_build || (plan.update_available ? 'unknown' : 'latest');
 
-    $('kpiTarget').textContent = plan.target_build || '...';
+    $('kpiTarget').textContent = displayTarget;
     $('kpiTargetMeta').textContent = plan.update_available ? `Доступно обновление с ${plan.current_build || 'unknown'}` : 'Текущая версия уже latest.';
-    $('kpiPackage').textContent = pkg ? String(pkg.type || 'package').toUpperCase() : 'нет';
+    $('kpiPackage').textContent = pkg ? String(pkg.type || 'package').toUpperCase() : 'не требуется';
     $('kpiPackageMeta').textContent = pkg ? `${bytes(pkg.size_bytes)} | SHA ${String(pkg.sha256 || '').slice(0, 12)}...` : 'Пакет не требуется.';
     $('kpiRisk').textContent = risk;
     $('kpiRiskMeta').textContent = plan.requires ? [
@@ -336,7 +338,7 @@
     $('planBadge').textContent = plan.update_available ? 'Есть обновление' : 'Latest';
     $('planContent').innerHTML = plan.update_available ? list({
       'Текущая сборка': plan.current_build || 'unknown',
-      'Целевая сборка': plan.target_build || 'unknown',
+      'Целевая сборка': displayTarget,
       'Пакет': pkg ? String(pkg.type).toUpperCase() : 'нет',
       'Размер': pkg ? bytes(pkg.size_bytes) : '0 Б',
       'Target SHA': plan.target_sha ? `${String(plan.target_sha).slice(0, 12)}...` : 'n/a',
