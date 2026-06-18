@@ -16396,10 +16396,8 @@ window.CRM.pageApiBindings = (function () {
     var gapBottom = Math.min(src.bottom, tgt.bottom);
     var preferred;
     if (gapBottom > gapTop) {
-      // Bars overlap vertically — use midpoint of overlap
       preferred = (gapTop + gapBottom) / 2;
     } else {
-      // Bars don't overlap — use midpoint of gap between them
       preferred = (gapBottom + gapTop) / 2;
     }
 
@@ -16408,13 +16406,15 @@ window.CRM.pageApiBindings = (function () {
       return preferred;
     }
 
-    // Try corridors: above source, below source, above target, below target
+    // Try wide range of corridors above and below
     var candidates = [
-      src.top - 4, src.bottom + 4,
-      tgt.top - 4, tgt.bottom + 4,
-      preferred - 6, preferred + 6,
-      preferred - 12, preferred + 12,
-      preferred - 18, preferred + 18
+      src.top - 10, src.bottom + 10,
+      tgt.top - 10, tgt.bottom + 10,
+      preferred - 10, preferred + 10,
+      preferred - 20, preferred + 20,
+      preferred - 30, preferred + 30,
+      preferred - 40, preferred + 40,
+      preferred - 50, preferred + 50
     ];
     for (var i = 0; i < candidates.length; i++) {
       var cy = candidates[i];
