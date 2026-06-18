@@ -124,47 +124,45 @@ $auJs = [
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-admin-updates-page">
+<main class="crm-content crm-admin-page crm-admin-updates-page">
   <style>
     .crm-admin-updates-page {
-      --update-ok:#0f766e; --update-warn:#b45309; --update-danger:#b42318; --update-ink:#101828; --update-line:#e4e7ec;
-      background: radial-gradient(circle at 82% 0%, rgba(15,118,110,.08), transparent 30%), linear-gradient(180deg, #f8fafc 0%, #fff 420px);
+      --update-ok:#0f766e; --update-warn:#b45309; --update-danger:#b42318; --update-ink:#111827; --update-line:#e5e7eb;
     }
     .updates-shell { max-width:1180px; margin:0 auto; }
-    .updates-hero { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); gap:18px; margin-bottom:16px; }
-    .updates-panel, .updates-card { border:1px solid var(--update-line); border-radius:24px; background:rgba(255,255,255,.95); box-shadow:0 18px 44px rgba(16,24,40,.07); }
-    .updates-panel { padding:28px; position:relative; overflow:hidden; }
-    .updates-panel:after { content:""; position:absolute; right:-80px; bottom:-90px; width:250px; height:250px; border-radius:999px; background:rgba(15,118,110,.08); }
-    .updates-kicker { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; color:#344054; font-weight:800; font-size:.82rem; }
-    .updates-kicker:before { content:""; width:10px; height:10px; border-radius:999px; background:var(--update-ok); box-shadow:0 0 0 5px rgba(15,118,110,.12); }
-    .updates-title { margin:0; color:var(--update-ink); font-size:clamp(2rem,3vw,3.2rem); line-height:1; letter-spacing:-.045em; font-weight:900; max-width:720px; }
-    .updates-subtitle { max-width:680px; margin:15px 0 0; color:#475467; line-height:1.6; font-size:1rem; }
-    .updates-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
-    .updates-actions .btn { border-radius:999px; padding:.62rem 1rem; font-weight:800; }
-    .updates-status-card { padding:24px; display:flex; flex-direction:column; justify-content:space-between; gap:18px; }
-    .updates-status-label { color:#667085; font-weight:800; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; }
-    .updates-status-title { margin:7px 0 8px; color:var(--update-ink); font-size:1.55rem; line-height:1.12; font-weight:900; letter-spacing:-.02em; }
+    .updates-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.58fr); gap:16px; margin-bottom:16px; }
+    .updates-panel, .updates-card { border:1px solid var(--update-line); border-radius:18px; background:#fff; box-shadow:0 12px 30px rgba(15,23,42,.05); }
+    .updates-panel { padding:20px; }
+    .updates-kicker { display:none; }
+    .updates-title { margin:0; color:var(--update-ink); font-size:1.15rem; line-height:1.25; font-weight:800; letter-spacing:-.01em; }
+    .updates-subtitle { max-width:760px; margin:8px 0 0; color:#64748b; line-height:1.55; font-size:.93rem; }
+    .updates-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    .updates-actions .btn { border-radius:10px; padding:.52rem .82rem; font-weight:700; }
+    .updates-status-card { padding:20px; display:flex; flex-direction:column; justify-content:space-between; gap:14px; }
+    .updates-status-label { color:#64748b; font-weight:700; font-size:.78rem; }
+    .updates-status-title { margin:6px 0 8px; color:var(--update-ink); font-size:1.12rem; line-height:1.25; font-weight:800; letter-spacing:-.01em; }
     .updates-status-text { margin:0; color:#475467; line-height:1.55; }
     .updates-status-foot { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .updates-notice { display:none; margin:0 0 16px; border-radius:18px; padding:14px 16px; border:1px solid #fecaca; background:#fff1f2; color:#9f1239; font-weight:700; }
+    .updates-notice { display:none; margin:0 0 16px; border-radius:14px; padding:12px 14px; border:1px solid #fecaca; background:#fff1f2; color:#9f1239; font-weight:700; }
     .updates-notice.show { display:block; }
     .updates-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .updates-metric { border:1px solid var(--update-line); border-radius:18px; background:#fff; padding:16px; min-height:126px; }
-    .updates-kpi-label { color:#667085; font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
-    .updates-kpi-value { margin-top:10px; font-size:1.55rem; font-weight:900; color:var(--update-ink); line-height:1.05; overflow-wrap:anywhere; }
+    .updates-metric { border:1px solid var(--update-line); border-radius:16px; background:#fff; padding:16px; min-height:118px; box-shadow:0 10px 24px rgba(15,23,42,.04); }
+    .updates-kpi-label { color:#64748b; font-size:.78rem; font-weight:700; }
+    .updates-kpi-value { margin-top:10px; font-size:1.35rem; font-weight:800; color:var(--update-ink); line-height:1.08; overflow-wrap:anywhere; }
     .updates-muted { color:#667085; font-size:.9rem; line-height:1.5; }
-    .updates-pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; position:relative; z-index:1; }
-    .updates-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #d0d5dd; border-radius:999px; background:#fff; color:#344054; font-size:.82rem; font-weight:750; }
-    .updates-dot { width:9px; height:9px; border-radius:50%; background:#98a2b3; box-shadow:0 0 0 4px rgba(152,162,179,.12); }
-    .updates-dot.ok { background:var(--update-ok); box-shadow:0 0 0 4px rgba(15,118,110,.14); }
-    .updates-dot.warn { background:var(--update-warn); box-shadow:0 0 0 4px rgba(180,83,9,.13); }
-    .updates-dot.danger { background:var(--update-danger); box-shadow:0 0 0 4px rgba(180,35,24,.13); }
-    .updates-info { border-radius:18px; border:1px solid #d0d5dd; background:#fff; color:#344054; padding:15px 16px; margin:0 0 16px; line-height:1.55; }
+    .updates-pill-row { display:grid; gap:8px; margin-top:14px; }
+    .updates-pill { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9; color:#344054; font-size:.84rem; font-weight:650; }
+    .updates-pill:last-child { border-bottom:0; }
+    .updates-dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; }
+    .updates-dot.ok { background:var(--update-ok); }
+    .updates-dot.warn { background:var(--update-warn); }
+    .updates-dot.danger { background:var(--update-danger); }
+    .updates-info { border-radius:16px; border:1px solid #dbeafe; background:#f8fbff; color:#334155; padding:13px 14px; margin:0 0 16px; line-height:1.55; }
     .updates-info strong { color:#101828; }
     .updates-card { padding:20px; margin-bottom:14px; }
     .updates-card-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; margin-bottom:14px; }
-    .updates-card h2 { margin:0; font-size:1.08rem; font-weight:900; color:var(--update-ink); letter-spacing:-.01em; }
-    .updates-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:6px 10px; font-size:.76rem; font-weight:850; border:1px solid #d0d5dd; background:#f9fafb; color:#344054; white-space:nowrap; }
+    .updates-card h2 { margin:0; font-size:1rem; font-weight:800; color:var(--update-ink); letter-spacing:-.01em; }
+    .updates-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 9px; font-size:.74rem; font-weight:750; border:1px solid #d0d5dd; background:#f9fafb; color:#344054; white-space:nowrap; }
     .updates-badge.ok { color:#0f766e; background:#ecfdf3; border-color:#abefc6; }
     .updates-badge.warn { color:#b45309; background:#fffaeb; border-color:#fedf89; }
     .updates-badge.danger { color:#b42318; background:#fef3f2; border-color:#fecdca; }
@@ -178,34 +176,36 @@ $auJs = [
     .updates-file-table th, .updates-file-table td { padding:10px 9px; border-bottom:1px solid #eaecf0; vertical-align:top; font-size:.86rem; }
     .updates-file-table th { color:#667085; font-size:.73rem; letter-spacing:.04em; text-transform:uppercase; }
     .updates-file-table td:first-child { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
-    .updates-empty { border:1px dashed #d0d5dd; border-radius:16px; padding:16px; color:#667085; background:#f9fafb; }
+    .updates-empty { border:1px dashed #d0d5dd; border-radius:14px; padding:14px; color:#667085; background:#f9fafb; }
     .updates-raw { margin-top:12px; border-top:1px solid #eaecf0; padding-top:10px; }
     .updates-raw summary { cursor:pointer; color:#475467; font-weight:800; font-size:.84rem; }
-    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:14px; background:#101828; color:#d1e9ff; padding:12px; font-size:.78rem; }
+    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-size:.78rem; }
     .updates-danger-zone { border-color:#fecdca; background:linear-gradient(180deg,#fff,#fffbfa); }
     .updates-danger-zone h2 { color:#b42318; }
     @media (max-width:1120px) { .updates-hero,.updates-details-grid { grid-template-columns:1fr; } .updates-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width:720px) { .updates-shell { padding:0 2px; } .updates-panel,.updates-card,.updates-status-card { border-radius:18px; padding:18px; } .updates-metrics { grid-template-columns:1fr; } }
+    @media (max-width:720px) { .updates-shell { padding:0 2px; } .updates-panel,.updates-card,.updates-status-card { border-radius:16px; padding:16px; } .updates-metrics { grid-template-columns:1fr; } }
   </style>
 
   <div class="updates-shell">
     <div id="updatesNotice" class="updates-notice"></div>
+    <div class="crm-page-head">
+      <div>
+        <ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="nav.admin"><?= htmlspecialchars($t('nav.admin', 'Администрирование'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active"><?= htmlspecialchars($au('kicker', 'Центр обновлений'), ENT_QUOTES, 'UTF-8') ?></li></ol>
+        <h1 class="crm-page-title"><?= htmlspecialchars($au('headline', 'Обновления системы'), ENT_QUOTES, 'UTF-8') ?></h1>
+        <p class="crm-subtitle"><?= htmlspecialchars($au('subtitle', 'Проверка версии, подготовка архива и безопасная установка обновлений CRM.'), ENT_QUOTES, 'UTF-8') ?></p>
+      </div>
+      <div class="crm-page-actions">
+        <button class="btn crm-btn-secondary" type="button" data-update-action="refresh"><?= htmlspecialchars($au('btn_refresh', 'Обновить статус'), ENT_QUOTES, 'UTF-8') ?></button>
+        <a class="btn crm-btn-secondary" href="/updater/rescue.php" target="_blank" rel="noopener"><?= htmlspecialchars($au('btn_recovery', 'Аварийное восстановление'), ENT_QUOTES, 'UTF-8') ?></a>
+      </div>
+    </div>
     <section class="updates-hero">
       <div class="updates-panel">
-        <div class="updates-kicker"><?= htmlspecialchars($au('kicker', 'Центр обновлений'), ENT_QUOTES, 'UTF-8') ?></div>
-        <h1 class="updates-title"><?= htmlspecialchars($au('headline', 'Обновления без лишнего риска'), ENT_QUOTES, 'UTF-8') ?></h1>
-        <p class="updates-subtitle"><?= htmlspecialchars($au('subtitle', 'CRM проверит доступную сборку, подготовит архив и подскажет следующий безопасный шаг.'), ENT_QUOTES, 'UTF-8') ?></p>
+        <h2 class="updates-title"><?= htmlspecialchars($au('recommendation_label', 'Рекомендация'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p class="updates-subtitle"><?= htmlspecialchars($au('recommend_check_text', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.'), ENT_QUOTES, 'UTF-8') ?></p>
         <div class="updates-actions">
           <button id="primaryActionBtn" class="btn crm-btn-primary" type="button" data-update-action="check"><?= htmlspecialchars($au('btn_check', 'Проверить обновления'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button class="btn crm-btn-secondary" type="button" data-update-action="refresh"><?= htmlspecialchars($au('btn_refresh', 'Обновить статус'), ENT_QUOTES, 'UTF-8') ?></button>
           <button class="btn crm-btn-secondary" type="button" data-update-action="changes"><?= htmlspecialchars($au('btn_changes', 'Что изменится?'), ENT_QUOTES, 'UTF-8') ?></button>
-          <a class="btn crm-btn-secondary" href="/updater/rescue.php" target="_blank" rel="noopener"><?= htmlspecialchars($au('btn_recovery', 'Аварийное восстановление'), ENT_QUOTES, 'UTF-8') ?></a>
-        </div>
-        <div class="updates-pill-row">
-          <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText"><?= htmlspecialchars($au('center_checking', 'Сервер обновлений проверяется'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText"><?= htmlspecialchars($au('version_checking', 'Версия пока неизвестна'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText"><?= htmlspecialchars($au('job_checking', 'Операций еще не было'), ENT_QUOTES, 'UTF-8') ?></span></span>
-          <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText"><?= htmlspecialchars($au('maintenance_checking', 'CRM работает штатно'), ENT_QUOTES, 'UTF-8') ?></span></span>
         </div>
       </div>
       <aside class="updates-card updates-status-card">
@@ -217,6 +217,12 @@ $auJs = [
         <div class="updates-status-foot">
           <span id="nextStatusBadge" class="updates-badge neutral"><?= htmlspecialchars($au('status_checking', 'Проверяем...'), ENT_QUOTES, 'UTF-8') ?></span>
           <span id="nextPlanBadge" class="updates-badge neutral"><?= htmlspecialchars($au('plan_not_checked', 'Не проверено'), ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
+        <div class="updates-pill-row">
+          <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText"><?= htmlspecialchars($au('center_checking', 'Сервер обновлений проверяется'), ENT_QUOTES, 'UTF-8') ?></span></span>
+          <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText"><?= htmlspecialchars($au('version_checking', 'Версия пока неизвестна'), ENT_QUOTES, 'UTF-8') ?></span></span>
+          <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText"><?= htmlspecialchars($au('job_checking', 'Операций еще не было'), ENT_QUOTES, 'UTF-8') ?></span></span>
+          <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText"><?= htmlspecialchars($au('maintenance_checking', 'CRM работает штатно'), ENT_QUOTES, 'UTF-8') ?></span></span>
         </div>
       </aside>
     </section>
