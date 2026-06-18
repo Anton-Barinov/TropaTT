@@ -69,7 +69,7 @@
     <div class="updates-hero-main">
       <div>
         <p class="updates-eyebrow">Core update center</p>
-        <h1 class="updates-title" data-i18n="admin_updates.page_title"><?= htmlspecialchars($t('admin_updates.page_title', 'Обновления ядра TropaTT'), ENT_QUOTES, 'UTF-8') ?></h1>
+        <h1 class="updates-title">Обновления ядра TropaTT</h1>
         <p class="updates-subtitle">Один экран для проверки update.crm.ru, просмотра changelog, preflight, скачивания готового архива, применения обновления и аварийного восстановления.</p>
       </div>
       <div class="updates-actions">
