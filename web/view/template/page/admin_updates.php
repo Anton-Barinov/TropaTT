@@ -319,6 +319,7 @@ $auJs = [
 (function () {
   const i18n = <?= json_encode($auJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   const state = { status: null, version: null, plan: null, changes: null, preflight: null, download: null, apply: null, lastJobId: null };
+  let crmSessionPromise = null;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
   const pretty = (value) => JSON.stringify(value || {}, null, 2);
@@ -364,6 +365,19 @@ $auJs = [
     return null;
   }
 
+  async function ensureCrmSession(crmApi, method) {
+    const writeMethod = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(String(method || 'GET').toUpperCase());
+    if (!writeMethod || !crmApi || typeof crmApi.getCsrfToken !== 'function' || typeof crmApi.me !== 'function') return;
+    if (crmApi.getCsrfToken()) return;
+    if (!crmSessionPromise) {
+      crmSessionPromise = crmApi.me().catch((err) => {
+        crmSessionPromise = null;
+        throw err;
+      });
+    }
+    await crmSessionPromise;
+  }
+
   function normalizeApiError(err) {
     const envelope = err && err.envelope ? err.envelope : null;
     if (envelope) {
@@ -379,6 +393,7 @@ $auJs = [
       const crmApi = await waitForCrmApi();
       if (crmApi) {
         try {
+          await ensureCrmSession(crmApi, options.method || 'GET');
           let body = options.body;
           if (typeof body === 'string' && body !== '') {
             try { body = JSON.parse(body); } catch (e) {}

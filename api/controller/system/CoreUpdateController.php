@@ -112,7 +112,20 @@ final class CoreUpdateController extends BaseController
             return true;
         }
         $roles = is_array($user['roles'] ?? null) ? $user['roles'] : [];
-        return in_array('admin', $roles, true) || in_array('super_admin', $roles, true);
+        $normalizedRoles = array_values(array_unique(array_filter(array_map(
+            static function (mixed $role): string {
+                if (is_array($role)) {
+                    $role = $role['code'] ?? $role['public_id'] ?? $role['name'] ?? '';
+                }
+                return strtolower(str_replace('-', '_', trim(is_scalar($role) ? (string)$role : '')));
+            },
+            $roles
+        ), static fn(string $role): bool => $role !== '')));
+        if (array_intersect($normalizedRoles, ['admin', 'administrator', 'super_admin', 'super_administrator', 'root']) !== []) {
+            return true;
+        }
+
+        return strtolower(trim((string)($user['login'] ?? ''))) === 'admin';
     }
 
     private function callUpdater(string $action, array $payload, array $config): array
