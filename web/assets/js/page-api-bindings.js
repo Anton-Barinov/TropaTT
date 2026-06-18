@@ -16497,10 +16497,10 @@ window.CRM.pageApiBindings = (function () {
 
     // ⚠ warning icon: circle with ! mark
     parts.push(
-      '<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '">'
-      + '<circle cx="' + bx + '" cy="' + by + '" r="' + r + '" fill="white" stroke="#ea580c" stroke-width="1.5" style="pointer-events:auto;cursor:pointer;"/>'
-      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round" style="pointer-events:none;"/>'
-      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1.2" fill="#ea580c" style="pointer-events:none;"/>'
+      '<g class="gantt-conflict-marker" data-conflict-idx="' + idx + '" style="pointer-events:auto;cursor:pointer;">'
+      + '<circle cx="' + bx + '" cy="' + by + '" r="' + r + '" fill="white" stroke="#ea580c" stroke-width="1.5"/>'
+      + '<line x1="' + bx + '" y1="' + (by - 3.5) + '" x2="' + bx + '" y2="' + (by + 0.5) + '" stroke="#ea580c" stroke-width="2" stroke-linecap="round"/>'
+      + '<circle cx="' + bx + '" cy="' + (by + 3.5) + '" r="1.2" fill="#ea580c"/>'
       + '<title>' + tipLines.join('\n').replace(/"/g, '&quot;') + '</title>'
       + '</g>'
     );
