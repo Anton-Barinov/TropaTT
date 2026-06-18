@@ -199,6 +199,15 @@ $auJs = [
     .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-size:.78rem; }
     .updates-danger-zone { border-color:#fecdca; background:linear-gradient(180deg,#fff,#fffbfa); }
     .updates-danger-zone h2 { color:#b42318; }
+    .crm-admin-updates-page .crm-subtitle,
+    .crm-admin-updates-page .updates-control-text,
+    .crm-admin-updates-page .updates-muted,
+    .crm-admin-updates-page .updates-pill-row,
+    .crm-admin-updates-page .updates-raw,
+    .crm-admin-updates-page #nextPlanBadge,
+    .crm-admin-updates-page #detailsBadge {
+      display:none !important;
+    }
     @media (max-width:1120px) { .updates-control-main { grid-template-columns:56px minmax(0,1fr); } .updates-control-actions { grid-column:1 / -1; justify-content:flex-start; } .updates-control-meta,.updates-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (max-width:720px) { .updates-shell { padding:0 2px; } .updates-control-main { grid-template-columns:1fr; padding:18px; } .updates-state-icon { width:48px; height:48px; border-radius:14px; } .updates-control-title { font-size:1.3rem; } .updates-control-actions .btn { width:100%; justify-content:center; } .updates-control-meta { grid-template-columns:1fr; } .updates-meta-item { border-right:0; border-bottom:1px solid var(--update-line); } .updates-meta-item:last-child { border-bottom:0; } .updates-panel,.updates-card,.updates-status-card { border-radius:16px; padding:16px; } }
   </style>
