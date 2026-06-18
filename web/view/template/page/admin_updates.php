@@ -3,198 +3,231 @@
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-updates-page">
-  <style>
-    .crm-admin-updates-page { --update-ok:#0f8f72; --update-warn:#b7791f; --update-danger:#c2410c; --update-ink:#172033; }
-    .updates-hero {
-      position: relative; overflow: hidden; border: 1px solid rgba(15,143,114,.18); border-radius: 22px;
-      padding: 24px; margin-bottom: 18px; background:
-        radial-gradient(circle at 10% 0%, rgba(20,184,166,.18), transparent 28%),
-        linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,253,250,.92));
-      box-shadow: 0 18px 44px rgba(15, 23, 42, .08);
-    }
-    .updates-hero:after { content:""; position:absolute; right:-70px; top:-90px; width:220px; height:220px; border-radius:999px; background:rgba(15,143,114,.08); }
-    .updates-hero-main { position:relative; z-index:1; display:flex; justify-content:space-between; gap:18px; align-items:flex-start; flex-wrap:wrap; }
-    .updates-eyebrow { margin:0 0 8px; color:var(--crm-accent-strong); font-weight:800; letter-spacing:.08em; text-transform:uppercase; font-size:.72rem; }
-    .updates-title { margin:0; color:var(--update-ink); font-size:clamp(1.65rem, 2.5vw, 2.4rem); line-height:1.05; font-weight:850; }
-    .updates-subtitle { max-width:760px; margin:10px 0 0; color:var(--crm-text-muted); line-height:1.55; }
-    .updates-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; max-width:560px; }
-    .updates-pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
-    .updates-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid rgba(15,143,114,.16); border-radius:999px; background:rgba(255,255,255,.72); color:var(--crm-text); font-size:.82rem; font-weight:700; }
-    .updates-dot { width:9px; height:9px; border-radius:50%; background:var(--crm-text-muted); box-shadow:0 0 0 4px rgba(100,116,139,.1); }
-    .updates-dot.ok { background:var(--update-ok); box-shadow:0 0 0 4px rgba(15,143,114,.12); }
-    .updates-dot.warn { background:var(--update-warn); box-shadow:0 0 0 4px rgba(183,121,31,.12); }
-    .updates-dot.danger { background:var(--update-danger); box-shadow:0 0 0 4px rgba(194,65,12,.12); }
-    .updates-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; }
-    .updates-card { border:1px solid var(--crm-border); border-radius:18px; background:var(--crm-surface); padding:18px; box-shadow:var(--shadow-sm); min-height:100%; }
-    .updates-card.span-3 { grid-column:span 3; } .updates-card.span-4 { grid-column:span 4; } .updates-card.span-5 { grid-column:span 5; } .updates-card.span-7 { grid-column:span 7; } .updates-card.span-12 { grid-column:span 12; }
-    .updates-card-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
-    .updates-card h2 { margin:0; font-size:1rem; font-weight:800; color:var(--update-ink); }
-    .updates-muted { color:var(--crm-text-muted); font-size:.86rem; line-height:1.45; }
-    .updates-kpi-value { margin-top:8px; font-size:1.45rem; font-weight:850; color:var(--update-ink); line-height:1.08; overflow-wrap:anywhere; }
-    .updates-kpi-label { color:var(--crm-text-muted); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-    .updates-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 9px; font-size:.75rem; font-weight:800; border:1px solid var(--crm-border); background:var(--crm-surface-2); color:var(--crm-text); }
-    .updates-badge.ok { color:#047857; background:#ecfdf5; border-color:#a7f3d0; }
-    .updates-badge.warn { color:#92400e; background:#fffbeb; border-color:#fde68a; }
-    .updates-badge.danger { color:#9a3412; background:#fff7ed; border-color:#fed7aa; }
-    .updates-badge.neutral { color:#475569; background:#f8fafc; border-color:#e2e8f0; }
-    .updates-stepper { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
-    .updates-step { position:relative; border:1px solid var(--crm-border); border-radius:14px; padding:12px; background:linear-gradient(180deg,#fff,#f8fafc); }
-    .updates-step strong { display:block; color:var(--update-ink); font-size:.86rem; }
-    .updates-step span { display:block; margin-top:4px; color:var(--crm-text-muted); font-size:.76rem; line-height:1.35; }
-    .updates-step.active { border-color:rgba(15,143,114,.38); background:#ecfdf5; }
-    .updates-step.done { border-color:#a7f3d0; }
-    .updates-split { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr); gap:14px; }
-    .updates-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
-    .updates-list li { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid rgba(226,232,240,.8); }
-    .updates-list li:last-child { border-bottom:0; }
-    .updates-list code { color:var(--update-ink); font-weight:750; }
-    .updates-file-table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; }
-    .updates-file-table th, .updates-file-table td { padding:10px 9px; border-bottom:1px solid rgba(226,232,240,.85); vertical-align:top; font-size:.86rem; }
-    .updates-file-table th { color:var(--crm-text-muted); font-size:.73rem; letter-spacing:.04em; text-transform:uppercase; }
-    .updates-file-table td:first-child { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
-    .updates-log { max-height:260px; overflow:auto; border-radius:14px; border:1px solid var(--crm-border); background:#0f172a; color:#dbeafe; padding:12px; font-size:.78rem; line-height:1.55; }
-    .updates-raw { margin-top:12px; }
-    .updates-raw summary { cursor:pointer; color:var(--crm-accent-strong); font-weight:800; font-size:.84rem; }
-    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:14px; background:#0f172a; color:#dbeafe; padding:12px; font-size:.78rem; }
-    .updates-alert { border-radius:16px; border:1px solid #fde68a; background:#fffbeb; color:#78350f; padding:14px 16px; margin:0 0 14px; line-height:1.5; }
-    .updates-alert strong { color:#78350f; }
-    .updates-empty { border:1px dashed var(--crm-border); border-radius:14px; padding:16px; color:var(--crm-text-muted); background:var(--crm-surface-2); }
-    .updates-danger-zone { border-color:#fed7aa; background:linear-gradient(180deg,#fff7ed,#fff); }
-    .updates-danger-zone h2 { color:#9a3412; }
-    @media (max-width: 1120px) { .updates-card.span-3,.updates-card.span-4,.updates-card.span-5,.updates-card.span-7 { grid-column:span 6; } .updates-split { grid-template-columns:1fr; } .updates-stepper { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width: 720px) { .updates-card.span-3,.updates-card.span-4,.updates-card.span-5,.updates-card.span-7 { grid-column:span 12; } .updates-actions { justify-content:flex-start; } .updates-stepper { grid-template-columns:1fr; } }
-  </style>
+	  <style>
+	    .crm-admin-updates-page {
+	      --update-ok:#0f766e; --update-warn:#b45309; --update-danger:#b42318; --update-ink:#101828;
+	      --update-soft:#f6f8fb; --update-line:#e4e7ec; --update-blue:#175cd3;
+	      background:
+	        radial-gradient(circle at 82% 0%, rgba(23,92,211,.08), transparent 30%),
+	        linear-gradient(180deg, #f8fafc 0%, #ffffff 440px);
+	    }
+	    .updates-shell { max-width:1280px; margin:0 auto; }
+	    .updates-hero { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:18px; margin-bottom:18px; }
+	    .updates-hero-panel, .updates-card, .updates-next {
+	      border:1px solid var(--update-line); border-radius:24px; background:rgba(255,255,255,.94);
+	      box-shadow:0 18px 44px rgba(16,24,40,.07);
+	    }
+	    .updates-hero-panel { padding:28px; overflow:hidden; position:relative; }
+	    .updates-hero-panel:after { content:""; position:absolute; right:-72px; bottom:-92px; width:260px; height:260px; border-radius:999px; background:rgba(15,118,110,.08); }
+	    .updates-kicker { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; color:#344054; font-weight:800; font-size:.82rem; }
+	    .updates-kicker:before { content:""; width:10px; height:10px; border-radius:999px; background:var(--update-ok); box-shadow:0 0 0 5px rgba(15,118,110,.12); }
+	    .updates-title { margin:0; color:var(--update-ink); font-size:clamp(2rem, 3.2vw, 3.45rem); line-height:.98; letter-spacing:-.045em; font-weight:900; max-width:760px; }
+	    .updates-subtitle { max-width:690px; margin:16px 0 0; color:#475467; line-height:1.6; font-size:1rem; }
+	    .updates-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+	    .updates-actions .btn { border-radius:999px; padding:.62rem 1rem; font-weight:800; }
+	    .updates-next { padding:22px; display:flex; flex-direction:column; justify-content:space-between; gap:18px; }
+	    .updates-next-label { color:#667085; font-weight:800; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; }
+	    .updates-next-title { margin:7px 0 8px; color:var(--update-ink); font-size:1.45rem; line-height:1.1; font-weight:900; letter-spacing:-.02em; }
+	    .updates-next-text { margin:0; color:#475467; line-height:1.55; }
+	    .updates-next-foot { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+	    .updates-notice { display:none; margin:0 0 16px; border-radius:18px; padding:14px 16px; border:1px solid #fecaca; background:#fff1f2; color:#9f1239; font-weight:700; }
+	    .updates-notice.show { display:block; }
+	    .updates-trust { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+	    .updates-metric { border:1px solid var(--update-line); border-radius:18px; background:#fff; padding:16px; min-height:132px; }
+	    .updates-kpi-label { color:#667085; font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+	    .updates-kpi-value { margin-top:10px; font-size:1.55rem; font-weight:900; color:var(--update-ink); line-height:1.05; overflow-wrap:anywhere; }
+	    .updates-muted { color:#667085; font-size:.9rem; line-height:1.5; }
+	    .updates-pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; position:relative; z-index:1; }
+	    .updates-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #d0d5dd; border-radius:999px; background:#fff; color:#344054; font-size:.82rem; font-weight:750; }
+	    .updates-dot { width:9px; height:9px; border-radius:50%; background:#98a2b3; box-shadow:0 0 0 4px rgba(152,162,179,.12); }
+	    .updates-dot.ok { background:var(--update-ok); box-shadow:0 0 0 4px rgba(15,118,110,.14); }
+	    .updates-dot.warn { background:var(--update-warn); box-shadow:0 0 0 4px rgba(180,83,9,.13); }
+	    .updates-dot.danger { background:var(--update-danger); box-shadow:0 0 0 4px rgba(180,35,24,.13); }
+	    .updates-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; }
+	    .updates-card { padding:20px; min-height:100%; }
+	    .updates-card.span-4 { grid-column:span 4; } .updates-card.span-5 { grid-column:span 5; } .updates-card.span-7 { grid-column:span 7; } .updates-card.span-12 { grid-column:span 12; }
+	    .updates-card-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; margin-bottom:14px; }
+	    .updates-card h2 { margin:0; font-size:1.08rem; font-weight:900; color:var(--update-ink); letter-spacing:-.01em; }
+	    .updates-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:6px 10px; font-size:.76rem; font-weight:850; border:1px solid #d0d5dd; background:#f9fafb; color:#344054; white-space:nowrap; }
+	    .updates-badge.ok { color:#0f766e; background:#ecfdf3; border-color:#abefc6; }
+	    .updates-badge.warn { color:#b45309; background:#fffaeb; border-color:#fedf89; }
+	    .updates-badge.danger { color:#b42318; background:#fef3f2; border-color:#fecdca; }
+	    .updates-badge.neutral { color:#475467; background:#f9fafb; border-color:#eaecf0; }
+	    .updates-stepper { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+	    .updates-step { border:1px solid #eaecf0; border-radius:16px; padding:14px; background:#fcfcfd; }
+	    .updates-step strong { display:block; color:var(--update-ink); font-size:.9rem; }
+	    .updates-step span { display:block; margin-top:5px; color:#667085; font-size:.79rem; line-height:1.35; }
+	    .updates-step.active { border-color:#7cd4fd; background:#f0f9ff; }
+	    .updates-step.done { border-color:#abefc6; background:#f6fef9; }
+	    .updates-split { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,.9fr); gap:14px; }
+	    .updates-list { display:grid; gap:0; margin:0; padding:0; list-style:none; }
+	    .updates-list li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #eaecf0; }
+	    .updates-list li:last-child { border-bottom:0; }
+	    .updates-list code { color:var(--update-ink); font-weight:800; white-space:normal; text-align:right; }
+	    .updates-file-table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; }
+	    .updates-file-table th, .updates-file-table td { padding:10px 9px; border-bottom:1px solid #eaecf0; vertical-align:top; font-size:.86rem; }
+	    .updates-file-table th { color:#667085; font-size:.73rem; letter-spacing:.04em; text-transform:uppercase; }
+	    .updates-file-table td:first-child { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
+	    .updates-raw { margin-top:12px; border-top:1px solid #eaecf0; padding-top:10px; }
+	    .updates-raw summary { cursor:pointer; color:#475467; font-weight:800; font-size:.84rem; }
+	    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:14px; background:#101828; color:#d1e9ff; padding:12px; font-size:.78rem; }
+	    .updates-info { border-radius:18px; border:1px solid #d0d5dd; background:#fff; color:#344054; padding:15px 16px; margin:0 0 16px; line-height:1.55; }
+	    .updates-info strong { color:#101828; }
+	    .updates-empty { border:1px dashed #d0d5dd; border-radius:16px; padding:16px; color:#667085; background:#f9fafb; }
+	    .updates-danger-zone { border-color:#fecdca; background:linear-gradient(180deg,#fff,#fffbfa); }
+	    .updates-danger-zone h2 { color:#b42318; }
+	    @media (max-width: 1120px) { .updates-hero { grid-template-columns:1fr; } .updates-trust { grid-template-columns:repeat(2,minmax(0,1fr)); } .updates-card.span-4,.updates-card.span-5,.updates-card.span-7 { grid-column:span 12; } .updates-split { grid-template-columns:1fr; } .updates-stepper { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+	    @media (max-width: 720px) { .updates-shell { padding:0 2px; } .updates-hero-panel,.updates-next,.updates-card { border-radius:18px; padding:18px; } .updates-trust { grid-template-columns:1fr; } .updates-stepper { grid-template-columns:1fr; } }
+	  </style>
 
-  <section class="updates-hero">
-    <div class="updates-hero-main">
-      <div>
-        <p class="updates-eyebrow">Core update center</p>
-        <h1 class="updates-title">Обновления ядра TropaTT</h1>
-        <p class="updates-subtitle">Один экран для проверки update.crm.ru, просмотра changelog, preflight, скачивания готового архива, применения обновления и аварийного восстановления.</p>
-      </div>
-      <div class="updates-actions">
-        <button class="btn crm-btn-secondary" type="button" data-update-action="refresh">Обновить статус</button>
-        <button class="btn crm-btn-secondary" type="button" data-update-action="check">Проверить обновления</button>
-        <button class="btn crm-btn-secondary" type="button" data-update-action="changes">Показать изменения</button>
-        <button class="btn crm-btn-primary" type="button" data-update-action="preflight">Preflight</button>
-        <button class="btn crm-btn-primary" type="button" data-update-action="download">Скачать dry-run</button>
-        <button class="btn crm-btn-danger-soft" type="button" data-update-action="apply">Применить</button>
-        <a class="btn crm-btn-secondary" href="/updater/rescue.php" target="_blank" rel="noopener">Recovery</a>
-      </div>
-    </div>
-    <div class="updates-pill-row">
-      <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText">Update center: проверяем...</span></span>
-      <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText">Версия: неизвестно</span></span>
-      <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText">Job: нет данных</span></span>
-      <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText">Maintenance: проверяем...</span></span>
-    </div>
-  </section>
+	  <div class="updates-shell">
+	  <div id="updatesNotice" class="updates-notice"></div>
 
-  <div class="updates-alert">
-    <strong>Границы обновления:</strong> обновляется только ядро (`api/**`, `web/**`, корневые файлы и docs).
-    Не трогаются `modules/**`, `storage/**`, `storage_api/**`, `uploads/**`, `.env`, local config и `updater/**`.
-    Архивы генерируются на `update.crm.ru` кроном заранее, CRM только скачивает готовый пакет и проверяет подписи.
-  </div>
+	  <section class="updates-hero">
+	    <div class="updates-hero-panel">
+	      <div class="updates-kicker">Центр обновлений</div>
+	      <h1 class="updates-title">Обновления без лишнего риска</h1>
+	      <p class="updates-subtitle">CRM сама проверит доступную сборку, подготовит архив, выполнит безопасную проверку и подскажет следующий шаг.</p>
+	      <div class="updates-actions">
+	        <button id="primaryActionBtn" class="btn crm-btn-primary" type="button" data-update-action="check">Проверить обновления</button>
+	        <button class="btn crm-btn-secondary" type="button" data-update-action="refresh">Обновить статус</button>
+	        <button class="btn crm-btn-secondary" type="button" data-update-action="changes">Что изменится?</button>
+	        <a class="btn crm-btn-secondary" href="/updater/rescue.php" target="_blank" rel="noopener">Аварийное восстановление</a>
+	      </div>
+	      <div class="updates-pill-row">
+	        <span class="updates-pill"><span id="pillCenter" class="updates-dot"></span><span id="pillCenterText">Сервер обновлений проверяется</span></span>
+	        <span class="updates-pill"><span id="pillVersion" class="updates-dot"></span><span id="pillVersionText">Версия пока неизвестна</span></span>
+	        <span class="updates-pill"><span id="pillJob" class="updates-dot"></span><span id="pillJobText">Операций еще не было</span></span>
+	        <span class="updates-pill"><span id="pillMaintenance" class="updates-dot"></span><span id="pillMaintenanceText">CRM работает штатно</span></span>
+	      </div>
+	    </div>
+	    <aside class="updates-next">
+	      <div>
+	        <div class="updates-next-label">Рекомендация</div>
+	        <h2 id="nextTitle" class="updates-next-title">Сейчас безопасно проверить обновления</h2>
+	        <p id="nextText" class="updates-next-text">Проверка ничего не меняет в файлах CRM. Она только сравнит вашу версию с готовыми архивами на сервере обновлений.</p>
+	      </div>
+	      <div class="updates-next-foot">
+	        <span id="nextStatusBadge" class="updates-badge neutral">Ожидание</span>
+	        <span id="nextPlanBadge" class="updates-badge neutral">Не проверено</span>
+	      </div>
+	    </aside>
+	  </section>
 
-  <section class="updates-grid">
-    <article class="updates-card span-3">
-      <div class="updates-kpi-label">Установлено</div>
-      <div id="kpiInstalled" class="updates-kpi-value">...</div>
-      <p id="kpiInstalledMeta" class="updates-muted mb-0">Загрузка состояния ядра.</p>
-    </article>
-    <article class="updates-card span-3">
-      <div class="updates-kpi-label">Доступно</div>
-      <div id="kpiTarget" class="updates-kpi-value">...</div>
-      <p id="kpiTargetMeta" class="updates-muted mb-0">Нажмите проверку обновлений.</p>
-    </article>
-    <article class="updates-card span-3">
-      <div class="updates-kpi-label">Пакет</div>
-      <div id="kpiPackage" class="updates-kpi-value">...</div>
-      <p id="kpiPackageMeta" class="updates-muted mb-0">Full или delta после проверки.</p>
-    </article>
-    <article class="updates-card span-3">
-      <div class="updates-kpi-label">Риск</div>
-      <div id="kpiRisk" class="updates-kpi-value">...</div>
-      <p id="kpiRiskMeta" class="updates-muted mb-0">Оценивается update-center.</p>
-    </article>
+	  <div class="updates-info">
+	    <strong>Как это работает:</strong> архив обновления заранее собирается кроном на update.crm.ru. Эта CRM не генерирует архив при каждом открытии страницы, а только скачивает готовый пакет, проверяет его и применяет после вашего подтверждения.
+	  </div>
+
+	  <section class="updates-trust">
+	    <article class="updates-metric">
+	      <div class="updates-kpi-label">Текущая версия</div>
+	      <div id="kpiInstalled" class="updates-kpi-value">...</div>
+	      <p id="kpiInstalledMeta" class="updates-muted mb-0">Загружаем состояние CRM.</p>
+	    </article>
+	    <article class="updates-metric">
+	      <div class="updates-kpi-label">Доступная версия</div>
+	      <div id="kpiTarget" class="updates-kpi-value">...</div>
+	      <p id="kpiTargetMeta" class="updates-muted mb-0">Покажем после проверки.</p>
+	    </article>
+	    <article class="updates-metric">
+	      <div class="updates-kpi-label">Что скачается</div>
+	      <div id="kpiPackage" class="updates-kpi-value">...</div>
+	      <p id="kpiPackageMeta" class="updates-muted mb-0">Готовый архив или ничего.</p>
+	    </article>
+	    <article class="updates-metric">
+	      <div class="updates-kpi-label">Уровень риска</div>
+	      <div id="kpiRisk" class="updates-kpi-value">...</div>
+	      <p id="kpiRiskMeta" class="updates-muted mb-0">Оценим перед установкой.</p>
+	    </article>
+	  </section>
+
+	  <section class="updates-grid">
 
     <article class="updates-card span-12">
       <div class="updates-card-head">
         <div>
-          <h2>Пайплайн обновления</h2>
-          <p class="updates-muted mb-0">Двигайтесь слева направо: статус -> проверка -> preflight -> staging -> apply.</p>
+	          <h2>Путь обновления</h2>
+	          <p class="updates-muted mb-0">Страница ведет по шагам: сначала проверка, потом безопасная подготовка, и только затем установка.</p>
         </div>
         <span id="pipelineBadge" class="updates-badge neutral">Ожидание</span>
       </div>
       <div class="updates-stepper">
-        <div id="stepStatus" class="updates-step"><strong>1. Статус</strong><span>Версия, audit, последний job</span></div>
-        <div id="stepCheck" class="updates-step"><strong>2. План</strong><span>Full/delta, risk, требования</span></div>
-        <div id="stepPreflight" class="updates-step"><strong>3. Preflight</strong><span>Подписи, пути, место, доступность</span></div>
-        <div id="stepDownload" class="updates-step"><strong>4. Staging</strong><span>Скачивание архива и распаковка</span></div>
-        <div id="stepApply" class="updates-step"><strong>5. Apply</strong><span>Backup, maintenance, healthcheck</span></div>
+	        <div id="stepStatus" class="updates-step"><strong>1. Состояние</strong><span>Понимаем текущую версию CRM</span></div>
+	        <div id="stepCheck" class="updates-step"><strong>2. Проверка</strong><span>Ищем готовое обновление</span></div>
+	        <div id="stepPreflight" class="updates-step"><strong>3. Безопасность</strong><span>Проверяем архив до установки</span></div>
+	        <div id="stepDownload" class="updates-step"><strong>4. Подготовка</strong><span>Скачиваем пакет во временную папку</span></div>
+	        <div id="stepApply" class="updates-step"><strong>5. Установка</strong><span>Backup, обновление и проверка</span></div>
       </div>
     </article>
 
     <article class="updates-card span-7">
       <div class="updates-card-head">
         <div>
-          <h2>План обновления</h2>
-          <p class="updates-muted mb-0">Что будет установлено и какой пакет будет использован.</p>
+	          <h2>Что предлагает система</h2>
+	          <p class="updates-muted mb-0">Краткое решение: есть ли обновление, что будет скачано и нужны ли дополнительные меры.</p>
         </div>
-        <span id="planBadge" class="updates-badge neutral">Не проверено</span>
+        <span id="planCardBadge" class="updates-badge neutral">Не проверено</span>
       </div>
-      <div id="planContent" class="updates-empty">Нажмите «Проверить обновления».</div>
-      <details class="updates-raw"><summary>Raw plan JSON</summary><pre id="updatesPlanRaw">{}</pre></details>
+	      <div id="planContent" class="updates-empty">Нажмите «Проверить обновления». Это безопасно и ничего не меняет в CRM.</div>
+	      <details class="updates-raw"><summary>Технические данные плана</summary><pre id="updatesPlanRaw">{}</pre></details>
     </article>
 
     <article class="updates-card span-5">
       <div class="updates-card-head">
         <div>
-          <h2>Последний job</h2>
-          <p class="updates-muted mb-0">Состояние последней операции updater.</p>
+	          <h2>Последняя операция</h2>
+	          <p class="updates-muted mb-0">Что CRM делала с обновлениями в последний раз.</p>
         </div>
         <span id="jobBadge" class="updates-badge neutral">Нет job</span>
       </div>
       <div id="jobContent" class="updates-empty">История появится после preflight/download/apply.</div>
-      <details class="updates-raw"><summary>Raw status JSON</summary><pre id="updatesStatusRaw">{}</pre></details>
+	      <details class="updates-raw"><summary>Технические данные состояния</summary><pre id="updatesStatusRaw">{}</pre></details>
     </article>
 
     <article class="updates-card span-7">
       <div class="updates-card-head">
         <div>
-          <h2>Изменения</h2>
-          <p class="updates-muted mb-0">Коммиты, файлы и классификация изменений между текущей и целевой сборкой.</p>
+	          <h2>Что изменится</h2>
+	          <p class="updates-muted mb-0">Короткий список изменений между вашей версией и доступной сборкой.</p>
         </div>
         <span id="changesBadge" class="updates-badge neutral">Не загружено</span>
       </div>
-      <div id="changesContent" class="updates-empty">Нажмите «Показать изменения».</div>
-      <details class="updates-raw"><summary>Raw changes JSON</summary><pre id="updatesChangesRaw">{}</pre></details>
+	      <div id="changesContent" class="updates-empty">Нажмите «Что изменится?», чтобы увидеть понятное резюме.</div>
+	      <details class="updates-raw"><summary>Технические данные изменений</summary><pre id="updatesChangesRaw">{}</pre></details>
     </article>
 
     <article class="updates-card span-5">
       <div class="updates-card-head">
         <div>
-          <h2>Preflight и staging</h2>
-          <p class="updates-muted mb-0">Проверки безопасности перед реальным применением.</p>
+	          <h2>Проверка перед установкой</h2>
+	          <p class="updates-muted mb-0">CRM проверит архив, права на файлы, подписи и свободное место до любых изменений.</p>
         </div>
-        <span id="preflightBadge" class="updates-badge neutral">Не выполнялся</span>
-      </div>
-      <div id="preflightContent" class="updates-empty">Запустите preflight перед скачиванием архива.</div>
-      <details class="updates-raw"><summary>Raw preflight/staging JSON</summary><pre id="updatesPreflightRaw">{}</pre></details>
+	        <span id="preflightBadge" class="updates-badge neutral">Не запускалась</span>
+	      </div>
+	      <div id="preflightContent" class="updates-empty">Когда обновление будет найдено, сначала запустите безопасную проверку. Она не применяет файлы.</div>
+	      <div class="updates-actions mt-3">
+	        <button class="btn crm-btn-primary" type="button" data-update-action="preflight">Проверить безопасность</button>
+	        <button class="btn crm-btn-secondary" type="button" data-update-action="download">Подготовить архив</button>
+	      </div>
+	      <details class="updates-raw"><summary>Технические данные проверки</summary><pre id="updatesPreflightRaw">{}</pre></details>
     </article>
 
     <article class="updates-card span-12 updates-danger-zone">
       <div class="updates-card-head">
         <div>
-          <h2>Опасная зона: apply / rollback</h2>
-          <p class="updates-muted mb-0">Реальное применение включает maintenance, backup, запись файлов и healthcheck. Rollback восстанавливает файлы из backup.</p>
-        </div>
-        <button class="btn crm-btn-danger-soft" type="button" data-update-action="rollback">Rollback последнего job</button>
-      </div>
-      <div id="applyContent" class="updates-empty">Apply станет осмысленным после успешного preflight и staging. Для применения потребуется ввести подтверждение.</div>
-      <details class="updates-raw"><summary>Raw apply/rollback JSON</summary><pre id="updatesApplyRaw">{}</pre></details>
-    </article>
-  </section>
+	          <h2>Установка и восстановление</h2>
+	          <p class="updates-muted mb-0">Установка запускается только после проверки и ручного подтверждения. Перед заменой файлов создается backup.</p>
+	        </div>
+	        <div class="updates-actions mt-0">
+	          <button class="btn crm-btn-danger-soft" type="button" data-update-action="apply">Установить обновление</button>
+	          <button class="btn crm-btn-secondary" type="button" data-update-action="rollback">Восстановить из backup</button>
+	        </div>
+	      </div>
+	      <div id="applyContent" class="updates-empty">Установка станет доступной по смыслу после успешной проверки и подготовки архива. Для применения потребуется ввести подтверждение.</div>
+	      <details class="updates-raw"><summary>Технические данные установки</summary><pre id="updatesApplyRaw">{}</pre></details>
+	    </article>
+	  </section>
+	  </div>
 </main></div></div>
 <script>
 (function () {
@@ -219,8 +252,18 @@
     const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
     return `${(n / Math.pow(1024, i)).toFixed(i ? 1 : 0)} ${units[i]}`;
   };
-  const badgeClass = (kind) => `updates-badge ${kind || 'neutral'}`;
-  const dotClass = (kind) => `updates-dot ${kind || ''}`;
+	  const badgeClass = (kind) => `updates-badge ${kind || 'neutral'}`;
+	  const dotClass = (kind) => `updates-dot ${kind || ''}`;
+	  const actionLabels = {
+	    'initial load': 'начальная проверка',
+	    refresh: 'обновляем статус',
+	    check: 'проверяем обновления',
+	    changes: 'загружаем изменения',
+	    preflight: 'проверяем безопасность',
+	    download: 'подготавливаем архив',
+	    apply: 'устанавливаем обновление',
+	    rollback: 'восстанавливаем backup'
+	  };
 
   async function api(url, options = {}) {
     const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function')
@@ -230,11 +273,88 @@
     if (csrfToken && !headers['X-CSRF-Token']) headers['X-CSRF-Token'] = csrfToken;
     const res = await fetch(url, Object.assign({credentials: 'same-origin', headers}, options));
     const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch (e) { json = {success: false, code: 'INVALID_JSON', message: text.slice(0, 300)}; }
-    if (!res.ok && json.success !== false) json.success = false;
-    return json;
-  }
+	    let json;
+	    try { json = JSON.parse(text); } catch (e) { json = {success: false, code: 'INVALID_JSON', message: text.slice(0, 300)}; }
+	    if (!res.ok && json.success !== false) json.success = false;
+	    json.http_status = res.status;
+	    return json;
+	  }
+
+	  function showNotice(message, kind = 'danger') {
+	    const box = $('updatesNotice');
+	    if (!box) return;
+	    box.className = `updates-notice show ${kind}`;
+	    box.textContent = message;
+	  }
+
+	  function clearNotice() {
+	    const box = $('updatesNotice');
+	    if (!box) return;
+	    box.className = 'updates-notice';
+	    box.textContent = '';
+	  }
+
+	  function errorMessage(payload, fallback) {
+	    const status = Number(payload && payload.http_status || 0);
+	    if (status === 401) return 'Сессия истекла. Обновите страницу и войдите в CRM снова.';
+	    if (status === 403) return 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.';
+	    return String((payload && (payload.message || payload.code)) || fallback || 'Не удалось выполнить действие.');
+	  }
+
+	  function ensureSuccess(payload, fallback) {
+	    if (payload && payload.success === false) {
+	      throw new Error(errorMessage(payload, fallback));
+	    }
+	    return payload;
+	  }
+
+	  function setBadge(id, kind, text) {
+	    const el = $(id);
+	    if (!el) return;
+	    el.className = badgeClass(kind);
+	    el.textContent = text;
+	  }
+
+	  function setPrimary(action, label) {
+	    const btn = $('primaryActionBtn');
+	    if (!btn) return;
+	    btn.setAttribute('data-update-action', action);
+	    btn.textContent = label;
+	  }
+
+	  function updateRecommendation() {
+	    const nextTitle = $('nextTitle');
+	    const nextText = $('nextText');
+	    const latest = state.status && state.status.latest_job;
+	    const plan = state.plan;
+	    if (latest && latest.state === 'failed') {
+	      nextTitle.textContent = 'Последняя операция завершилась ошибкой';
+	      nextText.textContent = 'Проверьте технические детали операции. Если CRM работает нестабильно, используйте восстановление из backup.';
+	      setPrimary('refresh', 'Обновить статус');
+	    } else if (state.download) {
+	      nextTitle.textContent = 'Архив подготовлен, можно устанавливать';
+	      nextText.textContent = 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.';
+	      setPrimary('apply', 'Установить обновление');
+	    } else if (state.preflight) {
+	      nextTitle.textContent = 'Проверка пройдена, подготовьте архив';
+	      nextText.textContent = 'Следующий шаг скачает готовый пакет обновления во временную папку. Рабочие файлы CRM еще не меняются.';
+	      setPrimary('download', 'Подготовить архив');
+	    } else if (plan && plan.update_available) {
+	      nextTitle.textContent = 'Найдено обновление, сначала нужна проверка';
+	      nextText.textContent = 'CRM проверит подпись архива, доступ к файлам и свободное место. Это безопасный шаг до установки.';
+	      setPrimary('preflight', 'Проверить безопасность');
+	    } else if (plan && plan.update_available === false) {
+	      nextTitle.textContent = 'CRM уже актуальна';
+	      nextText.textContent = 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.';
+	      setPrimary('check', 'Проверить еще раз');
+	    } else {
+	      nextTitle.textContent = 'Сейчас безопасно проверить обновления';
+	      nextText.textContent = 'Проверка ничего не меняет в файлах CRM. Она только сравнит вашу версию с готовыми архивами на сервере обновлений.';
+	      setPrimary('check', 'Проверить обновления');
+	    }
+	    setBadge('nextStatusBadge', pipelineKind(), pipelineText());
+	    setBadge('nextPlanBadge', plan ? (plan.update_available ? 'warn' : 'ok') : 'neutral', plan ? (plan.update_available ? 'Есть обновление' : 'Обновлений нет') : 'Не проверено');
+	  }
 
   function setLoading(action, loading) {
     document.querySelectorAll('[data-update-action]').forEach((btn) => {
@@ -248,8 +368,9 @@
     });
     const badge = $('pipelineBadge');
     badge.className = badgeClass(loading ? 'warn' : pipelineKind());
-    badge.textContent = loading ? `Выполняется: ${action}` : pipelineText();
-  }
+	    badge.textContent = loading ? `Выполняется: ${actionLabels[action] || action}` : pipelineText();
+	    setBadge('nextStatusBadge', loading ? 'warn' : pipelineKind(), loading ? 'Выполняется' : pipelineText());
+	  }
 
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
@@ -311,9 +432,10 @@
 
     setStep('stepStatus', 'done');
     if (latest && latest.state === 'applied') setStep('stepApply', 'done');
-    $('pipelineBadge').className = badgeClass(pipelineKind());
-    $('pipelineBadge').textContent = pipelineText();
-  }
+	    $('pipelineBadge').className = badgeClass(pipelineKind());
+	    $('pipelineBadge').textContent = pipelineText();
+	    updateRecommendation();
+	  }
 
   function renderPlan() {
     const plan = state.plan;
@@ -334,21 +456,20 @@
       plan.requires.db_migration ? 'db migration' : null,
     ].filter(Boolean).join(' + ') || 'без особых требований' : 'нет данных');
 
-    $('planBadge').className = badgeClass(plan.update_available ? 'warn' : 'ok');
-    $('planBadge').textContent = plan.update_available ? 'Есть обновление' : 'Latest';
-    $('planContent').innerHTML = plan.update_available ? list({
-      'Текущая сборка': plan.current_build || 'unknown',
-      'Целевая сборка': displayTarget,
-      'Пакет': pkg ? String(pkg.type).toUpperCase() : 'нет',
-      'Размер': pkg ? bytes(pkg.size_bytes) : '0 Б',
-      'Target SHA': plan.target_sha ? `${String(plan.target_sha).slice(0, 12)}...` : 'n/a',
-      'Risk': risk,
-    }) : '<div class="updates-empty">Обновлений нет. CRM уже на последней опубликованной сборке.</div>';
+	    setBadge('planCardBadge', plan.update_available ? 'warn' : 'ok', plan.update_available ? 'Есть обновление' : 'Обновлений нет');
+	    $('planContent').innerHTML = plan.update_available ? list({
+	      'Сейчас установлено': plan.current_build || 'unknown',
+	      'Будет установлено': displayTarget,
+	      'Тип архива': pkg ? String(pkg.type).toUpperCase() : 'нет',
+	      'Размер': pkg ? bytes(pkg.size_bytes) : '0 Б',
+	      'Уровень риска': risk,
+	    }) : '<div class="updates-empty">Обновлений нет. CRM уже на последней опубликованной сборке.</div>';
 
-    setStep('stepCheck', 'done');
-    $('pipelineBadge').className = badgeClass(pipelineKind());
-    $('pipelineBadge').textContent = pipelineText();
-  }
+	    setStep('stepCheck', 'done');
+	    $('pipelineBadge').className = badgeClass(pipelineKind());
+	    $('pipelineBadge').textContent = pipelineText();
+	    updateRecommendation();
+	  }
 
   function renderChanges() {
     const payload = state.changes;
@@ -356,7 +477,7 @@
     if (!payload) {
       $('changesBadge').className = badgeClass('');
       $('changesBadge').textContent = 'Не загружено';
-      $('changesContent').innerHTML = '<div class="updates-empty">Нажмите «Показать изменения».</div>';
+	      $('changesContent').innerHTML = '<div class="updates-empty">Нажмите «Что изменится?», чтобы увидеть понятное резюме.</div>';
       return;
     }
     if (payload.ok === false || Number(payload.status || 0) >= 400) {
@@ -374,7 +495,7 @@
       return;
     }
     $('changesBadge').className = badgeClass('ok');
-    $('changesBadge').textContent = `${data.summary.commits || 0} commits / ${data.summary.files || 0} files`;
+	    $('changesBadge').textContent = `${data.summary.commits || 0} коммитов / ${data.summary.files || 0} файлов`;
     const commits = (data.commits || []).slice(0, 6).map((c) => `<li><span><strong>${esc(c.short_sha || '')}</strong> ${esc(c.title || '')}</span><span>${esc(c.committed_at || '')}</span></li>`).join('');
     const files = (data.files || []).slice(0, 12).map((f) => `<tr><td>${esc(f.path)}</td><td>${esc(f.scope)}</td><td>${esc(f.change_type)}</td><td>${f.included_in_package ? '<span class="updates-badge ok">included</span>' : '<span class="updates-badge neutral">excluded</span>'}</td></tr>`).join('');
     const messageText = Number(payload.status || 0) === 204 ? 'Целевая сборка не определена: CRM уже считает доступное состояние актуальным, поэтому изменений для установки нет.' : data.message;
@@ -383,12 +504,12 @@
       ${message}
       <div class="updates-split">
         <div>
-          <h3 class="h6">Коммиты</h3>
+	          <h3 class="h6">Краткая история</h3>
           <ul class="updates-list">${commits || '<li><span>Нет коммитов</span></li>'}</ul>
         </div>
         <div>
-          <h3 class="h6">Файлы</h3>
-          <table class="updates-file-table"><thead><tr><th>Path</th><th>Scope</th><th>Type</th><th>Package</th></tr></thead><tbody>${files || '<tr><td colspan="4">Нет файлов</td></tr>'}</tbody></table>
+	          <h3 class="h6">Затронутые файлы</h3>
+	          <table class="updates-file-table"><thead><tr><th>Файл</th><th>Зона</th><th>Тип</th><th>Архив</th></tr></thead><tbody>${files || '<tr><td colspan="4">Нет файлов</td></tr>'}</tbody></table>
         </div>
       </div>`;
   }
@@ -409,8 +530,9 @@
       <h3 class="h6 mt-3">Проверки</h3><ul class="updates-list">${rows}</ul>
       ${staging ? `<h3 class="h6 mt-3">Staging</h3>${list({'Files': staging.file_count, 'Preview': (staging.preview || []).join(', ')})}` : ''}`;
     setStep('stepPreflight', report.ok ? 'done' : 'active');
-    if (staging) setStep('stepDownload', 'done');
-  }
+	    if (staging) setStep('stepDownload', 'done');
+	    updateRecommendation();
+	  }
 
   function renderApply() {
     $('updatesApplyRaw').textContent = pretty(state.apply);
@@ -427,49 +549,58 @@
       'Health': apply.health && apply.health.ok ? 'OK' : 'unknown',
       'Installed build': apply.installed_core ? apply.installed_core.core_build : 'n/a',
     });
-    setStep('stepApply', 'done');
-  }
+	    setStep('stepApply', 'done');
+	    updateRecommendation();
+	  }
 
   function list(items) {
     return `<ul class="updates-list">${Object.entries(items).map(([key, value]) => `<li><span>${esc(key)}</span><code>${esc(value)}</code></li>`).join('')}</ul>`;
   }
 
-  async function withAction(name, fn) {
-    setLoading(name, true);
-    try {
-      await fn();
-    } catch (err) {
-      $('updatesApplyRaw').textContent = pretty({error: String(err)});
-    } finally {
-      setLoading(name, false);
-    }
-  }
+	  async function withAction(name, fn) {
+	    setLoading(name, true);
+	    try {
+	      clearNotice();
+	      await fn();
+	    } catch (err) {
+	      showNotice(String(err && err.message ? err.message : err));
+	      $('updatesApplyRaw').textContent = pretty({error: String(err)});
+	    } finally {
+	      setLoading(name, false);
+	      updateRecommendation();
+	    }
+	  }
 
   async function loadStatus() {
-    const [version, status] = await Promise.all([
-      api('/api/index.php?route=api/v1/core/version'),
-      api('/api/index.php?route=api/v1/core/updates/status')
-    ]);
-    state.version = version.data || version;
+	    const [version, status] = await Promise.all([
+	      api('/api/index.php?route=api/v1/core/version'),
+	      api('/api/index.php?route=api/v1/core/updates/status')
+	    ]);
+	    ensureSuccess(version, 'Не удалось загрузить текущую версию CRM.');
+	    ensureSuccess(status, 'Не удалось загрузить статус обновлений.');
+	    state.version = version.data || version;
     state.status = status.data || status;
     if (state.status && state.status.latest_job && state.status.latest_job.job_id) state.lastJobId = state.status.latest_job.job_id;
     renderStatus();
   }
 
-  async function check() {
-    const result = await api('/api/index.php?route=api/v1/core/updates/check', {method: 'POST', body: '{}'});
-    state.plan = result.data && result.data.plan ? result.data.plan : (result.data || result);
-    renderPlan();
-  }
+	  async function check() {
+	    const result = await api('/api/index.php?route=api/v1/core/updates/check', {method: 'POST', body: '{}'});
+	    ensureSuccess(result, 'Не удалось проверить обновления.');
+	    state.plan = result.data && result.data.plan ? result.data.plan : (result.data || result);
+	    renderPlan();
+	  }
 
-  async function changes() {
-    const result = await api('/api/index.php?route=api/v1/core/updates/changes');
-    state.changes = result.data || result;
-    renderChanges();
-  }
+	  async function changes() {
+	    const result = await api('/api/index.php?route=api/v1/core/updates/changes');
+	    ensureSuccess(result, 'Не удалось загрузить список изменений.');
+	    state.changes = result.data || result;
+	    renderChanges();
+	  }
 
-  async function preflight() {
-    const result = await api('/api/index.php?route=api/v1/core/updates/preflight', {method: 'POST', body: JSON.stringify({dry_run: true})});
+	  async function preflight() {
+	    const result = await api('/api/index.php?route=api/v1/core/updates/preflight', {method: 'POST', body: JSON.stringify({dry_run: true})});
+	    ensureSuccess(result, 'Не удалось выполнить безопасную проверку.');
     const data = result.data || result;
     state.preflight = data.preflight || data;
     state.lastJobId = data.job_id || (data.updater && data.updater.data && data.updater.data.job_id) || state.lastJobId;
@@ -477,16 +608,18 @@
     await loadStatus();
   }
 
-  async function download() {
-    if (!state.lastJobId) throw new Error('Сначала выполните preflight, чтобы получить job_id.');
-    const result = await api('/updater/index.php?action=download', {method: 'POST', body: JSON.stringify({dry_run: true, job_id: state.lastJobId})});
+	  async function download() {
+	    if (!state.lastJobId) throw new Error('Сначала выполните preflight, чтобы получить job_id.');
+	    const result = await api('/updater/index.php?action=download', {method: 'POST', body: JSON.stringify({dry_run: true, job_id: state.lastJobId})});
+	    ensureSuccess(result, 'Не удалось подготовить архив.');
     state.download = result;
     renderPreflight();
     await loadStatus();
   }
 
   async function updaterSession() {
-    const session = await api('/api/index.php?route=api/v1/core/updates/session', {method: 'POST', body: '{}'});
+	    const session = await api('/api/index.php?route=api/v1/core/updates/session', {method: 'POST', body: '{}'});
+	    ensureSuccess(session, 'Не удалось получить одноразовый updater token.');
     const token = session && session.data && session.data.updater_token;
     if (!token) throw new Error('Не удалось получить одноразовый updater token.');
     return token;
@@ -497,7 +630,8 @@
     const confirmation = window.prompt('Для реального применения обновления введите APPLY');
     if (confirmation !== 'APPLY') return;
     const token = await updaterSession();
-    const result = await api('/updater/index.php?action=apply', {method: 'POST', body: JSON.stringify({job_id: state.lastJobId, confirm_apply: true, token})});
+	    const result = await api('/updater/index.php?action=apply', {method: 'POST', body: JSON.stringify({job_id: state.lastJobId, confirm_apply: true, token})});
+	    ensureSuccess(result, 'Не удалось установить обновление.');
     state.apply = result;
     renderApply();
     await loadStatus();
@@ -511,7 +645,8 @@
     const confirmation = window.prompt('Rollback восстановит файлы из backup. Введите ROLLBACK');
     if (confirmation !== 'ROLLBACK') return;
     const token = await updaterSession();
-    const result = await api('/updater/index.php?action=rollback', {method: 'POST', body: JSON.stringify({job_id: jobId, token})});
+	    const result = await api('/updater/index.php?action=rollback', {method: 'POST', body: JSON.stringify({job_id: jobId, token})});
+	    ensureSuccess(result, 'Не удалось восстановить backup.');
     state.apply = result;
     renderApply();
     await loadStatus();

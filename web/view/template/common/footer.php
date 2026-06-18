@@ -170,6 +170,7 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
 <script>
 (function () {
   try {
+    if (document.body && document.body.getAttribute('data-page') === 'admin-updates') return;
     var badge = document.getElementById('crmUpdateBadge');
     if (!badge) return;
     var cached = sessionStorage.getItem('crm_update_check');
@@ -183,10 +184,10 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
       } catch (e) {}
       return;
     }
-    // Use existing updater system: fetch local version, then check update center
+    // Use the current core update API. Keep this quiet: the footer badge is optional.
     var currentVersion = '<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>';
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'api/index.php?route=updater/index.php&action=status', true);
+    xhr.open('GET', '/api/index.php?route=api/v1/core/updates/status', true);
     xhr.timeout = 5000;
     xhr.onload = function () {
       try {

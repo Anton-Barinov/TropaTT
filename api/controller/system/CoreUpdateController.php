@@ -108,7 +108,11 @@ final class CoreUpdateController extends BaseController
             return true;
         }
         $permissions = is_array($user['permission_codes'] ?? null) ? $user['permission_codes'] : [];
-        return in_array('*', $permissions, true) || in_array('system.update', $permissions, true);
+        if (in_array('*', $permissions, true) || in_array('system.update', $permissions, true) || in_array('settings.manage', $permissions, true)) {
+            return true;
+        }
+        $roles = is_array($user['roles'] ?? null) ? $user['roles'] : [];
+        return in_array('admin', $roles, true) || in_array('super_admin', $roles, true);
     }
 
     private function callUpdater(string $action, array $payload, array $config): array
