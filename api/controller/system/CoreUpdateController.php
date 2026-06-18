@@ -67,7 +67,12 @@ final class CoreUpdateController extends BaseController
         $payload = $this->request()->allInput();
         $payload['dry_run'] = true;
         $result = $this->callUpdater('preflight', $payload, $config);
-        return $this->success('CORE_UPDATE_PREFLIGHT', 'Core update preflight', $this->normalizeUpdaterResult($result));
+        $normalized = $this->normalizeUpdaterResult($result);
+        if (($normalized['success'] ?? false) !== true || empty($normalized['job_id'])) {
+            $message = (string)($normalized['message'] ?? $normalized['code'] ?? 'Updater preflight failed.');
+            return $this->error('CORE_UPDATE_PREFLIGHT_FAILED', $message, 502, [], ['updater' => $normalized]);
+        }
+        return $this->success('CORE_UPDATE_PREFLIGHT', 'Core update preflight', $normalized);
     }
 
     public function session(): \Api\System\Library\Http\JsonResponse
@@ -131,7 +136,8 @@ final class CoreUpdateController extends BaseController
 
     private function callUpdater(string $action, array $payload, array $config): array
     {
-        $url = 'http://crm.ru/updater/index.php?action=' . rawurlencode($action);
+        $baseUrl = $this->localUpdaterBaseUrl($config);
+        $url = $baseUrl . '/updater/index.php?action=' . rawurlencode($action);
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
         $response = @file_get_contents($url, false, stream_context_create([
             'http' => [
@@ -146,11 +152,26 @@ final class CoreUpdateController extends BaseController
         return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
     }
 
+    private function localUpdaterBaseUrl(array $config): string
+    {
+        $configured = trim((string)($config['local_updater_url'] ?? ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+
+        $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'crm.ru'));
+        $isHttps = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+        $scheme = $isHttps ? 'https' : 'http';
+        return $scheme . '://' . $host;
+    }
+
     private function normalizeUpdaterResult(array $result): array
     {
         $data = is_array($result['data'] ?? null) ? $result['data'] : [];
         return [
             'success' => (bool)($result['success'] ?? false),
+            'code' => $result['code'] ?? $result['error'] ?? null,
+            'message' => $result['message'] ?? $result['error'] ?? null,
             'job_id' => $data['job_id'] ?? null,
             'preflight' => $data['preflight'] ?? null,
             'updater' => $result,

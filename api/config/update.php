@@ -6,6 +6,7 @@ return [
     'product' => 'tropatt-core',
     'channel' => getenv('TROPATT_UPDATE_CHANNEL') ?: 'stable',
     'update_center_url' => getenv('TROPATT_UPDATE_CENTER_URL') ?: 'https://update.tropatt.com',
+    'local_updater_url' => getenv('TROPATT_LOCAL_UPDATER_URL') ?: '',
     'storage_dir' => dirname(__DIR__, 2) . '/storage_api/updates',
     'public_key_path' => dirname(__DIR__, 2) . '/updater/keys/update_public.pem',
     'timeouts' => [

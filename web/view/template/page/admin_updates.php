@@ -352,6 +352,19 @@ $auJs = [
     Object.keys(vars).forEach((name) => { text = text.replaceAll(`{${name}}`, String(vars[name] ?? '')); });
     return text;
   };
+  const extractJobId = (value, depth = 0) => {
+    if (!value || typeof value !== 'object' || depth > 5) return '';
+    if (typeof value.job_id === 'string' && value.job_id !== '') return value.job_id;
+    for (const key of ['data', 'updater', 'preflight', 'result']) {
+      const found = extractJobId(value[key], depth + 1);
+      if (found) return found;
+    }
+    for (const nested of Object.values(value)) {
+      const found = extractJobId(nested, depth + 1);
+      if (found) return found;
+    }
+    return '';
+  };
   const bytes = (value) => {
     const n = Number(value || 0);
     if (!n) return `0 ${tr('bytesB', 'Б')}`;
@@ -747,12 +760,14 @@ $auJs = [
     ensureSuccess(result, tr('errPreflight', 'Не удалось выполнить безопасную проверку.'));
     const data = result.data || result;
     state.preflight = data.preflight || data;
-    state.lastJobId = data.job_id || (data.updater && data.updater.data && data.updater.data.job_id) || state.lastJobId;
+    state.lastJobId = extractJobId(result) || state.lastJobId;
+    if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
     renderPreflight();
     await loadStatus();
   }
 
   async function download() {
+    state.lastJobId = state.lastJobId || extractJobId(state.status);
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
     const result = await api('/updater/index.php?action=download', {method: 'POST', body: JSON.stringify({dry_run: true, job_id: state.lastJobId})});
     ensureSuccess(result, tr('errDownload', 'Не удалось подготовить архив.'));
@@ -770,6 +785,7 @@ $auJs = [
   }
 
   async function applyUpdate() {
+    state.lastJobId = state.lastJobId || extractJobId(state.status);
     if (!state.lastJobId) throw new Error(tr('needJobApply', 'Нет job_id. Сначала выполните проверку безопасности и подготовку архива.'));
     const token = await updaterSession();
     const result = await api('/updater/index.php?action=apply', {method: 'POST', body: JSON.stringify({job_id: state.lastJobId, confirm_apply: true, token})});
