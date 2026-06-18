@@ -182,18 +182,22 @@ window.CRM.modules.pageBindings = <?= json_encode($module_js_routes, JSON_UNESCA
       } catch (e) {}
       return;
     }
-    // Check GitHub for latest release
+    // Use existing updater system: fetch local version, then check update center
+    var currentVersion = '<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>';
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.github.com/repos/Anton-Barinov/TropaTT/releases/latest', true);
-    xhr.timeout = 8000;
+    xhr.open('GET', 'api/index.php?route=updater/index.php&action=status', true);
+    xhr.timeout = 5000;
     xhr.onload = function () {
       try {
         var resp = JSON.parse(xhr.responseText);
-        var latest = resp && resp.tag_name;
-        var current = '<?= htmlspecialchars(file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0', ENT_QUOTES, 'UTF-8') ?>';
-        if (latest && current && latest !== current) {
-          sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latest }));
-          badge.textContent = '\u{1F514} ' + latest + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
+        var data = resp && resp.data || {};
+        var installed = data.installed_core || {};
+        var latestBuild = installed.core_build;
+        var latestVersion = installed.core_version;
+        // If update center has a newer build, show badge
+        if (latestVersion && currentVersion && latestVersion !== currentVersion) {
+          sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: true, latestVersion: latestVersion }));
+          badge.textContent = '\u{1F514} ' + latestVersion + ' \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430';
           badge.classList.remove('d-none');
         } else {
           sessionStorage.setItem('crm_update_check', JSON.stringify({ hasUpdate: false }));
