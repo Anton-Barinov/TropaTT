@@ -180,7 +180,7 @@ abstract class BaseController
             return false;
         }
 
-        if (in_array($key, ['request_id', 'correlation_id'], true)) {
+        if (in_array($key, ['request_id', 'correlation_id', 'job_id', 'backup_id'], true)) {
             return false;
         }
 
