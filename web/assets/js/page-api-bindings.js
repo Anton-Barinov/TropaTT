@@ -2456,39 +2456,6 @@ window.CRM.pageApiBindings = (function () {
     return true;
   }
 
-  // ── Post-render: find and re-route paths that hit obstacles ──────
-  function crmGanttPostRenderFix(svgParts, obstacles) {
-    // Parse existing paths, check each for intersection, re-route problematic ones
-    // For now: just log which paths hit obstacles (debug info for future improvement)
-    for (var i = 0; i < svgParts.length; i++) {
-      var part = svgParts[i];
-      if (part.indexOf('<path') === -1) continue;
-
-      // Extract path points from d attribute
-      var dMatch = part.match(/d="([^"]+)"/);
-      if (!dMatch) continue;
-      var coords = dMatch[1].match(/[\d.]+/g);
-      if (!coords || coords.length < 4) continue;
-
-      // Build segments from the path
-      var pts = [];
-      for (var c = 0; c < coords.length; c += 2) {
-        pts.push({ x: parseFloat(coords[c]), y: parseFloat(coords[c + 1]) });
-      }
-
-      // Check each segment against obstacles
-      for (var s = 0; s < pts.length - 1; s++) {
-        var seg = { x1: pts[s].x, y1: pts[s].y, x2: pts[s + 1].x, y2: pts[s + 1].y };
-        if (crmGanttSegmentHitsObstacle(seg, obstacles)) {
-          // Mark this path with a different stroke to indicate intersection
-          svgParts[i] = svgParts[i]
-            .replace('stroke-linejoin="round"', 'stroke-linejoin="round" stroke-dasharray="8,4"')
-            .replace('stroke="' + (part.match(/stroke="([^"]+)"/) || [])[1] + '"', 'stroke="#f59e0b"');
-          break;
-        }
-      }
-    }
-  }
           if (method !== 'GET') return false;
           if (!route) return false;
           return route.indexOf('/api/v1/users') >= 0
@@ -16572,6 +16539,31 @@ window.CRM.pageApiBindings = (function () {
     var highlighted = document.querySelectorAll('.crm-gantt-bar.gantt-dep-highlight');
     for (var i = 0; i < highlighted.length; i++) {
       highlighted[i].classList.remove('gantt-dep-highlight');
+    }
+  }
+
+  // ── Post-render: find and re-route paths that hit obstacles ──────
+  function crmGanttPostRenderFix(svgParts, obstacles) {
+    for (var i = 0; i < svgParts.length; i++) {
+      var part = svgParts[i];
+      if (part.indexOf('<path') === -1) continue;
+      var dMatch = part.match(/d="([^"]+)"/);
+      if (!dMatch) continue;
+      var coords = dMatch[1].match(/[\d.]+/g);
+      if (!coords || coords.length < 4) continue;
+      var pts = [];
+      for (var c = 0; c < coords.length; c += 2) {
+        pts.push({ x: parseFloat(coords[c]), y: parseFloat(coords[c + 1]) });
+      }
+      for (var s = 0; s < pts.length - 1; s++) {
+        var seg = { x1: pts[s].x, y1: pts[s].y, x2: pts[s + 1].x, y2: pts[s + 1].y };
+        if (crmGanttSegmentHitsObstacle(seg, obstacles)) {
+          svgParts[i] = svgParts[i]
+            .replace('stroke-linejoin="round"', 'stroke-linejoin="round" stroke-dasharray="8,4"')
+            .replace(/stroke="[^"]+"/, 'stroke="#f59e0b"');
+          break;
+        }
+      }
     }
   }
 
