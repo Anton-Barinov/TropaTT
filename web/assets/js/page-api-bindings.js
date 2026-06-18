@@ -16520,7 +16520,7 @@ window.CRM.pageApiBindings = (function () {
 
   function crmGanttDepsHighlightConflict(idx) {
     var info = _ganttDepsConflictData[idx];
-    if (!info) return;
+    if (!info || !info.pos) return;
 
     // Highlight target bar
     var tgtBar = document.querySelector('.crm-gantt-bar[data-task-id="' + info.pos.taskId + '"]');
