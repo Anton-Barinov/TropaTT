@@ -168,6 +168,24 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_chats` | authenticated participant | List chats where the current user is a participant. |
 | `crm_list_chat_messages` | authenticated participant | Read messages from a chat where the user is a participant. |
 | `crm_send_chat_message` | authenticated participant | Send a text message to a chat where the user is a participant. |
+| `crm_list_notifications` | authenticated user | List current-user notifications. |
+| `crm_get_notification_counters` | authenticated user | Read current-user notification counters. |
+| `crm_create_notification` | authenticated user | Create a notification using existing CRM notification rules. |
+| `crm_mark_notification_read` | authenticated user | Mark one current-user notification as read. |
+| `crm_mark_notification_unread` | authenticated user | Mark one current-user notification as unread. |
+| `crm_mark_all_notifications_read` | authenticated user | Mark all current-user notifications as read, optionally by category. |
+| `crm_list_favorites` | authenticated user | List current-user favorites. |
+| `crm_create_favorite` | authenticated user | Add a visible task, project or comment to favorites. |
+| `crm_delete_favorite` | authenticated user | Remove a favorite by public id. |
+| `crm_list_subscriptions` | authenticated user | List current-user subscriptions. |
+| `crm_create_subscription` | authenticated user | Subscribe to a visible task, project or comment. |
+| `crm_delete_subscription` | authenticated user | Remove a subscription by public id. |
+| `crm_list_reactions` | authenticated user | List reactions on visible tasks, projects or comments. |
+| `crm_add_reaction` | authenticated user | Add or update the current user reaction. |
+| `crm_remove_reaction` | authenticated user | Remove a reaction by public id. |
+| `crm_list_mentions` | authenticated user | List mentions visible to the current user. |
+| `crm_add_mention` | authenticated user | Mention a user on a visible task, project or comment. |
+| `crm_delete_mention` | authenticated user | Delete a mention by public id when CRM rules allow it. |
 
 ## API Endpoint Inventory Summary
 
