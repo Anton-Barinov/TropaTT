@@ -9,12 +9,14 @@ use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\CalendarService;
+use Api\System\Library\Service\ChecklistService;
 use Api\System\Library\Service\ClientService;
 use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\ContactService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\DepartmentService;
+use Api\System\Library\Service\DependencyService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\RecurringService;
@@ -25,6 +27,7 @@ use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\WorkCycleService;
+use Api\System\Library\Service\WorklogService;
 use Api\System\Library\Service\WorkflowService;
 use PDO;
 use Throwable;
@@ -663,6 +666,71 @@ MD;
                 'task_public_id' => ['type' => 'string'],
                 'tag_public_id' => ['type' => 'string'],
             ], ['task_public_id', 'tag_public_id']);
+            $tools[] = $this->tool('crm_list_task_checklists', 'List checklists for a visible task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_create_task_checklist', 'Create a checklist on a visible task.', [
+                'task_public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+            ], ['task_public_id', 'title']);
+            $tools[] = $this->tool('crm_update_checklist', 'Update a checklist title.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_checklist_items', 'List checklist items.', [
+                'checklist_public_id' => ['type' => 'string'],
+            ], ['checklist_public_id']);
+            $tools[] = $this->tool('crm_create_checklist_item', 'Create a checklist item.', [
+                'checklist_public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'is_done' => ['type' => 'boolean'],
+                'sort_order' => ['type' => 'integer'],
+            ], ['checklist_public_id', 'title']);
+            $tools[] = $this->tool('crm_update_checklist_item', 'Update a checklist item.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'is_done' => ['type' => 'boolean'],
+                'sort_order' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_dependencies', 'List task dependencies visible to the current CRM user.', [
+                'task_public_id' => ['type' => 'string'],
+                'depends_on_task_public_id' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_create_dependency', 'Create a dependency between visible tasks.', [
+                'task_public_id' => ['type' => 'string'],
+                'depends_on_task_public_id' => ['type' => 'string'],
+                'dependency_type' => ['type' => 'string', 'enum' => ['FS', 'SS', 'FF', 'SF', 'BLOCKS'], 'default' => 'FS'],
+            ], ['task_public_id', 'depends_on_task_public_id']);
+            $tools[] = $this->tool('crm_list_worklogs', 'List worklog entries visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'task_public_id' => ['type' => 'string'],
+                'user_public_id' => ['type' => 'string'],
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_worklog', 'Get one worklog entry by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_worklog', 'Create a worklog entry.', [
+                'minutes_spent' => ['type' => 'integer', 'minimum' => 1],
+                'task_public_id' => ['type' => 'string'],
+                'note' => ['type' => 'string'],
+                'logged_at' => ['type' => 'string'],
+                'user_public_id' => ['type' => 'string'],
+            ], ['minutes_spent']);
+            $tools[] = $this->tool('crm_update_worklog', 'Update a worklog entry.', [
+                'public_id' => ['type' => 'string'],
+                'minutes_spent' => ['type' => 'integer', 'minimum' => 1],
+                'task_public_id' => ['type' => 'string'],
+                'note' => ['type' => 'string'],
+                'logged_at' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_worklog_summary', 'Get worklog summary grouped by day.', [
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+                'team_public_id' => ['type' => 'string'],
+            ]);
         }
 
         $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
@@ -792,6 +860,19 @@ MD;
             'crm_list_task_tags' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskTags($arguments))),
             'crm_attach_task_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAttachTaskTag($arguments))),
             'crm_detach_task_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDetachTaskTag($arguments))),
+            'crm_list_task_checklists' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskChecklists($arguments))),
+            'crm_create_task_checklist' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTaskChecklist($arguments))),
+            'crm_update_checklist' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateChecklist($arguments))),
+            'crm_list_checklist_items' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListChecklistItems($arguments))),
+            'crm_create_checklist_item' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateChecklistItem($arguments))),
+            'crm_update_checklist_item' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateChecklistItem($arguments))),
+            'crm_list_dependencies' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListDependencies($arguments))),
+            'crm_create_dependency' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateDependency($arguments))),
+            'crm_list_worklogs' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListWorklogs($arguments))),
+            'crm_get_worklog' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklog($arguments))),
+            'crm_create_worklog' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateWorklog($arguments))),
+            'crm_update_worklog' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateWorklog($arguments))),
+            'crm_get_worklog_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogSummary($arguments))),
             'crm_list_ideas' => $this->toolResult($this->crmListIdeas($arguments)),
             'crm_get_idea' => $this->toolResult($this->crmGetIdea($arguments)),
             'crm_create_idea' => $this->toolResult($this->crmCreateIdea($arguments)),
@@ -1678,6 +1759,162 @@ MD;
             : ['error' => 'Task or tag not found.'];
     }
 
+    private function crmListTaskChecklists(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $items = $service->listByTask($taskPublicId, $this->actor());
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => 'Task not found.'];
+    }
+
+    private function crmCreateTaskChecklist(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($taskPublicId === '' || $title === '') {
+            return ['error' => 'task_public_id and title are required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $checklist = $service->create($taskPublicId, ['title' => $title], $this->actor());
+        return $checklist ? ['checklist' => $this->publicData($checklist)] : ['error' => 'Task not found.'];
+    }
+
+    private function crmUpdateChecklist(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $checklist = $service->update($publicId, $this->pick($arguments, ['title']), $this->actor());
+        return $checklist ? ['checklist' => $this->publicData($checklist)] : ['error' => 'Checklist not found.'];
+    }
+
+    private function crmListChecklistItems(array $arguments): array
+    {
+        $checklistPublicId = trim((string)($arguments['checklist_public_id'] ?? ''));
+        if ($checklistPublicId === '') {
+            return ['error' => 'checklist_public_id is required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $items = $service->listItems($checklistPublicId, $this->actor());
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => 'Checklist not found.'];
+    }
+
+    private function crmCreateChecklistItem(array $arguments): array
+    {
+        $checklistPublicId = trim((string)($arguments['checklist_public_id'] ?? ''));
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($checklistPublicId === '' || $title === '') {
+            return ['error' => 'checklist_public_id and title are required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $item = $service->createItem($checklistPublicId, $this->pick($arguments, ['title', 'is_done', 'sort_order']), $this->actor());
+        return $item ? ['item' => $this->publicData($item)] : ['error' => 'Checklist not found.'];
+    }
+
+    private function crmUpdateChecklistItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $item = $service->updateItem($publicId, $this->pick($arguments, ['title', 'is_done', 'sort_order']), $this->actor());
+        return $item ? ['item' => $this->publicData($item)] : ['error' => 'Checklist item not found.'];
+    }
+
+    private function crmListDependencies(array $arguments): array
+    {
+        /** @var DependencyService $service */
+        $service = $this->container->get('service.dependency');
+        return ['items' => $this->publicData($service->list($this->pick($arguments, ['task_public_id', 'depends_on_task_public_id']), $this->actor()))];
+    }
+
+    private function crmCreateDependency(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $dependsOnTaskPublicId = trim((string)($arguments['depends_on_task_public_id'] ?? ''));
+        if ($taskPublicId === '' || $dependsOnTaskPublicId === '') {
+            return ['error' => 'task_public_id and depends_on_task_public_id are required.'];
+        }
+
+        /** @var DependencyService $service */
+        $service = $this->container->get('service.dependency');
+        $dependency = $service->create($this->pick($arguments, ['task_public_id', 'depends_on_task_public_id', 'dependency_type']), $this->actor());
+        return is_array($dependency) ? ['dependency' => $this->publicData($dependency)] : ['error' => (string)$dependency];
+    }
+
+    private function crmListWorklogs(array $arguments): array
+    {
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        return $this->publicData($service->list($this->worklogFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetWorklog(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $worklog = $service->get($publicId, $this->actor());
+        return $worklog ? ['worklog' => $this->publicData($worklog)] : ['error' => 'Worklog not found.'];
+    }
+
+    private function crmCreateWorklog(array $arguments): array
+    {
+        if ((int)($arguments['minutes_spent'] ?? 0) <= 0) {
+            return ['error' => 'minutes_spent must be positive.'];
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $worklog = $service->create($this->worklogInput($arguments), $this->actor());
+        return is_array($worklog) ? ['worklog' => $this->publicData($worklog)] : ['error' => (string)$worklog];
+    }
+
+    private function crmUpdateWorklog(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (array_key_exists('minutes_spent', $arguments) && (int)$arguments['minutes_spent'] <= 0) {
+            return ['error' => 'minutes_spent must be positive.'];
+        }
+
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $worklog = $service->update($publicId, $this->worklogInput($arguments), $this->actor());
+        return is_array($worklog) ? ['worklog' => $this->publicData($worklog)] : ['error' => (string)($worklog ?: 'Worklog not found.')];
+    }
+
+    private function crmGetWorklogSummary(array $arguments): array
+    {
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        return $this->publicData($service->summary($this->worklogSummaryFilters($arguments), $this->actor()));
+    }
+
     private function crmListIdeas(array $arguments): array
     {
         /** @var IdeaService $service */
@@ -2206,6 +2443,44 @@ MD;
         return $this->pick($arguments, [
             'code', 'title', 'name', 'color', 'description',
         ]);
+    }
+
+    private function worklogFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'task_public_id', 'user_public_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        if (!empty($arguments['date_from'])) {
+            $filters['from'] = (string)$arguments['date_from'];
+        }
+        if (!empty($arguments['date_to'])) {
+            $filters['to'] = (string)$arguments['date_to'];
+        }
+
+        return $filters;
+    }
+
+    private function worklogInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'minutes_spent', 'task_public_id', 'note', 'logged_at', 'user_public_id',
+        ]);
+    }
+
+    private function worklogSummaryFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, ['team_public_id']);
+
+        if (!empty($arguments['date_from'])) {
+            $filters['from'] = (string)$arguments['date_from'];
+        }
+        if (!empty($arguments['date_to'])) {
+            $filters['to'] = (string)$arguments['date_to'];
+        }
+
+        return $filters;
     }
 
     private function slugCode(string $value): string
