@@ -338,7 +338,7 @@
           }
         })
         .catch(function () {
-          document.getElementById('cycleModalAlert').textContent = 'Ошибка загрузки данных цикла.';
+          document.getElementById('cycleModalAlert').textContent = window.CRM.i18n.t('js.cycles.error_load_data', 'Ошибка загрузки данных цикла.');
           document.getElementById('cycleModalAlert').classList.remove('d-none');
         });
     }
