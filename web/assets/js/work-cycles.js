@@ -616,9 +616,21 @@
     selectedTasks = {};
     document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.search_placeholder_min', 'Введите поисковый запрос') + '</div>';
     document.getElementById('addTaskSearchInput').value = '';
+    document.getElementById('addTasksConfirmBtn').textContent = t('cycles.btn_add_selected', 'Добавить выбранные');
+    document.getElementById('addTasksConfirmBtn').disabled = false;
     var modal = new bootstrap.Modal(document.getElementById('addTasksModal'));
     modal.show();
   };
+
+  function showCycleTasksTab() {
+    var tabButton = document.getElementById('cycleTasksTab');
+    if (!tabButton) return;
+    if (window.bootstrap && bootstrap.Tab) {
+      bootstrap.Tab.getOrCreateInstance(tabButton).show();
+      return;
+    }
+    tabButton.click();
+  }
 
   document.addEventListener('DOMContentLoaded', function () {
     var searchInput = document.getElementById('addTaskSearchInput');
@@ -693,6 +705,7 @@
         document.getElementById('addTasksConfirmBtn').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('addTasksModal')).hide();
         loadCycleTasks(currentCyclePublicId);
+        showCycleTasksTab();
       })
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;

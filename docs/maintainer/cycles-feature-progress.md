@@ -38,6 +38,7 @@ Browser verification after deploy:
 - Edit save exposed an API contract issue: empty date fields were sent as `null`, while the service expects an empty string for clearing dates. Fixed in frontend.
 - Complete modal now loads planned / active target cycles and shows localized status labels.
 - Added a command-center strip above filters with active, planned, overdue and open-task metrics plus next-step guidance.
+- Add-task flow was browser-tested: task attach and detach work. After attach, the UI now switches to the Tasks tab and resets the selected-task counter on each modal open.
 
 Pending verification:
 - Browser reload on demo after deployment.
