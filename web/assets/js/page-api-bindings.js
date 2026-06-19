@@ -4534,9 +4534,19 @@ window.CRM.pageApiBindings = (function () {
               }
               openDigestActionPreview(aiActions[actionIndex]);
             });
-            btn.dataset.bound = '1';
-          });
-        }
+        btn.dataset.bound = '1';
+      });
+
+      document.querySelectorAll('[data-team-menu]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', function () {
+          var teamId = String(btn.getAttribute('data-team-menu') || '').trim();
+          if (!teamId) return;
+          openTeamMenuTemplateModal(teamId);
+        });
+        btn.dataset.bound = '1';
+      });
+    }
       }
 
       if (aiDigestMeta) {
@@ -11002,6 +11012,153 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    function openTeamMenuTemplateModal(teamId) {
+      var team = teamsMap[teamId];
+      if (!team) return;
+      var teamTitle = safeText(team.title || teamId);
+
+      var existing = document.getElementById('teamMenuTemplateModal');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+      var allMenuItems = [
+        { key: 'dashboard', label: tp('nav.dashboard', 'Dashboard') },
+        { key: 'ideas', label: tp('nav.ideas', 'Ideas') },
+        { key: 'tasks', label: tp('nav.tasks', 'Tasks') },
+        { key: 'day', label: tp('nav.day', 'My day') },
+        { key: 'week', label: tp('nav.week', 'My week') },
+        { key: 'kanban', label: tp('nav.kanban', 'Kanban') },
+        { key: 'gantt', label: tp('nav.gantt', 'Gantt') },
+        { key: 'projects', label: tp('nav.projects', 'Projects') },
+        { key: 'calendar', label: tp('nav.calendar', 'Calendar') },
+        { key: 'counterparties', label: tp('nav.counterparties', 'Counterparties') },
+        { key: 'teams', label: tp('nav.teams', 'Teams') },
+        { key: 'intake', label: tp('nav.intake', 'Intake') },
+        { key: 'cycles', label: tp('nav.cycles', 'Cycles') },
+        { key: 'knowledge', label: tp('nav.knowledge', 'Knowledge') },
+        { key: 'analytics', label: tp('nav.analytics', 'Analytics') },
+        { key: 'notifications', label: tp('nav.notifications', 'Notifications') },
+        { key: 'admin', label: tp('nav.admin', 'Administration') },
+        { key: 'admin-estimates', label: tp('nav.admin_estimates', 'Estimates') },
+        { key: 'admin-modules', label: tp('nav.admin_modules', 'Modules') },
+        { key: 'chat', label: tp('nav.chat', 'Chats') },
+        { key: 'docs', label: tp('nav.api', 'Docs') }
+      ];
+
+      var menuIcons = {
+        dashboard: 'fa-house', ideas: 'fa-lightbulb', tasks: 'fa-list-check', day: 'fa-calendar-day',
+        week: 'fa-calendar-week', kanban: 'fa-table-columns', gantt: 'fa-chart-gantt', projects: 'fa-folder-tree',
+        calendar: 'fa-calendar-days', counterparties: 'fa-address-book', teams: 'fa-people-group',
+        intake: 'fa-inbox', cycles: 'fa-arrows-spin', knowledge: 'fa-book-open-reader',
+        analytics: 'fa-chart-column', notifications: 'fa-bell', admin: 'fa-shield-halved',
+        'admin-estimates': 'fa-ruler-combined', 'admin-modules': 'fa-cubes', chat: 'fa-comments', docs: 'fa-code'
+      };
+
+      request('api/v1/teams/' + encodeURIComponent(teamId) + '/menu-template')
+        .then(function (envelope) {
+          var data = envelope && envelope.data ? envelope.data : {};
+          var templateItems = data.template || [];
+          var visMap = {};
+          var orderKeys = [];
+          templateItems.forEach(function (item) {
+            visMap[item.key] = item.visible !== false;
+            orderKeys.push(item.key);
+          });
+
+          var sortedItems = allMenuItems.slice().sort(function (a, b) {
+            var ai = orderKeys.indexOf(a.key);
+            var bi = orderKeys.indexOf(b.key);
+            if (ai === -1 && bi === -1) return 0;
+            if (ai === -1) return 1;
+            if (bi === -1) return -1;
+            return ai - bi;
+          });
+
+          var listHtml = sortedItems.map(function (item) {
+            var isVisible = visMap[item.key] !== false;
+            var iconClass = menuIcons[item.key] || 'fa-circle-dot';
+            return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
+              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
+              + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
+              + '<label class="crm-menu-customize-toggle">'
+              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
+              + '<span class="crm-toggle-slider"></span>'
+              + '</label>'
+              + '</div>';
+          }).join('');
+
+          var modal = document.createElement('div');
+          modal.className = 'modal fade';
+          modal.id = 'teamMenuTemplateModal';
+          modal.setAttribute('tabindex', '-1');
+          modal.setAttribute('aria-hidden', 'true');
+
+          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+            + '<div class="modal-header">'
+            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('teams.menu_template', 'Menu template')) + ' — ' + teamTitle + '</h5>'
+            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+            + '</div>'
+            + '<div class="modal-body">'
+            + '<p class="text-muted small mb-3">' + safeText(tp('teams.menu_template_hint', 'Configure the default menu for all members of this team. Drag to reorder, toggle to show/hide.')) + '</p>'
+            + '<div class="crm-menu-customize-list" data-team-menu-list>' + listHtml + '</div>'
+            + '</div>'
+            + '<div class="modal-footer">'
+            + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(tp('common.cancel_btn', 'Cancel')) + '</button>'
+            + '<button type="button" class="btn crm-btn-primary" data-team-menu-save>' + safeText(tp('common.save', 'Save')) + '</button>'
+            + '</div>'
+            + '</div></div>';
+
+          document.body.appendChild(modal);
+          var bsModal = new bootstrap.Modal(modal);
+
+          var listEl = modal.querySelector('[data-team-menu-list]');
+          if (listEl && typeof Sortable !== 'undefined') {
+            Sortable.create(listEl, {
+              handle: '.crm-menu-customize-drag',
+              animation: 180,
+              ghostClass: 'crm-menu-customize-ghost',
+              chosenClass: 'crm-menu-customize-chosen',
+              dragClass: 'crm-menu-customize-dragging',
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+            });
+          }
+
+          modal.querySelector('[data-team-menu-save]').addEventListener('click', function () {
+            var saveBtn = this;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+
+            var items = [];
+            listEl.querySelectorAll('.crm-menu-customize-item').forEach(function (row) {
+              var key = row.getAttribute('data-key') || '';
+              var checkbox = row.querySelector('[data-toggle-visibility]');
+              items.push({ key: key, visible: checkbox ? checkbox.checked : true });
+            });
+
+            request('api/v1/teams/' + encodeURIComponent(teamId) + '/menu-template', {
+              method: 'PUT',
+              body: { items: items }
+            }).then(function () {
+              notify(tp('teams.menu_template_saved', 'Menu template saved'));
+              bsModal.hide();
+              if (modal.parentNode) modal.parentNode.removeChild(modal);
+            }).catch(function () {
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+            });
+          });
+
+          modal.addEventListener('hidden.bs.modal', function () {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+          });
+
+          bsModal.show();
+        })
+        .catch(function () {
+          notify(tp('teams.menu_template_load_fail', 'Failed to load menu template'), 'error');
+        });
+    }
+
     function renderTreeView(search, type) {
       var container = document.getElementById('teamsTree');
       if (!container) return;
@@ -11095,6 +11252,9 @@ window.CRM.pageApiBindings = (function () {
         var actionsHtml = '<div class="crm-team-actions">'
           + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-edit="' + safeText(id) + '" aria-label="' + safeText(tp('teams.edit_team', 'Edit team')) + '" title="' + safeText(tp('teams.edit_team', 'Edit team')) + '">'
           + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-pen-to-square"></i></span>'
+          + '</button>'
+          + '<button class="btn btn-sm crm-btn-secondary-icon" type="button" data-team-menu="' + safeText(id) + '" aria-label="' + safeText(tp('teams.menu_template', 'Menu template')) + '" title="' + safeText(tp('teams.menu_template', 'Menu template')) + '">'
+          + '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>'
           + '</button>'
           + '<button class="btn btn-sm crm-btn-danger-icon" type="button" data-team-delete="' + safeText(id) + '" aria-label="' + safeText(tp('teams.delete_team', 'Delete team')) + '" title="' + safeText(tp('teams.delete_team', 'Delete team')) + '">'
           + '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></span>'
@@ -13228,7 +13388,7 @@ window.CRM.pageApiBindings = (function () {
         var statusText = user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive');
         var statusBadge = user.is_active ? '<span class="crm-badge success">' + safeText(statusText) + '</span>' : '<span class="crm-badge archived">' + safeText(statusText) + '</span>';
         var lastLogin = user.last_login_at ? formatDate(user.last_login_at) : '—';
-        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '">👤</button><button class="btn btn-sm btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
+        var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-user-edit="' + safeText(user.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm btn-light" data-user-menu="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.user_menu_title', 'Menu settings')) + '"><i class="fa-solid fa-sliders"></i></button><button class="btn btn-sm btn-warning" data-user-impersonate="' + safeText(user.public_id) + '" title="' + safeText(tp('admin.impersonate_title', 'Log in as user')) + '">👤</button><button class="btn btn-sm btn-danger" data-user-delete="' + safeText(user.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button></div>';
         return '<tr><td><input class="form-check-input" type="checkbox" data-select-user="' + safeText(user.public_id) + '" data-admin-user-bulk-id="' + safeText(user.public_id) + '"></td><td><strong>' + safeText(user.full_name || user.login) + '</strong><small class="text-muted d-block">' + safeText(user.login) + '</small></td><td>' + safeText(user.email || '—') + '</td><td>' + safeText(roleTitles || tp('admin.no_roles', 'No roles')) + '</td><td>' + safeText(teamTitle) + '</td><td>' + lastLogin + '</td><td>' + statusBadge + '</td><td>' + actions + '</td></tr>';
       }).join('');
     }
@@ -13390,6 +13550,244 @@ window.CRM.pageApiBindings = (function () {
         modal.show();
       });
     });
+
+    // Bind user menu buttons
+    document.querySelectorAll('[data-user-menu]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var publicId = btn.getAttribute('data-user-menu');
+        openUserMenuPreferencesModal(publicId);
+      });
+      btn.dataset.bound = '1';
+    });
+
+    function openUserMenuPreferencesModal(userPublicId) {
+      var user = users.find(function (u) { return u.public_id === userPublicId; });
+      var userName = user ? safeText(user.full_name || user.login || userPublicId) : userPublicId;
+
+      var existing = document.getElementById('userMenuPrefsModal');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+      var allMenuItems = [
+        { key: 'dashboard', label: tp('nav.dashboard', 'Dashboard') },
+        { key: 'ideas', label: tp('nav.ideas', 'Ideas') },
+        { key: 'tasks', label: tp('nav.tasks', 'Tasks') },
+        { key: 'day', label: tp('nav.day', 'My day') },
+        { key: 'week', label: tp('nav.week', 'My week') },
+        { key: 'kanban', label: tp('nav.kanban', 'Kanban') },
+        { key: 'gantt', label: tp('nav.gantt', 'Gantt') },
+        { key: 'projects', label: tp('nav.projects', 'Projects') },
+        { key: 'calendar', label: tp('nav.calendar', 'Calendar') },
+        { key: 'counterparties', label: tp('nav.counterparties', 'Counterparties') },
+        { key: 'teams', label: tp('nav.teams', 'Teams') },
+        { key: 'intake', label: tp('nav.intake', 'Intake') },
+        { key: 'cycles', label: tp('nav.cycles', 'Cycles') },
+        { key: 'knowledge', label: tp('nav.knowledge', 'Knowledge') },
+        { key: 'analytics', label: tp('nav.analytics', 'Analytics') },
+        { key: 'notifications', label: tp('nav.notifications', 'Notifications') },
+        { key: 'admin', label: tp('nav.admin', 'Administration') },
+        { key: 'admin-estimates', label: tp('nav.admin_estimates', 'Estimates') },
+        { key: 'admin-modules', label: tp('nav.admin_modules', 'Modules') },
+        { key: 'chat', label: tp('nav.chat', 'Chats') },
+        { key: 'docs', label: tp('nav.api', 'Docs') }
+      ];
+
+      var menuIcons = {
+        dashboard: 'fa-house', ideas: 'fa-lightbulb', tasks: 'fa-list-check', day: 'fa-calendar-day',
+        week: 'fa-calendar-week', kanban: 'fa-table-columns', gantt: 'fa-chart-gantt', projects: 'fa-folder-tree',
+        calendar: 'fa-calendar-days', counterparties: 'fa-address-book', teams: 'fa-people-group',
+        intake: 'fa-inbox', cycles: 'fa-arrows-spin', knowledge: 'fa-book-open-reader',
+        analytics: 'fa-chart-column', notifications: 'fa-bell', admin: 'fa-shield-halved',
+        'admin-estimates': 'fa-ruler-combined', 'admin-modules': 'fa-cubes', chat: 'fa-comments', docs: 'fa-code'
+      };
+
+      request('api/v1/users/' + encodeURIComponent(userPublicId) + '/menu-preferences')
+        .then(function (envelope) {
+          var data = envelope && envelope.data ? envelope.data : {};
+          var prefs = data.preferences || [];
+          var visMap = {};
+          var orderKeys = [];
+          var customItems = [];
+          prefs.forEach(function (item) {
+            if (item.key && item.key.indexOf('custom_') === 0) {
+              customItems.push(item);
+            } else {
+              visMap[item.key] = item.visible !== false;
+              orderKeys.push(item.key);
+            }
+          });
+
+          var sortedItems = allMenuItems.slice().sort(function (a, b) {
+            var ai = orderKeys.indexOf(a.key);
+            var bi = orderKeys.indexOf(b.key);
+            if (ai === -1 && bi === -1) return 0;
+            if (ai === -1) return 1;
+            if (bi === -1) return -1;
+            return ai - bi;
+          });
+
+          var listHtml = sortedItems.map(function (item) {
+            var isVisible = orderKeys.length === 0 || visMap[item.key] !== false;
+            var iconClass = menuIcons[item.key] || 'fa-circle-dot';
+            return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
+              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
+              + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
+              + '<label class="crm-menu-customize-toggle">'
+              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
+              + '<span class="crm-toggle-slider"></span>'
+              + '</label>'
+              + '</div>';
+          }).join('');
+
+          var customHtml = customItems.map(function (item) {
+            var iconClass = item.icon || 'fa-link';
+            return '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(item.key) + '" data-is-custom="1">'
+              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
+              + '<span class="crm-menu-customize-label">' + safeText(item.title || item.key) + '</span>'
+              + '<label class="crm-menu-customize-toggle">'
+              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (item.visible !== false ? ' checked' : '') + '>'
+              + '<span class="crm-toggle-slider"></span>'
+              + '</label>'
+              + '</div>';
+          }).join('');
+
+          var modal = document.createElement('div');
+          modal.className = 'modal fade';
+          modal.id = 'userMenuPrefsModal';
+          modal.setAttribute('tabindex', '-1');
+          modal.setAttribute('aria-hidden', 'true');
+
+          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+            + '<div class="modal-header">'
+            + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('admin.user_menu_title', 'Menu settings')) + ' — ' + userName + '</h5>'
+            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+            + '</div>'
+            + '<div class="modal-body">'
+            + '<p class="text-muted small mb-3">' + safeText(tp('admin.user_menu_hint', 'Configure menu for this user. Drag to reorder, toggle to show/hide.')) + '</p>'
+            + '<div class="crm-menu-customize-list" data-user-menu-list>' + listHtml + '</div>'
+            + (customHtml ? '<div class="crm-menu-customize-separator"><span>' + safeText(tp('nav.custom_items', 'Custom links')) + '</span></div><div class="crm-menu-customize-list" data-user-menu-custom-list>' + customHtml + '</div>' : '<div class="crm-menu-customize-list" data-user-menu-custom-list></div>')
+            + '<div class="crm-menu-customize-add-section">'
+            + '<button type="button" class="btn crm-btn-secondary btn-sm" data-user-menu-add-link><i class="fa-solid fa-plus me-1"></i>' + safeText(tp('nav.add_custom_link', 'Add custom link')) + '</button>'
+            + '</div>'
+            + '<div class="crm-menu-customize-add-form d-none" data-user-menu-add-form>'
+            + '<div class="row g-2 align-items-end">'
+            + '<div class="col-md-4"><label class="form-label small">' + safeText(tp('nav.custom_link_title', 'Title')) + '</label><input type="text" class="form-control form-control-sm" data-custom-title placeholder="' + safeText(tp('nav.custom_link_title_placeholder', 'My link')) + '"></div>'
+            + '<div class="col-md-4"><label class="form-label small">' + safeText(tp('nav.custom_link_url', 'URL')) + '</label><input type="url" class="form-control form-control-sm" data-custom-href placeholder="https://example.com"></div>'
+            + '<div class="col-md-3"><label class="form-label small">' + safeText(tp('nav.custom_link_icon', 'Icon (FA class)')) + '</label><input type="text" class="form-control form-control-sm" data-custom-icon placeholder="fa-solid fa-link"></div>'
+            + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-user-menu-add-confirm title="' + safeText(tp('common.add', 'Add')) + '"><i class="fa-solid fa-check"></i></button></div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '<div class="modal-footer">'
+            + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(tp('common.cancel_btn', 'Cancel')) + '</button>'
+            + '<button type="button" class="btn crm-btn-primary" data-user-menu-save>' + safeText(tp('common.save', 'Save')) + '</button>'
+            + '</div>'
+            + '</div></div>';
+
+          document.body.appendChild(modal);
+          var bsModal = new bootstrap.Modal(modal);
+
+          function initUserMenuSortable() {
+            var lists = modal.querySelectorAll('.crm-menu-customize-list');
+            if (typeof Sortable === 'undefined') return;
+            lists.forEach(function (listEl) {
+              if (listEl.dataset.sortableInit) return;
+              listEl.dataset.sortableInit = '1';
+              Sortable.create(listEl, {
+                handle: '.crm-menu-customize-drag',
+                group: 'user-menu-customize',
+                animation: 180,
+                ghostClass: 'crm-menu-customize-ghost',
+                chosenClass: 'crm-menu-customize-chosen',
+                dragClass: 'crm-menu-customize-dragging',
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+              });
+            });
+          }
+
+          initUserMenuSortable();
+
+          modal.querySelector('[data-user-menu-add-link]').addEventListener('click', function () {
+            var form = modal.querySelector('[data-user-menu-add-form]');
+            if (form) form.classList.toggle('d-none');
+          });
+
+          modal.querySelector('[data-user-menu-add-confirm]').addEventListener('click', function () {
+            var titleInput = modal.querySelector('[data-custom-title]');
+            var hrefInput = modal.querySelector('[data-custom-href]');
+            var iconInput = modal.querySelector('[data-custom-icon]');
+            var title = (titleInput ? titleInput.value : '').trim();
+            var href = (hrefInput ? hrefInput.value : '').trim();
+            var icon = (iconInput ? iconInput.value : '').trim();
+            if (!title || !href) return;
+            var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            var iconClass = icon || 'fa-link';
+            var rowHtml = '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(key) + '" data-is-custom="1">'
+              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
+              + '<span class="crm-menu-customize-label">' + safeText(title) + '</span>'
+              + '<label class="crm-menu-customize-toggle">'
+              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(key) + '" checked>'
+              + '<span class="crm-toggle-slider"></span>'
+              + '</label>'
+              + '</div>';
+            var customList = modal.querySelector('[data-user-menu-custom-list]');
+            if (customList) customList.insertAdjacentHTML('beforeend', rowHtml);
+            if (titleInput) titleInput.value = '';
+            if (hrefInput) hrefInput.value = '';
+            if (iconInput) iconInput.value = '';
+            var form = modal.querySelector('[data-user-menu-add-form]');
+            if (form) form.classList.add('d-none');
+            initUserMenuSortable();
+          });
+
+          modal.querySelector('[data-user-menu-save]').addEventListener('click', function () {
+            var saveBtn = this;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+
+            var items = [];
+            var allLists = modal.querySelectorAll('.crm-menu-customize-list');
+            allLists.forEach(function (listEl) {
+              listEl.querySelectorAll('.crm-menu-customize-item').forEach(function (row) {
+                var key = row.getAttribute('data-key') || '';
+                var checkbox = row.querySelector('[data-toggle-visibility]');
+                var entry = { key: key, visible: checkbox ? checkbox.checked : true };
+                if (row.getAttribute('data-is-custom') === '1') {
+                  var label = row.querySelector('.crm-menu-customize-label');
+                  entry.title = label ? label.textContent : key;
+                  entry.href = '#';
+                  entry.icon = 'fa-solid fa-link';
+                }
+                items.push(entry);
+              });
+            });
+
+            request('api/v1/users/' + encodeURIComponent(userPublicId) + '/menu-preferences', {
+              method: 'PUT',
+              body: { items: items }
+            }).then(function () {
+              notify(tp('admin.user_menu_saved', 'Menu settings saved'));
+              bsModal.hide();
+              if (modal.parentNode) modal.parentNode.removeChild(modal);
+            }).catch(function () {
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+            });
+          });
+
+          modal.addEventListener('hidden.bs.modal', function () {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+          });
+
+          bsModal.show();
+        })
+        .catch(function () {
+          notify(tp('admin.user_menu_load_fail', 'Failed to load menu settings'), 'error');
+        });
+    }
 
     // Inject rate fields into edit form if not already present
     var editFormRow = document.querySelector('#adminUserEditForm .row.g-3');
