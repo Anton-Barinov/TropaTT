@@ -3518,6 +3518,8 @@ return array (
       'manager_aria' => 'Filtrar por responsables',
       'project' => 'Proyecto',
       'project_aria' => 'Filtrar por proyectos',
+      'cycle' => 'Ciclo',
+      'cycle_aria' => 'Filtrar por ciclos',
       'due_aria' => 'Filtros de fecha de vencimiento',
       'overdue' => 'Vencidas',
       'today' => 'Hoy',
@@ -3527,9 +3529,11 @@ return array (
       'all_assignees' => 'Todos los asignados',
       'all_managers' => 'Todos los responsables',
       'all_projects' => 'Todos los proyectos',
+      'all_cycles' => 'Todos los ciclos',
       'no_assignee' => 'Sin asignar',
       'no_manager' => 'Sin responsable',
       'no_project' => 'Sin proyecto',
+      'no_cycle' => 'Sin ciclo',
     ),
     'summary' => 
     array (

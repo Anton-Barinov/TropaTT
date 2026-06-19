@@ -3514,6 +3514,8 @@ return array (
       'manager_aria' => 'Filtrar por gerentes',
       'project' => 'Projeto',
       'project_aria' => 'Filtrar por projetos',
+      'cycle' => 'Ciclo',
+      'cycle_aria' => 'Filtrar por ciclos',
       'due_aria' => 'Filtros de data de vencimento',
       'overdue' => 'Atrasada',
       'today' => 'Hoje',
@@ -3523,9 +3525,11 @@ return array (
       'all_assignees' => 'Todos os responsáveis',
       'all_managers' => 'Todos os gerentes',
       'all_projects' => 'Todos os projetos',
+      'all_cycles' => 'Todos os ciclos',
       'no_assignee' => 'Sem responsável',
       'no_manager' => 'Sem gerente',
       'no_project' => 'Sem projeto',
+      'no_cycle' => 'Sem ciclo',
     ),
     'summary' => 
     array (

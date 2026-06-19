@@ -3518,6 +3518,8 @@ return array (
       'manager_aria' => 'Nach Managern filtern',
       'project' => 'Projekt',
       'project_aria' => 'Nach Projekten filtern',
+      'cycle' => 'Zyklus',
+      'cycle_aria' => 'Nach Zyklen filtern',
       'due_aria' => 'Fälligkeitsfilter',
       'overdue' => 'Überfällig',
       'today' => 'Heute',
@@ -3527,9 +3529,11 @@ return array (
       'all_assignees' => 'Alle Zugewiesenen',
       'all_managers' => 'Alle Manager',
       'all_projects' => 'Alle Projekte',
+      'all_cycles' => 'Alle Zyklen',
       'no_assignee' => 'Kein Zugewiesener',
       'no_manager' => 'Kein Manager',
       'no_project' => 'Kein Projekt',
+      'no_cycle' => 'Kein Zyklus',
     ),
     'summary' => 
     array (

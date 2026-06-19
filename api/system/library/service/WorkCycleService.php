@@ -36,7 +36,7 @@ final class WorkCycleService
         $result = $this->cycles->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            $this->isCycleAdmin($actor)
         );
 
         $items = $result['items'] ?? [];
@@ -166,9 +166,7 @@ final class WorkCycleService
             return 'CYCLE_NOT_FOUND';
         }
 
-        // Check project access
-        $project = $this->projects->get((string)$cycle['project_public_id'], $actor);
-        if (!$project) {
+        if (!$this->canViewCycle($cycle, $actor)) {
             return 'CYCLE_FORBIDDEN';
         }
 
@@ -698,8 +696,7 @@ final class WorkCycleService
             return 'CYCLE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$cycle['project_public_id'], $actor);
-        if (!$project) {
+        if (!$this->canViewCycle($cycle, $actor)) {
             return 'CYCLE_FORBIDDEN';
         }
 
@@ -713,8 +710,7 @@ final class WorkCycleService
             return 'CYCLE_NOT_FOUND';
         }
 
-        $project = $this->projects->get((string)$cycle['project_public_id'], $actor);
-        if (!$project) {
+        if (!$this->canViewCycle($cycle, $actor)) {
             return 'CYCLE_FORBIDDEN';
         }
 
@@ -724,6 +720,49 @@ final class WorkCycleService
         $summary['time_state'] = $this->computeTimeState($cycle);
 
         return ['summary' => $summary];
+    }
+
+    private function canViewCycle(array $cycle, array $actor): bool
+    {
+        if ($this->isCycleAdmin($actor)) {
+            return true;
+        }
+
+        $actorUserId = (int)($actor['id'] ?? 0);
+        if ($actorUserId <= 0) {
+            return false;
+        }
+
+        if ((int)($cycle['created_by_user_id'] ?? 0) === $actorUserId) {
+            return true;
+        }
+
+        if ((int)($cycle['owner_user_id'] ?? 0) === $actorUserId) {
+            return true;
+        }
+
+        return $this->cycles->hasAssigneeInCycle((int)($cycle['id'] ?? 0), $actorUserId);
+    }
+
+    private function isCycleAdmin(array $actor): bool
+    {
+        if (!empty($actor['is_root'])) {
+            return true;
+        }
+
+        $roles = array_map(
+            static fn($role): string => strtolower(trim((string)$role)),
+            is_array($actor['roles'] ?? null) ? (array)$actor['roles'] : []
+        );
+        if (array_intersect($roles, ['admin', 'administrator', 'super_admin', 'root']) !== []) {
+            return true;
+        }
+
+        $permissions = array_map(
+            static fn($code): string => strtolower(trim((string)$code)),
+            is_array($actor['permission_codes'] ?? null) ? (array)$actor['permission_codes'] : []
+        );
+        return in_array('*', $permissions, true);
     }
 
     public function transferUnfinished(string $cyclePublicId, array $input, array $actor): array|string|null

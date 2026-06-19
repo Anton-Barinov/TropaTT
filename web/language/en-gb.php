@@ -586,6 +586,8 @@ return array (
       'manager_aria' => 'Filter by managers',
       'project' => 'Project',
       'project_aria' => 'Filter by projects',
+      'cycle' => 'Cycle',
+      'cycle_aria' => 'Filter by cycles',
       'due_aria' => 'Due date filters',
       'overdue' => 'Overdue',
       'today' => 'Today',
@@ -595,9 +597,11 @@ return array (
       'all_assignees' => 'All assignees',
       'all_managers' => 'All managers',
       'all_projects' => 'All projects',
+      'all_cycles' => 'All cycles',
       'no_assignee' => 'No assignee',
       'no_manager' => 'No manager',
       'no_project' => 'No project',
+      'no_cycle' => 'No cycle',
     ),
     'summary' => 
     array (

@@ -315,6 +315,32 @@ button.crm-cycle-command-metric:hover {
   color: #6d7f7a;
   font-size: 12px;
 }
+.crm-cycle-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #dbe8e4;
+  border-radius: 8px;
+  background: #fff;
+}
+.crm-cycle-page-btn {
+  min-width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #3f5550;
+  font-weight: 700;
+}
+.crm-cycle-page-btn:hover {
+  background: #eef8f5;
+  color: #0b7a62;
+}
+.crm-cycle-page-btn.is-active {
+  background: #0b7a62;
+  color: #fff;
+}
 .crm-cycle-title {
   appearance: none;
   border: 0;

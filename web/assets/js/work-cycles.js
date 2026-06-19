@@ -12,6 +12,7 @@
   var currentCyclePublicId = null;
   var currentCycleDetail = null;
   var selectedTasks = {};
+  var cycleFocusLoaded = false;
 
   function api() {
     return window.CRM && window.CRM.api;
@@ -75,7 +76,6 @@
     loadingEl.classList.remove('d-none');
     emptyEl.classList.add('d-none');
     errorEl.classList.add('d-none');
-    renderCycleCommandCenter([]);
     listEl.innerHTML = '';
     paginationEl.innerHTML = '';
 
@@ -103,7 +103,6 @@
         }
 
         renderCycles(items, listEl);
-        renderCycleCommandCenter(items);
 
         var meta = envelope.meta || {};
         var pagination = meta.pagination || {};
@@ -123,6 +122,31 @@
         document.getElementById("cycleErrorText").textContent = errMsg || err && err.message || t("cycles.error_load", "Не удалось загрузить циклы.");
       });
   };
+
+  function loadCycleFocusSummary() {
+    var container = document.getElementById('cycleCommandCenter');
+    if (!container) return;
+    if (!cycleFocusLoaded) {
+      container.classList.remove('d-none');
+      container.innerHTML = '<div class="crm-cycle-command-text"><strong>' + t('cycles.command_title', 'Фокус по циклам') + '</strong><span>' + t('cycles.loading', 'Загрузка...') + '</span></div>';
+    }
+
+    var query = { page: 1, limit: 100 };
+    var projectFilter = document.getElementById('cycleProjectFilter');
+    if (projectFilter && projectFilter.value) query.project_public_id = projectFilter.value;
+
+    apiRequest('api/v1/cycles', { method: 'GET', query: query })
+      .then(function (envelope) {
+        cycleFocusLoaded = true;
+        renderCycleCommandCenter(envelope.data && envelope.data.items || []);
+      })
+      .catch(function () {
+        if (!cycleFocusLoaded) {
+          container.classList.add('d-none');
+          container.innerHTML = '';
+        }
+      });
+  }
 
   function renderCycles(items, container) {
     items.forEach(function (cycle) {
@@ -250,18 +274,16 @@
 
   function renderPagination(page, totalPages, container) {
     if (totalPages <= 1) return;
-    var ul = document.createElement('ul');
-    ul.className = 'pagination pagination-sm';
+    var ul = document.createElement('div');
+    ul.className = 'crm-cycle-pagination';
     for (var i = 1; i <= totalPages; i++) {
-      var li = document.createElement('li');
-      li.className = 'page-item' + (i === page ? ' active' : '');
-      var a = document.createElement('a');
-      a.className = 'page-link';
-      a.href = '#';
-      a.textContent = i;
-      a.onclick = (function (p) { return function (e) { e.preventDefault(); window.loadWorkCycles(p); }; })(i);
-      li.appendChild(a);
-      ul.appendChild(li);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'crm-cycle-page-btn' + (i === page ? ' is-active' : '');
+      btn.textContent = i;
+      btn.setAttribute('aria-current', i === page ? 'page' : 'false');
+      btn.onclick = (function (p) { return function () { window.loadWorkCycles(p); }; })(i);
+      ul.appendChild(btn);
     }
     container.appendChild(ul);
   }
@@ -781,6 +803,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     if (document.getElementById('cycleList')) {
       loadProjectSelectForFilter();
+      loadCycleFocusSummary();
       window.loadWorkCycles(1);
     }
   });
@@ -798,7 +821,10 @@
           opt.textContent = p.title;
           sel.appendChild(opt);
         });
-        sel.onchange = function () { window.loadWorkCycles(1); };
+        sel.onchange = function () {
+          loadCycleFocusSummary();
+          window.loadWorkCycles(1);
+        };
       });
     var statusSel = document.getElementById('cycleStatusFilter');
     if (statusSel) statusSel.onchange = function () { window.loadWorkCycles(1); };

@@ -77,7 +77,18 @@ final class WorkCycleRepository
         $qb->whereNull('wc.deleted_at');
 
         if (!$isRoot && $actorUserId > 0) {
-            $qb->whereRaw('(wc.created_by_user_id = ? OR wc.owner_user_id = ? OR wc.project_id IN (SELECT p2.id FROM projects p2 WHERE p2.manager_user_id = ? OR p2.created_by_user_id = ?))', [$actorUserId, $actorUserId, $actorUserId, $actorUserId]);
+            $qb->whereRaw(
+                '(wc.created_by_user_id = ? OR wc.owner_user_id = ? OR EXISTS (
+                    SELECT 1
+                    FROM cycle_tasks ct_acl
+                    INNER JOIN tasks t_acl ON t_acl.id = ct_acl.task_id
+                    WHERE ct_acl.cycle_id = wc.id
+                      AND ct_acl.deleted_at IS NULL
+                      AND t_acl.deleted_at IS NULL
+                      AND t_acl.assignee_user_id = ?
+                ))',
+                [$actorUserId, $actorUserId, $actorUserId]
+            );
         }
 
         $total = $qb->count();
@@ -232,6 +243,22 @@ final class WorkCycleRepository
             ->first();
 
         return isset($row['id']) ? (int)$row['id'] : null;
+    }
+
+    public function hasAssigneeInCycle(int $cycleId, int $userId): bool
+    {
+        if ($cycleId <= 0 || $userId <= 0) {
+            return false;
+        }
+
+        return (int)(new QueryBuilder($this->pdo))
+            ->from('cycle_tasks ct')
+            ->leftJoin('tasks t', 't.id', '=', 'ct.task_id')
+            ->where('ct.cycle_id', '=', $cycleId)
+            ->where('t.assignee_user_id', '=', $userId)
+            ->whereNull('ct.deleted_at')
+            ->whereNull('t.deleted_at')
+            ->count() > 0;
     }
 
     private function computeTimeState(array $cycle): string
