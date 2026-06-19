@@ -7,9 +7,12 @@ use Api\Controller\Common\BaseController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Service\AuthzService;
+use Api\System\Library\Service\CalendarService;
+use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\TaskService;
+use PDO;
 use Throwable;
 
 final class McpController extends BaseController
@@ -116,7 +119,9 @@ final class McpController extends BaseController
 
     private function tools(): array
     {
-        $tools = [];
+        $tools = [
+            $this->tool('crm_get_current_user', 'Get the authenticated CRM user profile and permission codes visible to MCP.', []),
+        ];
 
         if ($this->canAny(['task.manage', 'project.manage', 'knowledge.view'])) {
             $tools[] = $this->tool('crm_search', 'Search tasks, projects, counterparties, contacts and published knowledge pages visible to the current CRM user.', [
@@ -201,6 +206,44 @@ final class McpController extends BaseController
             ], ['title']);
         }
 
+        if ($this->can('task.manage')) {
+            $tools[] = $this->tool('crm_list_calendar_events', 'List calendar events visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'starts_from' => ['type' => 'string', 'description' => 'Start date/time lower bound.'],
+                'starts_to' => ['type' => 'string', 'description' => 'Start date/time upper bound.'],
+                'project_public_id' => ['type' => 'string'],
+                'task_public_id' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_calendar_agenda', 'Get the current user day or week agenda.', [
+                'period' => ['type' => 'string', 'enum' => ['day', 'week'], 'default' => 'day'],
+                'date' => ['type' => 'string', 'description' => 'Date in YYYY-MM-DD format. Defaults to today.'],
+            ]);
+        }
+
+        $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0],
+            'status' => ['type' => 'string'],
+            'category' => ['type' => 'string'],
+            'sort' => ['type' => 'string', 'enum' => ['votes', 'newest', 'oldest', 'comments'], 'default' => 'votes'],
+            'period' => ['type' => 'string', 'enum' => ['today', 'week', 'month']],
+        ]);
+        $tools[] = $this->tool('crm_get_idea', 'Get one visible CRM idea by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+
+        $tools[] = $this->tool('crm_list_chats', 'List chats where the current CRM user is a participant.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'archived' => ['type' => 'boolean', 'default' => false],
+        ]);
+        $tools[] = $this->tool('crm_list_chat_messages', 'List messages from a chat where the current CRM user is a participant.', [
+            'chat_public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 30],
+            'before_id' => ['type' => 'integer'],
+            'after_id' => ['type' => 'integer'],
+        ], ['chat_public_id']);
+
         return $tools;
     }
 
@@ -214,6 +257,7 @@ final class McpController extends BaseController
         }
 
         return match ($name) {
+            'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
             'crm_search' => $this->withPermissionAny(['task.manage', 'project.manage', 'knowledge.view'], fn() => $this->toolResult($this->crmSearch($arguments))),
             'crm_list_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTasks($arguments))),
             'crm_get_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTask($arguments))),
@@ -224,8 +268,19 @@ final class McpController extends BaseController
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
             'crm_get_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgePage($arguments))),
             'crm_create_knowledge_page' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmCreateKnowledgePage($arguments))),
+            'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
+            'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
+            'crm_list_ideas' => $this->toolResult($this->crmListIdeas($arguments)),
+            'crm_get_idea' => $this->toolResult($this->crmGetIdea($arguments)),
+            'crm_list_chats' => $this->toolResult($this->crmListChats($arguments)),
+            'crm_list_chat_messages' => $this->toolResult($this->crmListChatMessages($arguments)),
             default => $this->toolError('Unknown tool: ' . $name),
         };
+    }
+
+    private function crmGetCurrentUser(): array
+    {
+        return ['user' => $this->publicData($this->actor())];
     }
 
     private function crmSearch(array $arguments): array
@@ -338,6 +393,140 @@ final class McpController extends BaseController
         return ['page' => $this->publicData($page)];
     }
 
+    private function crmListCalendarEvents(array $arguments): array
+    {
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        return $this->publicData($service->listEvents($this->calendarFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetCalendarAgenda(array $arguments): array
+    {
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        $period = (string)($arguments['period'] ?? 'day');
+        $date = trim((string)($arguments['date'] ?? '')) ?: null;
+
+        return [
+            'period' => $period === 'week' ? 'week' : 'day',
+            'agenda' => $this->publicData($period === 'week' ? $service->myWeek($this->actor(), $date) : $service->myDay($this->actor(), $date)),
+        ];
+    }
+
+    private function crmListIdeas(array $arguments): array
+    {
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        return $this->publicData($service->list($this->ideaFilters($arguments)));
+    }
+
+    private function crmGetIdea(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        $idea = $service->get($publicId);
+        return $idea ? ['idea' => $this->publicData($idea)] : ['error' => 'Idea not found.'];
+    }
+
+    private function crmListChats(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        if ($userId <= 0) {
+            return ['error' => 'Authenticated user is required.'];
+        }
+
+        $limit = $this->limit($arguments, 20, 50);
+        $archived = !empty($arguments['archived']);
+        $archivedWhere = $this->tableHasColumn('chats', 'archived_at')
+            ? ($archived ? 'AND c.archived_at IS NOT NULL' : 'AND c.archived_at IS NULL')
+            : '';
+
+        $stmt = $this->pdo()->prepare("
+            SELECT c.public_id, c.title, c.type, c.last_message_at, c.created_at,
+                   cp.is_favorite, cp.muted_until,
+                   COALESCE(rm.last_read_message_id, 0) AS last_read_id,
+                   (SELECT COUNT(*) FROM chat_messages cm WHERE cm.chat_id = c.id AND cm.id > COALESCE(rm.last_read_message_id, 0) AND cm.deleted_at IS NULL) AS unread,
+                   (SELECT text FROM chat_messages WHERE chat_id = c.id AND deleted_at IS NULL ORDER BY id DESC LIMIT 1) AS last_message,
+                   (SELECT message_type FROM chat_messages WHERE chat_id = c.id AND deleted_at IS NULL ORDER BY id DESC LIMIT 1) AS last_message_type,
+                   (SELECT GROUP_CONCAT(COALESCE(NULLIF(u.full_name, ''), u.login)) FROM chat_participants cp2 JOIN users u ON u.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id <> :uid3) AS participant_names
+            FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            LEFT JOIN chat_read_markers rm ON rm.chat_id = c.id AND rm.user_id = :uid2
+            WHERE 1=1 {$archivedWhere}
+            ORDER BY cp.is_favorite DESC, COALESCE(c.last_message_at, c.created_at) DESC
+            LIMIT :lim
+        ");
+        $stmt->bindValue('uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue('uid2', $userId, PDO::PARAM_INT);
+        $stmt->bindValue('uid3', $userId, PDO::PARAM_INT);
+        $stmt->bindValue('lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['items' => $this->publicData($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [])];
+    }
+
+    private function crmListChatMessages(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($userId <= 0 || $chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+
+        $chat = $this->chatForUser($chatPublicId, $userId);
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+
+        $limit = $this->limit($arguments, 30, 100);
+        $beforeId = max(0, (int)($arguments['before_id'] ?? 0));
+        $afterId = max(0, (int)($arguments['after_id'] ?? 0));
+        $where = 'cm.chat_id = :cid AND cm.deleted_at IS NULL';
+        $order = 'DESC';
+        if ($afterId > 0) {
+            $where .= ' AND cm.id > :aid';
+            $order = 'ASC';
+        } elseif ($beforeId > 0) {
+            $where .= ' AND cm.id < :bid';
+        }
+
+        $stmt = $this->pdo()->prepare("
+            SELECT cm.public_id, cm.id AS message_seq, cm.message_type, cm.text, cm.created_at, cm.updated_at,
+                   u.public_id AS sender_public_id, COALESCE(NULLIF(u.full_name, ''), u.login) AS sender_name,
+                   rm.public_id AS reply_public_id, rm.text AS reply_text
+            FROM chat_messages cm
+            JOIN users u ON u.id = cm.sender_user_id
+            LEFT JOIN chat_messages rm ON rm.id = cm.reply_to_message_id
+            WHERE {$where}
+            ORDER BY cm.id {$order}
+            LIMIT :lim
+        ");
+        $stmt->bindValue('cid', (int)$chat['id'], PDO::PARAM_INT);
+        if ($afterId > 0) {
+            $stmt->bindValue('aid', $afterId, PDO::PARAM_INT);
+        } elseif ($beforeId > 0) {
+            $stmt->bindValue('bid', $beforeId, PDO::PARAM_INT);
+        }
+        $stmt->bindValue('lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        if ($afterId <= 0) {
+            $items = array_reverse($items);
+        }
+
+        return [
+            'chat' => $this->publicData($this->pick($chat, ['public_id', 'title', 'type'])),
+            'items' => $this->publicData($items),
+        ];
+    }
+
     private function tool(string $name, string $description, array $properties, array $required = []): array
     {
         return [
@@ -416,6 +605,26 @@ final class McpController extends BaseController
             'space_public_id', 'sort', 'order',
         ]);
         $filters['limit'] = $this->limit($arguments, $defaultLimit, $maxLimit);
+
+        return $filters;
+    }
+
+    private function calendarFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'project_public_id', 'task_public_id', 'starts_from', 'starts_to',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function ideaFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'status', 'category', 'sort', 'period', 'offset',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
 
         return $filters;
     }
@@ -521,6 +730,40 @@ final class McpController extends BaseController
         $payload['results'] = $results;
 
         return $payload;
+    }
+
+    private function chatForUser(string $chatPublicId, int $userId): ?array
+    {
+        $stmt = $this->pdo()->prepare("
+            SELECT c.*
+            FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            WHERE c.public_id = :public_id
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'public_id' => $chatPublicId,
+            'uid' => $userId,
+        ]);
+        $chat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($chat) ? $chat : null;
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        try {
+            $stmt = $this->pdo()->prepare("SELECT 1 FROM {$table} WHERE {$column} IS NULL LIMIT 0");
+            $stmt->execute();
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function pdo(): PDO
+    {
+        return $this->container->get('db.pdo');
     }
 
     private function validateOrigin(): ?string
