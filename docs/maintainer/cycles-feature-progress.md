@@ -30,6 +30,13 @@ Implemented in first pass:
 - Add missing Russian and English translation keys for the new UI states.
 - Add compact responsive CSS for cycle cards, progress and detail callouts.
 
+Browser verification after deploy:
+- New cache-busted `work-cycles.js` is now loaded with the shared assets version.
+- Cycle cards render the new actionable empty-plan state.
+- Cycle detail modal opens and shows Overview, Tasks, Board and Statistics tabs.
+- Edit modal waits for project options and hides the status field.
+- Edit save exposed an API contract issue: empty date fields were sent as `null`, while the service expects an empty string for clearing dates. Fixed in frontend.
+
 Pending verification:
 - Browser reload on demo after deployment.
 - Open detail modal, Tasks tab, Board tab and Complete modal.
