@@ -8,4 +8,8 @@ return [
     'bearer_required' => 'Передайте Bearer токен',
     'me' => 'Профиль текущего пользователя',
     'rate_limited' => 'Слишком много попыток входа. Повторите позже',
+    'menu_loaded' => 'Меню загружено',
+    'menu_preferences_loaded' => 'Настройки меню загружены',
+    'menu_preferences_saved' => 'Настройки меню сохранены',
+    'array_expected' => 'Ожидается массив',
 ];

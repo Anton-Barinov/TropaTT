@@ -17609,7 +17609,11 @@ window.CRM.pageApiBindings = (function () {
       'blocked': kanbanT('kanban.status.blocked', 'Заблокирована'),
       'review': kanbanT('kanban.status.review', 'Ревью'),
       'qa_testing': kanbanT('kanban.status.qa_testing', 'QA тестирование'),
-      'ready_release': kanbanT('kanban.status.ready_release', 'Готова к релизу')
+      'ready_release': kanbanT('kanban.status.ready_release', 'Готова к релизу'),
+      'planning': kanbanT('kanban.status.planning', 'Планирование'),
+      'active': kanbanT('kanban.status.active', 'Активный'),
+      'on_hold': kanbanT('kanban.status.on_hold', 'На паузе'),
+      'archived': kanbanT('kanban.status.archived', 'Архив')
     };
 
     // Rebuild columns to avoid duplicates and support dynamic statuses

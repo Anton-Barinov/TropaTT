@@ -216,7 +216,7 @@ window.CRM.br1 = (function () {
 
   function statusBadgeClass(code) {
     if (code === 'done' || code === 'completed') return 'success';
-    if (code === 'in_progress' || code === 'active') return 'active';
+    if (code === 'in_progress' || code === 'active' || code === 'planning' || code === 'on_hold') return 'active';
     if (code === 'blocked') return 'blocked';
     if (code === 'overdue') return 'overdue';
     return 'archived';
@@ -238,11 +238,15 @@ window.CRM.br1 = (function () {
       todo: window.CRM.i18n.t('js.br1.k_vypolneniyu_2', 'К выполнению'),
       in_progress: window.CRM.i18n.t('js.br1.v_rabote', 'В работе'),
       active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
+      planning: window.CRM.i18n.t('js.br1.planning', 'Планирование'),
       on_hold: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
       blocked: window.CRM.i18n.t('js.br1.blokirovano', 'Блокировано'),
       done: window.CRM.i18n.t('js.br1.gotovo', 'Готово'),
       completed: window.CRM.i18n.t('js.br1.gotovo_2', 'Готово'),
-      archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив')
+      archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив'),
+      review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
+      qa_testing: window.CRM.i18n.t('js.br1.qa_testing', 'QA тестирование'),
+      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу')
     };
     return map[code] || code || window.CRM.i18n.t('js.br1.bez_statusa', 'Без статуса');
   }
