@@ -1216,9 +1216,6 @@ MD;
         if (str_ends_with($normalized, 'public_id')) {
             return false;
         }
-        if (in_array($normalized, ['author_user_id', 'assigned_user_id', 'created_by_user_id', 'updated_by_user_id'], true)) {
-            return false;
-        }
 
         return str_ends_with($normalized, '_id');
     }
