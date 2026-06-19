@@ -173,6 +173,23 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_get_project_estimate_summary` | `task.manage` | Read estimate summary for a project. |
 | `crm_get_cycle_estimate_summary` | `task.manage` | Read estimate summary for a work cycle/sprint. |
 | `crm_get_module_estimate_summary` | `task.manage` | Read estimate summary for a project module. |
+| `crm_list_custom_fields` | `task.manage` | List custom field definitions. |
+| `crm_get_custom_field` | `task.manage` | Read one custom field definition. |
+| `crm_create_custom_field` | `task.manage` | Create a custom field definition. |
+| `crm_update_custom_field` | `task.manage` | Update a custom field definition. |
+| `crm_get_custom_field_values` | `task.manage` | Read custom field values for an entity. |
+| `crm_set_custom_field_values` | `task.manage` | Set custom field values for an entity. |
+| `crm_list_sla_policies` | `task.manage` | List SLA policies. |
+| `crm_get_sla_policy` | `task.manage` | Read one SLA policy. |
+| `crm_create_sla_policy` | `task.manage` | Create an SLA policy. |
+| `crm_update_sla_policy` | `task.manage` | Update an SLA policy. |
+| `crm_get_sla_report` | `task.manage` | Read SLA report summary. |
+| `crm_assign_sla_to_task` | `task.manage` | Assign an SLA policy to a task. |
+| `crm_list_templates` | `task.manage` | List task or project templates. |
+| `crm_get_template` | `task.manage` | Read one task or project template. |
+| `crm_create_template` | `task.manage` | Create a task or project template. |
+| `crm_update_template` | `task.manage` | Update a task or project template. |
+| `crm_apply_template` | `task.manage` | Apply a task or project template. |
 | `crm_list_statuses` | `task.manage` | List status dictionary entries. |
 | `crm_get_status` | `task.manage` | Read one status dictionary entry. |
 | `crm_create_status` | `task.manage` | Create a status dictionary entry. |
