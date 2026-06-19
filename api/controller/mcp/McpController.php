@@ -15,6 +15,7 @@ use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\ContactService;
 use Api\System\Library\Service\CounterpartyService;
+use Api\System\Library\Service\CustomFieldService;
 use Api\System\Library\Service\DepartmentService;
 use Api\System\Library\Service\DependencyService;
 use Api\System\Library\Service\FavoriteService;
@@ -28,6 +29,7 @@ use Api\System\Library\Service\RecurringService;
 use Api\System\Library\Service\ReminderService;
 use Api\System\Library\Service\SavedViewService;
 use Api\System\Library\Service\SearchService;
+use Api\System\Library\Service\SlaService;
 use Api\System\Library\Service\StatusService;
 use Api\System\Library\Service\StickyNoteService;
 use Api\System\Library\Service\SubscriptionService;
@@ -35,6 +37,7 @@ use Api\System\Library\Service\TagService;
 use Api\System\Library\Service\TaskEstimateService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
+use Api\System\Library\Service\TemplateService;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\WorklogService;
@@ -738,6 +741,47 @@ MD;
                 'module_public_id' => ['type' => 'string'],
                 'estimate_set_public_id' => ['type' => 'string'],
             ], ['module_public_id']);
+            $tools[] = $this->tool('crm_list_custom_fields', 'List custom fields.', $this->customFieldListSchema());
+            $tools[] = $this->tool('crm_get_custom_field', 'Get one custom field by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_custom_field', 'Create a custom field definition.', $this->customFieldSchema(), ['scope', 'code', 'title', 'type']);
+            $tools[] = $this->tool('crm_update_custom_field', 'Update a custom field definition.', ['public_id' => ['type' => 'string']] + $this->customFieldSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_get_custom_field_values', 'Get custom field values for an entity.', [
+                'entity_type' => ['type' => 'string'],
+                'entity_public_id' => ['type' => 'string'],
+            ], ['entity_type', 'entity_public_id']);
+            $tools[] = $this->tool('crm_set_custom_field_values', 'Set custom field values for an entity.', [
+                'entity_type' => ['type' => 'string'],
+                'entity_public_id' => ['type' => 'string'],
+                'values' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['entity_type', 'entity_public_id', 'values']);
+            $tools[] = $this->tool('crm_list_sla_policies', 'List SLA policies.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_sla_policy', 'Get one SLA policy by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_sla_policy', 'Create an SLA policy.', $this->slaPolicySchema(), ['title', 'response_minutes', 'resolve_minutes']);
+            $tools[] = $this->tool('crm_update_sla_policy', 'Update an SLA policy.', ['public_id' => ['type' => 'string']] + $this->slaPolicySchema(), ['public_id']);
+            $tools[] = $this->tool('crm_get_sla_report', 'Get SLA report summary.', []);
+            $tools[] = $this->tool('crm_assign_sla_to_task', 'Assign an SLA policy to a task.', [
+                'task_public_id' => ['type' => 'string'],
+                'sla_policy_public_id' => ['type' => 'string'],
+            ], ['task_public_id', 'sla_policy_public_id']);
+            $tools[] = $this->tool('crm_list_templates', 'List task or project templates.', $this->templateListSchema(), ['kind']);
+            $tools[] = $this->tool('crm_get_template', 'Get one task or project template.', [
+                'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
+                'public_id' => ['type' => 'string'],
+            ], ['kind', 'public_id']);
+            $tools[] = $this->tool('crm_create_template', 'Create a task or project template.', $this->templateSchema(), ['kind', 'title']);
+            $tools[] = $this->tool('crm_update_template', 'Update a task or project template.', ['public_id' => ['type' => 'string']] + $this->templateSchema(), ['kind', 'public_id']);
+            $tools[] = $this->tool('crm_apply_template', 'Apply a task or project template and create the target entity.', [
+                'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
+                'public_id' => ['type' => 'string'],
+            ], ['kind', 'public_id']);
             $tools[] = $this->tool('crm_list_statuses', 'List task/project status dictionary entries.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -1043,6 +1087,23 @@ MD;
             'crm_get_project_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetProjectEstimateSummary($arguments))),
             'crm_get_cycle_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycleEstimateSummary($arguments))),
             'crm_get_module_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetModuleEstimateSummary($arguments))),
+            'crm_list_custom_fields' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCustomFields($arguments))),
+            'crm_get_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCustomField($arguments))),
+            'crm_create_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCustomField($arguments))),
+            'crm_update_custom_field' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateCustomField($arguments))),
+            'crm_get_custom_field_values' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCustomFieldValues($arguments))),
+            'crm_set_custom_field_values' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetCustomFieldValues($arguments))),
+            'crm_list_sla_policies' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListSlaPolicies($arguments))),
+            'crm_get_sla_policy' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetSlaPolicy($arguments))),
+            'crm_create_sla_policy' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateSlaPolicy($arguments))),
+            'crm_update_sla_policy' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateSlaPolicy($arguments))),
+            'crm_get_sla_report' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetSlaReport())),
+            'crm_assign_sla_to_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAssignSlaToTask($arguments))),
+            'crm_list_templates' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTemplates($arguments))),
+            'crm_get_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTemplate($arguments))),
+            'crm_create_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTemplate($arguments))),
+            'crm_update_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTemplate($arguments))),
+            'crm_apply_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmApplyTemplate($arguments))),
             'crm_list_statuses' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStatuses($arguments))),
             'crm_get_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStatus($arguments))),
             'crm_create_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStatus($arguments))),
@@ -2306,6 +2367,223 @@ MD;
         return is_array($summary) ? ['summary' => $this->publicData($summary)] : ['error' => (string)$summary];
     }
 
+    private function crmListCustomFields(array $arguments): array
+    {
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        return $this->publicData($service->list($this->customFieldFilters($arguments)));
+    }
+
+    private function crmGetCustomField(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        $item = $service->get($publicId);
+        return $item ? ['field' => $this->publicData($item)] : ['error' => 'Custom field not found.'];
+    }
+
+    private function crmCreateCustomField(array $arguments): array
+    {
+        foreach (['scope', 'code', 'title', 'type'] as $field) {
+            if (trim((string)($arguments[$field] ?? '')) === '') {
+                return ['error' => $field . ' is required.'];
+            }
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        $item = $service->create($this->customFieldInput($arguments));
+        return is_array($item) ? ['field' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateCustomField(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        $item = $service->update($publicId, $this->customFieldInput($arguments));
+        if ($item === null || $item === false) {
+            return ['error' => 'Custom field not found.'];
+        }
+        return is_array($item) ? ['field' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmGetCustomFieldValues(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '') {
+            return ['error' => 'entity_type and entity_public_id are required.'];
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        return ['items' => $this->publicData($service->values($entityType, $entityPublicId))];
+    }
+
+    private function crmSetCustomFieldValues(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        $values = $arguments['values'] ?? null;
+        if ($entityType === '' || $entityPublicId === '' || !is_array($values) || $values === []) {
+            return ['error' => 'entity_type, entity_public_id and non-empty values object are required.'];
+        }
+
+        /** @var CustomFieldService $service */
+        $service = $this->container->get('service.custom_field');
+        $result = $service->setValues($entityType, $entityPublicId, $values);
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmListSlaPolicies(array $arguments): array
+    {
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        return $this->publicData($service->list($this->slaFilters($arguments)));
+    }
+
+    private function crmGetSlaPolicy(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        $item = $service->get($publicId);
+        return $item ? ['policy' => $this->publicData($item)] : ['error' => 'SLA policy not found.'];
+    }
+
+    private function crmCreateSlaPolicy(array $arguments): array
+    {
+        foreach (['title', 'response_minutes', 'resolve_minutes'] as $field) {
+            if (trim((string)($arguments[$field] ?? '')) === '') {
+                return ['error' => $field . ' is required.'];
+            }
+        }
+
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        return ['policy' => $this->publicData($service->create($this->slaPolicyInput($arguments)))];
+    }
+
+    private function crmUpdateSlaPolicy(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        $item = $service->update($publicId, $this->slaPolicyInput($arguments));
+        return $item ? ['policy' => $this->publicData($item)] : ['error' => 'SLA policy not found.'];
+    }
+
+    private function crmGetSlaReport(): array
+    {
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        return ['report' => $this->publicData($service->report())];
+    }
+
+    private function crmAssignSlaToTask(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $slaPublicId = trim((string)($arguments['sla_policy_public_id'] ?? ''));
+        if ($taskPublicId === '' || $slaPublicId === '') {
+            return ['error' => 'task_public_id and sla_policy_public_id are required.'];
+        }
+
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        $result = $service->assignToTask($taskPublicId, $slaPublicId);
+        return $result ? ['task' => $this->publicData($result)] : ['error' => 'Task or SLA policy not found.'];
+    }
+
+    private function crmListTemplates(array $arguments): array
+    {
+        $kind = $this->templateKind($arguments);
+        if ($kind === null) {
+            return ['error' => 'kind must be task or project.'];
+        }
+
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        return $this->publicData($service->list($kind, $this->templateFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetTemplate(array $arguments): array
+    {
+        $kind = $this->templateKind($arguments);
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($kind === null || $publicId === '') {
+            return ['error' => 'kind and public_id are required.'];
+        }
+
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        $item = $service->get($kind, $publicId, $this->actor());
+        return $item ? ['template' => $this->publicData($item)] : ['error' => 'Template not found.'];
+    }
+
+    private function crmCreateTemplate(array $arguments): array
+    {
+        $kind = $this->templateKind($arguments);
+        if ($kind === null || trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'kind and title are required.'];
+        }
+
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        return ['template' => $this->publicData($service->create($kind, $this->templateInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateTemplate(array $arguments): array
+    {
+        $kind = $this->templateKind($arguments);
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($kind === null || $publicId === '') {
+            return ['error' => 'kind and public_id are required.'];
+        }
+
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        $item = $service->update($kind, $publicId, $this->templateInput($arguments), $this->actor());
+        return $item ? ['template' => $this->publicData($item)] : ['error' => 'Template not found.'];
+    }
+
+    private function crmApplyTemplate(array $arguments): array
+    {
+        $kind = $this->templateKind($arguments);
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($kind === null || $publicId === '') {
+            return ['error' => 'kind and public_id are required.'];
+        }
+
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        $result = $service->apply($kind, $publicId, $this->actor());
+        return $result ? ['entity' => $this->publicData($result)] : ['error' => 'Template not found.'];
+    }
+
+    private function templateKind(array $arguments): ?string
+    {
+        $kind = strtolower(trim((string)($arguments['kind'] ?? '')));
+        return in_array($kind, ['task', 'project'], true) ? $kind : null;
+    }
+
     private function crmListStatuses(array $arguments): array
     {
         /** @var StatusService $service */
@@ -3428,6 +3706,57 @@ MD;
         ]);
     }
 
+    private function customFieldFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'scope', 'type', 'search',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function customFieldInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'scope', 'code', 'title', 'type', 'options', 'is_required',
+        ]);
+    }
+
+    private function slaFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'search',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function slaPolicyInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'response_minutes', 'resolve_minutes', 'escalation_payload',
+        ]);
+    }
+
+    private function templateFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'search', 'is_active',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function templateInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'payload', 'is_active',
+        ]);
+    }
+
     private function milestoneSchema(): array
     {
         return [
@@ -3557,6 +3886,60 @@ MD;
             'is_active' => ['type' => 'boolean'],
             'sort_order' => ['type' => 'integer'],
             'row_version' => ['type' => 'integer'],
+        ];
+    }
+
+    private function customFieldListSchema(): array
+    {
+        return [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'scope' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'company', 'contact', 'user']],
+            'type' => ['type' => 'string'],
+            'search' => ['type' => 'string'],
+        ];
+    }
+
+    private function customFieldSchema(): array
+    {
+        return [
+            'scope' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'company', 'contact', 'user']],
+            'code' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'type' => ['type' => 'string', 'enum' => ['text', 'textarea', 'number', 'boolean', 'date', 'datetime', 'select', 'multiselect', 'url', 'email', 'phone']],
+            'options' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+            'is_required' => ['type' => 'integer', 'enum' => [0, 1]],
+        ];
+    }
+
+    private function slaPolicySchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'response_minutes' => ['type' => 'integer', 'minimum' => 1],
+            'resolve_minutes' => ['type' => 'integer', 'minimum' => 1],
+            'escalation_payload' => ['type' => 'object', 'additionalProperties' => true],
+        ];
+    }
+
+    private function templateListSchema(): array
+    {
+        return [
+            'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'search' => ['type' => 'string'],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+        ];
+    }
+
+    private function templateSchema(): array
+    {
+        return [
+            'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
+            'title' => ['type' => 'string'],
+            'payload' => ['type' => 'object', 'additionalProperties' => true],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
         ];
     }
 
