@@ -26,6 +26,8 @@
     </div>
   </section>
 
+  <section class="crm-cycle-command-center d-none mb-3" id="cycleCommandCenter" aria-live="polite"></section>
+
   <!-- Filters -->
   <div class="row g-2 mb-3">
     <div class="col-auto">
@@ -263,6 +265,56 @@ if ($cyclesAssetsVersion === '') {
   grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
   gap: 16px;
 }
+.crm-cycle-command-center {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dbe8e4;
+  border-radius: 8px;
+  background: #f8fcfb;
+}
+.crm-cycle-command-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.crm-cycle-command-text span {
+  color: #58716b;
+  font-size: 13px;
+}
+.crm-cycle-command-metrics {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.crm-cycle-command-metric {
+  display: grid;
+  min-width: 92px;
+  padding: 8px 10px;
+  border: 1px solid #d7e4e0;
+  border-radius: 8px;
+  background: #fff;
+  color: #13201d;
+  text-align: left;
+  text-decoration: none;
+}
+button.crm-cycle-command-metric {
+  cursor: pointer;
+}
+button.crm-cycle-command-metric:hover {
+  border-color: rgba(11, 122, 98, 0.34);
+}
+.crm-cycle-command-metric strong {
+  font-size: 18px;
+  line-height: 1;
+}
+.crm-cycle-command-metric span {
+  color: #6d7f7a;
+  font-size: 12px;
+}
 .crm-cycle-title {
   appearance: none;
   border: 0;
@@ -326,9 +378,14 @@ if ($cyclesAssetsVersion === '') {
 }
 @media (max-width: 767.98px) {
   .crm-cycle-card-grid,
+  .crm-cycle-command-center,
   .crm-cycle-detail-callout,
   .crm-cycle-board-link {
     display: block;
+  }
+  .crm-cycle-command-metrics {
+    justify-content: flex-start;
+    margin-top: 12px;
   }
   .crm-cycle-progress-panel {
     margin-top: 12px;
