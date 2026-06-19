@@ -237,7 +237,14 @@
   </div>
 </div>
 
-<script src="/web/assets/js/work-cycles.js"></script>
+<?php
+$cyclesAssetsVersion = isset($assetsVersion) ? (string)$assetsVersion : '';
+if ($cyclesAssetsVersion === '') {
+  $cyclesAssetPath = dirname(__DIR__, 3) . '/assets/js/work-cycles.js';
+  $cyclesAssetsVersion = (string)(@filemtime($cyclesAssetPath) ?: time());
+}
+?>
+<script src="assets/js/work-cycles.js?v=<?= urlencode($cyclesAssetsVersion) ?>"></script>
 <style>
 .crm-cycle-card {
   background: #fff;
