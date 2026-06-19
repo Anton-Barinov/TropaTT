@@ -2498,6 +2498,12 @@ return array (
     'confirm_body' => 'Are you sure?',
     'confirm_action' => 'Confirm',
     'close_aria' => 'Close',
+    'add' => 'Add',
+    'cancel_btn' => 'Cancel',
+    'delete' => 'Delete',
+    'edit' => 'Edit',
+    'save' => 'Save',
+    'saving' => 'Saving...',
   ),
   'richtext' => 
   array (

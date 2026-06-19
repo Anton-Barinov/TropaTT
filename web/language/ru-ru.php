@@ -2520,6 +2520,12 @@ return array (
     'confirm_body' => 'Вы уверены?',
     'confirm_action' => 'Подтвердить',
     'close_aria' => 'Закрыть',
+    'add' => 'Создать',
+    'cancel_btn' => 'Отмена',
+    'delete' => 'Удалить',
+    'edit' => 'Редактировать',
+    'save' => 'Сохранить',
+    'saving' => 'Сохранение...',
   ),
   'richtext' => 
   array (
