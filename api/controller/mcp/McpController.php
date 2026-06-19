@@ -32,6 +32,7 @@ use Api\System\Library\Service\StatusService;
 use Api\System\Library\Service\StickyNoteService;
 use Api\System\Library\Service\SubscriptionService;
 use Api\System\Library\Service\TagService;
+use Api\System\Library\Service\TaskEstimateService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\UserService;
@@ -698,6 +699,45 @@ MD;
             $tools[] = $this->tool('crm_unarchive_sticky_note', 'Unarchive a sticky note.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_list_estimate_sets', 'List estimate sets available to the current user.', $this->estimateSetListSchema());
+            $tools[] = $this->tool('crm_get_estimate_set', 'Get one estimate set by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_estimate_set', 'Create an estimate set.', $this->estimateSetSchema(), ['name']);
+            $tools[] = $this->tool('crm_update_estimate_set', 'Update an estimate set.', ['public_id' => ['type' => 'string']] + $this->estimateSetSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_estimate_options', 'List options for an estimate set.', [
+                'estimate_set_public_id' => ['type' => 'string'],
+                'active_only' => ['type' => 'boolean'],
+            ], ['estimate_set_public_id']);
+            $tools[] = $this->tool('crm_create_estimate_option', 'Create an option inside an estimate set.', ['estimate_set_public_id' => ['type' => 'string']] + $this->estimateOptionSchema(), ['estimate_set_public_id', 'label']);
+            $tools[] = $this->tool('crm_update_estimate_option', 'Update an estimate option.', ['public_id' => ['type' => 'string']] + $this->estimateOptionSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_task_estimates', 'List estimates assigned to a visible task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_assign_task_estimate', 'Assign or update a task estimate.', [
+                'task_public_id' => ['type' => 'string'],
+                'estimate_set_public_id' => ['type' => 'string'],
+                'estimate_option_public_id' => ['type' => 'string'],
+                'numeric_value' => ['type' => 'number'],
+                'currency_code' => ['type' => 'string'],
+                'note' => ['type' => 'string'],
+            ], ['task_public_id', 'estimate_set_public_id']);
+            $tools[] = $this->tool('crm_remove_task_estimate', 'Remove an estimate set assignment from a task.', [
+                'task_public_id' => ['type' => 'string'],
+                'estimate_set_public_id' => ['type' => 'string'],
+            ], ['task_public_id', 'estimate_set_public_id']);
+            $tools[] = $this->tool('crm_get_project_estimate_summary', 'Get estimate summary for a project.', [
+                'project_public_id' => ['type' => 'string'],
+                'estimate_set_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_cycle_estimate_summary', 'Get estimate summary for a work cycle/sprint.', [
+                'cycle_public_id' => ['type' => 'string'],
+                'estimate_set_public_id' => ['type' => 'string'],
+            ], ['cycle_public_id']);
+            $tools[] = $this->tool('crm_get_module_estimate_summary', 'Get estimate summary for a project module.', [
+                'module_public_id' => ['type' => 'string'],
+                'estimate_set_public_id' => ['type' => 'string'],
+            ], ['module_public_id']);
             $tools[] = $this->tool('crm_list_statuses', 'List task/project status dictionary entries.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -990,6 +1030,19 @@ MD;
             'crm_update_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateStickyNote($arguments))),
             'crm_archive_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetStickyNoteArchived($arguments, true))),
             'crm_unarchive_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetStickyNoteArchived($arguments, false))),
+            'crm_list_estimate_sets' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListEstimateSets($arguments))),
+            'crm_get_estimate_set' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetEstimateSet($arguments))),
+            'crm_create_estimate_set' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateEstimateSet($arguments))),
+            'crm_update_estimate_set' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateEstimateSet($arguments))),
+            'crm_list_estimate_options' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListEstimateOptions($arguments))),
+            'crm_create_estimate_option' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateEstimateOption($arguments))),
+            'crm_update_estimate_option' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateEstimateOption($arguments))),
+            'crm_list_task_estimates' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskEstimates($arguments))),
+            'crm_assign_task_estimate' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAssignTaskEstimate($arguments))),
+            'crm_remove_task_estimate' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmRemoveTaskEstimate($arguments))),
+            'crm_get_project_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetProjectEstimateSummary($arguments))),
+            'crm_get_cycle_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycleEstimateSummary($arguments))),
+            'crm_get_module_estimate_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetModuleEstimateSummary($arguments))),
             'crm_list_statuses' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStatuses($arguments))),
             'crm_get_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStatus($arguments))),
             'crm_create_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStatus($arguments))),
@@ -2075,6 +2128,182 @@ MD;
             : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
 
         return isset($result['error']) ? ['error' => (string)$result['error']] : $this->publicData($result);
+    }
+
+    private function crmListEstimateSets(array $arguments): array
+    {
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        return $this->publicData($service->listSets($this->estimateSetFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetEstimateSet(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->getSet($publicId, $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Estimate set not found.'];
+        }
+        return is_array($item) ? ['estimate_set' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmCreateEstimateSet(array $arguments): array
+    {
+        if (trim((string)($arguments['name'] ?? '')) === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->createSet($this->estimateSetInput($arguments), $this->actor());
+        return is_array($item) ? ['estimate_set' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateEstimateSet(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->updateSet($publicId, $this->estimateSetInput($arguments), $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Estimate set not found.'];
+        }
+        return is_array($item) ? ['estimate_set' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmListEstimateOptions(array $arguments): array
+    {
+        $setPublicId = trim((string)($arguments['estimate_set_public_id'] ?? ''));
+        if ($setPublicId === '') {
+            return ['error' => 'estimate_set_public_id is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $items = $service->listOptions($setPublicId, $this->pick($arguments, ['active_only']), $this->actor());
+        if ($items === null || $items === false) {
+            return ['error' => 'Estimate set not found.'];
+        }
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => (string)$items];
+    }
+
+    private function crmCreateEstimateOption(array $arguments): array
+    {
+        $setPublicId = trim((string)($arguments['estimate_set_public_id'] ?? ''));
+        if ($setPublicId === '' || trim((string)($arguments['label'] ?? '')) === '') {
+            return ['error' => 'estimate_set_public_id and label are required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->createOption($setPublicId, $this->estimateOptionInput($arguments), $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Estimate set not found.'];
+        }
+        return is_array($item) ? ['estimate_option' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateEstimateOption(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->updateOption($publicId, $this->estimateOptionInput($arguments), $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Estimate option not found.'];
+        }
+        return is_array($item) ? ['estimate_option' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmListTaskEstimates(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $items = $service->listTaskEstimates($taskPublicId, $this->actor());
+        if ($items === null || $items === false) {
+            return ['error' => 'Task not found.'];
+        }
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => (string)$items];
+    }
+
+    private function crmAssignTaskEstimate(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '' || trim((string)($arguments['estimate_set_public_id'] ?? '')) === '') {
+            return ['error' => 'task_public_id and estimate_set_public_id are required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $item = $service->assignTaskEstimate($taskPublicId, $this->taskEstimateInput($arguments), $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Task not found.'];
+        }
+        return is_array($item) ? ['task_estimate' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmRemoveTaskEstimate(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $setPublicId = trim((string)($arguments['estimate_set_public_id'] ?? ''));
+        if ($taskPublicId === '' || $setPublicId === '') {
+            return ['error' => 'task_public_id and estimate_set_public_id are required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $ok = $service->removeTaskEstimate($taskPublicId, $setPublicId, $this->actor());
+        return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId, 'estimate_set_public_id' => $setPublicId] : ['error' => 'Task estimate not found.'];
+    }
+
+    private function crmGetProjectEstimateSummary(array $arguments): array
+    {
+        return $this->estimateSummary($arguments, 'project_public_id', 'summaryByProject');
+    }
+
+    private function crmGetCycleEstimateSummary(array $arguments): array
+    {
+        return $this->estimateSummary($arguments, 'cycle_public_id', 'summaryByCycle');
+    }
+
+    private function crmGetModuleEstimateSummary(array $arguments): array
+    {
+        return $this->estimateSummary($arguments, 'module_public_id', 'summaryByModule');
+    }
+
+    private function estimateSummary(array $arguments, string $publicIdKey, string $method): array
+    {
+        $publicId = trim((string)($arguments[$publicIdKey] ?? ''));
+        if ($publicId === '') {
+            return ['error' => $publicIdKey . ' is required.'];
+        }
+
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $summary = $service->{$method}($publicId, $this->pick($arguments, ['estimate_set_public_id']), $this->actor());
+        if ($summary === null || $summary === false) {
+            return ['error' => 'Estimate summary source not found.'];
+        }
+        return is_array($summary) ? ['summary' => $this->publicData($summary)] : ['error' => (string)$summary];
     }
 
     private function crmListStatuses(array $arguments): array
@@ -3165,6 +3394,40 @@ MD;
         ]);
     }
 
+    private function estimateSetFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'scope_type', 'project_public_id', 'estimate_type', 'is_active', 'search',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function estimateSetInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'name', 'code', 'description', 'scope_type', 'project_public_id', 'estimate_type',
+            'unit_label', 'currency_code', 'is_default', 'is_active', 'sort_order', 'row_version',
+            'options',
+        ]);
+    }
+
+    private function estimateOptionInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'label', 'code', 'numeric_value', 'color', 'description', 'is_default', 'is_active',
+            'sort_order', 'row_version',
+        ]);
+    }
+
+    private function taskEstimateInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'estimate_set_public_id', 'estimate_option_public_id', 'numeric_value', 'currency_code', 'note',
+        ]);
+    }
+
     private function milestoneSchema(): array
     {
         return [
@@ -3244,6 +3507,56 @@ MD;
             'is_pinned' => ['type' => 'boolean'],
             'sort_order' => ['type' => 'integer'],
             'meta_json' => ['type' => 'string'],
+        ];
+    }
+
+    private function estimateSetListSchema(): array
+    {
+        return [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'scope_type' => ['type' => 'string', 'enum' => ['global', 'project']],
+            'project_public_id' => ['type' => 'string'],
+            'estimate_type' => ['type' => 'string', 'enum' => ['story_points', 'tshirt', 'hours', 'cost', 'complexity', 'risk', 'custom']],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            'search' => ['type' => 'string'],
+        ];
+    }
+
+    private function estimateSetSchema(): array
+    {
+        return [
+            'name' => ['type' => 'string'],
+            'code' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'scope_type' => ['type' => 'string', 'enum' => ['global', 'project'], 'default' => 'project'],
+            'project_public_id' => ['type' => 'string'],
+            'estimate_type' => ['type' => 'string', 'enum' => ['story_points', 'tshirt', 'hours', 'cost', 'complexity', 'risk', 'custom'], 'default' => 'custom'],
+            'unit_label' => ['type' => 'string'],
+            'currency_code' => ['type' => 'string'],
+            'is_default' => ['type' => 'boolean'],
+            'is_active' => ['type' => 'boolean'],
+            'sort_order' => ['type' => 'integer'],
+            'row_version' => ['type' => 'integer'],
+            'options' => [
+                'type' => 'array',
+                'items' => ['type' => 'object', 'additionalProperties' => true],
+            ],
+        ];
+    }
+
+    private function estimateOptionSchema(): array
+    {
+        return [
+            'label' => ['type' => 'string'],
+            'code' => ['type' => 'string'],
+            'numeric_value' => ['type' => 'number'],
+            'color' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'is_default' => ['type' => 'boolean'],
+            'is_active' => ['type' => 'boolean'],
+            'sort_order' => ['type' => 'integer'],
+            'row_version' => ['type' => 'integer'],
         ];
     }
 
