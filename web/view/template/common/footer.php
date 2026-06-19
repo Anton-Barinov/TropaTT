@@ -183,10 +183,10 @@ $footerVersionRaw = '1.0.0';
 $installedCorePath = dirname(__DIR__, 3) . '/storage_api/updates/installed-core.json';
 if (is_file($installedCorePath)) {
   $installedCore = json_decode((string)file_get_contents($installedCorePath), true);
-  if (is_array($installedCore) && !empty($installedCore['core_version'])) {
-    $footerVersionRaw = (string)$installedCore['core_version'];
-  } elseif (is_array($installedCore) && !empty($installedCore['core_build'])) {
+  if (is_array($installedCore) && !empty($installedCore['core_build'])) {
     $footerVersionRaw = (string)$installedCore['core_build'];
+  } elseif (is_array($installedCore) && !empty($installedCore['core_version'])) {
+    $footerVersionRaw = (string)$installedCore['core_version'];
   }
 }
 if ($footerVersionRaw === '1.0.0' && file_exists(dirname(__DIR__, 3) . '/VERSION')) {
