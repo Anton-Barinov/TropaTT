@@ -78,6 +78,13 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_create_task` | `task.manage` | Create a task as the authenticated user. |
 | `crm_update_task` | `task.manage` | Update safe task fields. |
 | `crm_add_task_comment` | `task.manage` | Add a comment to a visible task. |
+| `crm_list_cycles` | `task.manage` | List visible work cycles/sprints. |
+| `crm_get_cycle` | `task.manage` | Read one visible work cycle/sprint. |
+| `crm_create_cycle` | `task.manage` | Create a work cycle/sprint for an accessible project. |
+| `crm_update_cycle` | `task.manage` | Update safe work cycle/sprint fields. |
+| `crm_list_cycle_tasks` | `task.manage` | List tasks assigned to a visible work cycle/sprint. |
+| `crm_add_tasks_to_cycle` | `task.manage` | Add existing tasks to a visible planned or active work cycle/sprint. |
+| `crm_list_users` | `user.view` | List users for assignment and collaboration lookup. |
 | `crm_list_projects` | `project.manage` | List visible projects. |
 | `crm_get_project` | `project.manage` | Read one project by `public_id`. |
 | `crm_list_knowledge_pages` | `knowledge.view` | List visible knowledge pages. |
