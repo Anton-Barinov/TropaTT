@@ -11159,6 +11159,152 @@ window.CRM.pageApiBindings = (function () {
         });
     }
 
+    function openRoleMenuTemplateModal(roleId, rolesList) {
+      var role = rolesList ? rolesList.find(function (r) { return r.public_id === roleId; }) : null;
+      var roleTitle = role ? safeText(role.title || roleId) : roleId;
+
+      var existing = document.getElementById('roleMenuTemplateModal');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+      var allMenuItems = [
+        { key: 'dashboard', label: tp('nav.dashboard', 'Dashboard') },
+        { key: 'ideas', label: tp('nav.ideas', 'Ideas') },
+        { key: 'tasks', label: tp('nav.tasks', 'Tasks') },
+        { key: 'day', label: tp('nav.day', 'My day') },
+        { key: 'week', label: tp('nav.week', 'My week') },
+        { key: 'kanban', label: tp('nav.kanban', 'Kanban') },
+        { key: 'gantt', label: tp('nav.gantt', 'Gantt') },
+        { key: 'projects', label: tp('nav.projects', 'Projects') },
+        { key: 'calendar', label: tp('nav.calendar', 'Calendar') },
+        { key: 'counterparties', label: tp('nav.counterparties', 'Counterparties') },
+        { key: 'teams', label: tp('nav.teams', 'Teams') },
+        { key: 'intake', label: tp('nav.intake', 'Intake') },
+        { key: 'cycles', label: tp('nav.cycles', 'Cycles') },
+        { key: 'knowledge', label: tp('nav.knowledge', 'Knowledge') },
+        { key: 'analytics', label: tp('nav.analytics', 'Analytics') },
+        { key: 'notifications', label: tp('nav.notifications', 'Notifications') },
+        { key: 'admin', label: tp('nav.admin', 'Administration') },
+        { key: 'admin-estimates', label: tp('nav.admin_estimates', 'Estimates') },
+        { key: 'admin-modules', label: tp('nav.admin_modules', 'Modules') },
+        { key: 'chat', label: tp('nav.chat', 'Chats') },
+        { key: 'docs', label: tp('nav.api', 'Docs') }
+      ];
+
+      var menuIcons = {
+        dashboard: 'fa-house', ideas: 'fa-lightbulb', tasks: 'fa-list-check', day: 'fa-calendar-day',
+        week: 'fa-calendar-week', kanban: 'fa-table-columns', gantt: 'fa-chart-gantt', projects: 'fa-folder-tree',
+        calendar: 'fa-calendar-days', counterparties: 'fa-address-book', teams: 'fa-people-group',
+        intake: 'fa-inbox', cycles: 'fa-arrows-spin', knowledge: 'fa-book-open-reader',
+        analytics: 'fa-chart-column', notifications: 'fa-bell', admin: 'fa-shield-halved',
+        'admin-estimates': 'fa-ruler-combined', 'admin-modules': 'fa-cubes', chat: 'fa-comments', docs: 'fa-code'
+      };
+
+      request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template')
+        .then(function (envelope) {
+          var data = envelope && envelope.data ? envelope.data : {};
+          var templateItems = data.template || [];
+          var visMap = {};
+          var orderKeys = [];
+          templateItems.forEach(function (item) {
+            visMap[item.key] = item.visible !== false;
+            orderKeys.push(item.key);
+          });
+
+          var sortedItems = allMenuItems.slice().sort(function (a, b) {
+            var ai = orderKeys.indexOf(a.key);
+            var bi = orderKeys.indexOf(b.key);
+            if (ai === -1 && bi === -1) return 0;
+            if (ai === -1) return 1;
+            if (bi === -1) return -1;
+            return ai - bi;
+          });
+
+          var listHtml = sortedItems.map(function (item) {
+            var isVisible = visMap[item.key] !== false;
+            var iconClass = menuIcons[item.key] || 'fa-circle-dot';
+            return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
+              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
+              + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
+              + '<label class="crm-menu-customize-toggle">'
+              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
+              + '<span class="crm-toggle-slider"></span>'
+              + '</label>'
+              + '</div>';
+          }).join('');
+
+          var modal = document.createElement('div');
+          modal.className = 'modal fade';
+          modal.id = 'roleMenuTemplateModal';
+          modal.setAttribute('tabindex', '-1');
+          modal.setAttribute('aria-hidden', 'true');
+
+          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+            + '<div class="modal-header">'
+            + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
+            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+            + '</div>'
+            + '<div class="modal-body">'
+            + '<p class="text-muted small mb-3">' + safeText(tp('admin.role_menu_template_hint', 'Configure the default menu for all users with this role. This is the highest priority — items hidden here cannot be shown by team or user settings.')) + '</p>'
+            + '<div class="crm-menu-customize-list" data-role-menu-list>' + listHtml + '</div>'
+            + '</div>'
+            + '<div class="modal-footer">'
+            + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(tp('common.cancel_btn', 'Cancel')) + '</button>'
+            + '<button type="button" class="btn crm-btn-primary" data-role-menu-save>' + safeText(tp('common.save', 'Save')) + '</button>'
+            + '</div>'
+            + '</div></div>';
+
+          document.body.appendChild(modal);
+          var bsModal = new bootstrap.Modal(modal);
+
+          var listEl = modal.querySelector('[data-role-menu-list]');
+          if (listEl && typeof Sortable !== 'undefined') {
+            Sortable.create(listEl, {
+              handle: '.crm-menu-customize-drag',
+              animation: 180,
+              ghostClass: 'crm-menu-customize-ghost',
+              chosenClass: 'crm-menu-customize-chosen',
+              dragClass: 'crm-menu-customize-dragging',
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+            });
+          }
+
+          modal.querySelector('[data-role-menu-save]').addEventListener('click', function () {
+            var saveBtn = this;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+
+            var items = [];
+            listEl.querySelectorAll('.crm-menu-customize-item').forEach(function (row) {
+              var key = row.getAttribute('data-key') || '';
+              var checkbox = row.querySelector('[data-toggle-visibility]');
+              items.push({ key: key, visible: checkbox ? checkbox.checked : true });
+            });
+
+            request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template', {
+              method: 'PUT',
+              body: { items: items }
+            }).then(function () {
+              notify(tp('admin.role_menu_template_saved', 'Role menu template saved'));
+              bsModal.hide();
+              if (modal.parentNode) modal.parentNode.removeChild(modal);
+            }).catch(function () {
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+            });
+          });
+
+          modal.addEventListener('hidden.bs.modal', function () {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+          });
+
+          bsModal.show();
+        })
+        .catch(function () {
+          notify(tp('admin.role_menu_template_load_fail', 'Failed to load role menu template'), 'error');
+        });
+    }
+
     function renderTreeView(search, type) {
       var container = document.getElementById('teamsTree');
       if (!container) return;
