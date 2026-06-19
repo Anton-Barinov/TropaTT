@@ -31,6 +31,7 @@ use Api\System\Library\Module\ModuleBulkhead;
 use Api\System\Library\Module\ModuleRateLimiter;
 use Api\System\Library\Module\ModuleApiVersionManager;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Http\Request;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Logger\JsonLogger;
@@ -158,7 +159,7 @@ final class App
         $this->container = new Container();
     }
 
-    public function run(): JsonResponse
+    public function run(): JsonResponse|RawJsonResponse
     {
         $this->bootstrapConfig();
         $this->bootstrapRuntime();
@@ -255,6 +256,24 @@ final class App
                 if (!$auth) {
                     /** @var LanguageManager $lang */
                     $lang = $this->container->get('lang');
+                    if ($routePath === '/api/v1/mcp') {
+                        $response = new RawJsonResponse([
+                            'jsonrpc' => '2.0',
+                            'id' => null,
+                            'error' => [
+                                'code' => -32001,
+                                'message' => $lang->get('common/messages.unauthorized', 'Unauthorized'),
+                                'data' => [
+                                    'auth' => $lang->get('auth/messages.bearer_required', 'Provide Bearer token'),
+                                ],
+                            ],
+                        ], 401, [
+                            'MCP-Protocol-Version' => '2025-06-18',
+                        ]);
+                        $statusCode = 401;
+                        $resultCode = 'MCP_UNAUTHORIZED';
+                        return $response;
+                    }
                     $response = JsonResponse::error(
                         code: 'UNAUTHORIZED',
                         message: $lang->get('common/messages.unauthorized', 'Unauthorized'),
@@ -396,6 +415,16 @@ final class App
             if (($matched['sse'] ?? false) === true) {
                 $this->emitSse($result, $request);
                 exit;
+            }
+
+            if ($result instanceof RawJsonResponse) {
+                $statusCode = $result->status();
+                $rawPayload = $result->payload();
+                $resultCode = is_array($rawPayload)
+                    ? (string)($rawPayload['error']['code'] ?? $rawPayload['result']['code'] ?? 'MCP_JSON_RPC')
+                    : 'MCP_JSON_RPC';
+
+                return $result;
             }
 
             if (!$result instanceof JsonResponse) {
