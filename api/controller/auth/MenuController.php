@@ -21,7 +21,7 @@ final class MenuController extends BaseController
         ['key' => 'counterparties', 'i18n' => 'nav.counterparties', 'label_key' => 'nav.messages.counterparties', 'href' => 'index.php?route=counterparties', 'permissions' => ['counterparty.manage']],
         ['key' => 'teams', 'i18n' => 'nav.teams', 'label_key' => 'nav.messages.teams', 'href' => 'index.php?route=teams', 'permissions' => []],
         ['key' => 'intake', 'i18n' => 'nav.intake', 'label_key' => 'nav.messages.intake', 'href' => 'index.php?route=intake', 'permissions' => ['intake.view']],
-        ['key' => 'cycles', 'i18n' => 'nav.cycles', 'label_key' => 'nav.messages.cycles', 'href' => 'index.php?route=cycles', 'permissions' => ['project.manage']],
+        ['key' => 'cycles', 'i18n' => 'nav.cycles', 'label_key' => 'nav.messages.cycles', 'href' => 'index.php?route=cycles', 'permissions' => ['task.manage']],
         ['key' => 'knowledge', 'i18n' => 'nav.knowledge', 'label_key' => 'nav.messages.knowledge', 'href' => 'index.php?route=knowledge', 'permissions' => ['knowledge.view']],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.messages.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.messages.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
