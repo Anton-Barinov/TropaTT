@@ -11,5 +11,8 @@ return [
     'menu_loaded' => 'Меню загружено',
     'menu_preferences_loaded' => 'Настройки меню загружены',
     'menu_preferences_saved' => 'Настройки меню сохранены',
+    'items_required' => 'Требуется массив элементов',
+    'team_menu_template_loaded' => 'Шаблон меню команды загружен',
+    'team_menu_template_saved' => 'Шаблон меню команды сохранен',
     'array_expected' => 'Ожидается массив',
 ];

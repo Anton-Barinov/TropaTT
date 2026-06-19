@@ -71,6 +71,7 @@ window.CRM.navigation = (function () {
   var MENU_CACHE_KEY = 'crm_menu_items';
   var MENU_CACHE_TTL_MS = 5 * 60 * 1000;
   var navItems = [];
+  var allAvailableItems = [];
   var menuLoaded = false;
 
   function readCachedMenu() {
@@ -110,6 +111,7 @@ window.CRM.navigation = (function () {
       var envelope = await window.CRM.api.request('api/v1/auth/menu');
       var data = envelope && envelope.data ? envelope.data : {};
       var items = Array.isArray(data.items) ? data.items : [];
+      allAvailableItems = Array.isArray(data.all_available_items) ? data.all_available_items : getDefaultNavItems();
       return items;
     } catch (e) {
       return null;
@@ -117,7 +119,6 @@ window.CRM.navigation = (function () {
   }
 
   async function loadNavItems() {
-    // Skip cache for now to use updated defaults
     var fetched = await fetchMenuFromApi();
     if (fetched && fetched.length > 0) {
       navItems = fetched;
@@ -127,6 +128,7 @@ window.CRM.navigation = (function () {
     }
 
     navItems = getDefaultNavItems();
+    allAvailableItems = getDefaultNavItems();
     menuLoaded = true;
   }
 
@@ -342,13 +344,19 @@ window.CRM.navigation = (function () {
     nav.innerHTML = topLevel.map(function (item) {
       var label = t(item.i18n, item.label || item.key);
       var safeLabel = escapeHtml(label);
-      var iconHtml = item.icon || navIcon(item.key);
+      var iconHtml;
+      if (item.is_custom && item.icon) {
+        iconHtml = '<span class="crm-icon" aria-hidden="true"><i class="' + escapeHtml(item.icon) + '"></i></span>';
+      } else {
+        iconHtml = item.icon || navIcon(item.key);
+      }
       var badge = item.key === 'chat'
         ? '<span class="crm-nav-badge d-none" data-chat-unread-badge aria-label=""></span>'
         : (item.key === 'notifications'
           ? '<span class="crm-nav-badge d-none" data-nav-notification-badge aria-label=""></span>'
           : '');
-      var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + item.href + '" title="' + safeLabel + '">'
+      var href = item.href || '#';
+      var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + href + '" title="' + safeLabel + '">'
         + '<span class="crm-nav-icon" aria-hidden="true">' + iconHtml + '</span>'
         + '<span class="crm-nav-label">' + safeLabel + '</span>'
         + badge
@@ -357,7 +365,10 @@ window.CRM.navigation = (function () {
       if (parented[item.key]) {
         parented[item.key].forEach(function (sub) {
           var subLabel = t(sub.i18n, sub.label || sub.key);
-          html += '<a class="nav-link crm-nav-sub" data-nav="' + sub.key + '" href="' + sub.href + '" title="' + escapeHtml(subLabel) + '">'
+          var subIcon = sub.is_custom && sub.icon
+            ? '<span class="crm-icon" aria-hidden="true"><i class="' + escapeHtml(sub.icon) + '"></i></span>'
+            : (sub.icon || navIcon(sub.key));
+          html += '<a class="nav-link crm-nav-sub" data-nav="' + sub.key + '" href="' + (sub.href || '#') + '" title="' + escapeHtml(subLabel) + '">'
             + '<span class="crm-nav-label ps-4">' + escapeHtml(subLabel) + '</span>'
             + '</a>';
         });
@@ -1044,23 +1055,19 @@ window.CRM.navigation = (function () {
   function openCustomizeModal() {
     var existing = document.getElementById(CUSTOMIZE_MODAL_ID);
     if (existing) {
-      var bsModal = bootstrap.Modal.getInstance(existing) || new bootstrap.Modal(existing);
-      bsModal.show();
-      return;
+      if (existing.parentNode) existing.parentNode.removeChild(existing);
     }
 
-    var allItems = getDefaultNavItems();
     var currentOrder = navItems.map(function (item) { return item.key; });
     var visibleSet = {};
     navItems.forEach(function (item) { visibleSet[item.key] = true; });
 
-    var modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.id = CUSTOMIZE_MODAL_ID;
-    modal.setAttribute('tabindex', '-1');
-    modal.setAttribute('aria-hidden', 'true');
+    var customItems = navItems.filter(function (item) { return item.is_custom; });
 
-    var sortedItems = allItems.slice().sort(function (a, b) {
+    var sourceItems = allAvailableItems.length > 0 ? allAvailableItems : getDefaultNavItems();
+    var standardItems = sourceItems.slice();
+
+    var sortedItems = standardItems.slice().sort(function (a, b) {
       var ai = currentOrder.indexOf(a.key);
       var bi = currentOrder.indexOf(b.key);
       if (ai === -1 && bi === -1) return 0;
@@ -1070,19 +1077,22 @@ window.CRM.navigation = (function () {
     });
 
     var listHtml = sortedItems.map(function (item) {
-      var isVisible = visibleSet[item.key] === true;
+      var isVisible = visibleSet[item.key] !== false;
       var iconHtml = navIconByKey(item.key);
       var label = t(item.i18n, item.label || item.key);
-      return '<div class="crm-menu-customize-item" data-key="' + escapeHtml(item.key) + '">'
-        + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
-        + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
-        + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
-        + '<label class="crm-menu-customize-toggle">'
-        + '<input type="checkbox" data-toggle-visibility data-key="' + escapeHtml(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
-        + '<span class="crm-toggle-slider"></span>'
-        + '</label>'
-        + '</div>';
+      return buildCustomizeRow(item.key, iconHtml, label, isVisible, false);
     }).join('');
+
+    var customHtml = customItems.map(function (item) {
+      var iconHtml = item.icon ? '<i class="' + escapeHtml(item.icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
+      return buildCustomizeRow(item.key, iconHtml, item.label || item.title || item.key, visibleSet[item.key] !== false, true);
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = CUSTOMIZE_MODAL_ID;
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-hidden', 'true');
 
     modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
       + '<div class="modal-header">'
@@ -1092,6 +1102,18 @@ window.CRM.navigation = (function () {
       + '<div class="modal-body">'
       + '<p class="text-muted small mb-3">' + escapeHtml(t('nav.customize_menu_hint', 'Drag to reorder items, toggle switches to show or hide menu items.')) + '</p>'
       + '<div class="crm-menu-customize-list" data-menu-customize-list>' + listHtml + '</div>'
+      + (customHtml ? '<div class="crm-menu-customize-separator"><span>' + escapeHtml(t('nav.custom_items', 'Custom links')) + '</span></div><div class="crm-menu-customize-list" data-menu-customize-custom-list>' + customHtml + '</div>' : '<div class="crm-menu-customize-list" data-menu-customize-custom-list></div>')
+      + '<div class="crm-menu-customize-add-section">'
+      + '<button type="button" class="btn crm-btn-secondary btn-sm" data-menu-customize-add-link><i class="fa-solid fa-plus me-1"></i>' + escapeHtml(t('nav.add_custom_link', 'Add custom link')) + '</button>'
+      + '</div>'
+      + '<div class="crm-menu-customize-add-form d-none" data-menu-customize-add-form>'
+      + '<div class="row g-2 align-items-end">'
+      + '<div class="col-md-4"><label class="form-label small">' + escapeHtml(t('nav.custom_link_title', 'Title')) + '</label><input type="text" class="form-control form-control-sm" data-custom-title placeholder="' + escapeHtml(t('nav.custom_link_title_placeholder', 'My link')) + '"></div>'
+      + '<div class="col-md-4"><label class="form-label small">' + escapeHtml(t('nav.custom_link_url', 'URL')) + '</label><input type="url" class="form-control form-control-sm" data-custom-href placeholder="https://example.com"></div>'
+      + '<div class="col-md-3"><label class="form-label small">' + escapeHtml(t('nav.custom_link_icon', 'Icon (FA class)')) + '</label><input type="text" class="form-control form-control-sm" data-custom-icon placeholder="fa-solid fa-link"></div>'
+      + '<div class="col-md-1"><button type="button" class="btn crm-btn-primary btn-sm w-100" data-menu-customize-add-confirm title="' + escapeHtml(t('common.add', 'Add')) + '"><i class="fa-solid fa-check"></i></button></div>'
+      + '</div>'
+      + '</div>'
       + '</div>'
       + '<div class="modal-footer">'
       + '<button type="button" class="btn crm-btn-secondary" data-menu-customize-reset>' + escapeHtml(t('nav.reset_defaults', 'Reset to default')) + '</button>'
@@ -1105,17 +1127,7 @@ window.CRM.navigation = (function () {
     var bsModal = new bootstrap.Modal(modal);
     bsModal.show();
 
-    var listEl = modal.querySelector('[data-menu-customize-list]');
-    if (listEl && typeof Sortable !== 'undefined') {
-      Sortable.create(listEl, {
-        handle: '.crm-menu-customize-drag',
-        animation: 180,
-        ghostClass: 'crm-menu-customize-ghost',
-        chosenClass: 'crm-menu-customize-chosen',
-        dragClass: 'crm-menu-customize-dragging',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
-      });
-    }
+    initSortable(modal);
 
     modal.querySelector('[data-menu-customize-save]').addEventListener('click', function () {
       saveCustomizeModal(modal, bsModal);
@@ -1125,10 +1137,131 @@ window.CRM.navigation = (function () {
       resetCustomizeModal(modal);
     });
 
+    modal.querySelector('[data-menu-customize-add-link]').addEventListener('click', function () {
+      var form = modal.querySelector('[data-menu-customize-add-form]');
+      if (form) form.classList.toggle('d-none');
+    });
+
+    modal.querySelector('[data-menu-customize-add-confirm]').addEventListener('click', function () {
+      addCustomItem(modal);
+    });
+
+    modal.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.matches('[data-custom-href]')) {
+        e.preventDefault();
+        addCustomItem(modal);
+      }
+    });
+
+    modal.addEventListener('click', function (e) {
+      var deleteBtn = e.target.closest('[data-menu-customize-delete]');
+      if (deleteBtn) {
+        var row = deleteBtn.closest('.crm-menu-customize-item');
+        if (row) {
+          row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(20px)';
+          setTimeout(function () {
+            if (row.parentNode) row.parentNode.removeChild(row);
+            updateCustomSectionVisibility(modal);
+          }, 200);
+        }
+      }
+    });
+
     modal.addEventListener('hidden.bs.modal', function () {
       if (modal.parentNode) {
         modal.parentNode.removeChild(modal);
       }
+    });
+  }
+
+  function buildCustomizeRow(key, iconHtml, label, isVisible, isCustom) {
+    var deleteBtn = isCustom
+      ? '<button type="button" class="btn btn-sm crm-btn-ghost crm-btn-icon text-danger" data-menu-customize-delete title="' + escapeHtml(t('common.delete', 'Delete')) + '"><i class="fa-solid fa-xmark"></i></button>'
+      : '';
+    return '<div class="crm-menu-customize-item' + (isCustom ? ' crm-menu-customize-item--custom' : '') + '" data-key="' + escapeHtml(key) + '" data-is-custom="' + (isCustom ? '1' : '0') + '">'
+      + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
+      + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
+      + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
+      + '<label class="crm-menu-customize-toggle">'
+      + '<input type="checkbox" data-toggle-visibility data-key="' + escapeHtml(key) + '"' + (isVisible ? ' checked' : '') + '>'
+      + '<span class="crm-toggle-slider"></span>'
+      + '</label>'
+      + deleteBtn
+      + '</div>';
+  }
+
+  function addCustomItem(modal) {
+    var titleInput = modal.querySelector('[data-custom-title]');
+    var hrefInput = modal.querySelector('[data-custom-href]');
+    var iconInput = modal.querySelector('[data-custom-icon]');
+
+    var title = (titleInput ? titleInput.value : '').trim();
+    var href = (hrefInput ? hrefInput.value : '').trim();
+    var icon = (iconInput ? iconInput.value : '').trim();
+
+    if (!title || !href) return;
+
+    var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    var iconHtml = icon ? '<i class="' + escapeHtml(icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
+    var rowHtml = buildCustomizeRow(key, iconHtml, title, true, true);
+
+    var customList = modal.querySelector('[data-menu-customize-custom-list]');
+    if (customList) {
+      customList.insertAdjacentHTML('beforeend', rowHtml);
+    } else {
+      var separator = '<div class="crm-menu-customize-separator"><span>' + escapeHtml(t('nav.custom_items', 'Custom links')) + '</span></div>';
+      var listContainer = modal.querySelector('[data-menu-customize-list]');
+      if (listContainer) {
+        listContainer.insertAdjacentHTML('afterend', separator + '<div class="crm-menu-customize-list" data-menu-customize-custom-list>' + rowHtml + '</div>');
+      }
+      customList = modal.querySelector('[data-menu-customize-custom-list]');
+      if (customList) initSortable(modal);
+    }
+
+    updateCustomSectionVisibility(modal);
+
+    if (titleInput) titleInput.value = '';
+    if (hrefInput) hrefInput.value = '';
+    if (iconInput) iconInput.value = '';
+
+    var form = modal.querySelector('[data-menu-customize-add-form]');
+    if (form) form.classList.add('d-none');
+
+    var newRows = modal.querySelectorAll('.crm-menu-customize-item');
+    var lastRow = newRows[newRows.length - 1];
+    if (lastRow) {
+      lastRow.style.animation = 'none';
+      lastRow.offsetHeight;
+      lastRow.style.animation = 'menuFadeIn 0.25s ease both';
+    }
+  }
+
+  function updateCustomSectionVisibility(modal) {
+    var customList = modal.querySelector('[data-menu-customize-custom-list]');
+    var hasCustomItems = customList && customList.querySelectorAll('.crm-menu-customize-item').length > 0;
+    var separator = modal.querySelector('.crm-menu-customize-separator');
+    if (separator) {
+      separator.style.display = hasCustomItems ? '' : 'none';
+    }
+  }
+
+  function initSortable(modal) {
+    var lists = modal.querySelectorAll('.crm-menu-customize-list');
+    if (typeof Sortable === 'undefined') return;
+    lists.forEach(function (listEl) {
+      if (listEl.dataset.sortableInit) return;
+      listEl.dataset.sortableInit = '1';
+      Sortable.create(listEl, {
+        handle: '.crm-menu-customize-drag',
+        group: 'menu-customize',
+        animation: 180,
+        ghostClass: 'crm-menu-customize-ghost',
+        chosenClass: 'crm-menu-customize-chosen',
+        dragClass: 'crm-menu-customize-dragging',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+      });
     });
   }
 
@@ -1139,44 +1272,50 @@ window.CRM.navigation = (function () {
       var key = row.getAttribute('data-key') || '';
       var checkbox = row.querySelector('[data-toggle-visibility]');
       var visible = checkbox ? checkbox.checked : true;
-      items.push({ key: key, visible: visible });
+      var entry = { key: key, visible: visible };
+
+      if (row.getAttribute('data-is-custom') === '1') {
+        var existingCustom = navItems.find(function (ni) { return ni.key === key; });
+        if (existingCustom) {
+          entry.title = existingCustom.label || existingCustom.title || key;
+          entry.href = existingCustom.href || '#';
+          entry.icon = existingCustom.icon || 'fa-solid fa-link';
+        } else {
+          entry.title = row.querySelector('.crm-menu-customize-label') ? row.querySelector('.crm-menu-customize-label').textContent : key;
+          entry.href = '#';
+          entry.icon = 'fa-solid fa-link';
+        }
+      }
+
+      items.push(entry);
     });
     return items;
   }
 
   function resetCustomizeModal(modal) {
     var defaultItems = getDefaultNavItems();
-    var defaultPrefs = defaultItems.map(function (item) {
-      return { key: item.key, visible: true };
-    });
-    var listEl = modal.querySelector('[data-menu-customize-list]');
-    if (!listEl) return;
-    var listHtml = defaultPrefs.map(function (pref) {
-      var def = defaultItems.find(function (di) { return di.key === pref.key; });
-      if (!def) return '';
-      var iconHtml = navIconByKey(pref.key);
-      var label = t(def.i18n, def.label || def.key);
-      return '<div class="crm-menu-customize-item" data-key="' + escapeHtml(pref.key) + '">'
-        + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
-        + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
-        + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
-        + '<label class="crm-menu-customize-toggle">'
-        + '<input type="checkbox" data-toggle-visibility data-key="' + escapeHtml(pref.key) + '"' + (pref.visible ? ' checked' : '') + '>'
-        + '<span class="crm-toggle-slider"></span>'
-        + '</label>'
-        + '</div>';
+    var sortedItems = defaultItems.slice();
+
+    var listHtml = sortedItems.map(function (item) {
+      var iconHtml = navIconByKey(item.key);
+      var label = t(item.i18n, item.label || item.key);
+      return buildCustomizeRow(item.key, iconHtml, label, true, false);
     }).join('');
-    listEl.innerHTML = listHtml;
-    if (typeof Sortable !== 'undefined') {
-      Sortable.create(listEl, {
-        handle: '.crm-menu-customize-drag',
-        animation: 180,
-        ghostClass: 'crm-menu-customize-ghost',
-        chosenClass: 'crm-menu-customize-chosen',
-        dragClass: 'crm-menu-customize-dragging',
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
-      });
+
+    var listEl = modal.querySelector('[data-menu-customize-list]');
+    if (listEl) {
+      listEl.innerHTML = listHtml;
     }
+
+    var customList = modal.querySelector('[data-menu-customize-custom-list]');
+    if (customList) {
+      customList.innerHTML = '';
+    }
+
+    var separator = modal.querySelector('.crm-menu-customize-separator');
+    if (separator) separator.style.display = 'none';
+
+    initSortable(modal);
   }
 
   async function saveCustomizeModal(modal, bsModal) {

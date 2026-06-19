@@ -57,6 +57,15 @@ return array (
     'search_unavailable' => 'Поиск недоступен. Попробуйте позже.',
     'unread_chats' => 'Непрочитанных чатов: ',
     'unread_notifications' => 'Непрочитанных уведомлений: ',
+    'customize_menu' => 'Настроить меню',
+    'customize_menu_hint' => 'Перетащите для изменения порядка, переключатели для скрытия или показа пунктов меню.',
+    'reset_defaults' => 'Сбросить по умолчанию',
+    'custom_items' => 'Пользовательские ссылки',
+    'add_custom_link' => 'Добавить ссылку',
+    'custom_link_title' => 'Название',
+    'custom_link_title_placeholder' => 'Моя ссылка',
+    'custom_link_url' => 'URL',
+    'custom_link_icon' => 'Иконка (класс FA)',
   ),
   'topbar' => 
   array (

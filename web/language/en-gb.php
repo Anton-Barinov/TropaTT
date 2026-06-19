@@ -57,6 +57,15 @@ return array (
     'search_unavailable' => 'Search is unavailable. Try again later.',
     'unread_chats' => 'Unread chats: ',
     'unread_notifications' => 'Unread notifications: ',
+    'customize_menu' => 'Customize menu',
+    'customize_menu_hint' => 'Drag to reorder items, toggle switches to show or hide menu items.',
+    'reset_defaults' => 'Reset to default',
+    'custom_items' => 'Custom links',
+    'add_custom_link' => 'Add custom link',
+    'custom_link_title' => 'Title',
+    'custom_link_title_placeholder' => 'My link',
+    'custom_link_url' => 'URL',
+    'custom_link_icon' => 'Icon (FA class)',
   ),
   'topbar' => 
   array (
