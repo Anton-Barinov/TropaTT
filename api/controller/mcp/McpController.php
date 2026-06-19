@@ -75,6 +75,8 @@ final class McpController extends BaseController
             $result = match ($method) {
                 'initialize' => $this->initializeResult($params),
                 'ping' => new \stdClass(),
+                'resources/list' => ['resources' => $this->resources()],
+                'resources/read' => $this->readResource($params),
                 'tools/list' => ['tools' => $this->tools()],
                 'tools/call' => $this->callTool($params),
                 'notifications/initialized' => null,
@@ -107,6 +109,9 @@ final class McpController extends BaseController
         return [
             'protocolVersion' => $protocolVersion,
             'capabilities' => [
+                'resources' => [
+                    'listChanged' => false,
+                ],
                 'tools' => [
                     'listChanged' => false,
                 ],
@@ -116,6 +121,160 @@ final class McpController extends BaseController
                 'version' => '0.1.0',
             ],
         ];
+    }
+
+    private function resources(): array
+    {
+        return [
+            $this->resource(
+                'tropatt://server/about',
+                'about',
+                'TropaTT MCP Overview',
+                'How this CRM exposes safe agent access through MCP.',
+                'text/markdown',
+                1.0
+            ),
+            $this->resource(
+                'tropatt://server/tools',
+                'tools',
+                'Available MCP Tools',
+                'Tool list visible to the current authenticated CRM user.',
+                'application/json',
+                0.95
+            ),
+            $this->resource(
+                'tropatt://server/api-map',
+                'api-map',
+                'CRM API Capability Map',
+                'High-level map of CRM API domains that agents can reason about.',
+                'text/markdown',
+                0.8
+            ),
+            $this->resource(
+                'tropatt://user/current',
+                'current-user',
+                'Current CRM User',
+                'Sanitized profile and permissions for the authenticated user.',
+                'application/json',
+                0.9
+            ),
+        ];
+    }
+
+    private function readResource(array $params): array
+    {
+        $uri = trim((string)($params['uri'] ?? ''));
+        if ($uri === '') {
+            return [
+                'jsonrpc_error' => true,
+                'code' => -32602,
+                'message' => 'Resource uri is required.',
+            ];
+        }
+
+        $content = match ($uri) {
+            'tropatt://server/about' => $this->textResource($uri, 'text/markdown', $this->mcpAboutMarkdown()),
+            'tropatt://server/tools' => $this->textResource($uri, 'application/json', json_encode(['tools' => $this->tools()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
+            'tropatt://server/api-map' => $this->textResource($uri, 'text/markdown', $this->apiMapMarkdown()),
+            'tropatt://user/current' => $this->textResource($uri, 'application/json', json_encode($this->crmGetCurrentUser(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
+            default => null,
+        };
+
+        if ($content === null) {
+            return [
+                'jsonrpc_error' => true,
+                'code' => -32002,
+                'message' => 'Resource not found',
+                'data' => ['uri' => $uri],
+            ];
+        }
+
+        return ['contents' => [$content]];
+    }
+
+    private function resource(string $uri, string $name, string $title, string $description, string $mimeType, float $priority): array
+    {
+        return [
+            'uri' => $uri,
+            'name' => $name,
+            'title' => $title,
+            'description' => $description,
+            'mimeType' => $mimeType,
+            'annotations' => [
+                'audience' => ['assistant'],
+                'priority' => $priority,
+            ],
+        ];
+    }
+
+    private function textResource(string $uri, string $mimeType, string $text): array
+    {
+        return [
+            'uri' => $uri,
+            'mimeType' => $mimeType,
+            'text' => $text,
+        ];
+    }
+
+    private function mcpAboutMarkdown(): string
+    {
+        return <<<'MD'
+# TropaTT MCP Server
+
+TropaTT exposes a JSON-RPC MCP endpoint for authenticated CRM users and agent clients.
+
+## Endpoint
+
+Use the current installation host:
+
+`POST /api/index.php?route=api/v1/mcp`
+
+Do not hardcode the public demo host. Every installation can have its own domain.
+
+## Authentication
+
+Send the same bearer access token used by the REST API:
+
+`Authorization: Bearer <access_token>`
+
+The server uses the current CRM user, existing RBAC permissions and entity access checks. MCP tools never expose passwords, token hashes, secrets, local paths or internal numeric IDs unless the field is intentionally public.
+
+## Recommended Agent Workflow
+
+1. Call `initialize`.
+2. Call `resources/read` for `tropatt://server/tools` and `tropatt://user/current`.
+3. Use read tools first to inspect tasks, projects, ideas, chats, calendar and knowledge.
+4. Use write tools only after the user intent is clear.
+5. Prefer public identifiers such as `task_public_id`, `project_public_id`, `idea_public_id`, `chat_public_id`.
+MD;
+    }
+
+    private function apiMapMarkdown(): string
+    {
+        return <<<'MD'
+# TropaTT API Capability Map
+
+The REST API remains the full integration surface. MCP is a safe agent-facing layer on top of selected CRM operations.
+
+## Main Domains
+
+- Auth and profile: login, logout, current user, preferences and sessions.
+- Users, teams and RBAC: users, roles, permissions, teams, departments and invitations.
+- CRM records: organizations, clients, counterparties and contacts.
+- Work management: projects, tasks, subtasks, checklists, dependencies, estimates, worklogs, cycles, recurring tasks and approvals.
+- Planning views: dashboard, calendar, Kanban, Gantt, saved views and custom fields.
+- Collaboration: comments, mentions, notifications, chats, files, reactions, favorites and subscriptions.
+- Knowledge base: spaces, pages, comments, permissions, versions, locks, tags, files and export/import.
+- Ideas and AI: ideas, AI analysis pipeline, AI suggestions, providers, jobs and semantic search.
+- Automation and admin: workflow rules, webhooks, modules, audit logs, settings, feature flags, retention and recycle bin.
+
+## Agent Safety Notes
+
+- Use MCP tools for common agent tasks.
+- Use direct REST API only when a needed endpoint is not exposed through MCP yet.
+- Always keep user data on the installation host selected by the customer.
+- Never assume the demo domain is the production domain.
+MD;
     }
 
     private function tools(): array
