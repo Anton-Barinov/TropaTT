@@ -11159,152 +11159,6 @@ window.CRM.pageApiBindings = (function () {
         });
     }
 
-    function openRoleMenuTemplateModal(roleId, rolesList) {
-      var role = rolesList ? rolesList.find(function (r) { return r.public_id === roleId; }) : null;
-      var roleTitle = role ? safeText(role.title || roleId) : roleId;
-
-      var existing = document.getElementById('roleMenuTemplateModal');
-      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
-
-      var allMenuItems = [
-        { key: 'dashboard', label: tp('nav.dashboard', 'Dashboard') },
-        { key: 'ideas', label: tp('nav.ideas', 'Ideas') },
-        { key: 'tasks', label: tp('nav.tasks', 'Tasks') },
-        { key: 'day', label: tp('nav.day', 'My day') },
-        { key: 'week', label: tp('nav.week', 'My week') },
-        { key: 'kanban', label: tp('nav.kanban', 'Kanban') },
-        { key: 'gantt', label: tp('nav.gantt', 'Gantt') },
-        { key: 'projects', label: tp('nav.projects', 'Projects') },
-        { key: 'calendar', label: tp('nav.calendar', 'Calendar') },
-        { key: 'counterparties', label: tp('nav.counterparties', 'Counterparties') },
-        { key: 'teams', label: tp('nav.teams', 'Teams') },
-        { key: 'intake', label: tp('nav.intake', 'Intake') },
-        { key: 'cycles', label: tp('nav.cycles', 'Cycles') },
-        { key: 'knowledge', label: tp('nav.knowledge', 'Knowledge') },
-        { key: 'analytics', label: tp('nav.analytics', 'Analytics') },
-        { key: 'notifications', label: tp('nav.notifications', 'Notifications') },
-        { key: 'admin', label: tp('nav.admin', 'Administration') },
-        { key: 'admin-estimates', label: tp('nav.admin_estimates', 'Estimates') },
-        { key: 'admin-modules', label: tp('nav.admin_modules', 'Modules') },
-        { key: 'chat', label: tp('nav.chat', 'Chats') },
-        { key: 'docs', label: tp('nav.api', 'Docs') }
-      ];
-
-      var menuIcons = {
-        dashboard: 'fa-house', ideas: 'fa-lightbulb', tasks: 'fa-list-check', day: 'fa-calendar-day',
-        week: 'fa-calendar-week', kanban: 'fa-table-columns', gantt: 'fa-chart-gantt', projects: 'fa-folder-tree',
-        calendar: 'fa-calendar-days', counterparties: 'fa-address-book', teams: 'fa-people-group',
-        intake: 'fa-inbox', cycles: 'fa-arrows-spin', knowledge: 'fa-book-open-reader',
-        analytics: 'fa-chart-column', notifications: 'fa-bell', admin: 'fa-shield-halved',
-        'admin-estimates': 'fa-ruler-combined', 'admin-modules': 'fa-cubes', chat: 'fa-comments', docs: 'fa-code'
-      };
-
-      request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template')
-        .then(function (envelope) {
-          var data = envelope && envelope.data ? envelope.data : {};
-          var templateItems = data.template || [];
-          var visMap = {};
-          var orderKeys = [];
-          templateItems.forEach(function (item) {
-            visMap[item.key] = item.visible !== false;
-            orderKeys.push(item.key);
-          });
-
-          var sortedItems = allMenuItems.slice().sort(function (a, b) {
-            var ai = orderKeys.indexOf(a.key);
-            var bi = orderKeys.indexOf(b.key);
-            if (ai === -1 && bi === -1) return 0;
-            if (ai === -1) return 1;
-            if (bi === -1) return -1;
-            return ai - bi;
-          });
-
-          var listHtml = sortedItems.map(function (item) {
-            var isVisible = visMap[item.key] !== false;
-            var iconClass = menuIcons[item.key] || 'fa-circle-dot';
-            return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
-              + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
-              + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
-              + '<label class="crm-menu-customize-toggle">'
-              + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
-              + '<span class="crm-toggle-slider"></span>'
-              + '</label>'
-              + '</div>';
-          }).join('');
-
-          var modal = document.createElement('div');
-          modal.className = 'modal fade';
-          modal.id = 'roleMenuTemplateModal';
-          modal.setAttribute('tabindex', '-1');
-          modal.setAttribute('aria-hidden', 'true');
-
-          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
-            + '<div class="modal-header">'
-            + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
-            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
-            + '</div>'
-            + '<div class="modal-body">'
-            + '<p class="text-muted small mb-3">' + safeText(tp('admin.role_menu_template_hint', 'Configure the default menu for all users with this role. This is the highest priority — items hidden here cannot be shown by team or user settings.')) + '</p>'
-            + '<div class="crm-menu-customize-list" data-role-menu-list>' + listHtml + '</div>'
-            + '</div>'
-            + '<div class="modal-footer">'
-            + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(tp('common.cancel_btn', 'Cancel')) + '</button>'
-            + '<button type="button" class="btn crm-btn-primary" data-role-menu-save>' + safeText(tp('common.save', 'Save')) + '</button>'
-            + '</div>'
-            + '</div></div>';
-
-          document.body.appendChild(modal);
-          var bsModal = new bootstrap.Modal(modal);
-
-          var listEl = modal.querySelector('[data-role-menu-list]');
-          if (listEl && typeof Sortable !== 'undefined') {
-            Sortable.create(listEl, {
-              handle: '.crm-menu-customize-drag',
-              animation: 180,
-              ghostClass: 'crm-menu-customize-ghost',
-              chosenClass: 'crm-menu-customize-chosen',
-              dragClass: 'crm-menu-customize-dragging',
-              easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
-            });
-          }
-
-          modal.querySelector('[data-role-menu-save]').addEventListener('click', function () {
-            var saveBtn = this;
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
-
-            var items = [];
-            listEl.querySelectorAll('.crm-menu-customize-item').forEach(function (row) {
-              var key = row.getAttribute('data-key') || '';
-              var checkbox = row.querySelector('[data-toggle-visibility]');
-              items.push({ key: key, visible: checkbox ? checkbox.checked : true });
-            });
-
-            request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template', {
-              method: 'PUT',
-              body: { items: items }
-            }).then(function () {
-              notify(tp('admin.role_menu_template_saved', 'Role menu template saved'));
-              bsModal.hide();
-              if (modal.parentNode) modal.parentNode.removeChild(modal);
-            }).catch(function () {
-              saveBtn.disabled = false;
-              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
-            });
-          });
-
-          modal.addEventListener('hidden.bs.modal', function () {
-            if (modal.parentNode) modal.parentNode.removeChild(modal);
-          });
-
-          bsModal.show();
-        })
-        .catch(function () {
-          notify(tp('admin.role_menu_template_load_fail', 'Failed to load role menu template'), 'error');
-        });
-    }
-
     function renderTreeView(search, type) {
       var container = document.getElementById('teamsTree');
       if (!container) return;
@@ -11983,291 +11837,6 @@ window.CRM.pageApiBindings = (function () {
     }
 
     bindTeamActionButtons();
-  }
-
-
-
-  async function renderAdminRolesPage() {
-    var responses = await Promise.all([
-      tryRequest('api/v1/roles', { query: { limit: 200 } }),
-      tryRequest('api/v1/permissions'),
-      tryRequest('api/v1/admin/role-matrix')
-    ]);
-
-    var roles = mapItems(responses[0]);
-    var permissions = mapItems(responses[1]).map(function (item) {
-      return {
-        code: String(item.code || ''),
-        title: String(item.title || item.code || '')
-      };
-    }).filter(function (item) { return item.code !== ''; });
-
-    var matrixEnvelope = responses[2];
-    var matrixData = matrixEnvelope && matrixEnvelope.success !== false && matrixEnvelope.data ? matrixEnvelope.data : null;
-    var matrixRoles = [];
-    if (matrixData && Array.isArray(matrixData.roles)) {
-      matrixRoles = matrixData.roles.map(function (row) {
-        return {
-          public_id: String(row.role_public_id || ''),
-          permission_codes: Array.isArray(row.permission_codes) ? row.permission_codes : []
-        };
-      });
-    }
-    if ((!permissions || !permissions.length) && matrixData && Array.isArray(matrixData.permissions)) {
-      permissions = matrixData.permissions.map(function (item) {
-        return {
-          code: String(item.code || ''),
-          title: String(item.title || item.code || '')
-        };
-      }).filter(function (item) { return item.code !== ''; });
-    }
-
-    var permissionsByCode = {};
-    permissions.forEach(function (item) { permissionsByCode[item.code] = item.title; });
-
-    var roleMap = {};
-    roles.forEach(function (role) {
-      roleMap[String(role.public_id || '')] = Object.assign({}, role, { permission_codes: [] });
-    });
-    matrixRoles.forEach(function (row) {
-      var id = String(row.public_id || '');
-      if (!id) return;
-      if (!roleMap[id]) roleMap[id] = { public_id: id };
-      roleMap[id].permission_codes = row.permission_codes;
-    });
-
-    var mergedRoles = Object.keys(roleMap).map(function (id) { return roleMap[id]; }).filter(function (role) {
-      return String(role.public_id || '') !== '';
-    });
-
-    var state = window.CRM.__adminRolesState || {};
-    state.roles = mergedRoles;
-    state.permissions = permissions;
-    window.CRM.__adminRolesState = state;
-
-    function modalInstance(id) {
-      if (!window.bootstrap) return null;
-      var modal = document.getElementById(id);
-      if (!modal) return null;
-      return window.bootstrap.Modal.getOrCreateInstance(modal);
-    }
-
-    function renderPermissionList(container, selectedCodes, inputName, idPrefix) {
-      if (!container) return;
-      if (!permissions.length) {
-        container.innerHTML = '<div class="text-muted">' + safeText(tp('admin.permissions_load_fail', 'Failed to load permissions list.')) + '</div>';
-        return;
-      }
-
-      var selectedSet = {};
-      (selectedCodes || []).forEach(function (code) { selectedSet[String(code)] = true; });
-      container.innerHTML = permissions.map(function (perm, idx) {
-        var domId = idPrefix + '_' + idx;
-        var checked = selectedSet[perm.code] ? ' checked' : '';
-        return '<div class="form-check mb-1">'
-          + '<input class="form-check-input" type="checkbox" id="' + safeText(domId) + '" name="' + safeText(inputName) + '" value="' + safeText(perm.code) + '"' + checked + '>'
-          + '<label class="form-check-label small" for="' + safeText(domId) + '">' + safeText(perm.title) + ' <span class="text-muted">(' + safeText(perm.code) + ')</span></label>'
-          + '</div>';
-      }).join('');
-    }
-
-    function selectedPermissionCodes(container, inputName) {
-      if (!container) return [];
-      return Array.from(container.querySelectorAll('input[name="' + inputName + '"]:checked')).map(function (node) {
-        return String(node.value || '');
-      }).filter(function (code) { return code !== ''; });
-    }
-
-    var tbody = document.getElementById('adminRolesTableBody') || document.querySelector('table.crm-table tbody');
-    if (tbody) {
-      tbody.innerHTML = mergedRoles.map(function (role) {
-        var roleId = String(role.public_id || '');
-        var permissionCodes = Array.isArray(role.permission_codes) ? role.permission_codes : [];
-        var chips = permissionCodes.slice(0, 4).map(function (code) {
-          return '<span class="crm-chip">' + safeText(permissionsByCode[code] || code) + '</span>';
-        }).join(' ');
-        var rest = permissionCodes.length > 4 ? '<span class="crm-chip">+' + (permissionCodes.length - 4) + '</span>' : '';
-        var canDelete = Number(role.is_system || 0) !== 1;
-
-        return '<tr>'
-          + '<td><strong>' + safeText(role.title || role.code || roleId) + '</strong><div class="small text-muted">' + safeText(role.code || '—') + '</div></td>'
-          + '<td>' + (chips || '<span class="text-muted">' + safeText(tp('admin.no_permissions', 'No permissions')) + '</span>') + (rest ? ' ' + rest : '') + '</td>'
-          + '<td><span class="crm-badge ' + (canDelete ? 'active' : 'archived') + '">' + safeText(canDelete ? tp('admin.role_custom', 'Custom') : tp('admin.role_system', 'System')) + '</span></td>'
-          + '<td>' + safeText(formatDate(role.updated_at || role.created_at)) + '</td>'
-          + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(roleId) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>'
-          + '<button class="btn btn-sm crm-btn-danger" data-role-delete="' + safeText(roleId) + '"' + (canDelete ? '' : ' disabled') + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
-          + '</tr>';
-      }).join('');
-    }
-
-    var metricTotal = document.getElementById('rolesMetricTotal');
-    var metricCustom = document.getElementById('rolesMetricCustom');
-    var metricSystem = document.getElementById('rolesMetricSystem');
-    var customCount = mergedRoles.filter(function (r) { return Number(r.is_system || 0) !== 1; }).length;
-    if (metricTotal) metricTotal.textContent = String(mergedRoles.length);
-    if (metricCustom) metricCustom.textContent = String(customCount);
-    if (metricSystem) metricSystem.textContent = String(mergedRoles.length - customCount);
-
-    var createForm = document.getElementById('roleCreateForm');
-    var editForm = document.getElementById('roleEditForm');
-    var createList = document.getElementById('roleCreatePermissionsList');
-    var editList = document.getElementById('roleEditPermissionsList');
-    renderPermissionList(createList, [], 'create_permission_codes', 'role_create_perm');
-
-    var createOpenBtn = document.getElementById('roleCreateOpenBtn');
-    if (createOpenBtn && createOpenBtn.dataset.bound !== '1') {
-      createOpenBtn.addEventListener('click', function () {
-        if (createForm) createForm.reset();
-        renderPermissionList(createList, [], 'create_permission_codes', 'role_create_perm');
-        var modal = modalInstance('roleCreateModal');
-        if (modal) modal.show();
-      });
-      createOpenBtn.dataset.bound = '1';
-    }
-
-    if (createForm && createForm.dataset.bound !== '1') {
-      createForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var codeInput = createForm.querySelector('[name="code"]');
-        var titleInput = createForm.querySelector('[name="title"]');
-        var code = codeInput ? String(codeInput.value || '').trim() : '';
-        var title = titleInput ? String(titleInput.value || '').trim() : '';
-        if (!code || !title) {
-          notify(tp('admin.role_code_title_required', 'Enter role code and title'), 'warning');
-          return;
-        }
-
-        var permissionCodes = selectedPermissionCodes(createList, 'create_permission_codes');
-        try {
-          var created = await request('api/v1/roles', {
-            method: 'POST',
-            body: { code: code, title: title }
-          });
-          var role = created && created.data ? (created.data.role || created.data) : null;
-          var rolePublicId = role ? String(role.public_id || '') : '';
-
-          if (rolePublicId && permissionCodes.length) {
-            await request('api/v1/roles/' + rolePublicId + '/permissions', {
-              method: 'PUT',
-              body: { permission_codes: permissionCodes }
-            });
-          }
-
-          var createModal = modalInstance('roleCreateModal');
-          if (createModal) createModal.hide();
-          notify(tp('admin.role_created', 'Role added successfully'));
-          await refreshCurrentPage();
-        } catch (error) {
-          var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || tp('admin.role_create_fail', 'Failed to add role'), 'error');
-        }
-      });
-      createForm.dataset.bound = '1';
-    }
-
-    document.querySelectorAll('[data-role-edit]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var roleId = btn.getAttribute('data-role-edit');
-        if (!roleId || !editForm) return;
-        var role = (window.CRM.__adminRolesState.roles || []).find(function (item) {
-          return String(item.public_id || '') === String(roleId);
-        });
-        if (!role) return;
-
-        var idInput = editForm.querySelector('[name="public_id"]');
-        var codeInput = editForm.querySelector('[name="code"]');
-        var titleInput = editForm.querySelector('[name="title"]');
-        if (idInput) idInput.value = roleId;
-        if (codeInput) codeInput.value = String(role.code || '');
-        if (titleInput) titleInput.value = String(role.title || '');
-        renderPermissionList(editList, role.permission_codes || [], 'edit_permission_codes', 'role_edit_perm');
-
-        if (Number(role.is_system || 0) === 1) {
-          notify(tp('admin.role_system_warning', 'System role: edit carefully'), 'warning');
-        }
-
-        var modal = modalInstance('roleEditModal');
-        if (modal) modal.show();
-      });
-    });
-
-    if (editForm && editForm.dataset.bound !== '1') {
-      editForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var rolePublicIdInput = editForm.querySelector('[name="public_id"]');
-        var codeInput = editForm.querySelector('[name="code"]');
-        var titleInput = editForm.querySelector('[name="title"]');
-        var rolePublicId = rolePublicIdInput ? String(rolePublicIdInput.value || '').trim() : '';
-        if (!rolePublicId) {
-          notify(tp('admin.role_not_selected_for_edit', 'No role selected for editing'), 'error');
-          return;
-        }
-
-        var code = codeInput ? String(codeInput.value || '').trim() : '';
-        var title = titleInput ? String(titleInput.value || '').trim() : '';
-        var permissionCodes = selectedPermissionCodes(editList, 'edit_permission_codes');
-
-        try {
-          await request('api/v1/roles/' + rolePublicId, {
-            method: 'PATCH',
-            body: { code: code, title: title }
-          });
-          await request('api/v1/roles/' + rolePublicId + '/permissions', {
-            method: 'PUT',
-            body: { permission_codes: permissionCodes }
-          });
-
-          var editModal = modalInstance('roleEditModal');
-          if (editModal) editModal.hide();
-          notify(tp('admin.role_updated', 'Role updated'));
-          await refreshCurrentPage();
-        } catch (error) {
-          var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || tp('admin.role_update_fail', 'Failed to update role'), 'error');
-        }
-      });
-      editForm.dataset.bound = '1';
-    }
-
-    var deleteText = document.getElementById('roleDeleteText');
-    var deletePublicIdNode = document.getElementById('roleDeletePublicId');
-    document.querySelectorAll('[data-role-delete]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (btn.disabled) return;
-        var roleId = btn.getAttribute('data-role-delete');
-        if (!roleId) return;
-        var role = (window.CRM.__adminRolesState.roles || []).find(function (item) {
-          return String(item.public_id || '') === String(roleId);
-        });
-        if (deletePublicIdNode) deletePublicIdNode.value = roleId;
-        if (deleteText) {
-          deleteText.textContent = role
-            ? (tp('admin.role_delete_confirm_prefix', 'Delete role "') + (role.title || role.code || roleId) + tp('admin.role_delete_confirm_suffix', '"?'))
-            : tp('admin.role_delete_confirm_default', 'The role will be deleted permanently.');
-        }
-        var modal = modalInstance('roleDeleteModal');
-        if (modal) modal.show();
-      });
-    });
-
-    var deleteBtn = document.getElementById('roleDeleteConfirmBtn');
-    if (deleteBtn && deleteBtn.dataset.bound !== '1') {
-      deleteBtn.addEventListener('click', async function () {
-        var roleId = deletePublicIdNode ? String(deletePublicIdNode.value || '') : '';
-        if (!roleId) return;
-        try {
-          await request('api/v1/roles/' + roleId, { method: 'DELETE' });
-          var deleteModal = modalInstance('roleDeleteModal');
-          if (deleteModal) deleteModal.hide();
-          notify(tp('admin.role_deleted', 'Role deleted'));
-          await refreshCurrentPage();
-        } catch (error) {
-          var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || tp('admin.role_delete_fail', 'Failed to delete role'), 'error');
-        }
-      });
-      deleteBtn.dataset.bound = '1';
-    }
   }
 
   async function renderAdminStatusesPage() {
@@ -14081,6 +13650,152 @@ window.CRM.pageApiBindings = (function () {
       });
       activeFilter.dataset.bound = '1';
     }
+  }
+
+  function openRoleMenuTemplateModal(roleId, rolesList) {
+    var role = rolesList ? rolesList.find(function (r) { return r.public_id === roleId; }) : null;
+    var roleTitle = role ? safeText(role.title || roleId) : roleId;
+
+    var existing = document.getElementById('roleMenuTemplateModal');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var allMenuItems = [
+      { key: 'dashboard', label: tp('nav.dashboard', 'Dashboard') },
+      { key: 'ideas', label: tp('nav.ideas', 'Ideas') },
+      { key: 'tasks', label: tp('nav.tasks', 'Tasks') },
+      { key: 'day', label: tp('nav.day', 'My day') },
+      { key: 'week', label: tp('nav.week', 'My week') },
+      { key: 'kanban', label: tp('nav.kanban', 'Kanban') },
+      { key: 'gantt', label: tp('nav.gantt', 'Gantt') },
+      { key: 'projects', label: tp('nav.projects', 'Projects') },
+      { key: 'calendar', label: tp('nav.calendar', 'Calendar') },
+      { key: 'counterparties', label: tp('nav.counterparties', 'Counterparties') },
+      { key: 'teams', label: tp('nav.teams', 'Teams') },
+      { key: 'intake', label: tp('nav.intake', 'Intake') },
+      { key: 'cycles', label: tp('nav.cycles', 'Cycles') },
+      { key: 'knowledge', label: tp('nav.knowledge', 'Knowledge') },
+      { key: 'analytics', label: tp('nav.analytics', 'Analytics') },
+      { key: 'notifications', label: tp('nav.notifications', 'Notifications') },
+      { key: 'admin', label: tp('nav.admin', 'Administration') },
+      { key: 'admin-estimates', label: tp('nav.admin_estimates', 'Estimates') },
+      { key: 'admin-modules', label: tp('nav.admin_modules', 'Modules') },
+      { key: 'chat', label: tp('nav.chat', 'Chats') },
+      { key: 'docs', label: tp('nav.api', 'Docs') }
+    ];
+
+    var menuIcons = {
+      dashboard: 'fa-house', ideas: 'fa-lightbulb', tasks: 'fa-list-check', day: 'fa-calendar-day',
+      week: 'fa-calendar-week', kanban: 'fa-table-columns', gantt: 'fa-chart-gantt', projects: 'fa-folder-tree',
+      calendar: 'fa-calendar-days', counterparties: 'fa-address-book', teams: 'fa-people-group',
+      intake: 'fa-inbox', cycles: 'fa-arrows-spin', knowledge: 'fa-book-open-reader',
+      analytics: 'fa-chart-column', notifications: 'fa-bell', admin: 'fa-shield-halved',
+      'admin-estimates': 'fa-ruler-combined', 'admin-modules': 'fa-cubes', chat: 'fa-comments', docs: 'fa-code'
+    };
+
+    request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template')
+      .then(function (envelope) {
+        var data = envelope && envelope.data ? envelope.data : {};
+        var templateItems = data.template || [];
+        var visMap = {};
+        var orderKeys = [];
+        templateItems.forEach(function (item) {
+          visMap[item.key] = item.visible !== false;
+          orderKeys.push(item.key);
+        });
+
+        var sortedItems = allMenuItems.slice().sort(function (a, b) {
+          var ai = orderKeys.indexOf(a.key);
+          var bi = orderKeys.indexOf(b.key);
+          if (ai === -1 && bi === -1) return 0;
+          if (ai === -1) return 1;
+          if (bi === -1) return -1;
+          return ai - bi;
+        });
+
+        var listHtml = sortedItems.map(function (item) {
+          var isVisible = visMap[item.key] !== false;
+          var iconClass = menuIcons[item.key] || 'fa-circle-dot';
+          return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
+            + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+            + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
+            + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
+            + '<label class="crm-menu-customize-toggle">'
+            + '<input type="checkbox" data-toggle-visibility data-key="' + safeText(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
+            + '<span class="crm-toggle-slider"></span>'
+            + '</label>'
+            + '</div>';
+        }).join('');
+
+        var modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'roleMenuTemplateModal';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-hidden', 'true');
+
+        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+          + '<div class="modal-header">'
+          + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
+          + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+          + '</div>'
+          + '<div class="modal-body">'
+          + '<p class="text-muted small mb-3">' + safeText(tp('admin.role_menu_template_hint', 'Configure the default menu for all users with this role. This is the highest priority — items hidden here cannot be shown by team or user settings.')) + '</p>'
+          + '<div class="crm-menu-customize-list" data-role-menu-list>' + listHtml + '</div>'
+          + '</div>'
+          + '<div class="modal-footer">'
+          + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + safeText(tp('common.cancel_btn', 'Cancel')) + '</button>'
+          + '<button type="button" class="btn crm-btn-primary" data-role-menu-save>' + safeText(tp('common.save', 'Save')) + '</button>'
+          + '</div>'
+          + '</div></div>';
+
+        document.body.appendChild(modal);
+        var bsModal = new bootstrap.Modal(modal);
+
+        var listEl = modal.querySelector('[data-role-menu-list]');
+        if (listEl && typeof Sortable !== 'undefined') {
+          Sortable.create(listEl, {
+            handle: '.crm-menu-customize-drag',
+            animation: 180,
+            ghostClass: 'crm-menu-customize-ghost',
+            chosenClass: 'crm-menu-customize-chosen',
+            dragClass: 'crm-menu-customize-dragging',
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+          });
+        }
+
+        modal.querySelector('[data-role-menu-save]').addEventListener('click', function () {
+          var saveBtn = this;
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+
+          var items = [];
+          listEl.querySelectorAll('.crm-menu-customize-item').forEach(function (row) {
+            var key = row.getAttribute('data-key') || '';
+            var checkbox = row.querySelector('[data-toggle-visibility]');
+            items.push({ key: key, visible: checkbox ? checkbox.checked : true });
+          });
+
+          request('api/v1/roles/' + encodeURIComponent(roleId) + '/menu-template', {
+            method: 'PUT',
+            body: { items: items }
+          }).then(function () {
+            notify(tp('admin.role_menu_template_saved', 'Role menu template saved'));
+            bsModal.hide();
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+          }).catch(function () {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+          });
+        });
+
+        modal.addEventListener('hidden.bs.modal', function () {
+          if (modal.parentNode) modal.parentNode.removeChild(modal);
+        });
+
+        bsModal.show();
+      })
+      .catch(function () {
+        notify(tp('admin.role_menu_template_load_fail', 'Failed to load role menu template'), 'error');
+      });
   }
 
   async function renderAdminRolesPage() {
