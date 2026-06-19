@@ -104,12 +104,17 @@ final class FileService
         if ($entityType === 'task' && $entityPublicId !== '') {
             $task = $this->tasks->findByPublicId($entityPublicId);
             if ($task) {
-                $this->activity?->recordFileEvent($task, 'task.file_added', [
+                $this->activity?->recordFileAdded($task, [
+                    'public_id' => $publicId,
+                    'original_name' => $name,
+                    'mime_type' => $mime,
+                    'size_bytes' => $size,
+                ], $actor, [
                     'file_public_id' => $publicId,
                     'original_name' => $name,
                     'mime_type' => $mime,
                     'size_bytes' => $size,
-                ], $actor);
+                ]);
             }
         }
 
@@ -195,7 +200,8 @@ final class FileService
             if (($file['entity_type'] ?? '') === 'task' && ($file['entity_public_id'] ?? '') !== '') {
                 $task = $this->tasks->findByPublicId((string)$file['entity_public_id']);
                 if ($task) {
-                    $this->activity?->recordFileEvent($task, 'task.file_deleted', [
+                    $this->activity?->recordFileDeleted($task, [
+                        'public_id' => $publicId,
                         'file_public_id' => $publicId,
                         'original_name' => (string)($file['original_name'] ?? ''),
                     ], $actor);
