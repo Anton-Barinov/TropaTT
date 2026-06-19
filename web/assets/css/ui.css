@@ -2656,7 +2656,8 @@ small.text-muted {
 
 .input-group > .form-control,
 .input-group > .form-select,
-.input-group > .input-group-text {
+.input-group > .input-group-text,
+.input-group > .btn {
   border-radius: 14px;
 }
 
