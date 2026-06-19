@@ -4205,6 +4205,51 @@ window.CRM.pageApiBindings = (function () {
         + '</div>'
         + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=knowledge">' + window.CRM.i18n.t('js.pab.kb_open', 'Open knowledge base') + '</a>';
     }
+
+    // ====== Active Cycles Widget ======
+    var cyclesList = document.querySelector('[data-dashboard-cycles-list]');
+    if (cyclesList) {
+        tryRequest('api/v1/cycles', { query: { status: 'active', limit: 5 }, silent: true })
+            .then(function (env) {
+                if (!env || !env.data) {
+                    cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_cycles', 'No active cycles.') + '</div>';
+                    return;
+                }
+                var items = env.data.items || [];
+                if (!items.length) {
+                    cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_active_cycles', 'No active cycles.') + '</div>';
+                    return;
+                }
+                var html = '';
+                items.forEach(function (cycle) {
+                    var progress = cycle.progress_percent || 0;
+                    var progressColor = progress >= 80 ? '#4caf50' : progress >= 40 ? '#ff9800' : progress > 0 ? '#f44336' : '#e0e0e0';
+                    var taskInfo = (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0);
+                    html += '<div class="mb-2 pb-2" style="border-bottom:1px solid #f0f0f0;">'
+                        + '<div class="d-flex justify-content-between align-items-start gap-2">'
+                        + '<div class="small fw-semibold text-truncate">'
+                        + '<a href="index.php?route=cycles" class="text-reset text-decoration-none">' + safeText(cycle.title) + '</a>'
+                        + '</div>'
+                        + '<span class="small text-muted flex-shrink-0">' + taskInfo + '</span>'
+                        + '</div>'
+                        + '<div class="d-flex align-items-center gap-2 mt-1">'
+                        + '<div style="height:4px;background:#e9ecef;border-radius:3px;overflow:hidden;flex:1;"><div style="width:' + progress + '%;background:' + progressColor + ';height:100%;border-radius:3px;transition:width 0.3s ease;"></div></div>'
+                        + '<small class="text-muted flex-shrink-0" style="font-size:11px;">' + progress + '%</small>'
+                        + '</div>'
+                        + (cycle.goal ? '<div class="small text-muted mt-1 text-truncate" style="font-size:11px;">' + safeText(cycle.goal.substring(0, 80)) + '</div>' : '')
+                        + (cycle.project_title ? '<div class="small text-muted mt-1" style="font-size:11px;"><i class="fa-regular fa-folder-open"></i> ' + safeText(cycle.project_title) + '</div>' : '')
+                        + '</div>';
+                });
+                if (items.length >= 5) {
+                    html += '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=cycles">' + window.CRM.i18n.t('js.pab.all_cycles', 'All cycles') + '</a>';
+                }
+                cyclesList.innerHTML = html;
+            })
+            .catch(function () {
+                cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.cycles_load_error', 'Failed to load cycles.') + '</div>';
+            });
+    }
+
     var note1Title = document.querySelector('[data-dashboard-note-1-title]');
     var note1Body = document.querySelector('[data-dashboard-note-1-body]');
     if (note1Title && note1Body) {
