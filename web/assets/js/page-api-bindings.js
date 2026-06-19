@@ -4536,16 +4536,6 @@ window.CRM.pageApiBindings = (function () {
             });
         btn.dataset.bound = '1';
       });
-
-      document.querySelectorAll('[data-team-menu]').forEach(function (btn) {
-        if (btn.dataset.bound === '1') return;
-        btn.addEventListener('click', function () {
-          var teamId = String(btn.getAttribute('data-team-menu') || '').trim();
-          if (!teamId) return;
-          openTeamMenuTemplateModal(teamId);
-        });
-        btn.dataset.bound = '1';
-      });
     }
       }
 
@@ -11007,6 +10997,16 @@ window.CRM.pageApiBindings = (function () {
               var envelope = error && error.envelope ? error.envelope : null;
               notify((envelope && envelope.message) || tp('teams.delete_fail', 'Failed to delete team'), 'error');
             });
+        });
+        btn.dataset.bound = '1';
+      });
+
+      document.querySelectorAll('[data-team-menu]').forEach(function (btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.addEventListener('click', function () {
+          var teamId = String(btn.getAttribute('data-team-menu') || '').trim();
+          if (!teamId) return;
+          openTeamMenuTemplateModal(teamId);
         });
         btn.dataset.bound = '1';
       });
