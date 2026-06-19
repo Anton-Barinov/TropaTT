@@ -53,6 +53,7 @@ return array (
     'untitled' => 'Без названия',
     'search_role_restricted' => 'Поиск недоступен для вашей роли',
     'ai_search' => 'AI-поиск',
+    'score' => 'оценка',
     'search_loading' => 'Ищем совпадения...',
     'search_unavailable' => 'Поиск недоступен. Попробуйте позже.',
     'unread_chats' => 'Непрочитанных чатов: ',
