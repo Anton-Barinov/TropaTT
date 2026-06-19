@@ -13963,6 +13963,7 @@ window.CRM.pageApiBindings = (function () {
       }).join(', ');
       var typeLabel = role.is_system ? tp('admin.role_system', 'System') : tp('admin.role_custom', 'Custom');
       var actions = '<div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-role-edit="' + safeText(role.public_id) + '">' + safeText(tp('common.edit', 'Edit')) + '</button>' +
+        '<button class="btn btn-sm btn-light" data-role-menu="' + safeText(role.public_id) + '" title="' + safeText(tp('admin.role_menu_title', 'Menu template')) + '"><i class="fa-solid fa-sliders"></i></button>' +
         (role.is_system ? '' : '<button class="btn btn-sm btn-danger" data-role-delete="' + safeText(role.public_id) + '">' + safeText(tp('common.delete', 'Delete')) + '</button>') +
         '</div>';
       return '<tr>' +
@@ -14012,6 +14013,16 @@ window.CRM.pageApiBindings = (function () {
         var modal = new bootstrap.Modal(document.getElementById('roleDeleteModal'));
         modal.show();
       });
+    });
+
+    // Bind role menu buttons
+    document.querySelectorAll('[data-role-menu]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        var publicId = btn.getAttribute('data-role-menu');
+        openRoleMenuTemplateModal(publicId, roles);
+      });
+      btn.dataset.bound = '1';
     });
 
     // Bind forms
