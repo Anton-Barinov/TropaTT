@@ -180,7 +180,7 @@ $footerT = static function (string $key, string $default = '') use ($t, $footerE
   return is_string($english[$key] ?? null) ? $english[$key] : $default;
 };
 $footerVersionRaw = '1.0.0';
-$installedCorePath = dirname(__DIR__, 3) . '/api/storage_api/updates/installed-core.json';
+$installedCorePath = dirname(__DIR__, 3) . '/storage_api/updates/installed-core.json';
 if (is_file($installedCorePath)) {
   $installedCore = json_decode((string)file_get_contents($installedCorePath), true);
   if (is_array($installedCore) && !empty($installedCore['core_version'])) {
