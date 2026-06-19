@@ -179,7 +179,19 @@ $footerT = static function (string $key, string $default = '') use ($t, $footerE
   $english = is_array($footerEnglish['footer'] ?? null) ? $footerEnglish['footer'] : [];
   return is_string($english[$key] ?? null) ? $english[$key] : $default;
 };
-$footerVersionRaw = file_exists(dirname(__DIR__, 3) . '/VERSION') ? trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION')) : '1.0.0';
+$footerVersionRaw = '1.0.0';
+$installedCorePath = dirname(__DIR__, 3) . '/api/storage_api/updates/installed-core.json';
+if (is_file($installedCorePath)) {
+  $installedCore = json_decode((string)file_get_contents($installedCorePath), true);
+  if (is_array($installedCore) && !empty($installedCore['core_version'])) {
+    $footerVersionRaw = (string)$installedCore['core_version'];
+  } elseif (is_array($installedCore) && !empty($installedCore['core_build'])) {
+    $footerVersionRaw = (string)$installedCore['core_build'];
+  }
+}
+if ($footerVersionRaw === '1.0.0' && file_exists(dirname(__DIR__, 3) . '/VERSION')) {
+  $footerVersionRaw = trim((string)file_get_contents(dirname(__DIR__, 3) . '/VERSION'));
+}
 $footerVersion = htmlspecialchars($footerVersionRaw, ENT_QUOTES, 'UTF-8');
 $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version} is available');
 ?>
