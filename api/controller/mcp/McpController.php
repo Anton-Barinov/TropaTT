@@ -237,7 +237,7 @@ final class McpController extends BaseController
 
         /** @var SearchService $service */
         $service = $this->container->get('service.search');
-        return $this->publicData($service->global($q, $this->actor(), $this->limit($arguments, 10, 50)));
+        return $this->compactGlobalSearch($this->publicData($service->global($q, $this->actor(), $this->limit($arguments, 10, 50))));
     }
 
     private function crmListTasks(array $arguments): array
@@ -482,6 +482,45 @@ final class McpController extends BaseController
         }
 
         return str_ends_with($normalized, '_id');
+    }
+
+    private function compactGlobalSearch(array $payload): array
+    {
+        $results = is_array($payload['results'] ?? null) ? $payload['results'] : [];
+        foreach ($results as $group => $items) {
+            if (!is_array($items)) {
+                continue;
+            }
+            $results[$group] = array_map(function (mixed $item): mixed {
+                if (!is_array($item)) {
+                    return $item;
+                }
+
+                return $this->pick($item, [
+                    'entity_type',
+                    'public_id',
+                    'task_key',
+                    'title',
+                    'full_name',
+                    'label',
+                    'status',
+                    'status_code',
+                    'priority_code',
+                    'page_type',
+                    'space_title',
+                    'project_public_id',
+                    'project_title',
+                    'counterparty_type',
+                    'email',
+                    'phone',
+                    'due_at',
+                    'updated_at',
+                ]);
+            }, $items);
+        }
+        $payload['results'] = $results;
+
+        return $payload;
     }
 
     private function validateOrigin(): ?string
