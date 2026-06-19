@@ -278,8 +278,8 @@
       title: title,
       goal: document.getElementById('cycleFormGoal').value.trim(),
       description: document.getElementById('cycleFormDescription').value.trim(),
-      start_at: document.getElementById('cycleFormStartAt').value || null,
-      end_at: document.getElementById('cycleFormEndAt').value || null,
+      start_at: document.getElementById('cycleFormStartAt').value || '',
+      end_at: document.getElementById('cycleFormEndAt').value || '',
       project_public_id: document.getElementById('cycleFormProject').value,
       owner_user_public_id: document.getElementById('cycleFormOwner').value || null,
     };
