@@ -240,7 +240,7 @@
           knowledgeList.innerHTML = '<div class=\"text-muted small\"><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
         } else {
           knowledgeList.innerHTML = '<ul class=\"list-unstyled mb-0 small\">' + items.map(function (p) {
-            return '<li class=\"mb-1\"><a href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'})[ch]; }); })(p.title || '') + '</a></li>';
+            return '<li class=\"mb-1\"><a href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\"']/g, function(ch) { var m = {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}; m["'"]='&#039;'; return m[ch] || ch; }); })(p.title || '') + '</a></li>';
           }).join('') + '</ul>';
         }
       } catch (e) {
