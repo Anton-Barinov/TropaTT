@@ -95,6 +95,14 @@ return [
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/departments/{public_id}', 'controller' => Api\Controller\Department\DepartmentController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['department.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/departments/{public_id}', 'controller' => Api\Controller\Department\DepartmentController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['department.manage']],
 
+    // team menu templates
+    ['methods' => ['GET'], 'pattern' => '/api/v1/teams/{public_id}/menu-template', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getTeamTemplate', 'auth' => true, 'required_permissions' => ['team.manage']],
+    ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/teams/{public_id}/menu-template', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'saveTeamTemplate', 'auth' => true, 'required_permissions' => ['team.manage']],
+
+    // admin user menu preferences
+    ['methods' => ['GET'], 'pattern' => '/api/v1/users/{public_id}/menu-preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'adminGetUserPreferences', 'auth' => true, 'required_permissions' => ['user.manage']],
+    ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/users/{public_id}/menu-preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'adminSaveUserPreferences', 'auth' => true, 'required_permissions' => ['user.manage']],
+
     // companies/clients/contacts core
     ['methods' => ['GET'], 'pattern' => '/api/v1/companies', 'controller' => Api\Controller\Company\CompanyController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['company.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/companies', 'controller' => Api\Controller\Company\CompanyController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['company.manage']],

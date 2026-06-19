@@ -32,8 +32,10 @@ final class MenuController extends BaseController
         ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.messages.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];
 
-    private const PREFERENCES_SCOPE_PREFIX = 'user:';
-    private const PREFERENCES_NAME = 'menu_preferences';
+    private const USER_SCOPE_PREFIX = 'user:';
+    private const TEAM_SCOPE_PREFIX = 'team:';
+    private const PREF_NAME = 'menu_preferences';
+    private const TEMPLATE_NAME = 'menu_template';
 
     public function list(): \Api\System\Library\Http\JsonResponse
     {
@@ -87,11 +89,20 @@ final class MenuController extends BaseController
             }
         }
 
-        $preferences = $this->loadPreferences($user);
-        $availableItems = $this->applyPreferences($availableItems, $preferences);
+        $userPublicId = (string)($user['public_id'] ?? '');
+        $userInternalId = (int)($user['id'] ?? 0);
+
+        $allAvailableItems = $availableItems;
+
+        $teamTemplate = $this->loadTeamTemplate($userInternalId);
+        $userPreferences = $this->loadUserPreferences($userPublicId);
+
+        $availableItems = $this->applyTeamTemplate($availableItems, $teamTemplate);
+        $availableItems = $this->applyUserPreferences($availableItems, $userPreferences);
 
         return $this->success('MENU_LIST', $this->t('auth/messages.menu_loaded'), [
             'items' => $availableItems,
+            'all_available_items' => $allAvailableItems,
         ]);
     }
 
@@ -103,14 +114,15 @@ final class MenuController extends BaseController
         }
 
         $user = $authUser['user'] ?? [];
-        if (!is_array($user)) {
-            $user = [];
-        }
+        $userPublicId = (string)($user['public_id'] ?? '');
+        $userInternalId = (int)($user['id'] ?? 0);
 
-        $preferences = $this->loadPreferences($user);
+        $teamTemplate = $this->loadTeamTemplate($userInternalId);
+        $userPreferences = $this->loadUserPreferences($userPublicId);
 
-        return $this->success('MENU_PREFERENCES', $this->t('auth/messages.menu_preferences_loaded', 'Menu preferences loaded'), [
-            'preferences' => $preferences,
+        return $this->success('MENU_PREFERENCES', $this->t('auth/messages.menu_preferences_loaded'), [
+            'team_template' => $teamTemplate,
+            'user_preferences' => $userPreferences,
         ]);
     }
 
@@ -122,14 +134,100 @@ final class MenuController extends BaseController
         }
 
         $user = $authUser['user'] ?? [];
-        if (!is_array($user)) {
-            $user = [];
+        $userPublicId = (string)($user['public_id'] ?? '');
+        if ($userPublicId === '') {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
         $items = $this->request()->input('items');
-
         if (!is_array($items)) {
-            return $this->error('VALIDATION_ERROR', $this->t('auth/messages.items_required', 'Items array is required'), 422);
+            return $this->error('VALIDATION_ERROR', $this->t('auth/messages.items_required'), 422);
+        }
+
+        $validated = $this->validatePreferencesItems($items);
+
+        $scope = self::USER_SCOPE_PREFIX . $userPublicId;
+        /** @var \Api\System\Library\Service\SettingService $settingService */
+        $settingService = $this->container->get('service.setting');
+        $settingService->set($scope, self::PREF_NAME, $validated);
+
+        return $this->success('MENU_PREFERENCES_SAVED', $this->t('auth/messages.menu_preferences_saved'), [
+            'preferences' => $validated,
+        ]);
+    }
+
+    public function adminGetUserPreferences(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $targetPublicId = (string)($params['public_id'] ?? '');
+        if ($targetPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        $preferences = $this->loadUserPreferences($targetPublicId);
+
+        return $this->success('MENU_PREFERENCES', $this->t('auth/messages.menu_preferences_loaded'), [
+            'preferences' => $preferences,
+        ]);
+    }
+
+    public function adminSaveUserPreferences(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        $targetPublicId = (string)($params['public_id'] ?? '');
+        if ($targetPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        $items = $this->request()->input('items');
+        if (!is_array($items)) {
+            return $this->error('VALIDATION_ERROR', $this->t('auth/messages.items_required'), 422);
+        }
+
+        $validated = $this->validatePreferencesItems($items);
+
+        $scope = self::USER_SCOPE_PREFIX . $targetPublicId;
+        /** @var \Api\System\Library\Service\SettingService $settingService */
+        $settingService = $this->container->get('service.setting');
+        $settingService->set($scope, self::PREF_NAME, $validated);
+
+        return $this->success('MENU_PREFERENCES_SAVED', $this->t('auth/messages.menu_preferences_saved'), [
+            'preferences' => $validated,
+        ]);
+    }
+
+    public function getTeamTemplate(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $teamPublicId = (string)($params['public_id'] ?? '');
+        if ($teamPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        $template = $this->loadTeamTemplateByPublicId($teamPublicId);
+
+        return $this->success('TEAM_MENU_TEMPLATE', $this->t('auth/messages.team_menu_template_loaded'), [
+            'template' => $template,
+        ]);
+    }
+
+    public function saveTeamTemplate(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $teamPublicId = (string)($params['public_id'] ?? '');
+        if ($teamPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        $items = $this->request()->input('items');
+        if (!is_array($items)) {
+            return $this->error('VALIDATION_ERROR', $this->t('auth/messages.items_required'), 422);
         }
 
         $validated = [];
@@ -147,34 +245,44 @@ final class MenuController extends BaseController
             ];
         }
 
-        $userId = (string)($user['public_id'] ?? $user['id'] ?? '');
-        if ($userId === '') {
-            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
-        }
-
-        $scope = self::PREFERENCES_SCOPE_PREFIX . $userId;
-
+        $scope = self::TEAM_SCOPE_PREFIX . $teamPublicId;
         /** @var \Api\System\Library\Service\SettingService $settingService */
         $settingService = $this->container->get('service.setting');
-        $settingService->set($scope, self::PREFERENCES_NAME, $validated);
+        $settingService->set($scope, self::TEMPLATE_NAME, $validated);
 
-        return $this->success('MENU_PREFERENCES_SAVED', $this->t('auth/messages.menu_preferences_saved', 'Menu preferences saved'), [
-            'preferences' => $validated,
+        return $this->success('TEAM_MENU_TEMPLATE_SAVED', $this->t('auth/messages.team_menu_template_saved'), [
+            'template' => $validated,
         ]);
     }
 
-    private function loadPreferences(array $user): array
+    private function loadTeamTemplate(int $userId): array
     {
-        $userId = (string)($user['public_id'] ?? $user['id'] ?? '');
-        if ($userId === '' || !$this->container->has('service.setting')) {
+        if ($userId <= 0 || !$this->container->has('service.setting')) {
+            return [];
+        }
+
+        try {
+            $teamPublicId = $this->findUserTeamPublicId($userId);
+            if ($teamPublicId === null) {
+                return [];
+            }
+            return $this->loadTeamTemplateByPublicId($teamPublicId);
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function loadTeamTemplateByPublicId(string $teamPublicId): array
+    {
+        if ($teamPublicId === '' || !$this->container->has('service.setting')) {
             return [];
         }
 
         try {
             /** @var \Api\System\Library\Service\SettingService $settingService */
             $settingService = $this->container->get('service.setting');
-            $scope = self::PREFERENCES_SCOPE_PREFIX . $userId;
-            $setting = $settingService->get($scope, self::PREFERENCES_NAME);
+            $scope = self::TEAM_SCOPE_PREFIX . $teamPublicId;
+            $setting = $settingService->get($scope, self::TEMPLATE_NAME);
             if ($setting === null) {
                 return [];
             }
@@ -185,37 +293,107 @@ final class MenuController extends BaseController
         }
     }
 
-    private function applyPreferences(array $items, array $preferences): array
+    private function findUserTeamPublicId(int $userId): ?string
     {
-        if (empty($preferences)) {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        try {
+            /** @var \PDO $pdo */
+            $pdo = $this->container->get('db.pdo');
+
+            $stmt = $pdo->prepare(
+                'SELECT public_id, manager_user_id, member_user_ids FROM teams WHERE manager_user_id = :uid LIMIT 1'
+            );
+            $stmt->execute([':uid' => $userId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row) {
+                return (string)($row['public_id'] ?? '');
+            }
+
+            $stmt = $pdo->prepare(
+                'SELECT public_id, member_user_ids FROM teams WHERE JSON_CONTAINS(member_user_ids, CAST(:uid AS JSON)) LIMIT 1'
+            );
+            $stmt->execute([':uid' => (string)$userId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row) {
+                return (string)($row['public_id'] ?? '');
+            }
+
+            return null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function loadUserPreferences(string $userPublicId): array
+    {
+        if ($userPublicId === '' || !$this->container->has('service.setting')) {
+            return [];
+        }
+
+        try {
+            /** @var \Api\System\Library\Service\SettingService $settingService */
+            $settingService = $this->container->get('service.setting');
+            $scope = self::USER_SCOPE_PREFIX . $userPublicId;
+            $setting = $settingService->get($scope, self::PREF_NAME);
+            if ($setting === null) {
+                return [];
+            }
+            $value = $setting['value'] ?? [];
+            return is_array($value) ? $value : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function applyTeamTemplate(array $items, array $template): array
+    {
+        if (empty($template)) {
             return $items;
         }
 
-        $prefsMap = [];
-        foreach ($preferences as $pref) {
-            $key = $pref['key'] ?? '';
+        $templateItems = $template['items'] ?? $template;
+        if (!is_array($templateItems)) {
+            return $items;
+        }
+
+        $visMap = [];
+        foreach ($templateItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
             if ($key !== '') {
-                $prefsMap[$key] = (bool)($pref['visible'] ?? true);
+                $visMap[$key] = (bool)($entry['visible'] ?? true);
             }
         }
 
-        $result = [];
+        if (empty($visMap)) {
+            return $items;
+        }
+
+        $filtered = [];
         foreach ($items as $item) {
             $key = $item['key'] ?? '';
-            if (isset($prefsMap[$key]) && !$prefsMap[$key]) {
+            if (isset($visMap[$key]) && !$visMap[$key]) {
                 continue;
             }
-            $result[] = $item;
+            $filtered[] = $item;
         }
 
         $itemMap = [];
-        foreach ($result as $item) {
+        foreach ($filtered as $item) {
             $itemMap[$item['key'] ?? ''] = $item;
         }
 
         $reordered = [];
-        foreach ($preferences as $pref) {
-            $key = $pref['key'] ?? '';
+        foreach ($templateItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
             if (isset($itemMap[$key])) {
                 $reordered[] = $itemMap[$key];
                 unset($itemMap[$key]);
@@ -227,6 +405,125 @@ final class MenuController extends BaseController
         }
 
         return $reordered;
+    }
+
+    private function applyUserPreferences(array $items, array $preferences): array
+    {
+        if (empty($preferences)) {
+            return $items;
+        }
+
+        $prefItems = $preferences['items'] ?? $preferences;
+        if (!is_array($prefItems)) {
+            return $items;
+        }
+
+        $visMap = [];
+        $customItems = [];
+        foreach ($prefItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
+            if ($key !== '') {
+                $visMap[$key] = (bool)($entry['visible'] ?? true);
+            }
+            if (str_starts_with($key, 'custom_')) {
+                $customItems[] = $entry;
+            }
+        }
+
+        $filtered = [];
+        foreach ($items as $item) {
+            $key = $item['key'] ?? '';
+            if (isset($visMap[$key]) && !$visMap[$key]) {
+                continue;
+            }
+            $filtered[] = $item;
+        }
+
+        $itemMap = [];
+        foreach ($filtered as $item) {
+            $itemMap[$item['key'] ?? ''] = $item;
+        }
+
+        $reordered = [];
+        foreach ($prefItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
+            if (isset($itemMap[$key])) {
+                $reordered[] = $itemMap[$key];
+                unset($itemMap[$key]);
+            } elseif (str_starts_with($key, 'custom_')) {
+                $reordered[] = [
+                    'key' => $key,
+                    'label' => $entry['title'] ?? $entry['label'] ?? $key,
+                    'href' => $entry['href'] ?? '#',
+                    'icon' => $entry['icon'] ?? null,
+                    'is_custom' => true,
+                ];
+            }
+        }
+
+        foreach ($itemMap as $item) {
+            $reordered[] = $item;
+        }
+
+        foreach ($customItems as $entry) {
+            $key = $entry['key'] ?? '';
+            $alreadyAdded = false;
+            foreach ($reordered as $r) {
+                if (($r['key'] ?? '') === $key) {
+                    $alreadyAdded = true;
+                    break;
+                }
+            }
+            if (!$alreadyAdded) {
+                $reordered[] = [
+                    'key' => $key,
+                    'label' => $entry['title'] ?? $entry['label'] ?? $key,
+                    'href' => $entry['href'] ?? '#',
+                    'icon' => $entry['icon'] ?? null,
+                    'is_custom' => true,
+                ];
+            }
+        }
+
+        return $reordered;
+    }
+
+    private function validatePreferencesItems(array $items): array
+    {
+        $validated = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = $item['key'] ?? null;
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+
+            $entry = [
+                'key' => $key,
+                'visible' => (bool)($item['visible'] ?? true),
+            ];
+
+            if (str_starts_with($key, 'custom_')) {
+                $entry['title'] = trim((string)($item['title'] ?? $item['label'] ?? ''));
+                $entry['href'] = trim((string)($item['href'] ?? ''));
+                $entry['icon'] = trim((string)($item['icon'] ?? ''));
+                if ($entry['title'] === '' || $entry['href'] === '') {
+                    continue;
+                }
+            }
+
+            $validated[] = $entry;
+        }
+
+        return $validated;
     }
 
     private function canAccess(AuthzService $authz, array $user, array $requiredPermissions): bool

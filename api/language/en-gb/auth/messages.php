@@ -11,5 +11,8 @@ return [
     'menu_loaded' => 'Menu loaded',
     'menu_preferences_loaded' => 'Menu preferences loaded',
     'menu_preferences_saved' => 'Menu preferences saved',
+    'items_required' => 'Items array is required',
+    'team_menu_template_loaded' => 'Team menu template loaded',
+    'team_menu_template_saved' => 'Team menu template saved',
     'array_expected' => 'Array expected',
 ];
