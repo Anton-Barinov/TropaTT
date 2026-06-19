@@ -13,19 +13,6 @@
     </div>
   </div>
 
-  <!-- Info Section -->
-  <section class="crm-info-panel mb-3">
-    <div class="row g-2 align-items-center">
-      <div class="col-auto">
-        <i class="fa-solid fa-arrows-rotate fa-xl text-muted"></i>
-      </div>
-      <div class="col">
-        <strong class="small"><?= htmlspecialchars($t('cycles.info_title', 'Что такое циклы?'), ENT_QUOTES, 'UTF-8') ?></strong>
-        <p class="mb-0 text-muted small"><?= htmlspecialchars($t('cycles.info_text', 'Циклы (спринты) — это временные отрезки для группировки задач проекта. Они помогают команде фокусироваться на приоритетах: запланируйте задачи, работайте над ними в активном цикле, отслеживайте прогресс и завершайте итерацию, перенося незаконченные задачи в следующий цикл.'), ENT_QUOTES, 'UTF-8') ?></p>
-      </div>
-    </div>
-  </section>
-
   <section class="crm-cycle-command-center d-none mb-3" id="cycleCommandCenter" aria-live="polite"></section>
 
   <!-- Filters -->
