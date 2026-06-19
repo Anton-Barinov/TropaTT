@@ -262,68 +262,123 @@ final class MenuController extends BaseController
         }
 
         try {
-            $teamPublicId = $this->findUserTeamPublicId($userId);
-            if ($teamPublicId === null) {
+            $teamPublicIds = $this->findUserTeamPublicIds($userId);
+            if (empty($teamPublicIds)) {
                 return [];
             }
-            return $this->loadTeamTemplateByPublicId($teamPublicId);
+
+            if (count($teamPublicIds) === 1) {
+                return $this->loadTeamTemplateByPublicId($teamPublicIds[0]);
+            }
+
+            return $this->mergeTeamTemplates($teamPublicIds);
         } catch (\Throwable) {
             return [];
         }
     }
 
-    private function loadTeamTemplateByPublicId(string $teamPublicId): array
+    private function mergeTeamTemplates(array $teamPublicIds): array
     {
-        if ($teamPublicId === '' || !$this->container->has('service.setting')) {
+        /** @var \Api\System\Library\Service\SettingService $settingService */
+        $settingService = $this->container->get('service.setting');
+
+        $mergedVisMap = [];
+        $orderFromFirst = null;
+
+        foreach ($teamPublicIds as $teamPublicId) {
+            $template = $this->loadTeamTemplateByPublicId($teamPublicId);
+            if (empty($template)) {
+                continue;
+            }
+
+            $templateItems = $template['items'] ?? $template;
+            if (!is_array($templateItems)) {
+                continue;
+            }
+
+            if ($orderFromFirst === null) {
+                $orderFromFirst = [];
+                foreach ($templateItems as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $key = $entry['key'] ?? '';
+                    if ($key !== '') {
+                        $orderFromFirst[] = $key;
+                        $mergedVisMap[$key] = (bool)($entry['visible'] ?? true);
+                    }
+                }
+            } else {
+                foreach ($templateItems as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $key = $entry['key'] ?? '';
+                    if ($key !== '') {
+                        $visible = (bool)($entry['visible'] ?? true);
+                        if (!isset($mergedVisMap[$key])) {
+                            $mergedVisMap[$key] = $visible;
+                            $orderFromFirst[] = $key;
+                        } else {
+                            $mergedVisMap[$key] = $mergedVisMap[$key] || $visible;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($mergedVisMap)) {
             return [];
         }
 
-        try {
-            /** @var \Api\System\Library\Service\SettingService $settingService */
-            $settingService = $this->container->get('service.setting');
-            $scope = self::TEAM_SCOPE_PREFIX . $teamPublicId;
-            $setting = $settingService->get($scope, self::TEMPLATE_NAME);
-            if ($setting === null) {
-                return [];
-            }
-            $value = $setting['value'] ?? [];
-            return is_array($value) ? $value : [];
-        } catch (\Throwable) {
-            return [];
+        $result = [];
+        foreach ($orderFromFirst as $key) {
+            $result[] = [
+                'key' => $key,
+                'visible' => $mergedVisMap[$key],
+            ];
         }
+
+        return $result;
     }
 
-    private function findUserTeamPublicId(int $userId): ?string
+    private function findUserTeamPublicIds(int $userId): array
     {
         if ($userId <= 0) {
-            return null;
+            return [];
         }
 
         try {
             /** @var \PDO $pdo */
             $pdo = $this->container->get('db.pdo');
 
+            $result = [];
+
             $stmt = $pdo->prepare(
-                'SELECT public_id, manager_user_id, member_user_ids FROM teams WHERE manager_user_id = :uid LIMIT 1'
+                'SELECT public_id FROM teams WHERE manager_user_id = :uid'
             );
             $stmt->execute([':uid' => $userId]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row) {
-                return (string)($row['public_id'] ?? '');
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $pid = (string)($row['public_id'] ?? '');
+                if ($pid !== '') {
+                    $result[] = $pid;
+                }
             }
 
             $stmt = $pdo->prepare(
-                'SELECT public_id, member_user_ids FROM teams WHERE JSON_CONTAINS(member_user_ids, CAST(:uid AS JSON)) LIMIT 1'
+                'SELECT public_id FROM teams WHERE JSON_CONTAINS(member_user_ids, CAST(:uid AS JSON))'
             );
             $stmt->execute([':uid' => (string)$userId]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row) {
-                return (string)($row['public_id'] ?? '');
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $pid = (string)($row['public_id'] ?? '');
+                if ($pid !== '' && !in_array($pid, $result, true)) {
+                    $result[] = $pid;
+                }
             }
 
-            return null;
+            return $result;
         } catch (\Throwable) {
-            return null;
+            return [];
         }
     }
 
