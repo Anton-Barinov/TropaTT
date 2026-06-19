@@ -38,6 +38,12 @@ $skipAiClient = in_array($currentRoute, [
 $needsAiClient = !$skipAiClient;
 $needsSortable = in_array($currentRoute, [
   'kanban',
+  'dashboard',
+], true) || !in_array($currentRoute, [
+  'login',
+  'password-reset-request',
+  'password-reset-confirm',
+  'invitation-accept',
 ], true);
 $needsRichText = in_array($currentRoute, [
   'ideas',

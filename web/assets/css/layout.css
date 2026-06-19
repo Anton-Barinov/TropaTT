@@ -481,6 +481,173 @@ a:focus-visible {
   }
 }
 
+/* Menu customize button */
+.crm-nav-customize-btn {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--crm-border);
+  border-radius: 0 !important;
+  padding-top: 0.75rem !important;
+  opacity: 0.6;
+  transition: opacity var(--motion-fast) ease, background-color var(--motion-fast) ease;
+}
+.crm-nav-customize-btn:hover {
+  opacity: 1;
+}
+
+/* Menu customize modal */
+.crm-menu-customize-list {
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.crm-menu-customize-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  cursor: default;
+  margin-bottom: 2px;
+}
+
+.crm-menu-customize-item:hover {
+  background: var(--color-neutral-50, #f9fafb);
+  border-color: var(--crm-border);
+}
+
+.crm-menu-customize-drag {
+  cursor: grab;
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: color var(--motion-fast) ease;
+  user-select: none;
+}
+
+.crm-menu-customize-drag:active {
+  cursor: grabbing;
+  color: var(--crm-accent);
+}
+
+.crm-menu-customize-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--crm-text-muted);
+  flex-shrink: 0;
+  font-size: 13px;
+  transition: color var(--motion-fast) ease;
+}
+
+.crm-menu-customize-item:hover .crm-menu-customize-icon {
+  color: var(--crm-accent);
+}
+
+.crm-menu-customize-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--crm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Toggle switch */
+.crm-menu-customize-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.crm-menu-customize-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.crm-toggle-slider {
+  width: 36px;
+  height: 20px;
+  background: var(--crm-border);
+  border-radius: 999px;
+  position: relative;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.crm-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.crm-menu-customize-toggle input:checked + .crm-toggle-slider {
+  background: var(--crm-accent);
+}
+
+.crm-menu-customize-toggle input:checked + .crm-toggle-slider::before {
+  transform: translateX(16px);
+  box-shadow: 0 1px 3px rgba(15, 143, 114, 0.3);
+}
+
+.crm-menu-customize-toggle input:focus-visible + .crm-toggle-slider {
+  outline: 2px solid var(--crm-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Drag states */
+.crm-menu-customize-ghost {
+  opacity: 0.4;
+  background: var(--color-primary-50) !important;
+  border-color: var(--crm-accent) !important;
+}
+
+.crm-menu-customize-chosen {
+  background: var(--color-primary-50) !important;
+  border-color: var(--color-primary-200, #a7f3d0) !important;
+  box-shadow: 0 4px 12px rgba(15, 143, 114, 0.12);
+}
+
+.crm-menu-customize-dragging {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-md);
+}
+
+/* Animation for list items */
+.crm-menu-customize-item {
+  animation: menuFadeIn 0.2s ease both;
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .crm-login-wrap {
   min-height: 100vh;
   display: grid;

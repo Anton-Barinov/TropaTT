@@ -33,6 +33,8 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/auth/logout', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'logout', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/auth/me', 'controller' => Api\Controller\Auth\AuthController::class, 'action' => 'me', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'list', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getPreferences', 'auth' => true],
+    ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'savePreferences', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/frontend-event', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'frontendEvent', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/csp-report', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'cspReport', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/login-debug', 'controller' => Api\Controller\Telemetry\LoginDebugLogger::class, 'action' => 'log', 'auth' => true],

@@ -979,5 +979,335 @@ window.CRM.navigation = (function () {
     });
   }
 
+  var CUSTOMIZE_MODAL_ID = 'crmMenuCustomizeModal';
+
+  function navIconByKey(key) {
+    var icons = {
+      dashboard: '<i class="fa-solid fa-house"></i>',
+      ideas: '<i class="fa-regular fa-lightbulb"></i>',
+      tasks: '<i class="fa-solid fa-list-check"></i>',
+      day: '<i class="fa-solid fa-calendar-day"></i>',
+      week: '<i class="fa-solid fa-calendar-week"></i>',
+      kanban: '<i class="fa-solid fa-table-columns"></i>',
+      gantt: '<i class="fa-solid fa-chart-gantt"></i>',
+      projects: '<i class="fa-solid fa-folder-tree"></i>',
+      calendar: '<i class="fa-solid fa-calendar-days"></i>',
+      counterparties: '<i class="fa-solid fa-address-book"></i>',
+      teams: '<i class="fa-solid fa-people-group"></i>',
+      intake: '<i class="fa-solid fa-inbox"></i>',
+      cycles: '<i class="fa-solid fa-arrows-spin"></i>',
+      knowledge: '<i class="fa-solid fa-book-open-reader"></i>',
+      analytics: '<i class="fa-solid fa-chart-column"></i>',
+      notifications: '<i class="fa-regular fa-bell"></i>',
+      admin: '<i class="fa-solid fa-shield-halved"></i>',
+      'admin-estimates': '<i class="fa-solid fa-ruler-combined"></i>',
+      'admin-modules': '<i class="fa-solid fa-cubes"></i>',
+      chat: '<i class="fa-regular fa-comments"></i>',
+      docs: '<i class="fa-solid fa-code"></i>',
+      'project-modules': '<i class="fa-solid fa-cube"></i>',
+      'admin-custom-fields': '<i class="fa-solid fa-pen-to-square"></i>',
+      'admin-tags': '<i class="fa-solid fa-tags"></i>',
+      'admin-webhooks': '<i class="fa-solid fa-webhook"></i>',
+      'admin-templates': '<i class="fa-solid fa-copy"></i>',
+      'admin-calendar': '<i class="fa-solid fa-calendar-check"></i>',
+      'admin-priorities': '<i class="fa-solid fa-arrow-up-wide-short"></i>',
+      mentions: '<i class="fa-solid fa-at"></i>',
+      'recycle-bin': '<i class="fa-solid fa-trash-can"></i>',
+      'admin-settings': '<i class="fa-solid fa-sliders"></i>',
+      'admin-jobs': '<i class="fa-solid fa-gears"></i>',
+      'admin-ai': '<i class="fa-solid fa-robot"></i>',
+      'admin-workflow': '<i class="fa-solid fa-diagram-project"></i>',
+      'admin-sla': '<i class="fa-solid fa-clock"></i>',
+      approvals: '<i class="fa-solid fa-clipboard-check"></i>',
+      recurring: '<i class="fa-solid fa-arrows-rotate"></i>',
+      organizations: '<i class="fa-solid fa-building-columns"></i>',
+      profile: '<i class="fa-solid fa-user"></i>'
+    };
+    return icons[key] || '<i class="fa-solid fa-circle-dot"></i>';
+  }
+
+  function ensureCustomizeButton() {
+    var nav = document.querySelector('.crm-nav');
+    if (!nav || nav.querySelector('[data-menu-customize-btn]')) return;
+    if (!document.body || document.body.dataset.protected !== '1') return;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-link crm-nav-customize-btn';
+    btn.setAttribute('data-menu-customize-btn', '1');
+    btn.innerHTML = '<span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>'
+      + '<span class="crm-nav-label">' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</span>';
+    btn.title = t('nav.customize_menu', 'Customize menu');
+    nav.appendChild(btn);
+  }
+
+  function openCustomizeModal() {
+    var existing = document.getElementById(CUSTOMIZE_MODAL_ID);
+    if (existing) {
+      var bsModal = bootstrap.Modal.getInstance(existing) || new bootstrap.Modal(existing);
+      bsModal.show();
+      return;
+    }
+
+    var allItems = getDefaultNavItems();
+    var currentOrder = navItems.map(function (item) { return item.key; });
+    var visibleSet = {};
+    navItems.forEach(function (item) { visibleSet[item.key] = true; });
+
+    var modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = CUSTOMIZE_MODAL_ID;
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-hidden', 'true');
+
+    var sortedItems = allItems.slice().sort(function (a, b) {
+      var ai = currentOrder.indexOf(a.key);
+      var bi = currentOrder.indexOf(b.key);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+
+    var listHtml = sortedItems.map(function (item) {
+      var isVisible = visibleSet[item.key] === true;
+      var iconHtml = navIconByKey(item.key);
+      var label = t(item.i18n, item.label || item.key);
+      return '<div class="crm-menu-customize-item" data-key="' + escapeHtml(item.key) + '">'
+        + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
+        + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
+        + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
+        + '<label class="crm-menu-customize-toggle">'
+        + '<input type="checkbox" data-toggle-visibility data-key="' + escapeHtml(item.key) + '"' + (isVisible ? ' checked' : '') + '>'
+        + '<span class="crm-toggle-slider"></span>'
+        + '</label>'
+        + '</div>';
+    }).join('');
+
+    modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+      + '<div class="modal-header">'
+      + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</h5>'
+      + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+      + '</div>'
+      + '<div class="modal-body">'
+      + '<p class="text-muted small mb-3">' + escapeHtml(t('nav.customize_menu_hint', 'Drag to reorder items, toggle switches to show or hide menu items.')) + '</p>'
+      + '<div class="crm-menu-customize-list" data-menu-customize-list>' + listHtml + '</div>'
+      + '</div>'
+      + '<div class="modal-footer">'
+      + '<button type="button" class="btn crm-btn-secondary" data-menu-customize-reset>' + escapeHtml(t('nav.reset_defaults', 'Reset to default')) + '</button>'
+      + '<button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + escapeHtml(t('common.cancel_btn', 'Cancel')) + '</button>'
+      + '<button type="button" class="btn crm-btn-primary" data-menu-customize-save>' + escapeHtml(t('common.save', 'Save')) + '</button>'
+      + '</div>'
+      + '</div></div>';
+
+    document.body.appendChild(modal);
+
+    var bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    var listEl = modal.querySelector('[data-menu-customize-list]');
+    if (listEl && typeof Sortable !== 'undefined') {
+      Sortable.create(listEl, {
+        handle: '.crm-menu-customize-drag',
+        animation: 180,
+        ghostClass: 'crm-menu-customize-ghost',
+        chosenClass: 'crm-menu-customize-chosen',
+        dragClass: 'crm-menu-customize-dragging',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+      });
+    }
+
+    modal.querySelector('[data-menu-customize-save]').addEventListener('click', function () {
+      saveCustomizeModal(modal, bsModal);
+    });
+
+    modal.querySelector('[data-menu-customize-reset]').addEventListener('click', function () {
+      resetCustomizeModal(modal);
+    });
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    });
+  }
+
+  function readCustomizeItems(modal) {
+    var items = [];
+    var rows = modal.querySelectorAll('.crm-menu-customize-item');
+    rows.forEach(function (row) {
+      var key = row.getAttribute('data-key') || '';
+      var checkbox = row.querySelector('[data-toggle-visibility]');
+      var visible = checkbox ? checkbox.checked : true;
+      items.push({ key: key, visible: visible });
+    });
+    return items;
+  }
+
+  function resetCustomizeModal(modal) {
+    var defaultItems = getDefaultNavItems();
+    var defaultPrefs = defaultItems.map(function (item) {
+      return { key: item.key, visible: true };
+    });
+    var listEl = modal.querySelector('[data-menu-customize-list]');
+    if (!listEl) return;
+    var listHtml = defaultPrefs.map(function (pref) {
+      var def = defaultItems.find(function (di) { return di.key === pref.key; });
+      if (!def) return '';
+      var iconHtml = navIconByKey(pref.key);
+      var label = t(def.i18n, def.label || def.key);
+      return '<div class="crm-menu-customize-item" data-key="' + escapeHtml(pref.key) + '">'
+        + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
+        + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
+        + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
+        + '<label class="crm-menu-customize-toggle">'
+        + '<input type="checkbox" data-toggle-visibility data-key="' + escapeHtml(pref.key) + '"' + (pref.visible ? ' checked' : '') + '>'
+        + '<span class="crm-toggle-slider"></span>'
+        + '</label>'
+        + '</div>';
+    }).join('');
+    listEl.innerHTML = listHtml;
+    if (typeof Sortable !== 'undefined') {
+      Sortable.create(listEl, {
+        handle: '.crm-menu-customize-drag',
+        animation: 180,
+        ghostClass: 'crm-menu-customize-ghost',
+        chosenClass: 'crm-menu-customize-chosen',
+        dragClass: 'crm-menu-customize-dragging',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+      });
+    }
+  }
+
+  async function saveCustomizeModal(modal, bsModal) {
+    var saveBtn = modal.querySelector('[data-menu-customize-save]');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + escapeHtml(t('common.saving', 'Saving...'));
+    }
+    var items = readCustomizeItems(modal);
+    try {
+      await window.CRM.api.request('api/v1/auth/menu/preferences', {
+        method: 'PUT',
+        body: { items: items }
+      });
+      clearMenuCache();
+      await loadNavItems();
+      renderSidebarSync();
+      markActive();
+      ensureCustomizeButton();
+      if (bsModal) bsModal.hide();
+    } catch (e) {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = escapeHtml(t('common.save', 'Save'));
+      }
+    }
+  }
+
+  function bindCustomizeButton() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-menu-customize-btn]');
+      if (btn) {
+        e.preventDefault();
+        openCustomizeModal();
+      }
+    });
+  }
+
+  async function init() {
+    if (_navInitDone) return;
+    _navInitDone = true;
+    await loadNavItems();
+    renderSidebarSync();
+    ensureSidebarCollapseControl();
+    restoreSidebarState();
+    ensureTopbar();
+    markActive();
+    bindSidebarToggle();
+    bindSearchToggle();
+    bindGlobalSearch();
+    bindLogoutButtons();
+    ensureCustomizeButton();
+    bindCustomizeButton();
+    if (window.CRM && window.CRM.tabLeader) {
+      window.CRM.tabLeader.onBecomeLeader(startNavPolling);
+      window.CRM.tabLeader.onLoseLeader(stopNavPolling);
+      window.CRM.tabLeader.onMessage('nav-chat-unread', function (payload) {
+        var count = Number(payload && payload.count || 0) || 0;
+        document.querySelectorAll('[data-chat-unread-badge]').forEach(function (badge) {
+          badge.classList.toggle('d-none', count <= 0);
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_chats', 'Unread chats: ') + count) : '');
+        });
+      });
+      window.CRM.tabLeader.onMessage('nav-notif-unread', function (payload) {
+        var count = Number(payload && payload.count || 0) || 0;
+        document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
+          badge.classList.toggle('d-none', count <= 0);
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_notifications', 'Unread notifications: ') + count) : '');
+        });
+      });
+      if (window.CRM.tabLeader.isLeader()) {
+        updateChatUnreadBadges();
+        updateNotificationBadges();
+        startNavPolling();
+      }
+    } else {
+      updateChatUnreadBadges();
+      updateNotificationBadges();
+      startNavPolling();
+    }
+  }
+
+  async function updateChatUnreadBadges() {
+    if (!window.CRM || !window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+    if (!document.body || document.body.dataset.protected !== '1') return;
+    try {
+      var envelope = await window.CRM.api.request('api/v1/chats/unread-count', { method: 'GET' });
+      var count = Number(envelope && envelope.data && envelope.data.count || 0) || 0;
+      document.querySelectorAll('[data-chat-unread-badge]').forEach(function (badge) {
+        badge.classList.toggle('d-none', count <= 0);
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_chats', 'Unread chats: ') + count) : '');
+      });
+      if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
+        window.CRM.tabLeader.broadcast('nav-chat-unread', { count: count });
+      }
+    } catch (e) {}
+  }
+
+  async function updateNotificationBadges() {
+    if (!window.CRM || !window.CRM.api || typeof window.CRM.api.request !== 'function') return;
+    if (!document.body || document.body.dataset.protected !== '1') return;
+    try {
+      var envelope = await window.CRM.api.request('api/v1/notifications/counters', { method: 'GET' });
+      var counters = envelope && envelope.data && envelope.data.counters;
+      var count = Number(counters && counters.unread || 0) || 0;
+      document.querySelectorAll('[data-nav-notification-badge]').forEach(function (badge) {
+        badge.classList.toggle('d-none', count <= 0);
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.setAttribute('aria-label', count > 0 ? (t('nav.unread_notifications', 'Unread notifications: ') + count) : '');
+      });
+      if (window.CRM && window.CRM.tabLeader && window.CRM.tabLeader.isLeader()) {
+        window.CRM.tabLeader.broadcast('nav-notif-unread', { count: count });
+      }
+    } catch (e) {}
+  }
+
+  function bindLogoutButtons() {
+    if (!window.CRM || !window.CRM.br1 || typeof window.CRM.br1.bindLogoutButtons !== 'function') return;
+    window.CRM.br1.bindLogoutButtons();
+  }
+
+  function refreshMenu() {
+    clearMenuCache();
+    loadNavItems().then(function () {
+      renderSidebarSync();
+      markActive();
+    });
+  }
+
   return { init: init, refreshMenu: refreshMenu, clearMenuCache: clearMenuCache };
 })();
