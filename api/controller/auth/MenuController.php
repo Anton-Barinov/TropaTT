@@ -92,7 +92,8 @@ final class MenuController extends BaseController
 
         $userPublicId = (string)($user['public_id'] ?? '');
         $userInternalId = (int)($user['id'] ?? 0);
-        $rolePublicIds = $user['role_public_ids'] ?? [];
+        $roleCodes = $user['roles'] ?? [];
+        $rolePublicIds = $this->resolveRolePublicIds($roleCodes);
 
         $allAvailableItems = $availableItems;
 
@@ -797,5 +798,30 @@ final class MenuController extends BaseController
         }
 
         return $authz->hasPermissions($user, $requiredPermissions);
+    }
+
+    private function resolveRolePublicIds(array $roleCodes): array
+    {
+        if (empty($roleCodes)) {
+            return [];
+        }
+
+        try {
+            /** @var \PDO $pdo */
+            $pdo = $this->container->get('db.pdo');
+            $placeholders = implode(',', array_fill(0, count($roleCodes), '?'));
+            $stmt = $pdo->prepare("SELECT public_id FROM roles WHERE code IN ($placeholders)");
+            $stmt->execute($roleCodes);
+            $result = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $pid = (string)($row['public_id'] ?? '');
+                if ($pid !== '') {
+                    $result[] = $pid;
+                }
+            }
+            return $result;
+        } catch (\Throwable) {
+            return [];
+        }
     }
 }
