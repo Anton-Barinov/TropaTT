@@ -53,6 +53,7 @@ return array (
     'untitled' => 'Untitled',
     'search_role_restricted' => 'Search is not available for your role',
     'ai_search' => 'AI Search',
+    'score' => 'score',
     'search_loading' => 'Searching...',
     'search_unavailable' => 'Search is unavailable. Try again later.',
     'unread_chats' => 'Unread chats: ',

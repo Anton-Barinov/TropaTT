@@ -271,7 +271,7 @@ window.CRM.navigation = (function () {
     container.innerHTML = results.slice(0, 12).map(function (item, index) {
       var score = Number(item.meta && item.meta.score || 0);
       var activeClass = index === activeIndex ? ' active' : '';
-      var subtitle = resultTypeLabel(item.entity_type) + (score > 0 ? (' · score ' + score.toFixed(2)) : '');
+      var subtitle = resultTypeLabel(item.entity_type) + (score > 0 ? (' · ' + t('nav.score', 'score') + ' ' + score.toFixed(2)) : '');
       return '<a class="dropdown-item crm-search-result' + activeClass + '" href="' + resultUrl(item) + '" data-search-result-index="' + index + '">'
         + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || t('nav.untitled', 'Untitled')) + '</strong><span class="text-muted small">AI</span></div>'
         + '<div class="small text-muted">' + escapeHtml(subtitle) + '</div>'
