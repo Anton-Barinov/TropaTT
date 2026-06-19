@@ -87,6 +87,22 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_cycle_tasks` | `task.manage` | List tasks assigned to a visible work cycle/sprint. |
 | `crm_add_tasks_to_cycle` | `task.manage` | Add existing tasks to a visible planned or active work cycle/sprint. |
 | `crm_list_users` | `user.view` | List users for assignment and collaboration lookup. |
+| `crm_list_counterparties` | `counterparty.manage` | List visible counterparties. |
+| `crm_get_counterparty` | `counterparty.manage` | Read one visible counterparty. |
+| `crm_create_counterparty` | `counterparty.manage` | Create a counterparty. |
+| `crm_update_counterparty` | `counterparty.manage` | Update safe counterparty fields. |
+| `crm_list_companies` | `company.manage` | List visible organization companies. |
+| `crm_get_company` | `company.manage` | Read one visible company. |
+| `crm_create_company` | `company.manage` | Create an organization company. |
+| `crm_update_company` | `company.manage` | Update safe company fields. |
+| `crm_list_clients` | `client.manage` | List visible clients. |
+| `crm_get_client` | `client.manage` | Read one visible client. |
+| `crm_create_client` | `client.manage` | Create a client. |
+| `crm_update_client` | `client.manage` | Update safe client fields. |
+| `crm_list_contacts` | `contact.manage` | List visible contacts. |
+| `crm_get_contact` | `contact.manage` | Read one visible contact. |
+| `crm_create_contact` | `contact.manage` | Create a contact linked to a counterparty, company or client. |
+| `crm_update_contact` | `contact.manage` | Update safe contact fields. |
 | `crm_list_projects` | `project.manage` | List visible projects. |
 | `crm_get_project` | `project.manage` | Read one project by `public_id`. |
 | `crm_list_knowledge_pages` | `knowledge.view` | List visible knowledge pages. |
