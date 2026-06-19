@@ -1788,6 +1788,7 @@ return array (
         'user_menu_saved' => 'Menu settings saved',
         'user_menu_load_fail' => 'Failed to load menu settings',
         'role_menu_template' => 'Role menu template',
+        'role_menu_title' => 'Menu template',
         'role_menu_template_hint' => 'Configure the default menu for all users with this role. This is the highest priority — items hidden here cannot be shown by team or user settings.',
         'role_menu_template_saved' => 'Role menu template saved',
         'role_menu_template_load_fail' => 'Failed to load role menu template',
