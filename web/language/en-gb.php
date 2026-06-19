@@ -642,6 +642,10 @@ return array (
       'review' => 'Review',
       'qa_testing' => 'QA testing',
       'ready_release' => 'Ready for release',
+      'planning' => 'Planning',
+      'active' => 'Active',
+      'on_hold' => 'On hold',
+      'archived' => 'Archived',
     ),
     'notify' => 
     array (
@@ -2961,6 +2965,7 @@ return array (
     'filter_manager_label' => 'Manager',
     'filter_priority_label' => 'Priority',
     'status_active' => 'Active',
+    'status_planning' => 'Planning',
     'status_in_progress' => 'In progress',
     'status_blocked' => 'Blocked',
     'status_done' => 'Completed',

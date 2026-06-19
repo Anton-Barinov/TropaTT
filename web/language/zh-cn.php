@@ -551,6 +551,10 @@ return array (
       'review' => '评审',
       'qa_testing' => 'QA 测试',
       'ready_release' => '待发布',
+      'planning' => '规划中',
+      'active' => '活跃',
+      'on_hold' => '暂停',
+      'archived' => '已归档',
     ),
     'notify' => 
     array (
@@ -2853,6 +2857,7 @@ return array (
     'filter_team_label' => '团队',
     'filter_manager_label' => '负责人',
     'filter_priority_label' => '优先级',
+    'status_planning' => '规划中',
     'status_active' => '活跃',
     'status_in_progress' => '进行中',
     'status_blocked' => '已阻塞',

@@ -647,6 +647,10 @@ return array (
       'review' => 'Ревью',
       'qa_testing' => 'QA тестирование',
       'ready_release' => 'Готова к релизу',
+      'planning' => 'Планирование',
+      'active' => 'Активный',
+      'on_hold' => 'На паузе',
+      'archived' => 'Архив',
     ),
     'notify' => 
     array (
@@ -2985,6 +2989,7 @@ return array (
     'filter_manager_label' => 'Менеджер',
     'filter_priority_label' => 'Приоритет',
     'status_active' => 'Активный',
+    'status_planning' => 'Планирование',
     'status_in_progress' => 'В работе',
     'status_blocked' => 'Блокирован',
     'status_done' => 'Завершен',

@@ -8,4 +8,8 @@ return [
     'bearer_required' => 'Provide Bearer token',
     'me' => 'Current user profile',
     'rate_limited' => 'Too many login attempts. Try again later',
+    'menu_loaded' => 'Menu loaded',
+    'menu_preferences_loaded' => 'Menu preferences loaded',
+    'menu_preferences_saved' => 'Menu preferences saved',
+    'array_expected' => 'Array expected',
 ];

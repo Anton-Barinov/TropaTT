@@ -3570,6 +3570,10 @@ return array (
       'review' => 'Revisão',
       'qa_testing' => 'Teste de QA',
       'ready_release' => 'Pronta para lançamento',
+      'planning' => 'Planejamento',
+      'active' => 'Ativo',
+      'on_hold' => 'Em espera',
+      'archived' => 'Arquivado',
     ),
     'notify' => 
     array (
@@ -4379,6 +4383,7 @@ return array (
     'filter_team_label' => 'Equipe',
     'filter_manager_label' => 'Gerente',
     'filter_priority_label' => 'Prioridade',
+    'status_planning' => 'Planejamento',
     'status_active' => 'Ativo',
     'status_in_progress' => 'Em andamento',
     'status_blocked' => 'Bloqueado',
