@@ -8,6 +8,7 @@ use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\CalendarService;
+use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\SearchService;
@@ -167,6 +168,11 @@ final class McpController extends BaseController
                 'assignee_user_id' => ['type' => 'integer'],
                 'row_version' => ['type' => 'integer'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_add_task_comment', 'Add a comment to a task visible to the current CRM user.', [
+                'task_public_id' => ['type' => 'string'],
+                'body' => ['type' => 'string', 'description' => 'Comment body, up to 8000 characters.'],
+                'visibility' => ['type' => 'string', 'enum' => ['internal', 'public'], 'default' => 'internal'],
+            ], ['task_public_id', 'body']);
         }
 
         if ($this->can('project.manage')) {
@@ -219,6 +225,14 @@ final class McpController extends BaseController
                 'period' => ['type' => 'string', 'enum' => ['day', 'week'], 'default' => 'day'],
                 'date' => ['type' => 'string', 'description' => 'Date in YYYY-MM-DD format. Defaults to today.'],
             ]);
+            $tools[] = $this->tool('crm_create_calendar_event', 'Create a calendar event for the current CRM user.', [
+                'title' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'starts_at' => ['type' => 'string'],
+                'ends_at' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+                'task_public_id' => ['type' => 'string'],
+            ], ['title', 'starts_at']);
         }
 
         $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
@@ -232,6 +246,18 @@ final class McpController extends BaseController
         $tools[] = $this->tool('crm_get_idea', 'Get one visible CRM idea by public id.', [
             'public_id' => ['type' => 'string'],
         ], ['public_id']);
+        $tools[] = $this->tool('crm_create_idea', 'Create a new CRM idea as the authenticated user.', [
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'category' => ['type' => 'string'],
+            'region' => ['type' => 'string'],
+            'visibility' => ['type' => 'string', 'enum' => ['public', 'private'], 'default' => 'public'],
+            'target_date' => ['type' => 'string'],
+        ], ['title']);
+        $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
+            'idea_public_id' => ['type' => 'string'],
+            'body' => ['type' => 'string'],
+        ], ['idea_public_id', 'body']);
 
         $tools[] = $this->tool('crm_list_chats', 'List chats where the current CRM user is a participant.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -243,6 +269,11 @@ final class McpController extends BaseController
             'before_id' => ['type' => 'integer'],
             'after_id' => ['type' => 'integer'],
         ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_send_chat_message', 'Send a text message to a chat where the current CRM user is a participant.', [
+            'chat_public_id' => ['type' => 'string'],
+            'text' => ['type' => 'string', 'description' => 'Message text, up to 4000 characters.'],
+            'reply_to_message_public_id' => ['type' => 'string'],
+        ], ['chat_public_id', 'text']);
 
         return $tools;
     }
@@ -263,6 +294,7 @@ final class McpController extends BaseController
             'crm_get_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTask($arguments))),
             'crm_create_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTask($arguments))),
             'crm_update_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTask($arguments))),
+            'crm_add_task_comment' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTaskComment($arguments))),
             'crm_list_projects' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjects($arguments))),
             'crm_get_project' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProject($arguments))),
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
@@ -270,10 +302,14 @@ final class McpController extends BaseController
             'crm_create_knowledge_page' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmCreateKnowledgePage($arguments))),
             'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
             'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
+            'crm_create_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCalendarEvent($arguments))),
             'crm_list_ideas' => $this->toolResult($this->crmListIdeas($arguments)),
             'crm_get_idea' => $this->toolResult($this->crmGetIdea($arguments)),
+            'crm_create_idea' => $this->toolResult($this->crmCreateIdea($arguments)),
+            'crm_add_idea_comment' => $this->toolResult($this->crmAddIdeaComment($arguments)),
             'crm_list_chats' => $this->toolResult($this->crmListChats($arguments)),
             'crm_list_chat_messages' => $this->toolResult($this->crmListChatMessages($arguments)),
+            'crm_send_chat_message' => $this->toolResult($this->crmSendChatMessage($arguments)),
             default => $this->toolError('Unknown tool: ' . $name),
         };
     }
@@ -339,6 +375,33 @@ final class McpController extends BaseController
         $service = $this->container->get('service.task');
         $task = $service->update($publicId, $this->taskInput($arguments), (int)($this->actor()['id'] ?? 0), $this->actor());
         return is_array($task) ? ['task' => $this->publicData($task)] : ['error' => $task ?: 'Task not found.'];
+    }
+
+    private function crmAddTaskComment(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $body = trim((string)($arguments['body'] ?? ''));
+        if ($taskPublicId === '' || $body === '') {
+            return ['error' => 'task_public_id and body are required.'];
+        }
+        if (mb_strlen($body) > 8000) {
+            return ['error' => 'Comment body is too long.'];
+        }
+
+        /** @var TaskService $taskService */
+        $taskService = $this->container->get('service.task');
+        if (!$taskService->get($taskPublicId, $this->actor())) {
+            return ['error' => 'Task not found.'];
+        }
+
+        /** @var CommentService $service */
+        $service = $this->container->get('service.comment');
+        $ok = $service->createByTask($taskPublicId, [
+            'body' => $body,
+            'visibility' => (string)($arguments['visibility'] ?? 'internal'),
+        ], (int)($this->actor()['id'] ?? 0));
+
+        return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId] : ['error' => 'Comment was not created.'];
     }
 
     private function crmListProjects(array $arguments): array
@@ -413,6 +476,29 @@ final class McpController extends BaseController
         ];
     }
 
+    private function crmCreateCalendarEvent(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? ''));
+        $startsAt = trim((string)($arguments['starts_at'] ?? ''));
+        if ($title === '' || $startsAt === '') {
+            return ['error' => 'title and starts_at are required.'];
+        }
+        if (strtotime($startsAt) === false) {
+            return ['error' => 'starts_at must be a valid date/time.'];
+        }
+        if (!empty($arguments['ends_at']) && strtotime((string)$arguments['ends_at']) === false) {
+            return ['error' => 'ends_at must be a valid date/time.'];
+        }
+
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        $event = $service->createEvent($this->pick($arguments, [
+            'title', 'description', 'starts_at', 'ends_at', 'project_public_id', 'task_public_id',
+        ]), $this->actor());
+
+        return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => (string)$event];
+    }
+
     private function crmListIdeas(array $arguments): array
     {
         /** @var IdeaService $service */
@@ -431,6 +517,66 @@ final class McpController extends BaseController
         $service = $this->container->get('service.idea');
         $idea = $service->get($publicId);
         return $idea ? ['idea' => $this->publicData($idea)] : ['error' => 'Idea not found.'];
+    }
+
+    private function crmCreateIdea(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($title === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        $publicId = 'idea_' . bin2hex(random_bytes(12));
+        $this->pdo()->prepare("
+            INSERT INTO ideas (public_id, title, description, author_user_id, category, region, visibility, target_date, created_at)
+            VALUES (:public_id, :title, :description, :author_user_id, :category, :region, :visibility, :target_date, NOW())
+        ")->execute([
+            'public_id' => $publicId,
+            'title' => $title,
+            'description' => trim((string)($arguments['description'] ?? '')),
+            'author_user_id' => (int)($this->actor()['id'] ?? 0),
+            'category' => trim((string)($arguments['category'] ?? '')),
+            'region' => trim((string)($arguments['region'] ?? '')),
+            'visibility' => in_array((string)($arguments['visibility'] ?? 'public'), ['public', 'private'], true) ? (string)($arguments['visibility'] ?? 'public') : 'public',
+            'target_date' => trim((string)($arguments['target_date'] ?? '')) ?: null,
+        ]);
+
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+    }
+
+    private function crmAddIdeaComment(array $arguments): array
+    {
+        $ideaPublicId = trim((string)($arguments['idea_public_id'] ?? ''));
+        $body = trim((string)($arguments['body'] ?? ''));
+        if ($ideaPublicId === '' || $body === '') {
+            return ['error' => 'idea_public_id and body are required.'];
+        }
+        if (mb_strlen($body) > 8000) {
+            return ['error' => 'Comment body is too long.'];
+        }
+
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        if (!$service->get($ideaPublicId)) {
+            return ['error' => 'Idea not found.'];
+        }
+
+        $commentPublicId = 'cmt_' . bin2hex(random_bytes(8));
+        $this->pdo()->prepare("
+            INSERT INTO comments (public_id, entity_type, entity_public_id, author_user_id, body, created_at)
+            VALUES (:public_id, 'idea', :entity_public_id, :author_user_id, :body, NOW())
+        ")->execute([
+            'public_id' => $commentPublicId,
+            'entity_public_id' => $ideaPublicId,
+            'author_user_id' => (int)($this->actor()['id'] ?? 0),
+            'body' => $body,
+        ]);
+        $this->pdo()->prepare("UPDATE ideas SET comment_count = comment_count + 1 WHERE public_id = :public_id")
+            ->execute(['public_id' => $ideaPublicId]);
+
+        return ['comment' => ['public_id' => $commentPublicId, 'idea_public_id' => $ideaPublicId]];
     }
 
     private function crmListChats(array $arguments): array
@@ -524,6 +670,52 @@ final class McpController extends BaseController
         return [
             'chat' => $this->publicData($this->pick($chat, ['public_id', 'title', 'type'])),
             'items' => $this->publicData($items),
+        ];
+    }
+
+    private function crmSendChatMessage(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $text = trim((string)($arguments['text'] ?? ''));
+        if ($userId <= 0 || $chatPublicId === '' || $text === '') {
+            return ['error' => 'chat_public_id and text are required.'];
+        }
+        if (mb_strlen($text) > 4000) {
+            return ['error' => 'Message text is too long.'];
+        }
+
+        $chat = $this->chatForUser($chatPublicId, $userId);
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+
+        $reply = $this->resolveReplyMessage((int)$chat['id'], trim((string)($arguments['reply_to_message_public_id'] ?? '')));
+        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
+        $this->pdo()->prepare("
+            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at)
+            VALUES (:public_id, :chat_id, :sender_user_id, :reply_to_message_id, 'text', :text, NOW())
+        ")->execute([
+            'public_id' => $messagePublicId,
+            'chat_id' => (int)$chat['id'],
+            'sender_user_id' => $userId,
+            'reply_to_message_id' => $reply ? (int)$reply['id'] : null,
+            'text' => $text,
+        ]);
+        $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :chat_id")
+            ->execute(['chat_id' => (int)$chat['id']]);
+
+        if ($this->container->has('service.chat')) {
+            $this->container->get('service.chat')->markRead((int)$chat['id'], $userId);
+        }
+
+        return [
+            'message' => [
+                'public_id' => $messagePublicId,
+                'chat_public_id' => $chatPublicId,
+                'text' => $text,
+            ],
         ];
     }
 
@@ -748,6 +940,22 @@ final class McpController extends BaseController
         $chat = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($chat) ? $chat : null;
+    }
+
+    private function resolveReplyMessage(int $chatId, string $messagePublicId): ?array
+    {
+        if ($chatId <= 0 || $messagePublicId === '') {
+            return null;
+        }
+
+        $stmt = $this->pdo()->prepare("SELECT id, public_id, sender_user_id, text FROM chat_messages WHERE chat_id = :chat_id AND public_id = :public_id AND deleted_at IS NULL LIMIT 1");
+        $stmt->execute([
+            'chat_id' => $chatId,
+            'public_id' => $messagePublicId,
+        ]);
+        $message = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($message) ? $message : null;
     }
 
     private function tableHasColumn(string $table, string $column): bool

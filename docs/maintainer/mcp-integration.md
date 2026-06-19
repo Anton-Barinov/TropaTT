@@ -55,11 +55,23 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_get_task` | `task.manage` | Read one task by `public_id`. |
 | `crm_create_task` | `task.manage` | Create a task as the authenticated user. |
 | `crm_update_task` | `task.manage` | Update safe task fields. |
+| `crm_add_task_comment` | `task.manage` | Add a comment to a visible task. |
 | `crm_list_projects` | `project.manage` | List visible projects. |
 | `crm_get_project` | `project.manage` | Read one project by `public_id`. |
 | `crm_list_knowledge_pages` | `knowledge.view` | List visible knowledge pages. |
 | `crm_get_knowledge_page` | `knowledge.view` | Read one knowledge page by `public_id`. |
 | `crm_create_knowledge_page` | `knowledge.create` | Create a knowledge page in an accessible space. |
+| `crm_get_current_user` | authenticated user | Read the authenticated user profile visible to MCP. |
+| `crm_list_calendar_events` | `task.manage` | List calendar events visible to the current user. |
+| `crm_get_calendar_agenda` | `task.manage` | Read current user day/week agenda. |
+| `crm_create_calendar_event` | `task.manage` | Create a calendar event for the current user. |
+| `crm_list_ideas` | authenticated user | List visible ideas. |
+| `crm_get_idea` | authenticated user | Read one visible idea. |
+| `crm_create_idea` | authenticated user | Create a new idea as the authenticated user. |
+| `crm_add_idea_comment` | authenticated user | Add a comment to a visible idea. |
+| `crm_list_chats` | authenticated participant | List chats where the current user is a participant. |
+| `crm_list_chat_messages` | authenticated participant | Read messages from a chat where the user is a participant. |
+| `crm_send_chat_message` | authenticated participant | Send a text message to a chat where the user is a participant. |
 
 ## API Endpoint Inventory Summary
 
