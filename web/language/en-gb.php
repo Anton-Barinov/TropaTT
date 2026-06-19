@@ -5412,6 +5412,7 @@ return array (
     'empty_text' => 'Create the first cycle for task planning.',
     'error_title' => 'Loading error',
     'error_text' => 'Failed to load the list of cycles.',
+    'error_load_data' => 'Error loading cycle data.',
     'btn_retry' => 'Retry',
     'modal_create_title' => 'Create cycle',
     'modal_detail_title' => 'Cycle',

@@ -5390,6 +5390,7 @@ return array (
     'empty_text' => 'Создайте первый цикл для планирования задач.',
     'error_title' => 'Ошибка загрузки',
     'error_text' => 'Не удалось загрузить список циклов.',
+    'error_load_data' => 'Ошибка загрузки данных цикла.',
     'btn_retry' => 'Повторить',
     'modal_create_title' => 'Создать цикл',
     'modal_detail_title' => 'Цикл',
