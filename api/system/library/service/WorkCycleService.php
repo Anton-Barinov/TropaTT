@@ -859,13 +859,15 @@ final class WorkCycleService
     private function computeTimeState(array $cycle): string
     {
         $now = time();
-        $start = isset($cycle['start_at']) ? strtotime((string)$cycle['start_at']) : null;
-        $end = isset($cycle['end_at']) ? strtotime((string)$cycle['end_at']) : null;
+        $startAt = trim((string)($cycle['start_at'] ?? ''));
+        $endAt = trim((string)($cycle['end_at'] ?? ''));
+        $start = $startAt !== '' ? strtotime($startAt) : null;
+        $end = $endAt !== '' ? strtotime($endAt) : null;
 
-        if ($start !== false && $start > $now) {
+        if ($start !== null && $start !== false && $start > $now) {
             return 'not_started';
         }
-        if ($end !== false && $end < $now) {
+        if ($end !== null && $end !== false && $end < $now) {
             return 'ended';
         }
         return 'running';
