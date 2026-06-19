@@ -6,6 +6,7 @@ namespace Api\Controller\Mcp;
 use Api\Controller\Common\BaseController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
+use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ClientService;
@@ -15,10 +16,12 @@ use Api\System\Library\Service\ContactService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
+use Api\System\Library\Service\RecurringService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\WorkCycleService;
+use Api\System\Library\Service\WorkflowService;
 use PDO;
 use Throwable;
 
@@ -458,6 +461,79 @@ MD;
             $tools[] = $this->tool('crm_update_contact', 'Update safe contact fields by public id.', ['public_id' => ['type' => 'string']] + $this->contactSchema(), ['public_id']);
         }
 
+        if ($this->can('approval.manage')) {
+            $tools[] = $this->tool('crm_list_approvals', 'List approval requests visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'status' => ['type' => 'string', 'enum' => ['pending', 'approved', 'rejected']],
+                'entity_type' => ['type' => 'string'],
+                'entity_public_id' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_approval', 'Get one approval request by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_approval', 'Create an approval request for an entity and reviewer list.', [
+                'entity_type' => ['type' => 'string'],
+                'entity_public_id' => ['type' => 'string'],
+                'reviewer_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'title' => ['type' => 'string'],
+                'comment' => ['type' => 'string'],
+            ], ['entity_type', 'entity_public_id', 'reviewer_public_ids']);
+            $tools[] = $this->tool('crm_approve_request', 'Approve an approval request where the current user is a pending reviewer.', [
+                'public_id' => ['type' => 'string'],
+                'comment' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_reject_request', 'Reject an approval request where the current user is a pending reviewer.', [
+                'public_id' => ['type' => 'string'],
+                'comment' => ['type' => 'string'],
+            ], ['public_id']);
+        }
+
+        if ($this->can('task.manage')) {
+            $tools[] = $this->tool('crm_list_recurring_rules', 'List recurring task/project/reminder/calendar rules.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'reminder', 'calendar_event']],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            ]);
+            $tools[] = $this->tool('crm_get_recurring_rule', 'Get one recurring rule by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_recurring_rule', 'Create a recurring rule using an RRULE string.', $this->recurringSchema(), ['entity_type', 'entity_public_id', 'rrule']);
+            $tools[] = $this->tool('crm_update_recurring_rule', 'Update a recurring rule by public id.', ['public_id' => ['type' => 'string']] + $this->recurringSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_pause_recurring_rule', 'Pause a recurring rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_resume_recurring_rule', 'Resume a recurring rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+        }
+
+        if ($this->can('settings.manage')) {
+            $tools[] = $this->tool('crm_list_workflow_rules', 'List automation workflow rules visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'trigger_code' => ['type' => 'string'],
+                'action_code' => ['type' => 'string'],
+                'is_enabled' => ['type' => 'integer', 'enum' => [0, 1]],
+            ]);
+            $tools[] = $this->tool('crm_get_workflow_rule', 'Get one workflow rule by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_workflow_rule', 'Create an automation workflow rule.', $this->workflowSchema(), ['title', 'trigger_code', 'action_code']);
+            $tools[] = $this->tool('crm_update_workflow_rule', 'Update an automation workflow rule by public id.', ['public_id' => ['type' => 'string']] + $this->workflowSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_workflow_runs', 'List workflow execution logs visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'rule_public_id' => ['type' => 'string'],
+                'status' => ['type' => 'string', 'enum' => ['success', 'failed', 'error']],
+            ]);
+            $tools[] = $this->tool('crm_run_workflow_rule_test', 'Run the CRM workflow test harness for a rule. This can execute the rule action in test context.', [
+                'public_id' => ['type' => 'string'],
+                'context' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['public_id']);
+        }
+
         if ($this->can('project.manage')) {
             $tools[] = $this->tool('crm_list_projects', 'List CRM projects visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -601,6 +677,23 @@ MD;
             'crm_get_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmGetContact($arguments))),
             'crm_create_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmCreateContact($arguments))),
             'crm_update_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmUpdateContact($arguments))),
+            'crm_list_approvals' => $this->withPermission('approval.manage', fn() => $this->toolResult($this->crmListApprovals($arguments))),
+            'crm_get_approval' => $this->withPermission('approval.manage', fn() => $this->toolResult($this->crmGetApproval($arguments))),
+            'crm_create_approval' => $this->withPermission('approval.manage', fn() => $this->toolResult($this->crmCreateApproval($arguments))),
+            'crm_approve_request' => $this->withPermission('approval.manage', fn() => $this->toolResult($this->crmReviewApproval($arguments, 'approve'))),
+            'crm_reject_request' => $this->withPermission('approval.manage', fn() => $this->toolResult($this->crmReviewApproval($arguments, 'reject'))),
+            'crm_list_recurring_rules' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListRecurringRules($arguments))),
+            'crm_get_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetRecurringRule($arguments))),
+            'crm_create_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateRecurringRule($arguments))),
+            'crm_update_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateRecurringRule($arguments))),
+            'crm_pause_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetRecurringRuleState($arguments, false))),
+            'crm_resume_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetRecurringRuleState($arguments, true))),
+            'crm_list_workflow_rules' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListWorkflowRules($arguments))),
+            'crm_get_workflow_rule' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetWorkflowRule($arguments))),
+            'crm_create_workflow_rule' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateWorkflowRule($arguments))),
+            'crm_update_workflow_rule' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateWorkflowRule($arguments))),
+            'crm_list_workflow_runs' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListWorkflowRuns($arguments))),
+            'crm_run_workflow_rule_test' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRunWorkflowRuleTest($arguments))),
             'crm_list_projects' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjects($arguments))),
             'crm_get_project' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProject($arguments))),
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
@@ -986,6 +1079,190 @@ MD;
         } catch (Throwable $e) {
             return ['error' => $e->getMessage() ?: 'Contact was not updated.'];
         }
+    }
+
+    private function crmListApprovals(array $arguments): array
+    {
+        /** @var ApprovalService $service */
+        $service = $this->container->get('service.approval');
+        return $this->publicData($service->list($this->approvalFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetApproval(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ApprovalService $service */
+        $service = $this->container->get('service.approval');
+        $result = $service->get($publicId, $this->actor());
+        return !empty($result['ok']) ? ['approval' => $this->publicData($result['approval'] ?? [])] : ['error' => (string)($result['code'] ?? 'Approval not found.')];
+    }
+
+    private function crmCreateApproval(array $arguments): array
+    {
+        if (trim((string)($arguments['entity_type'] ?? '')) === '' || trim((string)($arguments['entity_public_id'] ?? '')) === '') {
+            return ['error' => 'entity_type and entity_public_id are required.'];
+        }
+        if (!is_array($arguments['reviewer_public_ids'] ?? null) || (array)$arguments['reviewer_public_ids'] === []) {
+            return ['error' => 'reviewer_public_ids are required.'];
+        }
+
+        /** @var ApprovalService $service */
+        $service = $this->container->get('service.approval');
+        $result = $service->create($this->approvalInput($arguments), $this->actor());
+        return !empty($result['ok']) ? ['approval' => $this->publicData($result['approval'] ?? [])] : ['error' => (string)($result['code'] ?? 'Approval was not created.')];
+    }
+
+    private function crmReviewApproval(array $arguments, string $action): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ApprovalService $service */
+        $service = $this->container->get('service.approval');
+        $result = $action === 'approve'
+            ? $service->approve($publicId, $this->pick($arguments, ['comment']), $this->actor())
+            : $service->reject($publicId, $this->pick($arguments, ['comment']), $this->actor());
+
+        return !empty($result['ok']) ? ['approval' => $this->publicData($result['approval'] ?? [])] : ['error' => (string)($result['code'] ?? 'Approval was not reviewed.')];
+    }
+
+    private function crmListRecurringRules(array $arguments): array
+    {
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        return $this->publicData($service->list($this->recurringFilters($arguments)));
+    }
+
+    private function crmGetRecurringRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        $rule = $service->get($publicId);
+        return $rule ? ['rule' => $this->publicData($rule)] : ['error' => 'Recurring rule not found.'];
+    }
+
+    private function crmCreateRecurringRule(array $arguments): array
+    {
+        foreach (['entity_type', 'entity_public_id', 'rrule'] as $field) {
+            if (trim((string)($arguments[$field] ?? '')) === '') {
+                return ['error' => $field . ' is required.'];
+            }
+        }
+
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        if (!$service->isValidRrule((string)$arguments['rrule'])) {
+            return ['error' => 'Invalid RRULE.'];
+        }
+
+        return ['rule' => $this->publicData($service->create($this->recurringInput($arguments)))];
+    }
+
+    private function crmUpdateRecurringRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        if (array_key_exists('rrule', $arguments) && !$service->isValidRrule((string)$arguments['rrule'])) {
+            return ['error' => 'Invalid RRULE.'];
+        }
+
+        $rule = $service->update($publicId, $this->recurringInput($arguments));
+        return $rule ? ['rule' => $this->publicData($rule)] : ['error' => 'Recurring rule not found.'];
+    }
+
+    private function crmSetRecurringRuleState(array $arguments, bool $active): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        $rule = $active ? $service->resume($publicId) : $service->pause($publicId);
+        return $rule ? ['rule' => $this->publicData($rule)] : ['error' => 'Recurring rule not found.'];
+    }
+
+    private function crmListWorkflowRules(array $arguments): array
+    {
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        return $this->publicData($service->listRules($this->workflowFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetWorkflowRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        $rule = $service->getRule($publicId, $this->actor());
+        return $rule ? ['rule' => $this->publicData($rule)] : ['error' => 'Workflow rule not found.'];
+    }
+
+    private function crmCreateWorkflowRule(array $arguments): array
+    {
+        foreach (['title', 'trigger_code', 'action_code'] as $field) {
+            if (trim((string)($arguments[$field] ?? '')) === '') {
+                return ['error' => $field . ' is required.'];
+            }
+        }
+
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        return ['rule' => $this->publicData($service->createRule($this->workflowInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateWorkflowRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        $rule = $service->updateRule($publicId, $this->workflowInput($arguments), $this->actor());
+        return $rule ? ['rule' => $this->publicData($rule)] : ['error' => 'Workflow rule not found.'];
+    }
+
+    private function crmListWorkflowRuns(array $arguments): array
+    {
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        return $this->publicData($service->listRuns($this->workflowRunFilters($arguments), $this->actor()));
+    }
+
+    private function crmRunWorkflowRuleTest(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        $run = $service->runTest($publicId, is_array($arguments['context'] ?? null) ? (array)$arguments['context'] : [], $this->actor());
+        return is_array($run) ? ['run' => $this->publicData($run)] : ['error' => (string)$run];
     }
 
     private function crmListProjects(array $arguments): array
@@ -1435,6 +1712,46 @@ MD;
         return $filters;
     }
 
+    private function approvalFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'status', 'entity_type', 'entity_public_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function recurringFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'entity_type', 'is_active',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function workflowFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'trigger_code', 'action_code', 'is_enabled',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function workflowRunFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'rule_public_id', 'status',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
     private function ideaFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
@@ -1494,6 +1811,27 @@ MD;
         ]);
     }
 
+    private function approvalInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'entity_type', 'entity_public_id', 'reviewer_public_ids', 'title', 'comment',
+        ]);
+    }
+
+    private function recurringInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active',
+        ]);
+    }
+
+    private function workflowInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'trigger_code', 'action_code', 'payload', 'is_enabled',
+        ]);
+    }
+
     private function counterpartySchema(): array
     {
         return [
@@ -1543,6 +1881,34 @@ MD;
             'counterparty_public_id' => ['type' => 'string'],
             'company_public_id' => ['type' => 'string'],
             'client_public_id' => ['type' => 'string'],
+        ];
+    }
+
+    private function recurringSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'reminder', 'calendar_event']],
+            'entity_public_id' => ['type' => 'string'],
+            'rrule' => ['type' => 'string', 'description' => 'RFC-style recurrence rule such as FREQ=WEEKLY;INTERVAL=1.'],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1], 'default' => 1],
+        ];
+    }
+
+    private function workflowSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'trigger_code' => ['type' => 'string', 'enum' => [
+                'task_created', 'task_updated', 'task_status_changed', 'comment_added', 'file_uploaded',
+                'deadline_reached', 'project_archived', 'user_created',
+            ]],
+            'action_code' => ['type' => 'string', 'enum' => [
+                'assign_user', 'change_status', 'create_reminder', 'send_notification', 'create_comment',
+                'create_follow_up_task', 'call_webhook', 'escalate_sla',
+            ]],
+            'payload' => ['type' => 'object', 'additionalProperties' => true],
+            'is_enabled' => ['type' => 'integer', 'enum' => [0, 1], 'default' => 1],
         ];
     }
 

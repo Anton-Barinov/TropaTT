@@ -103,6 +103,23 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_get_contact` | `contact.manage` | Read one visible contact. |
 | `crm_create_contact` | `contact.manage` | Create a contact linked to a counterparty, company or client. |
 | `crm_update_contact` | `contact.manage` | Update safe contact fields. |
+| `crm_list_approvals` | `approval.manage` | List visible approval requests. |
+| `crm_get_approval` | `approval.manage` | Read one approval request. |
+| `crm_create_approval` | `approval.manage` | Create an approval request for an entity and reviewers. |
+| `crm_approve_request` | `approval.manage` | Approve a request where the current user is a reviewer. |
+| `crm_reject_request` | `approval.manage` | Reject a request where the current user is a reviewer. |
+| `crm_list_recurring_rules` | `task.manage` | List recurring task/project/reminder/calendar rules. |
+| `crm_get_recurring_rule` | `task.manage` | Read one recurring rule. |
+| `crm_create_recurring_rule` | `task.manage` | Create a recurring rule with RRULE validation. |
+| `crm_update_recurring_rule` | `task.manage` | Update a recurring rule. |
+| `crm_pause_recurring_rule` | `task.manage` | Pause a recurring rule. |
+| `crm_resume_recurring_rule` | `task.manage` | Resume a recurring rule. |
+| `crm_list_workflow_rules` | `settings.manage` | List automation workflow rules. |
+| `crm_get_workflow_rule` | `settings.manage` | Read one workflow rule. |
+| `crm_create_workflow_rule` | `settings.manage` | Create an automation workflow rule. |
+| `crm_update_workflow_rule` | `settings.manage` | Update an automation workflow rule. |
+| `crm_list_workflow_runs` | `settings.manage` | List workflow execution logs. |
+| `crm_run_workflow_rule_test` | `settings.manage` | Run the workflow test harness for a rule. |
 | `crm_list_projects` | `project.manage` | List visible projects. |
 | `crm_get_project` | `project.manage` | Read one project by `public_id`. |
 | `crm_list_knowledge_pages` | `knowledge.view` | List visible knowledge pages. |
