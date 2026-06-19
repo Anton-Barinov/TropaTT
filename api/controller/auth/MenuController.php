@@ -407,6 +407,211 @@ final class MenuController extends BaseController
         }
     }
 
+    private function loadRoleTemplate(array $rolePublicIds): array
+    {
+        if (empty($rolePublicIds) || !$this->container->has('service.setting')) {
+            return [];
+        }
+
+        try {
+            /** @var \Api\System\Library\Service\SettingService $settingService */
+            $settingService = $this->container->get('service.setting');
+
+            $mergedVisMap = [];
+            $orderFromFirst = null;
+
+            foreach ($rolePublicIds as $rolePublicId) {
+                $scope = self::ROLE_SCOPE_PREFIX . $rolePublicId;
+                $setting = $settingService->get($scope, self::TEMPLATE_NAME);
+                if ($setting === null) {
+                    continue;
+                }
+                $template = $setting['value'] ?? [];
+                if (!is_array($template)) {
+                    continue;
+                }
+
+                $templateItems = $template['items'] ?? $template;
+                if (!is_array($templateItems)) {
+                    continue;
+                }
+
+                if ($orderFromFirst === null) {
+                    $orderFromFirst = [];
+                    foreach ($templateItems as $entry) {
+                        if (!is_array($entry)) {
+                            continue;
+                        }
+                        $key = $entry['key'] ?? '';
+                        if ($key !== '') {
+                            $orderFromFirst[] = $key;
+                            $mergedVisMap[$key] = (bool)($entry['visible'] ?? true);
+                        }
+                    }
+                } else {
+                    foreach ($templateItems as $entry) {
+                        if (!is_array($entry)) {
+                            continue;
+                        }
+                        $key = $entry['key'] ?? '';
+                        if ($key !== '') {
+                            $visible = (bool)($entry['visible'] ?? true);
+                            if (!isset($mergedVisMap[$key])) {
+                                $mergedVisMap[$key] = $visible;
+                                $orderFromFirst[] = $key;
+                            } else {
+                                $mergedVisMap[$key] = $mergedVisMap[$key] && $visible;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (empty($mergedVisMap)) {
+                return [];
+            }
+
+            $result = [];
+            foreach ($orderFromFirst as $key) {
+                $result[] = [
+                    'key' => $key,
+                    'visible' => $mergedVisMap[$key],
+                ];
+            }
+
+            return $result;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    public function getRoleTemplate(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $rolePublicId = (string)($params['public_id'] ?? '');
+        if ($rolePublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if (!$this->container->has('service.setting')) {
+            return $this->success('ROLE_MENU_TEMPLATE', $this->t('auth/messages.role_menu_template_loaded'), [
+                'template' => [],
+            ]);
+        }
+
+        try {
+            /** @var \Api\System\Library\Service\SettingService $settingService */
+            $settingService = $this->container->get('service.setting');
+            $scope = self::ROLE_SCOPE_PREFIX . $rolePublicId;
+            $setting = $settingService->get($scope, self::TEMPLATE_NAME);
+            $template = $setting !== null ? ($setting['value'] ?? []) : [];
+            if (!is_array($template)) {
+                $template = [];
+            }
+        } catch (\Throwable) {
+            $template = [];
+        }
+
+        return $this->success('ROLE_MENU_TEMPLATE', $this->t('auth/messages.role_menu_template_loaded'), [
+            'template' => $template,
+        ]);
+    }
+
+    public function saveRoleTemplate(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        $rolePublicId = (string)($params['public_id'] ?? '');
+        if ($rolePublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        $items = $this->request()->input('items');
+        if (!is_array($items)) {
+            return $this->error('VALIDATION_ERROR', $this->t('auth/messages.items_required'), 422);
+        }
+
+        $validated = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = $item['key'] ?? null;
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+            $validated[] = [
+                'key' => $key,
+                'visible' => (bool)($item['visible'] ?? true),
+            ];
+        }
+
+        $scope = self::ROLE_SCOPE_PREFIX . $rolePublicId;
+        /** @var \Api\System\Library\Service\SettingService $settingService */
+        $settingService = $this->container->get('service.setting');
+        $settingService->set($scope, self::TEMPLATE_NAME, $validated);
+
+        return $this->success('ROLE_MENU_TEMPLATE_SAVED', $this->t('auth/messages.role_menu_template_saved'), [
+            'template' => $validated,
+        ]);
+    }
+
+    private function applyRoleTemplate(array $items, array $template): array
+    {
+        if (empty($template)) {
+            return $items;
+        }
+
+        $templateItems = $template['items'] ?? $template;
+        if (!is_array($templateItems)) {
+            return $items;
+        }
+
+        $visMap = [];
+        foreach ($templateItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
+            if ($key !== '') {
+                $visMap[$key] = (bool)($entry['visible'] ?? true);
+            }
+        }
+
+        if (empty($visMap)) {
+            return $items;
+        }
+
+        $filtered = [];
+        foreach ($items as $item) {
+            $key = $item['key'] ?? '';
+            if (isset($visMap[$key]) && !$visMap[$key]) {
+                continue;
+            }
+            $filtered[] = $item;
+        }
+
+        $itemMap = [];
+        foreach ($filtered as $item) {
+            $itemMap[$item['key'] ?? ''] = $item;
+        }
+
+        $reordered = [];
+        foreach ($templateItems as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $key = $entry['key'] ?? '';
+            if (isset($itemMap[$key])) {
+                $reordered[] = $itemMap[$key];
+                unset($itemMap[$key]);
+            }
+        }
+
+        foreach ($itemMap as $item) {
+            $reordered[] = $item;
+        }
+
+        return $reordered;
+    }
+
     private function applyTeamTemplate(array $items, array $template): array
     {
         if (empty($template)) {

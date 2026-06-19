@@ -14,5 +14,7 @@ return [
     'items_required' => 'Требуется массив элементов',
     'team_menu_template_loaded' => 'Шаблон меню команды загружен',
     'team_menu_template_saved' => 'Шаблон меню команды сохранен',
+    'role_menu_template_loaded' => 'Шаблон меню роли загружен',
+    'role_menu_template_saved' => 'Шаблон меню роли сохранен',
     'array_expected' => 'Ожидается массив',
 ];

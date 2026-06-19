@@ -14,5 +14,7 @@ return [
     'items_required' => 'Items array is required',
     'team_menu_template_loaded' => 'Team menu template loaded',
     'team_menu_template_saved' => 'Team menu template saved',
+    'role_menu_template_loaded' => 'Role menu template loaded',
+    'role_menu_template_saved' => 'Role menu template saved',
     'array_expected' => 'Array expected',
 ];
