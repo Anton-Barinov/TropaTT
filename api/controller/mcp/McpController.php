@@ -13,6 +13,8 @@ use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\TaskService;
+use Api\System\Library\Service\UserService;
+use Api\System\Library\Service\WorkCycleService;
 use PDO;
 use Throwable;
 
@@ -332,6 +334,57 @@ MD;
                 'body' => ['type' => 'string', 'description' => 'Comment body, up to 8000 characters.'],
                 'visibility' => ['type' => 'string', 'enum' => ['internal', 'public'], 'default' => 'internal'],
             ], ['task_public_id', 'body']);
+            $tools[] = $this->tool('crm_list_cycles', 'List work cycles/sprints visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'project_public_id' => ['type' => 'string'],
+                'status' => ['type' => 'string', 'enum' => ['planned', 'active', 'completed', 'archived']],
+            ]);
+            $tools[] = $this->tool('crm_get_cycle', 'Get one work cycle/sprint by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_cycle', 'Create a work cycle/sprint for an accessible project.', [
+                'title' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'goal' => ['type' => 'string'],
+                'status' => ['type' => 'string', 'enum' => ['planned', 'active'], 'default' => 'planned'],
+                'start_at' => ['type' => 'string'],
+                'end_at' => ['type' => 'string'],
+                'timezone' => ['type' => 'string', 'default' => 'UTC'],
+                'owner_user_public_id' => ['type' => 'string'],
+            ], ['title', 'project_public_id']);
+            $tools[] = $this->tool('crm_update_cycle', 'Update safe fields on a work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'goal' => ['type' => 'string'],
+                'start_at' => ['type' => 'string'],
+                'end_at' => ['type' => 'string'],
+                'timezone' => ['type' => 'string'],
+                'owner_user_public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_cycle_tasks', 'List tasks assigned to a visible work cycle/sprint.', [
+                'cycle_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'status' => ['type' => 'string'],
+            ], ['cycle_public_id']);
+            $tools[] = $this->tool('crm_add_tasks_to_cycle', 'Add existing CRM tasks to a visible planned or active work cycle/sprint.', [
+                'cycle_public_id' => ['type' => 'string'],
+                'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Task public ids to add. Max 100 per request.'],
+                'task_keys' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional human task keys to resolve and add.'],
+            ], ['cycle_public_id']);
+        }
+
+        if ($this->can('user.view')) {
+            $tools[] = $this->tool('crm_list_users', 'List CRM users for assignment and collaboration lookup.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'q' => ['type' => 'string', 'description' => 'Search by login, full name or email.'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            ]);
         }
 
         if ($this->can('project.manage')) {
@@ -454,6 +507,13 @@ MD;
             'crm_create_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTask($arguments))),
             'crm_update_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTask($arguments))),
             'crm_add_task_comment' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTaskComment($arguments))),
+            'crm_list_cycles' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycles($arguments))),
+            'crm_get_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycle($arguments))),
+            'crm_create_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCycle($arguments))),
+            'crm_update_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateCycle($arguments))),
+            'crm_list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycleTasks($arguments))),
+            'crm_add_tasks_to_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTasksToCycle($arguments))),
+            'crm_list_users' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmListUsers($arguments))),
             'crm_list_projects' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjects($arguments))),
             'crm_get_project' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProject($arguments))),
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
@@ -561,6 +621,97 @@ MD;
         ], (int)($this->actor()['id'] ?? 0));
 
         return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId] : ['error' => 'Comment was not created.'];
+    }
+
+    private function crmListCycles(array $arguments): array
+    {
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        return $this->publicData($service->list($this->cycleFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $cycle = $service->get($publicId, $this->actor());
+        return is_array($cycle) ? ['cycle' => $this->publicData($cycle)] : ['error' => (string)($cycle ?: 'Cycle not found.')];
+    }
+
+    private function crmCreateCycle(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? ''));
+        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($title === '' || $projectPublicId === '') {
+            return ['error' => 'title and project_public_id are required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $cycle = $service->create($this->cycleInput($arguments), $this->actor());
+        return is_array($cycle) ? ['cycle' => $this->publicData($cycle)] : ['error' => (string)$cycle];
+    }
+
+    private function crmUpdateCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $cycle = $service->update($publicId, $this->cycleInput($arguments), $this->actor());
+        return is_array($cycle) ? ['cycle' => $this->publicData($cycle)] : ['error' => (string)($cycle ?: 'Cycle not found.')];
+    }
+
+    private function crmListCycleTasks(array $arguments): array
+    {
+        $cyclePublicId = trim((string)($arguments['cycle_public_id'] ?? ''));
+        if ($cyclePublicId === '') {
+            return ['error' => 'cycle_public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $tasks = $service->tasks($cyclePublicId, $this->filters($arguments, 50, 100), $this->actor());
+        return is_array($tasks) ? $this->publicData($tasks) : ['error' => (string)($tasks ?: 'Cycle not found.')];
+    }
+
+    private function crmAddTasksToCycle(array $arguments): array
+    {
+        $cyclePublicId = trim((string)($arguments['cycle_public_id'] ?? ''));
+        if ($cyclePublicId === '') {
+            return ['error' => 'cycle_public_id is required.'];
+        }
+
+        $taskPublicIds = is_array($arguments['task_public_ids'] ?? null) ? (array)$arguments['task_public_ids'] : [];
+        $taskKeys = is_array($arguments['task_keys'] ?? null) ? (array)$arguments['task_keys'] : [];
+        if ($taskPublicIds === [] && $taskKeys === []) {
+            return ['error' => 'task_public_ids or task_keys are required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->addTasks($cyclePublicId, [
+            'task_public_ids' => $taskPublicIds,
+            'task_keys' => $taskKeys,
+            'source_type' => 'mcp',
+        ], $this->actor());
+
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)($result ?: 'Tasks were not added.')];
+    }
+
+    private function crmListUsers(array $arguments): array
+    {
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        return $this->publicData($service->list($this->userFilters($arguments)));
     }
 
     private function crmListProjects(array $arguments): array
@@ -970,6 +1121,26 @@ MD;
         return $filters;
     }
 
+    private function cycleFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'project_public_id', 'status',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function userFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'q', 'is_active',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
     private function ideaFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
@@ -990,6 +1161,14 @@ MD;
         return $this->pick($arguments, [
             'title', 'description', 'project_public_id', 'parent_task_public_id', 'priority', 'status',
             'due_at', 'start_at', 'end_at', 'assignee_user_id', 'row_version',
+        ]) + ['source_type' => 'mcp'];
+    }
+
+    private function cycleInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'project_public_id', 'description', 'goal', 'status', 'start_at', 'end_at',
+            'timezone', 'owner_user_public_id', 'row_version',
         ]) + ['source_type' => 'mcp'];
     }
 
