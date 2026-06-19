@@ -54,6 +54,7 @@ Goal: fix cycle focus, Kanban navigation and visibility rules reported from demo
 Implemented:
 - Cycle visibility is now restricted at API list/detail level: root/admin roles see all; regular users see cycles they created, own, or where they are assignees of at least one task in the cycle.
 - Cycle detail tasks and summary endpoints use the same visibility check, so direct URLs cannot expose hidden cycles.
+- Read-only cycle routes and the sidebar menu now require `task.manage` instead of `project.manage`; mutating cycle routes still require `project.manage`.
 - The cycle command-center focus no longer clears and recalculates from the currently visible page. It loads a separate stable summary for the selected project.
 - Kanban now has a Cycle filter and understands `cycle_public_id` from links such as `index.php?route=kanban&cycle_public_id=...`.
 - Kanban persists the cycle filter in `kanbanFilters` cookie and applies it to the API task query when opening a filtered board.
