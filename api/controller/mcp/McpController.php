@@ -14,11 +14,15 @@ use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\ContactService;
 use Api\System\Library\Service\CounterpartyService;
+use Api\System\Library\Service\DepartmentService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\RecurringService;
 use Api\System\Library\Service\SearchService;
+use Api\System\Library\Service\StatusService;
+use Api\System\Library\Service\TagService;
 use Api\System\Library\Service\TaskService;
+use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\WorkflowService;
@@ -394,6 +398,41 @@ MD;
             ]);
         }
 
+        $tools[] = $this->tool('crm_list_teams', 'List teams visible to the current CRM user.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'team_type' => ['type' => 'string'],
+        ]);
+        $tools[] = $this->tool('crm_get_team', 'Get one visible team by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+
+        if ($this->can('team.manage')) {
+            $tools[] = $this->tool('crm_create_team', 'Create a team.', $this->teamSchema(), ['title']);
+            $tools[] = $this->tool('crm_update_team', 'Update safe team fields by public id.', ['public_id' => ['type' => 'string']] + $this->teamSchema(), ['public_id']);
+        }
+
+        if ($this->can('department.manage')) {
+            $tools[] = $this->tool('crm_list_departments', 'List departments visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_department', 'Get one department by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_department', 'Create a department.', [
+                'title' => ['type' => 'string'],
+                'code' => ['type' => 'string'],
+                'manager_user_id' => ['type' => 'integer'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_update_department', 'Update safe department fields by public id.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'code' => ['type' => 'string'],
+                'manager_user_id' => ['type' => 'integer'],
+            ], ['public_id']);
+        }
+
         if ($this->can('counterparty.manage')) {
             $tools[] = $this->tool('crm_list_counterparties', 'List counterparties visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -592,6 +631,38 @@ MD;
                 'project_public_id' => ['type' => 'string'],
                 'task_public_id' => ['type' => 'string'],
             ], ['title', 'starts_at']);
+            $tools[] = $this->tool('crm_list_statuses', 'List task/project status dictionary entries.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'scope' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            ]);
+            $tools[] = $this->tool('crm_get_status', 'Get one status dictionary entry by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_status', 'Create a status dictionary entry.', $this->statusSchema(), ['scope', 'code', 'title']);
+            $tools[] = $this->tool('crm_update_status', 'Update a status dictionary entry by public id.', ['public_id' => ['type' => 'string']] + $this->statusSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_tags', 'List tags.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_tag', 'Get one tag by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_tag', 'Create a tag.', $this->tagSchema(), ['title']);
+            $tools[] = $this->tool('crm_update_tag', 'Update a tag by public id.', ['public_id' => ['type' => 'string']] + $this->tagSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_task_tags', 'List tags attached to a task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_attach_task_tag', 'Attach a tag to a visible task.', [
+                'task_public_id' => ['type' => 'string'],
+                'tag_public_id' => ['type' => 'string'],
+            ], ['task_public_id', 'tag_public_id']);
+            $tools[] = $this->tool('crm_detach_task_tag', 'Detach a tag from a visible task.', [
+                'task_public_id' => ['type' => 'string'],
+                'tag_public_id' => ['type' => 'string'],
+            ], ['task_public_id', 'tag_public_id']);
         }
 
         $tools[] = $this->tool('crm_list_ideas', 'List visible CRM ideas.', [
@@ -661,6 +732,14 @@ MD;
             'crm_list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycleTasks($arguments))),
             'crm_add_tasks_to_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTasksToCycle($arguments))),
             'crm_list_users' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmListUsers($arguments))),
+            'crm_list_teams' => $this->toolResult($this->crmListTeams($arguments)),
+            'crm_get_team' => $this->toolResult($this->crmGetTeam($arguments)),
+            'crm_create_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmCreateTeam($arguments))),
+            'crm_update_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmUpdateTeam($arguments))),
+            'crm_list_departments' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmListDepartments($arguments))),
+            'crm_get_department' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmGetDepartment($arguments))),
+            'crm_create_department' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmCreateDepartment($arguments))),
+            'crm_update_department' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmUpdateDepartment($arguments))),
             'crm_list_counterparties' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmListCounterparties($arguments))),
             'crm_get_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmGetCounterparty($arguments))),
             'crm_create_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmCreateCounterparty($arguments))),
@@ -702,6 +781,17 @@ MD;
             'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
             'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
             'crm_create_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCalendarEvent($arguments))),
+            'crm_list_statuses' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStatuses($arguments))),
+            'crm_get_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStatus($arguments))),
+            'crm_create_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStatus($arguments))),
+            'crm_update_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateStatus($arguments))),
+            'crm_list_tags' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTags($arguments))),
+            'crm_get_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTag($arguments))),
+            'crm_create_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTag($arguments))),
+            'crm_update_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTag($arguments))),
+            'crm_list_task_tags' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskTags($arguments))),
+            'crm_attach_task_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAttachTaskTag($arguments))),
+            'crm_detach_task_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDetachTaskTag($arguments))),
             'crm_list_ideas' => $this->toolResult($this->crmListIdeas($arguments)),
             'crm_get_idea' => $this->toolResult($this->crmGetIdea($arguments)),
             'crm_create_idea' => $this->toolResult($this->crmCreateIdea($arguments)),
@@ -892,6 +982,94 @@ MD;
         /** @var UserService $service */
         $service = $this->container->get('service.user');
         return $this->publicData($service->list($this->userFilters($arguments)));
+    }
+
+    private function crmListTeams(array $arguments): array
+    {
+        /** @var TeamService $service */
+        $service = $this->container->get('service.team');
+        return $this->publicData($service->list($this->teamFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetTeam(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TeamService $service */
+        $service = $this->container->get('service.team');
+        $team = $service->get($publicId, $this->actor());
+        return $team ? ['team' => $this->publicData($team)] : ['error' => 'Team not found.'];
+    }
+
+    private function crmCreateTeam(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var TeamService $service */
+        $service = $this->container->get('service.team');
+        return ['team' => $this->publicData($service->create($this->teamInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateTeam(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TeamService $service */
+        $service = $this->container->get('service.team');
+        $team = $service->update($publicId, $this->teamInput($arguments), $this->actor());
+        return $team ? ['team' => $this->publicData($team)] : ['error' => 'Team not found.'];
+    }
+
+    private function crmListDepartments(array $arguments): array
+    {
+        /** @var DepartmentService $service */
+        $service = $this->container->get('service.department');
+        return $this->publicData($service->list($this->teamFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetDepartment(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var DepartmentService $service */
+        $service = $this->container->get('service.department');
+        $department = $service->get($publicId, $this->actor());
+        return $department ? ['department' => $this->publicData($department)] : ['error' => 'Department not found.'];
+    }
+
+    private function crmCreateDepartment(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var DepartmentService $service */
+        $service = $this->container->get('service.department');
+        return ['department' => $this->publicData($service->create($this->departmentInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateDepartment(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var DepartmentService $service */
+        $service = $this->container->get('service.department');
+        $department = $service->update($publicId, $this->departmentInput($arguments), $this->actor());
+        return $department ? ['department' => $this->publicData($department)] : ['error' => 'Department not found.'];
     }
 
     private function crmListCounterparties(array $arguments): array
@@ -1360,6 +1538,146 @@ MD;
         return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => (string)$event];
     }
 
+    private function crmListStatuses(array $arguments): array
+    {
+        /** @var StatusService $service */
+        $service = $this->container->get('service.status');
+        return $this->publicData($service->list($this->statusFilters($arguments)));
+    }
+
+    private function crmGetStatus(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var StatusService $service */
+        $service = $this->container->get('service.status');
+        $status = $service->get($publicId);
+        return $status ? ['status' => $this->publicData($status)] : ['error' => 'Status not found.'];
+    }
+
+    private function crmCreateStatus(array $arguments): array
+    {
+        foreach (['scope', 'code', 'title'] as $field) {
+            if (trim((string)($arguments[$field] ?? '')) === '') {
+                return ['error' => $field . ' is required.'];
+            }
+        }
+
+        /** @var StatusService $service */
+        $service = $this->container->get('service.status');
+        $status = $service->create($this->statusInput($arguments));
+        return is_array($status) ? ['status' => $this->publicData($status)] : ['error' => (string)$status];
+    }
+
+    private function crmUpdateStatus(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var StatusService $service */
+        $service = $this->container->get('service.status');
+        $status = $service->update($publicId, $this->statusInput($arguments));
+        return is_array($status) ? ['status' => $this->publicData($status)] : ['error' => (string)($status ?: 'Status not found.')];
+    }
+
+    private function crmListTags(array $arguments): array
+    {
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        return $this->publicData($service->list($this->tagFilters($arguments)));
+    }
+
+    private function crmGetTag(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        $tag = $service->get($publicId);
+        return $tag ? ['tag' => $this->publicData($tag)] : ['error' => 'Tag not found.'];
+    }
+
+    private function crmCreateTag(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? $arguments['name'] ?? ''));
+        if ($title === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        $input = $this->tagInput($arguments) + ['title' => $title];
+        if (trim((string)($input['code'] ?? '')) === '') {
+            $input['code'] = $this->slugCode($title);
+        }
+        $tag = $service->create($input);
+        return is_array($tag) ? ['tag' => $this->publicData($tag)] : ['error' => (string)$tag];
+    }
+
+    private function crmUpdateTag(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        $tag = $service->update($publicId, $this->tagInput($arguments));
+        return is_array($tag) ? ['tag' => $this->publicData($tag)] : ['error' => (string)($tag ?: 'Tag not found.')];
+    }
+
+    private function crmListTaskTags(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        $items = $service->listTaskTags($taskPublicId, $this->actor());
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => 'Task not found.'];
+    }
+
+    private function crmAttachTaskTag(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $tagPublicId = trim((string)($arguments['tag_public_id'] ?? ''));
+        if ($taskPublicId === '' || $tagPublicId === '') {
+            return ['error' => 'task_public_id and tag_public_id are required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        return $service->attachToTask($taskPublicId, $tagPublicId, $this->actor())
+            ? ['ok' => true, 'task_public_id' => $taskPublicId, 'tag_public_id' => $tagPublicId]
+            : ['error' => 'Task or tag not found.'];
+    }
+
+    private function crmDetachTaskTag(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $tagPublicId = trim((string)($arguments['tag_public_id'] ?? ''));
+        if ($taskPublicId === '' || $tagPublicId === '') {
+            return ['error' => 'task_public_id and tag_public_id are required.'];
+        }
+
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        return $service->detachFromTask($taskPublicId, $tagPublicId, $this->actor())
+            ? ['ok' => true, 'task_public_id' => $taskPublicId, 'tag_public_id' => $tagPublicId]
+            : ['error' => 'Task or tag not found.'];
+    }
+
     private function crmListIdeas(array $arguments): array
     {
         /** @var IdeaService $service */
@@ -1692,10 +2010,40 @@ MD;
         return $filters;
     }
 
+    private function teamFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'team_type',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
     private function crmEntityFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
             'page', 'search', 'counterparty_type', 'client_type', 'status',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function statusFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'scope', 'is_active',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function tagFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'search',
         ]);
         $filters['limit'] = $this->limit($arguments, 20, 50);
 
@@ -1783,6 +2131,20 @@ MD;
         ]) + ['source_type' => 'mcp'];
     }
 
+    private function teamInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'team_type', 'code', 'parent_public_id', 'manager_user_public_id', 'member_user_public_ids',
+        ]);
+    }
+
+    private function departmentInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'code', 'manager_user_id',
+        ]);
+    }
+
     private function counterpartyInput(array $arguments): array
     {
         return $this->pick($arguments, [
@@ -1832,6 +2194,27 @@ MD;
         ]);
     }
 
+    private function statusInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'scope', 'code', 'title', 'color', 'sort_order', 'is_active',
+        ]);
+    }
+
+    private function tagInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'code', 'title', 'name', 'color', 'description',
+        ]);
+    }
+
+    private function slugCode(string $value): string
+    {
+        $code = strtolower((string)preg_replace('/[^a-zA-Z0-9_]+/', '_', trim($value)));
+        $code = trim($code, '_');
+        return $code !== '' ? mb_substr($code, 0, 64) : 'tag_' . bin2hex(random_bytes(4));
+    }
+
     private function counterpartySchema(): array
     {
         return [
@@ -1859,6 +2242,41 @@ MD;
             'phone' => ['type' => 'string'],
             'status' => ['type' => 'string', 'default' => 'active'],
             'extra_attributes' => ['type' => 'object', 'additionalProperties' => true],
+        ];
+    }
+
+    private function teamSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'team_type' => ['type' => 'string', 'default' => 'team'],
+            'code' => ['type' => 'string'],
+            'parent_public_id' => ['type' => 'string'],
+            'manager_user_public_id' => ['type' => 'string'],
+            'member_user_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ];
+    }
+
+    private function statusSchema(): array
+    {
+        return [
+            'scope' => ['type' => 'string'],
+            'code' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'color' => ['type' => 'string'],
+            'sort_order' => ['type' => 'integer'],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1], 'default' => 1],
+        ];
+    }
+
+    private function tagSchema(): array
+    {
+        return [
+            'code' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'name' => ['type' => 'string'],
+            'color' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
         ];
     }
 

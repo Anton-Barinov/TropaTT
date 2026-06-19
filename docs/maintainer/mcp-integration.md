@@ -87,6 +87,14 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_cycle_tasks` | `task.manage` | List tasks assigned to a visible work cycle/sprint. |
 | `crm_add_tasks_to_cycle` | `task.manage` | Add existing tasks to a visible planned or active work cycle/sprint. |
 | `crm_list_users` | `user.view` | List users for assignment and collaboration lookup. |
+| `crm_list_teams` | authenticated user | List teams visible to the current user. |
+| `crm_get_team` | authenticated user | Read one visible team. |
+| `crm_create_team` | `team.manage` | Create a team. |
+| `crm_update_team` | `team.manage` | Update safe team fields. |
+| `crm_list_departments` | `department.manage` | List visible departments. |
+| `crm_get_department` | `department.manage` | Read one department. |
+| `crm_create_department` | `department.manage` | Create a department. |
+| `crm_update_department` | `department.manage` | Update safe department fields. |
 | `crm_list_counterparties` | `counterparty.manage` | List visible counterparties. |
 | `crm_get_counterparty` | `counterparty.manage` | Read one visible counterparty. |
 | `crm_create_counterparty` | `counterparty.manage` | Create a counterparty. |
@@ -129,6 +137,17 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_calendar_events` | `task.manage` | List calendar events visible to the current user. |
 | `crm_get_calendar_agenda` | `task.manage` | Read current user day/week agenda. |
 | `crm_create_calendar_event` | `task.manage` | Create a calendar event for the current user. |
+| `crm_list_statuses` | `task.manage` | List status dictionary entries. |
+| `crm_get_status` | `task.manage` | Read one status dictionary entry. |
+| `crm_create_status` | `task.manage` | Create a status dictionary entry. |
+| `crm_update_status` | `task.manage` | Update safe status fields. |
+| `crm_list_tags` | `task.manage` | List tags. |
+| `crm_get_tag` | `task.manage` | Read one tag. |
+| `crm_create_tag` | `task.manage` | Create a tag. |
+| `crm_update_tag` | `task.manage` | Update safe tag fields. |
+| `crm_list_task_tags` | `task.manage` | List tags attached to a visible task. |
+| `crm_attach_task_tag` | `task.manage` | Attach a tag to a visible task. |
+| `crm_detach_task_tag` | `task.manage` | Detach a tag from a visible task. |
 | `crm_list_ideas` | authenticated user | List visible ideas. |
 | `crm_get_idea` | authenticated user | Read one visible idea. |
 | `crm_create_idea` | authenticated user | Create a new idea as the authenticated user. |
