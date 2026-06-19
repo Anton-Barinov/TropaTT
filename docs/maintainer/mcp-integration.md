@@ -2,6 +2,8 @@
 
 This document describes the first MCP layer for TropaTT CRM. It is intended for maintainers and coding agents.
 
+For practical client setup, agent workflows and REST fallback rules, also read `docs/maintainer/agent-integration-guide.md`.
+
 ## Endpoint
 
 Use the current installation host. Do not hardcode the public demo domain.
