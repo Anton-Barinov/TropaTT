@@ -19,6 +19,7 @@ use Api\System\Library\Service\CustomFieldService;
 use Api\System\Library\Service\DepartmentService;
 use Api\System\Library\Service\DependencyService;
 use Api\System\Library\Service\FavoriteService;
+use Api\System\Library\Service\FileService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\MentionService;
 use Api\System\Library\Service\MilestoneService;
@@ -782,6 +783,26 @@ MD;
                 'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
                 'public_id' => ['type' => 'string'],
             ], ['kind', 'public_id']);
+            $tools[] = $this->tool('crm_list_files', 'List files linked to a visible task, project or knowledge page.', [
+                'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'knowledge_page']],
+                'entity_public_id' => ['type' => 'string'],
+            ], ['entity_type', 'entity_public_id']);
+            $tools[] = $this->tool('crm_get_file', 'Get file metadata by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_upload_file_base64', 'Upload a small base64-encoded file to a visible task, project or knowledge page.', [
+                'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'knowledge_page']],
+                'entity_public_id' => ['type' => 'string'],
+                'name' => ['type' => 'string'],
+                'mime_type' => ['type' => 'string'],
+                'content_base64' => ['type' => 'string'],
+            ], ['entity_type', 'entity_public_id', 'name', 'content_base64']);
+            $tools[] = $this->tool('crm_get_file_download_info', 'Get a safe API download URL for a file if the current user can access it.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_file', 'Soft-delete a file by public id when CRM rules allow it.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_statuses', 'List task/project status dictionary entries.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -1104,6 +1125,11 @@ MD;
             'crm_create_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTemplate($arguments))),
             'crm_update_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTemplate($arguments))),
             'crm_apply_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmApplyTemplate($arguments))),
+            'crm_list_files' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListFiles($arguments))),
+            'crm_get_file' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetFile($arguments))),
+            'crm_upload_file_base64' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUploadFileBase64($arguments))),
+            'crm_get_file_download_info' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetFileDownloadInfo($arguments))),
+            'crm_delete_file' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteFile($arguments))),
             'crm_list_statuses' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStatuses($arguments))),
             'crm_get_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStatus($arguments))),
             'crm_create_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStatus($arguments))),
@@ -2582,6 +2608,103 @@ MD;
     {
         $kind = strtolower(trim((string)($arguments['kind'] ?? '')));
         return in_array($kind, ['task', 'project'], true) ? $kind : null;
+    }
+
+    private function crmListFiles(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if (!$this->isAllowedFileEntityType($entityType) || $entityPublicId === '') {
+            return ['error' => 'entity_type must be task, project or knowledge_page and entity_public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        $items = $service->listByEntity($entityType, $entityPublicId, $this->actor());
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => 'Linked entity not found or access denied.'];
+    }
+
+    private function crmGetFile(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        $file = $service->get($publicId, $this->actor());
+        return $file && (int)($file['is_deleted'] ?? 0) !== 1
+            ? ['file' => $this->publicData($file)]
+            : ['error' => 'File not found.'];
+    }
+
+    private function crmUploadFileBase64(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        $name = trim((string)($arguments['name'] ?? ''));
+        $contentBase64 = trim((string)($arguments['content_base64'] ?? ''));
+        if (!$this->isAllowedFileEntityType($entityType) || $entityPublicId === '' || $name === '' || $contentBase64 === '') {
+            return ['error' => 'entity_type, entity_public_id, name and content_base64 are required.'];
+        }
+        if (strlen($contentBase64) > 7_000_000) {
+            return ['error' => 'content_base64 is too large for MCP JSON upload. Use the REST multipart upload endpoint instead.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        try {
+            $file = $service->create($this->pick($arguments, [
+                'entity_type', 'entity_public_id', 'name', 'mime_type', 'content_base64',
+            ]), [], (int)($this->actor()['id'] ?? 0), $this->actor());
+            return ['file' => $this->publicData($file)];
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'File upload failed.'];
+        }
+    }
+
+    private function crmGetFileDownloadInfo(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        $result = $service->canDownloadInternal($publicId, $this->actor());
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['error'] ?? 'FILE_NOT_FOUND')];
+        }
+
+        return [
+            'ok' => true,
+            'public_id' => $publicId,
+            'name' => (string)($result['name'] ?? ''),
+            'mime_type' => (string)($result['mime_type'] ?? ''),
+            'size_bytes' => (int)($result['size_bytes'] ?? 0),
+            'download_url' => '/api/index.php?route=api/v1/files/' . rawurlencode($publicId) . '/download',
+        ];
+    }
+
+    private function crmDeleteFile(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        return $service->delete($publicId, $this->actor())
+            ? ['ok' => true, 'public_id' => $publicId]
+            : ['error' => 'File not found.'];
+    }
+
+    private function isAllowedFileEntityType(string $entityType): bool
+    {
+        return in_array($entityType, ['task', 'project', 'knowledge_page'], true);
     }
 
     private function crmListStatuses(array $arguments): array
