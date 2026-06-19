@@ -495,6 +495,8 @@ return array (
       'manager_aria' => '按负责人筛选',
       'project' => '项目',
       'project_aria' => '按项目筛选',
+      'cycle' => '周期',
+      'cycle_aria' => '按周期筛选',
       'due_aria' => '按截止日期筛选',
       'overdue' => '已逾期',
       'today' => '今天',
@@ -504,9 +506,11 @@ return array (
       'all_assignees' => '所有执行人',
       'all_managers' => '所有负责人',
       'all_projects' => '所有项目',
+      'all_cycles' => '所有周期',
       'no_assignee' => '无执行人',
       'no_manager' => '无负责人',
       'no_project' => '无项目',
+      'no_cycle' => '无周期',
     ),
     'summary' => 
     array (

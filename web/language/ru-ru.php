@@ -591,6 +591,8 @@ return array (
       'manager_aria' => 'Фильтр по менеджерам',
       'project' => 'Проект',
       'project_aria' => 'Фильтр по проектам',
+      'cycle' => 'Цикл',
+      'cycle_aria' => 'Фильтр по циклам',
       'due_aria' => 'Фильтры по срокам',
       'overdue' => 'Просроченные',
       'today' => 'Сегодня',
@@ -600,9 +602,11 @@ return array (
       'all_assignees' => 'Все исполнители',
       'all_managers' => 'Все менеджеры',
       'all_projects' => 'Все проекты',
+      'all_cycles' => 'Все циклы',
       'no_assignee' => 'Без исполнителя',
       'no_manager' => 'Без менеджера',
       'no_project' => 'Без проекта',
+      'no_cycle' => 'Без цикла',
     ),
     'summary' => 
     array (

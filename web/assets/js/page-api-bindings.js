@@ -16867,14 +16867,19 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanReadFiltersFromQuery() {
     var query = pageQuery();
-    var hasFilterParams = ['q', 'search', 'assignee', 'manager', 'project', 'tag_id', 'due', 'due_from', 'due_to'].some(function (key) {
+    var hasFilterParams = ['q', 'search', 'assignee', 'manager', 'project', 'cycle', 'cycle_public_id', 'tag_id', 'due', 'due_from', 'due_to'].some(function (key) {
       return query.has(key);
+    });
+    var cycles = kanbanParamList(query, 'cycle');
+    kanbanParamList(query, 'cycle_public_id').forEach(function (value) {
+      if (cycles.indexOf(value) === -1) cycles.push(value);
     });
     var filters = {
       q: String(query.get('q') || query.get('search') || '').trim(),
       assignees: kanbanParamList(query, 'assignee'),
       managers: kanbanParamList(query, 'manager'),
       projects: kanbanParamList(query, 'project'),
+      cycles: cycles,
       tags: kanbanParamList(query, 'tag_id'),
       due: String(query.get('due') || '').trim(),
       dueFrom: String(query.get('due_from') || '').trim(),
@@ -16887,6 +16892,7 @@ window.CRM.pageApiBindings = (function () {
         if (cookie.assignees && cookie.assignees.length) filters.assignees = cookie.assignees;
         if (cookie.managers && cookie.managers.length) filters.managers = cookie.managers;
         if (cookie.projects && cookie.projects.length) filters.projects = cookie.projects;
+        if (cookie.cycles && cookie.cycles.length) filters.cycles = cookie.cycles;
         if (cookie.tags && cookie.tags.length) filters.tags = cookie.tags;
         if (cookie.due) filters.due = cookie.due;
       } catch (_) {}
@@ -17010,15 +17016,17 @@ window.CRM.pageApiBindings = (function () {
       if (kind === 'assignee') return kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
       if (kind === 'manager') return kanbanT('kanban.filters.no_manager', 'Без менеджера');
       if (kind === 'project') return kanbanT('kanban.filters.no_project', 'Без проекта');
+      if (kind === 'cycle') return kanbanT('kanban.filters.no_cycle', 'Без цикла');
     }
     return String(fallback || value || '').trim();
   }
 
   function kanbanBuildFilterOptions(tasks) {
-    var buckets = { assignee: {}, manager: {}, project: {}, tag: {} };
+    var buckets = { assignee: {}, manager: {}, project: {}, cycle: {}, tag: {} };
     var hasNoAssignee = false;
     var hasNoManager = false;
     var hasNoProject = false;
+    var hasNoCycle = false;
     tasks.forEach(function (task) {
       var assignees = kanbanTaskAssignees(task);
       if (assignees.length) {
@@ -17043,6 +17051,13 @@ window.CRM.pageApiBindings = (function () {
       } else {
         hasNoProject = true;
       }
+      var cycleId = String(task.cycle_public_id || '').trim();
+      var cycleTitle = String(task.cycle_title || '').trim();
+      if (cycleId || cycleTitle) {
+        buckets.cycle[cycleId || cycleTitle] = cycleTitle || cycleId;
+      } else {
+        hasNoCycle = true;
+      }
       // Collect tags
       if (task.tags) {
         try { var parsed = typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags; }
@@ -17057,6 +17072,10 @@ window.CRM.pageApiBindings = (function () {
     if (hasNoAssignee) buckets.assignee.__none = kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
     if (hasNoManager) buckets.manager.__none = kanbanT('kanban.filters.no_manager', 'Без менеджера');
     if (hasNoProject) buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
+    if (hasNoCycle) buckets.cycle.__none = kanbanT('kanban.filters.no_cycle', 'Без цикла');
+    Object.keys(window.CRM.kanbanCycleOptions || {}).forEach(function (key) {
+      buckets.cycle[key] = window.CRM.kanbanCycleOptions[key];
+    });
     return buckets;
   }
 
@@ -17081,7 +17100,8 @@ window.CRM.pageApiBindings = (function () {
     var allLabels = {
       assignee: kanbanT('kanban.filters.all_assignees', 'Все исполнители'),
       manager: kanbanT('kanban.filters.all_managers', 'Все менеджеры'),
-      project: kanbanT('kanban.filters.all_projects', 'Все проекты')
+      project: kanbanT('kanban.filters.all_projects', 'Все проекты'),
+      cycle: kanbanT('kanban.filters.all_cycles', 'Все циклы')
     };
     var entries = [{ value: '', label: allLabels[kind] || kanbanT('kanban.filters.all', 'Все') }];
     var others = Object.keys(map || {}).map(function (key) {
@@ -17100,13 +17120,14 @@ window.CRM.pageApiBindings = (function () {
 
   function kanbanUpdateUrl(filters) {
     var query = getCurrentQueryObject();
-    ['q', 'search', 'assignee', 'manager', 'project', 'tag_id', 'due', 'due_from', 'due_to'].forEach(function (key) {
+    ['q', 'search', 'assignee', 'manager', 'project', 'cycle', 'cycle_public_id', 'tag_id', 'due', 'due_from', 'due_to'].forEach(function (key) {
       delete query[key];
     });
     if (filters.q) query.q = filters.q;
     if (filters.assignees && filters.assignees.length) query.assignee = filters.assignees.join(',');
     if (filters.managers && filters.managers.length) query.manager = filters.managers.join(',');
     if (filters.projects && filters.projects.length) query.project = filters.projects.join(',');
+    if (filters.cycles && filters.cycles.length) query.cycle_public_id = filters.cycles.join(',');
     if (filters.tags && filters.tags.length) query.tag_id = filters.tags[0];
     if (filters.due) query.due = filters.due;
     if (filters.dueFrom) query.due_from = filters.dueFrom;
@@ -17119,6 +17140,7 @@ window.CRM.pageApiBindings = (function () {
         assignees: filters.assignees || [],
         managers: filters.managers || [],
         projects: filters.projects || [],
+        cycles: filters.cycles || [],
         tags: filters.tags || [],
         due: filters.due || ''
       };
@@ -17132,6 +17154,7 @@ window.CRM.pageApiBindings = (function () {
       assignees: kanbanSelectedValues(document.getElementById('kanbanAssigneeFilter')),
       managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
       projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
+      cycles: kanbanSelectedValues(document.getElementById('kanbanCycleFilter')),
       tags: kanbanSelectedValues(document.getElementById('kanbanTagFilter')),
       due: String((document.querySelector('[data-kanban-due].is-active')?.getAttribute('data-kanban-due') || '')).trim()
     };
@@ -17145,7 +17168,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function kanbanFilterActive(filters) {
-    return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || (filters.tags && filters.tags.length) || filters.due || filters.dueFrom || filters.dueTo);
+    return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || (filters.cycles && filters.cycles.length) || (filters.tags && filters.tags.length) || filters.due || filters.dueFrom || filters.dueTo);
   }
 
   function kanbanTaskMatches(task, filters) {
@@ -17171,6 +17194,10 @@ window.CRM.pageApiBindings = (function () {
     if (filters.projects && filters.projects.length) {
       var projectKey = String(task.project_public_id || task.project_title || '').trim();
       if (!(filters.projects.indexOf('__none') >= 0 && !projectKey) && (!projectKey || filters.projects.indexOf(projectKey) === -1)) return false;
+    }
+    if (filters.cycles && filters.cycles.length) {
+      var cycleKey = String(task.cycle_public_id || task.cycle_title || '').trim();
+      if (!(filters.cycles.indexOf('__none') >= 0 && !cycleKey) && (!cycleKey || filters.cycles.indexOf(cycleKey) === -1)) return false;
     }
     if (filters.due) {
       var state = kanbanDueState(task);
@@ -17249,18 +17276,23 @@ window.CRM.pageApiBindings = (function () {
     var assignee = document.getElementById('kanbanAssigneeFilter');
     var manager = document.getElementById('kanbanManagerFilter');
     var project = document.getElementById('kanbanProjectFilter');
+    var cycle = document.getElementById('kanbanCycleFilter');
     var reset = document.getElementById('kanbanFiltersResetBtn');
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     var options = kanbanBuildFilterOptions(window.CRM.kanbanTasks || []);
     var apply = window.CRM.kanbanApplyFilters || function (f, u) { window.CRM.kanbanFilters = f; if (u) kanbanUpdateUrl(f); updateKanbanColumns(); };
     window.CRM.kanbanApplyFilters = apply;
-    [assignee, manager, project].forEach(function (select) {
-      if (select) kanbanPopulateSelect(select, options[select.id.replace('kanban', '').replace('Filter', '').toLowerCase()] || {}, filters, select.id);
+    [assignee, manager, project, cycle].forEach(function (select) {
+      if (!select) return;
+      var kind = select.id.replace('kanban', '').replace('Filter', '').toLowerCase();
+      var selected = kind === 'assignee' ? filters.assignees : kind === 'manager' ? filters.managers : kind === 'project' ? filters.projects : kind === 'cycle' ? filters.cycles : [];
+      kanbanPopulateSelect(select, options[kind] || {}, selected, kind);
     });
     // Restore filter values after populate
     if (assignee && filters.assignees && filters.assignees.length) kanbanSetMultiValue(assignee, filters.assignees);
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
+    if (cycle && filters.cycles && filters.cycles.length) kanbanSetMultiValue(cycle, filters.cycles);
     // Active tag chip display in filter area
     var tagChipContainer = document.getElementById('kanbanTagChipFilter');
     if (tagChipContainer) {
@@ -17277,7 +17309,7 @@ window.CRM.pageApiBindings = (function () {
         tagChipContainer.innerHTML = '';
       }
     }
-    [assignee, manager, project].forEach(function (select) {
+    [assignee, manager, project, cycle].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
       select.dataset.bound = '1';
@@ -17314,6 +17346,7 @@ window.CRM.pageApiBindings = (function () {
           if (assignee) { assignee.value = ''; }
           if (manager) { manager.value = ''; }
           if (project) { project.value = ''; }
+          if (cycle) { cycle.value = ''; }
           // Clear searchable inputs and clear buttons
           document.querySelectorAll('.crm-kanban-filters .crm-searchable-input, .crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
           document.querySelectorAll('.crm-kanban-filters .crm-searchable-clear, .crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
@@ -17324,20 +17357,52 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  function kanbanBuildTaskQuery(filters) {
+    var query = { limit: 500 };
+    if (filters.q) query.search = filters.q;
+    if (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none') query.project_public_id = filters.projects[0];
+    if (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none') query.cycle_public_id = filters.cycles[0];
+    if (filters.tags && filters.tags.length) query.tag_public_id = filters.tags[0];
+    return query;
+  }
+
+  function kanbanNeedsFilteredTaskFetch(filters) {
+    return Boolean(
+      filters.q
+      || (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none')
+      || (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none')
+      || (filters.tags && filters.tags.length)
+    );
+  }
+
+  async function kanbanLoadCycleOptions() {
+    window.CRM.kanbanCycleOptions = {};
+    var select = document.getElementById('kanbanCycleFilter');
+    if (!select) return;
+    var envelope = await tryRequest('api/v1/cycles', { query: { limit: 100, archived: '1' }, silent: true });
+    if (!envelope || envelope.success === false) return;
+    mapItems(envelope).forEach(function (cycle) {
+      var id = String(cycle.public_id || '').trim();
+      if (!id) return;
+      window.CRM.kanbanCycleOptions[id] = String(cycle.title || id);
+    });
+  }
 
   async function renderKanbanPage() {
     window.CRM.kanbanFilters = kanbanReadFiltersFromQuery();
+    await kanbanLoadCycleOptions();
     // Try to load configured statuses (order) from API; fall back to sensible defaults
     var statusOrder = ['new', 'in_progress', 'done'];
     var statusesEnvelope = null;
-    var pageEnvelope = await tryRequest('api/v1/pages/kanban', { silent: true });
+    var shouldFetchFilteredTasks = kanbanNeedsFilteredTaskFetch(window.CRM.kanbanFilters);
+    var pageEnvelope = shouldFetchFilteredTasks ? null : await tryRequest('api/v1/pages/kanban', { silent: true });
     if (pageEnvelope && pageEnvelope.success !== false && pageEnvelope.data) {
       var pageData = pageEnvelope.data || {};
       var pageTasks = pageData.tasks && Array.isArray(pageData.tasks.items) ? pageData.tasks.items : [];
       window.CRM.kanbanTasks = pageTasks;
       statusesEnvelope = pageData.statuses ? { success: true, data: pageData.statuses } : null;
     } else {
-      var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 100 } });
+      var tasksEnvelope = await tryRequest('api/v1/tasks', { query: kanbanBuildTaskQuery(window.CRM.kanbanFilters) });
       if (tasksEnvelope && tasksEnvelope.success !== false) {
         var tasks = mapItems(tasksEnvelope);
         window.CRM.kanbanTasks = tasks;

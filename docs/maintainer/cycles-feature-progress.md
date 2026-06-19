@@ -46,3 +46,21 @@ Pending verification:
 - Open detail modal, Tasks tab, Board tab and Complete modal.
 - Create a test cycle, edit it, add a task if suitable demo data exists, and archive/complete safely.
 - API and menu access are aligned on `project.manage` for now. A dedicated `cycle.view` / `cycle.manage` permission split can be introduced later with a migration and role seeding plan.
+
+## 2026-06-19 follow-up
+
+Goal: fix cycle focus, Kanban navigation and visibility rules reported from demo.
+
+Implemented:
+- Cycle visibility is now restricted at API list/detail level: root/admin roles see all; regular users see cycles they created, own, or where they are assignees of at least one task in the cycle.
+- Cycle detail tasks and summary endpoints use the same visibility check, so direct URLs cannot expose hidden cycles.
+- The cycle command-center focus no longer clears and recalculates from the currently visible page. It loads a separate stable summary for the selected project.
+- Kanban now has a Cycle filter and understands `cycle_public_id` from links such as `index.php?route=kanban&cycle_public_id=...`.
+- Kanban persists the cycle filter in `kanbanFilters` cookie and applies it to the API task query when opening a filtered board.
+- Cycle pagination was moved from default Bootstrap pagination to CRM-styled compact buttons.
+
+Verification needed:
+- Log in as admin and confirm all cycles are visible.
+- Log in as a non-admin creator and confirm only owned/created cycles plus cycles with assigned tasks are visible.
+- Open a cycle with no tasks, click "Open board", and confirm Kanban shows an empty board with that cycle selected.
+- Open a cycle with tasks and confirm Kanban shows only tasks from that cycle.
