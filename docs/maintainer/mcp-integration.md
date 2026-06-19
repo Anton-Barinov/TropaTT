@@ -160,6 +160,19 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_update_sticky_note` | `task.manage` | Update a sticky note. |
 | `crm_archive_sticky_note` | `task.manage` | Archive a sticky note. |
 | `crm_unarchive_sticky_note` | `task.manage` | Unarchive a sticky note. |
+| `crm_list_estimate_sets` | `task.manage` | List estimate sets available to the current user. |
+| `crm_get_estimate_set` | `task.manage` | Read one estimate set. |
+| `crm_create_estimate_set` | `task.manage` | Create an estimate set. |
+| `crm_update_estimate_set` | `task.manage` | Update an estimate set. |
+| `crm_list_estimate_options` | `task.manage` | List options inside an estimate set. |
+| `crm_create_estimate_option` | `task.manage` | Create an estimate option. |
+| `crm_update_estimate_option` | `task.manage` | Update an estimate option. |
+| `crm_list_task_estimates` | `task.manage` | List estimates assigned to a visible task. |
+| `crm_assign_task_estimate` | `task.manage` | Assign or update a task estimate. |
+| `crm_remove_task_estimate` | `task.manage` | Remove an estimate set assignment from a task. |
+| `crm_get_project_estimate_summary` | `task.manage` | Read estimate summary for a project. |
+| `crm_get_cycle_estimate_summary` | `task.manage` | Read estimate summary for a work cycle/sprint. |
+| `crm_get_module_estimate_summary` | `task.manage` | Read estimate summary for a project module. |
 | `crm_list_statuses` | `task.manage` | List status dictionary entries. |
 | `crm_get_status` | `task.manage` | Read one status dictionary entry. |
 | `crm_create_status` | `task.manage` | Create a status dictionary entry. |
