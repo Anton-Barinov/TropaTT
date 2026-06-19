@@ -41,8 +41,30 @@ Authorization: Bearer <access_token>
 - `initialize`
 - `notifications/initialized`
 - `ping`
+- `resources/list`
+- `resources/read`
 - `tools/list`
 - `tools/call`
+
+## MCP Resources
+
+Resources are read-only context blocks that help MCP clients understand the CRM installation before calling tools. The server uses a custom `tropatt://` URI scheme and does not expose local files.
+
+| URI | MIME type | Purpose |
+| --- | --- | --- |
+| `tropatt://server/about` | `text/markdown` | Overview, endpoint, auth rules and recommended agent workflow. |
+| `tropatt://server/tools` | `application/json` | Tool list visible to the current authenticated user. |
+| `tropatt://server/api-map` | `text/markdown` | High-level map of CRM API domains and safety notes. |
+| `tropatt://user/current` | `application/json` | Sanitized current user profile and permissions. |
+
+Example:
+
+```bash
+curl -sS -X POST 'https://example.com/api/index.php?route=api/v1/mcp' \
+  -H 'Authorization: Bearer <access_token>' \
+  -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"tropatt://server/tools"}}'
+```
 
 ## First MCP Tools
 
@@ -117,6 +139,9 @@ Expected response shape:
   "result": {
     "protocolVersion": "2025-06-18",
     "capabilities": {
+      "resources": {
+        "listChanged": false
+      },
       "tools": {
         "listChanged": false
       }
