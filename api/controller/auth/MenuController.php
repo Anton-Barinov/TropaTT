@@ -260,6 +260,27 @@ final class MenuController extends BaseController
         ]);
     }
 
+    private function loadTeamTemplateByPublicId(string $teamPublicId): array
+    {
+        if ($teamPublicId === '' || !$this->container->has('service.setting')) {
+            return [];
+        }
+
+        try {
+            /** @var \Api\System\Library\Service\SettingService $settingService */
+            $settingService = $this->container->get('service.setting');
+            $scope = self::TEAM_SCOPE_PREFIX . $teamPublicId;
+            $setting = $settingService->get($scope, self::TEMPLATE_NAME);
+            if ($setting === null) {
+                return [];
+            }
+            $value = $setting['value'] ?? [];
+            return is_array($value) ? $value : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function loadTeamTemplate(int $userId): array
     {
         if ($userId <= 0 || !$this->container->has('service.setting')) {
