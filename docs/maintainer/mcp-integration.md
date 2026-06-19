@@ -148,6 +148,19 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_task_tags` | `task.manage` | List tags attached to a visible task. |
 | `crm_attach_task_tag` | `task.manage` | Attach a tag to a visible task. |
 | `crm_detach_task_tag` | `task.manage` | Detach a tag from a visible task. |
+| `crm_list_task_checklists` | `task.manage` | List checklists for a visible task. |
+| `crm_create_task_checklist` | `task.manage` | Create a checklist on a visible task. |
+| `crm_update_checklist` | `task.manage` | Update a checklist title. |
+| `crm_list_checklist_items` | `task.manage` | List checklist items. |
+| `crm_create_checklist_item` | `task.manage` | Create a checklist item. |
+| `crm_update_checklist_item` | `task.manage` | Update checklist item text, order or completion state. |
+| `crm_list_dependencies` | `task.manage` | List visible task dependencies. |
+| `crm_create_dependency` | `task.manage` | Create a dependency between visible tasks. |
+| `crm_list_worklogs` | `task.manage` | List time tracking entries visible to the current user. |
+| `crm_get_worklog` | `task.manage` | Read one time tracking entry by `public_id`. |
+| `crm_create_worklog` | `task.manage` | Log spent time against a task or as a standalone work entry. |
+| `crm_update_worklog` | `task.manage` | Update a visible time tracking entry. |
+| `crm_get_worklog_summary` | `task.manage` | Read time tracking totals grouped by day. |
 | `crm_list_ideas` | authenticated user | List visible ideas. |
 | `crm_get_idea` | authenticated user | Read one visible idea. |
 | `crm_create_idea` | authenticated user | Create a new idea as the authenticated user. |
