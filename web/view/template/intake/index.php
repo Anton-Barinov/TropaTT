@@ -9,6 +9,28 @@
   ['label' => $t('intake.page_title', 'Входящие заявки'), 'active' => true],
 ], $t('intake.page_title', 'Входящие заявки'), $t('intake.subtitle', 'Фиксация, разбор и приём в работу входящих обращений.'), '<button class="btn crm-btn-primary" type="button" data-intake-create data-bs-toggle="modal" data-bs-target="#intakeCreateModal">' . htmlspecialchars($t('intake.btn_create', 'Новая заявка'), ENT_QUOTES, 'UTF-8') . '</button>'); ?>
 
+
+<section class="crm-intake-info crm-card mb-3">
+  <div class="row g-3 align-items-center">
+    <div class="col-auto">
+      <i class="fa-solid fa-inbox fa-2x text-muted"></i>
+    </div>
+    <div class="col">
+      <strong data-i18n="intake.info_title">Что такое «Входящие заявки»?</strong>
+      <p class="mb-0 text-muted small" data-i18n="intake.info_text">
+        Этот раздел предназначен для сбора и обработки входящих обращений. 
+        Заявки можно создавать вручную, принимать через API или email. 
+        После обработки заявку можно принять в работу (создаётся задача), 
+        отклонить с причиной, отложить до указанной даты или пометить как дубликат.
+      </p>
+    </div>
+    <div class="col-auto text-end">
+      <span class="badge bg-light text-dark fs-6" id="intakeTotalCount">0</span>
+      <small class="text-muted d-block" data-i18n="intake.stats_label">заявок всего</small>
+    </div>
+  </div>
+</section>
+
 <section class="crm-intake-filters crm-filters-card">
   <div class="crm-intake-search">
     <label class="crm-filter-label" for="intakeSearchInput"><?= htmlspecialchars($t('intake.filter_search', 'Поиск'), ENT_QUOTES, 'UTF-8') ?></label>

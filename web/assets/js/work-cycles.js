@@ -98,7 +98,14 @@
       .catch(function (err) {
         loadingEl.classList.add('d-none');
         errorEl.classList.remove('d-none');
-        document.getElementById('cycleErrorText').textContent = err && err.message || t('cycles.error_load', 'Не удалось загрузить циклы.');
+                var errMsg = "";
+        if (err && typeof err === "object") {
+          if (err.code) errMsg = err.code + ": ";
+          if (err.message) errMsg += err.message;
+          if (err.isPermissionError) errMsg = t("cycles.error_permission", "Недостаточно прав для просмотра циклов.");
+          if (err.isNotFound) errMsg = t("cycles.error_not_found", "Раздел циклов временно недоступен.");
+        }
+        document.getElementById("cycleErrorText").textContent = errMsg || err && err.message || t("cycles.error_load", "Не удалось загрузить циклы.");
       });
   };
 
@@ -258,7 +265,7 @@
       data.row_version = parseInt(document.getElementById('cycleFormRowVersion').value) || 0;
     }
 
-    apiRequest(url, { method: method, body: JSON.stringify(data) })
+    apiRequest(url, { method: method, body: data })
       .then(function () {
         document.getElementById('cycleFormSubmit').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('cycleModal')).hide();
@@ -334,7 +341,7 @@
     }
 
     document.getElementById('completeCycleConfirmBtn').disabled = true;
-    apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/complete', { method: 'POST', body: JSON.stringify(data) })
+    apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/complete', { method: 'POST', body: data })
       .then(function () {
         document.getElementById('completeCycleConfirmBtn').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('completeCycleModal')).hide();
@@ -543,7 +550,7 @@
     document.getElementById('addTasksConfirmBtn').disabled = true;
     apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/tasks', {
       method: 'POST',
-      body: JSON.stringify({ task_public_ids: ids })
+      body: { task_public_ids: ids }
     })
       .then(function () {
         document.getElementById('addTasksConfirmBtn').disabled = false;
