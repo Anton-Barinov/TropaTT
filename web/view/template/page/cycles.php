@@ -2,7 +2,7 @@
 <?php $title = $t('cycles.page_title', 'Циклы'); ?>
 <body data-page="cycles" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content">
+<main class="crm-content crm-cycles-page">
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><?= htmlspecialchars($t('cycles.page_title', 'Циклы'), ENT_QUOTES, 'UTF-8') ?><span class="crm-badge crm-badge-secondary-outline ms-2 small fw-normal"><?= htmlspecialchars($t('cycles.subtitle_badge', 'Спринты / Итерации'), ENT_QUOTES, 'UTF-8') ?></span></h4>
@@ -116,7 +116,7 @@
               <label class="form-label"><?= htmlspecialchars($t('cycles.form_label_owner', 'Владелец'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" id="cycleFormOwner"></select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" id="cycleFormStatusField">
               <label class="form-label"><?= htmlspecialchars($t('cycles.form_label_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" id="cycleFormStatus">
                 <option value="planned"><?= htmlspecialchars($t('cycles.form_status_planned', 'Запланирован'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -159,6 +159,9 @@
             <button class="nav-link" id="cycleTasksTab" data-bs-toggle="tab" data-bs-target="#cycleTasksPane" type="button" role="tab"><?= htmlspecialchars($t('cycles.tab_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></button>
           </li>
           <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cycleBoardTab" data-bs-toggle="tab" data-bs-target="#cycleBoardPane" type="button" role="tab"><?= htmlspecialchars($t('cycles.tab_board', 'Доска'), ENT_QUOTES, 'UTF-8') ?></button>
+          </li>
+          <li class="nav-item" role="presentation">
             <button class="nav-link" id="cycleSummaryTab" data-bs-toggle="tab" data-bs-target="#cycleSummaryPane" type="button" role="tab"><?= htmlspecialchars($t('cycles.tab_statistics', 'Статистика'), ENT_QUOTES, 'UTF-8') ?></button>
           </li>
         </ul>
@@ -168,6 +171,9 @@
           </div>
           <div class="tab-pane fade" id="cycleTasksPane" role="tabpanel">
             <div id="cycleTasksContent"></div>
+          </div>
+          <div class="tab-pane fade" id="cycleBoardPane" role="tabpanel">
+            <div id="cycleBoardContent"></div>
           </div>
           <div class="tab-pane fade" id="cycleSummaryPane" role="tabpanel">
             <div id="cycleSummaryContent"></div>
@@ -237,12 +243,38 @@
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 16px;
+  padding: 14px 16px;
   margin-bottom: 12px;
-  transition: box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .crm-cycle-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: rgba(11, 122, 98, 0.28);
+  background: #fbfefd;
+}
+.crm-cycle-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  gap: 16px;
+}
+.crm-cycle-title {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #13201d;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+.crm-cycle-title:hover,
+.crm-cycle-title:focus {
+  color: #0b7a62;
+  outline: none;
+}
+.crm-cycle-progress-panel {
+  min-width: 150px;
+  align-self: center;
+  text-align: right;
 }
 .crm-cycle-progress {
   height: 6px;
@@ -252,8 +284,16 @@
 .crm-cycle-progress-bar {
   height: 100%;
   border-radius: 3px;
-  background: #4caf50;
+  background: #0b7a62;
   transition: width 0.3s ease;
+}
+.crm-cycle-next-step {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  color: #58716b;
+  font-size: 13px;
 }
 .crm-cycle-badge {
   display: inline-block;
@@ -266,5 +306,31 @@
 .crm-cycle-badge-active { background: #e8f5e9; color: #2e7d32; }
 .crm-cycle-badge-completed { background: #f3e5f5; color: #7b1fa2; }
 .crm-cycle-badge-archived { background: #f5f5f5; color: #616161; }
+.crm-cycle-detail-callout,
+.crm-cycle-board-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dbe8e4;
+  border-radius: 8px;
+  background: #f8fcfb;
+}
+@media (max-width: 767.98px) {
+  .crm-cycle-card-grid,
+  .crm-cycle-detail-callout,
+  .crm-cycle-board-link {
+    display: block;
+  }
+  .crm-cycle-progress-panel {
+    margin-top: 12px;
+    text-align: left;
+  }
+  .crm-cycle-detail-callout .d-flex,
+  .crm-cycle-board-link .btn {
+    margin-top: 12px;
+  }
+}
 </style>
 </main></div></div>

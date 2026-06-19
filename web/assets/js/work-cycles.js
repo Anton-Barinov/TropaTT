@@ -10,6 +10,7 @@
 
   var currentPage = 1;
   var currentCyclePublicId = null;
+  var currentCycleDetail = null;
   var selectedTasks = {};
 
   function api() {
@@ -38,6 +39,13 @@
       if (isNaN(dt.getTime())) return d;
       return dt.toLocaleDateString(t('cycles.locale', 'ru-RU'), { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (e) { return d; }
+  }
+
+  function daysDiffFromNow(d) {
+    if (!d) return null;
+    var dt = new Date(String(d).replace(' ', 'T') + 'Z');
+    if (isNaN(dt.getTime())) return null;
+    return Math.ceil((dt.getTime() - Date.now()) / 86400000);
   }
 
   function statusBadge(status) {
@@ -125,17 +133,28 @@
     var progress = cycle.progress_percent || 0;
     var totalTasks = cycle.tasks_count || 0;
     var completedCount = cycle.completed_tasks_count || 0;
+    var openCount = Math.max(0, totalTasks - completedCount);
     var timeState = cycle.time_state || '';
     var timeLabel = timeState === 'running' ? t('cycles.time_running', 'Идёт') : timeState === 'not_started' ? t('cycles.time_not_started', 'Не начат') : timeState === 'ended' ? t('cycles.time_ended', 'Завершён по дате') : '';
     var isOverdue = timeState === 'ended' && cycle.status === 'active';
-
-    var progressColor = progress >= 80 ? '#4caf50' : progress >= 40 ? '#ff9800' : progress > 0 ? '#f44336' : '#e0e0e0';
+    var dueDelta = daysDiffFromNow(cycle.end_at);
+    var planningHint = totalTasks === 0
+      ? t('cycles.card_hint_empty', 'План пустой: добавьте задачи, чтобы цикл стал рабочим.')
+      : openCount > 0
+        ? t('cycles.card_hint_open', 'Открытых задач:') + ' ' + openCount
+        : t('cycles.card_hint_done', 'Все задачи закрыты. Цикл можно завершить.');
+    var dateHint = '';
+    if (isOverdue && dueDelta !== null) {
+      dateHint = t('cycles.card_overdue_days', 'Просрочено дней:') + ' ' + Math.abs(dueDelta);
+    } else if (dueDelta !== null && cycle.status === 'active') {
+      dateHint = dueDelta >= 0 ? t('cycles.card_days_left', 'Осталось дней:') + ' ' + dueDelta : '';
+    }
 
     card.innerHTML =
-      '<div class="d-flex justify-content-between align-items-start">' +
+      '<div class="crm-cycle-card-grid">' +
         '<div class="flex-grow-1 min-w-0">' +
           '<div class="d-flex align-items-center gap-2 mb-1 flex-wrap">' +
-            '<h6 class="mb-0" style="cursor:pointer;" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')">' + escapeHtml(cycle.title) + '</h6>' +
+            '<button type="button" class="crm-cycle-title" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')">' + escapeHtml(cycle.title) + '</button>' +
             statusBadge(cycle.status) +
             (isOverdue ? '<span class="crm-badge crm-badge-danger" style="font-size:11px;">' + t('cycles.overdue', 'Просрочен') + '</span>' : '') +
             (timeLabel && !isOverdue ? '<small class="text-muted">' + escapeHtml(timeLabel) + '</small>' : '') +
@@ -147,17 +166,20 @@
             (cycle.end_at ? '<span>— ' + formatDate(cycle.end_at) + '</span>' : '') +
           '</div>' +
           (cycle.goal ? '<div class="small text-muted mt-1"><i class="fa-regular fa-bullseye"></i> ' + escapeHtml(cycle.goal.substring(0, 150)) + '</div>' : '') +
+          '<div class="crm-cycle-next-step">' + escapeHtml(planningHint) + (dateHint ? '<span>' + escapeHtml(dateHint) + '</span>' : '') + '</div>' +
         '</div>' +
-        '<div class="text-end ms-3" style="min-width:110px;">' +
-          '<div class="d-flex justify-content-between small mb-1">' +
+        '<div class="crm-cycle-progress-panel">' +
+          '<div class="d-flex justify-content-between small mb-1 gap-2">' +
             '<span>' + completedCount + '/' + totalTasks + ' ' + t('cycles.tasks_done', 'задач') + '</span>' +
             '<span class="fw-semibold">' + progress + '%</span>' +
           '</div>' +
-          '<div class="crm-cycle-progress"><div class="crm-cycle-progress-bar" style="width:' + progress + '%;background:' + progressColor + ';"></div></div>' +
+          '<div class="crm-cycle-progress"><div class="crm-cycle-progress-bar" style="width:' + progress + '%;"></div></div>' +
         '</div>' +
       '</div>' +
       '<div class="d-flex gap-1 mt-2 flex-wrap">' +
         (cycle.status === 'planned' ? '<button class="btn btn-sm btn-outline-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
+        (totalTasks === 0 && cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-list-check"></i> ' + t('cycles.btn_plan_tasks', 'Запланировать задачи') + '</button>' : '') +
+        (totalTasks > 0 ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-chart-simple"></i> ' + t('cycles.btn_open_detail', 'Открыть') + '</button>' : '') +
         (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm btn-outline-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
         '<button class="btn btn-sm btn-outline-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
         (cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Открыть') + '</button>' : '') +
@@ -198,14 +220,18 @@
     document.getElementById('cycleFormStartAt').value = '';
     document.getElementById('cycleFormEndAt').value = '';
     document.getElementById('cycleFormStatus').value = 'planned';
+    document.getElementById('cycleFormStatusField').classList.toggle('d-none', !!publicId);
     document.getElementById('cycleModalAlert').classList.add('d-none');
 
-    loadProjectSelect();
-    loadUserSelect();
+    var selectPromises = Promise.all([loadProjectSelect(), loadUserSelect()]);
 
     if (publicId) {
-      apiRequest('api/v1/cycles/' + encodeURIComponent(publicId), { method: 'GET' })
-        .then(function (env) {
+      Promise.all([
+        selectPromises,
+        apiRequest('api/v1/cycles/' + encodeURIComponent(publicId), { method: 'GET' })
+      ])
+        .then(function (results) {
+          var env = results[1];
           var c = env.data || {};
           document.getElementById('cycleFormTitle').value = c.title || '';
           document.getElementById('cycleFormGoal').value = c.goal || '';
@@ -243,7 +269,7 @@
     var publicId = document.getElementById('cycleFormPublicId').value;
     var title = document.getElementById('cycleFormTitle').value.trim();
     if (!title) {
-      document.getElementById('cycleModalAlert').textContent = 'Название обязательно.';
+      document.getElementById('cycleModalAlert').textContent = t('cycles.error_title_required', 'Название обязательно.');
       document.getElementById('cycleModalAlert').classList.remove('d-none');
       return;
     }
@@ -254,10 +280,13 @@
       description: document.getElementById('cycleFormDescription').value.trim(),
       start_at: document.getElementById('cycleFormStartAt').value || null,
       end_at: document.getElementById('cycleFormEndAt').value || null,
-      status: document.getElementById('cycleFormStatus').value,
       project_public_id: document.getElementById('cycleFormProject').value,
       owner_user_public_id: document.getElementById('cycleFormOwner').value || null,
     };
+
+    if (!publicId) {
+      data.status = document.getElementById('cycleFormStatus').value;
+    }
 
     document.getElementById('cycleFormSubmit').disabled = true;
     document.getElementById('cycleModalAlert').classList.add('d-none');
@@ -274,6 +303,9 @@
         document.getElementById('cycleFormSubmit').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('cycleModal')).hide();
         window.loadWorkCycles(currentPage);
+        if (currentCyclePublicId === publicId) {
+          window.openCycleDetail(publicId);
+        }
       })
       .catch(function (err) {
         document.getElementById('cycleFormSubmit').disabled = false;
@@ -314,16 +346,16 @@
         var s = env.data && env.data.summary || {};
         var html = '<h6>' + t('cycles.summary_title', 'Итого по циклу:') + '</h6>' +
           '<table class="table table-sm table-borderless">' +
-          '<tr><td>Всего задач:</td><td><strong>' + (s.total_tasks || 0) + '</strong></td></tr>' +
-          '<tr><td>Завершено:</td><td><strong>' + (s.completed_tasks || 0) + '</strong></td></tr>' +
-          '<tr><td>Открыто:</td><td><strong>' + (s.open_tasks || 0) + '</strong></td></tr>' +
-          '<tr><td>Просрочено:</td><td><strong>' + (s.overdue_tasks || 0) + '</strong></td></tr>' +
-          '<tr><td>Без исполнителя:</td><td><strong>' + (s.unassigned_tasks || 0) + '</strong></td></tr>' +
+          '<tr><td>' + t('cycles.total_tasks', 'Всего задач:') + '</td><td><strong>' + (s.total_tasks || 0) + '</strong></td></tr>' +
+          '<tr><td>' + t('cycles.completed', 'Завершено:') + '</td><td><strong>' + (s.completed_tasks || 0) + '</strong></td></tr>' +
+          '<tr><td>' + t('cycles.open', 'Открыто:') + '</td><td><strong>' + (s.open_tasks || 0) + '</strong></td></tr>' +
+          '<tr><td>' + t('cycles.overdue', 'Просрочено:') + '</td><td><strong>' + (s.overdue_tasks || 0) + '</strong></td></tr>' +
+          '<tr><td>' + t('cycles.no_assignee', 'Без исполнителя:') + '</td><td><strong>' + (s.unassigned_tasks || 0) + '</strong></td></tr>' +
           '</table>';
         document.getElementById('completeCycleSummary').innerHTML = html;
       })
       .catch(function () {
-        document.getElementById('completeCycleSummary').innerHTML = '<p class="text-muted">Не удалось загрузить сводку.</p>';
+        document.getElementById('completeCycleSummary').innerHTML = '<p class="text-muted">' + t('cycles.error_load_summary', 'Не удалось загрузить сводку.') + '</p>';
       });
 
     loadCyclesForSelect('completeTargetCycle', publicId);
@@ -342,6 +374,10 @@
     var data = { unfinished_action: action };
     if (action === 'move') {
       data.target_cycle_public_id = document.getElementById('completeTargetCycle').value;
+      if (!data.target_cycle_public_id) {
+        alert(t('cycles.select_target_cycle', 'Выберите целевой цикл.'));
+        return;
+      }
     }
 
     document.getElementById('completeCycleConfirmBtn').disabled = true;
@@ -361,25 +397,45 @@
   window.openCycleDetail = function (publicId) {
     currentCyclePublicId = publicId;
     var modal = new bootstrap.Modal(document.getElementById('cycleDetailModal'));
-    document.getElementById('cycleDetailTitle').textContent = 'Загрузка...';
+    document.getElementById('cycleDetailTitle').textContent = t('cycles.loading', 'Загрузка...');
 
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId), { method: 'GET' })
       .then(function (env) {
         var c = env.data || {};
+        currentCycleDetail = c;
         document.getElementById('cycleDetailTitle').textContent = c.title || t('cycles.modal_detail_title', 'Цикл');
         renderCycleOverview(c);
+        renderCycleBoard(c);
         loadCycleTasks(publicId);
         loadCycleSummary(publicId);
       })
       .catch(function () {
-        document.getElementById('cycleOverviewContent').innerHTML = '<div class="text-danger">Ошибка загрузки.</div>';
+        document.getElementById('cycleOverviewContent').innerHTML = '<div class="text-danger">' + t('cycles.error_load_detail', 'Ошибка загрузки данных цикла.') + '</div>';
       });
 
     modal.show();
   };
 
   function renderCycleOverview(cycle) {
+    var totalTasks = cycle.tasks_count || 0;
+    var completedCount = cycle.completed_tasks_count || 0;
+    var openCount = Math.max(0, totalTasks - completedCount);
+    var isOverdue = cycle.time_state === 'ended' && cycle.status === 'active';
+    var recommendation = totalTasks === 0
+      ? t('cycles.recommendation_plan_tasks', 'Сначала добавьте задачи в цикл: без плана это просто календарная метка.')
+      : openCount === 0
+        ? t('cycles.recommendation_complete_cycle', 'Все задачи закрыты: можно завершить цикл и зафиксировать результат.')
+        : isOverdue
+          ? t('cycles.recommendation_overdue', 'Цикл просрочен: проверьте незавершённые задачи и перенесите их в следующий цикл.')
+          : t('cycles.recommendation_work_focus', 'Рабочий цикл: держите фокус на открытых задачах и проверяйте прогресс каждый день.');
     var html =
+      '<div class="crm-cycle-detail-callout mb-3">' +
+        '<div><strong>' + t('cycles.next_step_title', 'Что делать дальше') + '</strong><div class="text-muted small mt-1">' + escapeHtml(recommendation) + '</div></div>' +
+        '<div class="d-flex gap-2 flex-wrap">' +
+          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-plus"></i> ' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button>' : '') +
+          (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm crm-btn-secondary" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-flag-checkered"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
+        '</div>' +
+      '</div>' +
       '<div class="row g-3">' +
         '<div class="col-md-6">' +
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_status', 'Статус') + '</small><br>' + statusBadge(cycle.status) + '</div>' +
@@ -404,26 +460,40 @@
     document.getElementById('cycleOverviewContent').innerHTML = html;
   }
 
+  function renderCycleBoard(cycle) {
+    var container = document.getElementById('cycleBoardContent');
+    if (!container) return;
+    var url = 'index.php?route=kanban&cycle_public_id=' + encodeURIComponent(cycle.public_id || '');
+    container.innerHTML =
+      '<div class="crm-cycle-board-link">' +
+        '<div>' +
+          '<strong>' + t('cycles.board_title', 'Канбан этого цикла') + '</strong>' +
+          '<p class="text-muted small mb-0">' + t('cycles.board_text', 'Откройте доску с фильтром по этому циклу, чтобы двигать задачи по статусам без лишнего шума.') + '</p>' +
+        '</div>' +
+        '<a class="btn btn-sm crm-btn-primary" href="' + url + '"><i class="fa-solid fa-table-columns"></i> ' + t('cycles.btn_open_board', 'Открыть доску') + '</a>' +
+      '</div>';
+  }
+
   function loadCycleTasks(publicId) {
     var container = document.getElementById('cycleTasksContent');
-    container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-muted" style="width:1.5rem;height:1.5rem;"><span class="visually-hidden">Загрузка...</span></div></div>';
+    container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-muted" style="width:1.5rem;height:1.5rem;"><span class="visually-hidden">' + t('cycles.loading', 'Загрузка...') + '</span></div></div>';
 
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/tasks', { method: 'GET' })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         if (!items.length) {
-          container.innerHTML = '<div class="text-center py-3 text-muted"><p>Нет задач в этом цикле.</p>' +
+          container.innerHTML = '<div class="text-center py-3 text-muted"><p>' + t('cycles.no_tasks', 'Нет задач в этом цикле.') + '</p>' +
             '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')">' + t('cycles.btn_add_tasks', 'Добавить задачи') + '</button></div>';
           return;
         }
-        var html = '<div class="d-flex justify-content-between mb-2"><span><strong>Задачи (' + items.length + ')</strong></span>' +
+        var html = '<div class="d-flex justify-content-between mb-2"><span><strong>' + t('cycles.tasks_heading', 'Задачи') + ' (' + items.length + ')</strong></span>' +
           '<button class="btn btn-sm crm-btn-primary" onclick="window.openAddTasksModal(\'' + publicId + '\')"><i class="fa-solid fa-plus"></i>' + t('cycles.btn_add', 'Добавить') + '</button></div>' +
           '<div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">';
         items.forEach(function (task) {
           var statusClass = '';
           if (task.task_status === 'done' || task.task_status === 'closed') statusClass = 'text-decoration-line-through text-muted';
           html += '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">' +
-            '<div><a href="/?route=task-detail&task_public_id=' + encodeURIComponent(task.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(task.task_title) + '</a>' +
+            '<div><a href="index.php?route=task-detail&id=' + encodeURIComponent(task.task_public_id) + '" class="' + statusClass + '">' + escapeHtml(task.task_title) + '</a>' +
             '<br><small class="text-muted">' + escapeHtml(task.task_status || '') + (task.assignee_name ? ' &middot; ' + escapeHtml(task.assignee_name) : '') + '</small></div>' +
             '<button class="btn btn-sm btn-outline-danger" onclick="window.removeTaskFromCycle(\'' + publicId + '\',\'' + encodeURIComponent(task.task_public_id) + '\')"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>';
@@ -432,7 +502,7 @@
         container.innerHTML = html;
       })
       .catch(function () {
-        container.innerHTML = '<div class="text-danger">Ошибка загрузки задач.</div>';
+        container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_tasks', 'Ошибка загрузки задач.') + '</div>';
       });
   }
 
@@ -445,7 +515,7 @@
           '<div class="row g-3">' +
             '<div class="col-md-6">' +
               '<div class="card"><div class="card-body">' +
-                '<h6 class="card-title">По статусам</h6>';
+                '<h6 class="card-title">' + t('cycles.by_status', 'По статусам') + '</h6>';
         var byStatus = s.by_status || {};
         for (var code in byStatus) {
           html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(code) + '</span><strong>' + byStatus[code] + '</strong></div>';
@@ -453,29 +523,29 @@
         html += '</div></div></div>' +
           '<div class="col-md-6">' +
             '<div class="card"><div class="card-body">' +
-              '<h6 class="card-title">По приоритетам</h6>';
+              '<h6 class="card-title">' + t('cycles.by_priority', 'По приоритетам') + '</h6>';
         var byPriority = s.by_priority || {};
         for (var p in byPriority) {
           html += '<div class="d-flex justify-content-between"><span>' + escapeHtml(p) + '</span><strong>' + byPriority[p] + '</strong></div>';
         }
         html += '</div></div></div>' +
           '</div>' +
-          '<div class="mt-3"><h6>По исполнителям</h6>';
+          '<div class="mt-3"><h6>' + t('cycles.by_assignee', 'По исполнителям') + '</h6>';
         var byAssignee = s.by_assignee || [];
         if (byAssignee.length) {
-          html += '<table class="table table-sm"><thead><tr><th>Исполнитель</th><th>Всего</th><th>Завершено</th></tr></thead><tbody>';
+          html += '<table class="table table-sm"><thead><tr><th>' + t('cycles.col_assignee', 'Исполнитель') + '</th><th>' + t('cycles.col_total', 'Всего') + '</th><th>' + t('cycles.completed', 'Завершено:') + '</th></tr></thead><tbody>';
           byAssignee.forEach(function (a) {
             html += '<tr><td>' + escapeHtml(a.name || '—') + '</td><td>' + (a.total || 0) + '</td><td>' + (a.completed || 0) + '</td></tr>';
           });
           html += '</tbody></table>';
         } else {
-          html += '<p class="text-muted">Нет данных</p>';
+          html += '<p class="text-muted">' + t('cycles.no_data', 'Нет данных') + '</p>';
         }
         html += '</div>';
         container.innerHTML = html;
       })
       .catch(function () {
-        container.innerHTML = '<div class="text-danger">Ошибка загрузки статистики.</div>';
+        container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_stats', 'Ошибка загрузки статистики.') + '</div>';
       });
   }
 
@@ -485,7 +555,7 @@
   window.openAddTasksModal = function (cyclePublicId) {
     currentCyclePublicId = cyclePublicId;
     selectedTasks = {};
-    document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">Введите поисковый запрос</div>';
+    document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.search_placeholder_min', 'Введите поисковый запрос') + '</div>';
     document.getElementById('addTaskSearchInput').value = '';
     var modal = new bootstrap.Modal(document.getElementById('addTasksModal'));
     modal.show();
@@ -498,7 +568,7 @@
         clearTimeout(addTaskDebounceTimer);
         var query = this.value.trim();
         if (query.length < 2) {
-          document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">Введите минимум 2 символа</div>';
+          document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.search_min_chars', 'Введите минимум 2 символа') + '</div>';
           return;
         }
         addTaskDebounceTimer = setTimeout(function () {
@@ -509,12 +579,16 @@
   });
 
   function searchTasksForCycle(query) {
-    apiRequest('api/v1/tasks', { method: 'GET', query: { search: query, limit: 20 } })
+    var taskQuery = { search: query, limit: 20 };
+    if (currentCycleDetail && currentCycleDetail.project_public_id) {
+      taskQuery.project_public_id = currentCycleDetail.project_public_id;
+    }
+    apiRequest('api/v1/tasks', { method: 'GET', query: taskQuery })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         var container = document.getElementById('addTaskResults');
         if (!items.length) {
-          container.innerHTML = '<div class="text-center text-muted py-3">Задачи не найдены</div>';
+          container.innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.tasks_not_found', 'Задачи не найдены') + '</div>';
           return;
         }
         var html = '';
@@ -532,7 +606,7 @@
         container.innerHTML = html;
       })
       .catch(function () {
-        document.getElementById('addTaskResults').innerHTML = '<div class="text-danger">Ошибка поиска.</div>';
+        document.getElementById('addTaskResults').innerHTML = '<div class="text-danger">' + t('cycles.error_search', 'Ошибка поиска.') + '</div>';
       });
   }
 
@@ -563,7 +637,7 @@
       })
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;
-        alert('Ошибка добавления: ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')));
+        alert(t('cycles.error_add_tasks', 'Ошибка добавления:') + ' ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')));
       });
   };
 
@@ -577,11 +651,11 @@
   // ====== Select Loaders ======
   function loadProjectSelect() {
     var sel = document.getElementById('cycleFormProject');
-    sel.innerHTML = '<option value="">Загрузка...</option>';
-    apiRequest('api/v1/projects', { method: 'GET', query: { limit: 100 } })
+    sel.innerHTML = '<option value="">' + t('cycles.loading', 'Загрузка...') + '</option>';
+    return apiRequest('api/v1/projects', { method: 'GET', query: { limit: 100 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
-        sel.innerHTML = '<option value="">Выберите проект</option>';
+        sel.innerHTML = '<option value="">' + t('cycles.select_project', 'Выберите проект') + '</option>';
         items.forEach(function (p) {
           var opt = document.createElement('option');
           opt.value = p.public_id;
@@ -589,13 +663,13 @@
           sel.appendChild(opt);
         });
       })
-      .catch(function () { sel.innerHTML = '<option value="">Ошибка загрузки</option>'; });
+      .catch(function () { sel.innerHTML = '<option value="">' + t('cycles.error_title', 'Ошибка загрузки') + '</option>'; });
   }
 
   function loadUserSelect() {
     var sel = document.getElementById('cycleFormOwner');
-    sel.innerHTML = '<option value="">Не назначен</option>';
-    apiRequest('api/v1/users', { method: 'GET', query: { limit: 100 } })
+    sel.innerHTML = '<option value="">' + t('cycles.no_lead', 'Не назначен') + '</option>';
+    return apiRequest('api/v1/users', { method: 'GET', query: { limit: 100 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         items.forEach(function (u) {
@@ -611,20 +685,21 @@
   function loadCyclesForSelect(selectId, excludePublicId) {
     var sel = document.getElementById(selectId);
     if (!sel) return;
-    sel.innerHTML = '<option value="">Загрузка...</option>';
-    apiRequest('api/v1/cycles', { method: 'GET', query: { limit: 50, status: 'planned,active' } })
+    sel.innerHTML = '<option value="">' + t('cycles.loading', 'Загрузка...') + '</option>';
+    apiRequest('api/v1/cycles', { method: 'GET', query: { limit: 100 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
-        sel.innerHTML = '<option value="">Выберите цикл</option>';
+        sel.innerHTML = '<option value="">' + t('cycles.select_cycle', 'Выберите цикл') + '</option>';
         items.forEach(function (c) {
           if (c.public_id === excludePublicId) return;
+          if (['planned', 'active'].indexOf(c.status) === -1) return;
           var opt = document.createElement('option');
           opt.value = c.public_id;
           opt.textContent = c.title + ' (' + (c.status || '') + ')';
           sel.appendChild(opt);
         });
       })
-      .catch(function () { sel.innerHTML = '<option value="">Ошибка загрузки</option>'; });
+      .catch(function () { sel.innerHTML = '<option value="">' + t('cycles.error_title', 'Ошибка загрузки') + '</option>'; });
   }
 
   // ====== Init on page load ======
@@ -650,6 +725,14 @@
         });
         sel.onchange = function () { window.loadWorkCycles(1); };
       });
+    var statusSel = document.getElementById('cycleStatusFilter');
+    if (statusSel) statusSel.onchange = function () { window.loadWorkCycles(1); };
+    var searchInput = document.getElementById('cycleSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') window.loadWorkCycles(1);
+      });
+    }
   }
 
 })();
