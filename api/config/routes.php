@@ -18,6 +18,10 @@ return [
     // public version check (no auth required)
     ['methods' => ['GET'], 'pattern' => '/api/v1/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => false],
 
+    // Model Context Protocol endpoint for AI agents (Claude, Cursor, Codex, etc.).
+    // Returns raw JSON-RPC, not the regular CRM API envelope.
+    ['methods' => ['POST'], 'pattern' => '/api/v1/mcp', 'controller' => Api\Controller\Mcp\McpController::class, 'action' => 'handle', 'auth' => true],
+
     // core update system
     ['methods' => ['GET'], 'pattern' => '/api/v1/core/version', 'controller' => Api\Controller\System\CoreVersionController::class, 'action' => 'show', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/status', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'status', 'auth' => true],
