@@ -54,6 +54,11 @@
     return '<span class="' + cls + '">' + (labels[status] || status) + '</span>';
   }
 
+  function statusLabel(status) {
+    var labels = { planned: t('cycles.status_planned', 'Запланирован'), active: t('cycles.status_active', 'Активен'), completed: t('cycles.status_completed', 'Завершён'), archived: t('cycles.status_archived', 'Архив') };
+    return labels[status] || status || '';
+  }
+
   // ====== Load Cycles ======
   window.loadWorkCycles = function (page) {
     page = page || 1;
@@ -70,6 +75,7 @@
     loadingEl.classList.remove('d-none');
     emptyEl.classList.add('d-none');
     errorEl.classList.add('d-none');
+    renderCycleCommandCenter([]);
     listEl.innerHTML = '';
     paginationEl.innerHTML = '';
 
@@ -97,6 +103,7 @@
         }
 
         renderCycles(items, listEl);
+        renderCycleCommandCenter(items);
 
         var meta = envelope.meta || {};
         var pagination = meta.pagination || {};
@@ -122,6 +129,58 @@
       var card = renderCycleCard(cycle);
       if (card) container.appendChild(card);
     });
+  }
+
+  function renderCycleCommandCenter(items) {
+    var container = document.getElementById('cycleCommandCenter');
+    if (!container) return;
+    if (!items || !items.length) {
+      container.classList.add('d-none');
+      container.innerHTML = '';
+      return;
+    }
+
+    var active = 0;
+    var planned = 0;
+    var overdue = 0;
+    var emptyPlans = 0;
+    var openTasks = 0;
+
+    items.forEach(function (cycle) {
+      var total = cycle.tasks_count || 0;
+      var completed = cycle.completed_tasks_count || 0;
+      if (cycle.status === 'active') active++;
+      if (cycle.status === 'planned') planned++;
+      if (cycle.status === 'active' && cycle.time_state === 'ended') overdue++;
+      if ((cycle.status === 'active' || cycle.status === 'planned') && total === 0) emptyPlans++;
+      openTasks += Math.max(0, total - completed);
+    });
+
+    var advice = '';
+    if (overdue > 0) {
+      advice = t('cycles.command_advice_overdue', 'Сначала разберите просроченные активные циклы: завершите их или перенесите незавершённые задачи.');
+    } else if (emptyPlans > 0) {
+      advice = t('cycles.command_advice_empty', 'Есть циклы без задач: добавьте задачи или архивируйте лишние циклы, чтобы список не шумел.');
+    } else if (active > 0) {
+      advice = t('cycles.command_advice_active', 'Рабочая зона готова: держите фокус на открытых задачах активных циклов.');
+    } else if (planned > 0) {
+      advice = t('cycles.command_advice_planned', 'Есть запланированные циклы: проверьте план и запустите ближайший.');
+    } else {
+      advice = t('cycles.command_advice_create', 'Создайте новый цикл, чтобы собрать задачи в понятную итерацию.');
+    }
+
+    container.classList.remove('d-none');
+    container.innerHTML =
+      '<div class="crm-cycle-command-text">' +
+        '<strong>' + t('cycles.command_title', 'Фокус по циклам') + '</strong>' +
+        '<span>' + escapeHtml(advice) + '</span>' +
+      '</div>' +
+      '<div class="crm-cycle-command-metrics">' +
+        '<button type="button" class="crm-cycle-command-metric" onclick="document.getElementById(\'cycleStatusFilter\').value=\'active\'; window.loadWorkCycles(1);"><strong>' + active + '</strong><span>' + t('cycles.metric_active', 'активных') + '</span></button>' +
+        '<button type="button" class="crm-cycle-command-metric" onclick="document.getElementById(\'cycleStatusFilter\').value=\'planned\'; window.loadWorkCycles(1);"><strong>' + planned + '</strong><span>' + t('cycles.metric_planned', 'запланировано') + '</span></button>' +
+        '<span class="crm-cycle-command-metric"><strong>' + overdue + '</strong><span>' + t('cycles.metric_overdue', 'просрочено') + '</span></span>' +
+        '<span class="crm-cycle-command-metric"><strong>' + openTasks + '</strong><span>' + t('cycles.metric_open_tasks', 'открытых задач') + '</span></span>' +
+      '</div>';
   }
 
   function renderCycleCard(cycle) {
@@ -695,7 +754,7 @@
           if (['planned', 'active'].indexOf(c.status) === -1) return;
           var opt = document.createElement('option');
           opt.value = c.public_id;
-          opt.textContent = c.title + ' (' + (c.status || '') + ')';
+          opt.textContent = c.title + ' (' + statusLabel(c.status) + ')';
           sel.appendChild(opt);
         });
       })

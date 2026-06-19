@@ -36,6 +36,8 @@ Browser verification after deploy:
 - Cycle detail modal opens and shows Overview, Tasks, Board and Statistics tabs.
 - Edit modal waits for project options and hides the status field.
 - Edit save exposed an API contract issue: empty date fields were sent as `null`, while the service expects an empty string for clearing dates. Fixed in frontend.
+- Complete modal now loads planned / active target cycles and shows localized status labels.
+- Added a command-center strip above filters with active, planned, overdue and open-task metrics plus next-step guidance.
 
 Pending verification:
 - Browser reload on demo after deployment.
