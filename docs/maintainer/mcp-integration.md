@@ -190,6 +190,11 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_create_template` | `task.manage` | Create a task or project template. |
 | `crm_update_template` | `task.manage` | Update a task or project template. |
 | `crm_apply_template` | `task.manage` | Apply a task or project template. |
+| `crm_list_files` | `task.manage` | List files linked to a visible task, project or knowledge page. |
+| `crm_get_file` | `task.manage` | Read file metadata by public id. |
+| `crm_upload_file_base64` | `task.manage` | Upload a small base64-encoded file through JSON-RPC. |
+| `crm_get_file_download_info` | `task.manage` | Get a safe API download URL without exposing local storage paths. |
+| `crm_delete_file` | `task.manage` | Soft-delete a file when CRM rules allow it. |
 | `crm_list_statuses` | `task.manage` | List status dictionary entries. |
 | `crm_get_status` | `task.manage` | Read one status dictionary entry. |
 | `crm_create_status` | `task.manage` | Create a status dictionary entry. |
