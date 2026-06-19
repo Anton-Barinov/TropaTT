@@ -7,6 +7,12 @@ if ($assetsVersion === '') {
   $assetsVersion = trim((string)getenv('CRM_WEB_ASSETS_VERSION'));
 }
 if ($assetsVersion === '') {
+  $deployHashFile = dirname(__DIR__, 3) . '/DEPLOY_HASH';
+  if (is_file($deployHashFile)) {
+    $assetsVersion = trim((string)file_get_contents($deployHashFile));
+  }
+}
+if ($assetsVersion === '') {
   $assetsRoot = dirname(__DIR__, 3) . '/assets';
   $assetsVersionMtime = 0;
   foreach ([
