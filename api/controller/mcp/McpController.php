@@ -17,11 +17,16 @@ use Api\System\Library\Service\ContactService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\DepartmentService;
 use Api\System\Library\Service\DependencyService;
+use Api\System\Library\Service\FavoriteService;
 use Api\System\Library\Service\IdeaService;
+use Api\System\Library\Service\MentionService;
+use Api\System\Library\Service\NotificationService;
 use Api\System\Library\Service\ProjectService;
+use Api\System\Library\Service\ReactionService;
 use Api\System\Library\Service\RecurringService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\StatusService;
+use Api\System\Library\Service\SubscriptionService;
 use Api\System\Library\Service\TagService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
@@ -772,6 +777,60 @@ MD;
             'text' => ['type' => 'string', 'description' => 'Message text, up to 4000 characters.'],
             'reply_to_message_public_id' => ['type' => 'string'],
         ], ['chat_public_id', 'text']);
+        $tools[] = $this->tool('crm_list_notifications', 'List notifications for the current CRM user.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'category' => ['type' => 'string'],
+            'is_read' => ['type' => 'integer', 'enum' => [0, 1]],
+        ]);
+        $tools[] = $this->tool('crm_get_notification_counters', 'Get notification counters for the current CRM user.', []);
+        $tools[] = $this->tool('crm_create_notification', 'Create a notification for the current user, or for a target user when permitted by CRM rules.', [
+            'title' => ['type' => 'string'],
+            'body' => ['type' => 'string'],
+            'category' => ['type' => 'string'],
+            'entity_type' => ['type' => 'string'],
+            'entity_public_id' => ['type' => 'string'],
+            'action_code' => ['type' => 'string'],
+            'link' => ['type' => 'string'],
+            'user_public_id' => ['type' => 'string'],
+        ], ['title']);
+        $tools[] = $this->tool('crm_mark_notification_read', 'Mark one current-user notification as read.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_mark_notification_unread', 'Mark one current-user notification as unread.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_mark_all_notifications_read', 'Mark all current-user notifications as read, optionally by category.', [
+            'category' => ['type' => 'string'],
+        ]);
+        $tools[] = $this->tool('crm_list_favorites', 'List favorites visible to the current CRM user.', $this->collaborationListSchema());
+        $tools[] = $this->tool('crm_create_favorite', 'Add a visible task, project or comment to current-user favorites.', $this->entityActionSchema(), ['entity_type', 'entity_public_id']);
+        $tools[] = $this->tool('crm_delete_favorite', 'Remove a favorite by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_subscriptions', 'List current-user subscriptions.', $this->collaborationListSchema());
+        $tools[] = $this->tool('crm_create_subscription', 'Subscribe the current user to a visible task, project or comment.', $this->entityActionSchema(), ['entity_type', 'entity_public_id']);
+        $tools[] = $this->tool('crm_delete_subscription', 'Remove a subscription by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_reactions', 'List reactions visible to the current CRM user.', $this->collaborationListSchema() + [
+            'reaction' => ['type' => 'string', 'enum' => ['like', 'love', 'laugh', 'wow', 'sad', 'angry', 'up']],
+        ]);
+        $tools[] = $this->tool('crm_add_reaction', 'Add or update the current user reaction on a visible task, project or comment.', $this->entityActionSchema() + [
+            'reaction' => ['type' => 'string', 'enum' => ['like', 'love', 'laugh', 'wow', 'sad', 'angry', 'up']],
+        ], ['entity_type', 'entity_public_id', 'reaction']);
+        $tools[] = $this->tool('crm_remove_reaction', 'Remove a reaction by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_mentions', 'List mentions visible to the current CRM user.', $this->collaborationListSchema() + [
+            'mentioned_user_public_id' => ['type' => 'string'],
+        ]);
+        $tools[] = $this->tool('crm_add_mention', 'Mention a user on a visible task, project or comment.', $this->entityActionSchema() + [
+            'mentioned_user_public_id' => ['type' => 'string'],
+        ], ['entity_type', 'entity_public_id', 'mentioned_user_public_id']);
+        $tools[] = $this->tool('crm_delete_mention', 'Delete a mention by public id when CRM rules allow it.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
 
         return $tools;
     }
@@ -880,6 +939,24 @@ MD;
             'crm_list_chats' => $this->toolResult($this->crmListChats($arguments)),
             'crm_list_chat_messages' => $this->toolResult($this->crmListChatMessages($arguments)),
             'crm_send_chat_message' => $this->toolResult($this->crmSendChatMessage($arguments)),
+            'crm_list_notifications' => $this->toolResult($this->crmListNotifications($arguments)),
+            'crm_get_notification_counters' => $this->toolResult($this->crmGetNotificationCounters()),
+            'crm_create_notification' => $this->toolResult($this->crmCreateNotification($arguments)),
+            'crm_mark_notification_read' => $this->toolResult($this->crmSetNotificationReadState($arguments, true)),
+            'crm_mark_notification_unread' => $this->toolResult($this->crmSetNotificationReadState($arguments, false)),
+            'crm_mark_all_notifications_read' => $this->toolResult($this->crmMarkAllNotificationsRead($arguments)),
+            'crm_list_favorites' => $this->toolResult($this->crmListFavorites($arguments)),
+            'crm_create_favorite' => $this->toolResult($this->crmCreateFavorite($arguments)),
+            'crm_delete_favorite' => $this->toolResult($this->crmDeleteFavorite($arguments)),
+            'crm_list_subscriptions' => $this->toolResult($this->crmListSubscriptions($arguments)),
+            'crm_create_subscription' => $this->toolResult($this->crmCreateSubscription($arguments)),
+            'crm_delete_subscription' => $this->toolResult($this->crmDeleteSubscription($arguments)),
+            'crm_list_reactions' => $this->toolResult($this->crmListReactions($arguments)),
+            'crm_add_reaction' => $this->toolResult($this->crmAddReaction($arguments)),
+            'crm_remove_reaction' => $this->toolResult($this->crmRemoveReaction($arguments)),
+            'crm_list_mentions' => $this->toolResult($this->crmListMentions($arguments)),
+            'crm_add_mention' => $this->toolResult($this->crmAddMention($arguments)),
+            'crm_delete_mention' => $this->toolResult($this->crmDeleteMention($arguments)),
             default => $this->toolError('Unknown tool: ' . $name),
         };
     }
@@ -2135,6 +2212,169 @@ MD;
         ];
     }
 
+    private function crmListNotifications(array $arguments): array
+    {
+        /** @var NotificationService $service */
+        $service = $this->container->get('service.notification');
+        return $this->publicData($service->list($this->notificationFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetNotificationCounters(): array
+    {
+        /** @var NotificationService $service */
+        $service = $this->container->get('service.notification');
+        return ['counters' => $this->publicData($service->counters($this->actor()))];
+    }
+
+    private function crmCreateNotification(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($title === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var NotificationService $service */
+        $service = $this->container->get('service.notification');
+        return ['notification' => $this->publicData($service->create($this->notificationInput($arguments), $this->actor()))];
+    }
+
+    private function crmSetNotificationReadState(array $arguments, bool $read): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var NotificationService $service */
+        $service = $this->container->get('service.notification');
+        $item = $read
+            ? $service->markRead($publicId, $this->actor())
+            : $service->markUnread($publicId, $this->actor());
+
+        return $item ? ['notification' => $this->publicData($item)] : ['error' => 'Notification not found.'];
+    }
+
+    private function crmMarkAllNotificationsRead(array $arguments): array
+    {
+        $category = trim((string)($arguments['category'] ?? ''));
+
+        /** @var NotificationService $service */
+        $service = $this->container->get('service.notification');
+        return ['updated' => $service->markAllRead($this->actor(), $category !== '' ? $category : null)];
+    }
+
+    private function crmListFavorites(array $arguments): array
+    {
+        /** @var FavoriteService $service */
+        $service = $this->container->get('service.favorite');
+        $result = $service->list($this->collaborationFilters($arguments), $this->actor());
+        return $result === 'FORBIDDEN' ? ['error' => 'FORBIDDEN'] : $this->publicData($result);
+    }
+
+    private function crmCreateFavorite(array $arguments): array
+    {
+        $error = $this->validateEntityAction($arguments);
+        if ($error !== null) {
+            return ['error' => $error];
+        }
+
+        /** @var FavoriteService $service */
+        $service = $this->container->get('service.favorite');
+        $favorite = $service->create($this->entityActionInput($arguments), $this->actor());
+        return is_array($favorite) ? ['favorite' => $this->publicData($favorite)] : ['error' => (string)$favorite];
+    }
+
+    private function crmDeleteFavorite(array $arguments): array
+    {
+        return $this->deleteOwnedCollaborationItem($arguments, 'service.favorite', 'delete', 'Favorite not found.');
+    }
+
+    private function crmListSubscriptions(array $arguments): array
+    {
+        /** @var SubscriptionService $service */
+        $service = $this->container->get('service.subscription');
+        $result = $service->list($this->collaborationFilters($arguments), $this->actor());
+        return $result === 'FORBIDDEN' ? ['error' => 'FORBIDDEN'] : $this->publicData($result);
+    }
+
+    private function crmCreateSubscription(array $arguments): array
+    {
+        $error = $this->validateEntityAction($arguments);
+        if ($error !== null) {
+            return ['error' => $error];
+        }
+
+        /** @var SubscriptionService $service */
+        $service = $this->container->get('service.subscription');
+        $subscription = $service->create($this->entityActionInput($arguments), $this->actor());
+        return is_array($subscription) ? ['subscription' => $this->publicData($subscription)] : ['error' => (string)$subscription];
+    }
+
+    private function crmDeleteSubscription(array $arguments): array
+    {
+        return $this->deleteOwnedCollaborationItem($arguments, 'service.subscription', 'delete', 'Subscription not found.');
+    }
+
+    private function crmListReactions(array $arguments): array
+    {
+        /** @var ReactionService $service */
+        $service = $this->container->get('service.reaction');
+        $result = $service->list($this->collaborationFilters($arguments, ['reaction']), $this->actor());
+        return $result === 'FORBIDDEN' ? ['error' => 'FORBIDDEN'] : $this->publicData($result);
+    }
+
+    private function crmAddReaction(array $arguments): array
+    {
+        $error = $this->validateEntityAction($arguments);
+        if ($error !== null) {
+            return ['error' => $error];
+        }
+        $reaction = strtolower(trim((string)($arguments['reaction'] ?? '')));
+        if (!in_array($reaction, $this->allowedReactions(), true)) {
+            return ['error' => 'reaction must be one of: ' . implode(', ', $this->allowedReactions()) . '.'];
+        }
+
+        /** @var ReactionService $service */
+        $service = $this->container->get('service.reaction');
+        $item = $service->add($this->entityActionInput($arguments) + ['reaction' => $reaction], $this->actor());
+        return is_array($item) ? ['reaction' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmRemoveReaction(array $arguments): array
+    {
+        return $this->deleteOwnedCollaborationItem($arguments, 'service.reaction', 'remove', 'Reaction not found.');
+    }
+
+    private function crmListMentions(array $arguments): array
+    {
+        /** @var MentionService $service */
+        $service = $this->container->get('service.mention');
+        $result = $service->list($this->collaborationFilters($arguments, ['mentioned_user_public_id']), $this->actor());
+        return $result === 'FORBIDDEN' ? ['error' => 'FORBIDDEN'] : $this->publicData($result);
+    }
+
+    private function crmAddMention(array $arguments): array
+    {
+        $error = $this->validateEntityAction($arguments);
+        if ($error !== null) {
+            return ['error' => $error];
+        }
+        $mentionedUserPublicId = trim((string)($arguments['mentioned_user_public_id'] ?? ''));
+        if ($mentionedUserPublicId === '') {
+            return ['error' => 'mentioned_user_public_id is required.'];
+        }
+
+        /** @var MentionService $service */
+        $service = $this->container->get('service.mention');
+        $mention = $service->add($this->entityActionInput($arguments) + ['mentioned_user_public_id' => $mentionedUserPublicId], $this->actor());
+        return is_array($mention) ? ['mention' => $this->publicData($mention)] : ['error' => (string)$mention];
+    }
+
+    private function crmDeleteMention(array $arguments): array
+    {
+        return $this->deleteOwnedCollaborationItem($arguments, 'service.mention', 'delete', 'Mention not found.');
+    }
+
     private function tool(string $name, string $description, array $properties, array $required = []): array
     {
         return [
@@ -2481,6 +2721,101 @@ MD;
         }
 
         return $filters;
+    }
+
+    private function notificationFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'category', 'is_read',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function notificationInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'body', 'category', 'entity_type', 'entity_public_id', 'action_code', 'link', 'user_public_id',
+        ]);
+    }
+
+    private function collaborationFilters(array $arguments, array $extraKeys = []): array
+    {
+        $filters = $this->pick($arguments, array_merge([
+            'page', 'entity_type', 'entity_public_id', 'user_public_id',
+        ], $extraKeys));
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function entityActionInput(array $arguments): array
+    {
+        return [
+            'entity_type' => strtolower(trim((string)($arguments['entity_type'] ?? ''))),
+            'entity_public_id' => trim((string)($arguments['entity_public_id'] ?? '')),
+        ];
+    }
+
+    private function validateEntityAction(array $arguments): ?string
+    {
+        $input = $this->entityActionInput($arguments);
+        if (!in_array($input['entity_type'], $this->allowedCollaborationEntityTypes(), true)) {
+            return 'entity_type must be one of: ' . implode(', ', $this->allowedCollaborationEntityTypes()) . '.';
+        }
+        if ($input['entity_public_id'] === '') {
+            return 'entity_public_id is required.';
+        }
+
+        return null;
+    }
+
+    private function deleteOwnedCollaborationItem(array $arguments, string $serviceId, string $method, string $notFoundMessage): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $service = $this->container->get($serviceId);
+        $result = $service->{$method}($publicId, $this->actor());
+        if ($result === 'FORBIDDEN') {
+            return ['error' => 'FORBIDDEN'];
+        }
+
+        return $result ? ['ok' => true, 'public_id' => $publicId] : ['error' => $notFoundMessage];
+    }
+
+    private function collaborationListSchema(): array
+    {
+        return [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'comment']],
+            'entity_public_id' => ['type' => 'string'],
+            'user_public_id' => ['type' => 'string'],
+        ];
+    }
+
+    private function entityActionSchema(): array
+    {
+        return [
+            'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'comment']],
+            'entity_public_id' => ['type' => 'string'],
+        ];
+    }
+
+    /** @return string[] */
+    private function allowedCollaborationEntityTypes(): array
+    {
+        return ['task', 'project', 'comment'];
+    }
+
+    /** @return string[] */
+    private function allowedReactions(): array
+    {
+        return ['like', 'love', 'laugh', 'wow', 'sad', 'angry', 'up'];
     }
 
     private function slugCode(string $value): string
