@@ -65,20 +65,20 @@
     listEl.innerHTML = '';
     paginationEl.innerHTML = '';
 
-    var params = [];
-    params.push('page=' + page);
-    params.push('limit=20');
+    var query = {};
+    query.page = page;
+    query.limit = 20;
 
     var projectFilter = document.getElementById('cycleProjectFilter');
-    if (projectFilter && projectFilter.value) params.push('project_public_id=' + encodeURIComponent(projectFilter.value));
+    if (projectFilter && projectFilter.value) query.project_public_id = projectFilter.value;
 
     var statusFilter = document.getElementById('cycleStatusFilter');
-    if (statusFilter && statusFilter.value) params.push('status=' + encodeURIComponent(statusFilter.value));
+    if (statusFilter && statusFilter.value) query.status = statusFilter.value;
 
     var searchInput = document.getElementById('cycleSearchInput');
-    if (searchInput && searchInput.value.trim()) params.push('q=' + encodeURIComponent(searchInput.value.trim()));
+    if (searchInput && searchInput.value.trim()) query.q = searchInput.value.trim();
 
-    apiRequest('api/v1/cycles?' + params.join('&'), { method: 'GET' })
+    apiRequest('api/v1/cycles', { method: 'GET', query: query })
       .then(function (envelope) {
         loadingEl.classList.add('d-none');
 
@@ -505,7 +505,7 @@
   });
 
   function searchTasksForCycle(query) {
-    apiRequest('api/v1/tasks?search=' + encodeURIComponent(query) + '&limit=20', { method: 'GET' })
+    apiRequest('api/v1/tasks', { method: 'GET', query: { search: query, limit: 20 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         var container = document.getElementById('addTaskResults');
@@ -574,7 +574,7 @@
   function loadProjectSelect() {
     var sel = document.getElementById('cycleFormProject');
     sel.innerHTML = '<option value="">Загрузка...</option>';
-    apiRequest('api/v1/projects?limit=100', { method: 'GET' })
+    apiRequest('api/v1/projects', { method: 'GET', query: { limit: 100 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         sel.innerHTML = '<option value="">Выберите проект</option>';
@@ -591,7 +591,7 @@
   function loadUserSelect() {
     var sel = document.getElementById('cycleFormOwner');
     sel.innerHTML = '<option value="">Не назначен</option>';
-    apiRequest('api/v1/users?limit=100', { method: 'GET' })
+    apiRequest('api/v1/users', { method: 'GET', query: { limit: 100 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         items.forEach(function (u) {
@@ -608,7 +608,7 @@
     var sel = document.getElementById(selectId);
     if (!sel) return;
     sel.innerHTML = '<option value="">Загрузка...</option>';
-    apiRequest('api/v1/cycles?limit=50&status=planned,active', { method: 'GET' })
+    apiRequest('api/v1/cycles', { method: 'GET', query: { limit: 50, status: 'planned,active' } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         sel.innerHTML = '<option value="">Выберите цикл</option>';
@@ -634,7 +634,7 @@
   function loadProjectSelectForFilter() {
     var sel = document.getElementById('cycleProjectFilter');
     if (!sel) return;
-    apiRequest('api/v1/projects?limit=200', { method: 'GET' })
+    apiRequest('api/v1/projects', { method: 'GET', query: { limit: 200 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
         sel.innerHTML = '<option value="">Все проекты</option>';
