@@ -20,12 +20,16 @@ use Api\System\Library\Service\DependencyService;
 use Api\System\Library\Service\FavoriteService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\MentionService;
+use Api\System\Library\Service\MilestoneService;
 use Api\System\Library\Service\NotificationService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\ReactionService;
 use Api\System\Library\Service\RecurringService;
+use Api\System\Library\Service\ReminderService;
+use Api\System\Library\Service\SavedViewService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\StatusService;
+use Api\System\Library\Service\StickyNoteService;
 use Api\System\Library\Service\SubscriptionService;
 use Api\System\Library\Service\TagService;
 use Api\System\Library\Service\TaskService;
@@ -639,6 +643,61 @@ MD;
                 'project_public_id' => ['type' => 'string'],
                 'task_public_id' => ['type' => 'string'],
             ], ['title', 'starts_at']);
+            $tools[] = $this->tool('crm_list_milestones', 'List milestones for an accessible project.', [
+                'project_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_milestone', 'Get one milestone by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_milestone', 'Create a milestone in an accessible project.', $this->milestoneSchema(), ['project_public_id', 'title']);
+            $tools[] = $this->tool('crm_update_milestone', 'Update a milestone.', ['public_id' => ['type' => 'string']] + $this->milestoneSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_list_reminders', 'List current-user reminders.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'status' => ['type' => 'string', 'enum' => ['new', 'pending', 'done', 'cancelled']],
+                'task_public_id' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_reminder', 'Get one current-user reminder by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_reminder', 'Create a reminder for the current user.', $this->reminderSchema(), ['remind_at']);
+            $tools[] = $this->tool('crm_update_reminder', 'Update a current-user reminder.', ['public_id' => ['type' => 'string']] + $this->reminderSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_delete_reminder', 'Delete a current-user reminder.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_saved_views', 'List saved views available to the current user.', $this->savedViewListSchema());
+            $tools[] = $this->tool('crm_get_saved_view', 'Get one saved view by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_saved_view', 'Create a saved view.', $this->savedViewSchema(), ['title']);
+            $tools[] = $this->tool('crm_update_saved_view', 'Update a saved view.', ['public_id' => ['type' => 'string']] + $this->savedViewSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_archive_saved_view', 'Archive a saved view.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_duplicate_saved_view', 'Duplicate a saved view.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_pin_saved_view', 'Update current-user pin preference for a saved view.', [
+                'public_id' => ['type' => 'string'],
+                'is_pinned' => ['type' => 'boolean'],
+                'sort_order' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_saved_view_task_filters', 'Resolve task filters for a saved view.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_sticky_notes', 'List sticky notes visible to the current user.', $this->stickyNoteListSchema());
+            $tools[] = $this->tool('crm_get_sticky_note', 'Get one sticky note by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_sticky_note', 'Create a sticky note.', $this->stickyNoteSchema(), ['body']);
+            $tools[] = $this->tool('crm_update_sticky_note', 'Update a sticky note.', ['public_id' => ['type' => 'string']] + $this->stickyNoteSchema(), ['public_id']);
+            $tools[] = $this->tool('crm_archive_sticky_note', 'Archive a sticky note.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_unarchive_sticky_note', 'Unarchive a sticky note.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_statuses', 'List task/project status dictionary entries.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -908,6 +967,29 @@ MD;
             'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
             'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
             'crm_create_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCalendarEvent($arguments))),
+            'crm_list_milestones' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListMilestones($arguments))),
+            'crm_get_milestone' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetMilestone($arguments))),
+            'crm_create_milestone' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateMilestone($arguments))),
+            'crm_update_milestone' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateMilestone($arguments))),
+            'crm_list_reminders' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListReminders($arguments))),
+            'crm_get_reminder' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetReminder($arguments))),
+            'crm_create_reminder' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateReminder($arguments))),
+            'crm_update_reminder' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateReminder($arguments))),
+            'crm_delete_reminder' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteReminder($arguments))),
+            'crm_list_saved_views' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListSavedViews($arguments))),
+            'crm_get_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetSavedView($arguments))),
+            'crm_create_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateSavedView($arguments))),
+            'crm_update_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateSavedView($arguments))),
+            'crm_archive_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmArchiveSavedView($arguments))),
+            'crm_duplicate_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDuplicateSavedView($arguments))),
+            'crm_pin_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmPinSavedView($arguments))),
+            'crm_get_saved_view_task_filters' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetSavedViewTaskFilters($arguments))),
+            'crm_list_sticky_notes' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStickyNotes($arguments))),
+            'crm_get_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStickyNote($arguments))),
+            'crm_create_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStickyNote($arguments))),
+            'crm_update_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateStickyNote($arguments))),
+            'crm_archive_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetStickyNoteArchived($arguments, true))),
+            'crm_unarchive_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSetStickyNoteArchived($arguments, false))),
             'crm_list_statuses' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListStatuses($arguments))),
             'crm_get_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetStatus($arguments))),
             'crm_create_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateStatus($arguments))),
@@ -1694,6 +1776,305 @@ MD;
         ]), $this->actor());
 
         return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => (string)$event];
+    }
+
+    private function crmListMilestones(array $arguments): array
+    {
+        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var MilestoneService $service */
+        $service = $this->container->get('service.milestone');
+        $items = $service->list($projectPublicId, $this->actor());
+        return is_array($items) ? ['items' => $this->publicData($items)] : ['error' => (string)$items];
+    }
+
+    private function crmGetMilestone(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var MilestoneService $service */
+        $service = $this->container->get('service.milestone');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['milestone' => $this->publicData($item)] : ['error' => 'Milestone not found.'];
+    }
+
+    private function crmCreateMilestone(array $arguments): array
+    {
+        if (trim((string)($arguments['project_public_id'] ?? '')) === '' || trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'project_public_id and title are required.'];
+        }
+
+        /** @var MilestoneService $service */
+        $service = $this->container->get('service.milestone');
+        $item = $service->create($this->milestoneInput($arguments), $this->actor());
+        return is_array($item) ? ['milestone' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateMilestone(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var MilestoneService $service */
+        $service = $this->container->get('service.milestone');
+        $item = $service->update($publicId, $this->milestoneInput($arguments), $this->actor());
+        if ($item === null) {
+            return ['error' => 'Milestone not found.'];
+        }
+        return is_array($item) ? ['milestone' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmListReminders(array $arguments): array
+    {
+        /** @var ReminderService $service */
+        $service = $this->container->get('service.reminder');
+        return $this->publicData($service->list($this->reminderFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetReminder(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ReminderService $service */
+        $service = $this->container->get('service.reminder');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['reminder' => $this->publicData($item)] : ['error' => 'Reminder not found.'];
+    }
+
+    private function crmCreateReminder(array $arguments): array
+    {
+        $remindAt = trim((string)($arguments['remind_at'] ?? ''));
+        if ($remindAt === '') {
+            return ['error' => 'remind_at is required.'];
+        }
+        if (strtotime($remindAt) === false) {
+            return ['error' => 'remind_at must be a valid date/time.'];
+        }
+
+        /** @var ReminderService $service */
+        $service = $this->container->get('service.reminder');
+        $item = $service->create($this->reminderInput($arguments), $this->actor());
+        return is_array($item) ? ['reminder' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateReminder(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!empty($arguments['remind_at']) && strtotime((string)$arguments['remind_at']) === false) {
+            return ['error' => 'remind_at must be a valid date/time.'];
+        }
+
+        /** @var ReminderService $service */
+        $service = $this->container->get('service.reminder');
+        $item = $service->update($publicId, $this->reminderInput($arguments), $this->actor());
+        if ($item === null || $item === false) {
+            return ['error' => 'Reminder not found.'];
+        }
+        return is_array($item) ? ['reminder' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmDeleteReminder(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ReminderService $service */
+        $service = $this->container->get('service.reminder');
+        return $service->delete($publicId, $this->actor())
+            ? ['ok' => true, 'public_id' => $publicId]
+            : ['error' => 'Reminder not found.'];
+    }
+
+    private function crmListSavedViews(array $arguments): array
+    {
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        return $this->publicData($service->list($this->savedViewFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $item = $service->get($publicId, $this->actor());
+        if ($item === null) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_array($item) ? ['saved_view' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmCreateSavedView(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $item = $service->create($this->savedViewInput($arguments), $this->actor());
+        return is_array($item) ? ['saved_view' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $item = $service->update($publicId, $this->savedViewInput($arguments), $this->actor());
+        if ($item === null) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_array($item) ? ['saved_view' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmArchiveSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $ok = $service->archive($publicId, $this->actor());
+        if ($ok === false) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_string($ok) ? ['error' => $ok] : ['ok' => true, 'public_id' => $publicId];
+    }
+
+    private function crmDuplicateSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $item = $service->duplicate($publicId, $this->pick($arguments, ['title']), $this->actor());
+        if ($item === null) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_array($item) ? ['saved_view' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmPinSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $item = $service->pin($publicId, $this->pick($arguments, ['is_pinned', 'sort_order']), $this->actor());
+        if ($item === null) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_array($item) ? ['preference' => $this->publicData($item)] : ['error' => (string)$item];
+    }
+
+    private function crmGetSavedViewTaskFilters(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $result = $service->getTaskFilters($publicId, $this->actor());
+        if ($result === null) {
+            return ['error' => 'Saved view not found.'];
+        }
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmListStickyNotes(array $arguments): array
+    {
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        return $this->publicData($service->list($this->stickyNoteFilters($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false)));
+    }
+
+    private function crmGetStickyNote(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $item = $service->get($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        return isset($item['error']) ? ['error' => (string)$item['error']] : ['sticky_note' => $this->publicData($item)];
+    }
+
+    private function crmCreateStickyNote(array $arguments): array
+    {
+        if (trim((string)($arguments['body'] ?? '')) === '') {
+            return ['error' => 'body is required.'];
+        }
+
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $item = $service->create($this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0));
+        return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
+    }
+
+    private function crmUpdateStickyNote(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $item = $service->update($publicId, $this->stickyNoteInput($arguments), (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        return isset($item['error']) ? ['error' => (string)$item['error'], 'details' => $item['errors'] ?? null] : ['sticky_note' => $this->publicData($item)];
+    }
+
+    private function crmSetStickyNoteArchived(array $arguments, bool $archived): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $result = $archived
+            ? $service->archive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false))
+            : $service->unarchive($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+
+        return isset($result['error']) ? ['error' => (string)$result['error']] : $this->publicData($result);
     }
 
     private function crmListStatuses(array $arguments): array
@@ -2721,6 +3102,149 @@ MD;
         }
 
         return $filters;
+    }
+
+    private function milestoneInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'project_public_id', 'title', 'due_at', 'status',
+        ]);
+    }
+
+    private function reminderFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'status', 'task_public_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function reminderInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'remind_at', 'status', 'task_public_id',
+        ]);
+    }
+
+    private function savedViewFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'entity_type', 'access_level', 'layout', 'search', 'is_pinned',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function savedViewInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'description', 'entity_type', 'filters', 'access_level', 'display_filters',
+            'display_properties', 'rich_filters', 'layout', 'group_by', 'order_by', 'order_dir',
+            'sort_order', 'is_system', 'is_locked',
+        ]);
+    }
+
+    private function stickyNoteFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'context_type', 'context_public_id', 'visibility', 'is_pinned', 'archived',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function stickyNoteInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'body', 'color', 'background_color', 'context_type', 'context_public_id',
+            'visibility', 'is_pinned', 'sort_order', 'meta_json',
+        ]);
+    }
+
+    private function milestoneSchema(): array
+    {
+        return [
+            'project_public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'due_at' => ['type' => 'string'],
+            'status' => ['type' => 'string', 'default' => 'planned'],
+        ];
+    }
+
+    private function reminderSchema(): array
+    {
+        return [
+            'remind_at' => ['type' => 'string'],
+            'status' => ['type' => 'string', 'enum' => ['new', 'pending', 'done', 'cancelled'], 'default' => 'new'],
+            'task_public_id' => ['type' => 'string'],
+        ];
+    }
+
+    private function savedViewListSchema(): array
+    {
+        return [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'knowledge']],
+            'access_level' => ['type' => 'string', 'enum' => ['private', 'public', 'system']],
+            'layout' => ['type' => 'string', 'enum' => ['list', 'table', 'board', 'calendar', 'gantt']],
+            'search' => ['type' => 'string'],
+            'is_pinned' => ['type' => 'boolean'],
+        ];
+    }
+
+    private function savedViewSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'knowledge'], 'default' => 'task'],
+            'filters' => ['type' => 'object', 'additionalProperties' => true],
+            'access_level' => ['type' => 'string', 'enum' => ['private', 'public', 'system'], 'default' => 'private'],
+            'display_filters' => ['type' => 'object', 'additionalProperties' => true],
+            'display_properties' => ['type' => 'object', 'additionalProperties' => true],
+            'rich_filters' => ['type' => 'object', 'additionalProperties' => true],
+            'layout' => ['type' => 'string', 'enum' => ['list', 'table', 'board', 'calendar', 'gantt'], 'default' => 'list'],
+            'group_by' => ['type' => 'string', 'enum' => ['none', 'status', 'priority', 'assignee', 'project', 'due_date', 'tag']],
+            'order_by' => ['type' => 'string'],
+            'order_dir' => ['type' => 'string', 'enum' => ['asc', 'desc']],
+            'sort_order' => ['type' => 'integer'],
+            'is_system' => ['type' => 'boolean'],
+            'is_locked' => ['type' => 'boolean'],
+        ];
+    }
+
+    private function stickyNoteListSchema(): array
+    {
+        return [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'context_type' => ['type' => 'string', 'enum' => ['personal', 'dashboard', 'project', 'task']],
+            'context_public_id' => ['type' => 'string'],
+            'visibility' => ['type' => 'string', 'enum' => ['private', 'shared']],
+            'is_pinned' => ['type' => 'boolean'],
+            'archived' => ['type' => 'boolean'],
+        ];
+    }
+
+    private function stickyNoteSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'body' => ['type' => 'string'],
+            'color' => ['type' => 'string', 'enum' => ['yellow', 'green', 'blue', 'purple', 'pink', 'red', 'orange', 'teal', 'gray', 'white'], 'default' => 'yellow'],
+            'background_color' => ['type' => 'string'],
+            'context_type' => ['type' => 'string', 'enum' => ['personal', 'dashboard', 'project', 'task'], 'default' => 'personal'],
+            'context_public_id' => ['type' => 'string'],
+            'visibility' => ['type' => 'string', 'enum' => ['private', 'shared'], 'default' => 'private'],
+            'is_pinned' => ['type' => 'boolean'],
+            'sort_order' => ['type' => 'integer'],
+            'meta_json' => ['type' => 'string'],
+        ];
     }
 
     private function notificationFilters(array $arguments): array

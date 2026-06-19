@@ -137,6 +137,29 @@ The first version exposes only safe operational tools. It intentionally does not
 | `crm_list_calendar_events` | `task.manage` | List calendar events visible to the current user. |
 | `crm_get_calendar_agenda` | `task.manage` | Read current user day/week agenda. |
 | `crm_create_calendar_event` | `task.manage` | Create a calendar event for the current user. |
+| `crm_list_milestones` | `task.manage` | List milestones for an accessible project. |
+| `crm_get_milestone` | `task.manage` | Read one milestone. |
+| `crm_create_milestone` | `task.manage` | Create a project milestone. |
+| `crm_update_milestone` | `task.manage` | Update a project milestone. |
+| `crm_list_reminders` | `task.manage` | List current-user reminders. |
+| `crm_get_reminder` | `task.manage` | Read one current-user reminder. |
+| `crm_create_reminder` | `task.manage` | Create a reminder for the current user. |
+| `crm_update_reminder` | `task.manage` | Update a current-user reminder. |
+| `crm_delete_reminder` | `task.manage` | Delete a current-user reminder. |
+| `crm_list_saved_views` | `task.manage` | List saved views available to the current user. |
+| `crm_get_saved_view` | `task.manage` | Read one saved view. |
+| `crm_create_saved_view` | `task.manage` | Create a saved view. |
+| `crm_update_saved_view` | `task.manage` | Update a saved view. |
+| `crm_archive_saved_view` | `task.manage` | Archive a saved view. |
+| `crm_duplicate_saved_view` | `task.manage` | Duplicate a saved view. |
+| `crm_pin_saved_view` | `task.manage` | Update current-user pin preference for a saved view. |
+| `crm_get_saved_view_task_filters` | `task.manage` | Resolve task filters for a saved view. |
+| `crm_list_sticky_notes` | `task.manage` | List sticky notes visible to the current user. |
+| `crm_get_sticky_note` | `task.manage` | Read one sticky note. |
+| `crm_create_sticky_note` | `task.manage` | Create a sticky note. |
+| `crm_update_sticky_note` | `task.manage` | Update a sticky note. |
+| `crm_archive_sticky_note` | `task.manage` | Archive a sticky note. |
+| `crm_unarchive_sticky_note` | `task.manage` | Unarchive a sticky note. |
 | `crm_list_statuses` | `task.manage` | List status dictionary entries. |
 | `crm_get_status` | `task.manage` | Read one status dictionary entry. |
 | `crm_create_status` | `task.manage` | Create a status dictionary entry. |
