@@ -55,6 +55,10 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/roles/{public_id}', 'controller' => Api\Controller\Role\RoleController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['role.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/roles/{public_id}/permissions', 'controller' => Api\Controller\Permission\PermissionController::class, 'action' => 'listByRole', 'auth' => true, 'required_permissions' => ['role.view']],
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/roles/{public_id}/permissions', 'controller' => Api\Controller\Permission\PermissionController::class, 'action' => 'setByRole', 'auth' => true, 'required_permissions' => ['role.manage']],
+
+    // role menu templates
+    ['methods' => ['GET'], 'pattern' => '/api/v1/roles/{public_id}/menu-template', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getRoleTemplate', 'auth' => true, 'required_permissions' => ['role.manage']],
+    ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/roles/{public_id}/menu-template', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'saveRoleTemplate', 'auth' => true, 'required_permissions' => ['role.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/permissions', 'controller' => Api\Controller\Permission\PermissionController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['role.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/admin/role-matrix', 'controller' => Api\Controller\Admin\RoleMatrixController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['role.manage']],
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/admin/role-matrix', 'controller' => Api\Controller\Admin\RoleMatrixController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['role.manage']],

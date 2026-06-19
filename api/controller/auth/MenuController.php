@@ -34,6 +34,7 @@ final class MenuController extends BaseController
 
     private const USER_SCOPE_PREFIX = 'user:';
     private const TEAM_SCOPE_PREFIX = 'team:';
+    private const ROLE_SCOPE_PREFIX = 'role:';
     private const PREF_NAME = 'menu_preferences';
     private const TEMPLATE_NAME = 'menu_template';
 
@@ -91,12 +92,15 @@ final class MenuController extends BaseController
 
         $userPublicId = (string)($user['public_id'] ?? '');
         $userInternalId = (int)($user['id'] ?? 0);
+        $rolePublicIds = $user['role_public_ids'] ?? [];
 
         $allAvailableItems = $availableItems;
 
+        $roleTemplate = $this->loadRoleTemplate($rolePublicIds);
         $teamTemplate = $this->loadTeamTemplate($userInternalId);
         $userPreferences = $this->loadUserPreferences($userPublicId);
 
+        $availableItems = $this->applyRoleTemplate($availableItems, $roleTemplate);
         $availableItems = $this->applyTeamTemplate($availableItems, $teamTemplate);
         $availableItems = $this->applyUserPreferences($availableItems, $userPreferences);
 
