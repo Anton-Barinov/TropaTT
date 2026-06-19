@@ -8,7 +8,11 @@ use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\CalendarService;
+use Api\System\Library\Service\ClientService;
+use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
+use Api\System\Library\Service\ContactService;
+use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\SearchService;
@@ -387,6 +391,73 @@ MD;
             ]);
         }
 
+        if ($this->can('counterparty.manage')) {
+            $tools[] = $this->tool('crm_list_counterparties', 'List counterparties visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+                'counterparty_type' => ['type' => 'string', 'enum' => ['organization', 'individual', 'sole_proprietor', 'legal_entity']],
+                'status' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_counterparty', 'Get one counterparty by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_counterparty', 'Create a counterparty visible to the authenticated CRM user.', $this->counterpartySchema(), ['title']);
+            $tools[] = $this->tool('crm_update_counterparty', 'Update safe counterparty fields by public id.', ['public_id' => ['type' => 'string']] + $this->counterpartySchema(), ['public_id']);
+        }
+
+        if ($this->can('company.manage')) {
+            $tools[] = $this->tool('crm_list_companies', 'List organization companies visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+                'status' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_company', 'Get one company by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_company', 'Create an organization company.', [
+                'title' => ['type' => 'string'],
+                'status' => ['type' => 'string', 'default' => 'active'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_update_company', 'Update a company by public id.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'status' => ['type' => 'string'],
+            ], ['public_id']);
+        }
+
+        if ($this->can('client.manage')) {
+            $tools[] = $this->tool('crm_list_clients', 'List clients visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+                'client_type' => ['type' => 'string', 'enum' => ['individual', 'sole_proprietor', 'legal_entity']],
+                'status' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_client', 'Get one client by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_client', 'Create a client.', $this->clientSchema(), ['title']);
+            $tools[] = $this->tool('crm_update_client', 'Update safe client fields by public id.', ['public_id' => ['type' => 'string']] + $this->clientSchema(), ['public_id']);
+        }
+
+        if ($this->can('contact.manage')) {
+            $tools[] = $this->tool('crm_list_contacts', 'List contacts visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'search' => ['type' => 'string'],
+                'counterparty_public_id' => ['type' => 'string'],
+                'company_public_id' => ['type' => 'string'],
+                'client_public_id' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_contact', 'Get one contact by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_contact', 'Create a contact linked to an optional counterparty, company or client.', $this->contactSchema(), ['full_name']);
+            $tools[] = $this->tool('crm_update_contact', 'Update safe contact fields by public id.', ['public_id' => ['type' => 'string']] + $this->contactSchema(), ['public_id']);
+        }
+
         if ($this->can('project.manage')) {
             $tools[] = $this->tool('crm_list_projects', 'List CRM projects visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -514,6 +585,22 @@ MD;
             'crm_list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycleTasks($arguments))),
             'crm_add_tasks_to_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTasksToCycle($arguments))),
             'crm_list_users' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmListUsers($arguments))),
+            'crm_list_counterparties' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmListCounterparties($arguments))),
+            'crm_get_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmGetCounterparty($arguments))),
+            'crm_create_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmCreateCounterparty($arguments))),
+            'crm_update_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmUpdateCounterparty($arguments))),
+            'crm_list_companies' => $this->withPermission('company.manage', fn() => $this->toolResult($this->crmListCompanies($arguments))),
+            'crm_get_company' => $this->withPermission('company.manage', fn() => $this->toolResult($this->crmGetCompany($arguments))),
+            'crm_create_company' => $this->withPermission('company.manage', fn() => $this->toolResult($this->crmCreateCompany($arguments))),
+            'crm_update_company' => $this->withPermission('company.manage', fn() => $this->toolResult($this->crmUpdateCompany($arguments))),
+            'crm_list_clients' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmListClients($arguments))),
+            'crm_get_client' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmGetClient($arguments))),
+            'crm_create_client' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmCreateClient($arguments))),
+            'crm_update_client' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmUpdateClient($arguments))),
+            'crm_list_contacts' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmListContacts($arguments))),
+            'crm_get_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmGetContact($arguments))),
+            'crm_create_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmCreateContact($arguments))),
+            'crm_update_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmUpdateContact($arguments))),
             'crm_list_projects' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjects($arguments))),
             'crm_get_project' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProject($arguments))),
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
@@ -712,6 +799,193 @@ MD;
         /** @var UserService $service */
         $service = $this->container->get('service.user');
         return $this->publicData($service->list($this->userFilters($arguments)));
+    }
+
+    private function crmListCounterparties(array $arguments): array
+    {
+        /** @var CounterpartyService $service */
+        $service = $this->container->get('service.counterparty');
+        return $this->publicData($service->list($this->crmEntityFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetCounterparty(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CounterpartyService $service */
+        $service = $this->container->get('service.counterparty');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['counterparty' => $this->publicData($item)] : ['error' => 'Counterparty not found.'];
+    }
+
+    private function crmCreateCounterparty(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var CounterpartyService $service */
+        $service = $this->container->get('service.counterparty');
+        return ['counterparty' => $this->publicData($service->create($this->counterpartyInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateCounterparty(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CounterpartyService $service */
+        $service = $this->container->get('service.counterparty');
+        try {
+            return ['counterparty' => $this->publicData($service->update($publicId, $this->counterpartyInput($arguments), $this->actor()))];
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'Counterparty was not updated.'];
+        }
+    }
+
+    private function crmListCompanies(array $arguments): array
+    {
+        /** @var CompanyService $service */
+        $service = $this->container->get('service.company');
+        return $this->publicData($service->list($this->crmEntityFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetCompany(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CompanyService $service */
+        $service = $this->container->get('service.company');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['company' => $this->publicData($item)] : ['error' => 'Company not found.'];
+    }
+
+    private function crmCreateCompany(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var CompanyService $service */
+        $service = $this->container->get('service.company');
+        return ['company' => $this->publicData($service->create($this->pick($arguments, ['title', 'status']), $this->actor()))];
+    }
+
+    private function crmUpdateCompany(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CompanyService $service */
+        $service = $this->container->get('service.company');
+        $item = $service->update($publicId, $this->pick($arguments, ['title', 'status']), $this->actor());
+        return $item ? ['company' => $this->publicData($item)] : ['error' => 'Company not found.'];
+    }
+
+    private function crmListClients(array $arguments): array
+    {
+        /** @var ClientService $service */
+        $service = $this->container->get('service.client');
+        return $this->publicData($service->list($this->crmEntityFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ClientService $service */
+        $service = $this->container->get('service.client');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['client' => $this->publicData($item)] : ['error' => 'Client not found.'];
+    }
+
+    private function crmCreateClient(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+
+        /** @var ClientService $service */
+        $service = $this->container->get('service.client');
+        return ['client' => $this->publicData($service->create($this->clientInput($arguments), $this->actor()))];
+    }
+
+    private function crmUpdateClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ClientService $service */
+        $service = $this->container->get('service.client');
+        $item = $service->update($publicId, $this->clientInput($arguments), $this->actor());
+        return $item ? ['client' => $this->publicData($item)] : ['error' => 'Client not found.'];
+    }
+
+    private function crmListContacts(array $arguments): array
+    {
+        /** @var ContactService $service */
+        $service = $this->container->get('service.contact');
+        return $this->publicData($service->list($this->contactFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetContact(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ContactService $service */
+        $service = $this->container->get('service.contact');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['contact' => $this->publicData($item)] : ['error' => 'Contact not found.'];
+    }
+
+    private function crmCreateContact(array $arguments): array
+    {
+        if (trim((string)($arguments['full_name'] ?? '')) === '') {
+            return ['error' => 'full_name is required.'];
+        }
+
+        /** @var ContactService $service */
+        $service = $this->container->get('service.contact');
+        try {
+            return ['contact' => $this->publicData($service->create($this->contactInput($arguments), $this->actor()))];
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'Contact was not created.'];
+        }
+    }
+
+    private function crmUpdateContact(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ContactService $service */
+        $service = $this->container->get('service.contact');
+        try {
+            $item = $service->update($publicId, $this->contactInput($arguments), $this->actor());
+            return $item ? ['contact' => $this->publicData($item)] : ['error' => 'Contact not found.'];
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'Contact was not updated.'];
+        }
     }
 
     private function crmListProjects(array $arguments): array
@@ -1141,6 +1415,26 @@ MD;
         return $filters;
     }
 
+    private function crmEntityFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'search', 'counterparty_type', 'client_type', 'status',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
+    private function contactFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'search', 'counterparty_public_id', 'company_public_id', 'client_public_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 50);
+
+        return $filters;
+    }
+
     private function ideaFilters(array $arguments): array
     {
         $filters = $this->pick($arguments, [
@@ -1170,6 +1464,86 @@ MD;
             'title', 'project_public_id', 'description', 'goal', 'status', 'start_at', 'end_at',
             'timezone', 'owner_user_public_id', 'row_version',
         ]) + ['source_type' => 'mcp'];
+    }
+
+    private function counterpartyInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'counterparty_type', 'legal_name', 'person_last_name', 'person_first_name',
+            'person_middle_name', 'person_birth_date', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip',
+            'bank_account', 'bank_name', 'bank_bik', 'bank_corr_account', 'website', 'messenger',
+            'address_legal', 'address_postal', 'notes', 'email', 'phone', 'status', 'extra_attributes',
+        ]);
+    }
+
+    private function clientInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'title', 'client_type', 'legal_name', 'person_last_name', 'person_first_name',
+            'person_middle_name', 'person_birth_date', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip',
+            'bank_account', 'bank_name', 'bank_bik', 'bank_corr_account', 'website', 'messenger',
+            'address_legal', 'address_postal', 'notes', 'email', 'phone', 'status',
+        ]);
+    }
+
+    private function contactInput(array $arguments): array
+    {
+        return $this->pick($arguments, [
+            'full_name', 'email', 'phone', 'role', 'is_primary', 'counterparty_public_id',
+            'company_public_id', 'client_public_id',
+        ]);
+    }
+
+    private function counterpartySchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'counterparty_type' => ['type' => 'string', 'enum' => ['organization', 'individual', 'sole_proprietor', 'legal_entity'], 'default' => 'organization'],
+            'legal_name' => ['type' => 'string'],
+            'person_last_name' => ['type' => 'string'],
+            'person_first_name' => ['type' => 'string'],
+            'person_middle_name' => ['type' => 'string'],
+            'person_birth_date' => ['type' => 'string'],
+            'tax_inn' => ['type' => 'string'],
+            'tax_kpp' => ['type' => 'string'],
+            'tax_ogrn' => ['type' => 'string'],
+            'tax_ogrnip' => ['type' => 'string'],
+            'bank_account' => ['type' => 'string'],
+            'bank_name' => ['type' => 'string'],
+            'bank_bik' => ['type' => 'string'],
+            'bank_corr_account' => ['type' => 'string'],
+            'website' => ['type' => 'string'],
+            'messenger' => ['type' => 'string'],
+            'address_legal' => ['type' => 'string'],
+            'address_postal' => ['type' => 'string'],
+            'notes' => ['type' => 'string'],
+            'email' => ['type' => 'string'],
+            'phone' => ['type' => 'string'],
+            'status' => ['type' => 'string', 'default' => 'active'],
+            'extra_attributes' => ['type' => 'object', 'additionalProperties' => true],
+        ];
+    }
+
+    private function clientSchema(): array
+    {
+        $schema = $this->counterpartySchema();
+        unset($schema['counterparty_type'], $schema['extra_attributes']);
+        $schema['client_type'] = ['type' => 'string', 'enum' => ['individual', 'sole_proprietor', 'legal_entity'], 'default' => 'individual'];
+        return $schema;
+    }
+
+    private function contactSchema(): array
+    {
+        return [
+            'full_name' => ['type' => 'string'],
+            'email' => ['type' => 'string'],
+            'phone' => ['type' => 'string'],
+            'role' => ['type' => 'string'],
+            'is_primary' => ['type' => 'boolean'],
+            'counterparty_public_id' => ['type' => 'string'],
+            'company_public_id' => ['type' => 'string'],
+            'client_public_id' => ['type' => 'string'],
+        ];
     }
 
     private function pick(array $source, array $keys): array
