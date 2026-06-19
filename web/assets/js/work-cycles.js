@@ -123,40 +123,44 @@
     card.className = 'crm-cycle-card';
 
     var progress = cycle.progress_percent || 0;
-    var tasksCount = (cycle.tasks_count || 0) + t('cycles.tasks_suffix', ' задач');
+    var totalTasks = cycle.tasks_count || 0;
     var completedCount = cycle.completed_tasks_count || 0;
     var timeState = cycle.time_state || '';
     var timeLabel = timeState === 'running' ? t('cycles.time_running', 'Идёт') : timeState === 'not_started' ? t('cycles.time_not_started', 'Не начат') : timeState === 'ended' ? t('cycles.time_ended', 'Завершён по дате') : '';
+    var isOverdue = timeState === 'ended' && cycle.status === 'active';
+
+    var progressColor = progress >= 80 ? '#4caf50' : progress >= 40 ? '#ff9800' : progress > 0 ? '#f44336' : '#e0e0e0';
 
     card.innerHTML =
       '<div class="d-flex justify-content-between align-items-start">' +
-        '<div class="flex-grow-1">' +
-          '<div class="d-flex align-items-center gap-2 mb-1">' +
+        '<div class="flex-grow-1 min-w-0">' +
+          '<div class="d-flex align-items-center gap-2 mb-1 flex-wrap">' +
             '<h6 class="mb-0" style="cursor:pointer;" onclick="window.openCycleDetail(\'' + escapeHtml(cycle.public_id) + '\')">' + escapeHtml(cycle.title) + '</h6>' +
             statusBadge(cycle.status) +
-            (timeLabel ? '<small class="text-muted">' + escapeHtml(timeLabel) + '</small>' : '') +
+            (isOverdue ? '<span class="crm-badge crm-badge-danger" style="font-size:11px;">' + t('cycles.overdue', 'Просрочен') + '</span>' : '') +
+            (timeLabel && !isOverdue ? '<small class="text-muted">' + escapeHtml(timeLabel) + '</small>' : '') +
           '</div>' +
-          '<div class="small text-muted">' +
-            escapeHtml(cycle.project_title || '') +
-            (cycle.owner_name ? ' &middot; ' + escapeHtml(cycle.owner_name) : '') +
-            (cycle.start_at ? ' &middot; ' + formatDate(cycle.start_at) : '') +
-            (cycle.end_at ? ' — ' + formatDate(cycle.end_at) : '') +
+          '<div class="small text-muted d-flex flex-wrap gap-1">' +
+            (cycle.project_title ? '<span><i class="fa-regular fa-folder-open"></i> ' + escapeHtml(cycle.project_title) + '</span>' : '') +
+            (cycle.owner_name ? '<span><i class="fa-regular fa-user"></i> ' + escapeHtml(cycle.owner_name) + '</span>' : '') +
+            (cycle.start_at ? '<span><i class="fa-regular fa-calendar"></i> ' + formatDate(cycle.start_at) + '</span>' : '') +
+            (cycle.end_at ? '<span>— ' + formatDate(cycle.end_at) + '</span>' : '') +
           '</div>' +
-          (cycle.goal ? '<div class="small text-muted mt-1">' + escapeHtml(cycle.goal.substring(0, 120)) + '</div>' : '') +
+          (cycle.goal ? '<div class="small text-muted mt-1"><i class="fa-regular fa-bullseye"></i> ' + escapeHtml(cycle.goal.substring(0, 150)) + '</div>' : '') +
         '</div>' +
-        '<div class="text-end ms-3" style="min-width:120px;">' +
+        '<div class="text-end ms-3" style="min-width:110px;">' +
           '<div class="d-flex justify-content-between small mb-1">' +
-            '<span>' + completedCount + '/' + (cycle.tasks_count || 0) + '</span>' +
-            '<span>' + progress + '%</span>' +
+            '<span>' + completedCount + '/' + totalTasks + ' ' + t('cycles.tasks_done', 'задач') + '</span>' +
+            '<span class="fw-semibold">' + progress + '%</span>' +
           '</div>' +
-          '<div class="crm-cycle-progress"><div class="crm-cycle-progress-bar" style="width:' + progress + '%;"></div></div>' +
+          '<div class="crm-cycle-progress"><div class="crm-cycle-progress-bar" style="width:' + progress + '%;background:' + progressColor + ';"></div></div>' +
         '</div>' +
       '</div>' +
-      '<div class="d-flex gap-1 mt-2">' +
-        (cycle.status === 'planned' ? '<button class="btn btn-sm btn-outline-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play"></i> Старт</button>' : '') +
-        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm btn-outline-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> Завершить</button>' : '') +
-        '<button class="btn btn-sm btn-outline-primary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
-        (cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> Открыть</button>' : '') +
+      '<div class="d-flex gap-1 mt-2 flex-wrap">' +
+        (cycle.status === 'planned' ? '<button class="btn btn-sm btn-outline-success" onclick="window.startCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-play"></i> ' + t('cycles.btn_start_small', 'Старт') + '</button>' : '') +
+        (cycle.status !== 'completed' && cycle.status !== 'archived' ? '<button class="btn btn-sm btn-outline-warning" onclick="window.openCompleteCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-check"></i> ' + t('cycles.btn_complete_small', 'Завершить') + '</button>' : '') +
+        '<button class="btn btn-sm btn-outline-secondary" onclick="window.openCycleModal(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-pen"></i></button>' +
+        (cycle.status === 'completed' || cycle.status === 'archived' ? '<button class="btn btn-sm btn-outline-secondary" onclick="window.reopenCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-rotate-left"></i> ' + t('cycles.btn_reopen_small', 'Открыть') + '</button>' : '') +
         '<button class="btn btn-sm btn-outline-secondary" onclick="window.archiveCycle(\'' + escapeHtml(cycle.public_id) + '\')"><i class="fa-solid fa-archive"></i></button>' +
       '</div>';
 
