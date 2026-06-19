@@ -45,4 +45,4 @@ Pending verification:
 - Browser reload on demo after deployment.
 - Open detail modal, Tasks tab, Board tab and Complete modal.
 - Create a test cycle, edit it, add a task if suitable demo data exists, and archive/complete safely.
-- Decide whether API route permissions should move from `project.manage` to dedicated `cycle.view` / `cycle.manage` after checking role seeding and existing installs.
+- API and menu access are aligned on `project.manage` for now. A dedicated `cycle.view` / `cycle.manage` permission split can be introduced later with a migration and role seeding plan.
