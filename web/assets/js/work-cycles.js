@@ -697,18 +697,21 @@
     if (!ids.length) { alert(t('cycles.select_tasks', 'Выберите задачи.')); return; }
 
     document.getElementById('addTasksConfirmBtn').disabled = true;
+    document.getElementById('addTasksConfirmBtn').textContent = t('cycles.adding_tasks', 'Добавляем...');
     apiRequest('api/v1/cycles/' + encodeURIComponent(currentCyclePublicId) + '/tasks', {
       method: 'POST',
       body: { task_public_ids: ids }
     })
       .then(function () {
         document.getElementById('addTasksConfirmBtn').disabled = false;
+        document.getElementById('addTasksConfirmBtn').textContent = t('cycles.btn_add_selected', 'Добавить выбранные');
         bootstrap.Modal.getInstance(document.getElementById('addTasksModal')).hide();
         loadCycleTasks(currentCyclePublicId);
         showCycleTasksTab();
       })
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;
+        document.getElementById('addTasksConfirmBtn').textContent = t('cycles.btn_add_selected', 'Добавить выбранные') + ' (' + ids.length + ')';
         alert(t('cycles.error_add_tasks', 'Ошибка добавления:') + ' ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')));
       });
   };

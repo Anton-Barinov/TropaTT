@@ -5520,6 +5520,7 @@ return array (
     'tasks_not_found' => 'Tasks not found',
     'error_search' => 'Search error.',
     'btn_add_selected_count' => 'Add selected',
+    'adding_tasks' => 'Adding...',
     'select_tasks' => 'Select tasks.',
     'select_target_cycle' => 'Select a target cycle.',
     'unknown_error' => 'unknown error',

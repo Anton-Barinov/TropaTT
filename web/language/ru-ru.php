@@ -5498,6 +5498,7 @@ return array (
     'tasks_not_found' => 'Задачи не найдены',
     'error_search' => 'Ошибка поиска.',
     'btn_add_selected_count' => 'Добавить выбранные',
+    'adding_tasks' => 'Добавляем...',
     'select_tasks' => 'Выберите задачи.',
     'select_target_cycle' => 'Выберите целевой цикл.',
     'unknown_error' => 'неизвестная ошибка',
