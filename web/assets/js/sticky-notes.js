@@ -109,6 +109,7 @@ window.CRM.stickyNotes = (function () {
     }).join('');
 
     bindNoteEvents();
+    initDragReorder();
   }
 
   function bindNoteEvents() {
@@ -277,11 +278,95 @@ window.CRM.stickyNotes = (function () {
     });
   }
 
+
+  // ---- Drag and Drop Reorder ----
+  var dragSourceId = null;
+
+  function injectDragStyles() {
+    var style = document.getElementById('crmStickyDragStyles');
+    if (style) return;
+    style = document.createElement('style');
+    style.id = 'crmStickyDragStyles';
+    style.textContent = '.crm-sticky-dragging { opacity: 0.5; } [data-note-id].crm-sticky-drag-over { transform: scale(1.03); box-shadow: 0 4px 12px rgba(0,0,0,0.15); } [data-note-id] { transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: grab; } [data-note-id]:active { cursor: grabbing; }';
+    document.head.appendChild(style);
+  }
+
+  function initDragReorder() {
+    var list = document.getElementById('stickyNotesList');
+    if (!list) return;
+    list.querySelectorAll('[data-note-id]').forEach(function (col) {
+      col.draggable = true;
+      col.addEventListener('dragstart', function (e) {
+        dragSourceId = col.getAttribute('data-note-id');
+        col.classList.add('crm-sticky-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      col.addEventListener('dragend', function () {
+        col.classList.remove('crm-sticky-dragging');
+        dragSourceId = null;
+        document.querySelectorAll('[data-note-id]').forEach(function (c) {
+          c.classList.remove('crm-sticky-drag-over');
+        });
+      });
+      col.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+      col.addEventListener('dragenter', function (e) {
+        e.preventDefault();
+        if (col.getAttribute('data-note-id') !== dragSourceId) {
+          col.classList.add('crm-sticky-drag-over');
+        }
+      });
+      col.addEventListener('dragleave', function () {
+        col.classList.remove('crm-sticky-drag-over');
+      });
+      col.addEventListener('drop', function (e) {
+        e.preventDefault();
+        col.classList.remove('crm-sticky-drag-over');
+        var targetId = col.getAttribute('data-note-id');
+        if (dragSourceId && targetId && dragSourceId !== targetId) {
+          reorderNotes(dragSourceId, targetId);
+        }
+      });
+    });
+  }
+
+  function reorderNotes(sourceId, targetId) {
+    var sourceIdx = -1;
+    var targetIdx = -1;
+    var active = state.items.filter(function (n) { return !n.is_archived; });
+    active.sort(function (a, b) {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+    active.forEach(function (n, i) {
+      if (n.public_id === sourceId) sourceIdx = i;
+      if (n.public_id === targetId) targetIdx = i;
+    });
+    if (sourceIdx < 0 || targetIdx < 0) return;
+    var ids = active.map(function (n) { return n.public_id; });
+    ids.splice(sourceIdx, 1);
+    ids.splice(targetIdx, 0, sourceId);
+    req('api/v1/sticky-notes/reorder', {
+      method: 'POST',
+      body: { public_ids: ids }
+    }).then(function () {
+      notify(t('dashboard.sticky_notes_reordered', 'Порядок заметок обновлён'), 'success');
+      loadNotes();
+    }).catch(function () {
+      notify(t('dashboard.sticky_notes_reorder_error', 'Ошибка изменения порядка'), 'error');
+    });
+  }
+
+
   function init() {
+    injectDragStyles();
     if (document.body.getAttribute('data-page') !== 'dashboard') return;
     waitForApi(function () {
       loadNotes();
-      var addBtn = document.getElementById('stickyNoteAddBtn');
+            var addBtn = document.getElementById('stickyNoteAddBtn');
       if (addBtn) addBtn.addEventListener('click', openCreateModal);
     });
   }
