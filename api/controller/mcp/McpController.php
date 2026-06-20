@@ -5,9 +5,15 @@ namespace Api\Controller\Mcp;
 
 use Api\Controller\Common\BaseController;
 use Api\Controller\Admin\CacheController;
+use Api\Controller\Admin\RoleMatrixController;
 use Api\Controller\Admin\OpsController;
+use Api\Controller\Activity\ActivityController;
+use Api\Controller\Chat\ChatController;
 use Api\Controller\Auth\MenuController;
 use Api\Controller\Module\ModuleController;
+use Api\Controller\Knowledge\KnowledgeController;
+use Api\Controller\Knowledge\KnowledgePageVersionController;
+use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
 use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
@@ -553,6 +559,10 @@ MD;
             $tools[] = $this->tool('crm_get_role_permissions', 'Get permission codes assigned to a role.', [
                 'role_public_id' => ['type' => 'string'],
             ], ['role_public_id']);
+            $tools[] = $this->tool('crm_get_admin_role_matrix', 'Get the role and permission matrix.', []);
+            $tools[] = $this->tool('crm_update_admin_role_matrix', 'Update the role and permission matrix.', [
+                'roles' => ['type' => 'array', 'items' => ['type' => 'object']],
+            ], ['roles']);
         }
 
         if ($this->can('settings.manage')) {
@@ -1274,6 +1284,24 @@ MD;
             $tools[] = $this->tool('crm_get_project', 'Get one CRM project by public id.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_get_project_summary', 'Get summary, milestones, risks and workload for one project.', [
+                'project_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_project_timeline', 'Get timeline data for one project.', [
+                'project_public_id' => ['type' => 'string'],
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+                'view_mode' => ['type' => 'string', 'enum' => ['days', 'weeks', 'months']],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_project_milestones_summary', 'Get milestones summary for one project.', [
+                'project_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_project_risks', 'Get project risk summary.', [
+                'project_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
+            $tools[] = $this->tool('crm_get_project_workload', 'Get project workload summary.', [
+                'project_public_id' => ['type' => 'string'],
+            ], ['project_public_id']);
         }
 
         if ($this->can('knowledge.view')) {
@@ -1288,6 +1316,26 @@ MD;
             $tools[] = $this->tool('crm_get_knowledge_page', 'Get one knowledge base page by public id.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_list_knowledge_spaces', 'List knowledge spaces visible to the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_knowledge_space', 'Get one knowledge space by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_knowledge_page_versions', 'List versions for one knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 30],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_knowledge_page_version', 'Get one knowledge page version.', [
+                'public_id' => ['type' => 'string'],
+                'version_public_id' => ['type' => 'string'],
+            ], ['public_id', 'version_public_id']);
+            $tools[] = $this->tool('crm_diff_knowledge_page_version', 'Get a diff for one knowledge page version.', [
+                'public_id' => ['type' => 'string'],
+                'version_public_id' => ['type' => 'string'],
+            ], ['public_id', 'version_public_id']);
         }
 
         if ($this->can('knowledge.create')) {
@@ -1299,6 +1347,108 @@ MD;
                 'page_type' => ['type' => 'string', 'default' => 'article'],
                 'status' => ['type' => 'string', 'enum' => ['draft', 'review', 'published'], 'default' => 'draft'],
             ], ['title']);
+        }
+        if ($this->can('knowledge.comment')) {
+            $tools[] = $this->tool('crm_list_knowledge_comments', 'List comments for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_add_knowledge_comment', 'Add a comment to a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'body' => ['type' => 'string'],
+                'parent_public_id' => ['type' => 'string'],
+            ], ['public_id', 'body']);
+            $tools[] = $this->tool('crm_delete_knowledge_comment', 'Delete a knowledge page comment.', [
+                'comment_public_id' => ['type' => 'string'],
+            ], ['comment_public_id']);
+            $tools[] = $this->tool('crm_resolve_knowledge_comment', 'Resolve a knowledge page comment thread.', [
+                'comment_public_id' => ['type' => 'string'],
+            ], ['comment_public_id']);
+            $tools[] = $this->tool('crm_reopen_knowledge_comment', 'Reopen a knowledge page comment thread.', [
+                'comment_public_id' => ['type' => 'string'],
+            ], ['comment_public_id']);
+        }
+        if ($this->can('knowledge.edit')) {
+            $tools[] = $this->tool('crm_list_knowledge_files', 'List files attached to a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_knowledge_file', 'Delete a file attached to a knowledge page.', [
+                'file_public_id' => ['type' => 'string'],
+            ], ['file_public_id']);
+        }
+        if ($this->can('knowledge.publish')) {
+            $tools[] = $this->tool('crm_publish_knowledge_page', 'Publish a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'change_summary' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_archive_knowledge_page', 'Archive a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_restore_knowledge_page', 'Restore a knowledge page from draft or archive.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_request_knowledge_review', 'Request review for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_approve_knowledge_review', 'Approve review for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'change_summary' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_reject_knowledge_review', 'Reject review for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_duplicate_knowledge_page', 'Duplicate a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_move_knowledge_page', 'Move a knowledge page inside the knowledge structure.', [
+                'public_id' => ['type' => 'string'],
+                'space_public_id' => ['type' => 'string'],
+                'parent_public_id' => ['type' => 'string'],
+                'sort_order' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_lock_knowledge_page', 'Lock a knowledge page for editing.', [
+                'public_id' => ['type' => 'string'],
+                'reason' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_unlock_knowledge_page', 'Unlock a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+        }
+        if ($this->can('knowledge.permission_manage')) {
+            $tools[] = $this->tool('crm_get_knowledge_space_permissions', 'List knowledge space permissions.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_add_knowledge_space_permission', 'Add a knowledge space permission.', [
+                'public_id' => ['type' => 'string'],
+                'subject_type' => ['type' => 'string'],
+                'subject_id' => ['type' => 'integer'],
+                'subject_public_id' => ['type' => 'string'],
+                'access_level' => ['type' => 'string'],
+            ], ['public_id', 'subject_type']);
+            $tools[] = $this->tool('crm_remove_knowledge_space_permission', 'Remove a knowledge space permission.', [
+                'permission_id' => ['type' => 'integer'],
+            ], ['permission_id']);
+            $tools[] = $this->tool('crm_get_knowledge_page_permissions', 'List knowledge page permissions.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_add_knowledge_page_permission', 'Add a knowledge page permission.', [
+                'public_id' => ['type' => 'string'],
+                'subject_type' => ['type' => 'string'],
+                'subject_id' => ['type' => 'integer'],
+                'subject_public_id' => ['type' => 'string'],
+                'access_level' => ['type' => 'string'],
+            ], ['public_id', 'subject_type']);
+            $tools[] = $this->tool('crm_remove_knowledge_page_permission', 'Remove a knowledge page permission.', [
+                'permission_id' => ['type' => 'integer'],
+            ], ['permission_id']);
+        }
+        if ($this->can('knowledge.admin')) {
+            $tools[] = $this->tool('crm_get_admin_knowledge_settings', 'Get admin knowledge settings.', []);
+            $tools[] = $this->tool('crm_update_admin_knowledge_settings', 'Update admin knowledge settings.', [
+                'settings' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['settings']);
+            $tools[] = $this->tool('crm_reindex_knowledge', 'Rebuild knowledge search index.', []);
+            $tools[] = $this->tool('crm_rebuild_knowledge_permissions', 'Rebuild knowledge permissions versioning.', []);
+            $tools[] = $this->tool('crm_cleanup_knowledge_drafts', 'Cleanup old knowledge drafts.', []);
         }
 
         if ($this->can('task.manage')) {
@@ -1604,6 +1754,20 @@ MD;
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
             'archived' => ['type' => 'boolean', 'default' => false],
         ]);
+        $tools[] = $this->tool('crm_get_chat', 'Get one chat where the current CRM user is a participant.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_create_chat', 'Create a direct, team, project or group chat.', [
+            'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'default' => 'direct'],
+            'user_id' => ['type' => 'integer'],
+            'project_id' => ['type' => 'integer'],
+            'team_id' => ['type' => 'integer'],
+            'title' => ['type' => 'string'],
+            'participant_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ]);
+        $tools[] = $this->tool('crm_get_chat_participants', 'Get chat participants visible to the current CRM user.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
         $tools[] = $this->tool('crm_list_chat_messages', 'List messages from a chat where the current CRM user is a participant.', [
             'chat_public_id' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 30],
@@ -1615,6 +1779,44 @@ MD;
             'text' => ['type' => 'string', 'description' => 'Message text, up to 4000 characters.'],
             'reply_to_message_public_id' => ['type' => 'string'],
         ], ['chat_public_id', 'text']);
+        $tools[] = $this->tool('crm_edit_chat_message', 'Edit one of your chat messages within the allowed time window.', [
+            'chat_public_id' => ['type' => 'string'],
+            'message_public_id' => ['type' => 'string'],
+            'text' => ['type' => 'string'],
+        ], ['chat_public_id', 'message_public_id', 'text']);
+        $tools[] = $this->tool('crm_delete_chat_message', 'Soft-delete one of your chat messages within the allowed time window.', [
+            'chat_public_id' => ['type' => 'string'],
+            'message_public_id' => ['type' => 'string'],
+        ], ['chat_public_id', 'message_public_id']);
+        $tools[] = $this->tool('crm_upload_chat_attachment', 'Upload a chat attachment as base64-encoded content.', [
+            'chat_public_id' => ['type' => 'string'],
+            'name' => ['type' => 'string'],
+            'mime_type' => ['type' => 'string'],
+            'content_base64' => ['type' => 'string'],
+            'text' => ['type' => 'string'],
+        ], ['chat_public_id', 'name', 'content_base64']);
+        $tools[] = $this->tool('crm_list_chat_attachments', 'List attachments from a chat.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_get_chat_settings', 'Get your current settings for a chat.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_update_chat_settings', 'Update your current settings for a chat.', [
+            'chat_public_id' => ['type' => 'string'],
+            'is_favorite' => ['type' => 'boolean'],
+            'is_muted' => ['type' => 'boolean'],
+            'muted_until' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_mark_chat_read', 'Mark one chat as read.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_get_chat_unread_count', 'Get the unread chat count for the current user.', []);
+        $tools[] = $this->tool('crm_archive_chat', 'Archive one chat for its creator.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
+        $tools[] = $this->tool('crm_restore_chat', 'Restore one archived chat for its creator.', [
+            'chat_public_id' => ['type' => 'string'],
+        ], ['chat_public_id']);
         $tools[] = $this->tool('crm_list_notifications', 'List notifications for the current CRM user.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -1632,6 +1834,21 @@ MD;
             'link' => ['type' => 'string'],
             'user_public_id' => ['type' => 'string'],
         ], ['title']);
+        $tools[] = $this->tool('crm_list_push_subscriptions', 'List push subscriptions for the current CRM user.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_create_push_subscription', 'Create or update a push subscription for the current CRM user.', [
+            'endpoint' => ['type' => 'string'],
+            'p256dh' => ['type' => 'string'],
+            'auth' => ['type' => 'string'],
+            'device_label' => ['type' => 'string'],
+            'user_agent' => ['type' => 'string'],
+        ], ['endpoint', 'p256dh', 'auth']);
+        $tools[] = $this->tool('crm_delete_push_subscription', 'Delete one push subscription by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_send_push_test', 'Send a test push notification to the current user.', []);
         $tools[] = $this->tool('crm_mark_notification_read', 'Mark one current-user notification as read.', [
             'public_id' => ['type' => 'string'],
         ], ['public_id']);
@@ -1669,6 +1886,19 @@ MD;
         $tools[] = $this->tool('crm_delete_mention', 'Delete a mention by public id when CRM rules allow it.', [
             'public_id' => ['type' => 'string'],
         ], ['public_id']);
+        $tools[] = $this->tool('crm_get_activity_feed', 'Get the activity feed visible to the current CRM user.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'entity_type' => ['type' => 'string'],
+            'entity_public_id' => ['type' => 'string'],
+            'channel' => ['type' => 'string'],
+        ]);
+        $tools[] = $this->tool('crm_get_activity_history', 'Get activity history for a visible entity.', [
+            'entity_type' => ['type' => 'string'],
+            'public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ], ['entity_type', 'public_id']);
 
         return $tools;
     }
@@ -2001,6 +2231,65 @@ MD;
             'crm_list_mentions' => $this->toolResult($this->crmListMentions($arguments)),
             'crm_add_mention' => $this->toolResult($this->crmAddMention($arguments)),
             'crm_delete_mention' => $this->toolResult($this->crmDeleteMention($arguments)),
+            'crm_get_project_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectSummary($arguments))),
+            'crm_get_project_timeline' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectTimeline($arguments))),
+            'crm_get_project_milestones_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectMilestonesSummary($arguments))),
+            'crm_get_project_risks' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectRisks($arguments))),
+            'crm_get_project_workload' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectWorkload($arguments))),
+            'crm_get_activity_feed' => $this->toolResult($this->crmGetActivityFeed($arguments)),
+            'crm_get_activity_history' => $this->toolResult($this->crmGetActivityHistory($arguments)),
+            'crm_list_knowledge_spaces' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeSpaces($arguments))),
+            'crm_get_knowledge_space' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeSpace($arguments))),
+            'crm_list_knowledge_page_versions' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePageVersions($arguments))),
+            'crm_get_knowledge_page_version' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgePageVersion($arguments))),
+            'crm_diff_knowledge_page_version' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmDiffKnowledgePageVersion($arguments))),
+            'crm_list_knowledge_comments' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeComments($arguments))),
+            'crm_add_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmAddKnowledgeComment($arguments))),
+            'crm_delete_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmDeleteKnowledgeComment($arguments))),
+            'crm_resolve_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmResolveKnowledgeComment($arguments))),
+            'crm_reopen_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmReopenKnowledgeComment($arguments))),
+            'crm_list_knowledge_files' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeFiles($arguments))),
+            'crm_delete_knowledge_file' => $this->withPermission('knowledge.delete', fn() => $this->toolResult($this->crmDeleteKnowledgeFile($arguments))),
+            'crm_publish_knowledge_page' => $this->withPermission('knowledge.publish', fn() => $this->toolResult($this->crmPublishKnowledgePage($arguments))),
+            'crm_archive_knowledge_page' => $this->withPermission('knowledge.publish', fn() => $this->toolResult($this->crmArchiveKnowledgePage($arguments))),
+            'crm_restore_knowledge_page' => $this->withPermission('knowledge.publish', fn() => $this->toolResult($this->crmRestoreKnowledgePage($arguments))),
+            'crm_request_knowledge_review' => $this->withPermission('knowledge.review', fn() => $this->toolResult($this->crmRequestKnowledgeReview($arguments))),
+            'crm_approve_knowledge_review' => $this->withPermission('knowledge.review', fn() => $this->toolResult($this->crmApproveKnowledgeReview($arguments))),
+            'crm_reject_knowledge_review' => $this->withPermission('knowledge.review', fn() => $this->toolResult($this->crmRejectKnowledgeReview($arguments))),
+            'crm_duplicate_knowledge_page' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmDuplicateKnowledgePage($arguments))),
+            'crm_move_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmMoveKnowledgePage($arguments))),
+            'crm_lock_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmLockKnowledgePage($arguments))),
+            'crm_unlock_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmUnlockKnowledgePage($arguments))),
+            'crm_get_knowledge_space_permissions' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmGetKnowledgeSpacePermissions($arguments))),
+            'crm_add_knowledge_space_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmAddKnowledgeSpacePermission($arguments))),
+            'crm_remove_knowledge_space_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmRemoveKnowledgeSpacePermission($arguments))),
+            'crm_get_knowledge_page_permissions' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmGetKnowledgePagePermissions($arguments))),
+            'crm_add_knowledge_page_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmAddKnowledgePagePermission($arguments))),
+            'crm_remove_knowledge_page_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmRemoveKnowledgePagePermission($arguments))),
+            'crm_get_admin_knowledge_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetAdminKnowledgeSettings())),
+            'crm_update_admin_knowledge_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAdminKnowledgeSettings($arguments))),
+            'crm_reindex_knowledge' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmReindexKnowledge())),
+            'crm_rebuild_knowledge_permissions' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRebuildKnowledgePermissions())),
+            'crm_cleanup_knowledge_drafts' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCleanupKnowledgeDrafts())),
+            'crm_get_chat' => $this->toolResult($this->crmGetChat($arguments)),
+            'crm_create_chat' => $this->toolResult($this->crmCreateChat($arguments)),
+            'crm_get_chat_participants' => $this->toolResult($this->crmGetChatParticipants($arguments)),
+            'crm_edit_chat_message' => $this->toolResult($this->crmEditChatMessage($arguments)),
+            'crm_delete_chat_message' => $this->toolResult($this->crmDeleteChatMessage($arguments)),
+            'crm_upload_chat_attachment' => $this->toolResult($this->crmUploadChatAttachment($arguments)),
+            'crm_list_chat_attachments' => $this->toolResult($this->crmListChatAttachments($arguments)),
+            'crm_get_chat_settings' => $this->toolResult($this->crmGetChatSettings($arguments)),
+            'crm_update_chat_settings' => $this->toolResult($this->crmUpdateChatSettings($arguments)),
+            'crm_mark_chat_read' => $this->toolResult($this->crmMarkChatRead($arguments)),
+            'crm_get_chat_unread_count' => $this->toolResult($this->crmGetChatUnreadCount()),
+            'crm_archive_chat' => $this->toolResult($this->crmArchiveChat($arguments)),
+            'crm_restore_chat' => $this->toolResult($this->crmRestoreChat($arguments)),
+            'crm_list_push_subscriptions' => $this->toolResult($this->crmListPushSubscriptions($arguments)),
+            'crm_create_push_subscription' => $this->toolResult($this->crmCreatePushSubscription($arguments)),
+            'crm_delete_push_subscription' => $this->toolResult($this->crmDeletePushSubscription($arguments)),
+            'crm_send_push_test' => $this->toolResult($this->crmSendPushTest()),
+            'crm_get_admin_role_matrix' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetAdminRoleMatrix())),
+            'crm_update_admin_role_matrix' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAdminRoleMatrix($arguments))),
             default => $this->toolError('Unknown tool: ' . $name),
         };
     }
@@ -3521,6 +3810,23 @@ MD;
         return $this->publicData($service->listByRole($publicId));
     }
 
+    private function crmGetAdminRoleMatrix(): array
+    {
+        return $this->payloadData((new RoleMatrixController($this->container))->get());
+    }
+
+    private function crmUpdateAdminRoleMatrix(array $arguments): array
+    {
+        $roles = $arguments['roles'] ?? null;
+        if (!is_array($roles)) {
+            return ['error' => 'roles must be an array.'];
+        }
+
+        /** @var AdminRoleMatrixService $service */
+        $service = $this->container->get('service.admin_role_matrix');
+        return $this->publicData($service->setMatrix($roles, $this->actor()));
+    }
+
     private function crmListSettings(array $arguments): array
     {
         /** @var SettingService $service */
@@ -4342,6 +4648,94 @@ MD;
         return $project ? ['project' => $this->publicData($project)] : ['error' => 'Project not found.'];
     }
 
+    private function crmGetProjectSummary(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var ProjectSummaryService $service */
+        $service = $this->container->get('service.project_summary');
+        $result = $service->summary($publicId, $this->actor());
+        return $result === 'PROJECT_NOT_FOUND' ? ['error' => 'Project not found.'] : $this->publicData($result);
+    }
+
+    private function crmGetProjectTimeline(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var GanttService $service */
+        $service = $this->container->get('service.gantt');
+        $filters = $this->pick($arguments, ['date_from', 'date_to', 'view_mode']);
+        $result = $service->timeline($publicId, $filters, $this->actor());
+        return $result === 'PROJECT_NOT_FOUND' ? ['error' => 'Project not found.'] : $this->publicData(['timeline' => $result]);
+    }
+
+    private function crmGetProjectMilestonesSummary(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var ProjectSummaryService $service */
+        $service = $this->container->get('service.project_summary');
+        $result = $service->milestones($publicId, $this->actor());
+        return $result === 'PROJECT_NOT_FOUND' ? ['error' => 'Project not found.'] : $this->publicData(['milestones' => $result]);
+    }
+
+    private function crmGetProjectRisks(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var ProjectSummaryService $service */
+        $service = $this->container->get('service.project_summary');
+        $result = $service->risks($publicId, $this->actor());
+        return $result === 'PROJECT_NOT_FOUND' ? ['error' => 'Project not found.'] : $this->publicData(['risks' => $result]);
+    }
+
+    private function crmGetProjectWorkload(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+
+        /** @var ProjectSummaryService $service */
+        $service = $this->container->get('service.project_summary');
+        $result = $service->workload($publicId, $this->actor());
+        return $result === 'PROJECT_NOT_FOUND' ? ['error' => 'Project not found.'] : $this->publicData(['workload' => $result]);
+    }
+
+    private function crmGetActivityFeed(array $arguments): array
+    {
+        /** @var ActivityService $service */
+        $service = $this->container->get('service.activity');
+        $filters = $this->activityFilters($arguments);
+        return $this->publicData($service->feed($filters, $this->actor()));
+    }
+
+    private function crmGetActivityHistory(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($entityType === '' || $publicId === '') {
+            return ['error' => 'entity_type and public_id are required.'];
+        }
+
+        /** @var ActivityService $service */
+        $service = $this->container->get('service.activity');
+        $filters = $this->activityFilters($arguments);
+        return $this->publicData($service->entityHistory($entityType, $publicId, $filters, $this->actor()));
+    }
+
     private function crmListKnowledgePages(array $arguments): array
     {
         return [
@@ -4372,6 +4766,400 @@ MD;
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
 
         return ['page' => $this->publicData($page)];
+    }
+
+    private function crmListKnowledgeSpaces(array $arguments): array
+    {
+        $filters = $this->filters($arguments, 20, 100);
+        return ['items' => $this->publicData($this->knowledge()->spaces($filters, $this->actor()))];
+    }
+
+    private function crmGetKnowledgeSpace(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $space = $this->knowledge()->space($publicId, $this->actor());
+        return $space ? ['space' => $this->publicData($space)] : ['error' => 'Knowledge space not found.'];
+    }
+
+    private function crmListKnowledgePageVersions(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $filters = [
+            'limit' => min(100, max(1, (int)($arguments['limit'] ?? 30))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->listVersions($publicId, $filters, $this->actor());
+        return $result === 'KNOWLEDGE_PAGE_NOT_FOUND' ? ['error' => 'Knowledge page not found.'] : $this->publicData($result);
+    }
+
+    private function crmGetKnowledgePageVersion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $versionPublicId = trim((string)($arguments['version_public_id'] ?? ''));
+        if ($publicId === '' || $versionPublicId === '') {
+            return ['error' => 'public_id and version_public_id are required.'];
+        }
+
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->getVersion($publicId, $versionPublicId, $this->actor());
+        if ($result === 'KNOWLEDGE_PAGE_NOT_FOUND') {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if ($result === 'KNOWLEDGE_PAGE_VERSION_NOT_FOUND') {
+            return ['error' => 'Knowledge page version not found.'];
+        }
+        return $this->publicData(['version' => $result]);
+    }
+
+    private function crmDiffKnowledgePageVersion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $versionPublicId = trim((string)($arguments['version_public_id'] ?? ''));
+        if ($publicId === '' || $versionPublicId === '') {
+            return ['error' => 'public_id and version_public_id are required.'];
+        }
+
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->diffVersion($publicId, $versionPublicId, $this->actor());
+        if ($result === 'KNOWLEDGE_PAGE_NOT_FOUND') {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if ($result === 'KNOWLEDGE_PAGE_VERSION_NOT_FOUND') {
+            return ['error' => 'Knowledge page version not found.'];
+        }
+        return $this->publicData($result);
+    }
+
+    private function crmListKnowledgeComments(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor())) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+
+        return ['items' => $this->publicData($this->knowledge()->comments($publicId))];
+    }
+
+    private function crmAddKnowledgeComment(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $body = trim((string)($arguments['body'] ?? ''));
+        if ($publicId === '' || $body === '') {
+            return ['error' => 'public_id and body are required.'];
+        }
+        $page = $this->knowledge()->page($publicId, $this->actor());
+        if (!$page) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+
+        $comment = $this->knowledge()->addComment(
+            $publicId,
+            $body,
+            (int)($this->actor()['id'] ?? 0),
+            trim((string)($arguments['parent_public_id'] ?? '')) ?: null
+        );
+        if (!$comment) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+
+        return ['comment' => $this->publicData($comment)];
+    }
+
+    private function crmDeleteKnowledgeComment(array $arguments): array
+    {
+        $commentPublicId = trim((string)($arguments['comment_public_id'] ?? ''));
+        if ($commentPublicId === '') {
+            return ['error' => 'comment_public_id is required.'];
+        }
+        $ok = $this->knowledge()->deleteComment($commentPublicId, (int)($this->actor()['id'] ?? 0));
+        return $ok ? ['deleted' => true] : ['error' => 'Knowledge comment not found.'];
+    }
+
+    private function crmResolveKnowledgeComment(array $arguments): array
+    {
+        $commentPublicId = trim((string)($arguments['comment_public_id'] ?? ''));
+        if ($commentPublicId === '') {
+            return ['error' => 'comment_public_id is required.'];
+        }
+        $ok = $this->knowledge()->resolveComment($commentPublicId);
+        return $ok ? ['resolved' => true] : ['error' => 'Knowledge comment not found.'];
+    }
+
+    private function crmReopenKnowledgeComment(array $arguments): array
+    {
+        $commentPublicId = trim((string)($arguments['comment_public_id'] ?? ''));
+        if ($commentPublicId === '') {
+            return ['error' => 'comment_public_id is required.'];
+        }
+        $ok = $this->knowledge()->reopenComment($commentPublicId);
+        return $ok ? ['reopened' => true] : ['error' => 'Knowledge comment not found.'];
+    }
+
+    private function crmListKnowledgeFiles(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        $items = $service->listByEntity('knowledge_page', $publicId, $this->user()['user'] ?? []);
+        return $items === null ? ['error' => 'Knowledge page not found.'] : ['items' => $this->publicData($items)];
+    }
+
+    private function crmDeleteKnowledgeFile(array $arguments): array
+    {
+        $filePublicId = trim((string)($arguments['file_public_id'] ?? ''));
+        if ($filePublicId === '') {
+            return ['error' => 'file_public_id is required.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        $ok = $service->delete($filePublicId, $this->user()['user'] ?? []);
+        return $ok ? ['deleted' => true] : ['error' => 'File not found.'];
+    }
+
+    private function crmPublishKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmArchiveKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->setStatus($publicId, 'archived', (int)($this->actor()['id'] ?? 0));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmRestoreKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmRequestKnowledgeReview(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->setStatus($publicId, 'review', (int)($this->actor()['id'] ?? 0));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmApproveKnowledgeReview(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->publish($publicId, (int)($this->actor()['id'] ?? 0), trim((string)($arguments['change_summary'] ?? '')));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmRejectKnowledgeReview(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->setStatus($publicId, 'draft', (int)($this->actor()['id'] ?? 0));
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmDuplicateKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->duplicate($publicId, (int)($this->actor()['id'] ?? 0), $this->actor());
+        return $page ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmMoveKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->updatePage($publicId, [
+            'space_public_id' => $arguments['space_public_id'] ?? null,
+            'parent_public_id' => $arguments['parent_public_id'] ?? null,
+            'sort_order' => $arguments['sort_order'] ?? null,
+        ], (int)($this->actor()['id'] ?? 0), $this->actor());
+        return $page && $page !== 'ROW_VERSION_CONFLICT' ? ['page' => $this->publicData($page)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmLockKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->lockPage($publicId, $this->pick($arguments, ['reason']), $this->actor());
+        return $result === 'KNOWLEDGE_PAGE_NOT_FOUND'
+            ? ['error' => 'Knowledge page not found.']
+            : ($result === 'KNOWLEDGE_PAGE_ALREADY_LOCKED' ? ['error' => 'Knowledge page already locked.'] : $this->publicData(['page' => $result]));
+    }
+
+    private function crmUnlockKnowledgePage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->unlockPage($publicId, [], $this->actor());
+        return $result === 'KNOWLEDGE_PAGE_NOT_FOUND' ? ['error' => 'Knowledge page not found.'] : $this->publicData(['page' => $result]);
+    }
+
+    private function crmGetKnowledgeSpacePermissions(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $space = $this->knowledge()->space($publicId, $this->actor());
+        if (!$space) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        return ['items' => $this->publicData($this->knowledge()->spacePermissions($publicId))];
+    }
+
+    private function crmAddKnowledgeSpacePermission(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $subjectType = trim((string)($arguments['subject_type'] ?? ''));
+        if ($publicId === '' || $subjectType === '') {
+            return ['error' => 'public_id and subject_type are required.'];
+        }
+        $result = $this->knowledge()->addSpacePermission(
+            $publicId,
+            $subjectType,
+            (int)($arguments['subject_id'] ?? 0),
+            trim((string)($arguments['access_level'] ?? 'view')),
+            (int)($this->actor()['id'] ?? 0),
+            trim((string)($arguments['subject_public_id'] ?? ''))
+        );
+        return $result ? ['permission' => $this->publicData($result)] : ['error' => 'Knowledge space not found.'];
+    }
+
+    private function crmRemoveKnowledgeSpacePermission(array $arguments): array
+    {
+        $permissionId = (int)($arguments['permission_id'] ?? 0);
+        if ($permissionId <= 0) {
+            return ['error' => 'permission_id is required.'];
+        }
+        $this->knowledge()->removeSpacePermission($permissionId);
+        return ['removed' => true];
+    }
+
+    private function crmGetKnowledgePagePermissions(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->page($publicId, $this->actor());
+        if (!$page) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        return ['items' => $this->publicData($this->knowledge()->pagePermissions($publicId))];
+    }
+
+    private function crmAddKnowledgePagePermission(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $subjectType = trim((string)($arguments['subject_type'] ?? ''));
+        if ($publicId === '' || $subjectType === '') {
+            return ['error' => 'public_id and subject_type are required.'];
+        }
+        $result = $this->knowledge()->addPagePermission(
+            $publicId,
+            $subjectType,
+            (int)($arguments['subject_id'] ?? 0),
+            trim((string)($arguments['access_level'] ?? 'view')),
+            (int)($this->actor()['id'] ?? 0),
+            trim((string)($arguments['subject_public_id'] ?? ''))
+        );
+        return $result ? ['permission' => $this->publicData($result)] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmRemoveKnowledgePagePermission(array $arguments): array
+    {
+        $permissionId = (int)($arguments['permission_id'] ?? 0);
+        if ($permissionId <= 0) {
+            return ['error' => 'permission_id is required.'];
+        }
+        $this->knowledge()->removePagePermission($permissionId);
+        return ['removed' => true];
+    }
+
+    private function crmGetAdminKnowledgeSettings(): array
+    {
+        return $this->payloadData((new KnowledgeController($this->container))->adminGetSettings());
+    }
+
+    private function crmUpdateAdminKnowledgeSettings(array $arguments): array
+    {
+        $settings = $arguments['settings'] ?? null;
+        if (!is_array($settings)) {
+            return ['error' => 'settings must be an object.'];
+        }
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        foreach ($settings as $name => $value) {
+            $service->set('knowledge', (string)$name, $value);
+        }
+        return ['updated' => $this->publicData($settings)];
+    }
+
+    private function crmReindexKnowledge(): array
+    {
+        return $this->payloadData((new KnowledgeController($this->container))->adminReindex());
+    }
+
+    private function crmRebuildKnowledgePermissions(): array
+    {
+        return $this->payloadData((new KnowledgeController($this->container))->adminRebuildPermissions());
+    }
+
+    private function crmCleanupKnowledgeDrafts(): array
+    {
+        return $this->payloadData((new KnowledgeController($this->container))->adminCleanupDrafts());
     }
 
     private function crmListCalendarEvents(array $arguments): array
@@ -5620,6 +6408,100 @@ MD;
         return ['items' => $this->publicData($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [])];
     }
 
+    private function crmGetChat(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        return ['chat' => $this->publicData($this->pick($chat, ['public_id', 'title', 'type', 'last_message_at', 'created_at', 'is_favorite', 'muted_until'])), 'participants' => $this->publicData($this->participantsForChat((int)$chat['id']))];
+    }
+
+    private function crmCreateChat(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        if ($userId <= 0) {
+            return ['error' => 'Authenticated user is required.'];
+        }
+
+        $type = (string)($arguments['type'] ?? 'direct');
+        $pdo = $this->pdo();
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+
+        if ($type === 'direct') {
+            $withUserId = (int)($arguments['user_id'] ?? 0);
+            if ($withUserId <= 0 || $withUserId === $userId) {
+                return ['error' => 'user_id is required.'];
+            }
+            $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL');
+            $stmt->execute(['id' => $withUserId]);
+            if (!$stmt->fetchColumn()) {
+                return ['error' => 'User not found.'];
+            }
+            return ['chat' => $this->publicData($service->ensureDirectChat($userId, $withUserId))];
+        }
+
+        if ($type === 'project') {
+            $projectId = (int)($arguments['project_id'] ?? 0);
+            if ($projectId <= 0) {
+                return ['error' => 'project_id is required.'];
+            }
+            $stmt = $pdo->prepare("SELECT p.*, t.manager_user_id AS team_manager_user_id, t.member_user_ids AS team_member_user_ids FROM projects p LEFT JOIN teams t ON t.public_id = p.team_public_id WHERE p.id = :id AND p.archived_at IS NULL");
+            $stmt->execute(['id' => $projectId]);
+            $project = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($project)) {
+                return ['error' => 'Project not found.'];
+            }
+            return ['chat' => $this->publicData($service->ensureProjectChat($project, $actor))];
+        }
+
+        if ($type === 'team') {
+            $teamId = (int)($arguments['team_id'] ?? 0);
+            if ($teamId <= 0) {
+                return ['error' => 'team_id is required.'];
+            }
+            $stmt = $pdo->prepare('SELECT * FROM teams WHERE id = :id');
+            $stmt->execute(['id' => $teamId]);
+            $team = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($team)) {
+                return ['error' => 'Team not found.'];
+            }
+            return ['chat' => $this->publicData($service->ensureTeamChat($team, $actor))];
+        }
+
+        if ($type === 'group') {
+            $title = trim((string)($arguments['title'] ?? ''));
+            $participantPublicIds = $arguments['participant_public_ids'] ?? [];
+            if ($title === '' || !is_array($participantPublicIds) || $participantPublicIds === []) {
+                return ['error' => 'title and participant_public_ids are required.'];
+            }
+            $participantPublicIds = array_values(array_unique(array_filter(array_map(static fn(mixed $id): string => trim((string)$id), $participantPublicIds))));
+            $chat = $service->ensureGroupChat($title, $participantPublicIds, $actor);
+            return $chat === [] ? ['error' => 'Participants not found.'] : ['chat' => $this->publicData($chat)];
+        }
+
+        return ['error' => 'Unsupported chat type.'];
+    }
+
+    private function crmGetChatParticipants(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        return ['items' => $this->publicData($this->participantsForChat((int)$chat['id']))];
+    }
+
     private function crmListChatMessages(array $arguments): array
     {
         $actor = $this->actor();
@@ -5669,11 +6551,9 @@ MD;
         if ($afterId <= 0) {
             $items = array_reverse($items);
         }
+        $items = $this->attachChatMessageFiles($items, $chatPublicId);
 
-        return [
-            'chat' => $this->publicData($this->pick($chat, ['public_id', 'title', 'type'])),
-            'items' => $this->publicData($items),
-        ];
+        return ['chat' => $this->publicData($this->pick($chat, ['public_id', 'title', 'type'])), 'items' => $this->publicData($items)];
     }
 
     private function crmSendChatMessage(array $arguments): array
@@ -5722,6 +6602,232 @@ MD;
         ];
     }
 
+    private function crmEditChatMessage(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $messagePublicId = trim((string)($arguments['message_public_id'] ?? ''));
+        $text = trim((string)($arguments['text'] ?? ''));
+        if ($userId <= 0 || $chatPublicId === '' || $messagePublicId === '' || $text === '') {
+            return ['error' => 'chat_public_id, message_public_id and text are required.'];
+        }
+        if (mb_strlen($text) > 4000) {
+            return ['error' => 'Message text is too long.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, $userId);
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        $message = $this->editableChatMessage((int)$chat['id'], $messagePublicId, $userId);
+        if (!$message) {
+            return ['error' => 'Message cannot be edited.'];
+        }
+        $this->pdo()->prepare("UPDATE chat_messages SET text = :text, edited_at = NOW() WHERE id = :id")->execute(['text' => $text, 'id' => (int)$message['id']]);
+        $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'edit', (string)($message['text'] ?? ''), $text);
+        return ['message' => ['public_id' => $messagePublicId, 'chat_public_id' => $chatPublicId, 'text' => $text]];
+    }
+
+    private function crmDeleteChatMessage(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $messagePublicId = trim((string)($arguments['message_public_id'] ?? ''));
+        if ($userId <= 0 || $chatPublicId === '' || $messagePublicId === '') {
+            return ['error' => 'chat_public_id and message_public_id are required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, $userId);
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        $message = $this->editableChatMessage((int)$chat['id'], $messagePublicId, $userId);
+        if (!$message) {
+            return ['error' => 'Message cannot be deleted.'];
+        }
+        $this->pdo()->prepare("UPDATE chat_messages SET deleted_at = NOW(), deleted_by_user_id = :uid WHERE id = :id")->execute(['uid' => $userId, 'id' => (int)$message['id']]);
+        $this->auditChatMessage((int)$message['id'], (int)$chat['id'], $userId, 'delete', (string)($message['text'] ?? ''), null);
+        return ['deleted' => true];
+    }
+
+    private function crmUploadChatAttachment(array $arguments): array
+    {
+        $actor = $this->actor();
+        $userId = (int)($actor['id'] ?? 0);
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $name = trim((string)($arguments['name'] ?? ''));
+        $contentBase64 = trim((string)($arguments['content_base64'] ?? ''));
+        if ($userId <= 0 || $chatPublicId === '' || $name === '' || $contentBase64 === '') {
+            return ['error' => 'chat_public_id, name and content_base64 are required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, $userId);
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        $tmpDir = dirname(__DIR__, 3) . '/storage_api/uploads/chat_mcp';
+        if (!is_dir($tmpDir)) {
+            @mkdir($tmpDir, 0775, true);
+        }
+        $tmpFile = $tmpDir . '/upload_' . bin2hex(random_bytes(8)) . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+        $binary = base64_decode($contentBase64, true);
+        if ($binary === false) {
+            return ['error' => 'content_base64 is invalid.'];
+        }
+        file_put_contents($tmpFile, $binary);
+        $raw = [
+            'name' => $name,
+            'tmp_name' => $tmpFile,
+            'type' => trim((string)($arguments['mime_type'] ?? 'application/octet-stream')),
+            'size' => strlen($binary),
+        ];
+        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
+        $text = trim((string)($arguments['text'] ?? ''));
+        if (mb_strlen($text) > 4000) {
+            @unlink($tmpFile);
+            return ['error' => 'Message text is too long.'];
+        }
+        $this->pdo()->prepare("
+            INSERT INTO chat_messages (public_id, chat_id, sender_user_id, message_type, text, created_at)
+            VALUES (:pid, :cid, :uid, 'attachment', :text, NOW())
+        ")->execute(['pid' => $messagePublicId, 'cid' => (int)$chat['id'], 'uid' => $userId, 'text' => $text]);
+        $messageId = (int)$this->pdo()->lastInsertId();
+        $fileRow = $this->storeChatAttachment($messagePublicId, $raw);
+        $this->pdo()->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
+        if ($this->container->has('service.chat')) {
+            /** @var ChatService $service */
+            $service = $this->container->get('service.chat');
+            $service->markRead((int)$chat['id'], $userId);
+            $service->notifyMessage($chat, ['public_id' => $messagePublicId, 'id' => $messageId, 'text' => $text !== '' ? $text : ($this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name'])], $actor);
+        }
+        @unlink($tmpFile);
+        return ['message_public_id' => $messagePublicId, 'file' => $this->publicData($fileRow)];
+    }
+
+    private function crmListChatAttachments(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        $stmt = $this->pdo()->prepare("
+            SELECT f.public_id, f.original_name, f.mime_type, f.size_bytes, f.created_at, cm.public_id AS message_public_id
+            FROM files f
+            JOIN chat_messages cm ON cm.public_id = f.entity_public_id
+            WHERE f.entity_type = 'chat_message' AND cm.chat_id = :cid AND f.is_deleted = 0
+            ORDER BY f.id ASC
+        ");
+        $stmt->execute(['cid' => (int)$chat['id']]);
+        return ['items' => $this->publicData($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [])];
+    }
+
+    private function crmGetChatSettings(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        return ['settings' => $this->publicData($this->pick($chat, ['public_id', 'is_favorite', 'muted_until']))];
+    }
+
+    private function crmUpdateChatSettings(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        $isFavorite = array_key_exists('is_favorite', $arguments) ? (bool)$arguments['is_favorite'] : null;
+        $mutedUntil = '__keep__';
+        if (array_key_exists('muted_until', $arguments)) {
+            $raw = trim((string)$arguments['muted_until']);
+            $mutedUntil = $raw !== '' ? $raw : null;
+        } elseif (array_key_exists('is_muted', $arguments)) {
+            $mutedUntil = (bool)$arguments['is_muted'] ? '9999-12-31 23:59:59' : null;
+        }
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        return ['settings' => $this->publicData($service->updateParticipantSettings((int)$chat['id'], (int)($this->actor()['id'] ?? 0), $isFavorite, $mutedUntil))];
+    }
+
+    private function crmMarkChatRead(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $service->markRead((int)$chat['id'], (int)($this->actor()['id'] ?? 0));
+        return ['marked_read' => true];
+    }
+
+    private function crmGetChatUnreadCount(): array
+    {
+        $userId = (int)($this->actor()['id'] ?? 0);
+        if ($userId <= 0) {
+            return ['error' => 'Authenticated user is required.'];
+        }
+        $stmt = $this->pdo()->prepare("
+            SELECT COUNT(*) FROM chats c
+            JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :uid
+            WHERE (SELECT COUNT(*) FROM chat_messages cm WHERE cm.chat_id = c.id AND cm.id > COALESCE((SELECT last_read_message_id FROM chat_read_markers WHERE chat_id = c.id AND user_id = :uid2), 0) AND cm.deleted_at IS NULL) > 0
+        ");
+        $stmt->execute(['uid' => $userId, 'uid2' => $userId]);
+        return ['count' => (int)$stmt->fetchColumn()];
+    }
+
+    private function crmArchiveChat(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        if ((int)($chat['created_by_user_id'] ?? 0) !== (int)($this->actor()['id'] ?? 0)) {
+            return ['error' => 'Only the creator can archive this chat.'];
+        }
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $result = $service->archiveChat((int)$chat['id'], (int)($this->actor()['id'] ?? 0));
+        return $result === [] ? ['error' => 'Archive failed.'] : ['chat' => $this->publicData($result)];
+    }
+
+    private function crmRestoreChat(array $arguments): array
+    {
+        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        if ($chatPublicId === '') {
+            return ['error' => 'chat_public_id is required.'];
+        }
+        $stmt = $this->pdo()->prepare("SELECT id FROM chats WHERE public_id = :pid AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
+        $stmt->execute(['pid' => $chatPublicId, 'uid' => (int)($this->actor()['id'] ?? 0)]);
+        $chatId = (int)$stmt->fetchColumn();
+        if ($chatId <= 0) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $result = $service->restoreChat($chatId, (int)($this->actor()['id'] ?? 0));
+        return $result === [] ? ['error' => 'Restore failed.'] : ['chat' => $this->publicData($result)];
+    }
+
     private function crmListNotifications(array $arguments): array
     {
         /** @var NotificationService $service */
@@ -5746,6 +6852,47 @@ MD;
         /** @var NotificationService $service */
         $service = $this->container->get('service.notification');
         return ['notification' => $this->publicData($service->create($this->notificationInput($arguments), $this->actor()))];
+    }
+
+    private function crmListPushSubscriptions(array $arguments): array
+    {
+        /** @var NotificationPushService $service */
+        $service = $this->container->get('service.notification_push');
+        return $this->publicData($service->list($this->filters($arguments, 20, 50), $this->actor()));
+    }
+
+    private function crmCreatePushSubscription(array $arguments): array
+    {
+        $endpoint = trim((string)($arguments['endpoint'] ?? ''));
+        $p256dh = trim((string)($arguments['p256dh'] ?? ''));
+        $auth = trim((string)($arguments['auth'] ?? ''));
+        if ($endpoint === '' || $p256dh === '' || $auth === '') {
+            return ['error' => 'endpoint, p256dh and auth are required.'];
+        }
+
+        /** @var NotificationPushService $service */
+        $service = $this->container->get('service.notification_push');
+        $item = $service->upsert($this->pick($arguments, ['endpoint', 'p256dh', 'auth', 'device_label', 'user_agent']), $this->actor());
+        return $item ? ['subscription' => $this->publicData($item)] : ['error' => 'Invalid push subscription.'];
+    }
+
+    private function crmDeletePushSubscription(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var NotificationPushService $service */
+        $service = $this->container->get('service.notification_push');
+        return $service->delete($publicId, $this->actor()) ? ['deleted' => true] : ['error' => 'Push subscription not found.'];
+    }
+
+    private function crmSendPushTest(): array
+    {
+        /** @var NotificationPushService $service */
+        $service = $this->container->get('service.notification_push');
+        return $this->publicData($service->sendTestToUser((int)($this->actor()['id'] ?? 0), $this->actor()));
     }
 
     private function crmSetNotificationReadState(array $arguments, bool $read): array
@@ -5974,6 +7121,16 @@ MD;
             'space_public_id', 'sort', 'order',
         ]);
         $filters['limit'] = $this->limit($arguments, $defaultLimit, $maxLimit);
+
+        return $filters;
+    }
+
+    private function activityFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'entity_type', 'entity_public_id', 'channel', 'project_public_id', 'status', 'priority', 'assigned_user_id', 'updated_since',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 100);
 
         return $filters;
     }
@@ -7131,6 +8288,141 @@ MD;
         $message = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($message) ? $message : null;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $messages
+     * @return list<array<string,mixed>>
+     */
+    private function attachChatMessageFiles(array $messages, string $chatPublicId): array
+    {
+        $ids = array_values(array_filter(array_map(static fn(array $message): string => (string)($message['public_id'] ?? ''), $messages)));
+        if ($ids === []) {
+            return $messages;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->pdo()->prepare("SELECT public_id, entity_public_id, original_name, mime_type, size_bytes, created_at FROM files WHERE entity_type = 'chat_message' AND is_deleted = 0 AND entity_public_id IN ({$placeholders}) ORDER BY id ASC");
+        $stmt->execute($ids);
+        $byMessage = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $file) {
+            $file['download_url'] = '/api/index.php?route=api/v1/chats/' . rawurlencode($chatPublicId) . '/attachments/' . rawurlencode((string)$file['public_id']) . '/download';
+            $byMessage[(string)$file['entity_public_id']][] = $file;
+        }
+
+        foreach ($messages as &$message) {
+            $message['attachments'] = $byMessage[(string)($message['public_id'] ?? '')] ?? [];
+        }
+        unset($message);
+
+        return $messages;
+    }
+
+    private function storeChatAttachment(string $messagePublicId, array $raw): array
+    {
+        $publicId = 'fil_' . bin2hex(random_bytes(8));
+        $name = $this->sanitizeFileName((string)($raw['name'] ?? 'file.bin'));
+        $tmp = (string)($raw['tmp_name'] ?? '');
+        $mime = $this->normalizeUploadMime($this->detectMime($tmp) ?: (string)($raw['type'] ?? 'application/octet-stream'), $name);
+        $size = (int)($raw['size'] ?? 0);
+        $dir = dirname(__DIR__, 3) . '/storage_api/uploads/chat';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $path = $dir . '/' . $publicId . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+        if (!@move_uploaded_file($tmp, $path)) {
+            if (!@rename($tmp, $path)) {
+                if (!@copy($tmp, $path)) {
+                    throw new \RuntimeException('UPLOAD_MOVE_FAILED');
+                }
+            }
+        }
+
+        $this->pdo()->prepare("
+            INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
+            VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
+        ")->execute([
+            'pid' => $publicId,
+            'entity_pid' => $messagePublicId,
+            'uid' => (int)($this->actor()['id'] ?? 0),
+            'name' => $name,
+            'path' => $path,
+            'mime' => $mime,
+            'size' => $size,
+        ]);
+
+        return [
+            'public_id' => $publicId,
+            'original_name' => $name,
+            'mime_type' => $mime,
+            'size_bytes' => $size,
+        ];
+    }
+
+    private function sanitizeFileName(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return 'file.bin';
+        }
+        return preg_replace('/[^\pL\pN._-]+/u', '_', $name) ?? 'file.bin';
+    }
+
+    private function detectMime(string $path): ?string
+    {
+        if ($path === '' || !is_file($path)) {
+            return null;
+        }
+        $mime = function_exists('mime_content_type') ? @mime_content_type($path) : false;
+        return is_string($mime) && $mime !== '' ? $mime : null;
+    }
+
+    private function normalizeUploadMime(string $mime, string $fileName): string
+    {
+        $mime = strtolower(trim(explode(';', $mime)[0]));
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if ($mime === 'image/pjpeg') return 'image/jpeg';
+        if ($mime === 'text/comma-separated-values') return 'text/csv';
+        if ($mime === 'application/octet-stream' && in_array($ext, ['jpg', 'jpeg'], true)) return 'image/jpeg';
+        if ($mime === 'application/octet-stream' && $ext === 'png') return 'image/png';
+        if ($mime === 'application/octet-stream' && $ext === 'gif') return 'image/gif';
+        return $mime !== '' ? $mime : 'application/octet-stream';
+    }
+
+    private function editableChatMessage(int $chatId, string $messagePublicId, int $userId): ?array
+    {
+        $stmt = $this->pdo()->prepare("
+            SELECT *
+            FROM chat_messages
+            WHERE chat_id = :cid
+              AND public_id = :pid
+              AND sender_user_id = :uid
+              AND deleted_at IS NULL
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            LIMIT 1
+        ");
+        $stmt->execute(['cid' => $chatId, 'pid' => $messagePublicId, 'uid' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    private function auditChatMessage(int $messageId, int $chatId, int $actorUserId, string $action, ?string $before, ?string $after): void
+    {
+        try {
+            $this->pdo()->prepare("
+                INSERT INTO chat_message_audit_logs (public_id, message_id, chat_id, actor_user_id, action, before_text, after_text, created_at)
+                VALUES (:pid, :mid, :cid, :uid, :action, :before_text, :after_text, NOW())
+            ")->execute([
+                'pid' => 'cma_' . bin2hex(random_bytes(8)),
+                'mid' => $messageId,
+                'cid' => $chatId,
+                'uid' => $actorUserId,
+                'action' => $action,
+                'before_text' => $before,
+                'after_text' => $after,
+            ]);
+        } catch (Throwable) {
+        }
     }
 
     private function tableHasColumn(string $table, string $column): bool
