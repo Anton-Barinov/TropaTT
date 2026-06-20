@@ -325,3 +325,5 @@ Expected response shape:
 - 2026-06-20: Fixed MCP knowledge routing after deploy; validated on demo that `tools/list` exposes 417 tools and that `crm_get_knowledge_overview`, `crm_get_knowledge_page_draft`, and `crm_list_knowledge_templates` all execute successfully through `tools/call`.
 
 - 2026-06-20: Added MCP wrappers for knowledge page version restore/lock/unlock so agents can handle revision recovery and page locks without leaving the MCP layer.
+
+- 2026-06-20: Added MCP wrappers for knowledge page version restore/lock/unlock and verified them on demo.tropatt.com; `tools/list` now shows 420 tools.
