@@ -514,4 +514,40 @@
   .crm-content {
     padding-bottom: calc(var(--space-12) + 60px);
   }
+
+  .crm-cycles-page .crm-cycles-search {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .crm-cycles-page .crm-cycles-search-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin-left: 14px;
+  }
+
+  .crm-cycles-page .crm-cycles-search-input {
+    display: block;
+    flex: 1 1 auto;
+    width: auto !important;
+    height: 44px;
+    min-height: 0;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .crm-cycles-page .crm-cycles-search-clear,
+  .crm-cycles-page .crm-cycles-search-submit {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    margin-right: 5px;
+    border: 0;
+  }
 }
