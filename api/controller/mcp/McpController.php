@@ -1396,6 +1396,12 @@ MD;
                 'public_id' => ['type' => 'string'],
                 'version_public_id' => ['type' => 'string'],
             ], ['public_id', 'version_public_id']);
+            $tools[] = $this->tool('crm_restore_knowledge_page_version', 'Restore a previous version of one knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'version_public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+                'change_note' => ['type' => 'string'],
+            ], ['public_id', 'version_public_id']);
         }
 
         if ($this->can('knowledge.manage')) {
@@ -1582,6 +1588,15 @@ MD;
             ], ['public_id']);
             $tools[] = $this->tool('crm_unlock_knowledge_page', 'Unlock a knowledge page.', [
                 'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_lock_knowledge_page_version', 'Lock a knowledge page version for editing.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+                'reason' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_unlock_knowledge_page_version', 'Unlock a knowledge page version.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_delete_knowledge_page', 'Delete a knowledge page.', [
                 'public_id' => ['type' => 'string'],
@@ -2450,6 +2465,7 @@ MD;
             'crm_list_knowledge_page_versions' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePageVersions($arguments))),
             'crm_get_knowledge_page_version' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgePageVersion($arguments))),
             'crm_diff_knowledge_page_version' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmDiffKnowledgePageVersion($arguments))),
+            'crm_restore_knowledge_page_version' => $this->withPermission('knowledge.publish', fn() => $this->toolResult($this->crmRestoreKnowledgePageVersion($arguments))),
             'crm_list_knowledge_comments' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeComments($arguments))),
             'crm_add_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmAddKnowledgeComment($arguments))),
             'crm_delete_knowledge_comment' => $this->withPermission('knowledge.comment', fn() => $this->toolResult($this->crmDeleteKnowledgeComment($arguments))),
@@ -2467,6 +2483,8 @@ MD;
             'crm_move_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmMoveKnowledgePage($arguments))),
             'crm_lock_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmLockKnowledgePage($arguments))),
             'crm_unlock_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmUnlockKnowledgePage($arguments))),
+            'crm_lock_knowledge_page_version' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmLockKnowledgePageVersion($arguments))),
+            'crm_unlock_knowledge_page_version' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmUnlockKnowledgePageVersion($arguments))),
             'crm_get_knowledge_space_permissions' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmGetKnowledgeSpacePermissions($arguments))),
             'crm_add_knowledge_space_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmAddKnowledgeSpacePermission($arguments))),
             'crm_remove_knowledge_space_permission' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmRemoveKnowledgeSpacePermission($arguments))),
@@ -5345,6 +5363,29 @@ MD;
         return $this->publicData($result);
     }
 
+    private function crmRestoreKnowledgePageVersion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $versionPublicId = trim((string)($arguments['version_public_id'] ?? ''));
+        if ($publicId === '' || $versionPublicId === '') {
+            return ['error' => 'public_id and version_public_id are required.'];
+        }
+
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->restoreVersion($publicId, $versionPublicId, $this->pick($arguments, ['row_version', 'change_note']), $this->actor());
+        if ($result === 'KNOWLEDGE_PAGE_NOT_FOUND') {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if ($result === 'KNOWLEDGE_PAGE_VERSION_NOT_FOUND') {
+            return ['error' => 'Knowledge page version not found.'];
+        }
+        if ($result === 'ROW_VERSION_CONFLICT') {
+            return ['error' => 'Knowledge page was changed by another user.'];
+        }
+        return ['page' => $this->publicData($result)];
+    }
+
     private function crmListKnowledgeComments(array $arguments): array
     {
         $publicId = trim((string)($arguments['public_id'] ?? ''));
@@ -5848,6 +5889,47 @@ MD;
         $service = $this->container->get('service.knowledge_page_version');
         $result = $service->unlockPage($publicId, [], $this->actor());
         return $result === 'KNOWLEDGE_PAGE_NOT_FOUND' ? ['error' => 'Knowledge page not found.'] : $this->publicData(['page' => $result]);
+    }
+
+    private function crmLockKnowledgePageVersion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->lockPage($publicId, $this->pick($arguments, ['row_version', 'reason']), $this->actor());
+        if ($result === 'KNOWLEDGE_PAGE_NOT_FOUND') {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if ($result === 'KNOWLEDGE_PAGE_ALREADY_LOCKED') {
+            return ['error' => 'Knowledge page already locked.'];
+        }
+        if ($result === 'ROW_VERSION_CONFLICT') {
+            return ['error' => 'Knowledge page was changed by another user.'];
+        }
+        return ['page' => $this->publicData($result)];
+    }
+
+    private function crmUnlockKnowledgePageVersion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var KnowledgePageVersionService $service */
+        $service = $this->container->get('service.knowledge_page_version');
+        $result = $service->unlockPage($publicId, $this->pick($arguments, ['row_version']), $this->actor());
+        if ($result === 'KNOWLEDGE_PAGE_NOT_FOUND') {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if ($result === 'ROW_VERSION_CONFLICT') {
+            return ['error' => 'Knowledge page was changed by another user.'];
+        }
+        return ['page' => $this->publicData($result)];
     }
 
     private function crmGetKnowledgeSpacePermissions(array $arguments): array
