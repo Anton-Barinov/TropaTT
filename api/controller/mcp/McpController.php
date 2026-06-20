@@ -1552,6 +1552,33 @@ MD;
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
             ], ['q']);
             $tools[] = $this->tool('crm_get_knowledge_analytics', 'Get knowledge base analytics.', []);
+            $tools[] = $this->tool('crm_create_knowledge_ai_summary', 'Generate a concise AI summary for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_knowledge_ai_explanation', 'Generate a plain-language explanation for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_find_knowledge_ai_similar', 'Find semantically similar knowledge pages.', [
+                'public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20, 'default' => 10],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_knowledge_ai_checklist', 'Generate a checklist from a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_knowledge_ai_faq_from_comments', 'Generate a FAQ from knowledge page comments.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_knowledge_ai_suggest_for_task', 'Suggest knowledge pages related to a task.', [
+                'task_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20, 'default' => 10],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_find_knowledge_ai_duplicates', 'Find potentially duplicate knowledge pages.', [
+                'threshold' => ['type' => 'number', 'minimum' => 0.3, 'maximum' => 1.0, 'default' => 0.75],
+            ]);
+            $tools[] = $this->tool('crm_find_knowledge_ai_orphans', 'Find knowledge pages without an owner.', []);
+            $tools[] = $this->tool('crm_suggest_knowledge_ai_structure', 'Suggest a better structure for one knowledge space.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_knowledge_templates', 'List knowledge templates.', [
                 'search' => ['type' => 'string'],
                 'is_active' => ['type' => 'boolean'],
