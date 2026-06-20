@@ -13,6 +13,7 @@
   var currentCycleDetail = null;
   var selectedTasks = {};
   var cycleFocusLoaded = false;
+  var cycleSearchTimer = null;
 
   function api() {
     return window.CRM && window.CRM.api;
@@ -814,7 +815,7 @@
     apiRequest('api/v1/projects', { method: 'GET', query: { limit: 200 } })
       .then(function (env) {
         var items = env.data && env.data.items || [];
-        sel.innerHTML = '<option value="">Все проекты</option>';
+        sel.innerHTML = '<option value="">' + t('cycles.filter_all_projects', 'Все проекты') + '</option>';
         items.forEach(function (p) {
           var opt = document.createElement('option');
           opt.value = p.public_id;
@@ -830,9 +831,47 @@
     if (statusSel) statusSel.onchange = function () { window.loadWorkCycles(1); };
     var searchInput = document.getElementById('cycleSearchInput');
     if (searchInput) {
+      var searchSubmit = document.getElementById('cycleSearchSubmitBtn');
+      var searchClear = document.getElementById('cycleSearchClearBtn');
+      var syncSearchClear = function () {
+        if (!searchClear) return;
+        searchClear.classList.toggle('d-none', !searchInput.value.trim());
+      };
+      var scheduleSearch = function () {
+        clearTimeout(cycleSearchTimer);
+        cycleSearchTimer = setTimeout(function () {
+          window.loadWorkCycles(1);
+        }, 320);
+      };
+
+      syncSearchClear();
       searchInput.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') window.loadWorkCycles(1);
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          clearTimeout(cycleSearchTimer);
+          window.loadWorkCycles(1);
+        }
       });
+      searchInput.addEventListener('input', function () {
+        syncSearchClear();
+        scheduleSearch();
+      });
+      if (searchSubmit) {
+        searchSubmit.addEventListener('click', function () {
+          clearTimeout(cycleSearchTimer);
+          window.loadWorkCycles(1);
+        });
+      }
+      if (searchClear) {
+        searchClear.addEventListener('click', function () {
+          if (!searchInput.value) return;
+          searchInput.value = '';
+          syncSearchClear();
+          clearTimeout(cycleSearchTimer);
+          window.loadWorkCycles(1);
+          searchInput.focus();
+        });
+      }
     }
   }
 

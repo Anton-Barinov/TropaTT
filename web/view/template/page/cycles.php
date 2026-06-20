@@ -16,14 +16,14 @@
   <section class="crm-cycle-command-center d-none mb-3" id="cycleCommandCenter" aria-live="polite"></section>
 
   <!-- Filters -->
-  <div class="row g-2 mb-3">
-    <div class="col-auto">
-      <select class="form-select form-select-sm" id="cycleProjectFilter" style="min-width:200px;">
+  <div class="crm-cycles-filterbar mb-3" aria-label="<?= htmlspecialchars($t('cycles.filters_aria', 'Фильтры циклов'), ENT_QUOTES, 'UTF-8') ?>">
+    <div class="crm-cycles-filter-item crm-cycles-filter-project">
+      <select class="form-select" id="cycleProjectFilter">
         <option value=""><?= htmlspecialchars($t('cycles.filter_all_projects', 'Все проекты'), ENT_QUOTES, 'UTF-8') ?></option>
       </select>
     </div>
-    <div class="col-auto">
-      <select class="form-select form-select-sm" id="cycleStatusFilter">
+    <div class="crm-cycles-filter-item crm-cycles-filter-status">
+      <select class="form-select" id="cycleStatusFilter">
         <option value=""><?= htmlspecialchars($t('cycles.filter_all_statuses', 'Все статусы'), ENT_QUOTES, 'UTF-8') ?></option>
         <option value="planned"><?= htmlspecialchars($t('cycles.filter_planned', 'Запланированные'), ENT_QUOTES, 'UTF-8') ?></option>
         <option value="active"><?= htmlspecialchars($t('cycles.filter_active', 'Активные'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -31,10 +31,17 @@
         <option value="archived"><?= htmlspecialchars($t('cycles.filter_archived', 'Архивные'), ENT_QUOTES, 'UTF-8') ?></option>
       </select>
     </div>
-    <div class="col-auto">
-      <div class="input-group input-group-sm">
-        <input type="text" class="form-control" id="cycleSearchInput" placeholder="<?= htmlspecialchars($t('cycles.search_placeholder', 'Поиск циклов...'), ENT_QUOTES, 'UTF-8') ?>" style="min-width:200px;">
-        <button class="btn btn-outline-secondary" type="button" onclick="window.loadWorkCycles(1)"><i class="fa-solid fa-search"></i></button>
+    <div class="crm-cycles-filter-item crm-cycles-filter-search">
+      <div class="crm-cycles-search" role="search">
+        <label class="visually-hidden" for="cycleSearchInput"><?= htmlspecialchars($t('cycles.search_label', 'Поиск циклов'), ENT_QUOTES, 'UTF-8') ?></label>
+        <i class="fa-solid fa-search crm-cycles-search-icon" aria-hidden="true"></i>
+        <input type="search" class="form-control crm-cycles-search-input" id="cycleSearchInput" placeholder="<?= htmlspecialchars($t('cycles.search_placeholder', 'Поиск циклов...'), ENT_QUOTES, 'UTF-8') ?>">
+        <button class="crm-cycles-search-clear d-none" type="button" id="cycleSearchClearBtn" aria-label="<?= htmlspecialchars($t('cycles.search_clear', 'Очистить поиск'), ENT_QUOTES, 'UTF-8') ?>">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <button class="crm-cycles-search-submit" type="button" id="cycleSearchSubmitBtn" aria-label="<?= htmlspecialchars($t('cycles.search_submit', 'Найти циклы'), ENT_QUOTES, 'UTF-8') ?>">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </button>
       </div>
     </div>
   </div>
