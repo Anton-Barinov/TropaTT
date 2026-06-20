@@ -550,4 +550,14 @@
     margin-right: 5px;
     border: 0;
   }
+
+  .crm-cycles-page .crm-cycles-search-clear {
+    background: transparent;
+    color: #6d7976;
+  }
+
+  .crm-cycles-page .crm-cycles-search-submit {
+    background: var(--crm-primary);
+    color: #fff;
+  }
 }
