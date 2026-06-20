@@ -6529,7 +6529,7 @@ MD;
         }
 
         $stmt = $this->pdo()->prepare("
-            SELECT cm.public_id, cm.id AS message_seq, cm.message_type, cm.text, cm.created_at, cm.updated_at,
+            SELECT cm.public_id, cm.id AS message_seq, cm.message_type, cm.text, cm.created_at, cm.edited_at AS updated_at,
                    u.public_id AS sender_public_id, COALESCE(NULLIF(u.full_name, ''), u.login) AS sender_name,
                    rm.public_id AS reply_public_id, rm.text AS reply_text
             FROM chat_messages cm
@@ -8284,6 +8284,23 @@ MD;
         $chat = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($chat) ? $chat : null;
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private function participantsForChat(int $chatId): array
+    {
+        $stmt = $this->pdo()->prepare("
+            SELECT u.id, u.public_id, u.full_name, u.login, u.email, cp.role, cp.joined_at
+            FROM chat_participants cp
+            JOIN users u ON u.id = cp.user_id
+            WHERE cp.chat_id = :cid
+            ORDER BY CASE cp.role WHEN 'admin' THEN 0 ELSE 1 END, COALESCE(NULLIF(u.full_name, ''), u.login)
+        ");
+        $stmt->execute(['cid' => $chatId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function resolveReplyMessage(int $chatId, string $messagePublicId): ?array
