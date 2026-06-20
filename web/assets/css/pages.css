@@ -642,14 +642,14 @@
   table-layout: fixed !important;
 }
 
-.crm-intake-page .crm-table thead th:nth-child(1) { width: 23%; }
-.crm-intake-page .crm-table thead th:nth-child(2) { width: 9%; }
-.crm-intake-page .crm-table thead th:nth-child(3) { width: 14%; }
-.crm-intake-page .crm-table thead th:nth-child(4) { width: 9%; }
-.crm-intake-page .crm-table thead th:nth-child(5) { width: 9%; }
-.crm-intake-page .crm-table thead th:nth-child(6) { width: 12%; }
+.crm-intake-page .crm-table thead th:nth-child(1) { width: 22%; }
+.crm-intake-page .crm-table thead th:nth-child(2) { width: 10%; }
+.crm-intake-page .crm-table thead th:nth-child(3) { width: 13%; }
+.crm-intake-page .crm-table thead th:nth-child(4) { width: 8%; }
+.crm-intake-page .crm-table thead th:nth-child(5) { width: 8%; }
+.crm-intake-page .crm-table thead th:nth-child(6) { width: 11%; }
 .crm-intake-page .crm-table thead th:nth-child(7) { width: 8%; }
-.crm-intake-page .crm-table thead th:nth-child(8) { width: 8%; }
+.crm-intake-page .crm-table thead th:nth-child(8) { width: 9%; }
 .crm-intake-page .crm-table thead th:nth-child(9) { width: 132px; }
 
 .crm-intake-page .crm-table tbody td {
@@ -2046,6 +2046,7 @@
   gap: 0.12rem;
   min-height: 48px;
   padding: 0.34rem 0.46rem 0.38rem;
+      border-radius: 0px;
 }
 
 .crm-calendar-event-time {
