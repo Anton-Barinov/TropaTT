@@ -576,6 +576,7 @@ MD;
         $tools[] = $this->tool('crm_list_ai_intents', 'List AI intent settings.', [
             'q' => ['type' => 'string'],
             'is_enabled' => ['type' => 'integer', 'enum' => [0, 1]],
+            'feature_flag' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
@@ -626,18 +627,33 @@ MD;
         ], ['public_id']);
         $tools[] = $this->tool('crm_list_ai_usage', 'List AI usage logs.', [
             'intent_code' => ['type' => 'string'],
+            'action_type' => ['type' => 'string'],
+            'provider_public_id' => ['type' => 'string'],
             'status' => ['type' => 'string'],
+            'error_code' => ['type' => 'string'],
+            'user_id' => ['type' => 'integer'],
+            'is_sensitive_context' => ['type' => 'boolean'],
+            'date_from' => ['type' => 'string'],
+            'date_to' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
         $tools[] = $this->tool('crm_list_ai_audit', 'List AI audit log entries.', [
             'intent_code' => ['type' => 'string'],
             'entity_public_id' => ['type' => 'string'],
+            'action' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
         $tools[] = $this->tool('crm_list_ai_jobs', 'List AI cron jobs.', [
+            'job_type' => ['type' => 'string'],
+            'action_type' => ['type' => 'string'],
+            'intent_code' => ['type' => 'string'],
             'status' => ['type' => 'string'],
+            'scope_type' => ['type' => 'string'],
+            'scope_public_id' => ['type' => 'string'],
+            'error_code' => ['type' => 'string'],
+            'requested_by_user_id' => ['type' => 'integer'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
@@ -664,6 +680,8 @@ MD;
             'intent_code' => ['type' => 'string'],
             'entity_type' => ['type' => 'string'],
             'entity_public_id' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'created_by_user_id' => ['type' => 'integer'],
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
@@ -6068,6 +6086,56 @@ MD;
     private function analyticsListFilters(array $arguments): array
     {
         return $this->pick($arguments, ['limit']);
+    }
+
+    private function aiProviderFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, ['page', 'q', 'is_active']);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
+    }
+
+    private function aiIntentFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, ['page', 'q', 'is_enabled', 'feature_flag']);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
+    }
+
+    private function aiSchemaFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, ['page', 'intent_code', 'locale', 'is_active']);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
+    }
+
+    private function aiUsageFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'intent_code', 'action_type', 'provider_public_id', 'status', 'error_code',
+            'user_id', 'is_sensitive_context', 'date_from', 'date_to',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
+    }
+
+    private function aiJobFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'job_type', 'action_type', 'intent_code', 'status', 'scope_type', 'scope_public_id',
+            'error_code', 'requested_by_user_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
+    }
+
+    private function aiSuggestionFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'intent_code', 'entity_type', 'entity_public_id', 'status', 'created_by_user_id',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 50, 100);
+        return $filters;
     }
 
     private function recycleBinFilters(array $arguments): array
