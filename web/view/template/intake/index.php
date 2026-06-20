@@ -9,32 +9,14 @@
   ['label' => $t('intake.page_title', 'Входящие заявки'), 'active' => true],
 ], $t('intake.page_title', 'Входящие заявки'), $t('intake.subtitle', 'Фиксация, разбор и приём в работу входящих обращений.'), '<button class="btn crm-btn-primary" type="button" data-intake-create data-bs-toggle="modal" data-bs-target="#intakeCreateModal">' . htmlspecialchars($t('intake.btn_create', 'Новая заявка'), ENT_QUOTES, 'UTF-8') . '</button>'); ?>
 
-
-<section class="crm-intake-info crm-card mb-3">
-  <div class="row g-3 align-items-center">
-    <div class="col-auto">
-      <i class="fa-solid fa-inbox fa-2x text-muted"></i>
-    </div>
-    <div class="col">
-      <strong data-i18n="intake.info_title">Что такое «Входящие заявки»?</strong>
-      <p class="mb-0 text-muted small" data-i18n="intake.info_text">
-        Этот раздел предназначен для сбора и обработки входящих обращений. 
-        Заявки можно создавать вручную, принимать через API или email. 
-        После обработки заявку можно принять в работу (создаётся задача), 
-        отклонить с причиной, отложить до указанной даты или пометить как дубликат.
-      </p>
-    </div>
-    <div class="col-auto text-end">
-      <span class="badge bg-light text-dark fs-6" id="intakeTotalCount">0</span>
-      <small class="text-muted d-block" data-i18n="intake.stats_label">заявок всего</small>
-    </div>
-  </div>
-</section>
-
 <section class="crm-intake-filters crm-filters-card">
   <div class="crm-intake-search">
     <label class="crm-filter-label" for="intakeSearchInput"><?= htmlspecialchars($t('intake.filter_search', 'Поиск'), ENT_QUOTES, 'UTF-8') ?></label>
-    <input id="intakeSearchInput" class="form-control" type="search" placeholder="<?= htmlspecialchars($t('intake.filter_search_placeholder', 'Название, описание или код заявки'), ENT_QUOTES, 'UTF-8') ?>">
+    <div class="crm-intake-search-control">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input id="intakeSearchInput" class="form-control" type="search" placeholder="<?= htmlspecialchars($t('intake.filter_search_placeholder', 'Название, описание или код заявки'), ENT_QUOTES, 'UTF-8') ?>">
+      <button class="btn crm-btn-ghost crm-btn-icon d-none" type="button" id="intakeSearchClearBtn" aria-label="<?= htmlspecialchars($t('intake.filter_search_clear', 'Очистить поиск'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark"></i></button>
+    </div>
   </div>
   <div>
     <label class="crm-filter-label" for="intakeStatusFilter"><?= htmlspecialchars($t('intake.filter_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -66,6 +48,11 @@
   <div>
     <label class="crm-filter-label" for="intakePriorityFilter"><?= htmlspecialchars($t('intake.filter_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></label>
     <select id="intakePriorityFilter" class="form-select"><option value=""><?= htmlspecialchars($t('intake.filter_all_priorities', 'Все'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="low"><?= htmlspecialchars($t('priority.low', 'Низкий'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="normal"><?= htmlspecialchars($t('priority.normal', 'Нормальный'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="high"><?= htmlspecialchars($t('priority.high', 'Высокий'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="urgent"><?= htmlspecialchars($t('priority.urgent', 'Срочный'), ENT_QUOTES, 'UTF-8') ?></option>
+    </select>
   </div>
   <div>
     <label class="crm-filter-label" for="intakeClientFilter"><?= htmlspecialchars($t('intake.filter_client', 'Клиент'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -74,15 +61,13 @@
   <div>
     <label class="crm-filter-label" for="intakeAssigneeFilter"><?= htmlspecialchars($t('intake.filter_assignee', 'Ответственный'), ENT_QUOTES, 'UTF-8') ?></label>
     <select id="intakeAssigneeFilter" class="form-select"><option value=""><?= htmlspecialchars($t('intake.filter_all_assignees', 'Все'), ENT_QUOTES, 'UTF-8') ?></option></select>
-      <option value="low"><?= htmlspecialchars($t('priority.low', 'Низкий'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="normal"><?= htmlspecialchars($t('priority.normal', 'Нормальный'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="high"><?= htmlspecialchars($t('priority.high', 'Высокий'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="urgent"><?= htmlspecialchars($t('priority.urgent', 'Срочный'), ENT_QUOTES, 'UTF-8') ?></option>
-    </select>
   </div>
   <div class="crm-intake-filter-summary">
     <span id="intakeResultSummary"><?= htmlspecialchars($t('intake.result_summary', 'Показано 0 из 0 заявок'), ENT_QUOTES, 'UTF-8') ?></span>
-    <button class="btn crm-btn-secondary" type="button" id="intakeFiltersResetBtn" disabled><?= htmlspecialchars($t('intake.filter_reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+    <div class="crm-intake-filter-actions">
+      <button class="btn crm-btn-secondary" type="button" id="intakeRefreshBtn"><i class="fa-solid fa-rotate me-1"></i><?= htmlspecialchars($t('intake.refresh', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
+      <button class="btn crm-btn-secondary" type="button" id="intakeFiltersResetBtn" disabled><?= htmlspecialchars($t('intake.filter_reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
+    </div>
   </div>
 </section>
 
@@ -136,6 +121,19 @@
 <div class="modal fade" id="intakeDetailModal" tabindex="-1" data-intake-modal="detail"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="intakeDetailTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="intakeDetailBody">
   <div class="text-center py-4 text-muted"><?= htmlspecialchars($t('intake.loading_detail', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
 </div><div class="modal-footer" id="intakeDetailFooter"></div></div></div></div>
+
+<!-- Accept Modal -->
+<div class="modal fade" id="intakeAcceptModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('intake.accept_title', 'Принять заявку в работу'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+  <form id="intakeAcceptForm">
+    <p class="text-muted small mb-3" id="intakeAcceptItemTitle"></p>
+    <div class="mb-3"><label class="form-label"><?= htmlspecialchars($t('intake.accept_project', 'Проект для задачи'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><select class="form-select" name="project_public_id" required><option value=""><?= htmlspecialchars($t('intake.field_no_project', 'Без проекта'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
+    <div class="mb-3"><label class="form-label"><?= htmlspecialchars($t('intake.accept_task_title', 'Название задачи'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="title" maxlength="255"></div>
+    <input type="hidden" name="intake_public_id" value="">
+  </form>
+</div><div class="modal-footer">
+  <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= htmlspecialchars($t('intake.btn_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+  <button type="button" class="btn crm-btn-primary" id="intakeAcceptConfirmBtn"><?= htmlspecialchars($t('intake.btn_accept', 'Принять'), ENT_QUOTES, 'UTF-8') ?></button>
+</div></div></div></div>
 
 <!-- Reject Modal -->
 <div class="modal fade" id="intakeRejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('intake.reject_title', 'Отклонить заявку'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
