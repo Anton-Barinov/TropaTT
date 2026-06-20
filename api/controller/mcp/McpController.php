@@ -2209,7 +2209,11 @@ MD;
 
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        return $this->publicData($service->tokenInfo($publicId, $this->actor()));
+        $result = $service->tokenInfo($publicId, $this->actor());
+        return [
+            'ok' => (bool)($result['ok'] ?? false),
+            'api_key_present' => (bool)($result['token']['has_token_factor'] ?? false),
+        ];
     }
 
     private function crmRotateUserToken(array $arguments): array
@@ -2221,7 +2225,11 @@ MD;
 
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        return $this->publicData($service->rotateToken($publicId, $this->pick($arguments, ['token']), $this->actor()));
+        $result = $service->rotateToken($publicId, $this->pick($arguments, ['token']), $this->actor());
+        return [
+            'ok' => (bool)($result['ok'] ?? false),
+            'api_key' => (string)($result['plain_token'] ?? ''),
+        ];
     }
 
     private function crmRevokeUserToken(array $arguments): array
