@@ -13,6 +13,19 @@ use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ChecklistService;
 use Api\System\Library\Service\ClientService;
 use Api\System\Library\Service\AnalyticsService;
+use Api\System\Library\Service\AiActionService;
+use Api\System\Library\Service\AiActionTypeService;
+use Api\System\Library\Service\AiAvailabilityService;
+use Api\System\Library\Service\AiJobService;
+use Api\System\Library\Service\AiPreferenceService;
+use Api\System\Library\Service\AiPromptSchemaService;
+use Api\System\Library\Service\AiRetentionPolicyService;
+use Api\System\Library\Service\AiSemanticIndexService;
+use Api\System\Library\Service\AiSettingsService;
+use Api\System\Library\Service\AiSuggestionService;
+use Api\System\Library\Service\AiIntentSettingService;
+use Api\System\Library\Service\AiUsageService;
+use Api\System\Library\Service\AiProviderService;
 use Api\System\Library\Service\DashboardService;
 use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
@@ -525,6 +538,194 @@ MD;
         }
 
         $tools[] = $this->tool('crm_get_dashboard_summary', 'Get dashboard summary counters and recent workload.', []);
+        $tools[] = $this->tool('crm_get_ai_settings', 'Get global AI settings and provider configuration summary.', []);
+        $tools[] = $this->tool('crm_update_ai_settings', 'Update global AI settings and provider configuration.', [
+            'default_provider_public_id' => ['type' => 'string'],
+            'default_model' => ['type' => 'string'],
+            'runtime_mode' => ['type' => 'string'],
+            'max_input_chars' => ['type' => 'integer'],
+            'request_timeout_ms' => ['type' => 'integer'],
+            'strict_json_mode' => ['type' => 'boolean'],
+            'audit_redaction_enabled' => ['type' => 'boolean'],
+            'allow_personal_recommendations_opt_out' => ['type' => 'boolean'],
+        ]);
+        $tools[] = $this->tool('crm_get_ai_preferences', 'Get current user AI preferences.', []);
+        $tools[] = $this->tool('crm_update_ai_preferences', 'Update current user AI preferences.', [
+            'preferences' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['preferences']);
+        $tools[] = $this->tool('crm_get_ai_availability', 'Check whether AI capabilities are available for the current user.', [
+            'requested_intents' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ]);
+        $tools[] = $this->tool('crm_list_ai_action_types', 'List AI action types and enabled status.', []);
+        $tools[] = $this->tool('crm_execute_ai_action', 'Execute a safe AI action by action type.', [
+            'action_type' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['action_type']);
+        $tools[] = $this->tool('crm_list_ai_providers', 'List AI providers without secrets.', [
+            'q' => ['type' => 'string'],
+            'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_ai_provider', 'Get AI provider metadata without secrets.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_ai_models', 'List AI models for the default provider or a given provider.', [
+            'provider_public_id' => ['type' => 'string'],
+        ]);
+        $tools[] = $this->tool('crm_list_ai_intents', 'List AI intent settings.', [
+            'q' => ['type' => 'string'],
+            'is_enabled' => ['type' => 'integer', 'enum' => [0, 1]],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_update_ai_intent', 'Update an AI intent setting.', [
+            'intent_code' => ['type' => 'string'],
+            'is_enabled' => ['type' => 'boolean'],
+            'required_permission' => ['type' => 'string'],
+            'feature_flag' => ['type' => 'string'],
+        ], ['intent_code']);
+        $tools[] = $this->tool('crm_list_ai_prompts', 'List AI prompt templates.', [
+            'intent_code' => ['type' => 'string'],
+            'locale' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_prompt', 'Create an AI prompt template.', [
+            'intent_code' => ['type' => 'string'],
+            'locale' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'prompt' => ['type' => 'string'],
+            'is_active' => ['type' => 'boolean'],
+        ], ['intent_code', 'locale', 'title', 'prompt']);
+        $tools[] = $this->tool('crm_update_ai_prompt', 'Update an AI prompt template.', [
+            'public_id' => ['type' => 'string'],
+            'intent_code' => ['type' => 'string'],
+            'locale' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'prompt' => ['type' => 'string'],
+            'is_active' => ['type' => 'boolean'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_ai_json_schemas', 'List AI JSON schemas.', [
+            'intent_code' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_json_schema', 'Create an AI JSON schema.', [
+            'intent_code' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'schema_json' => ['type' => 'string'],
+            'is_active' => ['type' => 'boolean'],
+        ], ['intent_code', 'title', 'schema_json']);
+        $tools[] = $this->tool('crm_update_ai_json_schema', 'Update an AI JSON schema.', [
+            'public_id' => ['type' => 'string'],
+            'intent_code' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'schema_json' => ['type' => 'string'],
+            'is_active' => ['type' => 'boolean'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_ai_usage', 'List AI usage logs.', [
+            'intent_code' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_list_ai_audit', 'List AI audit log entries.', [
+            'intent_code' => ['type' => 'string'],
+            'entity_public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_list_ai_jobs', 'List AI cron jobs.', [
+            'status' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_ai_job', 'Get one AI cron job by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_retry_ai_job', 'Retry an AI job.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_dry_run_ai_job', 'Dry-run an AI job by job code.', [
+            'job_code' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['job_code']);
+        $tools[] = $this->tool('crm_run_once_ai_job', 'Run an AI job once by job code.', [
+            'job_code' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['job_code']);
+        $tools[] = $this->tool('crm_search_ai_semantic', 'Run semantic AI search.', [
+            'query' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+        ], ['query']);
+        $tools[] = $this->tool('crm_list_ai_retention_policies', 'List AI retention policies.', []);
+        $tools[] = $this->tool('crm_list_ai_suggestions', 'List AI suggestions.', [
+            'intent_code' => ['type' => 'string'],
+            'entity_type' => ['type' => 'string'],
+            'entity_public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_ai_suggestion', 'Get one AI suggestion by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_dismiss_ai_suggestion', 'Dismiss an AI suggestion.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_preview_apply_ai_suggestion', 'Preview apply an AI suggestion.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_confirm_ai_suggestion', 'Confirm an AI suggestion.', [
+            'public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_create_ai_dashboard_digest', 'Create an AI dashboard digest.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_my_day_plan', 'Create an AI plan for today.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_my_week_plan', 'Create an AI plan for the week.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_task_summary', 'Create an AI summary for a task.', [
+            'task_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['task_public_id']);
+        $tools[] = $this->tool('crm_create_ai_task_next_action', 'Create an AI next action for a task.', [
+            'task_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['task_public_id']);
+        $tools[] = $this->tool('crm_create_ai_task_decomposition', 'Create an AI decomposition for a task.', [
+            'task_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['task_public_id']);
+        $tools[] = $this->tool('crm_create_ai_task_checklist', 'Create an AI checklist for a task.', [
+            'task_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['task_public_id']);
+        $tools[] = $this->tool('crm_create_ai_task_quality', 'Create an AI quality review for a task.', [
+            'task_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['task_public_id']);
+        $tools[] = $this->tool('crm_create_ai_project_summary', 'Create an AI summary for a project.', [
+            'project_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['project_public_id']);
+        $tools[] = $this->tool('crm_create_ai_project_risks', 'Create an AI risk review for a project.', [
+            'project_public_id' => ['type' => 'string'],
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ], ['project_public_id']);
+        $tools[] = $this->tool('crm_create_ai_analytics_kpi_explanation', 'Create an AI KPI explanation.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_analytics_risks_explanation', 'Create an AI analytics risk explanation.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
+        $tools[] = $this->tool('crm_create_ai_analytics_team_workload_summary', 'Create an AI team workload summary.', [
+            'input' => ['type' => 'object', 'additionalProperties' => true],
+        ]);
         $tools[] = $this->tool('crm_get_analytics_summary', 'Get aggregated analytics summary for the current CRM user.', []);
         $tools[] = $this->tool('crm_list_analytics_projects', 'List project analytics breakdown.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 200, 'default' => 50],
@@ -1372,6 +1573,51 @@ MD;
             'crm_cancel_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmCancelExportJob($arguments))),
             'crm_retry_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmRetryExportJob($arguments))),
             'crm_download_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmDownloadExportJob($arguments))),
+            'crm_get_ai_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetAiSettings())),
+            'crm_update_ai_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAiSettings($arguments))),
+            'crm_get_ai_preferences' => $this->toolResult($this->crmGetAiPreferences()),
+            'crm_update_ai_preferences' => $this->toolResult($this->crmUpdateAiPreferences($arguments)),
+            'crm_get_ai_availability' => $this->toolResult($this->crmGetAiAvailability($arguments)),
+            'crm_list_ai_action_types' => $this->toolResult($this->crmListAiActionTypes()),
+            'crm_execute_ai_action' => $this->toolResult($this->crmExecuteAiAction($arguments)),
+            'crm_list_ai_providers' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiProviders($arguments))),
+            'crm_get_ai_provider' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetAiProvider($arguments))),
+            'crm_list_ai_models' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiModels($arguments))),
+            'crm_list_ai_intents' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiIntents($arguments))),
+            'crm_update_ai_intent' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAiIntent($arguments))),
+            'crm_list_ai_prompts' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiPrompts($arguments))),
+            'crm_create_ai_prompt' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateAiPrompt($arguments))),
+            'crm_update_ai_prompt' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAiPrompt($arguments))),
+            'crm_list_ai_json_schemas' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiJsonSchemas($arguments))),
+            'crm_create_ai_json_schema' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateAiJsonSchema($arguments))),
+            'crm_update_ai_json_schema' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateAiJsonSchema($arguments))),
+            'crm_list_ai_usage' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiUsage($arguments))),
+            'crm_list_ai_audit' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiAudit($arguments))),
+            'crm_list_ai_jobs' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiJobs($arguments))),
+            'crm_get_ai_job' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetAiJob($arguments))),
+            'crm_retry_ai_job' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRetryAiJob($arguments))),
+            'crm_dry_run_ai_job' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDryRunAiJob($arguments))),
+            'crm_run_once_ai_job' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRunOnceAiJob($arguments))),
+            'crm_search_ai_semantic' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmSearchAiSemantic($arguments))),
+            'crm_list_ai_retention_policies' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListAiRetentionPolicies())),
+            'crm_list_ai_suggestions' => $this->toolResult($this->crmListAiSuggestions($arguments)),
+            'crm_get_ai_suggestion' => $this->toolResult($this->crmGetAiSuggestion($arguments)),
+            'crm_dismiss_ai_suggestion' => $this->toolResult($this->crmDismissAiSuggestion($arguments)),
+            'crm_preview_apply_ai_suggestion' => $this->toolResult($this->crmPreviewApplyAiSuggestion($arguments)),
+            'crm_confirm_ai_suggestion' => $this->toolResult($this->crmConfirmAiSuggestion($arguments)),
+            'crm_create_ai_dashboard_digest' => $this->toolResult($this->crmCreateAiDashboardDigest($arguments)),
+            'crm_create_ai_my_day_plan' => $this->toolResult($this->crmCreateAiMyDayPlan($arguments)),
+            'crm_create_ai_my_week_plan' => $this->toolResult($this->crmCreateAiMyWeekPlan($arguments)),
+            'crm_create_ai_task_summary' => $this->toolResult($this->crmCreateAiTaskSummary($arguments)),
+            'crm_create_ai_task_next_action' => $this->toolResult($this->crmCreateAiTaskNextAction($arguments)),
+            'crm_create_ai_task_decomposition' => $this->toolResult($this->crmCreateAiTaskDecomposition($arguments)),
+            'crm_create_ai_task_checklist' => $this->toolResult($this->crmCreateAiTaskChecklist($arguments)),
+            'crm_create_ai_task_quality' => $this->toolResult($this->crmCreateAiTaskQuality($arguments)),
+            'crm_create_ai_project_summary' => $this->toolResult($this->crmCreateAiProjectSummary($arguments)),
+            'crm_create_ai_project_risks' => $this->toolResult($this->crmCreateAiProjectRisks($arguments)),
+            'crm_create_ai_analytics_kpi_explanation' => $this->toolResult($this->crmCreateAiAnalyticsKpiExplanation($arguments)),
+            'crm_create_ai_analytics_risks_explanation' => $this->toolResult($this->crmCreateAiAnalyticsRisksExplanation($arguments)),
+            'crm_create_ai_analytics_team_workload_summary' => $this->toolResult($this->crmCreateAiAnalyticsTeamWorkloadSummary($arguments)),
             'crm_search' => $this->withPermissionAny(['task.manage', 'project.manage', 'knowledge.view'], fn() => $this->toolResult($this->crmSearch($arguments))),
             'crm_list_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTasks($arguments))),
             'crm_get_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTask($arguments))),
@@ -1565,6 +1811,418 @@ MD;
         /** @var DashboardService $service */
         $service = $this->container->get('service.dashboard');
         return $this->publicData($service->summary($this->actor()));
+    }
+
+    private function crmGetAiSettings(): array
+    {
+        /** @var AiSettingsService $service */
+        $service = $this->container->get('service.ai_settings');
+        return $this->publicData($service->getSettings());
+    }
+
+    private function crmUpdateAiSettings(array $arguments): array
+    {
+        /** @var AiSettingsService $service */
+        $service = $this->container->get('service.ai_settings');
+        $result = $service->updateSettings($this->pick($arguments, [
+            'default_provider_public_id', 'default_model', 'runtime_mode', 'max_input_chars',
+            'request_timeout_ms', 'strict_json_mode', 'audit_redaction_enabled', 'allow_personal_recommendations_opt_out',
+        ]));
+        return $this->publicData($result);
+    }
+
+    private function crmGetAiPreferences(): array
+    {
+        /** @var AiPreferenceService $service */
+        $service = $this->container->get('service.ai_preference');
+        return $this->publicData($service->getPreferences($this->actor()));
+    }
+
+    private function crmUpdateAiPreferences(array $arguments): array
+    {
+        /** @var AiPreferenceService $service */
+        $service = $this->container->get('service.ai_preference');
+        $result = $service->updatePreferences($this->actor(), (array)($arguments['preferences'] ?? []));
+        return $this->publicData($result);
+    }
+
+    private function crmGetAiAvailability(array $arguments): array
+    {
+        /** @var AiAvailabilityService $service */
+        $service = $this->container->get('service.ai_availability');
+        $requested = is_array($arguments['requested_intents'] ?? null) ? array_values(array_filter(array_map('strval', (array)$arguments['requested_intents']))) : [];
+        return $this->publicData($service->getAvailability($this->actor(), $requested));
+    }
+
+    private function crmListAiActionTypes(): array
+    {
+        /** @var AiActionTypeService $service */
+        $service = $this->container->get('service.ai_action_type');
+        return [
+            'allowlist' => $service->allowlist(),
+            'enabled_allowlist' => $service->enabledAllowlist(),
+        ];
+    }
+
+    private function crmExecuteAiAction(array $arguments): array
+    {
+        $actionType = trim((string)($arguments['action_type'] ?? ''));
+        if ($actionType === '') {
+            return ['error' => 'action_type is required.'];
+        }
+
+        /** @var AiActionService $service */
+        $service = $this->container->get('service.ai_action');
+        return $this->publicData($service->execute($actionType, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmListAiProviders(array $arguments): array
+    {
+        /** @var AiProviderService $service */
+        $service = $this->container->get('service.ai_provider');
+        return $this->publicData($service->list($this->aiProviderFilters($arguments)));
+    }
+
+    private function crmGetAiProvider(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiProviderService $service */
+        $service = $this->container->get('service.ai_provider');
+        return $this->publicData($service->get($publicId));
+    }
+
+    private function crmListAiModels(array $arguments): array
+    {
+        $providerPublicId = trim((string)($arguments['provider_public_id'] ?? ''));
+        /** @var AiProviderService $service */
+        $service = $this->container->get('service.ai_provider');
+        return $this->publicData($service->listModels($providerPublicId !== '' ? $providerPublicId : null));
+    }
+
+    private function crmListAiIntents(array $arguments): array
+    {
+        /** @var AiIntentSettingService $service */
+        $service = $this->container->get('service.ai_intent_settings');
+        return $this->publicData($service->list($this->aiIntentFilters($arguments)));
+    }
+
+    private function crmUpdateAiIntent(array $arguments): array
+    {
+        $intentCode = trim((string)($arguments['intent_code'] ?? ''));
+        if ($intentCode === '') {
+            return ['error' => 'intent_code is required.'];
+        }
+        /** @var AiIntentSettingService $service */
+        $service = $this->container->get('service.ai_intent_settings');
+        return $this->publicData($service->update($intentCode, $this->pick($arguments, ['is_enabled', 'required_permission', 'feature_flag']), $this->actor()));
+    }
+
+    private function crmListAiPrompts(array $arguments): array
+    {
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->listPrompts($this->aiSchemaFilters($arguments)));
+    }
+
+    private function crmCreateAiPrompt(array $arguments): array
+    {
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->createPrompt($this->pick($arguments, ['intent_code', 'locale', 'title', 'prompt', 'is_active']), $this->actor()));
+    }
+
+    private function crmUpdateAiPrompt(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->updatePrompt($publicId, $this->pick($arguments, ['intent_code', 'locale', 'title', 'prompt', 'is_active']), $this->actor()));
+    }
+
+    private function crmListAiJsonSchemas(array $arguments): array
+    {
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->listSchemas($this->aiSchemaFilters($arguments)));
+    }
+
+    private function crmCreateAiJsonSchema(array $arguments): array
+    {
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->createSchema($this->pick($arguments, ['intent_code', 'title', 'schema_json', 'is_active']), $this->actor()));
+    }
+
+    private function crmUpdateAiJsonSchema(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiPromptSchemaService $service */
+        $service = $this->container->get('service.ai_prompt_schema');
+        return $this->publicData($service->updateSchema($publicId, $this->pick($arguments, ['intent_code', 'title', 'schema_json', 'is_active']), $this->actor()));
+    }
+
+    private function crmListAiUsage(array $arguments): array
+    {
+        /** @var AiUsageService $service */
+        $service = $this->container->get('service.ai_usage');
+        return $this->publicData($service->usageList($this->aiUsageFilters($arguments)));
+    }
+
+    private function crmListAiAudit(array $arguments): array
+    {
+        /** @var AiUsageService $service */
+        $service = $this->container->get('service.ai_usage');
+        return $this->publicData($service->auditList($this->aiUsageFilters($arguments)));
+    }
+
+    private function crmListAiJobs(array $arguments): array
+    {
+        /** @var AiJobService $service */
+        $service = $this->container->get('service.ai_job');
+        return $this->publicData($service->list($this->aiJobFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetAiJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiJobService $service */
+        $service = $this->container->get('service.ai_job');
+        $job = $service->get($publicId, $this->actor());
+        return $job ? $this->publicData($job) : ['error' => 'AI job not found.'];
+    }
+
+    private function crmRetryAiJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiJobService $service */
+        $service = $this->container->get('service.ai_job');
+        return $this->publicData($service->retry($publicId, $this->actor()));
+    }
+
+    private function crmDryRunAiJob(array $arguments): array
+    {
+        $jobCode = trim((string)($arguments['job_code'] ?? ''));
+        if ($jobCode === '') {
+            return ['error' => 'job_code is required.'];
+        }
+        /** @var AiJobService $service */
+        $service = $this->container->get('service.ai_job');
+        return $this->publicData($service->dryRun($jobCode, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmRunOnceAiJob(array $arguments): array
+    {
+        $jobCode = trim((string)($arguments['job_code'] ?? ''));
+        if ($jobCode === '') {
+            return ['error' => 'job_code is required.'];
+        }
+        /** @var AiJobService $service */
+        $service = $this->container->get('service.ai_job');
+        return $this->publicData($service->runOnce($jobCode, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmSearchAiSemantic(array $arguments): array
+    {
+        $query = trim((string)($arguments['query'] ?? ''));
+        if ($query === '') {
+            return ['error' => 'query is required.'];
+        }
+        /** @var AiSemanticIndexService $service */
+        $service = $this->container->get('service.ai_semantic_index');
+        return $this->publicData($service->search($query, $this->limit($arguments, 10, 50)));
+    }
+
+    private function crmListAiRetentionPolicies(): array
+    {
+        /** @var AiRetentionPolicyService $service */
+        $service = $this->container->get('service.ai_retention');
+        return $this->publicData(['policies' => $service->getPolicies()]);
+    }
+
+    private function crmListAiSuggestions(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->list($this->aiSuggestionFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetAiSuggestion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? $this->publicData($item) : ['error' => 'AI suggestion not found.'];
+    }
+
+    private function crmDismissAiSuggestion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->dismiss($publicId, $this->actor()));
+    }
+
+    private function crmPreviewApplyAiSuggestion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->previewApply($publicId, $this->actor()));
+    }
+
+    private function crmConfirmAiSuggestion(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->confirm($publicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiDashboardDigest(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createDashboardDigest((array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiMyDayPlan(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createMyDayPlan((array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiMyWeekPlan(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createMyWeekPlan((array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiTaskSummary(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createTaskSummary($taskPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiTaskNextAction(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createTaskNextAction($taskPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiTaskDecomposition(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createTaskDecomposition($taskPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiTaskChecklist(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createTaskChecklist($taskPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiTaskQuality(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createTaskQuality($taskPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiProjectSummary(array $arguments): array
+    {
+        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createProjectSummary($projectPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiProjectRisks(array $arguments): array
+    {
+        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($projectPublicId === '') {
+            return ['error' => 'project_public_id is required.'];
+        }
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createProjectRisks($projectPublicId, (array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiAnalyticsKpiExplanation(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createAnalyticsKpiExplanation((array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiAnalyticsRisksExplanation(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createAnalyticsRisksExplanation((array)($arguments['input'] ?? []), $this->actor()));
+    }
+
+    private function crmCreateAiAnalyticsTeamWorkloadSummary(array $arguments): array
+    {
+        /** @var AiSuggestionService $service */
+        $service = $this->container->get('service.ai_suggestion');
+        return $this->publicData($service->createAnalyticsTeamWorkloadSummary((array)($arguments['input'] ?? []), $this->actor()));
     }
 
     private function crmGetAnalyticsSummary(): array
