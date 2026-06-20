@@ -1357,6 +1357,32 @@ MD;
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
                 'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0],
             ]);
+            $tools[] = $this->tool('crm_get_knowledge_entity_pages', 'Get pages linked to a CRM entity.', [
+                'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'knowledge']],
+                'entity_public_id' => ['type' => 'string'],
+            ], ['entity_type', 'entity_public_id']);
+            $tools[] = $this->tool('crm_get_knowledge_suggest', 'Get knowledge page suggestions for a search query.', [
+                'q' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
+            ], ['q']);
+            $tools[] = $this->tool('crm_get_knowledge_analytics', 'Get knowledge base analytics.', []);
+            $tools[] = $this->tool('crm_list_knowledge_templates', 'List knowledge templates.', [
+                'search' => ['type' => 'string'],
+                'is_active' => ['type' => 'boolean'],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+            ]);
+            $tools[] = $this->tool('crm_export_knowledge_all', 'Export the whole knowledge base.', [
+                'format' => ['type' => 'string', 'enum' => ['json', 'markdown'], 'default' => 'json'],
+            ]);
+            $tools[] = $this->tool('crm_export_knowledge_page', 'Export one knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'format' => ['type' => 'string', 'enum' => ['json', 'markdown'], 'default' => 'json'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_export_knowledge_space', 'Export one knowledge space.', [
+                'public_id' => ['type' => 'string'],
+                'format' => ['type' => 'string', 'enum' => ['json', 'markdown'], 'default' => 'json'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_knowledge_page_versions', 'List versions for one knowledge page.', [
                 'public_id' => ['type' => 'string'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 30],
@@ -1372,6 +1398,38 @@ MD;
             ], ['public_id', 'version_public_id']);
         }
 
+        if ($this->can('knowledge.manage')) {
+            $tools[] = $this->tool('crm_create_knowledge_space', 'Create a knowledge space.', [
+                'title' => ['type' => 'string'],
+                'slug' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'icon' => ['type' => 'string'],
+                'color' => ['type' => 'string'],
+                'visibility' => ['type' => 'string', 'enum' => ['public', 'restricted', 'private'], 'default' => 'public'],
+                'default_access_level' => ['type' => 'string', 'enum' => ['view', 'comment', 'edit'], 'default' => 'view'],
+                'parent_public_id' => ['type' => 'string'],
+                'sort_order' => ['type' => 'integer'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_update_knowledge_space', 'Update a knowledge space.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'slug' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'icon' => ['type' => 'string'],
+                'color' => ['type' => 'string'],
+                'visibility' => ['type' => 'string', 'enum' => ['public', 'restricted', 'private']],
+                'default_access_level' => ['type' => 'string', 'enum' => ['view', 'comment', 'edit']],
+                'sort_order' => ['type' => 'integer'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_archive_knowledge_space', 'Archive a knowledge space.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_restore_knowledge_space', 'Restore a knowledge space.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+        }
+
         if ($this->can('knowledge.create')) {
             $tools[] = $this->tool('crm_create_knowledge_page', 'Create a knowledge base page in a space where the user has edit access.', [
                 'title' => ['type' => 'string'],
@@ -1381,6 +1439,19 @@ MD;
                 'page_type' => ['type' => 'string', 'default' => 'article'],
                 'status' => ['type' => 'string', 'enum' => ['draft', 'review', 'published'], 'default' => 'draft'],
             ], ['title']);
+            $tools[] = $this->tool('crm_create_knowledge_template', 'Create a knowledge template.', [
+                'title' => ['type' => 'string'],
+                'page_type' => ['type' => 'string', 'enum' => ['article', 'instruction', 'regulation', 'faq', 'checklist', 'runbook', 'meeting_note', 'decision', 'client_note', 'project_note', 'onboarding'], 'default' => 'article'],
+                'description' => ['type' => 'string'],
+                'content_html' => ['type' => 'string'],
+                'content_json' => ['type' => 'object', 'additionalProperties' => true],
+                'is_active' => ['type' => 'boolean'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_import_knowledge_pages', 'Import knowledge pages from JSON or Markdown data.', [
+                'format' => ['type' => 'string', 'enum' => ['json', 'markdown'], 'default' => 'json'],
+                'space_public_id' => ['type' => 'string'],
+                'data' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['data']);
         }
         if ($this->can('knowledge.comment')) {
             $tools[] = $this->tool('crm_list_knowledge_comments', 'List comments for a knowledge page.', [
@@ -1417,15 +1488,61 @@ MD;
                 'public_id' => ['type' => 'string'],
                 'tag_public_id' => ['type' => 'string'],
             ], ['public_id', 'tag_public_id']);
+            $tools[] = $this->tool('crm_link_knowledge_page_entity', 'Link a knowledge page to another CRM entity.', [
+                'public_id' => ['type' => 'string'],
+                'entity_type' => ['type' => 'string', 'enum' => ['task', 'project', 'client', 'knowledge']],
+                'entity_public_id' => ['type' => 'string'],
+                'relation_type' => ['type' => 'string', 'default' => 'related'],
+            ], ['public_id', 'entity_type', 'entity_public_id']);
         }
         if ($this->can('knowledge.edit')) {
+            $tools[] = $this->tool('crm_update_knowledge_page', 'Update a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'content_html' => ['type' => 'string'],
+                'content_json' => ['type' => 'object', 'additionalProperties' => true],
+                'space_public_id' => ['type' => 'string'],
+                'parent_public_id' => ['type' => 'string'],
+                'page_type' => ['type' => 'string'],
+                'status' => ['type' => 'string'],
+                'review_due_at' => ['type' => 'string'],
+                'sort_order' => ['type' => 'integer'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_knowledge_files', 'List files attached to a knowledge page.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_upload_knowledge_file_base64', 'Upload a base64-encoded file to a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'name' => ['type' => 'string'],
+                'mime_type' => ['type' => 'string'],
+                'content_base64' => ['type' => 'string'],
+            ], ['public_id', 'name', 'content_base64']);
             $tools[] = $this->tool('crm_delete_knowledge_file', 'Delete a file attached to a knowledge page.', [
                 'file_public_id' => ['type' => 'string'],
             ], ['file_public_id']);
+            $tools[] = $this->tool('crm_get_knowledge_page_draft', 'Get your current draft for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_save_knowledge_page_draft', 'Save a draft for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'content_html' => ['type' => 'string'],
+                'content_json' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_delete_knowledge_draft', 'Delete your draft copy for a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_favorite_knowledge_page', 'Add a knowledge page to favorites.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_unfavorite_knowledge_page', 'Remove a knowledge page from favorites.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_subscribe_knowledge_page', 'Subscribe to a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_unsubscribe_knowledge_page', 'Unsubscribe from a knowledge page.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
         }
@@ -2178,6 +2295,26 @@ MD;
             'crm_list_knowledge_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePages($arguments))),
             'crm_get_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgePage($arguments))),
             'crm_create_knowledge_page' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmCreateKnowledgePage($arguments))),
+            'crm_create_knowledge_template' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmCreateKnowledgeTemplate($arguments))),
+            'crm_import_knowledge_pages' => $this->withPermission('knowledge.create', fn() => $this->toolResult($this->crmImportKnowledgePages($arguments))),
+            'crm_create_knowledge_space' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmCreateKnowledgeSpace($arguments))),
+            'crm_update_knowledge_space' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmUpdateKnowledgeSpace($arguments))),
+            'crm_archive_knowledge_space' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmArchiveKnowledgeSpace($arguments))),
+            'crm_restore_knowledge_space' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmRestoreKnowledgeSpace($arguments))),
+            'crm_get_knowledge_page_draft' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmGetKnowledgePageDraft($arguments))),
+            'crm_save_knowledge_page_draft' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmSaveKnowledgePageDraft($arguments))),
+            'crm_update_knowledge_page' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmUpdateKnowledgePage($arguments))),
+            'crm_favorite_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmFavoriteKnowledgePage($arguments))),
+            'crm_unfavorite_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmUnfavoriteKnowledgePage($arguments))),
+            'crm_subscribe_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmSubscribeKnowledgePage($arguments))),
+            'crm_unsubscribe_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmUnsubscribeKnowledgePage($arguments))),
+            'crm_get_knowledge_entity_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmEntityKnowledgePages($arguments))),
+            'crm_get_knowledge_suggest' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeSuggest($arguments))),
+            'crm_get_knowledge_analytics' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeAnalytics($arguments))),
+            'crm_list_knowledge_templates' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeTemplates($arguments))),
+            'crm_export_knowledge_all' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmExportKnowledgeAll($arguments))),
+            'crm_export_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmExportKnowledgePage($arguments))),
+            'crm_export_knowledge_space' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmExportKnowledgeSpace($arguments))),
             'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
             'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
             'crm_create_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCalendarEvent($arguments))),
@@ -2288,12 +2425,6 @@ MD;
             'crm_list_mentions' => $this->toolResult($this->crmListMentions($arguments)),
             'crm_add_mention' => $this->toolResult($this->crmAddMention($arguments)),
             'crm_delete_mention' => $this->toolResult($this->crmDeleteMention($arguments)),
-            'crm_get_project_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectSummary($arguments))),
-            'crm_get_project_timeline' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectTimeline($arguments))),
-            'crm_get_project_milestones_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectMilestonesSummary($arguments))),
-            'crm_get_project_risks' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectRisks($arguments))),
-            'crm_get_project_workload' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectWorkload($arguments))),
-            'crm_get_knowledge_overview' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeOverview($arguments))),
             'crm_list_knowledge_spaces_tree' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeSpacesTree($arguments))),
             'crm_get_knowledge_tree' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeTree($arguments))),
             'crm_search_knowledge' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmSearchKnowledge($arguments))),
@@ -2307,6 +2438,8 @@ MD;
             'crm_list_knowledge_page_tags' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgePageTags($arguments))),
             'crm_attach_knowledge_page_tag' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmAttachKnowledgePageTag($arguments))),
             'crm_detach_knowledge_page_tag' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmDetachKnowledgePageTag($arguments))),
+            'crm_link_knowledge_page_entity' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmLinkKnowledgePageEntity($arguments))),
+            'crm_upload_knowledge_file_base64' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmUploadKnowledgeFileBase64($arguments))),
             'crm_delete_knowledge_draft' => $this->withPermission('knowledge.edit', fn() => $this->toolResult($this->crmDeleteKnowledgeDraft($arguments))),
             'crm_delete_knowledge_page' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->crmDeleteKnowledgePage($arguments))),
             'crm_get_activity_feed' => $this->toolResult($this->crmGetActivityFeed($arguments)),
@@ -4841,10 +4974,244 @@ MD;
         }
 
         $page = $this->knowledge()->createPage($this->pick($arguments, [
-            'title', 'content_html', 'space_public_id', 'parent_public_id', 'page_type', 'status',
+            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id', 'page_type',
+            'status', 'slug', 'sort_order', 'review_due_at',
         ]), (int)($this->actor()['id'] ?? 0), $this->actor());
+        $this->invalidateCache('knowledge');
 
         return ['page' => $this->publicData($page)];
+    }
+
+    private function crmUpdateKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        $page = $this->knowledge()->updatePage($publicId, $this->pick($arguments, [
+            'title', 'content_html', 'content_json', 'space_public_id', 'parent_public_id',
+            'page_type', 'status', 'review_due_at', 'sort_order', 'row_version',
+        ]), (int)($this->actor()['id'] ?? 0), $this->actor());
+        if (!$page || $page === 'ROW_VERSION_CONFLICT') {
+            return $page === 'ROW_VERSION_CONFLICT'
+                ? ['error' => 'Row version conflict.']
+                : ['error' => 'Knowledge page not found.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['page' => $this->publicData($page)];
+    }
+
+    private function crmGetKnowledgePageDraft(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->page($publicId, $this->actor(), 'edit');
+        if (!$page) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        return ['draft' => $this->publicData($this->knowledge()->draft($publicId, (int)($this->actor()['id'] ?? 0)))];
+    }
+
+    private function crmSaveKnowledgePageDraft(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        try {
+            $draft = $this->knowledge()->saveDraft($publicId, $this->pick($arguments, [
+                'title', 'content_html', 'content_json',
+            ]), (int)($this->actor()['id'] ?? 0));
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage()];
+        }
+        return ['draft' => $this->publicData($draft)];
+    }
+
+    private function crmFavoriteKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        $favoritePublicId = $this->knowledge()->favoritePage($publicId, (int)($this->actor()['id'] ?? 0));
+        return $favoritePublicId ? ['favorite_public_id' => $favoritePublicId] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmUnfavoriteKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        return ['removed' => $this->knowledge()->unfavoritePage($publicId, (int)($this->actor()['id'] ?? 0))];
+    }
+
+    private function crmSubscribeKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        $subscriptionPublicId = $this->knowledge()->subscribePage($publicId, (int)($this->actor()['id'] ?? 0));
+        return $subscriptionPublicId ? ['subscription_public_id' => $subscriptionPublicId] : ['error' => 'Knowledge page not found.'];
+    }
+
+    private function crmUnsubscribeKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        return ['removed' => $this->knowledge()->unsubscribePage($publicId, (int)($this->actor()['id'] ?? 0))];
+    }
+
+    private function crmEntityKnowledgePages(array $arguments): array
+    {
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '') {
+            return ['error' => 'entity_type and entity_public_id are required.'];
+        }
+        $items = array_values(array_filter(
+            $this->knowledge()->entityPages($entityType, $entityPublicId),
+            fn(array $page): bool => $this->knowledge()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
+        ));
+        return ['items' => $this->publicData($items)];
+    }
+
+    private function crmGetKnowledgeSuggest(array $arguments): array
+    {
+        $q = trim((string)($arguments['q'] ?? ''));
+        if ($q === '') {
+            return ['error' => 'q is required.'];
+        }
+        return ['items' => $this->publicData($this->knowledge()->suggest($q, $this->limit($arguments, 10, 50), $this->actor()))];
+    }
+
+    private function crmGetKnowledgeAnalytics(array $arguments): array
+    {
+        return $this->publicData($this->knowledge()->analytics($this->actor()));
+    }
+
+    private function crmListKnowledgeTemplates(array $arguments): array
+    {
+        $filters = $this->templateFilters($arguments);
+        $items = $this->knowledge()->templates([
+            'page_type' => trim((string)($arguments['page_type'] ?? '')),
+        ]);
+        if (!empty($filters['search'])) {
+            $needle = mb_strtolower((string)$filters['search']);
+            $items = array_values(array_filter($items, fn(array $template): bool => str_contains(mb_strtolower((string)($template['title'] ?? '')), $needle)));
+        }
+        if (array_key_exists('is_active', $filters)) {
+            $isActive = (bool)$filters['is_active'];
+            $items = array_values(array_filter($items, fn(array $template): bool => (bool)($template['is_active'] ?? false) === $isActive));
+        }
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $limit = max(1, min(50, (int)($filters['limit'] ?? 20)));
+        $offset = ($page - 1) * $limit;
+        return ['items' => $this->publicData(array_slice($items, $offset, $limit))];
+    }
+
+    private function crmCreateKnowledgeTemplate(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+        $payload = $this->pick($arguments, [
+            'title', 'page_type', 'description', 'content_html', 'content_json',
+        ]);
+        $template = $this->knowledge()->createTemplate($payload, (int)($this->actor()['id'] ?? 0));
+        if (array_key_exists('is_active', $arguments) && !(bool)$arguments['is_active']) {
+            $stmt = $this->pdo()->prepare('UPDATE knowledge_templates SET is_active = 0 WHERE public_id = :public_id');
+            $stmt->execute(['public_id' => (string)($template['public_id'] ?? '')]);
+            $template = $this->knowledge()->template((string)($template['public_id'] ?? '')) ?? $template;
+        }
+        return ['template' => $this->publicData($template)];
+    }
+
+    private function crmCreateKnowledgeSpace(array $arguments): array
+    {
+        if (trim((string)($arguments['title'] ?? '')) === '') {
+            return ['error' => 'title is required.'];
+        }
+        $space = $this->knowledge()->createSpace($this->pick($arguments, [
+            'title', 'slug', 'description', 'icon', 'color', 'visibility',
+            'default_access_level', 'parent_public_id', 'parent_id', 'sort_order',
+        ]), (int)($this->actor()['id'] ?? 0));
+        $this->invalidateCache('knowledge');
+        return ['space' => $this->publicData($space)];
+    }
+
+    private function crmUpdateKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        if (!$this->knowledge()->space($publicId, $this->actor(), 'manage')) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        $space = $this->knowledge()->updateSpace($publicId, $this->pick($arguments, [
+            'title', 'slug', 'description', 'icon', 'color', 'visibility',
+            'default_access_level', 'sort_order', 'row_version',
+        ]), $this->actor());
+        if (!$space || $space === 'ROW_VERSION_CONFLICT') {
+            return $space === 'ROW_VERSION_CONFLICT'
+                ? ['error' => 'Row version conflict.']
+                : ['error' => 'Knowledge space not found.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['space' => $this->publicData($space)];
+    }
+
+    private function crmArchiveKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $ok = $this->knowledge()->archiveSpace($publicId, true, $this->actor());
+        if (!$ok) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['archived' => true];
+    }
+
+    private function crmRestoreKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $ok = $this->knowledge()->archiveSpace($publicId, false, $this->actor());
+        if (!$ok) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['restored' => true];
     }
 
     private function crmListKnowledgeSpaces(array $arguments): array
@@ -5013,6 +5380,7 @@ MD;
         } catch (\RuntimeException $e) {
             return ['error' => 'Knowledge link not found.'];
         }
+        $this->invalidateCache('knowledge');
         return ['deleted' => true];
     }
 
@@ -5043,6 +5411,7 @@ MD;
             return ['error' => 'Tag not found.'];
         }
         $this->tagRepo()->assignToEntity('knowledge_page', $publicId, (int)$tag['id']);
+        $this->invalidateCache('knowledge');
         return ['attached' => true];
     }
 
@@ -5060,7 +5429,206 @@ MD;
         if (!$tag) {
             return ['error' => 'Tag not found.'];
         }
-        return ['detached' => $this->tagRepo()->detachFromEntity('knowledge_page', $publicId, (int)$tag['id'])];
+        $detached = $this->tagRepo()->detachFromEntity('knowledge_page', $publicId, (int)$tag['id']);
+        if ($detached) {
+            $this->invalidateCache('knowledge');
+        }
+        return ['detached' => $detached];
+    }
+
+    private function crmLinkKnowledgePageEntity(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if ($publicId === '' || $entityType === '' || $entityPublicId === '') {
+            return ['error' => 'public_id, entity_type and entity_public_id are required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        try {
+            $link = $this->knowledge()->linkEntity(
+                $publicId,
+                $entityType,
+                $entityPublicId,
+                trim((string)($arguments['relation_type'] ?? 'related')),
+                (int)($this->actor()['id'] ?? 0)
+            );
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'Knowledge link not created.'];
+        }
+        $this->invalidateCache('knowledge');
+        return ['link' => $this->publicData($link)];
+    }
+
+    private function crmUploadKnowledgeFileBase64(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        $name = trim((string)($arguments['name'] ?? ''));
+        $contentBase64 = trim((string)($arguments['content_base64'] ?? ''));
+        if ($publicId === '' || $name === '' || $contentBase64 === '') {
+            return ['error' => 'public_id, name and content_base64 are required.'];
+        }
+        if (!$this->knowledge()->page($publicId, $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        if (strlen($contentBase64) > 7_000_000) {
+            return ['error' => 'content_base64 is too large for MCP JSON upload. Use the REST multipart upload endpoint instead.'];
+        }
+
+        /** @var FileService $service */
+        $service = $this->container->get('service.file');
+        try {
+            $file = $service->create($this->pick($arguments, [
+                'name', 'mime_type', 'content_base64',
+            ]) + [
+                'entity_type' => 'knowledge_page',
+                'entity_public_id' => $publicId,
+            ], [], (int)($this->actor()['id'] ?? 0), $this->actor());
+            return ['file' => $this->publicData($file)];
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'File upload failed.'];
+        }
+    }
+
+    private function crmExportKnowledgeAll(array $arguments): array
+    {
+        $format = strtolower(trim((string)($arguments['format'] ?? 'json')));
+        $spaces = $this->knowledge()->spaces([], $this->actor());
+        $pages = [];
+        foreach ($spaces as $space) {
+            foreach ($this->knowledge()->pages(['space_public_id' => (string)$space['public_id'], 'limit' => 500], $this->actor()) as $page) {
+                $pages[] = $page;
+            }
+        }
+        if ($format === 'markdown') {
+            $content = '# Knowledge Base Export' . "\n\n";
+            foreach ($pages as $page) {
+                $content .= '## ' . ($page['title'] ?? '') . "\n\n";
+                $content .= (string)($page['content_html'] ?? '') . "\n\n---\n\n";
+            }
+            return [
+                'format' => 'markdown',
+                'filename' => 'knowledge-base-export.md',
+                'content' => $content,
+            ];
+        }
+        return [
+            'format' => 'json',
+            'spaces_count' => count($spaces),
+            'pages_count' => count($pages),
+            'spaces' => $this->publicData($spaces),
+            'pages' => $this->publicData($pages),
+        ];
+    }
+
+    private function crmExportKnowledgePage(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $page = $this->knowledge()->page($publicId, $this->actor());
+        if (!$page) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        $format = strtolower(trim((string)($arguments['format'] ?? 'json')));
+        if ($format === 'markdown') {
+            return [
+                'format' => 'markdown',
+                'filename' => ((string)($page['slug'] ?? 'knowledge-page')) . '.md',
+                'content' => '# ' . ($page['title'] ?? '') . "\n\n" . (string)($page['content_html'] ?? ''),
+            ];
+        }
+        return ['format' => 'json', 'page' => $this->publicData($page), 'links' => $this->publicData($this->knowledge()->links($publicId)), 'tags' => $this->publicData($this->tagRepo()->listByEntity('knowledge_page', $publicId))];
+    }
+
+    private function crmExportKnowledgeSpace(array $arguments): array
+    {
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $space = $this->knowledge()->space($publicId, $this->actor());
+        if (!$space) {
+            return ['error' => 'Knowledge space not found.'];
+        }
+        $pages = $this->knowledge()->pages(['space_public_id' => $publicId, 'limit' => 500], $this->actor());
+        $format = strtolower(trim((string)($arguments['format'] ?? 'json')));
+        if ($format === 'markdown') {
+            $content = '# Space: ' . ($space['title'] ?? '') . "\n\n";
+            foreach ($pages as $page) {
+                $content .= '## ' . ($page['title'] ?? '') . "\n\n";
+                $content .= (string)($page['content_html'] ?? '') . "\n\n---\n\n";
+            }
+            return [
+                'format' => 'markdown',
+                'filename' => ((string)($space['slug'] ?? 'knowledge-space')) . '.md',
+                'content' => $content,
+            ];
+        }
+        return ['format' => 'json', 'space' => $this->publicData($space), 'pages' => $this->publicData($pages)];
+    }
+
+    private function crmImportKnowledgePages(array $arguments): array
+    {
+        $format = strtolower(trim((string)($arguments['format'] ?? 'json')));
+        $spacePublicId = $this->argumentPublicId($arguments, ['space_public_id']);
+        $data = $arguments['data'] ?? null;
+        if (!is_array($data)) {
+            return ['error' => 'data is required.'];
+        }
+        $imported = [];
+        $errors = [];
+        $userId = (int)($this->actor()['id'] ?? 0);
+        $pages = [];
+        if ($format === 'markdown') {
+            if (isset($data['pages']) && is_array($data['pages'])) {
+                foreach ($data['pages'] as $pageData) {
+                    $pages[] = $pageData;
+                }
+            } else {
+                $pages[] = [
+                    'title' => (string)($data['title'] ?? 'Imported'),
+                    'content' => (string)($data['content'] ?? $data['content_raw'] ?? ''),
+                ];
+            }
+        } elseif (isset($data['pages']) && is_array($data['pages'])) {
+            $pages = $data['pages'];
+        } else {
+            $pages[] = $data;
+        }
+        foreach ($pages as $pageData) {
+            try {
+                $payload = [
+                    'title' => (string)($pageData['title'] ?? 'Imported Page'),
+                    'space_public_id' => $spacePublicId ?: (string)($pageData['space_public_id'] ?? ''),
+                    'page_type' => (string)($pageData['page_type'] ?? 'article'),
+                    'status' => (string)($pageData['status'] ?? 'draft'),
+                    'content_html' => $format === 'markdown' ? $this->markdownToHtml((string)($pageData['content'] ?? '')) : (string)($pageData['content_html'] ?? ''),
+                    'content_json' => $pageData['content_json'] ?? null,
+                    'sort_order' => $pageData['sort_order'] ?? null,
+                ];
+                if (($payload['space_public_id'] ?? '') === '') {
+                    $spaces = $this->knowledge()->spaces([], $this->actor());
+                    if (empty($spaces)) {
+                        throw new \RuntimeException('No available space for import');
+                    }
+                    $payload['space_public_id'] = (string)$spaces[0]['public_id'];
+                }
+                $page = $this->knowledge()->createPage($payload, $userId, $this->actor());
+                $imported[] = ['public_id' => $page['public_id'] ?? null, 'title' => $page['title'] ?? $payload['title']];
+            } catch (Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        $this->invalidateCache('knowledge');
+        return [
+            'imported' => count($imported),
+            'pages' => $this->publicData($imported),
+            'errors' => $errors,
+        ];
     }
 
     private function crmAddKnowledgeComment(array $arguments): array
@@ -5141,6 +5709,9 @@ MD;
         /** @var FileService $service */
         $service = $this->container->get('service.file');
         $ok = $service->delete($filePublicId, $this->user()['user'] ?? []);
+        if ($ok) {
+            $this->invalidateCache('knowledge');
+        }
         return $ok ? ['deleted' => true] : ['error' => 'File not found.'];
     }
 
@@ -5392,6 +5963,29 @@ MD;
     private function crmCleanupKnowledgeDrafts(): array
     {
         return $this->payloadData((new KnowledgeController($this->container))->adminCleanupDrafts());
+    }
+
+    private function markdownToHtml(string $markdown): string
+    {
+        $html = $markdown;
+        $html = preg_replace('/^##### (.+)$/m', '<h5>$1</h5>', $html) ?? $html;
+        $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html) ?? $html;
+        $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html) ?? $html;
+        $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html) ?? $html;
+        $html = preg_replace('/^# (.+)$/m', '<h2>$1</h2>', $html) ?? $html;
+        $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html) ?? $html;
+        $html = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $html) ?? $html;
+        $html = preg_replace('/\[([^\]]+)\]\(([^\)]+)\)/', '<a href="$2">$1</a>', $html) ?? $html;
+        $html = preg_replace('/^\s*[-*]\s+(.+)$/m', '<li>$1</li>', $html) ?? $html;
+        $html = preg_replace('/(<li>.*?<\/li>(\s*<li>.*?<\/li>)*)/s', '<ul>$1</ul>', $html) ?? $html;
+        $html = preg_replace('/^\s*\d+\.\s+(.+)$/m', '<li>$1</li>', $html) ?? $html;
+        $html = preg_replace('/```(\w*)\n(.*?)```/s', '<pre><code>$2</code></pre>', $html) ?? $html;
+        $html = preg_replace('/`([^`]+)`/', '<code>$1</code>', $html) ?? $html;
+        $html = preg_replace('/^>\s+(.+)$/m', '<blockquote><p>$1</p></blockquote>', $html) ?? $html;
+        $html = preg_replace('/^---$/m', '<hr>', $html) ?? $html;
+        $html = preg_replace('/^(?!<[houblcp]|\s*$)(.+)$/m', '<p>$1</p>', $html) ?? $html;
+        $html = preg_replace('/<blockquote><p>(.*?)<\/p><\/blockquote>/s', '<blockquote>$1</blockquote>', $html) ?? $html;
+        return $html;
     }
 
     private function crmListCalendarEvents(array $arguments): array
