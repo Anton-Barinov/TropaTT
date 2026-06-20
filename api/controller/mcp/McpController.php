@@ -6,11 +6,14 @@ namespace Api\Controller\Mcp;
 use Api\Controller\Common\BaseController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
+use Api\System\Library\Service\ApiClientService;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ChecklistService;
 use Api\System\Library\Service\ClientService;
+use Api\System\Library\Service\AnalyticsService;
+use Api\System\Library\Service\DashboardService;
 use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\ContactService;
@@ -20,16 +23,27 @@ use Api\System\Library\Service\DepartmentService;
 use Api\System\Library\Service\DependencyService;
 use Api\System\Library\Service\FavoriteService;
 use Api\System\Library\Service\FileService;
+use Api\System\Library\Service\FeatureFlagService;
+use Api\System\Library\Service\ExportService;
 use Api\System\Library\Service\IdeaService;
+use Api\System\Library\Service\ImportService;
+use Api\System\Library\Service\IntakeItemService;
+use Api\System\Library\Service\LogsService;
 use Api\System\Library\Service\MentionService;
 use Api\System\Library\Service\MilestoneService;
 use Api\System\Library\Service\NotificationService;
+use Api\System\Library\Service\PermissionService;
+use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\ProjectService;
 use Api\System\Library\Service\ReactionService;
+use Api\System\Library\Service\RecycleBinService;
 use Api\System\Library\Service\RecurringService;
 use Api\System\Library\Service\ReminderService;
+use Api\System\Library\Service\RoleService;
 use Api\System\Library\Service\SavedViewService;
 use Api\System\Library\Service\SearchService;
+use Api\System\Library\Service\SessionService;
+use Api\System\Library\Service\SettingService;
 use Api\System\Library\Service\SlaService;
 use Api\System\Library\Service\StatusService;
 use Api\System\Library\Service\StickyNoteService;
@@ -40,6 +54,8 @@ use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\TemplateService;
 use Api\System\Library\Service\UserService;
+use Api\System\Library\Service\UserProfileService;
+use Api\System\Library\Service\WebhookService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\WorklogService;
 use Api\System\Library\Service\WorkflowService;
@@ -414,6 +430,292 @@ MD;
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
             ]);
         }
+
+        $tools[] = $this->tool('crm_get_profile', 'Get the current user profile and preferences without secrets.', []);
+        $tools[] = $this->tool('crm_list_security_sessions', 'List active and historical sessions for the current CRM user.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+
+        if ($this->can('role.view') || $this->can('role.manage') || (bool)($this->actor()['is_root'] ?? false)) {
+            $tools[] = $this->tool('crm_list_roles', 'List CRM roles.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'q' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_list_permissions', 'List CRM permission registry.', []);
+            $tools[] = $this->tool('crm_get_role_permissions', 'Get permission codes assigned to a role.', [
+                'role_public_id' => ['type' => 'string'],
+            ], ['role_public_id']);
+        }
+
+        if ($this->can('settings.manage')) {
+            $tools[] = $this->tool('crm_list_settings', 'List CRM settings. Secret-looking values are redacted from MCP output.', [
+                'scope' => ['type' => 'string', 'default' => 'system'],
+                'q' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_setting', 'Get one CRM setting by scope and name. Secret-looking values are redacted.', [
+                'scope' => ['type' => 'string', 'default' => 'system'],
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_list_feature_flags', 'List CRM feature flags.', [
+                'q' => ['type' => 'string'],
+                'is_enabled' => ['type' => 'integer', 'enum' => [0, 1]],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_update_feature_flag', 'Enable, disable or update payload for a CRM feature flag.', [
+                'public_id' => ['type' => 'string'],
+                'is_enabled' => ['type' => 'boolean'],
+                'payload' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_modules', 'List installed and discoverable CRM modules.', []);
+            $tools[] = $this->tool('crm_get_module', 'Get one CRM module manifest and registry state.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+        }
+
+        if ($this->can('logs.view') || (bool)($this->actor()['is_root'] ?? false)) {
+            $tools[] = $this->tool('crm_list_audit_log', 'List audit log entries visible to the current CRM user.', [
+                'actor_public_id' => ['type' => 'string'],
+                'entity_type' => ['type' => 'string'],
+                'entity_public_id' => ['type' => 'string'],
+                'action' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_list_security_log', 'List security log entries. Root or logs permission required.', [
+                'event_type' => ['type' => 'string'],
+                'actor_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+        }
+
+        if ($this->can('api_client.view') || $this->can('api_client.manage') || (bool)($this->actor()['is_root'] ?? false)) {
+            $tools[] = $this->tool('crm_list_api_clients', 'List API clients without key material.', [
+                'q' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_api_client', 'Get API client metadata without key material.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_api_client_keys', 'List API client keys metadata only. Key hashes and plain keys are never returned.', [
+                'client_public_id' => ['type' => 'string'],
+            ], ['client_public_id']);
+        }
+
+        if ($this->can('webhook.manage') || (bool)($this->actor()['is_root'] ?? false)) {
+            $tools[] = $this->tool('crm_list_webhooks', 'List webhook subscriptions without secrets.', [
+                'q' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_list_webhook_deliveries', 'List webhook delivery attempts.', [
+                'webhook_public_id' => ['type' => 'string'],
+                'status' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+        }
+
+        $tools[] = $this->tool('crm_get_dashboard_summary', 'Get dashboard summary counters and recent workload.', []);
+        $tools[] = $this->tool('crm_get_analytics_summary', 'Get aggregated analytics summary for the current CRM user.', []);
+        $tools[] = $this->tool('crm_list_analytics_projects', 'List project analytics breakdown.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 200, 'default' => 50],
+        ]);
+        $tools[] = $this->tool('crm_list_analytics_users', 'List user workload analytics.', [
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 200, 'default' => 50],
+        ]);
+
+        $tools[] = $this->tool('crm_list_intake_items', 'List intake items visible to the current CRM user.', [
+            'status' => ['type' => 'string'],
+            'source_type' => ['type' => 'string'],
+            'project_public_id' => ['type' => 'string'],
+            'client_public_id' => ['type' => 'string'],
+            'contact_public_id' => ['type' => 'string'],
+            'assignee_user_id' => ['type' => 'integer'],
+            'q' => ['type' => 'string'],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+        ]);
+        $tools[] = $this->tool('crm_get_intake_item', 'Get one intake item by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_create_intake_item', 'Create an intake item.', [
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'project_public_id' => ['type' => 'string'],
+            'client_public_id' => ['type' => 'string'],
+            'contact_public_id' => ['type' => 'string'],
+            'source_type' => ['type' => 'string'],
+            'source_ref' => ['type' => 'string'],
+            'source_email' => ['type' => 'string'],
+            'external_source' => ['type' => 'string'],
+            'external_id' => ['type' => 'string'],
+            'extra' => ['type' => 'object', 'additionalProperties' => true],
+            'due_at' => ['type' => 'string'],
+            'priority_code' => ['type' => 'string'],
+            'assignee_user_id' => ['type' => 'integer'],
+        ], ['title']);
+        $tools[] = $this->tool('crm_update_intake_item', 'Update an intake item.', ['public_id' => ['type' => 'string']] + $this->intakeSchema(), ['public_id']);
+        $tools[] = $this->tool('crm_delete_intake_item', 'Soft-delete an intake item.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_accept_intake_item', 'Accept an intake item and create a task.', [
+            'public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'project_public_id' => ['type' => 'string'],
+            'priority' => ['type' => 'string'],
+            'due_at' => ['type' => 'string'],
+            'assignee_user_id' => ['type' => 'integer'],
+            'status' => ['type' => 'string'],
+            'row_version' => ['type' => 'integer'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_reject_intake_item', 'Reject an intake item with a reason.', [
+            'public_id' => ['type' => 'string'],
+            'reason' => ['type' => 'string'],
+            'row_version' => ['type' => 'integer'],
+        ], ['public_id', 'reason']);
+        $tools[] = $this->tool('crm_snooze_intake_item', 'Snooze an intake item until a later time.', [
+            'public_id' => ['type' => 'string'],
+            'snoozed_until' => ['type' => 'string'],
+            'row_version' => ['type' => 'integer'],
+        ], ['public_id', 'snoozed_until']);
+
+        $tools[] = $this->tool('crm_list_project_modules', 'List project modules.', [
+            'project_public_id' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_project_module', 'Get one project module by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_create_project_module', 'Create a project module.', $this->projectModuleSchema(), ['project_public_id', 'title']);
+        $tools[] = $this->tool('crm_update_project_module', 'Update a project module.', ['public_id' => ['type' => 'string']] + $this->projectModuleSchema(), ['public_id']);
+        $tools[] = $this->tool('crm_archive_project_module', 'Archive a project module.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_delete_project_module', 'Soft-delete a project module.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_list_project_module_tasks', 'List tasks linked to a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ], ['module_public_id']);
+        $tools[] = $this->tool('crm_list_project_module_members', 'List project module members.', [
+            'module_public_id' => ['type' => 'string'],
+        ], ['module_public_id']);
+        $tools[] = $this->tool('crm_list_project_module_links', 'List project module links.', [
+            'module_public_id' => ['type' => 'string'],
+        ], ['module_public_id']);
+        $tools[] = $this->tool('crm_add_tasks_to_project_module', 'Add tasks to a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'task_keys' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ], ['module_public_id']);
+        $tools[] = $this->tool('crm_add_members_to_project_module', 'Add users to a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'members' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+                'user_public_id' => ['type' => 'string'],
+                'role_code' => ['type' => 'string'],
+            ]]],
+        ], ['module_public_id', 'members']);
+        $tools[] = $this->tool('crm_remove_project_module_task', 'Remove a task from a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'task_public_id' => ['type' => 'string'],
+        ], ['module_public_id', 'task_public_id']);
+        $tools[] = $this->tool('crm_remove_project_module_member', 'Remove a user from a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'user_public_id' => ['type' => 'string'],
+        ], ['module_public_id', 'user_public_id']);
+        $tools[] = $this->tool('crm_add_project_module_link', 'Add a link to a project module.', [
+            'module_public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'url' => ['type' => 'string'],
+            'link_type' => ['type' => 'string'],
+            'sort_order' => ['type' => 'integer'],
+        ], ['module_public_id', 'title', 'url']);
+        $tools[] = $this->tool('crm_update_project_module_link', 'Update a project module link.', [
+            'link_public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'url' => ['type' => 'string'],
+            'link_type' => ['type' => 'string'],
+            'sort_order' => ['type' => 'integer'],
+        ], ['link_public_id']);
+        $tools[] = $this->tool('crm_delete_project_module_link', 'Delete a project module link.', [
+            'link_public_id' => ['type' => 'string'],
+        ], ['link_public_id']);
+
+        $tools[] = $this->tool('crm_list_recycle_bin', 'List recycle bin entries visible to the current CRM user.', [
+            'entity_type' => ['type' => 'string'],
+            'entity_public_id' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_restore_recycle_bin_item', 'Restore a recycle bin entry.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_purge_recycle_bin_item', 'Permanently purge a recycle bin entry.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+
+        $tools[] = $this->tool('crm_list_import_jobs', 'List import jobs visible to the current CRM user.', [
+            'type' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_import_job', 'Get one import job by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_create_import_job', 'Create an import job.', [
+            'type' => ['type' => 'string'],
+            'rows' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+            'content_base64' => ['type' => 'string'],
+            'delimiter' => ['type' => 'string'],
+            'has_header' => ['type' => 'boolean'],
+            'columns' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'async' => ['type' => 'boolean'],
+        ], ['type']);
+        $tools[] = $this->tool('crm_cancel_import_job', 'Cancel an import job.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_retry_import_job', 'Retry an import job.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+
+        $tools[] = $this->tool('crm_list_export_jobs', 'List export jobs visible to the current CRM user.', [
+            'type' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+        ]);
+        $tools[] = $this->tool('crm_get_export_job', 'Get one export job by public id.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_create_export_job', 'Create an export job.', [
+            'type' => ['type' => 'string'],
+            'filters' => ['type' => 'object', 'additionalProperties' => true],
+            'async' => ['type' => 'boolean'],
+        ], ['type']);
+        $tools[] = $this->tool('crm_cancel_export_job', 'Cancel an export job.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_retry_export_job', 'Retry an export job.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_download_export_job', 'Get a safe download URL for an export file.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
 
         $tools[] = $this->tool('crm_list_teams', 'List teams visible to the current CRM user.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -1010,6 +1312,66 @@ MD;
 
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
+            'crm_get_profile' => $this->toolResult($this->crmGetProfile()),
+            'crm_list_security_sessions' => $this->toolResult($this->crmListSecuritySessions($arguments)),
+            'crm_list_roles' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListRoles($arguments))),
+            'crm_list_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListPermissions())),
+            'crm_get_role_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmGetRolePermissions($arguments))),
+            'crm_list_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListSettings($arguments))),
+            'crm_get_setting' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetSetting($arguments))),
+            'crm_list_feature_flags' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListFeatureFlags($arguments))),
+            'crm_update_feature_flag' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateFeatureFlag($arguments))),
+            'crm_list_modules' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListModules())),
+            'crm_get_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModule($arguments))),
+            'crm_list_audit_log' => $this->withPermissionAny(['logs.view', 'settings.manage'], fn() => $this->toolResult($this->crmListAuditLog($arguments))),
+            'crm_list_security_log' => $this->withPermissionAny(['logs.view', 'settings.manage'], fn() => $this->toolResult($this->crmListSecurityLog($arguments))),
+            'crm_list_api_clients' => $this->withPermissionAny(['api_client.view', 'api_client.manage'], fn() => $this->toolResult($this->crmListApiClients($arguments))),
+            'crm_get_api_client' => $this->withPermissionAny(['api_client.view', 'api_client.manage'], fn() => $this->toolResult($this->crmGetApiClient($arguments))),
+            'crm_list_api_client_keys' => $this->withPermissionAny(['api_client.view', 'api_client.manage'], fn() => $this->toolResult($this->crmListApiClientKeys($arguments))),
+            'crm_list_webhooks' => $this->withPermission('webhook.manage', fn() => $this->toolResult($this->crmListWebhooks($arguments))),
+            'crm_list_webhook_deliveries' => $this->withPermission('webhook.manage', fn() => $this->toolResult($this->crmListWebhookDeliveries($arguments))),
+            'crm_get_dashboard_summary' => $this->toolResult($this->crmGetDashboardSummary()),
+            'crm_get_analytics_summary' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmGetAnalyticsSummary())),
+            'crm_list_analytics_projects' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmListAnalyticsProjects($arguments))),
+            'crm_list_analytics_users' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmListAnalyticsUsers($arguments))),
+            'crm_list_intake_items' => $this->withPermissionAny(['intake.view', 'intake.manage'], fn() => $this->toolResult($this->crmListIntakeItems($arguments))),
+            'crm_get_intake_item' => $this->withPermissionAny(['intake.view', 'intake.manage'], fn() => $this->toolResult($this->crmGetIntakeItem($arguments))),
+            'crm_create_intake_item' => $this->withPermissionAny(['intake.create', 'intake.manage'], fn() => $this->toolResult($this->crmCreateIntakeItem($arguments))),
+            'crm_update_intake_item' => $this->withPermissionAny(['intake.manage'], fn() => $this->toolResult($this->crmUpdateIntakeItem($arguments))),
+            'crm_delete_intake_item' => $this->withPermissionAny(['intake.delete', 'intake.manage'], fn() => $this->toolResult($this->crmDeleteIntakeItem($arguments))),
+            'crm_accept_intake_item' => $this->withPermissionAny(['intake.accept', 'intake.manage'], fn() => $this->toolResult($this->crmAcceptIntakeItem($arguments))),
+            'crm_reject_intake_item' => $this->withPermissionAny(['intake.manage'], fn() => $this->toolResult($this->crmRejectIntakeItem($arguments))),
+            'crm_snooze_intake_item' => $this->withPermissionAny(['intake.manage'], fn() => $this->toolResult($this->crmSnoozeIntakeItem($arguments))),
+            'crm_list_project_modules' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjectModules($arguments))),
+            'crm_get_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectModule($arguments))),
+            'crm_create_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmCreateProjectModule($arguments))),
+            'crm_update_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmUpdateProjectModule($arguments))),
+            'crm_archive_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmArchiveProjectModule($arguments))),
+            'crm_delete_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmDeleteProjectModule($arguments))),
+            'crm_list_project_module_tasks' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjectModuleTasks($arguments))),
+            'crm_list_project_module_members' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjectModuleMembers($arguments))),
+            'crm_list_project_module_links' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjectModuleLinks($arguments))),
+            'crm_add_tasks_to_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmAddTasksToProjectModule($arguments))),
+            'crm_add_members_to_project_module' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmAddMembersToProjectModule($arguments))),
+            'crm_remove_project_module_task' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmRemoveProjectModuleTask($arguments))),
+            'crm_remove_project_module_member' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmRemoveProjectModuleMember($arguments))),
+            'crm_add_project_module_link' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmAddProjectModuleLink($arguments))),
+            'crm_update_project_module_link' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmUpdateProjectModuleLink($arguments))),
+            'crm_delete_project_module_link' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmDeleteProjectModuleLink($arguments))),
+            'crm_list_recycle_bin' => $this->withPermission('recycle_bin.manage', fn() => $this->toolResult($this->crmListRecycleBin($arguments))),
+            'crm_restore_recycle_bin_item' => $this->withPermission('recycle_bin.manage', fn() => $this->toolResult($this->crmRestoreRecycleBinItem($arguments))),
+            'crm_purge_recycle_bin_item' => $this->withPermission('recycle_bin.manage', fn() => $this->toolResult($this->crmPurgeRecycleBinItem($arguments))),
+            'crm_list_import_jobs' => $this->withPermission('import.manage', fn() => $this->toolResult($this->crmListImportJobs($arguments))),
+            'crm_get_import_job' => $this->withPermission('import.manage', fn() => $this->toolResult($this->crmGetImportJob($arguments))),
+            'crm_create_import_job' => $this->withPermission('import.manage', fn() => $this->toolResult($this->crmCreateImportJob($arguments))),
+            'crm_cancel_import_job' => $this->withPermission('import.manage', fn() => $this->toolResult($this->crmCancelImportJob($arguments))),
+            'crm_retry_import_job' => $this->withPermission('import.manage', fn() => $this->toolResult($this->crmRetryImportJob($arguments))),
+            'crm_list_export_jobs' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmListExportJobs($arguments))),
+            'crm_get_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmGetExportJob($arguments))),
+            'crm_create_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmCreateExportJob($arguments))),
+            'crm_cancel_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmCancelExportJob($arguments))),
+            'crm_retry_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmRetryExportJob($arguments))),
+            'crm_download_export_job' => $this->withPermission('export.manage', fn() => $this->toolResult($this->crmDownloadExportJob($arguments))),
             'crm_search' => $this->withPermissionAny(['task.manage', 'project.manage', 'knowledge.view'], fn() => $this->toolResult($this->crmSearch($arguments))),
             'crm_list_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTasks($arguments))),
             'crm_get_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetTask($arguments))),
@@ -1186,6 +1548,720 @@ MD;
     private function crmGetCurrentUser(): array
     {
         return ['user' => $this->publicData($this->actor())];
+    }
+
+    private function crmGetProfile(): array
+    {
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        return [
+            'user' => $this->publicData($service->me($this->actor()) ?? $this->actor()),
+            'preferences' => $this->publicData($service->preferences($this->actor())),
+        ];
+    }
+
+    private function crmGetDashboardSummary(): array
+    {
+        /** @var DashboardService $service */
+        $service = $this->container->get('service.dashboard');
+        return $this->publicData($service->summary($this->actor()));
+    }
+
+    private function crmGetAnalyticsSummary(): array
+    {
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        return $this->publicData($service->summary($this->actor()));
+    }
+
+    private function crmListAnalyticsProjects(array $arguments): array
+    {
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        return $this->publicData($service->projects($this->actor(), $this->analyticsListFilters($arguments)));
+    }
+
+    private function crmListAnalyticsUsers(array $arguments): array
+    {
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        return $this->publicData($service->users($this->actor(), $this->analyticsListFilters($arguments)));
+    }
+
+    private function crmListIntakeItems(array $arguments): array
+    {
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        return $this->publicData($service->list($this->intakeFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $item = $service->get($publicId, $this->actor());
+        return $item ? ['item' => $this->publicData($item)] : ['error' => 'Intake item not found.'];
+    }
+
+    private function crmCreateIntakeItem(array $arguments): array
+    {
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->create($this->pick($arguments, [
+            'title', 'description', 'project_public_id', 'client_public_id', 'contact_public_id',
+            'source_type', 'source_ref', 'source_email', 'external_source', 'external_id',
+            'extra', 'due_at', 'priority_code', 'assignee_user_id',
+        ]), $this->actor());
+        return is_array($result) ? ['item' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmUpdateIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->update($publicId, $this->pick($arguments, [
+            'title', 'description', 'project_public_id', 'client_public_id', 'contact_public_id',
+            'priority_code', 'source_type', 'source_ref', 'source_email', 'external_source',
+            'external_id', 'extra', 'due_at', 'assignee_user_id', 'row_version',
+        ]), $this->actor());
+
+        if ($result === null) {
+            return ['error' => 'Intake item not found.'];
+        }
+        return is_array($result) ? ['item' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmDeleteIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok === true ? ['ok' => true, 'public_id' => $publicId] : ['error' => (string)$ok ?: 'Intake item not found.'];
+    }
+
+    private function crmAcceptIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->accept($publicId, $this->pick($arguments, [
+            'title', 'description', 'project_public_id', 'priority', 'due_at', 'assignee_user_id', 'status', 'row_version',
+        ]), $this->actor());
+        if ($result === null) {
+            return ['error' => 'Intake item not found.'];
+        }
+        return is_array($result) ? ['result' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmRejectIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->reject($publicId, $this->pick($arguments, ['reason', 'row_version']), $this->actor());
+        if ($result === null) {
+            return ['error' => 'Intake item not found.'];
+        }
+        return is_array($result) ? ['item' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmSnoozeIntakeItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var IntakeItemService $service */
+        $service = $this->container->get('service.intake_item');
+        $result = $service->snooze($publicId, $this->pick($arguments, ['snoozed_until', 'row_version']), $this->actor());
+        if ($result === null) {
+            return ['error' => 'Intake item not found.'];
+        }
+        return is_array($result) ? ['item' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmListProjectModules(array $arguments): array
+    {
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        return $this->publicData($service->list($this->projectModuleFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $module = $service->get($publicId, $this->actor());
+        return is_array($module) ? ['module' => $this->publicData($module)] : ['error' => (string)$module ?: 'Project module not found.'];
+    }
+
+    private function crmCreateProjectModule(array $arguments): array
+    {
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->create($this->pick($arguments, $this->projectModuleInputKeys()), $this->actor());
+        return is_array($result) ? ['module' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmUpdateProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->update($publicId, $this->pick($arguments, $this->projectModuleInputKeys(true)), $this->actor());
+        if ($result === null) {
+            return ['error' => 'Project module not found.'];
+        }
+        return is_array($result) ? ['module' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmArchiveProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $ok = $service->archive($publicId, $this->actor());
+        return $ok === true ? ['ok' => true, 'public_id' => $publicId] : ['error' => (string)$ok ?: 'Project module not found.'];
+    }
+
+    private function crmDeleteProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok === true ? ['ok' => true, 'public_id' => $publicId] : ['error' => (string)$ok ?: 'Project module not found.'];
+    }
+
+    private function crmListProjectModuleTasks(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->tasks($publicId, $this->filters($arguments, 20, 100), $this->actor());
+        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+    }
+
+    private function crmListProjectModuleMembers(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->members($publicId, $this->actor());
+        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+    }
+
+    private function crmListProjectModuleLinks(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->links($publicId, $this->actor());
+        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+    }
+
+    private function crmAddTasksToProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->addTasks($publicId, $this->pick($arguments, ['task_public_ids', 'task_keys']), $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmAddMembersToProjectModule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->addMembers($publicId, ['members' => $arguments['members'] ?? []], $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmRemoveProjectModuleTask(array $arguments): array
+    {
+        $modulePublicId = trim((string)($arguments['module_public_id'] ?? ''));
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($modulePublicId === '' || $taskPublicId === '') {
+            return ['error' => 'module_public_id and task_public_id are required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $ok = $service->removeTask($modulePublicId, $taskPublicId, $this->actor());
+        return $ok === true ? ['ok' => true] : ['error' => (string)$ok ?: 'Task not found.'];
+    }
+
+    private function crmRemoveProjectModuleMember(array $arguments): array
+    {
+        $modulePublicId = trim((string)($arguments['module_public_id'] ?? ''));
+        $userPublicId = trim((string)($arguments['user_public_id'] ?? ''));
+        if ($modulePublicId === '' || $userPublicId === '') {
+            return ['error' => 'module_public_id and user_public_id are required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $ok = $service->removeMember($modulePublicId, $userPublicId, $this->actor());
+        return $ok === true ? ['ok' => true] : ['error' => (string)$ok ?: 'Member not found.'];
+    }
+
+    private function crmAddProjectModuleLink(array $arguments): array
+    {
+        $modulePublicId = trim((string)($arguments['module_public_id'] ?? ''));
+        if ($modulePublicId === '') {
+            return ['error' => 'module_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->addLink($modulePublicId, $this->pick($arguments, ['title', 'url', 'link_type', 'sort_order']), $this->actor());
+        return is_array($result) ? ['link' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmUpdateProjectModuleLink(array $arguments): array
+    {
+        $linkPublicId = trim((string)($arguments['link_public_id'] ?? ''));
+        if ($linkPublicId === '') {
+            return ['error' => 'link_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $result = $service->updateLink($linkPublicId, $this->pick($arguments, ['title', 'url', 'link_type', 'sort_order']), $this->actor());
+        return is_array($result) ? ['link' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmDeleteProjectModuleLink(array $arguments): array
+    {
+        $linkPublicId = trim((string)($arguments['link_public_id'] ?? ''));
+        if ($linkPublicId === '') {
+            return ['error' => 'link_public_id is required.'];
+        }
+
+        /** @var ProjectModuleService $service */
+        $service = $this->container->get('service.project_module');
+        $ok = $service->deleteLink($linkPublicId, $this->actor());
+        return $ok === true ? ['ok' => true] : ['error' => (string)$ok ?: 'Link not found.'];
+    }
+
+    private function crmListRecycleBin(array $arguments): array
+    {
+        /** @var RecycleBinService $service */
+        $service = $this->container->get('service.recycle_bin');
+        return $this->publicData($service->list($this->recycleBinFilters($arguments)));
+    }
+
+    private function crmRestoreRecycleBinItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var RecycleBinService $service */
+        $service = $this->container->get('service.recycle_bin');
+        $result = $service->restore($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmPurgeRecycleBinItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var RecycleBinService $service */
+        $service = $this->container->get('service.recycle_bin');
+        $result = $service->purge($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmListImportJobs(array $arguments): array
+    {
+        /** @var ImportService $service */
+        $service = $this->container->get('service.import');
+        return $this->publicData($service->list($this->jobFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetImportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ImportService $service */
+        $service = $this->container->get('service.import');
+        $job = $service->get($publicId, $this->actor());
+        return $job ? $this->publicData($job) : ['error' => 'Import job not found.'];
+    }
+
+    private function crmCreateImportJob(array $arguments): array
+    {
+        /** @var ImportService $service */
+        $service = $this->container->get('service.import');
+        $result = $service->create($this->pick($arguments, ['type', 'rows', 'content_base64', 'delimiter', 'has_header', 'columns', 'async']), $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmCancelImportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ImportService $service */
+        $service = $this->container->get('service.import');
+        $result = $service->cancel($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmRetryImportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ImportService $service */
+        $service = $this->container->get('service.import');
+        $result = $service->retry($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmListExportJobs(array $arguments): array
+    {
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        return $this->publicData($service->list($this->jobFilters($arguments), $this->actor()));
+    }
+
+    private function crmGetExportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        $job = $service->get($publicId, $this->actor());
+        return $job ? $this->publicData($job) : ['error' => 'Export job not found.'];
+    }
+
+    private function crmCreateExportJob(array $arguments): array
+    {
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        $result = $service->create($this->pick($arguments, ['type', 'filters', 'async']), $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmCancelExportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        $result = $service->cancel($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmRetryExportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        $result = $service->retry($publicId, $this->actor());
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmDownloadExportJob(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ExportService $service */
+        $service = $this->container->get('service.export');
+        $download = $service->download($publicId, $this->actor());
+        if (!is_array($download) || isset($download['error'])) {
+            return ['error' => (string)($download['error'] ?? 'Export file not found.')];
+        }
+
+        return [
+            'ok' => true,
+            'public_id' => $publicId,
+            'name' => (string)($download['name'] ?? ''),
+            'mime' => (string)($download['mime'] ?? ''),
+            'size' => (int)($download['size'] ?? 0),
+            'download_url' => '/api/index.php?route=api/v1/export/jobs/' . rawurlencode($publicId) . '/download',
+        ];
+    }
+
+    private function crmListSecuritySessions(array $arguments): array
+    {
+        /** @var SessionService $service */
+        $service = $this->container->get('service.session');
+        return $this->publicData($service->list($this->actor(), $this->filters($arguments, 20, 100)));
+    }
+
+    private function crmListRoles(array $arguments): array
+    {
+        /** @var RoleService $service */
+        $service = $this->container->get('service.role');
+        return $this->publicData($service->list($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmListPermissions(): array
+    {
+        /** @var PermissionService $service */
+        $service = $this->container->get('service.permission');
+        return $this->publicData($service->list());
+    }
+
+    private function crmGetRolePermissions(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['role_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'role_public_id is required.'];
+        }
+
+        /** @var PermissionService $service */
+        $service = $this->container->get('service.permission');
+        return $this->publicData($service->listByRole($publicId));
+    }
+
+    private function crmListSettings(array $arguments): array
+    {
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        return $this->redactSettings($this->publicData($service->list($this->filters($arguments, 50, 100))));
+    }
+
+    private function crmGetSetting(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+        $scope = trim((string)($arguments['scope'] ?? 'system'));
+        if ($scope === '') {
+            $scope = 'system';
+        }
+
+        /** @var SettingService $service */
+        $service = $this->container->get('service.setting');
+        $item = $service->get($scope, $name);
+        return $item ? ['setting' => $this->redactSettingItem($this->publicData($item))] : ['error' => 'Setting not found.'];
+    }
+
+    private function crmListFeatureFlags(array $arguments): array
+    {
+        /** @var FeatureFlagService $service */
+        $service = $this->container->get('service.feature_flag');
+        return $this->publicData($service->list($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmUpdateFeatureFlag(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var FeatureFlagService $service */
+        $service = $this->container->get('service.feature_flag');
+        return $this->publicData($service->update($publicId, $this->pick($arguments, ['is_enabled', 'payload']), $this->actor()));
+    }
+
+    private function crmListAuditLog(array $arguments): array
+    {
+        /** @var LogsService $service */
+        $service = $this->container->get('service.logs');
+        return $this->publicData($service->auditList($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmListSecurityLog(array $arguments): array
+    {
+        /** @var LogsService $service */
+        $service = $this->container->get('service.logs');
+        return $this->publicData($service->securityList($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmListApiClients(array $arguments): array
+    {
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        return $this->publicData($service->listClients($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmGetApiClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $client = $service->getClient($publicId);
+        return $client ? ['client' => $this->publicData($client)] : ['error' => 'API client not found.'];
+    }
+
+    private function crmListApiClientKeys(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['client_public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'client_public_id is required.'];
+        }
+
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        return $this->publicData($service->listKeys($publicId));
+    }
+
+    private function crmListWebhooks(array $arguments): array
+    {
+        /** @var WebhookService $service */
+        $service = $this->container->get('service.webhook');
+        return $this->publicData($service->listSubscriptions($this->filters($arguments, 50, 100)));
+    }
+
+    private function crmListWebhookDeliveries(array $arguments): array
+    {
+        $filters = $this->filters($arguments, 50, 100);
+        if (!empty($arguments['webhook_public_id'])) {
+            $filters['webhook_public_id'] = trim((string)$arguments['webhook_public_id']);
+        }
+
+        /** @var WebhookService $service */
+        $service = $this->container->get('service.webhook');
+        return $this->publicData($service->listDeliveries($filters));
+    }
+
+    private function crmListModules(): array
+    {
+        $pluginManager = $this->container->get('plugin.manager');
+        $moduleConfig = $this->container->get('module.config');
+        $pluginManager->discover();
+        $items = [];
+        foreach ($pluginManager->getDiscovered() as $name => $manifest) {
+            $registry = $moduleConfig->getRegistry((string)$name);
+            $items[] = [
+                'name' => (string)$name,
+                'version' => (string)($manifest->version ?? ''),
+                'vendor' => (string)($manifest->vendor ?? ''),
+                'title' => (string)($manifest->title ?? ''),
+                'description' => (string)($manifest->description ?? ''),
+                'is_loaded' => $pluginManager->isLoaded((string)$name),
+                'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
+                'status' => $registry ? ((bool)($registry['is_active'] ?? false) ? 'active' : 'installed') : 'not_installed',
+                'installed_at' => $registry['installed_at'] ?? null,
+                'activated_at' => $registry['activated_at'] ?? null,
+            ];
+        }
+
+        return ['items' => $this->publicData($items)];
+    }
+
+    private function crmGetModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        $pluginManager = $this->container->get('plugin.manager');
+        $moduleConfig = $this->container->get('module.config');
+        $manifest = $pluginManager->getManifest($name);
+        if ($manifest === null) {
+            return ['error' => 'Module not found.'];
+        }
+        $registry = $moduleConfig->getRegistry($name);
+
+        return ['module' => $this->publicData([
+            'name' => (string)$manifest->name,
+            'version' => (string)$manifest->version,
+            'vendor' => (string)$manifest->vendor,
+            'title' => (string)$manifest->title,
+            'description' => (string)$manifest->description,
+            'core_version' => (string)$manifest->coreVersion,
+            'dependencies' => $manifest->dependencies,
+            'require_permissions' => $manifest->requirePermissions,
+            'api_routes' => $manifest->apiRoutes,
+            'web_routes' => $manifest->webRoutes,
+            'is_loaded' => $pluginManager->isLoaded($name),
+            'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
+            'installed_at' => $registry['installed_at'] ?? null,
+            'activated_at' => $registry['activated_at'] ?? null,
+        ])];
     }
 
     private function crmSearch(array $arguments): array
@@ -4266,6 +5342,94 @@ MD;
         ];
     }
 
+    private function intakeSchema(): array
+    {
+        return [
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'project_public_id' => ['type' => 'string'],
+            'client_public_id' => ['type' => 'string'],
+            'contact_public_id' => ['type' => 'string'],
+            'priority_code' => ['type' => 'string'],
+            'source_type' => ['type' => 'string'],
+            'source_ref' => ['type' => 'string'],
+            'source_email' => ['type' => 'string'],
+            'external_source' => ['type' => 'string'],
+            'external_id' => ['type' => 'string'],
+            'extra' => ['type' => 'object', 'additionalProperties' => true],
+            'due_at' => ['type' => 'string'],
+            'assignee_user_id' => ['type' => 'integer'],
+        ];
+    }
+
+    private function projectModuleSchema(): array
+    {
+        return [
+            'project_public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'status' => ['type' => 'string'],
+            'lead_user_public_id' => ['type' => 'string'],
+            'start_at' => ['type' => 'string'],
+            'target_at' => ['type' => 'string'],
+            'color' => ['type' => 'string'],
+            'icon' => ['type' => 'string'],
+            'sort_order' => ['type' => 'integer'],
+            'meta_json' => ['type' => 'object', 'additionalProperties' => true],
+        ];
+    }
+
+    private function projectModuleInputKeys(bool $update = false): array
+    {
+        $keys = [
+            'project_public_id', 'title', 'description', 'status', 'lead_user_public_id',
+            'start_at', 'target_at', 'color', 'icon', 'sort_order', 'meta_json', 'row_version',
+        ];
+        return $update ? array_merge(['public_id'], $keys) : $keys;
+    }
+
+    private function intakeFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'status', 'source_type', 'project_public_id', 'client_public_id', 'contact_public_id',
+            'assignee_user_id', 'q', 'created_since', 'updated_since', 'sort', 'order',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 100);
+        return $filters;
+    }
+
+    private function projectModuleFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'project_public_id', 'status', 'q', 'sort', 'order',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 100);
+        return $filters;
+    }
+
+    private function analyticsListFilters(array $arguments): array
+    {
+        return $this->pick($arguments, ['limit']);
+    }
+
+    private function recycleBinFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'entity_type', 'entity_public_id', 'deleted_by_user_public_id', 'sort', 'order',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 100);
+        return $filters;
+    }
+
+    private function jobFilters(array $arguments): array
+    {
+        $filters = $this->pick($arguments, [
+            'page', 'type', 'status', 'sort', 'order',
+        ]);
+        $filters['limit'] = $this->limit($arguments, 20, 100);
+        return $filters;
+    }
+
     private function workflowSchema(): array
     {
         return [
@@ -4313,6 +5477,29 @@ MD;
         }
 
         return $result;
+    }
+
+    private function redactSettings(array $payload): array
+    {
+        if (isset($payload['items']) && is_array($payload['items'])) {
+            $payload['items'] = array_map(
+                fn(mixed $item): mixed => is_array($item) ? $this->redactSettingItem($item) : $item,
+                $payload['items']
+            );
+        }
+
+        return $payload;
+    }
+
+    private function redactSettingItem(array $item): array
+    {
+        $name = strtolower((string)($item['name'] ?? ''));
+        if ($name !== '' && $this->isSensitiveOrInternalKey($name)) {
+            $item['value'] = '[redacted]';
+            $item['value_redacted'] = true;
+        }
+
+        return $item;
     }
 
     private function isSensitiveOrInternalKey(string $key): bool
