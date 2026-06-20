@@ -15906,9 +15906,10 @@ a.task-tag:hover {
 
 .crm-cycles-page .crm-cycles-search-input:hover,
 .crm-cycles-page .crm-cycles-search-input:focus {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .crm-cycles-page .crm-cycles-search-input::-webkit-search-cancel-button {
