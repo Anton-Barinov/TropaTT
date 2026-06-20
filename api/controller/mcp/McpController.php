@@ -10,6 +10,8 @@ use Api\Controller\Admin\OpsController;
 use Api\Controller\Activity\ActivityController;
 use Api\Controller\Chat\ChatController;
 use Api\Controller\Auth\MenuController;
+use Api\Controller\Idea\IdeaController;
+use Api\Controller\Knowledge\KnowledgeAiController;
 use Api\Controller\Module\ModuleController;
 use Api\Controller\Knowledge\KnowledgeController;
 use Api\Controller\Knowledge\KnowledgePageVersionController;
@@ -20,6 +22,7 @@ use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
+use Api\System\Library\Http\Request;
 use Api\System\Library\Service\ApiClientService;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
@@ -232,6 +235,14 @@ final class McpController extends BaseController
                 0.8
             ),
             $this->resource(
+                'tropatt://server/api-endpoints',
+                'api-endpoints',
+                'CRM API Endpoint Inventory',
+                'Machine-readable inventory of REST endpoints derived from the live routes configuration.',
+                'application/json',
+                0.75
+            ),
+            $this->resource(
                 'tropatt://user/current',
                 'current-user',
                 'Current CRM User',
@@ -257,6 +268,7 @@ final class McpController extends BaseController
             'tropatt://server/about' => $this->textResource($uri, 'text/markdown', $this->mcpAboutMarkdown()),
             'tropatt://server/tools' => $this->textResource($uri, 'application/json', json_encode(['tools' => $this->tools()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://server/api-map' => $this->textResource($uri, 'text/markdown', $this->apiMapMarkdown()),
+            'tropatt://server/api-endpoints' => $this->textResource($uri, 'application/json', json_encode(['endpoints' => $this->apiEndpointsIndex()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://user/current' => $this->textResource($uri, 'application/json', json_encode($this->crmGetCurrentUser(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             default => null,
         };
@@ -327,6 +339,7 @@ The server uses the current CRM user, existing RBAC permissions and entity acces
 3. Use read tools first to inspect tasks, projects, ideas, chats, calendar and knowledge.
 4. Use write tools only after the user intent is clear.
 5. Prefer public identifiers such as `task_public_id`, `project_public_id`, `idea_public_id`, `chat_public_id`.
+6. Read `tropatt://server/api-endpoints` when you need the live REST route inventory before selecting a tool or designing a fallback.
 MD;
     }
 
@@ -349,6 +362,10 @@ The REST API remains the full integration surface. MCP is a safe agent-facing la
 - Ideas and AI: ideas, AI analysis pipeline, AI suggestions, providers, jobs and semantic search.
 - Automation and admin: workflow rules, webhooks, modules, audit logs, settings, feature flags, retention and recycle bin.
 
+## Endpoint Discovery
+
+If you need the full route inventory, use `tropatt://server/api-endpoints` or the `crm_list_api_endpoints` tool. The inventory is derived from the live route configuration, so it stays aligned with the current installation.
+
 ## Agent Safety Notes
 
 - Use MCP tools for common agent tasks.
@@ -356,6 +373,137 @@ The REST API remains the full integration surface. MCP is a safe agent-facing la
 - Always keep user data on the installation host selected by the customer.
 - Never assume the demo domain is the production domain.
 MD;
+    }
+
+    /**
+     * @return array{source:string,count:int,items:array<int,array<string,mixed>>}
+     */
+    private function apiEndpointsIndex(): array
+    {
+        $routesFile = dirname(__DIR__, 2) . '/config/routes.php';
+        if (!is_file($routesFile)) {
+            return [
+                'source' => 'api/config/routes.php',
+                'count' => 0,
+                'items' => [],
+            ];
+        }
+
+        $routes = require $routesFile;
+        if (!is_array($routes)) {
+            return [
+                'source' => 'api/config/routes.php',
+                'count' => 0,
+                'items' => [],
+            ];
+        }
+
+        $items = [];
+        foreach ($routes as $route) {
+            if (!is_array($route)) {
+                continue;
+            }
+            $pattern = trim((string)($route['pattern'] ?? ''));
+            if ($pattern === '') {
+                continue;
+            }
+
+            $methods = [];
+            foreach ((array)($route['methods'] ?? []) as $method) {
+                $method = strtoupper(trim((string)$method));
+                if ($method !== '') {
+                    $methods[] = $method;
+                }
+            }
+            $methods = array_values(array_unique($methods));
+            sort($methods);
+            if ($methods === []) {
+                $methods = ['GET'];
+            }
+
+            $controller = trim((string)($route['controller'] ?? ''));
+            $action = trim((string)($route['action'] ?? ''));
+            $permissions = [];
+            foreach ((array)($route['required_permissions'] ?? []) as $permission) {
+                $permission = trim((string)$permission);
+                if ($permission !== '') {
+                    $permissions[] = $permission;
+                }
+            }
+            $permissions = array_values(array_unique($permissions));
+            sort($permissions);
+
+            foreach ($methods as $method) {
+                $items[] = [
+                    'method' => $method,
+                    'pattern' => $pattern,
+                    'controller' => $controller,
+                    'action' => $action,
+                    'auth' => (bool)($route['auth'] ?? false),
+                    'binary' => (bool)($route['binary'] ?? false),
+                    'permissions' => $permissions,
+                ];
+            }
+        }
+
+        usort($items, static function (array $a, array $b): int {
+            $patternCmp = strcmp((string)($a['pattern'] ?? ''), (string)($b['pattern'] ?? ''));
+            if ($patternCmp !== 0) {
+                return $patternCmp;
+            }
+            $methodCmp = strcmp((string)($a['method'] ?? ''), (string)($b['method'] ?? ''));
+            if ($methodCmp !== 0) {
+                return $methodCmp;
+            }
+            return strcmp((string)($a['action'] ?? ''), (string)($b['action'] ?? ''));
+        });
+
+        return [
+            'source' => 'api/config/routes.php',
+            'count' => count($items),
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function crmListApiEndpoints(array $arguments): array
+    {
+        $inventory = $this->apiEndpointsIndex();
+        $query = trim((string)($arguments['q'] ?? ''));
+        $limit = max(1, min(500, (int)($arguments['limit'] ?? 200)));
+
+        $items = array_values(array_filter(
+            $inventory['items'],
+            static function (array $item) use ($query): bool {
+                if ($query === '') {
+                    return true;
+                }
+
+                $haystack = strtolower(
+                    (string)($item['method'] ?? '') . ' ' .
+                    (string)($item['pattern'] ?? '') . ' ' .
+                    (string)($item['controller'] ?? '') . ' ' .
+                    (string)($item['action'] ?? '') . ' ' .
+                    implode(' ', (array)($item['permissions'] ?? []))
+                );
+
+                return str_contains($haystack, strtolower($query));
+            }
+        ));
+
+        $filteredCount = count($items);
+        $items = array_slice($items, 0, $limit);
+
+        return [
+            'source' => $inventory['source'],
+            'count' => $inventory['count'],
+            'filtered_count' => $filteredCount,
+            'limit' => $limit,
+            'query' => $query,
+            'items' => $items,
+        ];
     }
 
     private function tools(): array
@@ -401,6 +549,11 @@ MD;
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
             ], ['q']);
         }
+
+        $tools[] = $this->tool('crm_list_api_endpoints', 'List the live REST API endpoint inventory derived from the current route configuration.', [
+            'q' => ['type' => 'string', 'description' => 'Optional substring filter for path, controller or action.'],
+            'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 500, 'default' => 200],
+        ]);
 
         if ($this->can('task.manage')) {
             $tools[] = $this->tool('crm_list_tasks', 'List CRM tasks with optional filters.', [
@@ -2009,6 +2162,9 @@ MD;
             'idea_public_id' => ['type' => 'string'],
             'body' => ['type' => 'string'],
         ], ['idea_public_id', 'body']);
+        foreach ($this->ideaWorkflowTools() as $toolName => $toolDef) {
+            $tools[] = $this->tool($toolName, $toolDef['description'], $toolDef['properties'], $toolDef['required']);
+        }
 
         $tools[] = $this->tool('crm_list_chats', 'List chats where the current CRM user is a participant.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -2176,6 +2332,10 @@ MD;
             return $this->toolError('Tool name is required');
         }
 
+        if (isset($this->ideaWorkflowTools()[$name])) {
+            return $this->toolResult($this->callIdeaWorkflowTool($name, $arguments));
+        }
+
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
             'crm_get_profile' => $this->toolResult($this->crmGetProfile()),
@@ -2190,6 +2350,7 @@ MD;
             'crm_get_menu' => $this->toolResult($this->crmGetMenu()),
             'crm_get_menu_preferences' => $this->toolResult($this->crmGetMenuPreferences()),
             'crm_save_menu_preferences' => $this->toolResult($this->crmSaveMenuPreferences($arguments)),
+            'crm_list_api_endpoints' => $this->toolResult($this->crmListApiEndpoints($arguments)),
             'crm_list_roles' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListRoles($arguments))),
             'crm_list_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListPermissions())),
             'crm_get_role_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmGetRolePermissions($arguments))),
@@ -2420,6 +2581,15 @@ MD;
             'crm_get_knowledge_entity_pages' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmEntityKnowledgePages($arguments))),
             'crm_get_knowledge_suggest' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeSuggest($arguments))),
             'crm_get_knowledge_analytics' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeAnalytics($arguments))),
+            'crm_create_knowledge_ai_summary' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_create_knowledge_ai_summary', $arguments))),
+            'crm_create_knowledge_ai_explanation' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_create_knowledge_ai_explanation', $arguments))),
+            'crm_find_knowledge_ai_similar' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_find_knowledge_ai_similar', $arguments))),
+            'crm_create_knowledge_ai_checklist' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_create_knowledge_ai_checklist', $arguments))),
+            'crm_create_knowledge_ai_faq_from_comments' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_create_knowledge_ai_faq_from_comments', $arguments))),
+            'crm_create_knowledge_ai_suggest_for_task' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_create_knowledge_ai_suggest_for_task', $arguments))),
+            'crm_find_knowledge_ai_duplicates' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_find_knowledge_ai_duplicates', $arguments))),
+            'crm_find_knowledge_ai_orphans' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_find_knowledge_ai_orphans', $arguments))),
+            'crm_suggest_knowledge_ai_structure' => $this->withPermission('knowledge.manage', fn() => $this->toolResult($this->callKnowledgeAiTool('crm_suggest_knowledge_ai_structure', $arguments))),
             'crm_list_knowledge_templates' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeTemplates($arguments))),
             'crm_export_knowledge_all' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmExportKnowledgeAll($arguments))),
             'crm_export_knowledge_page' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmExportKnowledgePage($arguments))),
@@ -8419,6 +8589,621 @@ MD;
     private function toolError(string $message): array
     {
         return $this->toolResult(['error' => $message]);
+    }
+
+    /**
+     * Invoke a controller method through a temporary synthetic request so we can reuse
+     * the same business logic as the web/API controllers without duplicating it in MCP.
+     *
+     * @param class-string<BaseController> $controllerClass
+     * @param array<int,string> $routeParamKeys
+     * @return array<string,mixed>
+     */
+    private function invokeControllerTool(string $controllerClass, string $controllerMethod, array $arguments, string $httpMethod = 'POST', array $routeParamKeys = []): array
+    {
+        $originalRequest = $this->container->get('request');
+        if (!$originalRequest instanceof Request) {
+            return ['error' => 'Request service unavailable.'];
+        }
+
+        $routeParams = [];
+        foreach ($routeParamKeys as $key) {
+            if (array_key_exists($key, $arguments)) {
+                $routeParams[$key] = $arguments[$key];
+            }
+        }
+
+        $tempRequest = new Request(
+            method: strtoupper($httpMethod),
+            uri: $originalRequest->uri,
+            path: $originalRequest->path,
+            query: [],
+            post: [],
+            cookies: $originalRequest->cookies,
+            files: [],
+            server: $originalRequest->server,
+            headers: $originalRequest->headers,
+            rawBody: json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '',
+            requestId: $originalRequest->requestId,
+            correlationId: $originalRequest->correlationId,
+            locale: $originalRequest->locale,
+        );
+
+        $this->container->set('request', $tempRequest);
+        try {
+            $controller = new $controllerClass($this->container);
+            $response = $controller->$controllerMethod($routeParams);
+            if (!$response instanceof JsonResponse) {
+                return ['error' => 'Controller did not return a JSON response.'];
+            }
+            return $this->toolPayloadFromResponse($response);
+        } catch (Throwable $e) {
+            return ['error' => $e->getMessage() ?: 'Controller invocation failed.'];
+        } finally {
+            $this->container->set('request', $originalRequest);
+        }
+    }
+
+    private function toolPayloadFromResponse(JsonResponse $response): array
+    {
+        $payload = $response->payload();
+        if (($payload['success'] ?? false) !== true) {
+            return [
+                'error' => (string)($payload['message'] ?? 'Request failed'),
+                'code' => $payload['code'] ?? null,
+                'status' => $payload['meta']['status'] ?? $response->status(),
+                'errors' => $payload['errors'] ?? [],
+            ];
+        }
+
+        $data = $payload['data'] ?? null;
+        if (is_array($data) && $data !== []) {
+            return $this->publicData($data);
+        }
+
+        return $this->publicData($payload);
+    }
+
+    /**
+     * @return array<string,array{description:string,controller:class-string<BaseController>,method:string,http:string,route_params:list<string>,properties:array<string,mixed>,required:list<string>}>
+     */
+    private function ideaWorkflowTools(): array
+    {
+        $publicId = ['type' => 'string'];
+        return [
+            'crm_create_idea_ai_analysis' => [
+                'description' => 'Run the first AI analysis pass for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'aiAnalyze',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_create_idea_ai_refine' => [
+                'description' => 'Refine idea analysis after answering questions.',
+                'controller' => IdeaController::class,
+                'method' => 'aiRefine',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                    'questions_answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                    'region' => ['type' => 'string'],
+                    'country' => ['type' => 'string'],
+                ],
+                'required' => ['public_id'],
+            ],
+            'crm_create_idea_ai_tasks' => [
+                'description' => 'Create CRM tasks from a suggested idea task tree.',
+                'controller' => IdeaController::class,
+                'method' => 'aiCreateTasks',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'tasks' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                ],
+                'required' => ['public_id', 'tasks'],
+            ],
+            'crm_get_idea_ai_debug_log' => [
+                'description' => 'Load the debug snapshot for an idea AI workflow.',
+                'controller' => IdeaController::class,
+                'method' => 'debugLog',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_list_idea_ai_iterations' => [
+                'description' => 'List AI iterations saved for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'aiIterations',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_questions' => [
+                'description' => 'List all AI questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'questions',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_additional_questions' => [
+                'description' => 'Load already generated additional clarification questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'additionalQuestions',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_additional_questions' => [
+                'description' => 'Generate additional clarification questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'additionalQuestions',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_understanding_card' => [
+                'description' => 'Load the current understanding card for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'understandingCard',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_understanding_card' => [
+                'description' => 'Generate or rebuild the understanding card for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'understandingCard',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_gap_questions' => [
+                'description' => 'Load gap-focused questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'gapQuestions',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_gap_questions' => [
+                'description' => 'Generate gap-focused questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'gapQuestions',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_refined_card' => [
+                'description' => 'Load the refined card for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'refinedCard',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_refined_card' => [
+                'description' => 'Generate the refined card for an idea after questions are answered.',
+                'controller' => IdeaController::class,
+                'method' => 'refinedCard',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_potential_score' => [
+                'description' => 'Load the current potential score block for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'potentialScore',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_potential_score' => [
+                'description' => 'Generate the idea potential score block.',
+                'controller' => IdeaController::class,
+                'method' => 'potentialScore',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_risk_report' => [
+                'description' => 'Load the current risk report for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'riskReport',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_risk_report' => [
+                'description' => 'Generate the idea risk report block.',
+                'controller' => IdeaController::class,
+                'method' => 'riskReport',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_pitfalls_report' => [
+                'description' => 'Load the hidden pitfalls report for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'pitfallsReport',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_pitfalls_report' => [
+                'description' => 'Generate the hidden pitfalls report for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'pitfallsReport',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_implementation_plan' => [
+                'description' => 'Load the implementation plan for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'implementationPlan',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_implementation_plan' => [
+                'description' => 'Generate the implementation plan for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'implementationPlan',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_final_recommendation' => [
+                'description' => 'Load the final recommendation block for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'finalRecommendation',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_final_recommendation' => [
+                'description' => 'Generate the final recommendation block for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'finalRecommendation',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_get_idea_suggested_tasks' => [
+                'description' => 'Load the suggested task tree for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'suggestedTasks',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_suggested_tasks' => [
+                'description' => 'Generate the suggested task tree for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'suggestedTasks',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_create_project_from_idea_tasks' => [
+                'description' => 'Create a CRM project and hierarchical tasks from the suggested idea tasks.',
+                'controller' => IdeaController::class,
+                'method' => 'createProjectFromTasks',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_idea_ai_interview' => [
+                'description' => 'Generate the next AI interview question batch for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'aiInterview',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_save_idea_interview_answers' => [
+                'description' => 'Save interview answers for an idea and continue the workflow.',
+                'controller' => IdeaController::class,
+                'method' => 'saveInterviewAnswers',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                ],
+                'required' => ['public_id', 'answers'],
+            ],
+            'crm_get_idea_state' => [
+                'description' => 'Load the full AI state for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'state',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_save_idea_answers' => [
+                'description' => 'Persist answers for an idea without forcing the full refinement flow.',
+                'controller' => IdeaController::class,
+                'method' => 'saveAnswers',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                ],
+                'required' => ['public_id', 'answers'],
+            ],
+            'crm_get_idea_task_drafts' => [
+                'description' => 'Load task drafts created by the idea workflow.',
+                'controller' => IdeaController::class,
+                'method' => 'taskDrafts',
+                'http' => 'GET',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_update_idea_task_draft' => [
+                'description' => 'Update one task draft produced by the idea workflow.',
+                'controller' => IdeaController::class,
+                'method' => 'updateTaskDraft',
+                'http' => 'PUT',
+                'route_params' => ['public_id', 'draftTaskId'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'draftTaskId' => ['type' => 'string'],
+                    'title' => ['type' => 'string'],
+                    'description' => ['type' => 'string'],
+                    'is_selected' => ['type' => 'boolean'],
+                    'priority' => ['type' => 'string'],
+                    'stage' => ['type' => 'string'],
+                ],
+                'required' => ['public_id', 'draftTaskId'],
+            ],
+            'crm_reset_idea_analysis' => [
+                'description' => 'Reset the whole idea analysis workflow and remove generated AI artifacts.',
+                'controller' => IdeaController::class,
+                'method' => 'resetAnalysis',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_decompose_idea_tasks' => [
+                'description' => 'Generate task decomposition from the final idea analysis.',
+                'controller' => IdeaController::class,
+                'method' => 'decomposeTasks',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_generate_next_idea_questions' => [
+                'description' => 'Generate the next cycle of questions for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'questionsNext',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_run_idea_analysis' => [
+                'description' => 'Run the full staged analysis pipeline for an idea.',
+                'controller' => IdeaController::class,
+                'method' => 'runAnalysis',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_submit_idea_answers' => [
+                'description' => 'Submit answers to the idea workflow and continue refinement.',
+                'controller' => IdeaController::class,
+                'method' => 'submitAnswers',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                    'questions_answers' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+                    'region' => ['type' => 'string'],
+                    'country' => ['type' => 'string'],
+                ],
+                'required' => ['public_id'],
+            ],
+            'crm_run_idea_analysis_step' => [
+                'description' => 'Run one specific idea analysis step.',
+                'controller' => IdeaController::class,
+                'method' => 'runAnalysisStep',
+                'http' => 'POST',
+                'route_params' => ['public_id', 'stepKey'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'stepKey' => ['type' => 'string'],
+                ],
+                'required' => ['public_id', 'stepKey'],
+            ],
+            'crm_retry_idea_analysis' => [
+                'description' => 'Retry a failed idea analysis block.',
+                'controller' => IdeaController::class,
+                'method' => 'retryAnalysis',
+                'http' => 'POST',
+                'route_params' => ['public_id', 'analysisType'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'analysisType' => ['type' => 'string'],
+                ],
+                'required' => ['public_id', 'analysisType'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string,array{description:string,controller:class-string<BaseController>,method:string,http:string,route_params:list<string>,properties:array<string,mixed>,required:list<string>}>
+     */
+    private function knowledgeAiTools(): array
+    {
+        $publicId = ['type' => 'string'];
+        return [
+            'crm_create_knowledge_ai_summary' => [
+                'description' => 'Generate a concise AI summary for a knowledge page.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'summary',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_create_knowledge_ai_explanation' => [
+                'description' => 'Generate a plain-language explanation for a knowledge page.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'explain',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_find_knowledge_ai_similar' => [
+                'description' => 'Find semantically similar knowledge pages.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'similar',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => [
+                    'public_id' => $publicId,
+                    'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20, 'default' => 10],
+                ],
+                'required' => ['public_id'],
+            ],
+            'crm_create_knowledge_ai_checklist' => [
+                'description' => 'Generate a checklist from a knowledge page.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'checklist',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_create_knowledge_ai_faq_from_comments' => [
+                'description' => 'Generate a FAQ from knowledge page comments.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'faqFromComments',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+            'crm_create_knowledge_ai_suggest_for_task' => [
+                'description' => 'Suggest knowledge pages related to a task.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'suggestForTask',
+                'http' => 'POST',
+                'route_params' => ['task_public_id'],
+                'properties' => [
+                    'task_public_id' => $publicId,
+                    'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20, 'default' => 10],
+                ],
+                'required' => ['task_public_id'],
+            ],
+            'crm_find_knowledge_ai_duplicates' => [
+                'description' => 'Find potentially duplicate knowledge pages.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'findDuplicates',
+                'http' => 'POST',
+                'route_params' => [],
+                'properties' => [
+                    'threshold' => ['type' => 'number', 'minimum' => 0.3, 'maximum' => 1.0, 'default' => 0.75],
+                ],
+                'required' => [],
+            ],
+            'crm_find_knowledge_ai_orphans' => [
+                'description' => 'Find knowledge pages without an owner.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'findOrphans',
+                'http' => 'GET',
+                'route_params' => [],
+                'properties' => [],
+                'required' => [],
+            ],
+            'crm_suggest_knowledge_ai_structure' => [
+                'description' => 'Suggest a better structure for one knowledge space.',
+                'controller' => KnowledgeAiController::class,
+                'method' => 'suggestStructure',
+                'http' => 'POST',
+                'route_params' => ['public_id'],
+                'properties' => ['public_id' => $publicId],
+                'required' => ['public_id'],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function callIdeaWorkflowTool(string $name, array $arguments): array
+    {
+        $def = $this->ideaWorkflowTools()[$name] ?? null;
+        if ($def === null) {
+            return ['error' => 'Unknown idea workflow tool.'];
+        }
+
+        return $this->invokeControllerTool(
+            $def['controller'],
+            $def['method'],
+            $arguments,
+            $def['http'],
+            $def['route_params']
+        );
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function callKnowledgeAiTool(string $name, array $arguments): array
+    {
+        $def = $this->knowledgeAiTools()[$name] ?? null;
+        if ($def === null) {
+            return ['error' => 'Unknown knowledge AI tool.'];
+        }
+
+        return $this->invokeControllerTool(
+            $def['controller'],
+            $def['method'],
+            $arguments,
+            $def['http'],
+            $def['route_params']
+        );
     }
 
     private function payloadData(\Api\System\Library\Http\JsonResponse $response): array
