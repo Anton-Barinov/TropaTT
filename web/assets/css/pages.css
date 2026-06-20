@@ -637,9 +637,9 @@
 }
 
 .crm-intake-page .crm-table {
-  width: 100%;
+  width: 100% !important;
   min-width: 1060px;
-  table-layout: fixed;
+  table-layout: fixed !important;
 }
 
 .crm-intake-page .crm-table thead th:nth-child(1) { width: 24%; }
