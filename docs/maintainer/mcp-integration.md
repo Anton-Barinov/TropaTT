@@ -313,3 +313,8 @@ Expected response shape:
 - Prefer read-only tools first; add write tools only when the action is safe, obvious and already supported by the REST API.
 - Keep tool payloads compact. AI clients should receive useful summaries and public identifiers, not unbounded database dumps.
 - Do not hardcode `demo.tropatt.com`; all examples must work on any installed host.
+
+## Progress Log
+
+- 2026-06-20: Expanded MCP coverage for project summaries, activity feed/history, knowledge spaces/pages/versions/comments/files/reviews/permissions/admin settings, chat read/write helpers, push subscriptions, and admin role matrix access.
+- 2026-06-20: Kept the implementation thin over existing services and controllers; next pass should verify each new tool against the demo host and prune any overbroad payloads.
