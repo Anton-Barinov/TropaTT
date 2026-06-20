@@ -15894,6 +15894,8 @@ a.task-tag:hover {
 }
 
 .crm-cycles-page .crm-cycles-search-input {
+  flex: 1 1 auto;
+  width: auto !important;
   min-width: 0;
   height: 44px;
   padding: 10px 8px 10px 10px;
@@ -15929,6 +15931,7 @@ a.task-tag:hover {
   border-radius: 6px;
   background: transparent;
   color: #6d7976;
+  outline: 0;
 }
 
 .crm-cycles-page .crm-cycles-search-clear:hover,
