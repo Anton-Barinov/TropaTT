@@ -327,3 +327,7 @@ Expected response shape:
 - 2026-06-20: Added MCP wrappers for knowledge page version restore/lock/unlock so agents can handle revision recovery and page locks without leaving the MCP layer.
 
 - 2026-06-20: Added MCP wrappers for knowledge page version restore/lock/unlock and verified them on demo.tropatt.com; `tools/list` now shows 420 tools.
+
+- 2026-06-20: Expanded MCP coverage for work cycles, calendar events, ideas and chat attachments. New tools include cycle summary/start/complete/reopen/archive/delete/remove-task/transfer-unfinished, calendar get/update/delete, idea update/delete/vote/status/comments, and chat attachment download.
+
+- 2026-06-20: Verified the new MCP tools on demo.tropatt.com with admin/adminadmin. `tools/list` now shows 437 tools, and smoke calls for cycles, calendar, ideas and chat attachment download all succeeded.
