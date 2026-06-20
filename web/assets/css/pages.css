@@ -632,18 +632,40 @@
   flex-wrap: wrap;
 }
 
+.crm-intake-page .table-responsive.crm-card {
+  overflow-x: auto;
+}
+
+.crm-intake-page .crm-table {
+  width: 100%;
+  min-width: 1060px;
+  table-layout: fixed;
+}
+
+.crm-intake-page .crm-table thead th:nth-child(1) { width: 24%; }
+.crm-intake-page .crm-table thead th:nth-child(2) { width: 9%; }
+.crm-intake-page .crm-table thead th:nth-child(3) { width: 15%; }
+.crm-intake-page .crm-table thead th:nth-child(4) { width: 9%; }
+.crm-intake-page .crm-table thead th:nth-child(5) { width: 9%; }
+.crm-intake-page .crm-table thead th:nth-child(6) { width: 12%; }
+.crm-intake-page .crm-table thead th:nth-child(7) { width: 7%; }
+.crm-intake-page .crm-table thead th:nth-child(8) { width: 8%; }
+.crm-intake-page .crm-table thead th:nth-child(9) { width: 112px; }
+
 .crm-intake-page .crm-table tbody td {
   padding-top: 0.78rem;
   padding-bottom: 0.78rem;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .crm-intake-page .crm-table tbody td:first-child {
-  min-width: 260px;
+  min-width: 0;
 }
 
 .crm-intake-page .crm-table tbody td:nth-child(3) {
-  min-width: 180px;
+  min-width: 0;
 }
 
 .crm-intake-page .crm-table thead th {
@@ -750,6 +772,7 @@
 }
 
 .crm-intake-source-label {
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -759,6 +782,8 @@
   font-weight: 500;
   background: var(--color-neutral-100);
   color: var(--color-neutral-700);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .crm-intake-actions {
