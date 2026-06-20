@@ -4650,9 +4650,9 @@ MD;
 
     private function crmGetProjectSummary(array $arguments): array
     {
-        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'project_public_id']);
         if ($publicId === '') {
-            return ['error' => 'project_public_id is required.'];
+            return ['error' => 'public_id or project_public_id is required.'];
         }
 
         /** @var ProjectSummaryService $service */
@@ -4663,9 +4663,9 @@ MD;
 
     private function crmGetProjectTimeline(array $arguments): array
     {
-        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'project_public_id']);
         if ($publicId === '') {
-            return ['error' => 'project_public_id is required.'];
+            return ['error' => 'public_id or project_public_id is required.'];
         }
 
         /** @var GanttService $service */
@@ -4677,9 +4677,9 @@ MD;
 
     private function crmGetProjectMilestonesSummary(array $arguments): array
     {
-        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'project_public_id']);
         if ($publicId === '') {
-            return ['error' => 'project_public_id is required.'];
+            return ['error' => 'public_id or project_public_id is required.'];
         }
 
         /** @var ProjectSummaryService $service */
@@ -4690,9 +4690,9 @@ MD;
 
     private function crmGetProjectRisks(array $arguments): array
     {
-        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'project_public_id']);
         if ($publicId === '') {
-            return ['error' => 'project_public_id is required.'];
+            return ['error' => 'public_id or project_public_id is required.'];
         }
 
         /** @var ProjectSummaryService $service */
@@ -4703,9 +4703,9 @@ MD;
 
     private function crmGetProjectWorkload(array $arguments): array
     {
-        $publicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $publicId = $this->argumentPublicId($arguments, ['public_id', 'project_public_id']);
         if ($publicId === '') {
-            return ['error' => 'project_public_id is required.'];
+            return ['error' => 'public_id or project_public_id is required.'];
         }
 
         /** @var ProjectSummaryService $service */
@@ -6410,9 +6410,9 @@ MD;
 
     private function crmGetChat(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6491,9 +6491,9 @@ MD;
 
     private function crmGetChatParticipants(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6506,9 +6506,9 @@ MD;
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($userId <= 0 || $chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
 
         $chat = $this->chatForUser($chatPublicId, $userId);
@@ -6560,10 +6560,10 @@ MD;
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         $text = trim((string)($arguments['text'] ?? ''));
         if ($userId <= 0 || $chatPublicId === '' || $text === '') {
-            return ['error' => 'chat_public_id and text are required.'];
+            return ['error' => 'public_id or chat_public_id and text are required.'];
         }
         if (mb_strlen($text) > 4000) {
             return ['error' => 'Message text is too long.'];
@@ -6606,11 +6606,11 @@ MD;
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         $messagePublicId = trim((string)($arguments['message_public_id'] ?? ''));
         $text = trim((string)($arguments['text'] ?? ''));
         if ($userId <= 0 || $chatPublicId === '' || $messagePublicId === '' || $text === '') {
-            return ['error' => 'chat_public_id, message_public_id and text are required.'];
+            return ['error' => 'public_id or chat_public_id, message_public_id and text are required.'];
         }
         if (mb_strlen($text) > 4000) {
             return ['error' => 'Message text is too long.'];
@@ -6632,10 +6632,10 @@ MD;
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         $messagePublicId = trim((string)($arguments['message_public_id'] ?? ''));
         if ($userId <= 0 || $chatPublicId === '' || $messagePublicId === '') {
-            return ['error' => 'chat_public_id and message_public_id are required.'];
+            return ['error' => 'public_id or chat_public_id and message_public_id are required.'];
         }
         $chat = $this->chatForUser($chatPublicId, $userId);
         if (!$chat) {
@@ -6654,11 +6654,11 @@ MD;
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         $name = trim((string)($arguments['name'] ?? ''));
         $contentBase64 = trim((string)($arguments['content_base64'] ?? ''));
         if ($userId <= 0 || $chatPublicId === '' || $name === '' || $contentBase64 === '') {
-            return ['error' => 'chat_public_id, name and content_base64 are required.'];
+            return ['error' => 'public_id or chat_public_id, name and content_base64 are required.'];
         }
         $chat = $this->chatForUser($chatPublicId, $userId);
         if (!$chat) {
@@ -6705,9 +6705,9 @@ MD;
 
     private function crmListChatAttachments(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6726,9 +6726,9 @@ MD;
 
     private function crmGetChatSettings(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6739,9 +6739,9 @@ MD;
 
     private function crmUpdateChatSettings(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6762,9 +6762,9 @@ MD;
 
     private function crmMarkChatRead(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6793,9 +6793,9 @@ MD;
 
     private function crmArchiveChat(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
         if (!$chat) {
@@ -6812,9 +6812,9 @@ MD;
 
     private function crmRestoreChat(array $arguments): array
     {
-        $chatPublicId = trim((string)($arguments['chat_public_id'] ?? ''));
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         if ($chatPublicId === '') {
-            return ['error' => 'chat_public_id is required.'];
+            return ['error' => 'public_id or chat_public_id is required.'];
         }
         $stmt = $this->pdo()->prepare("SELECT id FROM chats WHERE public_id = :pid AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
         $stmt->execute(['pid' => $chatPublicId, 'uid' => (int)($this->actor()['id'] ?? 0)]);
@@ -7123,6 +7123,18 @@ MD;
         $filters['limit'] = $this->limit($arguments, $defaultLimit, $maxLimit);
 
         return $filters;
+    }
+
+    private function argumentPublicId(array $arguments, array $keys): string
+    {
+        foreach ($keys as $key) {
+            $value = trim((string)($arguments[$key] ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     private function activityFilters(array $arguments): array
