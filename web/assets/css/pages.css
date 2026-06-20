@@ -15835,6 +15835,138 @@ a.task-tag:hover {
   pointer-events: none;
 }
 
+/* Cycles */
+.crm-cycles-page .crm-cycles-filterbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.25fr) minmax(170px, 0.55fr) minmax(260px, 0.9fr);
+  gap: 10px;
+  align-items: center;
+  max-width: 820px;
+}
+
+.crm-cycles-page .crm-cycles-filter-item {
+  min-width: 0;
+}
+
+.crm-cycles-page .crm-cycles-filterbar .form-select,
+.crm-cycles-page .crm-cycles-search {
+  min-height: 46px;
+  height: 46px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: none;
+}
+
+.crm-cycles-page .crm-cycles-filterbar .form-select {
+  width: 100%;
+  padding: 10px 38px 10px 14px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.crm-cycles-page .crm-cycles-filterbar .form-select:focus {
+  border-color: rgba(15, 143, 114, 0.48);
+  box-shadow: 0 0 0 3px rgba(15, 143, 114, 0.1);
+}
+
+.crm-cycles-page .crm-cycles-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.crm-cycles-page .crm-cycles-search:focus-within {
+  border-color: rgba(15, 143, 114, 0.48);
+  box-shadow: 0 0 0 3px rgba(15, 143, 114, 0.1);
+}
+
+.crm-cycles-page .crm-cycles-search-icon {
+  flex: 0 0 auto;
+  margin-left: 14px;
+  color: #7a8783;
+  font-size: 14px;
+}
+
+.crm-cycles-page .crm-cycles-search-input {
+  min-width: 0;
+  height: 44px;
+  padding: 10px 8px 10px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 14px;
+}
+
+.crm-cycles-page .crm-cycles-search-input:hover,
+.crm-cycles-page .crm-cycles-search-input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.crm-cycles-page .crm-cycles-search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.crm-cycles-page .crm-cycles-search-clear,
+.crm-cycles-page .crm-cycles-search-submit {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6d7976;
+}
+
+.crm-cycles-page .crm-cycles-search-clear:hover,
+.crm-cycles-page .crm-cycles-search-submit:hover {
+  background: rgba(15, 143, 114, 0.08);
+  color: var(--crm-primary);
+}
+
+.crm-cycles-page .crm-cycles-search-submit {
+  background: var(--crm-primary);
+  color: #fff;
+}
+
+.crm-cycles-page .crm-cycles-search-submit:hover {
+  background: var(--crm-primary-hover);
+  color: #fff;
+}
+
+@media (max-width: 991.98px) {
+  .crm-cycles-page .crm-cycles-filterbar {
+    grid-template-columns: 1fr 1fr;
+    max-width: none;
+  }
+
+  .crm-cycles-page .crm-cycles-filter-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .crm-cycles-page .crm-cycles-filterbar {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-cycles-page .crm-cycles-filter-search {
+    grid-column: auto;
+  }
+}
+
 /* ── Comment form ── */
 #knowledgeCommentInput,
 #knowledgeFileInput {
