@@ -318,3 +318,5 @@ Expected response shape:
 
 - 2026-06-20: Expanded MCP coverage for project summaries, activity feed/history, knowledge spaces/pages/versions/comments/files/reviews/permissions/admin settings, chat read/write helpers, push subscriptions, and admin role matrix access.
 - 2026-06-20: Kept the implementation thin over existing services and controllers; next pass should verify each new tool against the demo host and prune any overbroad payloads.
+- 2026-06-20: Added knowledge base coverage for overview, spaces tree, page tree, search, recent/popular/review/outdated/favorites, page links, page tags, delete page and delete draft flows.
+- 2026-06-20: Verified the new knowledge MCP tools on demo.tropatt.com with admin/adminadmin and confirmed the tree/search/tag/link calls return real data.
