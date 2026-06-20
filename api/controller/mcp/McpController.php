@@ -4,6 +4,13 @@ declare(strict_types=1);
 namespace Api\Controller\Mcp;
 
 use Api\Controller\Common\BaseController;
+use Api\Controller\Admin\CacheController;
+use Api\Controller\Admin\OpsController;
+use Api\Controller\Auth\MenuController;
+use Api\Controller\Module\ModuleController;
+use Api\Controller\Security\SessionController;
+use Api\Controller\System\CoreUpdateController;
+use Api\Controller\System\CoreVersionController;
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Service\ApiClientService;
@@ -45,6 +52,7 @@ use Api\System\Library\Service\LogsService;
 use Api\System\Library\Service\MentionService;
 use Api\System\Library\Service\MilestoneService;
 use Api\System\Library\Service\NotificationService;
+use Api\System\Library\Service\NotificationPushService;
 use Api\System\Library\Service\PermissionService;
 use Api\System\Library\Service\ProjectModuleService;
 use Api\System\Library\Service\ProjectService;
@@ -72,6 +80,13 @@ use Api\System\Library\Service\WebhookService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\WorklogService;
 use Api\System\Library\Service\WorkflowService;
+use Api\System\Library\Update\CoreUpdateClient;
+use Api\System\Library\Update\CoreUpdateConfig;
+use Api\System\Library\Update\CoreUpdateHistoryRepository;
+use Api\System\Library\Update\CoreUpdateLogRepository;
+use Api\System\Library\Update\CoreUpdatePlanner;
+use Api\System\Library\Update\CoreUpdateSessionService;
+use Api\System\Library\Update\CoreVersion;
 use PDO;
 use Throwable;
 
@@ -340,6 +355,37 @@ MD;
     {
         $tools = [
             $this->tool('crm_get_current_user', 'Get the authenticated CRM user profile and permission codes visible to MCP.', []),
+            $this->tool('crm_get_profile', 'Get the authenticated CRM user profile and preferences.', []),
+            $this->tool('crm_update_profile', 'Update the authenticated CRM user profile.', [
+                'full_name' => ['type' => 'string'],
+                'email' => ['type' => 'string'],
+                'locale' => ['type' => 'string'],
+                'timezone' => ['type' => 'string'],
+            ]),
+            $this->tool('crm_get_profile_preferences', 'Get the authenticated CRM user preferences.', []),
+            $this->tool('crm_update_profile_preferences', 'Update the authenticated CRM user preferences.', [
+                'preferences' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['preferences']),
+            $this->tool('crm_change_profile_password', 'Change the authenticated CRM user password and revoke other sessions.', [
+                'current_password' => ['type' => 'string'],
+                'new_password' => ['type' => 'string'],
+            ], ['current_password', 'new_password']),
+            $this->tool('crm_list_security_sessions', 'List active and historical sessions for the current CRM user.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]),
+            $this->tool('crm_revoke_security_session', 'Revoke one session for the current CRM user.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']),
+            $this->tool('crm_revoke_other_security_sessions', 'Revoke every other current-user session except the active one.', []),
+            $this->tool('crm_revoke_device_sessions', 'Revoke all sessions for a matching device fingerprint.', [
+                'device_fingerprint' => ['type' => 'string'],
+            ], ['device_fingerprint']),
+            $this->tool('crm_get_menu', 'Get the current CRM navigation items after permission and preference filtering.', []),
+            $this->tool('crm_get_menu_preferences', 'Get the current user menu preferences and team template.', []),
+            $this->tool('crm_save_menu_preferences', 'Save the current user menu preferences.', [
+                'items' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => true]],
+            ], ['items']),
         ];
 
         if ($this->canAny(['task.manage', 'project.manage', 'knowledge.view'])) {
@@ -442,6 +488,53 @@ MD;
                 'q' => ['type' => 'string', 'description' => 'Search by login, full name or email.'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
             ]);
+            $tools[] = $this->tool('crm_get_user', 'Get one CRM user by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_user', 'Create a CRM user.', [
+                'login' => ['type' => 'string'],
+                'password' => ['type' => 'string'],
+                'email' => ['type' => 'string'],
+                'full_name' => ['type' => 'string'],
+                'locale' => ['type' => 'string'],
+                'is_root' => ['type' => 'integer', 'enum' => [0, 1]],
+                'role_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'cost_rate' => ['type' => 'number'],
+                'bill_rate' => ['type' => 'number'],
+                'token' => ['type' => 'string'],
+            ], ['login', 'password']);
+            $tools[] = $this->tool('crm_update_user', 'Update a CRM user by public id.', [
+                'public_id' => ['type' => 'string'],
+                'email' => ['type' => 'string'],
+                'full_name' => ['type' => 'string'],
+                'locale' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+                'is_root' => ['type' => 'integer', 'enum' => [0, 1]],
+                'role_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'password' => ['type' => 'string'],
+                'token' => ['type' => 'string'],
+                'cost_rate' => ['type' => 'number'],
+                'bill_rate' => ['type' => 'number'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_user', 'Soft-delete a CRM user by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_user_token_info', 'Check whether a user has an API token set.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_rotate_user_token', 'Rotate or set a user API token and return the plain token once.', [
+                'public_id' => ['type' => 'string'],
+                'token' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_revoke_user_token', 'Revoke the API token for a CRM user.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_user_activity', 'Get request, security and audit activity for a CRM user.', [
+                'public_id' => ['type' => 'string'],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
+            ], ['public_id']);
         }
 
         $tools[] = $this->tool('crm_get_profile', 'Get the current user profile and preferences without secrets.', []);
@@ -488,6 +581,66 @@ MD;
             $tools[] = $this->tool('crm_get_module', 'Get one CRM module manifest and registry state.', [
                 'name' => ['type' => 'string'],
             ], ['name']);
+            $tools[] = $this->tool('crm_install_module', 'Install a CRM module by name.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_activate_module', 'Activate an installed CRM module by name.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_deactivate_module', 'Deactivate an installed CRM module by name.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_uninstall_module', 'Uninstall a CRM module by name.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_get_module_config', 'Get a CRM module configuration snapshot.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_update_module_config', 'Update a CRM module configuration.', [
+                'name' => ['type' => 'string'],
+                'config' => ['type' => 'object', 'additionalProperties' => true],
+            ], ['name', 'config']);
+            $tools[] = $this->tool('crm_get_module_health', 'Get a CRM module health snapshot.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_get_module_migrations', 'List migration state for a CRM module.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_get_module_errors', 'List recent errors for a CRM module.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_clear_module_errors', 'Clear recent errors for a CRM module.', [
+                'name' => ['type' => 'string'],
+            ], ['name']);
+            $tools[] = $this->tool('crm_install_module_from_url', 'Install a CRM module from a URL.', [
+                'url' => ['type' => 'string'],
+            ], ['url']);
+            $tools[] = $this->tool('crm_install_module_from_file', 'Install a CRM module from a base64 encoded archive.', [
+                'file_name' => ['type' => 'string'],
+                'file_data' => ['type' => 'string'],
+            ], ['file_data']);
+            $tools[] = $this->tool('crm_get_cache_stats', 'Get API file cache stats and current cache settings.', []);
+            $tools[] = $this->tool('crm_clear_cache', 'Clear API file cache.', []);
+            $tools[] = $this->tool('crm_get_ops_system', 'Get system ops snapshot for the CRM installation.', []);
+            $tools[] = $this->tool('crm_get_ops_metrics', 'Get system metrics snapshot for the CRM installation.', []);
+            $tools[] = $this->tool('crm_run_ops_jobs', 'Run queued import, export, push and webhook jobs.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 10],
+            ]);
+            $tools[] = $this->tool('crm_get_core_version', 'Get the current core version for this installation.', []);
+            $tools[] = $this->tool('crm_get_core_update_status', 'Get core update status and last known update state.', []);
+            $tools[] = $this->tool('crm_check_core_update', 'Check whether a core update is available.', []);
+            $tools[] = $this->tool('crm_run_core_update_preflight', 'Run a dry-run core update preflight.', [
+                'payload' => ['type' => 'object', 'additionalProperties' => true],
+            ]);
+            $tools[] = $this->tool('crm_get_core_update_changes', 'Get a diff summary for a core update range.', [
+                'from' => ['type' => 'string'],
+                'to' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_core_update_session', 'Create a core update session for the current user.', []);
+            $tools[] = $this->tool('crm_get_core_update_history', 'Get core update history.', []);
+            $tools[] = $this->tool('crm_get_core_update_log', 'Get a core update job log.', [
+                'job_id' => ['type' => 'string'],
+            ], ['job_id']);
         }
 
         if ($this->can('logs.view') || (bool)($this->actor()['is_root'] ?? false)) {
@@ -1532,7 +1685,17 @@ MD;
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
             'crm_get_profile' => $this->toolResult($this->crmGetProfile()),
+            'crm_update_profile' => $this->toolResult($this->crmUpdateProfile($arguments)),
+            'crm_get_profile_preferences' => $this->toolResult($this->crmGetProfilePreferences()),
+            'crm_update_profile_preferences' => $this->toolResult($this->crmUpdateProfilePreferences($arguments)),
+            'crm_change_profile_password' => $this->toolResult($this->crmChangeProfilePassword($arguments)),
             'crm_list_security_sessions' => $this->toolResult($this->crmListSecuritySessions($arguments)),
+            'crm_revoke_security_session' => $this->toolResult($this->crmRevokeSecuritySession($arguments)),
+            'crm_revoke_other_security_sessions' => $this->toolResult($this->crmRevokeOtherSecuritySessions()),
+            'crm_revoke_device_sessions' => $this->toolResult($this->crmRevokeDeviceSessions($arguments)),
+            'crm_get_menu' => $this->toolResult($this->crmGetMenu()),
+            'crm_get_menu_preferences' => $this->toolResult($this->crmGetMenuPreferences()),
+            'crm_save_menu_preferences' => $this->toolResult($this->crmSaveMenuPreferences($arguments)),
             'crm_list_roles' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListRoles($arguments))),
             'crm_list_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmListPermissions())),
             'crm_get_role_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmGetRolePermissions($arguments))),
@@ -1542,6 +1705,31 @@ MD;
             'crm_update_feature_flag' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateFeatureFlag($arguments))),
             'crm_list_modules' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListModules())),
             'crm_get_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModule($arguments))),
+            'crm_install_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmInstallModule($arguments))),
+            'crm_activate_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmActivateModule($arguments))),
+            'crm_deactivate_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeactivateModule($arguments))),
+            'crm_uninstall_module' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUninstallModule($arguments))),
+            'crm_get_module_config' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleConfig($arguments))),
+            'crm_update_module_config' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateModuleConfig($arguments))),
+            'crm_get_module_health' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleHealth($arguments))),
+            'crm_get_module_migrations' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleMigrations($arguments))),
+            'crm_get_module_errors' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetModuleErrors($arguments))),
+            'crm_clear_module_errors' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmClearModuleErrors($arguments))),
+            'crm_install_module_from_url' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmInstallModuleFromUrl($arguments))),
+            'crm_install_module_from_file' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmInstallModuleFromFile($arguments))),
+            'crm_get_cache_stats' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetCacheStats())),
+            'crm_clear_cache' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmClearCache())),
+            'crm_get_ops_system' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetOpsSystem())),
+            'crm_get_ops_metrics' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetOpsMetrics())),
+            'crm_run_ops_jobs' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRunOpsJobs($arguments))),
+            'crm_get_core_version' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreVersion())),
+            'crm_get_core_update_status' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreUpdateStatus())),
+            'crm_check_core_update' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmCheckCoreUpdate())),
+            'crm_run_core_update_preflight' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmRunCoreUpdatePreflight($arguments))),
+            'crm_get_core_update_changes' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreUpdateChanges($arguments))),
+            'crm_get_core_update_session' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreUpdateSession())),
+            'crm_get_core_update_history' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreUpdateHistory())),
+            'crm_get_core_update_log' => $this->withPermissionAny(['settings.manage'], fn() => $this->toolResult($this->crmGetCoreUpdateLog($arguments))),
             'crm_list_audit_log' => $this->withPermissionAny(['logs.view', 'settings.manage'], fn() => $this->toolResult($this->crmListAuditLog($arguments))),
             'crm_list_security_log' => $this->withPermissionAny(['logs.view', 'settings.manage'], fn() => $this->toolResult($this->crmListSecurityLog($arguments))),
             'crm_list_api_clients' => $this->withPermissionAny(['api_client.view', 'api_client.manage'], fn() => $this->toolResult($this->crmListApiClients($arguments))),
@@ -1649,6 +1837,14 @@ MD;
             'crm_list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycleTasks($arguments))),
             'crm_add_tasks_to_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTasksToCycle($arguments))),
             'crm_list_users' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmListUsers($arguments))),
+            'crm_get_user' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmGetUser($arguments))),
+            'crm_create_user' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmCreateUser($arguments))),
+            'crm_update_user' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmUpdateUser($arguments))),
+            'crm_delete_user' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmDeleteUser($arguments))),
+            'crm_get_user_token_info' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmGetUserTokenInfo($arguments))),
+            'crm_rotate_user_token' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmRotateUserToken($arguments))),
+            'crm_revoke_user_token' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmRevokeUserToken($arguments))),
+            'crm_get_user_activity' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmGetUserActivity($arguments))),
             'crm_list_teams' => $this->toolResult($this->crmListTeams($arguments)),
             'crm_get_team' => $this->toolResult($this->crmGetTeam($arguments)),
             'crm_create_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmCreateTeam($arguments))),
@@ -1836,6 +2032,549 @@ MD;
         /** @var AiSettingsService $service */
         $service = $this->container->get('service.ai_settings');
         return $this->publicData($service->getSettings());
+    }
+
+    private function crmUpdateProfile(array $arguments): array
+    {
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        $result = $service->updateMe($this->actor(), $this->pick($arguments, ['full_name', 'email', 'locale', 'timezone']));
+        return $this->publicData($result);
+    }
+
+    private function crmGetProfilePreferences(): array
+    {
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        return $this->publicData(['preferences' => $service->preferences($this->actor())]);
+    }
+
+    private function crmUpdateProfilePreferences(array $arguments): array
+    {
+        $preferences = $arguments['preferences'] ?? [];
+        if (!is_array($preferences)) {
+            return ['error' => 'preferences must be an object.'];
+        }
+
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        $updated = $service->setPreferences($this->actor(), $preferences);
+        return $this->publicData(['preferences' => $updated]);
+    }
+
+    private function crmChangeProfilePassword(array $arguments): array
+    {
+        $current = trim((string)($arguments['current_password'] ?? ''));
+        $new = trim((string)($arguments['new_password'] ?? ''));
+        if ($current === '' || $new === '') {
+            return ['error' => 'current_password and new_password are required.'];
+        }
+        if (strlen($new) < 8) {
+            return ['error' => 'new_password must be at least 8 characters.'];
+        }
+
+        /** @var UserProfileService $service */
+        $service = $this->container->get('service.user_profile');
+        return $this->publicData($service->changePassword($this->actor(), $current, $new, (string)($this->user()['session_public_id'] ?? '')));
+    }
+
+    private function crmRevokeSecuritySession(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var SessionService $service */
+        $service = $this->container->get('service.session');
+        return $this->publicData($service->revoke($this->actor(), $publicId));
+    }
+
+    private function crmRevokeOtherSecuritySessions(): array
+    {
+        /** @var SessionService $service */
+        $service = $this->container->get('service.session');
+        return $this->publicData(['revoked_count' => $service->revokeOthers($this->actor(), (string)($this->user()['session_public_id'] ?? ''))]);
+    }
+
+    private function crmRevokeDeviceSessions(array $arguments): array
+    {
+        $fingerprint = trim((string)($arguments['device_fingerprint'] ?? ''));
+        if ($fingerprint === '') {
+            return ['error' => 'device_fingerprint is required.'];
+        }
+
+        /** @var SessionService $service */
+        $service = $this->container->get('service.session');
+        return $this->publicData([
+            'device_fingerprint' => $fingerprint,
+            'revoked_count' => $service->revokeDevice($this->actor(), $fingerprint, (string)($this->user()['session_public_id'] ?? '')),
+        ]);
+    }
+
+    private function crmGetMenu(): array
+    {
+        $controller = new MenuController($this->container);
+        return $this->payloadData($controller->list());
+    }
+
+    private function crmGetMenuPreferences(): array
+    {
+        $controller = new MenuController($this->container);
+        return $this->payloadData($controller->getPreferences());
+    }
+
+    private function crmSaveMenuPreferences(array $arguments): array
+    {
+        $items = $arguments['items'] ?? null;
+        if (!is_array($items)) {
+            return ['error' => 'items must be an array.'];
+        }
+
+        $validated = $this->validateMenuPreferencesItems($items);
+        $scope = 'user:' . (string)($this->actor()['public_id'] ?? '');
+        /** @var SettingService $settingService */
+        $settingService = $this->container->get('service.setting');
+        $settingService->set($scope, 'menu_preferences', $validated);
+
+        return $this->publicData(['preferences' => $validated]);
+    }
+
+    private function crmGetUser(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        $user = $service->get($publicId);
+        return $user ? ['user' => $this->publicData($user)] : ['error' => 'User not found.'];
+    }
+
+    private function crmCreateUser(array $arguments): array
+    {
+        $login = trim((string)($arguments['login'] ?? ''));
+        $password = (string)($arguments['password'] ?? '');
+        if ($login === '' || $password === '') {
+            return ['error' => 'login and password are required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        $result = $service->create($this->pick($arguments, [
+            'login', 'password', 'email', 'full_name', 'locale', 'is_root',
+            'role_public_ids', 'is_active', 'cost_rate', 'bill_rate', 'token',
+        ]), $this->actor());
+
+        return $this->publicData($result);
+    }
+
+    private function crmUpdateUser(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        $result = $service->update($publicId, $this->pick($arguments, [
+            'email', 'full_name', 'locale', 'is_active', 'is_root', 'role_public_ids',
+            'password', 'token', 'cost_rate', 'bill_rate',
+        ]), $this->actor());
+
+        return $this->publicData($result);
+    }
+
+    private function crmDeleteUser(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        return $this->publicData($service->delete($publicId, $this->actor()));
+    }
+
+    private function crmGetUserTokenInfo(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        return $this->publicData($service->tokenInfo($publicId, $this->actor()));
+    }
+
+    private function crmRotateUserToken(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        return $this->publicData($service->rotateToken($publicId, $this->pick($arguments, ['token']), $this->actor()));
+    }
+
+    private function crmRevokeUserToken(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        return $this->publicData($service->revokeToken($publicId, $this->actor()));
+    }
+
+    private function crmGetUserActivity(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var UserService $service */
+        $service = $this->container->get('service.user');
+        $filters = [
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+            'limit' => min(100, max(1, (int)($arguments['limit'] ?? 20))),
+        ];
+        return $this->publicData($service->activity($publicId, $filters, $this->actor()));
+    }
+
+    private function crmInstallModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->install(['name' => $name]));
+    }
+
+    private function crmActivateModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->activate(['name' => $name]));
+    }
+
+    private function crmDeactivateModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->deactivate(['name' => $name]));
+    }
+
+    private function crmUninstallModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->uninstall(['name' => $name]));
+    }
+
+    private function crmGetModuleConfig(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->config(['name' => $name]));
+    }
+
+    private function crmUpdateModuleConfig(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        $config = $arguments['config'] ?? [];
+        if (!is_array($config)) {
+            return ['error' => 'config must be an object.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->updateConfig(['name' => $name, 'config' => $config]));
+    }
+
+    private function crmGetModuleHealth(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->health(['name' => $name]));
+    }
+
+    private function crmGetModuleMigrations(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->migrations(['name' => $name]));
+    }
+
+    private function crmGetModuleErrors(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->errors(['name' => $name]));
+    }
+
+    private function crmClearModuleErrors(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->clearErrors(['name' => $name]));
+    }
+
+    private function crmInstallModuleFromUrl(array $arguments): array
+    {
+        $url = trim((string)($arguments['url'] ?? ''));
+        if ($url === '') {
+            return ['error' => 'url is required.'];
+        }
+
+        return $this->payloadData((new ModuleController($this->container))->installFromUrl(['url' => $url]));
+    }
+
+    private function crmInstallModuleFromFile(array $arguments): array
+    {
+        $fileData = trim((string)($arguments['file_data'] ?? ''));
+        if ($fileData === '') {
+            return ['error' => 'file_data is required.'];
+        }
+
+        $params = [
+            'file_name' => trim((string)($arguments['file_name'] ?? 'module.zip')),
+            'file_data' => $fileData,
+        ];
+        return $this->payloadData((new ModuleController($this->container))->installFromFile($params));
+    }
+
+    private function crmGetCacheStats(): array
+    {
+        return $this->payloadData((new CacheController($this->container))->stats());
+    }
+
+    private function crmClearCache(): array
+    {
+        return $this->payloadData((new CacheController($this->container))->clear());
+    }
+
+    private function crmGetOpsSystem(): array
+    {
+        return $this->payloadData((new OpsController($this->container))->system());
+    }
+
+    private function crmGetOpsMetrics(): array
+    {
+        return $this->payloadData((new OpsController($this->container))->metrics());
+    }
+
+    private function crmRunOpsJobs(array $arguments): array
+    {
+        $limit = max(1, min(100, (int)($arguments['limit'] ?? 10)));
+
+        /** @var ImportService $imports */
+        $imports = $this->container->get('service.import');
+        /** @var ExportService $exports */
+        $exports = $this->container->get('service.export');
+        /** @var NotificationPushService $push */
+        $push = $this->container->get('service.notification_push');
+        /** @var WebhookService $webhooks */
+        $webhooks = $this->container->get('service.webhook');
+
+        return $this->publicData([
+            'import' => $imports->runQueued($limit),
+            'export' => $exports->runQueued($limit),
+            'push' => $push->runQueued($limit),
+            'webhook' => $webhooks->runQueued($limit),
+            'limit' => $limit,
+            'generated_at' => gmdate('c'),
+        ]);
+    }
+
+    private function crmGetCoreVersion(): array
+    {
+        return $this->payloadData((new CoreVersionController($this->container))->show());
+    }
+
+    private function crmGetCoreUpdateStatus(): array
+    {
+        return $this->payloadData((new CoreUpdateController($this->container))->status());
+    }
+
+    private function crmCheckCoreUpdate(): array
+    {
+        return $this->payloadData((new CoreUpdateController($this->container))->check());
+    }
+
+    private function crmRunCoreUpdatePreflight(array $arguments): array
+    {
+        if (!$this->coreUpdateAllowed()) {
+            return ['error' => 'Forbidden'];
+        }
+
+        $config = CoreUpdateConfig::load();
+        $payload = is_array($arguments['payload'] ?? null) ? $arguments['payload'] : [];
+        $payload['dry_run'] = true;
+        $result = $this->coreUpdateCallUpdater('preflight', $payload, $config);
+        $normalized = $this->coreUpdateNormalizeUpdaterResult($result);
+        if (($normalized['success'] ?? false) !== true || empty($normalized['job_id'])) {
+            $message = (string)($normalized['message'] ?? $normalized['code'] ?? 'Updater preflight failed.');
+            return ['error' => 'CORE_UPDATE_PREFLIGHT_FAILED', 'message' => $message, 'updater' => $normalized];
+        }
+
+        return $this->publicData($normalized);
+    }
+
+    private function crmGetCoreUpdateChanges(array $arguments): array
+    {
+        $config = CoreUpdateConfig::load();
+        $client = new CoreUpdateClient($config);
+        $from = array_key_exists('from', $arguments) ? trim((string)$arguments['from']) : null;
+        $to = trim((string)($arguments['to'] ?? ''));
+
+        if ($to === '') {
+            $check = (new CoreUpdatePlanner($client, new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3))))->check();
+            $plan = is_array($check['plan'] ?? null) ? $check['plan'] : [];
+            $current = is_array($check['current'] ?? null) ? $check['current'] : [];
+            $to = (string)($plan['target_build'] ?? '');
+            $from = $current['core_build'] ?? ($plan['current_build'] ?? $from);
+            if ($to === '' || (($plan['update_available'] ?? null) === false && (string)$from === $to)) {
+                return $this->publicData($this->coreUpdateEmptyChanges(is_string($from) ? $from : null, $to));
+            }
+        }
+
+        return $this->publicData($client->changes(is_string($from) ? $from : null, $to));
+    }
+
+    private function crmGetCoreUpdateSession(): array
+    {
+        $config = CoreUpdateConfig::load();
+        $userId = (int)($this->actor()['id'] ?? 0);
+        return $this->publicData((new CoreUpdateSessionService((string)$config['storage_dir']))->create($userId));
+    }
+
+    private function crmGetCoreUpdateHistory(): array
+    {
+        $config = CoreUpdateConfig::load();
+        return $this->publicData(['items' => (new CoreUpdateHistoryRepository((string)$config['storage_dir']))->list()]);
+    }
+
+    private function crmGetCoreUpdateLog(array $arguments): array
+    {
+        $jobId = trim((string)($arguments['job_id'] ?? ''));
+        if ($jobId === '') {
+            return ['error' => 'job_id is required.'];
+        }
+
+        $config = CoreUpdateConfig::load();
+        return $this->publicData(['job_id' => $jobId, 'lines' => (new CoreUpdateLogRepository((string)$config['storage_dir']))->read($jobId)]);
+    }
+
+    private function coreUpdateAllowed(): bool
+    {
+        $user = $this->user()['user'] ?? null;
+        if (!is_array($user)) {
+            return false;
+        }
+        if ((bool)($user['is_root'] ?? false)) {
+            return true;
+        }
+        $permissions = is_array($user['permission_codes'] ?? null) ? $user['permission_codes'] : [];
+        if (in_array('*', $permissions, true) || in_array('system.update', $permissions, true) || in_array('settings.manage', $permissions, true)) {
+            return true;
+        }
+        $roles = is_array($user['roles'] ?? null) ? $user['roles'] : [];
+        $normalizedRoles = array_values(array_unique(array_filter(array_map(
+            static function (mixed $role): string {
+                if (is_array($role)) {
+                    $role = $role['code'] ?? $role['public_id'] ?? $role['name'] ?? '';
+                }
+                return strtolower(str_replace('-', '_', trim(is_scalar($role) ? (string)$role : '')));
+            },
+            $roles
+        ), static fn(string $role): bool => $role !== '')));
+        if (array_intersect($normalizedRoles, ['admin', 'administrator', 'super_admin', 'super_administrator', 'root']) !== []) {
+            return true;
+        }
+
+        return strtolower(trim((string)($user['login'] ?? ''))) === 'admin';
+    }
+
+    private function coreUpdateCallUpdater(string $action, array $payload, array $config): array
+    {
+        $baseUrl = $this->coreUpdateLocalUpdaterBaseUrl($config);
+        $url = $baseUrl . '/updater/index.php?action=' . rawurlencode($action);
+        $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+        $response = @file_get_contents($url, false, stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n",
+                'content' => $body,
+                'ignore_errors' => true,
+                'timeout' => (int)($config['timeouts']['apply_step'] ?? 60),
+            ],
+        ]));
+        $decoded = json_decode((string)$response, true);
+        return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
+    }
+
+    private function coreUpdateLocalUpdaterBaseUrl(array $config): string
+    {
+        $configured = trim((string)($config['local_updater_url'] ?? ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+
+        $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'crm.ru'));
+        $isHttps = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+        $scheme = $isHttps ? 'https' : 'http';
+        return $scheme . '://' . $host;
+    }
+
+    private function coreUpdateNormalizeUpdaterResult(array $result): array
+    {
+        $data = is_array($result['data'] ?? null) ? $result['data'] : [];
+        return [
+            'success' => (bool)($result['success'] ?? false),
+            'code' => $result['code'] ?? $result['error'] ?? null,
+            'message' => $result['message'] ?? $result['error'] ?? null,
+            'job_id' => $data['job_id'] ?? null,
+            'preflight' => $data['preflight'] ?? null,
+            'updater' => $result,
+        ];
     }
 
     private function crmUpdateAiSettings(array $arguments): array
@@ -5170,6 +5909,17 @@ MD;
         return $this->toolResult(['error' => $message]);
     }
 
+    private function payloadData(\Api\System\Library\Http\JsonResponse $response): array
+    {
+        $payload = $response->payload();
+        $data = $payload['data'] ?? null;
+        if (is_array($data)) {
+            return $this->publicData($data);
+        }
+
+        return $this->publicData($payload);
+    }
+
     private function withPermission(string $permission, callable $callback): array
     {
         return $this->can($permission) ? $callback() : $this->toolError('Insufficient permission: ' . $permission);
@@ -6183,6 +6933,64 @@ MD;
         }
 
         return $result;
+    }
+
+    private function validateMenuPreferencesItems(array $items): array
+    {
+        $validated = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = $item['key'] ?? null;
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+
+            $entry = [
+                'key' => $key,
+                'visible' => (bool)($item['visible'] ?? true),
+            ];
+
+            if (str_starts_with($key, 'custom_')) {
+                $entry['title'] = trim((string)($item['title'] ?? $item['label'] ?? ''));
+                $entry['href'] = trim((string)($item['href'] ?? ''));
+                $entry['icon'] = trim((string)($item['icon'] ?? ''));
+                if ($entry['title'] === '' || $entry['href'] === '') {
+                    continue;
+                }
+            }
+
+            $validated[] = $entry;
+        }
+
+        return $validated;
+    }
+
+    private function coreUpdateEmptyChanges(?string $from, string $to): array
+    {
+        return [
+            'ok' => true,
+            'status' => 204,
+            'data' => [
+                'summary' => [
+                    'commits' => 0,
+                    'files' => 0,
+                    'risk_level' => 'none',
+                    'from' => $from,
+                    'to' => $to !== '' ? $to : null,
+                ],
+                'commits' => [],
+                'files' => [],
+                'changes' => [
+                    'added' => [],
+                    'modified' => [],
+                    'deleted' => [],
+                    'renamed' => [],
+                ],
+                'message' => 'No target build is available, so there are no update changes to show.',
+            ],
+        ];
     }
 
     private function publicData(mixed $payload): mixed
