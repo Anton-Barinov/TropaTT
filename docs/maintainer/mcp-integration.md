@@ -331,3 +331,5 @@ Expected response shape:
 - 2026-06-20: Expanded MCP coverage for work cycles, calendar events, ideas and chat attachments. New tools include cycle summary/start/complete/reopen/archive/delete/remove-task/transfer-unfinished, calendar get/update/delete, idea update/delete/vote/status/comments, and chat attachment download.
 
 - 2026-06-20: Verified the new MCP tools on demo.tropatt.com with admin/adminadmin. `tools/list` now shows 437 tools, and smoke calls for cycles, calendar, ideas and chat attachment download all succeeded.
+
+- 2026-06-20: Added idea AI workflow MCP wrappers and knowledge AI wrappers, plus a live `tropatt://server/api-endpoints` resource and `crm_list_api_endpoints` tool so agents can discover the current REST route inventory before falling back to direct API work.
