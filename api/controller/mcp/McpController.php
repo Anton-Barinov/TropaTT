@@ -486,6 +486,39 @@ MD;
                 'task_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Task public ids to add. Max 100 per request.'],
                 'task_keys' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional human task keys to resolve and add.'],
             ], ['cycle_public_id']);
+            $tools[] = $this->tool('crm_remove_cycle_task', 'Remove a task from a visible work cycle/sprint.', [
+                'cycle_public_id' => ['type' => 'string'],
+                'task_public_id' => ['type' => 'string'],
+            ], ['cycle_public_id', 'task_public_id']);
+            $tools[] = $this->tool('crm_get_cycle_summary', 'Get a summary for one work cycle/sprint.', [
+                'cycle_public_id' => ['type' => 'string'],
+            ], ['cycle_public_id']);
+            $tools[] = $this->tool('crm_delete_cycle', 'Delete a work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_start_cycle', 'Start a planned work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_complete_cycle', 'Complete an active work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+                'unfinished_action' => ['type' => 'string', 'enum' => ['leave', 'move', 'remove'], 'default' => 'leave'],
+                'target_cycle_public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_reopen_cycle', 'Reopen a completed or archived work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_archive_cycle', 'Archive a work cycle/sprint.', [
+                'public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_transfer_unfinished_cycle_tasks', 'Transfer unfinished tasks from one cycle to another.', [
+                'public_id' => ['type' => 'string'],
+                'target_cycle_public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id', 'target_cycle_public_id']);
         }
 
         if ($this->can('user.view')) {
@@ -1661,6 +1694,22 @@ MD;
                 'project_public_id' => ['type' => 'string'],
                 'task_public_id' => ['type' => 'string'],
             ], ['title', 'starts_at']);
+            $tools[] = $this->tool('crm_get_calendar_event', 'Get one calendar event by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_update_calendar_event', 'Update one calendar event by public id.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'starts_at' => ['type' => 'string'],
+                'ends_at' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+                'task_public_id' => ['type' => 'string'],
+                'row_version' => ['type' => 'integer'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_calendar_event', 'Delete one calendar event by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_milestones', 'List milestones for an accessible project.', [
                 'project_public_id' => ['type' => 'string'],
             ], ['project_public_id']);
@@ -1934,6 +1983,28 @@ MD;
             'visibility' => ['type' => 'string', 'enum' => ['public', 'private'], 'default' => 'public'],
             'target_date' => ['type' => 'string'],
         ], ['title']);
+        $tools[] = $this->tool('crm_update_idea', 'Update an existing CRM idea owned by the current user.', [
+            'public_id' => ['type' => 'string'],
+            'title' => ['type' => 'string'],
+            'description' => ['type' => 'string'],
+            'category' => ['type' => 'string'],
+            'region' => ['type' => 'string'],
+            'visibility' => ['type' => 'string', 'enum' => ['public', 'private']],
+            'target_date' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_delete_idea', 'Delete an idea owned by the current user.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_vote_idea', 'Toggle a vote on a visible idea.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
+        $tools[] = $this->tool('crm_update_idea_status', 'Update the status of a visible idea.', [
+            'public_id' => ['type' => 'string'],
+            'status' => ['type' => 'string', 'enum' => ['new', 'under_review', 'approved', 'rejected', 'in_progress', 'completed']],
+        ], ['public_id', 'status']);
+        $tools[] = $this->tool('crm_list_idea_comments', 'List comments for a visible CRM idea.', [
+            'public_id' => ['type' => 'string'],
+        ], ['public_id']);
         $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
             'idea_public_id' => ['type' => 'string'],
             'body' => ['type' => 'string'],
@@ -1984,6 +2055,10 @@ MD;
             'content_base64' => ['type' => 'string'],
             'text' => ['type' => 'string'],
         ], ['chat_public_id', 'name', 'content_base64']);
+        $tools[] = $this->tool('crm_download_chat_attachment', 'Get a safe download reference for a chat attachment.', [
+            'chat_public_id' => ['type' => 'string'],
+            'file_public_id' => ['type' => 'string'],
+        ], ['chat_public_id', 'file_public_id']);
         $tools[] = $this->tool('crm_list_chat_attachments', 'List attachments from a chat.', [
             'chat_public_id' => ['type' => 'string'],
         ], ['chat_public_id']);
@@ -2255,6 +2330,14 @@ MD;
             'crm_update_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateCycle($arguments))),
             'crm_list_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycleTasks($arguments))),
             'crm_add_tasks_to_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTasksToCycle($arguments))),
+            'crm_remove_cycle_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmRemoveCycleTask($arguments))),
+            'crm_get_cycle_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycleSummary($arguments))),
+            'crm_delete_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteCycle($arguments))),
+            'crm_start_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmStartCycle($arguments))),
+            'crm_complete_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCompleteCycle($arguments))),
+            'crm_reopen_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmReopenCycle($arguments))),
+            'crm_archive_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmArchiveCycle($arguments))),
+            'crm_transfer_unfinished_cycle_tasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmTransferUnfinishedCycleTasks($arguments))),
             'crm_list_users' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmListUsers($arguments))),
             'crm_get_user' => $this->withPermission('user.view', fn() => $this->toolResult($this->crmGetUser($arguments))),
             'crm_create_user' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmCreateUser($arguments))),
@@ -2344,6 +2427,9 @@ MD;
             'crm_list_calendar_events' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCalendarEvents($arguments))),
             'crm_get_calendar_agenda' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarAgenda($arguments))),
             'crm_create_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCalendarEvent($arguments))),
+            'crm_get_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarEvent($arguments))),
+            'crm_update_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateCalendarEvent($arguments))),
+            'crm_delete_calendar_event' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteCalendarEvent($arguments))),
             'crm_list_milestones' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListMilestones($arguments))),
             'crm_get_milestone' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetMilestone($arguments))),
             'crm_create_milestone' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateMilestone($arguments))),
@@ -2429,6 +2515,11 @@ MD;
             'crm_list_ideas' => $this->toolResult($this->crmListIdeas($arguments)),
             'crm_get_idea' => $this->toolResult($this->crmGetIdea($arguments)),
             'crm_create_idea' => $this->toolResult($this->crmCreateIdea($arguments)),
+            'crm_update_idea' => $this->toolResult($this->crmUpdateIdea($arguments)),
+            'crm_delete_idea' => $this->toolResult($this->crmDeleteIdea($arguments)),
+            'crm_vote_idea' => $this->toolResult($this->crmVoteIdea($arguments)),
+            'crm_update_idea_status' => $this->toolResult($this->crmUpdateIdeaStatus($arguments)),
+            'crm_list_idea_comments' => $this->toolResult($this->crmListIdeaComments($arguments)),
             'crm_add_idea_comment' => $this->toolResult($this->crmAddIdeaComment($arguments)),
             'crm_list_chats' => $this->toolResult($this->crmListChats($arguments)),
             'crm_list_chat_messages' => $this->toolResult($this->crmListChatMessages($arguments)),
@@ -2502,6 +2593,7 @@ MD;
             'crm_edit_chat_message' => $this->toolResult($this->crmEditChatMessage($arguments)),
             'crm_delete_chat_message' => $this->toolResult($this->crmDeleteChatMessage($arguments)),
             'crm_upload_chat_attachment' => $this->toolResult($this->crmUploadChatAttachment($arguments)),
+            'crm_download_chat_attachment' => $this->toolResult($this->crmDownloadChatAttachment($arguments)),
             'crm_list_chat_attachments' => $this->toolResult($this->crmListChatAttachments($arguments)),
             'crm_get_chat_settings' => $this->toolResult($this->crmGetChatSettings($arguments)),
             'crm_update_chat_settings' => $this->toolResult($this->crmUpdateChatSettings($arguments)),
@@ -4387,6 +4479,120 @@ MD;
         return is_array($result) ? $this->publicData($result) : ['error' => (string)($result ?: 'Tasks were not added.')];
     }
 
+    private function crmRemoveCycleTask(array $arguments): array
+    {
+        $cyclePublicId = trim((string)($arguments['cycle_public_id'] ?? ''));
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($cyclePublicId === '' || $taskPublicId === '') {
+            return ['error' => 'cycle_public_id and task_public_id are required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->removeTask($cyclePublicId, $taskPublicId, $this->actor());
+
+        return $result === true ? ['removed' => true] : ['error' => (string)$result];
+    }
+
+    private function crmGetCycleSummary(array $arguments): array
+    {
+        $cyclePublicId = trim((string)($arguments['cycle_public_id'] ?? ''));
+        if ($cyclePublicId === '') {
+            return ['error' => 'cycle_public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->summary($cyclePublicId, $this->actor());
+
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
+    private function crmDeleteCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->delete($publicId, $this->actor());
+
+        return $result === true ? ['deleted' => true] : ['error' => (string)$result];
+    }
+
+    private function crmStartCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->start($publicId, $this->pick($arguments, ['row_version']), $this->actor());
+
+        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmCompleteCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->complete($publicId, $this->pick($arguments, ['row_version', 'unfinished_action', 'target_cycle_public_id']), $this->actor());
+
+        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmReopenCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->reopen($publicId, $this->pick($arguments, ['row_version']), $this->actor());
+
+        return is_array($result) ? ['cycle' => $this->publicData($result)] : ['error' => (string)$result];
+    }
+
+    private function crmArchiveCycle(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->archive($publicId, $this->pick($arguments, ['row_version']), $this->actor());
+
+        return $result === true ? ['archived' => true] : ['error' => (string)$result];
+    }
+
+    private function crmTransferUnfinishedCycleTasks(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $targetCyclePublicId = trim((string)($arguments['target_cycle_public_id'] ?? ''));
+        if ($publicId === '' || $targetCyclePublicId === '') {
+            return ['error' => 'public_id and target_cycle_public_id are required.'];
+        }
+
+        /** @var WorkCycleService $service */
+        $service = $this->container->get('service.work_cycle');
+        $result = $service->transferUnfinished($publicId, $this->pick($arguments, ['target_cycle_public_id']), $this->actor());
+
+        return is_array($result) ? $this->publicData($result) : ['error' => (string)$result];
+    }
+
     private function crmListUsers(array $arguments): array
     {
         /** @var UserService $service */
@@ -6114,6 +6320,48 @@ MD;
         return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => (string)$event];
     }
 
+    private function crmGetCalendarEvent(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        $event = $service->getEvent($publicId, $this->actor());
+
+        return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => 'Event not found.'];
+    }
+
+    private function crmUpdateCalendarEvent(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        $event = $service->updateEvent($publicId, $this->pick($arguments, [
+            'title', 'description', 'starts_at', 'ends_at', 'project_public_id', 'task_public_id',
+        ]), $this->actor());
+
+        return is_array($event) ? ['event' => $this->publicData($event)] : ['error' => (string)($event ?: 'Event not found.')];
+    }
+
+    private function crmDeleteCalendarEvent(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        return $service->deleteEvent($publicId, $this->actor()) ? ['deleted' => true] : ['error' => 'Event not found.'];
+    }
+
     private function crmListMilestones(array $arguments): array
     {
         $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
@@ -7246,6 +7494,163 @@ MD;
         return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
     }
 
+    private function crmUpdateIdea(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $pdo = $this->pdo();
+        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt->execute(['pid' => $publicId]);
+        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$idea) {
+            return ['error' => 'Idea not found.'];
+        }
+
+        $actor = $this->actor();
+        if ((int)($idea['author_user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
+            return ['error' => 'Forbidden'];
+        }
+
+        $title = trim((string)($arguments['title'] ?? $idea['title']));
+        $description = trim((string)($arguments['description'] ?? $idea['description']));
+        $category = trim((string)($arguments['category'] ?? $idea['category']));
+        $region = array_key_exists('region', $arguments) ? trim((string)$arguments['region']) : (string)($idea['region'] ?? '');
+        $visibility = array_key_exists('visibility', $arguments)
+            ? (in_array((string)$arguments['visibility'], ['public', 'private'], true) ? (string)$arguments['visibility'] : (string)($idea['visibility'] ?? 'public'))
+            : (string)($idea['visibility'] ?? 'public');
+        $targetDate = array_key_exists('target_date', $arguments) ? (trim((string)$arguments['target_date']) ?: null) : ($idea['target_date'] ?? null);
+
+        $pdo->prepare("
+            UPDATE ideas
+            SET title = :title, description = :description, category = :category, region = :region, visibility = :visibility, target_date = :target_date
+            WHERE public_id = :pid
+        ")->execute([
+            'title' => $title,
+            'description' => $description,
+            'category' => $category,
+            'region' => $region,
+            'visibility' => $visibility,
+            'target_date' => $targetDate,
+            'pid' => $publicId,
+        ]);
+
+        $this->invalidateCache('idea');
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId])];
+    }
+
+    private function crmDeleteIdea(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $pdo = $this->pdo();
+        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt->execute(['pid' => $publicId]);
+        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$idea) {
+            return ['error' => 'Idea not found.'];
+        }
+
+        $actor = $this->actor();
+        if ((int)($idea['author_user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
+            return ['error' => 'Forbidden'];
+        }
+
+        $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => (int)$idea['id']]);
+        $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
+        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid")->execute(['pid' => $publicId]);
+        $this->invalidateCache('idea');
+
+        return ['deleted' => true];
+    }
+
+    private function crmVoteIdea(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $pdo = $this->pdo();
+        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid");
+        $stmt->execute(['pid' => $publicId]);
+        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$idea) {
+            return ['error' => 'Idea not found.'];
+        }
+
+        $userId = (int)($this->actor()['id'] ?? 0);
+        if ($userId <= 0) {
+            return ['error' => 'Authenticated user is required.'];
+        }
+
+        $existing = $pdo->prepare("SELECT id FROM idea_votes WHERE idea_id = :iid AND user_id = :uid");
+        $existing->execute(['iid' => (int)$idea['id'], 'uid' => $userId]);
+
+        if ($existing->fetchColumn()) {
+            $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid AND user_id = :uid")->execute(['iid' => (int)$idea['id'], 'uid' => $userId]);
+            $pdo->prepare("UPDATE ideas SET vote_count = GREATEST(vote_count - 1, 0) WHERE id = :iid")->execute(['iid' => (int)$idea['id']]);
+            $action = 'unvoted';
+        } else {
+            $pdo->prepare("INSERT INTO idea_votes (idea_id, user_id) VALUES (:iid, :uid)")->execute(['iid' => (int)$idea['id'], 'uid' => $userId]);
+            $pdo->prepare("UPDATE ideas SET vote_count = vote_count + 1 WHERE id = :iid")->execute(['iid' => (int)$idea['id']]);
+            $action = 'voted';
+        }
+
+        $this->invalidateCache('idea');
+
+        return ['action' => $action];
+    }
+
+    private function crmUpdateIdeaStatus(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $status = trim((string)($arguments['status'] ?? ''));
+        if ($publicId === '' || $status === '') {
+            return ['error' => 'public_id and status are required.'];
+        }
+
+        $allowed = ['new', 'under_review', 'approved', 'rejected', 'in_progress', 'completed'];
+        if (!in_array($status, $allowed, true)) {
+            return ['error' => 'Invalid status.'];
+        }
+
+        $pdo = $this->pdo();
+        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid")->execute(['status' => $status, 'pid' => $publicId]);
+        $this->invalidateCache('idea');
+
+        /** @var IdeaService $service */
+        $service = $this->container->get('service.idea');
+        return ['idea' => $this->publicData($service->get($publicId) ?? ['public_id' => $publicId]), 'status' => $status];
+    }
+
+    private function crmListIdeaComments(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        $pdo = $this->pdo();
+        $stmt = $pdo->prepare("
+            SELECT c.*, u.full_name AS author_name, u.login AS author_login
+            FROM comments c
+            LEFT JOIN users u ON u.id = c.author_user_id
+            WHERE c.entity_type = 'idea' AND c.entity_public_id = :pid
+            ORDER BY c.created_at ASC
+        ");
+        $stmt->execute(['pid' => $publicId]);
+
+        return ['items' => $this->publicData($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [])];
+    }
+
     private function crmAddIdeaComment(array $arguments): array
     {
         $ideaPublicId = trim((string)($arguments['idea_public_id'] ?? ''));
@@ -7610,6 +8015,49 @@ MD;
         }
         @unlink($tmpFile);
         return ['message_public_id' => $messagePublicId, 'file' => $this->publicData($fileRow)];
+    }
+
+    private function crmDownloadChatAttachment(array $arguments): array
+    {
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $filePublicId = trim((string)($arguments['file_public_id'] ?? ''));
+        if ($chatPublicId === '' || $filePublicId === '') {
+            return ['error' => 'chat_public_id and file_public_id are required.'];
+        }
+
+        $chat = $this->chatForUser($chatPublicId, (int)($this->actor()['id'] ?? 0));
+        if (!$chat) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+
+        $stmt = $this->pdo()->prepare("
+            SELECT f.*
+            FROM files f
+            JOIN chat_messages cm ON cm.public_id = f.entity_public_id
+            WHERE f.public_id = :fid
+              AND f.entity_type = 'chat_message'
+              AND cm.chat_id = :cid
+              AND f.is_deleted = 0
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'fid' => $filePublicId,
+            'cid' => (int)$chat['id'],
+        ]);
+        $file = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($file) || !is_file((string)($file['storage_path'] ?? ''))) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
+        return [
+            'file' => [
+                'public_id' => (string)($file['public_id'] ?? ''),
+                'name' => (string)($file['original_name'] ?? ''),
+                'mime' => (string)($file['mime_type'] ?? 'application/octet-stream'),
+                'size' => (int)($file['size_bytes'] ?? 0),
+                'download_url' => '/api/index.php?route=api/v1/chats/' . rawurlencode($chatPublicId) . '/attachments/' . rawurlencode((string)($file['public_id'] ?? '')) . '/download',
+            ],
+        ];
     }
 
     private function crmListChatAttachments(array $arguments): array
