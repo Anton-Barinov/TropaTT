@@ -597,6 +597,9 @@ MD;
                 'body' => ['type' => 'string', 'description' => 'Comment body, up to 8000 characters.'],
                 'visibility' => ['type' => 'string', 'enum' => ['internal', 'public'], 'default' => 'internal'],
             ], ['task_public_id', 'body']);
+            $tools[] = $this->tool('crm_delete_task', 'Soft-delete a CRM task. Creators can delete their own tasks. Root and admin users can delete any task.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_cycles', 'List work cycles/sprints visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -2512,6 +2515,7 @@ MD;
             'crm_create_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTask($arguments))),
             'crm_update_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateTask($arguments))),
             'crm_add_task_comment' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmAddTaskComment($arguments))),
+            'crm_delete_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteTask($arguments))),
             'crm_list_cycles' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycles($arguments))),
             'crm_get_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycle($arguments))),
             'crm_create_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCycle($arguments))),
@@ -4590,6 +4594,20 @@ MD;
         ], (int)($this->actor()['id'] ?? 0));
 
         return $ok ? ['ok' => true, 'task_public_id' => $taskPublicId] : ['error' => 'Comment was not created.'];
+    }
+
+    private function crmDeleteTask(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+
+        /** @var TaskService $service */
+        $service = $this->container->get('service.task');
+        $deleted = $service->delete($publicId, $this->actor());
+
+        return $deleted ? ['deleted' => true] : ['error' => 'Task not found or not authorized to delete.'];
     }
 
     private function crmListCycles(array $arguments): array
