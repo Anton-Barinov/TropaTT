@@ -246,37 +246,7 @@
         </div>
       </section>
 
-      <section class="crm-card crm-dashboard-section">
-        <h2 class="h5" data-i18n="dashboard.notes_title"><?= htmlspecialchars($t('dashboard.notes_title', 'Рабочие заметки'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <div class="accordion crm-dashboard-notes" id="opsAccordion">
-          <div class="accordion-item">
-            <h3 class="accordion-header">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#opsOne" data-dashboard-note-1-title data-i18n="dashboard.note_1_title"><?= htmlspecialchars($t('dashboard.note_1_title', 'Контроль просроченных задач'), ENT_QUOTES, 'UTF-8') ?></button>
-            </h3>
-            <div id="opsOne" class="accordion-collapse collapse show" data-bs-parent="#opsAccordion">
-              <div class="accordion-body" data-dashboard-note-1-body data-i18n="dashboard.note_1_body"><?= htmlspecialchars($t('dashboard.note_1_body', 'Просрочено задач: 9. Приоритетно обработайте задачи с ближайшими дедлайнами и статусом blocked.'), ENT_QUOTES, 'UTF-8') ?></div>
-            </div>
-          </div>
-          <div class="accordion-item">
-            <h3 class="accordion-header">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#opsTwo" data-dashboard-note-2-title data-i18n="dashboard.note_2_title"><?= htmlspecialchars($t('dashboard.note_2_title', 'План на сегодня'), ENT_QUOTES, 'UTF-8') ?></button>
-            </h3>
-            <div id="opsTwo" class="accordion-collapse collapse" data-bs-parent="#opsAccordion">
-              <div class="accordion-body" data-dashboard-note-2-body data-i18n="dashboard.note_2_body"><?= htmlspecialchars($t('dashboard.note_2_body', 'Сегодня нет запланированных событий и напоминаний. Можно сфокусироваться на закрытии текущего бэклога.'), ENT_QUOTES, 'UTF-8') ?></div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <section class="crm-card crm-dashboard-section" id="dashboardStickyNotes">
-        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-          <h2 class="h5 mb-0" data-i18n="dashboard.sticky_notes_title"><?= htmlspecialchars($t('dashboard.sticky_notes_title', 'Липкие заметки'), ENT_QUOTES, 'UTF-8') ?></h2>
-          <button class="btn crm-btn-primary btn-sm" type="button" id="stickyNoteAddBtn" data-i18n="dashboard.sticky_notes_add"><?= htmlspecialchars($t('dashboard.sticky_notes_add', '+ Добавить заметку'), ENT_QUOTES, 'UTF-8') ?></button>
-        </div>
-        <div class="row g-2" id="stickyNotesList">
-          <div class="col-12 text-muted small" data-i18n="dashboard.sticky_notes_loading"><?= htmlspecialchars($t('dashboard.sticky_notes_loading', 'Загрузка заметок...'), ENT_QUOTES, 'UTF-8') ?></div>
-        </div>
-      </section>
     </main>
   </div>
 </div>

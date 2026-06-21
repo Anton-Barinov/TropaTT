@@ -71,7 +71,6 @@ $needsTaskActivity = in_array($currentRoute, [
   'task-detail',
 ], true);
 $needsStickyNotes = in_array($currentRoute, [
-  'dashboard',
   '',
   'index',
 ], true);
