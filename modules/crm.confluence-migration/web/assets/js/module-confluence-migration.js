@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const API_BASE = '/api/v1/module/crm.confluence-migration';
+    const API_BASE = '/_module/crm.confluence-migration';
 
     /** @type {{t: function(string, string=): string}} */
     let i18n = { t: function (k, d) { return d || k; } };
