@@ -207,7 +207,6 @@ final class ConfluenceImportService
                             'payload_json' => ['title' => $space['name'], 'key' => $space['key']],
                         ]);
                     }
-                !empty($targetPublicId) ? null : null;
                 }
             } catch (\Throwable $e) {
                 $this->migrationRepo->upsertJobItem($jobId, 'space', $space['id'], [
@@ -258,16 +257,15 @@ final class ConfluenceImportService
                 }
 
                 if (!$targetSpacePublicId) {
-                    // Find space by key
-                    foreach ($spaceKeys as $sk) {
-                        $spaceData = $this->migrationRepo->findJobItem($jobId, 'space', '');
-                        // Look for space with matching key in payload
-                        $stmt = $this->pdo->prepare('SELECT target_public_id FROM module_confluence_import_items WHERE job_id = :job_id AND source_type = :st AND source_key LIKE :sk AND target_public_id IS NOT NULL LIMIT 1');
-                        $stmt->execute(['job_id' => $jobId, 'st' => 'space', 'sk' => $sk . '%']);
-                        $tpid = $stmt->fetchColumn();
-                        if ($tpid) {
-                            $targetSpacePublicId = (string)$tpid;
-                            break;
+                    // Find space by looking for imported space items in the job
+                    $spaceItems = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
+                    foreach ($spaceItems as $spaceItem) {
+                        if ($spaceItem['source_type'] === 'space' && !empty($spaceItem['target_public_id'])) {
+                            $itemPayload = json_decode((string)($spaceItem['payload_json'] ?? '{}'), true) ?? [];
+                            if (($itemPayload['key'] ?? '') === $spaceKey || ($spaceItem['source_key'] ?? '') === $spaceKey) {
+                                $targetSpacePublicId = $spaceItem['target_public_id'];
+                                break;
+                            }
                         }
                     }
                 }
