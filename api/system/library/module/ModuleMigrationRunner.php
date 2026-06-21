@@ -50,6 +50,11 @@ final class ModuleMigrationRunner
 
                 $this->pdo->beginTransaction();
                 $this->pdo->exec($sql);
+
+                if (!$this->pdo->inTransaction()) {
+                    $this->pdo->beginTransaction();
+                }
+
                 $this->recordMigration($moduleName, $migrationName);
                 $this->pdo->commit();
 
@@ -93,10 +98,15 @@ final class ModuleMigrationRunner
                     continue;
                 }
 
-                $this->pdo->beginTransaction();
-                $this->pdo->exec($sql);
-                $this->removeMigrationRecord($moduleName, $migration);
-                $this->pdo->commit();
+                    $this->pdo->beginTransaction();
+                    $this->pdo->exec($sql);
+
+                    if (!$this->pdo->inTransaction()) {
+                        $this->pdo->beginTransaction();
+                    }
+
+                    $this->removeMigrationRecord($moduleName, $migration);
+                    $this->pdo->commit();
 
                 $result['rolled_back'][] = $migration;
             } catch (\Throwable $e) {
@@ -204,6 +214,11 @@ final class ModuleMigrationRunner
 
                     $this->pdo->beginTransaction();
                     $this->pdo->exec($sql);
+
+                    if (!$this->pdo->inTransaction()) {
+                        $this->pdo->beginTransaction();
+                    }
+
                     $this->recordMigration($moduleName, $migrationName);
                     $this->pdo->commit();
 

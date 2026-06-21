@@ -1,0 +1,101 @@
+/* Confluence Migration Module */
+
+#migrationSteps .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary-100, #e0e7ff);
+    color: var(--color-primary-700, #4338ca);
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+#migrationSteps .nav-link.active .step-number,
+#migrationSteps .nav-link:not(.disabled):hover .step-number {
+    background: var(--color-primary-700, #4338ca);
+    color: #fff;
+}
+
+#migrationSteps .nav-link.disabled {
+    opacity: 0.4;
+}
+
+.migration-step .list-group-item {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.migration-step .list-group-item:hover {
+    background-color: var(--color-primary-50, #eff6ff);
+}
+
+.migration-step .list-group-item.selected {
+    background-color: var(--color-primary-100, #e0e7ff);
+    border-color: var(--color-primary-400, #818cf8);
+}
+
+#jobLog {
+    font-size: 12px;
+    line-height: 1.5;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#jobLog .log-error {
+    color: #f87171;
+}
+
+#jobLog .log-warning {
+    color: #fbbf24;
+}
+
+#jobLog .log-info {
+    color: #93c5fd;
+}
+
+#jobLog .log-success {
+    color: #6ee7b7;
+}
+
+#jobLog .log-debug {
+    color: #9ca3af;
+}
+
+#previewContent .preview-section {
+    margin-bottom: 1rem;
+}
+
+#previewContent .preview-section h6 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+#previewContent .preview-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--color-primary-50, #eff6ff);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.space-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.space-checkbox-label:hover {
+    border-color: var(--color-primary-400, #818cf8);
+    background-color: var(--color-primary-50, #eff6ff);
+}

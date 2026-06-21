@@ -1,0 +1,11 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS module_confluence_import_items;
+DROP TABLE IF EXISTS module_confluence_import_logs;
+DROP TABLE IF EXISTS module_confluence_import_jobs;
+DROP TABLE IF EXISTS module_confluence_unresolved_links;
+DROP TABLE IF EXISTS module_confluence_unsupported_macros;
+DROP TABLE IF EXISTS module_confluence_user_mappings;
+DROP TABLE IF EXISTS module_confluence_group_mappings;
+DROP TABLE IF EXISTS module_confluence_settings;
+DROP TABLE IF EXISTS module_confluence_connections;
+SET FOREIGN_KEY_CHECKS = 1;
