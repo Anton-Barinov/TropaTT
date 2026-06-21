@@ -26,6 +26,7 @@ use Api\System\Library\Http\Request;
 use Api\System\Library\Service\ApiClientService;
 use Api\System\Library\Service\ApprovalService;
 use Api\System\Library\Service\AuthzService;
+use Api\System\Library\Service\BusinessCalendarService;
 use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ChecklistService;
 use Api\System\Library\Service\ClientService;
@@ -890,6 +891,124 @@ MD;
             $tools[] = $this->tool('crm_convert_sticky_to_page', 'Convert a sticky note into a knowledge page.', [
                 'public_id' => ['type' => 'string'],
                 'space_public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_reorder_sticky_notes', 'Reorder sticky notes.', [
+                'items' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+                    'public_id' => ['type' => 'string'],
+                    'sort_order' => ['type' => 'integer'],
+                ]]],
+            ], ['items']);
+            $tools[] = $this->tool('crm_delete_workflow_rule', 'Delete a workflow rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_recurring_rule', 'Delete a recurring rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_sla_policy', 'Delete an SLA policy.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_archive_estimate_set', 'Archive an estimate set.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_estimate_set', 'Delete an estimate set.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_archive_estimate_option', 'Archive an estimate option.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_estimate_option', 'Delete an estimate option.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_business_calendars', 'List business calendars.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_create_business_calendar', 'Create a business calendar.', [
+                'title' => ['type' => 'string'],
+                'timezone' => ['type' => 'string'],
+            ], ['title']);
+            $tools[] = $this->tool('crm_get_business_calendar', 'Get one business calendar.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_update_business_calendar', 'Update a business calendar.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'timezone' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_business_calendar', 'Delete a business calendar.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_holidays', 'List holidays for a business calendar.', [
+                'calendar_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['calendar_public_id']);
+            $tools[] = $this->tool('crm_create_holiday', 'Create a holiday.', [
+                'calendar_public_id' => ['type' => 'string'],
+                'holiday_date' => ['type' => 'string', 'description' => 'Date in YYYY-MM-DD format.'],
+                'title' => ['type' => 'string'],
+            ], ['calendar_public_id', 'holiday_date', 'title']);
+            $tools[] = $this->tool('crm_get_holiday', 'Get one holiday.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_update_holiday', 'Update a holiday.', [
+                'public_id' => ['type' => 'string'],
+                'holiday_date' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_holiday', 'Delete a holiday.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_working_hours', 'List working hours for a business calendar.', [
+                'calendar_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['calendar_public_id']);
+            $tools[] = $this->tool('crm_create_working_hours', 'Create working hours rule.', [
+                'calendar_public_id' => ['type' => 'string'],
+                'day_of_week' => ['type' => 'integer', 'description' => '0=Sunday, 6=Saturday.'],
+                'start_time' => ['type' => 'string', 'description' => 'HH:MM format.'],
+                'end_time' => ['type' => 'string', 'description' => 'HH:MM format.'],
+            ], ['calendar_public_id', 'day_of_week', 'start_time', 'end_time']);
+            $tools[] = $this->tool('crm_get_working_hours', 'Get one working hours rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_update_working_hours', 'Update working hours rule.', [
+                'public_id' => ['type' => 'string'],
+                'day_of_week' => ['type' => 'integer'],
+                'start_time' => ['type' => 'string'],
+                'end_time' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_working_hours', 'Delete working hours rule.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_create_api_client', 'Create an API client application.', [
+                'name' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            ], ['name']);
+            $tools[] = $this->tool('crm_update_api_client', 'Update an API client.', [
+                'public_id' => ['type' => 'string'],
+                'name' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_api_client', 'Delete an API client.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_issue_api_client_key', 'Issue a new API key for a client.', [
+                'client_public_id' => ['type' => 'string'],
+                'label' => ['type' => 'string'],
+                'expires_at' => ['type' => 'string'],
+            ], ['client_public_id']);
+            $tools[] = $this->tool('crm_rotate_api_key', 'Rotate an API key.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_revoke_api_key', 'Revoke an API key.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_touch_saved_view', 'Mark a saved view as recently used.', [
+                'public_id' => ['type' => 'string'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_list_cycles', 'List work cycles/sprints visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -2877,6 +2996,36 @@ MD;
             'crm_get_openapi_spec' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetOpenApiSpec())),
             'crm_convert_sticky_to_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmConvertStickyToTask($arguments))),
             'crm_convert_sticky_to_page' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmConvertStickyToPage($arguments))),
+            'crm_reorder_sticky_notes' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmReorderStickyNotes($arguments))),
+            'crm_delete_workflow_rule' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeleteWorkflowRule($arguments))),
+            'crm_delete_recurring_rule' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteRecurringRule($arguments))),
+            'crm_delete_sla_policy' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeleteSlaPolicy($arguments))),
+            'crm_archive_estimate_set' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmArchiveEstimateSet($arguments))),
+            'crm_delete_estimate_set' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteEstimateSet($arguments))),
+            'crm_archive_estimate_option' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmArchiveEstimateOption($arguments))),
+            'crm_delete_estimate_option' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteEstimateOption($arguments))),
+            'crm_list_business_calendars' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListBusinessCalendars($arguments))),
+            'crm_create_business_calendar' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateBusinessCalendar($arguments))),
+            'crm_get_business_calendar' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetBusinessCalendar($arguments))),
+            'crm_update_business_calendar' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateBusinessCalendar($arguments))),
+            'crm_delete_business_calendar' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeleteBusinessCalendar($arguments))),
+            'crm_list_holidays' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListHolidays($arguments))),
+            'crm_create_holiday' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateHoliday($arguments))),
+            'crm_get_holiday' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetHoliday($arguments))),
+            'crm_update_holiday' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateHoliday($arguments))),
+            'crm_delete_holiday' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeleteHoliday($arguments))),
+            'crm_list_working_hours' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListWorkingHours($arguments))),
+            'crm_create_working_hours' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmCreateWorkingHours($arguments))),
+            'crm_get_working_hours' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetWorkingHours($arguments))),
+            'crm_update_working_hours' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateWorkingHours($arguments))),
+            'crm_delete_working_hours' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmDeleteWorkingHours($arguments))),
+            'crm_create_api_client' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmCreateApiClient($arguments))),
+            'crm_update_api_client' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmUpdateApiClient($arguments))),
+            'crm_delete_api_client' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmDeleteApiClient($arguments))),
+            'crm_issue_api_client_key' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmIssueApiClientKey($arguments))),
+            'crm_rotate_api_key' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmRotateApiKey($arguments))),
+            'crm_revoke_api_key' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmRevokeApiKey($arguments))),
+            'crm_touch_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmTouchSavedView($arguments))),
             'crm_list_cycles' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycles($arguments))),
             'crm_get_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycle($arguments))),
             'crm_create_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCycle($arguments))),
@@ -6068,6 +6217,440 @@ MD;
         $service = $this->container->get('service.sticky_note');
         $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
         return isset($result['error']) ? $result : ['page' => $result['page'] ?? null];
+    }
+
+    private function crmReorderStickyNotes(array $arguments): array
+    {
+        $items = $arguments['items'] ?? [];
+        if (!is_array($items) || $items === []) {
+            return ['error' => 'items array is required.'];
+        }
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $result = $service->reorder($items, (int)($this->actor()['id'] ?? 0));
+        return isset($result['error']) ? $result : ['ok' => true];
+    }
+
+    private function crmDeleteWorkflowRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var WorkflowService $service */
+        $service = $this->container->get('service.workflow');
+        $ok = $service->deleteRule($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Rule not found.'];
+    }
+
+    private function crmDeleteRecurringRule(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var RecurringService $service */
+        $service = $this->container->get('service.recurring');
+        $ok = $service->delete($publicId);
+        return $ok ? ['deleted' => true] : ['error' => 'Rule not found.'];
+    }
+
+    private function crmDeleteSlaPolicy(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var SlaService $service */
+        $service = $this->container->get('service.sla');
+        $ok = $service->delete($publicId);
+        return $ok ? ['deleted' => true] : ['error' => 'SLA policy not found.'];
+    }
+
+    private function crmArchiveEstimateSet(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $ok = $service->archiveSet($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['archived' => true] : ['error' => 'Estimate set not found.']);
+    }
+
+    private function crmDeleteEstimateSet(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $ok = $service->deleteSet($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['deleted' => true] : ['error' => 'Estimate set not found.']);
+    }
+
+    private function crmArchiveEstimateOption(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $ok = $service->archiveOption($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['archived' => true] : ['error' => 'Estimate option not found.']);
+    }
+
+    private function crmDeleteEstimateOption(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TaskEstimateService $service */
+        $service = $this->container->get('service.task_estimate');
+        $ok = $service->deleteOption($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['deleted' => true] : ['error' => 'Estimate option not found.']);
+    }
+
+    private function crmListBusinessCalendars(array $arguments): array
+    {
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $filters = [
+            'limit' => max(1, min(50, (int)($arguments['limit'] ?? 20))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        return $service->listCalendars($filters);
+    }
+
+    private function crmCreateBusinessCalendar(array $arguments): array
+    {
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($title === '') {
+            return ['error' => 'title is required.'];
+        }
+        $input = ['title' => $title];
+        if (!empty($arguments['timezone'])) {
+            $input['timezone'] = $arguments['timezone'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->createCalendar($input, $this->actor());
+        return is_array($item) ? ['calendar' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmGetBusinessCalendar(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->getCalendar($publicId);
+        return is_array($item) ? ['calendar' => $item] : ['error' => 'Calendar not found.'];
+    }
+
+    private function crmUpdateBusinessCalendar(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $input = [];
+        foreach (['title', 'timezone'] as $field) {
+            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
+                $input[$field] = $arguments[$field];
+            }
+        }
+        if ($input === []) {
+            return ['error' => 'At least one field to update is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->updateCalendar($publicId, $input, $this->actor());
+        return is_array($item) ? ['calendar' => $item] : ['error' => 'Calendar not found.'];
+    }
+
+    private function crmDeleteBusinessCalendar(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $ok = $service->deleteCalendar($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Calendar not found.'];
+    }
+
+    private function crmListHolidays(array $arguments): array
+    {
+        $calPubId = trim((string)($arguments['calendar_public_id'] ?? ''));
+        if ($calPubId === '') {
+            return ['error' => 'calendar_public_id is required.'];
+        }
+        $filters = [
+            'limit' => max(1, min(100, (int)($arguments['limit'] ?? 50))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        return $service->listHolidays($calPubId, $filters);
+    }
+
+    private function crmCreateHoliday(array $arguments): array
+    {
+        $calPubId = trim((string)($arguments['calendar_public_id'] ?? ''));
+        $date = trim((string)($arguments['holiday_date'] ?? ''));
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($calPubId === '' || $date === '' || $title === '') {
+            return ['error' => 'calendar_public_id, holiday_date and title are required.'];
+        }
+        $input = ['calendar_public_id' => $calPubId, 'holiday_date' => $date, 'title' => $title];
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->createHoliday($input, $this->actor());
+        return is_array($item) ? ['holiday' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmGetHoliday(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->getHoliday($publicId);
+        return is_array($item) ? ['holiday' => $item] : ['error' => 'Holiday not found.'];
+    }
+
+    private function crmUpdateHoliday(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $input = [];
+        foreach (['holiday_date', 'title'] as $field) {
+            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
+                $input[$field] = $arguments[$field];
+            }
+        }
+        if ($input === []) {
+            return ['error' => 'At least one field to update is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->updateHoliday($publicId, $input, $this->actor());
+        return is_array($item) ? ['holiday' => $item] : ['error' => 'Holiday not found.'];
+    }
+
+    private function crmDeleteHoliday(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $ok = $service->deleteHoliday($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Holiday not found.'];
+    }
+
+    private function crmListWorkingHours(array $arguments): array
+    {
+        $calPubId = trim((string)($arguments['calendar_public_id'] ?? ''));
+        if ($calPubId === '') {
+            return ['error' => 'calendar_public_id is required.'];
+        }
+        $filters = [
+            'limit' => max(1, min(100, (int)($arguments['limit'] ?? 50))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        return $service->listWorkingHours($calPubId, $filters);
+    }
+
+    private function crmCreateWorkingHours(array $arguments): array
+    {
+        $calPubId = trim((string)($arguments['calendar_public_id'] ?? ''));
+        $dayOfWeek = $arguments['day_of_week'] ?? null;
+        $startTime = trim((string)($arguments['start_time'] ?? ''));
+        $endTime = trim((string)($arguments['end_time'] ?? ''));
+        if ($calPubId === '' || $dayOfWeek === null || $startTime === '' || $endTime === '') {
+            return ['error' => 'calendar_public_id, day_of_week, start_time and end_time are required.'];
+        }
+        $input = [
+            'calendar_public_id' => $calPubId,
+            'day_of_week' => (int)$dayOfWeek,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+        ];
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->createWorkingHours($input, $this->actor());
+        return is_array($item) ? ['working_hours' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmGetWorkingHours(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->getWorkingHours($publicId);
+        return is_array($item) ? ['working_hours' => $item] : ['error' => 'Working hours not found.'];
+    }
+
+    private function crmUpdateWorkingHours(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $input = [];
+        if (isset($arguments['day_of_week'])) {
+            $input['day_of_week'] = (int)$arguments['day_of_week'];
+        }
+        foreach (['start_time', 'end_time'] as $field) {
+            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
+                $input[$field] = $arguments[$field];
+            }
+        }
+        if ($input === []) {
+            return ['error' => 'At least one field to update is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $item = $service->updateWorkingHours($publicId, $input, $this->actor());
+        return is_array($item) ? ['working_hours' => $item] : ['error' => 'Working hours not found.'];
+    }
+
+    private function crmDeleteWorkingHours(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var BusinessCalendarService $service */
+        $service = $this->container->get('service.business_calendar');
+        $ok = $service->deleteWorkingHours($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Working hours not found.'];
+    }
+
+    private function crmCreateApiClient(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+        $input = ['name' => $name];
+        if (!empty($arguments['description'])) {
+            $input['description'] = $arguments['description'];
+        }
+        if (isset($arguments['is_active'])) {
+            $input['is_active'] = (int)$arguments['is_active'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->createClient($input, $this->actor());
+        return is_array($item) ? ['api_client' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmUpdateApiClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $input = [];
+        foreach (['name', 'description', 'is_active'] as $field) {
+            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
+                $input[$field] = $field === 'is_active' ? (int)$arguments[$field] : $arguments[$field];
+            }
+        }
+        if ($input === []) {
+            return ['error' => 'At least one field to update is required.'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->updateClient($publicId, $input, $this->actor());
+        return is_array($item) ? ['api_client' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmDeleteApiClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->deleteClient($publicId, $this->actor());
+        return is_array($item) ? ['deleted' => true] : ['error' => (string)$item];
+    }
+
+    private function crmIssueApiClientKey(array $arguments): array
+    {
+        $clientPubId = trim((string)($arguments['client_public_id'] ?? ''));
+        if ($clientPubId === '') {
+            return ['error' => 'client_public_id is required.'];
+        }
+        $input = [];
+        if (!empty($arguments['label'])) {
+            $input['label'] = $arguments['label'];
+        }
+        if (!empty($arguments['expires_at'])) {
+            $input['expires_at'] = $arguments['expires_at'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->issueKey($clientPubId, $input, $this->actor());
+        return is_array($item) ? ['api_key' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmRotateApiKey(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->rotateKey($publicId, [], $this->actor());
+        return is_array($item) ? ['api_key' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmRevokeApiKey(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $item = $service->revokeKey($publicId, $this->actor());
+        return is_array($item) ? ['revoked' => true] : ['error' => (string)$item];
+    }
+
+    private function crmTouchSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $ok = $service->touchLastUsed($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['ok' => true] : ['error' => 'View not found.']);
     }
 
     private function crmListCycles(array $arguments): array
