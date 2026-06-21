@@ -520,6 +520,41 @@ final class ConfluenceMigrationRepository
         ]);
     }
 
+    // ── Rate Limits ──
+
+    public function getRateLimit(int $connectionId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM module_confluence_rate_limits WHERE connection_id = :conn_id LIMIT 1');
+        $stmt->execute(['conn_id' => $connectionId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    public function initRateLimit(int $connectionId): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $this->pdo->prepare('INSERT IGNORE INTO module_confluence_rate_limits (connection_id, requests_made, window_started_at, updated_at) VALUES (:conn_id, 0, :now, :now)')
+            ->execute(['conn_id' => $connectionId, 'now' => $now]);
+    }
+
+    public function updateRateLimitAfterRequest(int $connectionId, bool $reset, ?string $retryAfterUntil = null): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        if ($reset) {
+            $stmt = $this->pdo->prepare('UPDATE module_confluence_rate_limits SET requests_made = 1, window_started_at = :now, retry_after_until = :retry, updated_at = :now WHERE connection_id = :conn_id');
+        } else {
+            $stmt = $this->pdo->prepare('UPDATE module_confluence_rate_limits SET requests_made = requests_made + 1, retry_after_until = COALESCE(:retry, retry_after_until), updated_at = :now WHERE connection_id = :conn_id');
+        }
+        $stmt->execute(['conn_id' => $connectionId, 'now' => $now, 'retry' => $retryAfterUntil]);
+    }
+
+    public function resetRateLimit(int $connectionId): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $this->pdo->prepare('UPDATE module_confluence_rate_limits SET requests_made = 0, window_started_at = :now, retry_after_until = NULL, updated_at = :now WHERE connection_id = :conn_id')
+            ->execute(['conn_id' => $connectionId, 'now' => $now]);
+    }
+
     // ── Settings ──
 
     public function getModuleSettings(): array
