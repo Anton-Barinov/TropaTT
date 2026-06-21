@@ -1,5 +1,13 @@
 /* Confluence Migration Module */
 
+#connectionModal {
+    z-index: 1060 !important;
+}
+
+#connectionModal .modal-backdrop {
+    z-index: 1055 !important;
+}
+
 #migrationSteps .step-number {
     display: inline-flex;
     align-items: center;
