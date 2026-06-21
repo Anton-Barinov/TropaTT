@@ -43,6 +43,7 @@ use Api\System\Library\Service\AiSuggestionService;
 use Api\System\Library\Service\AiIntentSettingService;
 use Api\System\Library\Service\AiUsageService;
 use Api\System\Library\Service\AiProviderService;
+use Api\System\Library\Service\AdminWidgetService;
 use Api\System\Library\Service\DashboardService;
 use Api\System\Library\Service\CompanyService;
 use Api\System\Library\Service\CommentService;
@@ -58,6 +59,7 @@ use Api\System\Library\Service\ExportService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ImportService;
 use Api\System\Library\Service\IntakeItemService;
+use Api\System\Library\Service\InvitationService;
 use Api\System\Library\Service\LogsService;
 use Api\System\Library\Service\MentionService;
 use Api\System\Library\Service\MilestoneService;
@@ -87,6 +89,7 @@ use Api\System\Library\Service\TaskEstimateService;
 use Api\System\Library\Service\TaskActivityService;
 use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
+use Api\System\Library\Service\TaskRelationService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\TemplateService;
@@ -752,6 +755,142 @@ MD;
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
             $tools[] = $this->tool('crm_list_priorities', 'List priority levels.', []);
+            $tools[] = $this->tool('crm_create_priority', 'Create a new priority level.', [
+                'code' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'weight' => ['type' => 'integer'],
+                'color' => ['type' => 'string'],
+            ], ['code', 'title']);
+            $tools[] = $this->tool('crm_update_priority', 'Update a priority level.', [
+                'public_id' => ['type' => 'string'],
+                'title' => ['type' => 'string'],
+                'weight' => ['type' => 'integer'],
+                'color' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_priority', 'Delete a priority level.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_tag', 'Delete a tag.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_status', 'Delete a status and remap tasks to another status.', [
+                'public_id' => ['type' => 'string'],
+                'remap_to_public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_company', 'Delete a company.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_client', 'Delete a client.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_counterparty', 'Delete a counterparty.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_contact', 'Delete a contact.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_department', 'Delete a department.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_team', 'Delete a team.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_milestone', 'Delete a milestone.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_checklist', 'Delete an entire checklist from a task.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_checklist_item', 'Delete a checklist item.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_template', 'Delete a task or project template.', [
+                'public_id' => ['type' => 'string'],
+                'kind' => ['type' => 'string', 'enum' => ['task', 'project']],
+            ], ['public_id', 'kind']);
+            $tools[] = $this->tool('crm_delete_saved_view', 'Delete a saved view.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_delete_sticky_note', 'Hard-delete a sticky note.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_task_relations', 'List formal task-to-task relations (FS, SS, FF, SF, BLOCKS).', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_create_task_relation', 'Create a formal task-to-task relation.', [
+                'task_public_id' => ['type' => 'string'],
+                'related_task_public_id' => ['type' => 'string'],
+                'relation_type' => ['type' => 'string', 'enum' => ['FS', 'SS', 'FF', 'SF', 'BLOCKS', 'RELATED']],
+            ], ['task_public_id', 'related_task_public_id', 'relation_type']);
+            $tools[] = $this->tool('crm_delete_task_relation', 'Delete a task relation.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_get_organization', 'Get one organization by public id.', [
+                'public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_organization_members', 'List members of an organization.', [
+                'organization_public_id' => ['type' => 'string'],
+            ], ['organization_public_id']);
+            $tools[] = $this->tool('crm_add_organization_member', 'Add a member to an organization.', [
+                'organization_public_id' => ['type' => 'string'],
+                'user_public_id' => ['type' => 'string'],
+                'role' => ['type' => 'string'],
+            ], ['organization_public_id', 'user_public_id']);
+            $tools[] = $this->tool('crm_remove_organization_member', 'Remove a member from an organization.', [
+                'organization_public_id' => ['type' => 'string'],
+                'user_public_id' => ['type' => 'string'],
+            ], ['organization_public_id', 'user_public_id']);
+            $tools[] = $this->tool('crm_get_worklog_earnings', 'Get worklog earnings/costs summary.', [
+                'project_public_id' => ['type' => 'string'],
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_worklog_matrix', 'Get worklog matrix view (users x days).', [
+                'project_public_id' => ['type' => 'string'],
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_worklog_detail', 'Get detailed worklog breakdown.', [
+                'project_public_id' => ['type' => 'string'],
+                'task_public_id' => ['type' => 'string'],
+                'date_from' => ['type' => 'string'],
+                'date_to' => ['type' => 'string'],
+            ]);
+            $tools[] = $this->tool('crm_get_worklog_task_summary', 'Get worklog summary for a specific task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_get_calendar_my_month', 'Get month calendar view.', [
+                'year' => ['type' => 'integer'],
+                'month' => ['type' => 'integer'],
+            ]);
+            $tools[] = $this->tool('crm_list_invitations', 'List pending user invitations.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_create_invitation', 'Create and send a user invitation.', [
+                'email' => ['type' => 'string'],
+                'role_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
+            ], ['email']);
+            $tools[] = $this->tool('crm_get_api_key_usage', 'Get usage stats for an API key.', [
+                'public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_list_request_logs', 'List HTTP request logs.', [
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_admin_summary_widget', 'Get admin dashboard summary widget.', []);
+            $tools[] = $this->tool('crm_get_admin_system_widget', 'Get admin system health widget.', []);
+            $tools[] = $this->tool('crm_get_openapi_spec', 'Get the OpenAPI specification.', []);
+            $tools[] = $this->tool('crm_convert_sticky_to_task', 'Convert a sticky note into a task.', [
+                'public_id' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+            ], ['public_id']);
+            $tools[] = $this->tool('crm_convert_sticky_to_page', 'Convert a sticky note into a knowledge page.', [
+                'public_id' => ['type' => 'string'],
+                'space_public_id' => ['type' => 'string'],
+            ], ['public_id']);
             $tools[] = $this->tool('crm_list_cycles', 'List work cycles/sprints visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -2700,6 +2839,44 @@ MD;
             'crm_update_organization' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmUpdateOrganization($arguments))),
             'crm_delete_organization' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmDeleteOrganization($arguments))),
             'crm_list_priorities' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListPriorities($arguments))),
+            'crm_create_priority' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreatePriority($arguments))),
+            'crm_update_priority' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdatePriority($arguments))),
+            'crm_delete_priority' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeletePriority($arguments))),
+            'crm_delete_tag' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteTag($arguments))),
+            'crm_delete_status' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteStatus($arguments))),
+            'crm_delete_company' => $this->withPermission('company.manage', fn() => $this->toolResult($this->crmDeleteCompany($arguments))),
+            'crm_delete_client' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmDeleteClient($arguments))),
+            'crm_delete_counterparty' => $this->withPermission('counterparty.manage', fn() => $this->toolResult($this->crmDeleteCounterparty($arguments))),
+            'crm_delete_contact' => $this->withPermission('contact.manage', fn() => $this->toolResult($this->crmDeleteContact($arguments))),
+            'crm_delete_department' => $this->withPermission('department.manage', fn() => $this->toolResult($this->crmDeleteDepartment($arguments))),
+            'crm_delete_team' => $this->withPermission('team.manage', fn() => $this->toolResult($this->crmDeleteTeam($arguments))),
+            'crm_delete_milestone' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmDeleteMilestone($arguments))),
+            'crm_delete_checklist' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteChecklist($arguments))),
+            'crm_delete_checklist_item' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteChecklistItem($arguments))),
+            'crm_delete_template' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteTemplate($arguments))),
+            'crm_delete_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteSavedView($arguments))),
+            'crm_delete_sticky_note' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteStickyNote($arguments))),
+            'crm_list_task_relations' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskRelations($arguments))),
+            'crm_create_task_relation' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateTaskRelation($arguments))),
+            'crm_delete_task_relation' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteTaskRelation($arguments))),
+            'crm_get_organization' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmGetOrganization($arguments))),
+            'crm_list_organization_members' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmListOrganizationMembers($arguments))),
+            'crm_add_organization_member' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmAddOrganizationMember($arguments))),
+            'crm_remove_organization_member' => $this->withPermission('organization.manage', fn() => $this->toolResult($this->crmRemoveOrganizationMember($arguments))),
+            'crm_get_worklog_earnings' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogEarnings($arguments))),
+            'crm_get_worklog_matrix' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogMatrix($arguments))),
+            'crm_get_worklog_detail' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogDetail($arguments))),
+            'crm_get_worklog_task_summary' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetWorklogTaskSummary($arguments))),
+            'crm_get_calendar_my_month' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCalendarMyMonth($arguments))),
+            'crm_list_invitations' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmListInvitations($arguments))),
+            'crm_create_invitation' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmCreateInvitation($arguments))),
+            'crm_get_api_key_usage' => $this->withPermission('api_client.view', fn() => $this->toolResult($this->crmGetApiKeyUsage($arguments))),
+            'crm_list_request_logs' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmListRequestLogs($arguments))),
+            'crm_get_admin_summary_widget' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetAdminSummaryWidget())),
+            'crm_get_admin_system_widget' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetAdminSystemWidget())),
+            'crm_get_openapi_spec' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetOpenApiSpec())),
+            'crm_convert_sticky_to_task' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmConvertStickyToTask($arguments))),
+            'crm_convert_sticky_to_page' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmConvertStickyToPage($arguments))),
             'crm_list_cycles' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycles($arguments))),
             'crm_get_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycle($arguments))),
             'crm_create_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCycle($arguments))),
@@ -5409,6 +5586,488 @@ MD;
         $items = $service->list([]);
 
         return ['items' => $items];
+    }
+
+    private function crmCreatePriority(array $arguments): array
+    {
+        $code = trim((string)($arguments['code'] ?? ''));
+        $title = trim((string)($arguments['title'] ?? ''));
+        if ($code === '' || $title === '') {
+            return ['error' => 'code and title are required.'];
+        }
+        $input = ['code' => $code, 'title' => $title];
+        if (isset($arguments['weight'])) {
+            $input['weight'] = (int)$arguments['weight'];
+        }
+        if (!empty($arguments['color'])) {
+            $input['color'] = $arguments['color'];
+        }
+        /** @var PriorityService $service */
+        $service = $this->container->get('service.priority');
+        $item = $service->create($input);
+        return is_array($item) ? ['priority' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmUpdatePriority(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $input = [];
+        foreach (['title', 'weight', 'color'] as $field) {
+            if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
+                $input[$field] = $field === 'weight' ? (int)$arguments[$field] : $arguments[$field];
+            }
+        }
+        if ($input === []) {
+            return ['error' => 'At least one field to update is required.'];
+        }
+        /** @var PriorityService $service */
+        $service = $this->container->get('service.priority');
+        $item = $service->update($publicId, $input);
+        return is_array($item) ? ['priority' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmDeletePriority(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var PriorityService $service */
+        $service = $this->container->get('service.priority');
+        $ok = $service->delete($publicId);
+        return $ok ? ['deleted' => true] : ['error' => 'Priority not found.'];
+    }
+
+    private function crmDeleteTag(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TagService $service */
+        $service = $this->container->get('service.tag');
+        $ok = $service->delete($publicId);
+        return $ok ? ['deleted' => true] : ['error' => 'Tag not found.'];
+    }
+
+    private function crmDeleteStatus(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $remapTo = !empty($arguments['remap_to_public_id']) ? $arguments['remap_to_public_id'] : null;
+        /** @var StatusService $service */
+        $service = $this->container->get('service.status');
+        $result = $service->delete($publicId, $remapTo);
+        return is_array($result) ? $result : ['error' => (string)$result];
+    }
+
+    private function crmDeleteCompany(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var CompanyService $service */
+        $service = $this->container->get('service.company');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Company not found.'];
+    }
+
+    private function crmDeleteClient(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ClientService $service */
+        $service = $this->container->get('service.client');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Client not found.'];
+    }
+
+    private function crmDeleteCounterparty(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var CounterpartyService $service */
+        $service = $this->container->get('service.counterparty');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Counterparty not found.'];
+    }
+
+    private function crmDeleteContact(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ContactService $service */
+        $service = $this->container->get('service.contact');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Contact not found.'];
+    }
+
+    private function crmDeleteDepartment(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var DepartmentService $service */
+        $service = $this->container->get('service.department');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Department not found.'];
+    }
+
+    private function crmDeleteTeam(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TeamService $service */
+        $service = $this->container->get('service.team');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Team not found.'];
+    }
+
+    private function crmDeleteMilestone(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var MilestoneService $service */
+        $service = $this->container->get('service.milestone');
+        $ok = $service->delete($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['deleted' => true] : ['error' => 'Milestone not found.']);
+    }
+
+    private function crmDeleteChecklist(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $ok = $service->delete($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Checklist not found.'];
+    }
+
+    private function crmDeleteChecklistItem(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var ChecklistService $service */
+        $service = $this->container->get('service.checklist');
+        $ok = $service->deleteItem($publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Checklist item not found.'];
+    }
+
+    private function crmDeleteTemplate(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $kind = trim((string)($arguments['kind'] ?? ''));
+        if ($publicId === '' || $kind === '') {
+            return ['error' => 'public_id and kind are required.'];
+        }
+        /** @var TemplateService $service */
+        $service = $this->container->get('service.template');
+        $ok = $service->delete($kind, $publicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Template not found.'];
+    }
+
+    private function crmDeleteSavedView(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var SavedViewService $service */
+        $service = $this->container->get('service.saved_view');
+        $ok = $service->delete($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['deleted' => true] : ['error' => 'View not found.']);
+    }
+
+    private function crmDeleteStickyNote(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $result = $service->delete($publicId, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        return isset($result['error']) ? $result : ['deleted' => true];
+    }
+
+    private function crmListTaskRelations(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var TaskRelationService $service */
+        $service = $this->container->get('service.task_relation');
+        $result = $service->list($taskPublicId, $this->actor());
+        return is_array($result) ? ['items' => $result] : ['error' => (string)$result];
+    }
+
+    private function crmCreateTaskRelation(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $relatedPublicId = trim((string)($arguments['related_task_public_id'] ?? ''));
+        $relationType = trim((string)($arguments['relation_type'] ?? ''));
+        if ($taskPublicId === '' || $relatedPublicId === '' || $relationType === '') {
+            return ['error' => 'task_public_id, related_task_public_id and relation_type are required.'];
+        }
+        $input = [
+            'related_task_public_id' => $relatedPublicId,
+            'relation_type' => $relationType,
+        ];
+        /** @var TaskRelationService $service */
+        $service = $this->container->get('service.task_relation');
+        $item = $service->create($taskPublicId, $input, $this->actor());
+        return is_array($item) ? ['relation' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmDeleteTaskRelation(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var TaskRelationService $service */
+        $service = $this->container->get('service.task_relation');
+        $ok = $service->delete($publicId, $this->actor());
+        return is_string($ok) ? ['error' => $ok] : ($ok ? ['deleted' => true] : ['error' => 'Relation not found.']);
+    }
+
+    private function crmGetOrganization(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $item = $service->get($publicId, $this->actor());
+        return is_array($item) ? ['organization' => $item] : ['error' => 'Organization not found.'];
+    }
+
+    private function crmListOrganizationMembers(array $arguments): array
+    {
+        $orgPublicId = trim((string)($arguments['organization_public_id'] ?? ''));
+        if ($orgPublicId === '') {
+            return ['error' => 'organization_public_id is required.'];
+        }
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $items = $service->listMembers($orgPublicId, $this->actor());
+        return is_array($items) ? ['items' => $items] : ['error' => 'Organization not found.'];
+    }
+
+    private function crmAddOrganizationMember(array $arguments): array
+    {
+        $orgPublicId = trim((string)($arguments['organization_public_id'] ?? ''));
+        $userPublicId = trim((string)($arguments['user_public_id'] ?? ''));
+        if ($orgPublicId === '' || $userPublicId === '') {
+            return ['error' => 'organization_public_id and user_public_id are required.'];
+        }
+        $role = trim((string)($arguments['role'] ?? 'member'));
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $ok = $service->addMember($orgPublicId, $userPublicId, $role, $this->actor());
+        return $ok ? ['ok' => true] : ['error' => 'Failed to add member.'];
+    }
+
+    private function crmRemoveOrganizationMember(array $arguments): array
+    {
+        $orgPublicId = trim((string)($arguments['organization_public_id'] ?? ''));
+        $userPublicId = trim((string)($arguments['user_public_id'] ?? ''));
+        if ($orgPublicId === '' || $userPublicId === '') {
+            return ['error' => 'organization_public_id and user_public_id are required.'];
+        }
+        /** @var OrganizationService $service */
+        $service = $this->container->get('service.organization');
+        $ok = $service->removeMember($orgPublicId, $userPublicId, $this->actor());
+        return $ok ? ['deleted' => true] : ['error' => 'Failed to remove member.'];
+    }
+
+    private function crmGetWorklogEarnings(array $arguments): array
+    {
+        $filters = [];
+        foreach (['project_public_id', 'date_from', 'date_to'] as $field) {
+            if (!empty($arguments[$field])) {
+                $filters[$field] = $arguments[$field];
+            }
+        }
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        return $service->earnings($filters, $this->actor());
+    }
+
+    private function crmGetWorklogMatrix(array $arguments): array
+    {
+        $filters = [];
+        foreach (['project_public_id', 'date_from', 'date_to'] as $field) {
+            if (!empty($arguments[$field])) {
+                $filters[$field] = $arguments[$field];
+            }
+        }
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        return $service->matrix($filters, $this->actor());
+    }
+
+    private function crmGetWorklogDetail(array $arguments): array
+    {
+        $day = trim((string)($arguments['day'] ?? gmdate('Y-m-d')));
+        $userPublicId = trim((string)($arguments['user_public_id'] ?? ''));
+        $projectPublicId = trim((string)($arguments['project_public_id'] ?? '')) ?: null;
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        return $service->detail($day, $userPublicId, $projectPublicId, $this->actor());
+    }
+
+    private function crmGetWorklogTaskSummary(array $arguments): array
+    {
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        if ($taskPublicId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        /** @var WorklogService $service */
+        $service = $this->container->get('service.worklog');
+        $result = $service->taskSummaryByUser($taskPublicId, $this->actor());
+        return is_array($result) ? $result : ['error' => 'Task not found.'];
+    }
+
+    private function crmGetCalendarMyMonth(array $arguments): array
+    {
+        $date = null;
+        if (!empty($arguments['year']) && !empty($arguments['month'])) {
+            $date = sprintf('%04d-%02d-01', (int)$arguments['year'], (int)$arguments['month']);
+        }
+        /** @var CalendarService $service */
+        $service = $this->container->get('service.calendar');
+        return $service->myMonth($this->actor(), $date);
+    }
+
+    private function crmListInvitations(array $arguments): array
+    {
+        $filters = [
+            'limit' => max(1, min(50, (int)($arguments['limit'] ?? 20))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var InvitationService $service */
+        $service = $this->container->get('service.invitation');
+        return $service->list($filters, $this->actor());
+    }
+
+    private function crmCreateInvitation(array $arguments): array
+    {
+        $email = trim((string)($arguments['email'] ?? ''));
+        if ($email === '') {
+            return ['error' => 'email is required.'];
+        }
+        $input = ['email' => $email];
+        if (!empty($arguments['role_public_ids'])) {
+            $input['role_public_ids'] = $arguments['role_public_ids'];
+        }
+        /** @var InvitationService $service */
+        $service = $this->container->get('service.invitation');
+        $item = $service->create($input, $this->actor());
+        return is_array($item) ? ['invitation' => $item] : ['error' => (string)$item];
+    }
+
+    private function crmGetApiKeyUsage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $limit = max(1, min(200, (int)($arguments['limit'] ?? 50)));
+        /** @var ApiClientService $service */
+        $service = $this->container->get('service.api_client');
+        $result = $service->usage($publicId, $limit);
+        return $result['ok'] ? ['api_key' => $result['key'] ?? null, 'logs' => $result['logs'] ?? []] : ['error' => (string)($result['code'] ?? 'Key not found.')];
+    }
+
+    private function crmListRequestLogs(array $arguments): array
+    {
+        $filters = [
+            'limit' => max(1, min(100, (int)($arguments['limit'] ?? 50))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var LogsService $service */
+        $service = $this->container->get('service.logs');
+        return $service->requestList($filters);
+    }
+
+    private function crmGetAdminSummaryWidget(): array
+    {
+        /** @var AdminWidgetService $service */
+        $service = $this->container->get('service.admin_widget');
+        return ['widgets' => $service->summary()];
+    }
+
+    private function crmGetAdminSystemWidget(): array
+    {
+        /** @var AdminWidgetService $service */
+        $service = $this->container->get('service.admin_widget');
+        return ['widgets' => $service->system()];
+    }
+
+    private function crmGetOpenApiSpec(): array
+    {
+        $path = dirname(__DIR__, 2) . '/docs/openapi/openapi.v1.json';
+        if (!is_file($path)) {
+            return ['error' => 'OpenAPI spec not found.'];
+        }
+        $json = json_decode((string)file_get_contents($path), true);
+        return is_array($json) ? ['spec' => $json] : ['error' => 'Failed to parse OpenAPI spec.'];
+    }
+
+    private function crmConvertStickyToTask(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $payload = [];
+        if (!empty($arguments['project_public_id'])) {
+            $payload['project_public_id'] = $arguments['project_public_id'];
+        }
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $result = $service->convertToTask($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        return isset($result['error']) ? $result : ['task' => $result['task'] ?? null];
+    }
+
+    private function crmConvertStickyToPage(array $arguments): array
+    {
+        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        if ($publicId === '') {
+            return ['error' => 'public_id is required.'];
+        }
+        $payload = [];
+        if (!empty($arguments['space_public_id'])) {
+            $payload['space_public_id'] = $arguments['space_public_id'];
+        }
+        /** @var StickyNoteService $service */
+        $service = $this->container->get('service.sticky_note');
+        $result = $service->convertToKnowledgePage($publicId, $payload, (int)($this->actor()['id'] ?? 0), (bool)($this->actor()['is_root'] ?? false));
+        return isset($result['error']) ? $result : ['page' => $result['page'] ?? null];
     }
 
     private function crmListCycles(array $arguments): array
