@@ -667,7 +667,7 @@
 
             // Load failed items separately
             apiGet('/jobs/' + jobId + '/items?status=failed&limit=50').then(function (itemsData) {
-                var failedItems = itemsData.data?.items || [];
+                var failedItems = itemsData.items || [];
                 if (failedItems.length > 0) {
                     var failedHtml = '<h6>' + i18n.t('confluence_migration.report_items', 'Элементы с ошибками') + '</h6>' +
                         '<div class="table-responsive"><table class="table table-sm">' +
