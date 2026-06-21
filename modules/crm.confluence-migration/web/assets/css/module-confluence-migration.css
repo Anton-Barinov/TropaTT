@@ -15,7 +15,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 12px;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--crm-text-muted);
@@ -32,9 +32,9 @@
 }
 
 #migrationSteps .nav-link.active {
-    color: #fff;
-    background: var(--color-primary-600, #0b725c);
-    border-color: var(--color-primary-600, #0b725c);
+    color: var(--crm-text);
+    border-color: var(--color-primary-500, #0f8f72);
+    background: var(--color-primary-50, #e8f4f0);
     font-weight: 600;
 }
 
@@ -58,7 +58,7 @@
 }
 
 #migrationSteps .nav-link.active .step-number {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--color-primary-600, #0b725c);
     color: #fff;
 }
 
