@@ -41,6 +41,7 @@ final class RollbackConfluenceMigration extends AbstractMigration
             'module_confluence_user_mappings',
             'module_confluence_group_mappings',
             'module_confluence_settings',
+            'module_confluence_rate_limits',
             'module_confluence_connections',
         ];
 
