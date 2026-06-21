@@ -30,6 +30,7 @@ use Api\System\Library\Service\BusinessCalendarService;
 use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ChecklistService;
 use Api\System\Library\Service\ClientService;
+use Api\System\Library\Service\ClientCabinetService;
 use Api\System\Library\Service\AnalyticsService;
 use Api\System\Library\Service\AiActionService;
 use Api\System\Library\Service\AiActionTypeService;
@@ -59,6 +60,7 @@ use Api\System\Library\Service\FeatureFlagService;
 use Api\System\Library\Service\ExportService;
 use Api\System\Library\Service\IdeaService;
 use Api\System\Library\Service\ImportService;
+use Api\System\Library\Service\ImpersonationService;
 use Api\System\Library\Service\IntakeItemService;
 use Api\System\Library\Service\InvitationService;
 use Api\System\Library\Service\LogsService;
@@ -67,6 +69,7 @@ use Api\System\Library\Service\MilestoneService;
 use Api\System\Library\Service\NotificationService;
 use Api\System\Library\Service\NotificationPushService;
 use Api\System\Library\Service\OrganizationService;
+use Api\System\Library\Service\PasswordResetService;
 use Api\System\Library\Service\PermissionService;
 use Api\System\Library\Service\PriorityService;
 use Api\System\Library\Service\ProjectModuleService;
@@ -94,6 +97,7 @@ use Api\System\Library\Service\TaskRelationService;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Service\TeamService;
 use Api\System\Library\Service\TemplateService;
+use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Service\UserService;
 use Api\System\Library\Service\UserProfileService;
 use Api\System\Library\Service\WebhookService;
@@ -1010,6 +1014,47 @@ MD;
             $tools[] = $this->tool('crm_touch_saved_view', 'Mark a saved view as recently used.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
+            $tools[] = $this->tool('crm_get_2fa_status', 'Get two-factor authentication status for the current user.', []);
+            $tools[] = $this->tool('crm_enable_2fa', 'Enable two-factor authentication for the current user.', [
+                'current_password' => ['type' => 'string'],
+            ], ['current_password']);
+            $tools[] = $this->tool('crm_disable_2fa', 'Disable two-factor authentication for the current user.', [
+                'current_password' => ['type' => 'string'],
+            ], ['current_password']);
+            $tools[] = $this->tool('crm_start_impersonation', 'Start impersonating another user (admin only).', [
+                'target_user_public_id' => ['type' => 'string'],
+                'reason' => ['type' => 'string'],
+            ], ['target_user_public_id']);
+            $tools[] = $this->tool('crm_get_impersonation_status', 'Check if currently impersonating another user.', []);
+            $tools[] = $this->tool('crm_stop_impersonation', 'Stop impersonating and return to own identity.', []);
+            $tools[] = $this->tool('crm_request_password_reset', 'Request a password reset email for an account.', [
+                'identifier' => ['type' => 'string', 'description' => 'Login or email of the account.'],
+            ], ['identifier']);
+            $tools[] = $this->tool('crm_confirm_password_reset', 'Confirm a password reset with token.', [
+                'reset_token' => ['type' => 'string'],
+                'new_password' => ['type' => 'string'],
+            ], ['reset_token', 'new_password']);
+            $tools[] = $this->tool('crm_accept_invitation', 'Accept a user invitation.', [
+                'invitation_token' => ['type' => 'string'],
+                'login' => ['type' => 'string'],
+                'full_name' => ['type' => 'string'],
+                'password' => ['type' => 'string'],
+            ], ['invitation_token', 'login', 'full_name', 'password']);
+            $tools[] = $this->tool('crm_list_client_cabinet_projects', 'List projects visible in a client portal cabinet.', [
+                'client_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['client_public_id']);
+            $tools[] = $this->tool('crm_get_client_cabinet_project', 'Get one project for a client cabinet view.', [
+                'client_public_id' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+            ], ['client_public_id', 'project_public_id']);
+            $tools[] = $this->tool('crm_list_client_cabinet_project_tasks', 'List tasks for a client cabinet project.', [
+                'client_public_id' => ['type' => 'string'],
+                'project_public_id' => ['type' => 'string'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
+                'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ], ['client_public_id', 'project_public_id']);
             $tools[] = $this->tool('crm_list_cycles', 'List work cycles/sprints visible to the current CRM user.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -3026,6 +3071,18 @@ MD;
             'crm_rotate_api_key' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmRotateApiKey($arguments))),
             'crm_revoke_api_key' => $this->withPermission('api_client.manage', fn() => $this->toolResult($this->crmRevokeApiKey($arguments))),
             'crm_touch_saved_view' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmTouchSavedView($arguments))),
+            'crm_get_2fa_status' => $this->toolResult($this->crmGet2faStatus()),
+            'crm_enable_2fa' => $this->toolResult($this->crmEnable2fa($arguments)),
+            'crm_disable_2fa' => $this->toolResult($this->crmDisable2fa($arguments)),
+            'crm_start_impersonation' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmStartImpersonation($arguments))),
+            'crm_get_impersonation_status' => $this->toolResult($this->crmGetImpersonationStatus()),
+            'crm_stop_impersonation' => $this->toolResult($this->crmStopImpersonation()),
+            'crm_request_password_reset' => $this->toolResult($this->crmRequestPasswordReset($arguments)),
+            'crm_confirm_password_reset' => $this->toolResult($this->crmConfirmPasswordReset($arguments)),
+            'crm_accept_invitation' => $this->toolResult($this->crmAcceptInvitation($arguments)),
+            'crm_list_client_cabinet_projects' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmListClientCabinetProjects($arguments))),
+            'crm_get_client_cabinet_project' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmGetClientCabinetProject($arguments))),
+            'crm_list_client_cabinet_project_tasks' => $this->withPermission('client.manage', fn() => $this->toolResult($this->crmListClientCabinetProjectTasks($arguments))),
             'crm_list_cycles' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListCycles($arguments))),
             'crm_get_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCycle($arguments))),
             'crm_create_cycle' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateCycle($arguments))),
@@ -6651,6 +6708,180 @@ MD;
         $service = $this->container->get('service.saved_view');
         $ok = $service->touchLastUsed($publicId, $this->actor());
         return is_string($ok) ? ['error' => $ok] : ($ok ? ['ok' => true] : ['error' => 'View not found.']);
+    }
+
+    private function crmGet2faStatus(): array
+    {
+        /** @var TwoFactorService $service */
+        $service = $this->container->get('service.two_factor');
+        $result = $service->status($this->actor());
+        return ['enabled' => (bool)$result['enabled'], 'two_factor' => $result['two_factor'] ?? null];
+    }
+
+    private function crmEnable2fa(array $arguments): array
+    {
+        $password = trim((string)($arguments['current_password'] ?? ''));
+        if ($password === '') {
+            return ['error' => 'current_password is required.'];
+        }
+        /** @var TwoFactorService $service */
+        $service = $this->container->get('service.two_factor');
+        $result = $service->enable($this->actor(), $password);
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Failed to enable 2FA.')];
+        }
+        return ['two_factor' => $result['two_factor'] ?? null, 'setup_code' => $result['setup_secret'] ?? null, 'recovery_codes' => $result['backup_codes'] ?? []];
+    }
+
+    private function crmDisable2fa(array $arguments): array
+    {
+        $password = trim((string)($arguments['current_password'] ?? ''));
+        if ($password === '') {
+            return ['error' => 'current_password is required.'];
+        }
+        /** @var TwoFactorService $service */
+        $service = $this->container->get('service.two_factor');
+        $result = $service->disable($this->actor(), $password);
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Failed to disable 2FA.')];
+        }
+        return ['disabled' => true];
+    }
+
+    private function crmStartImpersonation(array $arguments): array
+    {
+        $targetPubId = trim((string)($arguments['target_user_public_id'] ?? ''));
+        if ($targetPubId === '') {
+            return ['error' => 'target_user_public_id is required.'];
+        }
+        $input = ['target_user_public_id' => $targetPubId];
+        if (!empty($arguments['reason'])) {
+            $input['reason'] = $arguments['reason'];
+        }
+        /** @var ImpersonationService $service */
+        $service = $this->container->get('service.impersonation');
+        $result = $service->start($this->actor(), $input, '', '');
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Failed to start impersonation.')];
+        }
+        return ['impersonation_access_token' => $result['impersonation_access_token'] ?? null, 'target_user' => $result['target_user'] ?? null, 'expires_in' => $result['expires_in'] ?? null];
+    }
+
+    private function crmGetImpersonationStatus(): array
+    {
+        /** @var ImpersonationService $service */
+        $service = $this->container->get('service.impersonation');
+        $result = $service->status($this->actor(), (string)($this->actor()['session_public_id'] ?? ''));
+        return ['current' => $result['current'] ?? null, 'active_started_by_me' => $result['active_started_by_me'] ?? null];
+    }
+
+    private function crmStopImpersonation(): array
+    {
+        /** @var ImpersonationService $service */
+        $service = $this->container->get('service.impersonation');
+        $result = $service->stop($this->actor(), (string)($this->actor()['session_public_id'] ?? ''), null, '', '');
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Failed to stop impersonation.')];
+        }
+        return ['stopped' => true, 'revoked_sessions' => (int)($result['revoked_sessions'] ?? 0)];
+    }
+
+    private function crmRequestPasswordReset(array $arguments): array
+    {
+        $identifier = trim((string)($arguments['identifier'] ?? ''));
+        if ($identifier === '') {
+            return ['error' => 'identifier is required.'];
+        }
+        /** @var PasswordResetService $service */
+        $service = $this->container->get('service.password_reset');
+        $service->request(['identifier' => $identifier], '');
+        return ['accepted' => true];
+    }
+
+    private function crmConfirmPasswordReset(array $arguments): array
+    {
+        $token = trim((string)($arguments['reset_token'] ?? ''));
+        $newPassword = trim((string)($arguments['new_password'] ?? ''));
+        if ($token === '' || $newPassword === '') {
+            return ['error' => 'reset_token and new_password are required.'];
+        }
+        /** @var PasswordResetService $service */
+        $service = $this->container->get('service.password_reset');
+        $result = $service->confirm(['reset_token' => $token, 'new_password' => $newPassword]);
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Password reset failed.')];
+        }
+        return ['reset' => $result['reset'] ?? null];
+    }
+
+    private function crmAcceptInvitation(array $arguments): array
+    {
+        $token = trim((string)($arguments['invitation_token'] ?? ''));
+        $login = trim((string)($arguments['login'] ?? ''));
+        $fullName = trim((string)($arguments['full_name'] ?? ''));
+        $password = trim((string)($arguments['password'] ?? ''));
+        if ($token === '' || $login === '' || $fullName === '' || $password === '') {
+            return ['error' => 'invitation_token, login, full_name and password are required.'];
+        }
+        $input = ['invitation_token' => $token, 'login' => $login, 'full_name' => $fullName, 'password' => $password];
+        /** @var InvitationService $service */
+        $service = $this->container->get('service.invitation');
+        $result = $service->accept($input);
+        if (!(bool)($result['ok'] ?? false)) {
+            return ['error' => (string)($result['code'] ?? 'Invitation accept failed.')];
+        }
+        return ['invitation' => $result['invitation'] ?? null, 'user' => $result['user'] ?? null];
+    }
+
+    private function crmListClientCabinetProjects(array $arguments): array
+    {
+        $clientPubId = trim((string)($arguments['client_public_id'] ?? ''));
+        if ($clientPubId === '') {
+            return ['error' => 'client_public_id is required.'];
+        }
+        $filters = [
+            'limit' => max(1, min(50, (int)($arguments['limit'] ?? 20))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var ClientCabinetService $service */
+        $service = $this->container->get('service.client_cabinet');
+        return $service->listProjects($clientPubId, $filters);
+    }
+
+    private function crmGetClientCabinetProject(array $arguments): array
+    {
+        $clientPubId = trim((string)($arguments['client_public_id'] ?? ''));
+        $projectPubId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($clientPubId === '' || $projectPubId === '') {
+            return ['error' => 'client_public_id and project_public_id are required.'];
+        }
+        /** @var ClientCabinetService $service */
+        $service = $this->container->get('service.client_cabinet');
+        $project = $service->getProject($clientPubId, $projectPubId);
+        if (is_string($project)) {
+            return ['error' => $project];
+        }
+        return is_array($project) ? ['project' => $project] : ['error' => 'Project not found.'];
+    }
+
+    private function crmListClientCabinetProjectTasks(array $arguments): array
+    {
+        $clientPubId = trim((string)($arguments['client_public_id'] ?? ''));
+        $projectPubId = trim((string)($arguments['project_public_id'] ?? ''));
+        if ($clientPubId === '' || $projectPubId === '') {
+            return ['error' => 'client_public_id and project_public_id are required.'];
+        }
+        $filters = [
+            'limit' => max(1, min(50, (int)($arguments['limit'] ?? 20))),
+            'page' => max(1, (int)($arguments['page'] ?? 1)),
+        ];
+        /** @var ClientCabinetService $service */
+        $service = $this->container->get('service.client_cabinet');
+        $result = $service->listProjectTasks($clientPubId, $projectPubId, $filters);
+        if (is_string($result)) {
+            return ['error' => $result];
+        }
+        return $result;
     }
 
     private function crmListCycles(array $arguments): array
