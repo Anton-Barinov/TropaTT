@@ -2,7 +2,7 @@
 <?php $title = $t('admin_estimates.title', 'TropaTT — Наборы оценок'); ?>
 <body data-page="admin-estimates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content">
+<main class="crm-content crm-admin-estimates-page">
 <div class="crm-page-head">
   <div>
     <h1 class="crm-page-title" data-i18n="admin_estimates.page_title"><?= htmlspecialchars($t('admin_estimates.page_title', 'Наборы оценок'), ENT_QUOTES, 'UTF-8') ?></h1>
@@ -27,21 +27,23 @@
           <div class="crm-section-note" data-i18n="admin_estimates.section_list_note"><?= htmlspecialchars($t('admin_estimates.section_list_note', 'Все доступные наборы оценок в системе.'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </div>
-      <table class="table table-sm crm-table mb-0">
-        <thead>
-          <tr>
-            <th data-i18n="admin_estimates.th_name"><?= htmlspecialchars($t('admin_estimates.th_name', 'Название'), ENT_QUOTES, 'UTF-8') ?></th>
-            <th data-i18n="admin_estimates.th_code"><?= htmlspecialchars($t('admin_estimates.th_code', 'Код'), ENT_QUOTES, 'UTF-8') ?></th>
-            <th data-i18n="admin_estimates.th_type"><?= htmlspecialchars($t('admin_estimates.th_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></th>
-            <th data-i18n="admin_estimates.th_scope"><?= htmlspecialchars($t('admin_estimates.th_scope', 'Область'), ENT_QUOTES, 'UTF-8') ?></th>
-            <th data-i18n="admin_estimates.th_options"><?= htmlspecialchars($t('admin_estimates.th_options', 'Опции'), ENT_QUOTES, 'UTF-8') ?></th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="adminEstimatesBody">
-          <tr><td colspan="6" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-sm crm-table mb-0">
+          <thead>
+            <tr>
+              <th data-i18n="admin_estimates.th_name"><?= htmlspecialchars($t('admin_estimates.th_name', 'Название'), ENT_QUOTES, 'UTF-8') ?></th>
+              <th data-i18n="admin_estimates.th_code"><?= htmlspecialchars($t('admin_estimates.th_code', 'Код'), ENT_QUOTES, 'UTF-8') ?></th>
+              <th data-i18n="admin_estimates.th_type"><?= htmlspecialchars($t('admin_estimates.th_type', 'Тип'), ENT_QUOTES, 'UTF-8') ?></th>
+              <th data-i18n="admin_estimates.th_scope"><?= htmlspecialchars($t('admin_estimates.th_scope', 'Область'), ENT_QUOTES, 'UTF-8') ?></th>
+              <th data-i18n="admin_estimates.th_options"><?= htmlspecialchars($t('admin_estimates.th_options', 'Опции'), ENT_QUOTES, 'UTF-8') ?></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminEstimatesBody">
+            <tr><td colspan="6" class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -72,7 +74,7 @@
             <div class="col-md-4">
               <label class="form-label" for="estimateSetType" data-i18n="admin_estimates.field_type"><?= htmlspecialchars($t('admin_estimates.field_type', 'Тип оценки'), ENT_QUOTES, 'UTF-8') ?></label>
               <select class="form-select" id="estimateSetType" name="estimate_type" required>
-                <option value="tshirt_size" data-i18n="admin_estimates.type_tshirt"><?= htmlspecialchars($t('admin_estimates.type_tshirt', 'T-shirt Size'), ENT_QUOTES, 'UTF-8') ?></option>
+                <option value="tshirt" data-i18n="admin_estimates.type_tshirt"><?= htmlspecialchars($t('admin_estimates.type_tshirt', 'T-shirt Size'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="complexity" data-i18n="admin_estimates.type_complexity"><?= htmlspecialchars($t('admin_estimates.type_complexity', 'Complexity'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="risk" data-i18n="admin_estimates.type_risk"><?= htmlspecialchars($t('admin_estimates.type_risk', 'Risk'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="story_points" data-i18n="admin_estimates.type_sp"><?= htmlspecialchars($t('admin_estimates.type_sp', 'Story Points'), ENT_QUOTES, 'UTF-8') ?></option>
