@@ -160,7 +160,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiGet('/connections').then(function (data) {
-            var connections = data.data || [];
+            var connections = data.data?.connections || [];
             if (connections.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.no_connections', 'Нет подключений. Создайте новое.') + '</div>';
                 return;
@@ -231,8 +231,12 @@
             return;
         }
 
-        var payload = { name: name, base_url: baseUrl, email: email, api_token: token };
-        apiPost('/connections', payload).then(function () {
+        var payload = { name: name, base_url: baseUrl, auth_type: 'api_token', email: email, api_token: token };
+        apiPost('/connections', payload).then(function (data) {
+            var conn = data.data?.connection || data.data;
+            if (conn && conn.public_id) {
+                document.getElementById('testConnectionBtn').dataset.connId = conn.public_id;
+            }
             var modal = bootstrap.Modal.getInstance(document.getElementById('connectionModal'));
             if (modal) modal.hide();
             loadConnections();
@@ -242,12 +246,9 @@
     }
 
     function testConnection() {
-        var baseUrl = document.getElementById('connBaseUrl').value.trim();
-        var email = document.getElementById('connEmail').value.trim();
-        var token = document.getElementById('connApiToken').value;
-
-        if (!baseUrl) {
-            alert(i18n.t('confluence_migration.fill_base_url', 'Укажите URL'));
+        var connId = document.getElementById('testConnectionBtn').dataset.connId;
+        if (!connId) {
+            alert(i18n.t('confluence_migration.save_first', 'Сначала сохраните подключение'));
             return;
         }
 
@@ -256,14 +257,15 @@
         resultEl.className = 'alert alert-info';
         resultEl.textContent = i18n.t('confluence_migration.testing', 'Проверка...');
 
-        apiPost('/connections/test', { base_url: baseUrl, email: email, api_token: token }).then(function (data) {
+        apiPost('/connections/' + connId + '/test').then(function (data) {
             resultEl.classList.remove('alert-info');
-            if (data.success) {
+            var resp = data.data || data;
+            if (resp.success) {
                 resultEl.classList.add('alert-success');
                 resultEl.textContent = i18n.t('confluence_migration.test_success', 'Подключение успешно');
             } else {
                 resultEl.classList.add('alert-danger');
-                resultEl.textContent = data.message || i18n.t('confluence_migration.test_fail', 'Ошибка подключения');
+                resultEl.textContent = resp.message || i18n.t('confluence_migration.test_fail', 'Ошибка подключения');
             }
         }).catch(function (err) {
             resultEl.classList.remove('alert-info');
@@ -278,8 +280,8 @@
         var container = document.getElementById('spacesList');
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
-        apiGet('/connections/' + connectionId + '/discover').then(function (data) {
-            var spaces = data.data || [];
+        apiPost('/connections/' + connectionId + '/discover', {}).then(function (data) {
+            var spaces = (data.data?.spaces) || [];
             if (spaces.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.no_spaces', 'Нет доступных пространств') + '</div>';
                 return;
@@ -326,10 +328,9 @@
 
     function runDryRun() {
         var options = gatherOptions();
-        options.mode = 'dry_run';
 
         apiPost('/jobs', {
-            connection_id: state.connectionId,
+            connection_public_id: state.connectionId,
             mode: 'dry_run',
             source_space_keys: state.selectedSpaces,
             options: options,
@@ -350,7 +351,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiGet('/connections/' + connectionId + '/user-mappings').then(function (data) {
-            var mappings = data.data?.mappings || [];
+            var mappings = data.data?.mappings || data.data || [];
             if (mappings.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_users', 'Нет пользователей для сопоставления') + '</div>';
                 return;
@@ -445,11 +446,10 @@
 
     function startImport() {
         var options = gatherOptions();
-        options.mode = 'full';
 
         apiPost('/jobs', {
-            connection_id: state.connectionId,
-            mode: 'full',
+            connection_public_id: state.connectionId,
+            mode: 'import',
             source_space_keys: state.selectedSpaces,
             options: options,
         }).then(function (data) {
@@ -494,7 +494,7 @@
 
     function pollJob(jobId, isDryRun) {
         apiGet('/jobs/' + jobId).then(function (data) {
-            var job = data.data;
+            var job = data.data?.job || data.data;
             if (!job) return;
 
             // Progress bar
@@ -539,7 +539,7 @@
 
     function loadLogs(jobId) {
         apiGet('/jobs/' + jobId + '/logs?limit=50').then(function (data) {
-            var logs = data.data || [];
+            var logs = data.data?.logs || data.data || [];
             var container = document.getElementById('jobLog');
             var html = '';
             logs.forEach(function (log) {
@@ -574,32 +574,26 @@
     function showPreview(jobId) {
         goToStep('preview');
         apiGet('/jobs/' + jobId + '/report').then(function (data) {
-            var report = data.data || {};
+            var report = data.data?.report || data.data || {};
             var container = document.getElementById('previewContent');
+            var items = report.items || {};
 
             var html = '<div class="preview-section">' +
-                '<h6>' + i18n.t('confluence_migration.preview_spaces', 'Пространства для переноса') + '</h6>';
-
-            var spaces = report.spaces || [];
-            if (spaces.length > 0) {
-                html += '<ul>';
-                spaces.forEach(function (s) {
-                    html += '<li><strong>' + htmlEscape(s.name) + '</strong> (' + htmlEscape(s.key) + ') — ' +
-                        (s.pages || 0) + ' ' + i18n.t('confluence_migration.pages', 'страниц') + ', ' +
-                        (s.attachments || 0) + ' ' + i18n.t('confluence_migration.attachments', 'вложений') + '</li>';
-                });
-                html += '</ul>';
-            } else {
-                html += '<p class="text-muted">—</p>';
-            }
-
-            html += '</div><div class="preview-section">' +
-                '<h6>' + i18n.t('confluence_migration.preview_totals', 'Всего') + '</h6>' +
+                '<h6>' + i18n.t('confluence_migration.preview_items', 'Элементы миграции') + '</h6>' +
                 '<div class="d-flex gap-3">' +
-                '<span class="preview-stat"><strong>' + (report.total_pages || 0) + '</strong> ' + i18n.t('confluence_migration.pages', 'страниц') + '</span>' +
-                '<span class="preview-stat"><strong>' + (report.total_attachments || 0) + '</strong> ' + i18n.t('confluence_migration.attachments', 'вложений') + '</span>' +
-                '<span class="preview-stat"><strong>' + (report.total_comments || 0) + '</strong> ' + i18n.t('confluence_migration.comments', 'комментариев') + '</span>' +
+                '<span class="preview-stat"><strong>' + (items.imported || 0) + '</strong> ' + i18n.t('confluence_migration.imported', 'Импортировано') + '</span>' +
+                '<span class="preview-stat"><strong>' + (items.pending || 0) + '</strong> ' + i18n.t('confluence_migration.pending', 'Ожидает') + '</span>' +
+                '<span class="preview-stat"><strong>' + (items.skipped || 0) + '</strong> ' + i18n.t('confluence_migration.skipped', 'Пропущено') + '</span>' +
                 '</div></div>';
+
+            if (report.unresolved_links_count > 0) {
+                html += '<div class="preview-section mt-3"><p class="text-warning"><i class="fa-solid fa-triangle-exclamation"></i> ' +
+                    i18n.t('confluence_migration.preview_unresolved', 'Есть нераспознанные ссылки') + ' (' + report.unresolved_links_count + ')</p></div>';
+            }
+            if (report.unsupported_macros_count > 0) {
+                html += '<div class="preview-section mt-3"><p class="text-warning"><i class="fa-solid fa-puzzle-piece"></i> ' +
+                    i18n.t('confluence_migration.preview_macros', 'Неподдерживаемые макросы') + ' (' + report.unsupported_macros_count + ')</p></div>';
+            }
 
             container.innerHTML = html;
         }).catch(function (err) {
@@ -645,7 +639,7 @@
     function showReport(jobId) {
         goToStep('report');
         apiGet('/jobs/' + jobId + '/report').then(function (data) {
-            var report = data.data || {};
+            var report = data.data?.report || data.data || {};
             var container = document.getElementById('reportContent');
 
             var statusBadge = '';
@@ -657,33 +651,16 @@
                 statusBadge = '<span class="badge bg-warning fs-6">' + i18n.t('confluence_migration.cancelled', 'Отменено') + '</span>';
             }
 
+            var items = report.items || {};
             var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
                 '<h5 class="mb-0">' + i18n.t('confluence_migration.report_summary', 'Итог') + ' ' + statusBadge + '</h5>' +
                 '</div>' +
                 '<div class="row mb-3">' +
-                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2">' + (report.stats?.imported || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.imported', 'Импортировано') + '</small></div></div>' +
-                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2 text-danger">' + (report.stats?.failed || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.failed', 'Ошибок') + '</small></div></div>' +
-                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2 text-warning">' + (report.stats?.skipped || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.skipped', 'Пропущено') + '</small></div></div>' +
-                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2">' + (report.total_time || '—') + '</div><small class="text-muted">' + i18n.t('confluence_migration.total_time', 'Время') + '</small></div></div>' +
+                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2">' + (items.imported || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.imported', 'Импортировано') + '</small></div></div>' +
+                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2 text-danger">' + (items.failed || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.failed', 'Ошибок') + '</small></div></div>' +
+                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2 text-warning">' + (items.skipped || 0) + '</div><small class="text-muted">' + i18n.t('confluence_migration.skipped', 'Пропущено') + '</small></div></div>' +
+                '<div class="col-md-3"><div class="crm-card text-center py-3"><div class="h2">' + (report.progress_percent || 0) + '%</div><small class="text-muted">' + i18n.t('confluence_migration.progress', 'Прогресс') + '</small></div></div>' +
                 '</div>';
-
-            var items = report.items || [];
-            if (items.length > 0) {
-                html += '<h6>' + i18n.t('confluence_migration.report_items', 'Элементы с ошибками') + '</h6>' +
-                    '<div class="table-responsive"><table class="table table-sm">' +
-                    '<thead><tr><th>' + i18n.t('confluence_migration.report_source', 'Источник') + '</th><th>' + i18n.t('confluence_migration.report_type', 'Тип') + '</th><th>' + i18n.t('confluence_migration.report_status', 'Статус') + '</th><th>' + i18n.t('confluence_migration.report_error', 'Ошибка') + '</th></tr></thead><tbody>';
-
-                items.forEach(function (item) {
-                    if (item.status === 'failed') {
-                        html += '<tr><td>' + htmlEscape(item.source_key || item.source_id) + '</td>' +
-                            '<td>' + htmlEscape(item.source_type) + '</td>' +
-                            '<td><span class="badge bg-danger">' + i18n.t('confluence_migration.failed', 'Ошибка') + '</span></td>' +
-                            '<td><small class="text-muted">' + htmlEscape(item.error_message || '') + '</small></td></tr>';
-                    }
-                });
-
-                html += '</tbody></table></div>';
-            }
 
             var unresolvedLinks = report.unresolved_links || [];
             if (unresolvedLinks.length > 0) {
@@ -692,19 +669,39 @@
             }
 
             container.innerHTML = html;
+
+            // Load failed items separately
+            apiGet('/jobs/' + jobId + '/items?status=failed&limit=50').then(function (itemsData) {
+                var failedItems = itemsData.data?.items || [];
+                if (failedItems.length > 0) {
+                    var failedHtml = '<h6>' + i18n.t('confluence_migration.report_items', 'Элементы с ошибками') + '</h6>' +
+                        '<div class="table-responsive"><table class="table table-sm">' +
+                        '<thead><tr><th>' + i18n.t('confluence_migration.report_source', 'Источник') + '</th><th>' + i18n.t('confluence_migration.report_type', 'Тип') + '</th><th>' + i18n.t('confluence_migration.report_error', 'Ошибка') + '</th></tr></thead><tbody>';
+
+                    failedItems.forEach(function (item) {
+                        failedHtml += '<tr><td>' + htmlEscape(item.source_key || item.source_id) + '</td>' +
+                            '<td>' + htmlEscape(item.source_type) + '</td>' +
+                            '<td><small class="text-muted">' + htmlEscape(item.error_message || '') + '</small></td></tr>';
+                    });
+
+                    failedHtml += '</tbody></table></div>';
+                    container.innerHTML += failedHtml;
+                }
+            }).catch(function () {});
         }).catch(function (err) {
             document.getElementById('reportContent').innerHTML = '<div class="text-danger">' + htmlEscape(err.message) + '</div>';
         });
     }
 
     function openKnowledgeBase() {
-        window.location.href = 'index.php?route=knowledge-list';
+        window.location.href = 'index.php?route=knowledge';
     }
 
     function retryFailed() {
         if (!state.jobId) return;
         apiPost('/jobs/' + state.jobId + '/retry-failed').then(function (data) {
-            state.jobId = data.data.public_id;
+            var job = data.data?.job || data.data;
+            state.jobId = job?.public_id || state.jobId;
             startPolling(state.jobId, false);
         }).catch(function (err) {
             alert(err.message);
