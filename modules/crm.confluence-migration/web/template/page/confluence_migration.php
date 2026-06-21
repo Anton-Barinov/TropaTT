@@ -74,53 +74,10 @@
                     <div id="connectionsList" class="mb-3">
                         <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
                     </div>
-                    <button class="btn crm-btn-primary" id="addConnectionBtn" data-bs-toggle="modal" data-bs-target="#connectionModal">
+                    <button class="btn crm-btn-primary" id="addConnectionBtn">
                         <i class="fa-solid fa-plus"></i>
                         <?= $t('confluence_migration.add_connection', 'Добавить подключение') ?>
                     </button>
-                </div>
-            </div>
-
-            <!-- Connection form modal -->
-            <div class="modal fade" id="connectionModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="connectionModalTitle"><?= $t('confluence_migration.new_connection', 'Новое подключение') ?></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label"><?= $t('confluence_migration.connection_name', 'Название подключения') ?></label>
-                                <input type="text" class="form-control" id="connName" placeholder="Ringme Confluence">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label"><?= $t('confluence_migration.base_url', 'Confluence Base URL') ?></label>
-                                <input type="url" class="form-control" id="connBaseUrl" placeholder="https://your-domain.atlassian.net/wiki">
-                                <small class="text-muted"><?= $t('confluence_migration.base_url_hint', 'URL вида https://your-domain.atlassian.net/wiki') ?></small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label"><?= $t('confluence_migration.email', 'Email') ?></label>
-                                <input type="email" class="form-control" id="connEmail" placeholder="user@example.com">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label"><?= $t('confluence_migration.api_token', 'API Token') ?></label>
-                                <input type="password" class="form-control" id="connApiToken" placeholder="">
-                                <small class="text-muted">
-                                    <?= $t('confluence_migration.token_hint', 'Создайте API токен в https://id.atlassian.com/manage/api-tokens') ?>
-                                </small>
-                            </div>
-                            <div id="connectionTestResult" class="d-none"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn crm-btn-secondary" id="testConnectionBtn">
-                                <?= $t('confluence_migration.test_connection', 'Проверить подключение') ?>
-                            </button>
-                            <button class="btn crm-btn-primary" id="saveConnectionBtn">
-                                <?= $t('confluence_migration.save_connection', 'Сохранить') ?>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -342,3 +299,46 @@
     </div>
 
 </main></div></div>
+
+<!-- Modal outside .crm-app to avoid sidebar z-index trapping -->
+<div class="modal fade" id="connectionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="connectionModalTitle"><?= $t('confluence_migration.new_connection', 'Новое подключение') ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label"><?= $t('confluence_migration.connection_name', 'Название подключения') ?></label>
+                    <input type="text" class="form-control" id="connName" placeholder="Ringme Confluence">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><?= $t('confluence_migration.base_url', 'Confluence Base URL') ?></label>
+                    <input type="url" class="form-control" id="connBaseUrl" placeholder="https://your-domain.atlassian.net/wiki">
+                    <small class="text-muted"><?= $t('confluence_migration.base_url_hint', 'URL вида https://your-domain.atlassian.net/wiki') ?></small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><?= $t('confluence_migration.email', 'Email') ?></label>
+                    <input type="email" class="form-control" id="connEmail" placeholder="user@example.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><?= $t('confluence_migration.api_token', 'API Token') ?></label>
+                    <input type="password" class="form-control" id="connApiToken" placeholder="">
+                    <small class="text-muted">
+                        <?= $t('confluence_migration.token_hint', 'Создайте API токен в https://id.atlassian.com/manage/api-tokens') ?>
+                    </small>
+                </div>
+                <div id="connectionTestResult" class="d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn crm-btn-secondary" id="testConnectionBtn">
+                    <?= $t('confluence_migration.test_connection', 'Проверить подключение') ?>
+                </button>
+                <button class="btn crm-btn-primary" id="saveConnectionBtn">
+                    <?= $t('confluence_migration.save_connection', 'Сохранить') ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
