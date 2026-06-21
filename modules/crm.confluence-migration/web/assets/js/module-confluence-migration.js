@@ -211,7 +211,9 @@
         document.getElementById('connApiToken').value = '';
         document.getElementById('connectionTestResult').classList.add('d-none');
         document.getElementById('testConnectionBtn').dataset.connId = '';
-        var modal = new bootstrap.Modal(document.getElementById('connectionModal'));
+        var modalEl = document.getElementById('connectionModal');
+        document.body.appendChild(modalEl);
+        var modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
 
@@ -232,8 +234,9 @@
             if (conn && conn.public_id) {
                 document.getElementById('testConnectionBtn').dataset.connId = conn.public_id;
             }
-            var modal = bootstrap.Modal.getInstance(document.getElementById('connectionModal'));
-            if (modal) modal.hide();
+            var modalEl = document.getElementById('connectionModal');
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
             loadConnections();
         }).catch(function (err) {
             alert(err.message);
