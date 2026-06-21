@@ -32,25 +32,74 @@ final class ConfluenceMacroRenderer
         // Handle ac:image
         $html = preg_replace('/<ac:image[^>]*>(.*?)<\/ac:image>/is', '', $html) ?? $html;
 
-        // Handle ac:link
+        // Handle ac:link (page, attachment, user references)
         $html = preg_replace_callback(
             '/<ac:link[^>]*>(.*?)<\/ac:link>/is',
             function ($match) {
-                // Extract ri:page or ri:attachment references
+                // Extract ri:page references
                 if (preg_match('/<ri:page[^>]*ri:content-title="([^"]*)"[^>]*\/>/is', $match[1], $titleMatch)) {
                     return '[page:' . $titleMatch[1] . ']';
                 }
                 if (preg_match('/<ri:page[^>]*ri:content-id="([^"]*)"[^>]*\/>/is', $match[1], $idMatch)) {
                     return '[page-id:' . $idMatch[1] . ']';
                 }
+                // Extract ri:attachment references
                 if (preg_match('/<ri:attachment[^>]*ri:filename="([^"]*)"[^>]*\/>/is', $match[1], $fileMatch)) {
                     return '[attachment:' . $fileMatch[1] . ']';
+                }
+                // Extract ri:user references -> display name with @mention
+                if (preg_match('/<ri:user[^>]*\/>/is', $match[1])) {
+                    $accountId = '';
+                    if (preg_match('/ri:account-id="([^"]*)"/i', $match[1], $accMatch)) {
+                        $accountId = $accMatch[1];
+                    }
+                    // Extract link text (display name)
+                    if (preg_match('/<ac:link-body>(.*?)<\/ac:link-body>/is', $match[1], $bodyMatch)) {
+                        $displayName = strip_tags($bodyMatch[1]);
+                        return '<span class="confluence-user-mention" data-account-id="' . htmlspecialchars($accountId) . '">@' . htmlspecialchars($displayName) . '</span>';
+                    }
+                    return '<span class="confluence-user-mention" data-account-id="' . htmlspecialchars($accountId) . '">@user</span>';
+                }
+                // Extract ri:group references
+                if (preg_match('/<ri:group[^>]*ri:group-id="([^"]*)"[^>]*\/>/is', $match[1], $groupMatch)) {
+                    if (preg_match('/<ac:link-body>(.*?)<\/ac:link-body>/is', $match[1], $bodyMatch)) {
+                        return '<span class="confluence-group-mention">@' . htmlspecialchars(strip_tags($bodyMatch[1])) . '</span>';
+                    }
+                    return '<span class="confluence-group-mention">@group</span>';
                 }
                 // Extract link text from inner ac:link-body
                 if (preg_match('/<ac:link-body>(.*?)<\/ac:link-body>/is', $match[1], $bodyMatch)) {
                     return strip_tags($bodyMatch[1]);
                 }
                 return '';
+            },
+            $html
+        ) ?? $html;
+
+        // Handle standalone <ri:user> mentions (not inside ac:link)
+        $html = preg_replace_callback(
+            '/<ri:user[^>]*\/>/is',
+            function ($match) {
+                $accountId = '';
+                if (preg_match('/ri:account-id="([^"]*)"/i', $match[0], $accMatch)) {
+                    $accountId = $accMatch[1];
+                }
+                if (preg_match('/ri:userkey="([^"]*)"/i', $match[0], $keyMatch)) {
+                    $accountId = $keyMatch[1];
+                }
+                return '<span class="confluence-user-mention" data-account-id="' . htmlspecialchars($accountId) . '">@mentioned user</span>';
+            },
+            $html
+        ) ?? $html;
+
+        // Handle standalone <ri:group> mentions
+        $html = preg_replace_callback(
+            '/<ri:group[^>]*\/>/is',
+            function ($match) {
+                if (preg_match('/ri:group-id="([^"]*)"/i', $match[0], $gMatch)) {
+                    return '<span class="confluence-group-mention">@group [' . htmlspecialchars($gMatch[1]) . ']</span>';
+                }
+                return '<span class="confluence-group-mention">@group</span>';
             },
             $html
         ) ?? $html;
@@ -115,12 +164,19 @@ final class ConfluenceMacroRenderer
                 return '<details><summary>' . $title . '</summary>' . $content . '</details>';
 
             case 'toc':
-                $warnings[] = ['macro' => 'toc', 'handling' => 'placeholder', 'message' => 'Table of contents not migrated. Use TropaTT page structure instead.'];
-                return '<div class="confluence-macro-placeholder"><em>[Table of contents — not migrated]</em></div>';
+                $style = $params['style'] ?? 'list';
+                $warnings[] = ['macro' => 'toc', 'handling' => 'structured', 'message' => 'Table of contents rendered from page headings'];
+                return '<div class="confluence-toc" data-confluence-toc="true">'
+                    . '<div class="confluence-toc-header"><strong>Contents</strong></div>'
+                    . '<div class="confluence-toc-body"><em class="text-muted">[Auto-generated from page headings]</em></div>'
+                    . '</div>';
 
             case 'children':
-                $warnings[] = ['macro' => 'children', 'handling' => 'placeholder', 'message' => 'Child pages listing not migrated.'];
-                return '<div class="confluence-macro-placeholder"><em>[Child pages — not migrated]</em></div>';
+                $warnings[] = ['macro' => 'children', 'handling' => 'structured', 'message' => 'Child pages listing — will be resolved during content processing'];
+                return '<div class="confluence-children" data-confluence-children="true">'
+                    . '<div class="confluence-children-header"><strong>Child pages</strong></div>'
+                    . '<div class="confluence-children-body"><em class="text-muted">[Child pages — imported separately]</em></div>'
+                    . '</div>';
 
             case 'excerpt':
                 return $body !== '' ? $body : '<div class="confluence-macro-placeholder"><em>[Excerpt — not migrated]</em></div>';

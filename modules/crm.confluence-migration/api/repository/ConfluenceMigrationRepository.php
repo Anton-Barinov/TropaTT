@@ -158,9 +158,13 @@ final class ConfluenceMigrationRepository
             $sets[] = 'started_at = COALESCE(started_at, :started_at)';
             $params['started_at'] = $now;
         }
-        if (in_array($status, ['completed', 'failed', 'cancelled'], true)) {
-            $sets[] = 'finished_at = :finished_at';
-            $params['finished_at'] = $now;
+        if (in_array($status, ['completed', 'failed', 'cancelled', 'cancelling'], true)) {
+            if ($status === 'cancelling') {
+                $sets[] = 'finished_at = NULL';
+            } elseif (in_array($status, ['completed', 'failed', 'cancelled'], true)) {
+                $sets[] = 'finished_at = :finished_at';
+                $params['finished_at'] = $now;
+            }
         }
 
         $this->pdo->prepare('UPDATE module_confluence_import_jobs SET ' . implode(', ', $sets) . ' WHERE public_id = :public_id')->execute($params);

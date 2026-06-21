@@ -51,7 +51,9 @@ final class ConfluenceAttachmentService
 
         try {
             // Download attachment
-            $downloadResult = (new ConfluenceClient())->downloadAttachment($baseUrl, $email, $token, $attachment, $tmpPath);
+            $downloadClient = new ConfluenceClient(repo: $this->migrationRepo);
+            $downloadClient->setConnectionId((int)$job['connection_id']);
+            $downloadResult = $downloadClient->downloadAttachment($baseUrl, $email, $token, $attachment, $tmpPath);
 
             if (!$downloadResult['success']) {
                 $this->migrationRepo->upsertJobItem($jobId, 'attachment', $attachmentId, [

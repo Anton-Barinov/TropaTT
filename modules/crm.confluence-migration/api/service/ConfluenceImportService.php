@@ -46,6 +46,9 @@ final class ConfluenceImportService
         $baseUrl = (string)$connection['base_url'];
         $email = (string)$connection['email'];
 
+        $this->client->setConnectionId((int)$connection['id']);
+        $this->migrationRepo->initRateLimit((int)$connection['id']);
+
         $this->migrationRepo->updateJobStatus($jobPublicId, 'running');
         $this->migrationRepo->updateJobProgress($jobPublicId, 'crawl', 0, []);
 
@@ -70,48 +73,74 @@ final class ConfluenceImportService
         $options = $this->getJobOptions($job);
 
         // Step 2: Import spaces
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $this->migrationRepo->updateJobProgress($jobPublicId, 'import_spaces', 10, []);
         $this->importSpaces($job, $baseUrl, $email, $token);
 
-        // Step 3: Import page shells (all pages, no content)
+        // Step 3: Import page shells
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $this->migrationRepo->updateJobProgress($jobPublicId, 'import_page_shells', 25, []);
         $this->importPageShells($job, $baseUrl, $email, $token);
 
         // Step 4: Import page content
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $this->migrationRepo->updateJobProgress($jobPublicId, 'import_content', 50, []);
-        $this->importPageContent($job, $baseUrl, $email, $token, $options);
+        $this->importPageContent($job, $baseUrl, $email, $token, $options, (int)$connection['id']);
 
-        // Step 5: Import attachments
-        $this->migrationRepo->updateJobProgress($jobPublicId, 'import_attachments', 70, []);
+        // Step 5: Import versions
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
+        $this->migrationRepo->updateJobProgress($jobPublicId, 'import_versions', 60, []);
+        $this->importVersions($job, $baseUrl, $email, $token);
+
+        // Step 6: Import attachments
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
+        $this->migrationRepo->updateJobProgress($jobPublicId, 'import_attachments', 65, []);
         if (!empty($options['import_attachments'])) {
-            $this->importAttachments($job, $baseUrl, $email, $token, $options);
+            $this->importAttachments($job, $baseUrl, $email, $token, $options, (int)$connection['id']);
         }
 
-        // Step 6: Import labels
-        $this->migrationRepo->updateJobProgress($jobPublicId, 'import_labels', 85, []);
+        // Step 7: Import labels
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
+        $this->migrationRepo->updateJobProgress($jobPublicId, 'import_labels', 80, []);
         if (!empty($options['import_labels'])) {
             $this->importLabels($job, $baseUrl, $email, $token);
         }
 
-        // Step 7: Import comments
+        // Step 8: Import comments
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         if (!empty($options['import_comments'])) {
-            $this->importComments($job, $baseUrl, $email, $token);
+            $this->importComments($job, $baseUrl, $email, $token, (int)$connection['id']);
         }
 
-        // Step 8: Publish pages
+        // Step 9: Publish pages
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $this->migrationRepo->updateJobProgress($jobPublicId, 'publish', 95, []);
         if (!empty($options['publish_pages'])) {
             $this->publishPages($job);
         }
 
-        // Step 9: Reindex
+        // Step 10: Reindex
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $this->reindexJobPages($job);
 
         // Complete
+        if ($this->isCancelling($job)) { $this->finaliseCancelled($jobPublicId); return; }
         $stats = $this->migrationRepo->countJobItemsByStatus($jobId);
         $this->migrationRepo->updateJobProgress($jobPublicId, 'completed', 100, $stats);
         $this->migrationRepo->updateJobStatus($jobPublicId, 'completed');
         $this->migrationRepo->addJobLog($jobPublicId, 'info', 'completed', 'Migration completed');
+    }
+
+    private function finaliseCancelled(string $jobPublicId): void
+    {
+        $this->migrationRepo->updateJobStatus($jobPublicId, 'cancelled');
+        $this->migrationRepo->addJobLog($jobPublicId, 'info', 'cancelled', 'Job cancelled gracefully');
+    }
+
+    private function isCancelling(array $job): bool
+    {
+        $current = $this->migrationRepo->getJob((string)$job['public_id']);
+        return $current !== null && ($current['status'] ?? '') === 'cancelling';
     }
 
     private function getJobOptions(array $job): array
@@ -191,6 +220,11 @@ final class ConfluenceImportService
         }
     }
 
+    private function processableItems(array $items): array
+    {
+        return array_filter($items, fn($i) => in_array($i['source_type'], ['page', 'blogpost'], true) && $i['target_public_id'] !== null);
+    }
+
     private function importPageShells(array $job, string $baseUrl, string $email, string $token): void
     {
         $jobId = (int)$job['id'];
@@ -198,9 +232,9 @@ final class ConfluenceImportService
         $userId = (int)($job['created_by_user_id'] ?? 0);
         $spaceKeys = json_decode((string)($job['source_space_keys_json'] ?? '[]'), true) ?? [];
 
-        // Get pending page items
-        $pendingPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'pending', 500);
-        $pageItems = array_filter($pendingPages, fn($i) => $i['source_type'] === 'page');
+        // Get pending items (pages + blogposts)
+        $pendingItems = $this->migrationRepo->findJobItemsByStatus($jobId, 'pending', 500);
+        $pageItems = array_filter($pendingItems, fn($i) => $i['source_type'] === 'page' || $i['source_type'] === 'blogpost');
 
         // Need a 2-pass approach: first create all shells, then set parents
         $shellsCreated = []; // confluence_id => target_public_id
@@ -300,14 +334,14 @@ final class ConfluenceImportService
         }
     }
 
-    private function importPageContent(array $job, string $baseUrl, string $email, string $token, array $options): void
+    private function importPageContent(array $job, string $baseUrl, string $email, string $token, array $options, int $connectionId = 0): void
     {
         $jobId = (int)$job['id'];
         $jobPublicId = (string)$job['public_id'];
         $userId = (int)($job['created_by_user_id'] ?? 0);
 
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
-        $pageItems = array_filter($importedPages, fn($i) => $i['source_type'] === 'page' && $i['target_public_id'] !== null);
+        $pageItems = $this->processableItems($importedPages);
 
         // Build page mapping for link rewriting
         $pageMapping = [];
@@ -320,16 +354,32 @@ final class ConfluenceImportService
             $targetPublicId = (string)$item['target_public_id'];
 
             try {
-                // Fetch page body from Confluence
-                $confluencePage = $this->client->getPage($baseUrl, $email, $token, $pageId);
+                // Fetch page or blog post body from Confluence
+                if ($item['source_type'] === 'blogpost') {
+                    $confluencePage = $this->client->getBlogPost($baseUrl, $email, $token, $pageId);
+                } else {
+                    $confluencePage = $this->client->getPage($baseUrl, $email, $token, $pageId);
+                }
                 $storageHtml = $confluencePage['body']['storage']['value'] ?? '';
 
                 if ($storageHtml === '') {
-                    $this->migrationRepo->upsertJobItem($jobId, 'page', $pageId, [
+                    $this->migrationRepo->upsertJobItem($jobId, $item['source_type'], $pageId, [
                         'status' => 'imported',
                         'error_code' => 'EMPTY_CONTENT',
                     ]);
                     continue;
+                }
+
+                // Upsert user mapping for author
+                $authorId = $confluencePage['authorId'] ?? null;
+                if ($authorId !== null && $authorId !== '' && $connectionId > 0) {
+                    $displayName = $confluencePage['title'] ?? '';
+                    $this->migrationRepo->upsertUserMapping(
+                        $connectionId,
+                        $authorId,
+                        $displayName,
+                        null,
+                    );
                 }
 
                 // Transform
@@ -355,24 +405,74 @@ final class ConfluenceImportService
                         ],
                     ],
                 ], $userId);
+
+                // Extract page properties from metadata
+                if (!empty($confluencePage['metadata']['properties']['results'])) {
+                    foreach ($confluencePage['metadata']['properties']['results'] as $prop) {
+                        $propKey = (string)($prop['key'] ?? '');
+                        $propValue = $prop['value'] ?? '';
+                        if ($propKey !== '') {
+                            try {
+                                $this->knowledgeRepo->setPageProperty(
+                                    $targetPublicId,
+                                    'confluence:' . $propKey,
+                                    is_string($propValue) ? $propValue : json_encode($propValue, JSON_UNESCAPED_UNICODE),
+                                    'string',
+                                    'confluence',
+                                    $pageId,
+                                );
+                            } catch (\Throwable) {
+                            }
+                        }
+                    }
+                }
             } catch (\Throwable $e) {
-                $this->migrationRepo->upsertJobItem($jobId, 'page', $pageId, [
+                $type = $item['source_type'] ?? 'page';
+                $this->migrationRepo->upsertJobItem($jobId, $type, $pageId, [
                     'status' => 'failed',
                     'error_code' => 'CONTENT_ERROR',
                     'error_message' => $e->getMessage(),
                 ]);
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_content', 'Failed to import content for page ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_content', 'Failed to import content for ' . $type . ' ' . $pageId . ': ' . $e->getMessage());
             }
         }
     }
 
-    private function importAttachments(array $job, string $baseUrl, string $email, string $token, array $options): void
+    private function importVersions(array $job, string $baseUrl, string $email, string $token): void
+    {
+        $jobId = (int)$job['id'];
+        $jobPublicId = (string)$job['public_id'];
+        $userId = (int)($job['created_by_user_id'] ?? 0);
+
+        $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
+        $pageItems = $this->processableItems($importedPages);
+
+        foreach ($pageItems as $item) {
+            $pageId = $item['source_id'];
+            $targetPublicId = (string)$item['target_public_id'];
+
+            try {
+                $versions = $this->client->getPageVersions($baseUrl, $email, $token, $pageId);
+                foreach ($versions as $version) {
+                    $this->knowledgeRepo->legacyAddVersion(
+                        $targetPublicId,
+                        $userId,
+                        '[Confluence v' . $version['number'] . '] ' . ($version['message'] ?: 'Imported from Confluence'),
+                    );
+                }
+            } catch (\Throwable $e) {
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_versions', 'Failed to import versions for page ' . $pageId . ': ' . $e->getMessage());
+            }
+        }
+    }
+
+    private function importAttachments(array $job, string $baseUrl, string $email, string $token, array $options, int $connectionId = 0): void
     {
         $jobId = (int)$job['id'];
         $jobPublicId = (string)$job['public_id'];
 
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
-        $pageItems = array_filter($importedPages, fn($i) => $i['source_type'] === 'page' && $i['target_public_id'] !== null);
+        $pageItems = $this->processableItems($importedPages);
 
         foreach ($pageItems as $item) {
             $pageId = $item['source_id'];
@@ -402,7 +502,7 @@ final class ConfluenceImportService
         $jobPublicId = (string)$job['public_id'];
 
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
-        $pageItems = array_filter($importedPages, fn($i) => $i['source_type'] === 'page' && $i['target_public_id'] !== null);
+        $pageItems = $this->processableItems($importedPages);
 
         foreach ($pageItems as $item) {
             $pageId = $item['source_id'];
@@ -441,14 +541,14 @@ final class ConfluenceImportService
         }
     }
 
-    private function importComments(array $job, string $baseUrl, string $email, string $token): void
+    private function importComments(array $job, string $baseUrl, string $email, string $token, int $connectionId = 0): void
     {
         $jobId = (int)$job['id'];
         $jobPublicId = (string)$job['public_id'];
         $userId = (int)($job['created_by_user_id'] ?? 0);
 
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
-        $pageItems = array_filter($importedPages, fn($i) => $i['source_type'] === 'page' && $i['target_public_id'] !== null);
+        $pageItems = $this->processableItems($importedPages);
 
         foreach ($pageItems as $item) {
             $pageId = $item['source_id'];
@@ -463,6 +563,17 @@ final class ConfluenceImportService
                     }
 
                     $authorName = $comment['authorName'] ?? 'Unknown Confluence user';
+                    $authorAccountId = $comment['authorId'] ?? null;
+
+                    if ($authorAccountId !== null && $connectionId > 0) {
+                        $this->migrationRepo->upsertUserMapping(
+                            $connectionId,
+                            $authorAccountId,
+                            $authorName,
+                            null,
+                        );
+                    }
+
                     $commentBody = '<p><strong>Confluence author:</strong> ' . htmlspecialchars($authorName) . '</p>' . $body;
 
                     $sourceData = [
@@ -493,7 +604,7 @@ final class ConfluenceImportService
         $userId = (int)($job['created_by_user_id'] ?? 0);
 
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
-        $pageItems = array_filter($importedPages, fn($i) => $i['source_type'] === 'page' && $i['target_public_id'] !== null);
+        $pageItems = $this->processableItems($importedPages);
 
         foreach ($pageItems as $item) {
             $targetPublicId = (string)$item['target_public_id'];
@@ -511,7 +622,7 @@ final class ConfluenceImportService
         $importedPages = $this->migrationRepo->findJobItemsByStatus($jobId, 'imported', 500);
 
         foreach ($importedPages as $item) {
-            if ($item['source_type'] === 'page' && $item['target_public_id'] !== null) {
+            if (in_array($item['source_type'], ['page', 'blogpost'], true) && $item['target_public_id'] !== null) {
                 try {
                     $page = $this->knowledgeRepo->page((string)$item['target_public_id']);
                     if ($page) {

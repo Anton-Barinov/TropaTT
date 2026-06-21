@@ -171,7 +171,7 @@ function buildImportService(object $app): ConfluenceImportService
     return new ConfluenceImportService(
         $knowledgeRepo,
         $migrationRepo,
-        new ConfluenceClient(),
+        new ConfluenceClient(repo: $migrationRepo),
         new ConfluenceTransformer(
             new ConfluenceMacroRenderer(),
             new ConfluenceLinkRewriter($migrationRepo),

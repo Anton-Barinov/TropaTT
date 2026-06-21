@@ -240,7 +240,8 @@ final class ConfluenceMigrationController
             return JsonResponse::error('CONFLUENCE_AUTH_FAILED', 'Failed to decrypt token', 500);
         }
 
-        $client = new ConfluenceClient();
+        $client = new ConfluenceClient(repo: $this->repo);
+        $client->setConnectionId((int)$connection['id']);
         $result = $client->testConnection(
             (string)$connection['base_url'],
             (string)$connection['email'],
@@ -287,7 +288,8 @@ final class ConfluenceMigrationController
         $includeArchived = !empty($body['include_archived']);
         $sampleLimit = (int)($body['sample_limit'] ?? 100);
 
-        $client = new ConfluenceClient();
+        $client = new ConfluenceClient(repo: $this->repo);
+        $client->setConnectionId((int)$connection['id']);
         $spaces = $client->getSpaces(
             (string)$connection['base_url'],
             (string)$connection['email'],
@@ -477,9 +479,9 @@ final class ConfluenceMigrationController
             return JsonResponse::error('INVALID_JOB_STATUS', 'Job is already in final state', 409);
         }
 
-        $this->repo->updateJobStatus($publicId, 'cancelled');
-        $this->repo->addJobLog($publicId, 'info', 'cancelled', 'Job cancelled by user');
-        return JsonResponse::success('JOB_CANCELLED', 'Job cancelled', ['job' => $this->repo->getJob($publicId)]);
+        $this->repo->updateJobStatus($publicId, 'cancelling');
+        $this->repo->addJobLog($publicId, 'info', 'cancelling', 'Job cancel requested — worker will finish current item then stop');
+        return JsonResponse::success('JOB_CANCELLING', 'Job cancel requested', ['job' => $this->repo->getJob($publicId)]);
     }
 
     public function retryFailed(array $params = []): JsonResponse

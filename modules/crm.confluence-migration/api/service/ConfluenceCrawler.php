@@ -91,6 +91,29 @@ final class ConfluenceCrawler
                 ]);
                 $totalCreated++;
             }
+
+            // Crawl blog posts
+            $allBlogPosts = $this->client->getBlogPostsForSpace($baseUrl, $email, $token, $spaceId);
+            foreach ($allBlogPosts as $post) {
+                $status = $post['status'] === 'current' ? 'pending' : 'skipped';
+                $payload = [
+                    'title' => $post['title'],
+                    'space_key' => $spaceKey,
+                    'space_id' => $spaceId,
+                    'version' => $post['version'],
+                    'created_at' => $post['createdAt'],
+                    'updated_at' => $post['updatedAt'],
+                    'type' => 'blogpost',
+                ];
+
+                $this->repo->upsertJobItem($jobId, 'blogpost', $post['id'], [
+                    'source_key' => $spaceKey . ':blog:' . $post['id'],
+                    'status' => $mode === 'dry_run' ? 'skipped' : $status,
+                    'source_updated_at' => $post['updatedAt'],
+                    'payload_json' => $payload,
+                ]);
+                $totalCreated++;
+            }
         }
 
         if ($mode === 'dry_run') {
