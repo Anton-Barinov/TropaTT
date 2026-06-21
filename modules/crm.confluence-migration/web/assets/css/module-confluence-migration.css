@@ -15,7 +15,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 12px;
-    border-radius: var(--radius-md);
+    border-radius: 6px !important;
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--crm-text-muted);
