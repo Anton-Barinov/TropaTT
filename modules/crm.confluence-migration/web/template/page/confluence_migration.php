@@ -28,20 +28,26 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link disabled" data-step="preview" href="#">
+                        <a class="nav-link disabled" data-step="mappings" href="#">
                             <span class="step-number">4</span>
+                            <?= $t('confluence_migration.step_mappings', 'Пользователи') ?>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled" data-step="preview" href="#">
+                            <span class="step-number">5</span>
                             <?= $t('confluence_migration.step_preview', 'Предпросмотр') ?>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link disabled" data-step="run" href="#">
-                            <span class="step-number">5</span>
+                            <span class="step-number">6</span>
                             <?= $t('confluence_migration.step_run', 'Выполнение') ?>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link disabled" data-step="report" href="#">
-                            <span class="step-number">6</span>
+                            <span class="step-number">7</span>
                             <?= $t('confluence_migration.step_report', 'Отчет') ?>
                         </a>
                     </li>
@@ -192,13 +198,47 @@
                 <button class="crm-btn-secondary me-2" id="backToSourceBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
-                <button class="crm-btn-primary" id="runDryRunBtn">
-                    <i class="fa-solid fa-flask"></i> <?= $t('confluence_migration.dry_run', 'Пробный прогон') ?>
+                <button class="crm-btn-primary" id="toMappingsBtn">
+                    <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Step 4: Preview -->
+        <!-- Step 4: Mappings -->
+        <div id="step-mappings" class="migration-step d-none">
+            <div class="crm-card mb-3">
+                <div class="crm-card-header">
+                    <h5 class="mb-0"><?= $t('confluence_migration.mappings_title', 'Сопоставление пользователей') ?></h5>
+                </div>
+                <div class="crm-card-body">
+                    <p class="text-muted"><?= $t('confluence_migration.mappings_desc', 'Сопоставьте пользователей Confluence с пользователями TropaTT. Несопоставленные пользователи будут отображаться как текст.') ?></p>
+                    <ul class="nav nav-tabs mb-3" id="mappingTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-mapping-tab="users" href="#"><?= $t('confluence_migration.mappings_users', 'Пользователи') ?></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-mapping-tab="groups" href="#"><?= $t('confluence_migration.mappings_groups', 'Группы') ?></a>
+                        </li>
+                    </ul>
+                    <div id="mappingsList">
+                        <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
+                    </div>
+                    <div id="mappingsGroupsList" class="d-none">
+                        <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-end mt-3">
+                <button class="crm-btn-secondary me-2" id="backToMappingsBtn">
+                    <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
+                </button>
+                <button class="crm-btn-primary" id="toPreviewFromMappingsBtn">
+                    <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 5: Preview -->
         <div id="step-preview" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
@@ -209,7 +249,7 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="backToSettingsBtn">
+                <button class="crm-btn-secondary me-2" id="backToMappingsFromPreviewBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
                 <button class="crm-btn-primary" id="startImportBtn">
@@ -218,7 +258,7 @@
             </div>
         </div>
 
-        <!-- Step 5: Execution -->
+        <!-- Step 6: Execution -->
         <div id="step-run" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
@@ -268,7 +308,7 @@
             </div>
         </div>
 
-        <!-- Step 6: Report -->
+        <!-- Step 7: Report -->
         <div id="step-report" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">

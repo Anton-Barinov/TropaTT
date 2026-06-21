@@ -110,7 +110,7 @@ final class ConfluenceJobService
         return new ConfluenceImportService(
             $this->knowledgeRepo,
             $this->migrationRepo,
-            new ConfluenceClient(),
+            new ConfluenceClient(repo: $this->migrationRepo),
             new ConfluenceTransformer(
                 new ConfluenceMacroRenderer(),
                 new ConfluenceLinkRewriter($this->migrationRepo),

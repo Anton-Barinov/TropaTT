@@ -53,8 +53,17 @@
         document.getElementById('backToConnectionsBtn')?.addEventListener('click', () => goToStep('connections'));
         document.getElementById('toSettingsBtn')?.addEventListener('click', () => goToStep('settings'));
         document.getElementById('backToSourceBtn')?.addEventListener('click', () => goToStep('source'));
-        document.getElementById('runDryRunBtn')?.addEventListener('click', runDryRun);
-        document.getElementById('backToSettingsBtn')?.addEventListener('click', () => goToStep('settings'));
+        document.getElementById('toMappingsBtn')?.addEventListener('click', runDryRun);
+        document.getElementById('backToMappingsBtn')?.addEventListener('click', () => goToStep('settings'));
+        document.getElementById('toPreviewFromMappingsBtn')?.addEventListener('click', function () {
+            if (state.jobId) {
+                goToStep('preview');
+                showPreview(state.jobId);
+            } else {
+                goToStep('settings');
+            }
+        });
+        document.getElementById('backToMappingsFromPreviewBtn')?.addEventListener('click', () => goToStep('mappings'));
         document.getElementById('startImportBtn')?.addEventListener('click', startImport);
         document.getElementById('pauseJobBtn')?.addEventListener('click', pauseJob);
         document.getElementById('resumeJobBtn')?.addEventListener('click', resumeJob);
@@ -64,6 +73,21 @@
         document.getElementById('newMigrationBtn')?.addEventListener('click', resetAll);
 
         document.getElementById('spaceSearch')?.addEventListener('input', filterSpaces);
+
+        // Mapping tabs
+        document.querySelectorAll('[data-mapping-tab]').forEach(function (tab) {
+            tab.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('[data-mapping-tab]').forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                var target = tab.dataset.mappingTab;
+                document.getElementById('mappingsList').classList.toggle('d-none', target !== 'users');
+                document.getElementById('mappingsGroupsList').classList.toggle('d-none', target !== 'groups');
+                if (target === 'groups' && state.connectionId) {
+                    loadGroupMappings(state.connectionId);
+                }
+            });
+        });
 
         // Auto-load connections
         loadConnections();
@@ -96,6 +120,10 @@
     function apiPatch(path, body) { return apiFetch('PATCH', path, body); }
     function apiDelete(path) { return apiFetch('DELETE', path); }
 
+    function apiPathWithConn(path) {
+        return '/connections/' + state.connectionId + path;
+    }
+
     // --- Step navigation ---
 
     function goToStep(step) {
@@ -118,6 +146,11 @@
                 link.classList.add('disabled');
             }
         });
+
+        // Load data on step enter
+        if (step === 'mappings' && state.connectionId) {
+            loadMappings(state.connectionId);
+        }
     }
 
     // --- Connections ---
@@ -312,6 +345,102 @@
         });
     }
 
+    function loadMappings(connectionId) {
+        var container = document.getElementById('mappingsList');
+        container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
+
+        apiGet('/connections/' + connectionId + '/user-mappings').then(function (data) {
+            var mappings = data.data?.mappings || [];
+            if (mappings.length === 0) {
+                container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_users', 'Нет пользователей для сопоставления') + '</div>';
+                return;
+            }
+
+            var html = '<div class="table-responsive"><table class="table table-sm">' +
+                '<thead><tr><th>' + i18n.t('confluence_migration.mapping_confluence_user', 'Пользователь Confluence') + '</th>' +
+                '<th>' + i18n.t('confluence_migration.mapping_crm_user', 'Пользователь CRM') + '</th>' +
+                '<th>' + i18n.t('confluence_migration.mapping_status', 'Статус') + '</th>' +
+                '<th></th></tr></thead><tbody>';
+
+            mappings.forEach(function (m) {
+                var statusLabel = m.mapping_status === 'unmapped'
+                    ? '<span class="badge bg-warning">' + i18n.t('confluence_migration.mapping_unmapped', 'Не сопоставлен') + '</span>'
+                    : m.mapping_status === 'auto'
+                    ? '<span class="badge bg-success">' + i18n.t('confluence_migration.mapping_auto', 'Авто') + '</span>'
+                    : '<span class="badge bg-info">' + i18n.t('confluence_migration.mapping_manual', 'Ручной') + '</span>';
+
+                html += '<tr data-mapping-id="' + m.id + '">' +
+                    '<td>' + htmlEscape(m.confluence_display_name || m.confluence_account_id) + '</td>' +
+                    '<td>' +
+                    '<select class="form-select form-select-sm crm-user-select" data-mapping-id="' + m.id + '" style="min-width:180px">' +
+                    '<option value="">— ' + i18n.t('confluence_migration.mapping_unmapped', 'Не сопоставлен') + ' —</option>' +
+                    '</select>' +
+                    '</td>' +
+                    '<td class="mapping-status-cell">' + statusLabel + '</td>' +
+                    '<td><button class="btn btn-sm crm-btn-primary save-mapping-btn" data-mapping-id="' + m.id + '">' + i18n.t('confluence_migration.mapping_save', 'Сохранить') + '</button></td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+            // Load CRM users for each select
+            container.querySelectorAll('.save-mapping-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var mid = btn.dataset.mappingId;
+                    var select = container.querySelector('.crm-user-select[data-mapping-id="' + mid + '"]');
+                    var crmUserPublicId = select ? select.value : '';
+                    saveUserMapping(mid, crmUserPublicId);
+                });
+            });
+        }).catch(function (err) {
+            container.innerHTML = '<div class="text-danger py-3">' + htmlEscape(err.message) + '</div>';
+        });
+    }
+
+    function saveUserMapping(mappingId, crmUserPublicId) {
+        apiPatch('/connections/' + state.connectionId + '/user-mappings/' + mappingId, {
+            crm_user_public_id: crmUserPublicId,
+            mapping_status: crmUserPublicId ? 'manual' : 'unmapped',
+        }).then(function () {
+            var statusCell = document.querySelector('tr[data-mapping-id="' + mappingId + '"] .mapping-status-cell');
+            if (statusCell) {
+                var badge = crmUserPublicId
+                    ? '<span class="badge bg-info">' + i18n.t('confluence_migration.mapping_manual', 'Ручной') + '</span>'
+                    : '<span class="badge bg-warning">' + i18n.t('confluence_migration.mapping_unmapped', 'Не сопоставлен') + '</span>';
+                statusCell.innerHTML = badge;
+            }
+        }).catch(function (err) {
+            alert(err.message);
+        });
+    }
+
+    function loadGroupMappings(connectionId) {
+        var container = document.getElementById('mappingsGroupsList');
+        container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
+
+        apiGet('/connections/' + connectionId + '/group-mappings').then(function (data) {
+            var mappings = data.data?.mappings || [];
+            if (mappings.length === 0) {
+                container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_groups', 'Нет групп для сопоставления') + '</div>';
+                return;
+            }
+            var html = '<div class="table-responsive"><table class="table table-sm">' +
+                '<thead><tr><th>' + i18n.t('confluence_migration.mapping_confluence_user', 'Группа Confluence') + '</th>' +
+                '<th>' + i18n.t('confluence_migration.mapping_crm_user', 'Группа CRM') + '</th>' +
+                '<th>' + i18n.t('confluence_migration.mapping_status', 'Статус') + '</th></tr></thead><tbody>';
+            mappings.forEach(function (m) {
+                html += '<tr><td>' + htmlEscape(m.confluence_group_name) + '</td>' +
+                    '<td>' + htmlEscape(m.crm_subject_public_id || '—') + '</td>' +
+                    '<td>' + htmlEscape(m.mapping_status) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }).catch(function () {
+            container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_groups', 'Нет групп для сопоставления') + '</div>';
+        });
+    }
+
     // --- Import ---
 
     function startImport() {
@@ -391,7 +520,8 @@
             if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
                 stopPolling();
                 if (isDryRun) {
-                    showPreview(jobId);
+                    goToStep('mappings');
+                    loadMappings(state.connectionId);
                 } else {
                     showReport(jobId);
                 }
@@ -431,6 +561,7 @@
             'import_labels': i18n.t('confluence_migration.step_import_labels', 'Импорт тегов...'),
             'import_comments': i18n.t('confluence_migration.step_import_comments', 'Импорт комментариев...'),
             'import_content': i18n.t('confluence_migration.step_import_content', 'Перенос содержимого...'),
+            'import_versions': i18n.t('confluence_migration.step_import_versions', 'Импорт версий...'),
             'publishing': i18n.t('confluence_migration.step_publishing', 'Публикация...'),
             'reindexing': i18n.t('confluence_migration.step_reindexing', 'Индексация...'),
             'done': i18n.t('confluence_migration.step_done', 'Завершено'),

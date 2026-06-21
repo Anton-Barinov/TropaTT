@@ -3,17 +3,29 @@ declare(strict_types=1);
 
 namespace Module\Crm\ConfluenceMigration\Service;
 
+use Module\Crm\ConfluenceMigration\Repository\ConfluenceMigrationRepository;
 use RuntimeException;
 
 final class ConfluenceClient
 {
+    private const MAX_REQUESTS_PER_WINDOW = 100;
+    private const WINDOW_SECONDS = 60;
+
     private int $timeout;
     private int $maxRetries;
+    private ?ConfluenceMigrationRepository $repo = null;
+    private ?int $connectionId = null;
 
-    public function __construct(int $timeout = 30, int $maxRetries = 3)
+    public function __construct(int $timeout = 30, int $maxRetries = 3, ?ConfluenceMigrationRepository $repo = null)
     {
         $this->timeout = $timeout;
         $this->maxRetries = $maxRetries;
+        $this->repo = $repo;
+    }
+
+    public function setConnectionId(?int $connectionId): void
+    {
+        $this->connectionId = $connectionId;
     }
 
     private function request(string $baseUrl, string $email, string $token, string $path, string $method = 'GET', ?array $query = null): array
@@ -23,56 +35,151 @@ final class ConfluenceClient
             $url .= '?' . http_build_query($query);
         }
 
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Basic ' . base64_encode($email . ':' . $token),
-                'Accept: application/json',
-                'User-Agent: TropaTT-Confluence-Migration/1.0',
-            ],
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
+        for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
+            $this->waitIfRateLimited();
 
-        if ($method === 'HEAD') {
-            curl_setopt($ch, CURLOPT_NOBODY, true);
+            $responseHeaders = [];
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => $this->timeout,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Basic ' . base64_encode($email . ':' . $token),
+                    'Accept: application/json',
+                    'User-Agent: TropaTT-Confluence-Migration/1.0',
+                ],
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_HEADERFUNCTION => function ($curl, $headerLine) use (&$responseHeaders) {
+                    $len = strlen($headerLine);
+                    if (stripos($headerLine, 'Retry-After:') === 0) {
+                        $responseHeaders['retry-after'] = (int)trim(substr($headerLine, 12));
+                    } elseif (stripos($headerLine, 'X-RateLimit-Remaining:') === 0) {
+                        $responseHeaders['rate-remaining'] = (int)trim(substr($headerLine, 21));
+                    }
+                    return $len;
+                },
+            ]);
+
+            if ($method === 'HEAD') {
+                curl_setopt($ch, CURLOPT_NOBODY, true);
+            }
+
+            $body = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($body === false || $body === '') {
+                $body = '{}';
+            }
+
+            // Track request for rate limiting
+            $this->trackRequest();
+
+            if ($httpCode === 429) {
+                $retryAfter = isset($responseHeaders['retry-after']) ? max(1, (int)$responseHeaders['retry-after']) : (5 * $attempt);
+                $this->storeRateLimitRetry($retryAfter);
+
+                if ($attempt < $this->maxRetries) {
+                    fwrite(STDERR, "Rate limited (429), retrying in {$retryAfter}s (attempt {$attempt}/{$this->maxRetries})...\n");
+                    sleep($retryAfter);
+                    continue;
+                }
+
+                throw new RuntimeException("CONFLUENCE_RATE_LIMITED: Exhausted {$this->maxRetries} retries", 429);
+            }
+
+            if ($httpCode === 401) {
+                throw new RuntimeException('CONFLUENCE_AUTH_FAILED: Invalid email or API token', 401);
+            }
+
+            if ($httpCode === 403) {
+                throw new RuntimeException('CONFLUENCE_FORBIDDEN: Account lacks permissions', 403);
+            }
+
+            if ($httpCode === 404) {
+                throw new RuntimeException('CONFLUENCE_NOT_FOUND: Resource not found', 404);
+            }
+
+            if ($httpCode < 200 || $httpCode >= 300) {
+                throw new RuntimeException("CONFLUENCE_ERROR: HTTP $httpCode: " . mb_substr($body, 0, 200), $httpCode);
+            }
+
+            // Success - reset rate limit window if we were close
+            $this->trackRequestSuccess();
+
+            $decoded = json_decode($body, true);
+            return is_array($decoded) ? $decoded : [];
         }
 
-        $body = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+        throw new RuntimeException('CONFLUENCE_RATE_LIMITED: Max retries reached', 429);
+    }
 
-        if ($body === false || $body === '') {
-            $body = '{}';
+    private function waitIfRateLimited(): void
+    {
+        if ($this->repo === null || $this->connectionId === null) {
+            return;
         }
 
-        if ($httpCode === 429) {
-            throw new RuntimeException('CONFLUENCE_RATE_LIMITED', 429);
+        $rateLimit = $this->repo->getRateLimit($this->connectionId);
+        if ($rateLimit === null) {
+            $this->repo->initRateLimit($this->connectionId);
+            return;
         }
 
-        if ($httpCode === 401) {
-            throw new RuntimeException('CONFLUENCE_AUTH_FAILED: Invalid email or API token', 401);
+        // Check retry-after
+        if (!empty($rateLimit['retry_after_until'])) {
+            $retryUntil = strtotime((string)$rateLimit['retry_after_until']);
+            if ($retryUntil > time()) {
+                $sleep = $retryUntil - time() + 1;
+                fwrite(STDERR, "Rate limited, sleeping {$sleep}s...\n");
+                sleep($sleep);
+            }
         }
 
-        if ($httpCode === 403) {
-            throw new RuntimeException('CONFLUENCE_FORBIDDEN: Account lacks permissions', 403);
-        }
+        // Check window-based limit
+        if (!empty($rateLimit['window_started_at'])) {
+            $windowStart = strtotime((string)$rateLimit['window_started_at']);
+            $requestsMade = (int)($rateLimit['requests_made'] ?? 0);
+            $elapsed = time() - $windowStart;
 
-        if ($httpCode === 404) {
-            throw new RuntimeException('CONFLUENCE_NOT_FOUND: Resource not found', 404);
+            if ($elapsed < self::WINDOW_SECONDS && $requestsMade >= self::MAX_REQUESTS_PER_WINDOW) {
+                $sleep = self::WINDOW_SECONDS - $elapsed + 1;
+                fwrite(STDERR, "Request window exhausted, sleeping {$sleep}s...\n");
+                sleep($sleep);
+            }
         }
+    }
 
-        if ($httpCode < 200 || $httpCode >= 300) {
-            throw new RuntimeException("CONFLUENCE_ERROR: HTTP $httpCode: " . mb_substr($body, 0, 200), $httpCode);
+    private function trackRequest(): void
+    {
+        if ($this->repo === null || $this->connectionId === null) {
+            return;
         }
+        // Increment request counter (or reset window if expired)
+        $rateLimit = $this->repo->getRateLimit($this->connectionId);
+        if ($rateLimit) {
+            $windowStart = !empty($rateLimit['window_started_at']) ? strtotime((string)$rateLimit['window_started_at']) : 0;
+            $reset = (time() - $windowStart) >= self::WINDOW_SECONDS;
+            $this->repo->updateRateLimitAfterRequest($this->connectionId, $reset);
+        }
+    }
 
-        $decoded = json_decode($body, true);
-        return is_array($decoded) ? $decoded : [];
+    private function trackRequestSuccess(): void
+    {
+        // No-op: success tracking is handled by trackRequest
+    }
+
+    private function storeRateLimitRetry(int $seconds): void
+    {
+        if ($this->repo === null || $this->connectionId === null) {
+            return;
+        }
+        $retryUntil = gmdate('Y-m-d H:i:s', time() + $seconds);
+        $this->repo->updateRateLimitAfterRequest($this->connectionId, false, $retryUntil);
     }
 
     private function paginate(string $baseUrl, string $email, string $token, string $path, array $query = [], int $limit = 50): iterable
@@ -228,7 +335,7 @@ final class ConfluenceClient
             ];
         } catch (\Throwable $e) {
             // Fallback to v1
-            $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$pageId}", 'GET', ['expand' => 'body.storage,version,history,ancestors,metadata.labels']);
+            $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$pageId}", 'GET', ['expand' => 'body.storage,version,history,ancestors,metadata.labels,metadata.properties']);
             $body = $data['body']['storage'] ?? [];
             return [
                 'id' => (string)($data['id'] ?? $pageId),
@@ -390,6 +497,88 @@ final class ConfluenceClient
             'body' => $body,
             'mime_type' => $contentType ?: 'application/octet-stream',
         ];
+    }
+
+    // ── Blog posts ──
+
+    public function getBlogPostsForSpace(string $baseUrl, string $email, string $token, string $spaceId, bool $v2Only = false): array
+    {
+        $posts = [];
+
+        // Try v2 API first
+        try {
+            foreach ($this->paginate($baseUrl, $email, $token, "/wiki/api/v2/spaces/{$spaceId}/blogposts", ['limit' => 50], 50) as $post) {
+                $posts[] = [
+                    'id' => (string)$post['id'],
+                    'title' => (string)($post['title'] ?? ''),
+                    'spaceId' => $spaceId,
+                    'status' => (string)($post['status'] ?? 'current'),
+                    'version' => (int)($post['version']['number'] ?? 1),
+                    'createdAt' => $post['createdAt'] ?? null,
+                    'updatedAt' => $post['version']['createdAt'] ?? $post['updatedAt'] ?? null,
+                    'authorId' => $post['version']['authorId'] ?? null,
+                ];
+            }
+            return $posts;
+        } catch (\Throwable) {
+            if ($v2Only) return [];
+        }
+
+        // Fallback to v1
+        try {
+            $spaceKey = ''; // Need to extract from spaceId - use search instead
+            foreach ($this->paginate($baseUrl, $email, $token, '/wiki/rest/api/content', ['type' => 'blogpost', 'spaceId' => $spaceId, 'limit' => 50, 'expand' => 'version,history'], 50) as $post) {
+                $posts[] = [
+                    'id' => (string)$post['id'],
+                    'title' => (string)($post['title'] ?? ''),
+                    'spaceId' => $spaceId,
+                    'status' => (string)($post['status'] ?? 'current'),
+                    'version' => (int)($post['version']['number'] ?? 1),
+                    'createdAt' => $post['history']['createdDate'] ?? $post['version']['when'] ?? null,
+                    'updatedAt' => $post['version']['when'] ?? null,
+                    'authorId' => $post['history']['createdBy']['accountId'] ?? $post['version']['by']['accountId'] ?? null,
+                ];
+            }
+        } catch (\Throwable) {
+        }
+
+        return $posts;
+    }
+
+    public function getBlogPost(string $baseUrl, string $email, string $token, string $postId): array
+    {
+        try {
+            $data = $this->request($baseUrl, $email, $token, "/wiki/api/v2/blogposts/{$postId}", 'GET', ['body-format' => 'storage']);
+            return [
+                'id' => (string)($data['id'] ?? $postId),
+                'title' => (string)($data['title'] ?? ''),
+                'spaceId' => (string)($data['spaceId'] ?? ''),
+                'status' => (string)($data['status'] ?? 'current'),
+                'version' => (int)($data['version']['number'] ?? 1),
+                'body' => $data['body'] ?? [],
+                'createdAt' => $data['createdAt'] ?? null,
+                'updatedAt' => $data['version']['createdAt'] ?? $data['updatedAt'] ?? null,
+                'authorId' => $data['version']['authorId'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            // Fallback to v1
+            $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$postId}", 'GET', ['expand' => 'body.storage,version,history,metadata.labels,metadata.properties']);
+            $body = $data['body']['storage'] ?? [];
+            return [
+                'id' => (string)($data['id'] ?? $postId),
+                'title' => (string)($data['title'] ?? ''),
+                'spaceId' => (string)(isset($data['space']['id']) ? $data['space']['id'] : ''),
+                'status' => (string)($data['status'] ?? 'current'),
+                'version' => (int)($data['version']['number'] ?? 1),
+                'body' => [
+                    'storage' => $body,
+                    'view' => $data['body']['view'] ?? null,
+                ],
+                'createdAt' => $data['history']['createdDate'] ?? null,
+                'updatedAt' => $data['version']['when'] ?? null,
+                'authorId' => $data['history']['createdBy']['accountId'] ?? $data['version']['by']['accountId'] ?? null,
+            ];
+        }
     }
 
     // ── Labels ──
