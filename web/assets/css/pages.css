@@ -16158,6 +16158,105 @@ a.task-tag:hover {
   }
 }
 
+/* Admin estimates */
+.crm-admin-estimates-page .table-responsive {
+  overflow-x: auto;
+}
+
+.crm-admin-estimates-page .crm-table {
+  min-width: 980px;
+  table-layout: fixed !important;
+}
+
+.crm-admin-estimates-page .crm-table th:nth-child(1),
+.crm-admin-estimates-page .crm-table td:nth-child(1) {
+  width: 22%;
+}
+
+.crm-admin-estimates-page .crm-table th:nth-child(2),
+.crm-admin-estimates-page .crm-table td:nth-child(2) {
+  width: 15%;
+}
+
+.crm-admin-estimates-page .crm-table th:nth-child(3),
+.crm-admin-estimates-page .crm-table td:nth-child(3) {
+  width: 13%;
+}
+
+.crm-admin-estimates-page .crm-table th:nth-child(4),
+.crm-admin-estimates-page .crm-table td:nth-child(4) {
+  width: 16%;
+}
+
+.crm-admin-estimates-page .crm-table th:nth-child(6),
+.crm-admin-estimates-page .crm-table td:nth-child(6) {
+  width: 132px;
+}
+
+.crm-admin-estimates-page .crm-table td {
+  vertical-align: middle;
+}
+
+.crm-admin-estimate-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.crm-admin-estimate-option {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px solid rgba(15, 143, 114, 0.2);
+  border-radius: 999px;
+  background: rgba(15, 143, 114, 0.07);
+  color: #236f61;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.crm-admin-estimate-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.crm-admin-estimate-actions .btn {
+  min-height: 32px;
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.crm-estimate-option-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(100px, 1fr) 78px auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.crm-estimate-option-row .form-control {
+  min-height: 36px;
+}
+
+.crm-estimate-option-row .btn {
+  min-height: 36px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 767.98px) {
+  .crm-estimate-option-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Comment form ── */
 #knowledgeCommentInput,
 #knowledgeFileInput {

@@ -48,6 +48,20 @@ window.CRM.taskEstimates = (function () {
     return api.request(route, opts || {});
   }
 
+  function typeLabel(type) {
+    var map = {
+      tshirt: t('admin_estimates.type_tshirt', 'T-shirt Size'),
+      tshirt_size: t('admin_estimates.type_tshirt', 'T-shirt Size'),
+      complexity: t('admin_estimates.type_complexity', 'Complexity'),
+      risk: t('admin_estimates.type_risk', 'Risk'),
+      story_points: t('admin_estimates.type_sp', 'Story Points'),
+      hours: t('admin_estimates.type_hours', 'Hours'),
+      cost: t('admin_estimates.type_cost', 'Cost'),
+      custom: t('admin_estimates.type_custom', 'Custom')
+    };
+    return map[type] || type || '—';
+  }
+
   function loadEstimates(taskId) {
     var container = document.getElementById('taskEstimatesList');
     if (!container) return;
@@ -124,7 +138,7 @@ window.CRM.taskEstimates = (function () {
         sets.forEach(function (set) {
           var opt = document.createElement('option');
           opt.value = set.public_id;
-          opt.textContent = set.name + ' (' + set.estimate_type + ')';
+          opt.textContent = set.name + ' (' + typeLabel(set.estimate_type) + ')';
           select.appendChild(opt);
         });
       })
@@ -195,7 +209,7 @@ window.CRM.taskEstimates = (function () {
     // Extract task ID from URL
     var urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('route') !== 'task-detail') return;
-    currentTaskId = urlParams.get('task_public_id');
+    currentTaskId = urlParams.get('task_public_id') || urlParams.get('id');
     if (!currentTaskId) return;
 
     waitForApi(function () {
