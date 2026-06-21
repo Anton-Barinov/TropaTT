@@ -161,6 +161,15 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>
 <script defer src="/<?= htmlspecialchars($jsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endforeach; ?>
+<?php
+$currentModuleJsFile = '';
+if (isset($module_js_routes) && is_array($module_js_routes) && isset($module_js_routes[$currentRoute])) {
+  $currentModuleJsFile = (string)$module_js_routes[$currentRoute];
+}
+?>
+<?php if ($currentModuleJsFile !== ''): ?>
+<script defer src="/<?= htmlspecialchars($currentModuleJsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
 <?php if (isset($module_js_routes) && $module_js_routes !== []): ?>
 <script>
 window.CRM.modules = window.CRM.modules || {};
