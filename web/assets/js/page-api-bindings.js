@@ -3799,8 +3799,7 @@ window.CRM.pageApiBindings = (function () {
       hasPermission('knowledge.view') ? softDashboardRequest(tryRequest('api/v1/knowledge/overview', { silent: true }), 700) : Promise.resolve(null),
       aiCanUse
         ? softDashboardRequest(tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true }), 700)
-        : Promise.resolve(null),
-      hasPermission('user.view') ? tryRequest('api/v1/users', { query: { limit: 200 }, silent: true }) : Promise.resolve(null)
+        : Promise.resolve(null)
     ]);
 
     var summaryEnvelope = results[0];
@@ -3813,7 +3812,7 @@ window.CRM.pageApiBindings = (function () {
     var knowledgeOverviewEnvelope = results[7];
     var aiSuggestionsEnvelope = results[8];
     var knowledgeOverview = knowledgeOverviewEnvelope && knowledgeOverviewEnvelope.data || null;
-    var quickActionUsersEnvelope = results[9];
+    var quickActionUsersEnvelope = null;
 
     function dateTimeLabel(value) {
       if (!value) return '—';
@@ -3926,7 +3925,7 @@ window.CRM.pageApiBindings = (function () {
     var myDayTasksDue = Array.isArray(myDayData.tasks_due) ? myDayData.tasks_due : [];
     var myDayReminders = Array.isArray(myDayData.reminders) ? myDayData.reminders : [];
     var aiSuggestions = aiSuggestionsEnvelope ? mapItems(aiSuggestionsEnvelope) : [];
-    var quickActionUsers = mapItems(quickActionUsersEnvelope);
+    var quickActionUsers = quickActionUsersEnvelope ? mapItems(quickActionUsersEnvelope) : null;
     var currentUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
       ? window.CRM.api.getUser()
       : null;
@@ -4595,7 +4594,11 @@ window.CRM.pageApiBindings = (function () {
       aiDigestRefreshBtn.disabled = !aiCanUse;
     }
 
-    await ensureDashboardQuickActions(tasks, quickActionUsers);
+    ensureDashboardQuickActions(tasks, quickActionUsers).catch(function (error) {
+      if (window.console && typeof window.console.warn === 'function') {
+        window.console.warn('[CRM] Dashboard quick actions failed', error);
+      }
+    });
   }
 
   async function renderAnalyticsPage() {
@@ -27404,7 +27407,7 @@ window.CRM.pageApiBindings = (function () {
         // Fire-and-forget secondary loads (users, notifications) — not blocking Gantt first render
         directoryPromise;
         notificationsPromise;
-      } else {
+      } else if (route !== 'dashboard' && route !== 'index') {
         await directoryPromise;
       }
 
