@@ -1,7 +1,16 @@
-<div class="crm-content">
+<body data-page="module-confluence-migration" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
+<main class="crm-content crm-admin-page">
+
     <div class="crm-page-head">
-        <h1><?= $t('confluence_migration.title', 'Миграция из Confluence') ?></h1>
-        <p class="text-muted"><?= $t('confluence_migration.description', 'Перенос пространств, страниц и вложений из Confluence Cloud в базу знаний TropaTT') ?></p>
+        <div>
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="nav.admin"><?= htmlspecialchars($t('nav.admin', 'Администрирование'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                <li class="breadcrumb-item active" data-i18n="confluence_migration.title"><?= htmlspecialchars($t('confluence_migration.title', 'Миграция из Confluence'), ENT_QUOTES, 'UTF-8') ?></li>
+            </ol>
+            <h1 class="crm-page-title" data-i18n="confluence_migration.title"><?= htmlspecialchars($t('confluence_migration.title', 'Миграция из Confluence'), ENT_QUOTES, 'UTF-8') ?></h1>
+            <p class="crm-subtitle" data-i18n="confluence_migration.description"><?= htmlspecialchars($t('confluence_migration.description', 'Перенос пространств, страниц и вложений из Confluence Cloud в базу знаний TropaTT'), ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
     </div>
 
     <div id="confluenceMigrationApp">
@@ -59,7 +68,7 @@
         <div id="step-connections" class="migration-step">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.connections_title', 'Подключения к Confluence') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.connections_title"><?= htmlspecialchars($t('confluence_migration.connections_title', 'Подключения к Confluence'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body">
                     <div id="connectionsList" class="mb-3">
@@ -126,11 +135,11 @@
         <div id="step-source" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.select_spaces', 'Выберите пространства для переноса') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.select_spaces"><?= htmlspecialchars($t('confluence_migration.select_spaces', 'Выберите пространства для переноса'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body">
                     <div class="mb-3">
-                        <input type="text" class="form-control" id="spaceSearch" placeholder="<?= $t('confluence_migration.search_spaces', 'Поиск пространств...') ?>">
+                        <input type="text" class="form-control" id="spaceSearch" placeholder="<?= htmlspecialchars($t('confluence_migration.search_spaces', 'Поиск пространств...'), ENT_QUOTES, 'UTF-8') ?>">
                     </div>
                     <div id="spacesList" class="list-group">
                         <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
@@ -151,7 +160,7 @@
         <div id="step-settings" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.import_settings', 'Настройки переноса') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.import_settings"><?= htmlspecialchars($t('confluence_migration.import_settings', 'Настройки переноса'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body">
                     <div class="mb-3">
@@ -179,14 +188,14 @@
                         </label>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label"><?= $t('confluence_migration.duplicate_mode', 'Режим обработки дублей') ?></label>
+                        <label class="form-label" data-i18n="confluence_migration.duplicate_mode"><?= htmlspecialchars($t('confluence_migration.duplicate_mode', 'Режим обработки дублей'), ENT_QUOTES, 'UTF-8') ?></label>
                         <select class="form-select" id="optDuplicateMode">
                             <option value="skip_existing"><?= $t('confluence_migration.dup_skip', 'Пропустить существующие') ?></option>
                             <option value="update_existing"><?= $t('confluence_migration.dup_update', 'Обновить по source_id') ?></option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label"><?= $t('confluence_migration.unsupported_macros', 'Неподдерживаемые макросы') ?></label>
+                        <label class="form-label" data-i18n="confluence_migration.unsupported_macros"><?= htmlspecialchars($t('confluence_migration.unsupported_macros', 'Неподдерживаемые макросы'), ENT_QUOTES, 'UTF-8') ?></label>
                         <select class="form-select" id="optMacroHandling">
                             <option value="placeholder"><?= $t('confluence_migration.macro_placeholder', 'Оставить placeholder') ?></option>
                             <option value="remove"><?= $t('confluence_migration.macro_remove', 'Удалить') ?></option>
@@ -208,10 +217,10 @@
         <div id="step-mappings" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.mappings_title', 'Сопоставление пользователей') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.mappings_title"><?= htmlspecialchars($t('confluence_migration.mappings_title', 'Сопоставление пользователей'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body">
-                    <p class="text-muted"><?= $t('confluence_migration.mappings_desc', 'Сопоставьте пользователей Confluence с пользователями TropaTT. Несопоставленные пользователи будут отображаться как текст.') ?></p>
+                    <p class="text-muted" data-i18n="confluence_migration.mappings_desc"><?= htmlspecialchars($t('confluence_migration.mappings_desc', 'Сопоставьте пользователей Confluence с пользователями TropaTT. Несопоставленные пользователи будут отображаться как текст.'), ENT_QUOTES, 'UTF-8') ?></p>
                     <ul class="nav nav-tabs mb-3" id="mappingTabs">
                         <li class="nav-item">
                             <a class="nav-link active" data-mapping-tab="users" href="#"><?= $t('confluence_migration.mappings_users', 'Пользователи') ?></a>
@@ -242,7 +251,7 @@
         <div id="step-preview" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.preview_title', 'Предпросмотр плана миграции') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.preview_title"><?= htmlspecialchars($t('confluence_migration.preview_title', 'Предпросмотр плана миграции'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body" id="previewContent">
                     <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
@@ -262,7 +271,7 @@
         <div id="step-run" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.execution_title', 'Выполнение миграции') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.execution_title"><?= htmlspecialchars($t('confluence_migration.execution_title', 'Выполнение миграции'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body">
                     <div class="mb-3">
@@ -276,15 +285,15 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col">
-                            <div class="text-muted small"><?= $t('confluence_migration.imported', 'Импортировано') ?></div>
+                            <div class="text-muted small" data-i18n="confluence_migration.imported"><?= htmlspecialchars($t('confluence_migration.imported', 'Импортировано'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="h4" id="statImported">0</div>
                         </div>
                         <div class="col">
-                            <div class="text-muted small"><?= $t('confluence_migration.failed', 'Ошибок') ?></div>
+                            <div class="text-muted small" data-i18n="confluence_migration.failed"><?= htmlspecialchars($t('confluence_migration.failed', 'Ошибок'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="h4 text-danger" id="statFailed">0</div>
                         </div>
                         <div class="col">
-                            <div class="text-muted small"><?= $t('confluence_migration.skipped', 'Пропущено') ?></div>
+                            <div class="text-muted small" data-i18n="confluence_migration.skipped"><?= htmlspecialchars($t('confluence_migration.skipped', 'Пропущено'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="h4 text-warning" id="statSkipped">0</div>
                         </div>
                     </div>
@@ -300,7 +309,7 @@
                         </button>
                     </div>
                     <div>
-                        <h6><?= $t('confluence_migration.log', 'Журнал') ?></h6>
+                        <h6 data-i18n="confluence_migration.log"><?= htmlspecialchars($t('confluence_migration.log', 'Журнал'), ENT_QUOTES, 'UTF-8') ?></h6>
                         <div id="jobLog" class="bg-dark text-light p-3 rounded" style="max-height: 200px; overflow-y: auto; font-size: 12px; font-family: monospace;">
                         </div>
                     </div>
@@ -312,7 +321,7 @@
         <div id="step-report" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
-                    <h5 class="mb-0"><?= $t('confluence_migration.report_title', 'Отчет о миграции') ?></h5>
+                    <h5 class="mb-0" data-i18n="confluence_migration.report_title"><?= htmlspecialchars($t('confluence_migration.report_title', 'Отчет о миграции'), ENT_QUOTES, 'UTF-8') ?></h5>
                 </div>
                 <div class="crm-card-body" id="reportContent">
                     <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
@@ -331,4 +340,5 @@
             </div>
         </div>
     </div>
-</div>
+
+</main></div></div>

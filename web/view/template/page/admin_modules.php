@@ -228,6 +228,10 @@
 
         window.CRM.api.request(endpoints[action], { method: 'POST', timeoutMs: 60000 })
             .then(function () {
+                try { localStorage.removeItem('crm_menu_items'); } catch (e) {}
+                if (window.CRM.navigation && typeof window.CRM.navigation.refreshMenu === 'function') {
+                    window.CRM.navigation.refreshMenu();
+                }
                 if (window.CRM.br1 && typeof window.CRM.br1.notify === 'function') {
                     window.CRM.br1.notify('success', window.CRM.i18n.t('admin_modules.action_success', 'Действие выполнено успешно'));
                 }
