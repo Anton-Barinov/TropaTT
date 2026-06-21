@@ -4249,40 +4249,7 @@ window.CRM.pageApiBindings = (function () {
             });
     }
 
-    var note1Title = document.querySelector('[data-dashboard-note-1-title]');
-    var note1Body = document.querySelector('[data-dashboard-note-1-body]');
-    if (note1Title && note1Body) {
-      if (overdueTasks.length > 0 || Number(summary.overdue_tasks || 0) > 0) {
-        note1Title.textContent = window.CRM.i18n.t('js.pab.note_overdue_title', 'Overdue task control');
-        note1Body.textContent = window.CRM.i18n.t('js.pab.note_overdue_body', 'Overdue tasks:')
-          + ' ' + String(Math.max(overdueTasks.length, Number(summary.overdue_tasks || 0)))
-          + '. ' + window.CRM.i18n.t('js.pab.note_overdue_body2', 'Prioritize tasks with nearest deadlines and blocked status.');
-      } else {
-        note1Title.textContent = window.CRM.i18n.t('js.pab.note_deadline_status', 'Deadline status');
-        note1Body.textContent = window.CRM.i18n.t('js.pab.note_deadline_ok', 'No critical overdue detected. Keep focus on tasks with deadlines within the next 24 hours.');
-      }
-    }
 
-    var note2Title = document.querySelector('[data-dashboard-note-2-title]');
-    var note2Body = document.querySelector('[data-dashboard-note-2-body]');
-    if (note2Title && note2Body) {
-      var nextEvent = myDayEvents[0] || null;
-      var nextReminder = reminders[0] || null;
-      note2Title.textContent = window.CRM.i18n.t('js.pab.plan_for_today', 'Plan for today');
-      if (nextEvent) {
-        note2Body.textContent = window.CRM.i18n.t('js.pab.nearest_event', 'Nearest event:')
-          + ' ' + (nextEvent.title || nextEvent.public_id || window.CRM.i18n.t('js.pab.event', 'event'))
-          + ' ' + window.CRM.i18n.t('js.pab.at', 'at') + ' ' + dateTimeLabel(nextEvent.starts_at) + '.';
-      } else if (nextReminder) {
-        note2Body.textContent = window.CRM.i18n.t('js.pab.nearest_reminder', 'Nearest reminder:')
-          + ' ' + (nextReminder.title || nextReminder.note || nextReminder.public_id || window.CRM.i18n.t('js.pab.reminder', 'reminder'))
-          + '.';
-      } else if (myDayTasksDue.length > 0) {
-        note2Body.textContent = window.CRM.i18n.t('js.pab.tasks_scheduled_today', 'Tasks with deadlines scheduled for today:') + ' ' + String(myDayTasksDue.length) + '.';
-      } else {
-        note2Body.textContent = window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today. Focus on closing the current backlog.');
-      }
-    }
 
     var aiDigestCard = document.getElementById('dashboardAiDigestCard');
     var aiDigestMeta = document.getElementById('dashboardAiDigestMeta');
