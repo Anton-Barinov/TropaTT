@@ -7,6 +7,7 @@ use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Tag\TagRepository;
 use Api\System\Library\Service\FileService;
 use Module\Crm\ConfluenceMigration\Repository\ConfluenceMigrationRepository;
+use PDO;
 
 final class ConfluenceImportService
 {
