@@ -211,11 +211,6 @@
         document.getElementById('connApiToken').value = '';
         document.getElementById('connectionTestResult').classList.add('d-none');
         document.getElementById('testConnectionBtn').dataset.connId = '';
-        var modalEl = document.getElementById('connectionModal');
-        var existing = bootstrap.Modal.getInstance(modalEl);
-        if (existing) existing.dispose();
-        var modal = new bootstrap.Modal(modalEl);
-        modal.show();
     }
 
     function saveConnection() {

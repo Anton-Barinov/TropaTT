@@ -74,7 +74,7 @@
                     <div id="connectionsList" class="mb-3">
                         <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
                     </div>
-                    <button class="btn crm-btn-primary" id="addConnectionBtn">
+                    <button class="btn crm-btn-primary" id="addConnectionBtn" data-bs-toggle="modal" data-bs-target="#connectionModal">
                         <i class="fa-solid fa-plus"></i>
                         <?= $t('confluence_migration.add_connection', 'Добавить подключение') ?>
                     </button>

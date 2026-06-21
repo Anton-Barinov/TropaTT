@@ -1,35 +1,70 @@
 /* Confluence Migration Module */
 
-#connectionModal {
-    z-index: 1060 !important;
+#migrationSteps {
+    display: flex;
+    gap: 4px;
 }
 
-#connectionModal .modal-backdrop {
-    z-index: 1055 !important;
+#migrationSteps .nav-item {
+    flex: 1;
+}
+
+#migrationSteps .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--crm-text-muted);
+    background: var(--crm-surface);
+    border: 1px solid var(--crm-border);
+    transition: all var(--motion-fast) ease;
+    white-space: nowrap;
+}
+
+#migrationSteps .nav-link:hover:not(.disabled) {
+    color: var(--crm-text);
+    border-color: var(--crm-primary-300, #a5b4fc);
+    background: var(--crm-primary-50, #eef2ff);
+}
+
+#migrationSteps .nav-link.active {
+    color: #fff;
+    background: var(--crm-primary-600, #4f46e5);
+    border-color: var(--crm-primary-600, #4f46e5);
+    font-weight: 600;
+}
+
+#migrationSteps .nav-link.disabled {
+    opacity: 0.45;
+    cursor: default;
 }
 
 #migrationSteps .step-number {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: var(--color-primary-100, #e0e7ff);
-    color: var(--color-primary-700, #4338ca);
-    font-size: 12px;
+    background: var(--crm-primary-100, #e0e7ff);
+    color: var(--crm-primary-700, #4338ca);
+    font-size: 11px;
     font-weight: 700;
-    margin-right: 6px;
+    flex-shrink: 0;
 }
 
-#migrationSteps .nav-link.active .step-number,
-#migrationSteps .nav-link:not(.disabled):hover .step-number {
-    background: var(--color-primary-700, #4338ca);
+#migrationSteps .nav-link.active .step-number {
+    background: rgba(255, 255, 255, 0.25);
     color: #fff;
 }
 
-#migrationSteps .nav-link.disabled {
-    opacity: 0.4;
+#migrationSteps .nav-link:not(.disabled):hover .step-number {
+    background: var(--crm-primary-200, #c7d2fe);
+    color: var(--crm-primary-700, #4338ca);
 }
 
 .migration-step .list-group-item {
@@ -38,12 +73,12 @@
 }
 
 .migration-step .list-group-item:hover {
-    background-color: var(--color-primary-50, #eff6ff);
+    background-color: var(--crm-primary-50, #eef2ff);
 }
 
 .migration-step .list-group-item.selected {
-    background-color: var(--color-primary-100, #e0e7ff);
-    border-color: var(--color-primary-400, #818cf8);
+    background-color: var(--crm-primary-50, #eef2ff);
+    border-color: var(--crm-primary-400, #818cf8);
 }
 
 #jobLog {
@@ -87,8 +122,8 @@
     align-items: center;
     gap: 4px;
     padding: 4px 12px;
-    background: var(--color-primary-50, #eff6ff);
-    border-radius: 4px;
+    background: var(--crm-primary-50, #eef2ff);
+    border-radius: var(--radius-sm);
     font-size: 14px;
 }
 
@@ -97,13 +132,13 @@
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 6px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     transition: border-color 0.15s, background-color 0.15s;
 }
 
 .space-checkbox-label:hover {
-    border-color: var(--color-primary-400, #818cf8);
-    background-color: var(--color-primary-50, #eff6ff);
+    border-color: var(--crm-primary-400, #818cf8);
+    background-color: var(--crm-primary-50, #eef2ff);
 }
