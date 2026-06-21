@@ -74,7 +74,7 @@
                     <div id="connectionsList" class="mb-3">
                         <div class="text-muted py-3"><?= $t('confluence_migration.loading', 'Загрузка...') ?></div>
                     </div>
-                    <button class="crm-btn-primary" id="addConnectionBtn">
+                    <button class="btn crm-btn-primary" id="addConnectionBtn">
                         <i class="fa-solid fa-plus"></i>
                         <?= $t('confluence_migration.add_connection', 'Добавить подключение') ?>
                     </button>
@@ -113,10 +113,10 @@
                             <div id="connectionTestResult" class="d-none"></div>
                         </div>
                         <div class="modal-footer">
-                            <button class="crm-btn-secondary" id="testConnectionBtn">
+                            <button class="btn crm-btn-secondary" id="testConnectionBtn">
                                 <?= $t('confluence_migration.test_connection', 'Проверить подключение') ?>
                             </button>
-                            <button class="crm-btn-primary" id="saveConnectionBtn">
+                            <button class="btn crm-btn-primary" id="saveConnectionBtn">
                                 <?= $t('confluence_migration.save_connection', 'Сохранить') ?>
                             </button>
                         </div>
@@ -125,7 +125,7 @@
             </div>
 
             <div class="text-end mt-3">
-                <button class="crm-btn-primary" id="toSourceBtn" style="display:none">
+                <button class="btn crm-btn-primary" id="toSourceBtn" style="display:none">
                     <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
@@ -147,10 +147,10 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="backToConnectionsBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToConnectionsBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
-                <button class="crm-btn-primary" id="toSettingsBtn" disabled>
+                <button class="btn crm-btn-primary" id="toSettingsBtn" disabled>
                     <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
@@ -204,10 +204,10 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="backToSourceBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToSourceBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
-                <button class="crm-btn-primary" id="toMappingsBtn">
+                <button class="btn crm-btn-primary" id="toMappingsBtn">
                     <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
@@ -238,10 +238,10 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="backToMappingsBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToMappingsBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
-                <button class="crm-btn-primary" id="toPreviewFromMappingsBtn">
+                <button class="btn crm-btn-primary" id="toPreviewFromMappingsBtn">
                     <?= $t('confluence_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
@@ -258,10 +258,10 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="backToMappingsFromPreviewBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToMappingsFromPreviewBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('confluence_migration.back', 'Назад') ?>
                 </button>
-                <button class="crm-btn-primary" id="startImportBtn">
+                <button class="btn crm-btn-primary" id="startImportBtn">
                     <i class="fa-solid fa-play"></i> <?= $t('confluence_migration.start_import', 'Запустить миграцию') ?>
                 </button>
             </div>
@@ -298,13 +298,13 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <button class="crm-btn-secondary" id="pauseJobBtn">
+                        <button class="btn crm-btn-secondary" id="pauseJobBtn">
                             <i class="fa-solid fa-pause"></i> <?= $t('confluence_migration.pause', 'Пауза') ?>
                         </button>
-                        <button class="crm-btn-success" id="resumeJobBtn" style="display:none">
+                        <button class="btn crm-btn-success" id="resumeJobBtn" style="display:none">
                             <i class="fa-solid fa-play"></i> <?= $t('confluence_migration.resume', 'Продолжить') ?>
                         </button>
-                        <button class="crm-btn-danger-soft" id="cancelJobBtn">
+                        <button class="btn crm-btn-danger-soft" id="cancelJobBtn">
                             <i class="fa-solid fa-stop"></i> <?= $t('confluence_migration.cancel', 'Отмена') ?>
                         </button>
                     </div>
@@ -328,13 +328,13 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="crm-btn-secondary me-2" id="viewKnowledgeBtn">
+                <button class="btn crm-btn-secondary me-2" id="viewKnowledgeBtn">
                     <i class="fa-solid fa-book"></i> <?= $t('confluence_migration.open_knowledge', 'Открыть базу знаний') ?>
                 </button>
-                <button class="crm-btn-secondary me-2" id="retryFailedBtn">
+                <button class="btn crm-btn-secondary me-2" id="retryFailedBtn">
                     <i class="fa-solid fa-rotate"></i> <?= $t('confluence_migration.retry_failed', 'Повторить ошибки') ?>
                 </button>
-                <button class="crm-btn-primary" id="newMigrationBtn">
+                <button class="btn crm-btn-primary" id="newMigrationBtn">
                     <i class="fa-solid fa-plus"></i> <?= $t('confluence_migration.new_migration', 'Новая миграция') ?>
                 </button>
             </div>
