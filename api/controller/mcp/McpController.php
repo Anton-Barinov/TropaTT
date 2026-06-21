@@ -8593,7 +8593,7 @@ MD;
             'description' => $description,
             'inputSchema' => [
                 'type' => 'object',
-                'properties' => $properties,
+                'properties' => $properties === [] ? (object)[] : $properties,
                 'required' => $required,
                 'additionalProperties' => false,
             ],
