@@ -54,6 +54,7 @@ final class MigrationManager
             new KnowledgePageVersionsMigration(),
             new StickyNotesMigration(),
             new TaskEstimatesMigration(),
+            new KnowledgeSourceMetadataMigration(),
         ];
     }
 
