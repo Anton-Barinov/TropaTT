@@ -113,7 +113,7 @@ final class ConfluenceJobService
             new ConfluenceClient(repo: $this->migrationRepo),
             new ConfluenceTransformer(
                 new ConfluenceMacroRenderer(),
-                new ConfluenceLinkRewriter($this->migrationRepo),
+                new ConfluenceLinkRewriter(),
             ),
             new ConfluenceAttachmentService($this->fileService, $this->migrationRepo, $this->pdo),
             $this->fileService,

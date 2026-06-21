@@ -174,7 +174,7 @@ function buildImportService(object $app): ConfluenceImportService
         new ConfluenceClient(repo: $migrationRepo),
         new ConfluenceTransformer(
             new ConfluenceMacroRenderer(),
-            new ConfluenceLinkRewriter($migrationRepo),
+            new ConfluenceLinkRewriter(),
         ),
         new ConfluenceAttachmentService($fileService, $migrationRepo, $app->pdo),
         $fileService,
