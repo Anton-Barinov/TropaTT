@@ -13,7 +13,21 @@
         pollTimer: null,
     };
 
+    function isConfluenceMigrationPage() {
+        return Boolean(
+            document.body
+            && document.body.dataset
+            && document.body.dataset.page === 'module-confluence-migration'
+            && document.getElementById('connectionsList')
+            && document.getElementById('migrationSteps')
+        );
+    }
+
     function init() {
+        if (!isConfluenceMigrationPage()) {
+            return;
+        }
+
         if (typeof window.lang_messages !== 'undefined') {
             const i18nObj = {
                 t: function (key, def) {
