@@ -1532,6 +1532,309 @@ final class KnowledgeRepository
         ];
     }
 
+    // ── Batch import methods (Confluence migration support) ──
+
+    public function createSpaceWithSource(array $payload, ?int $actorId): array
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $publicId = $this->publicId('kbs');
+        $title = trim((string)($payload['title'] ?? ''));
+        $slug = $this->uniqueSlug('knowledge_spaces', $this->slug((string)($payload['slug'] ?? $title), 'space'), null);
+        $parentId = null;
+        if (!empty($payload['parent_public_id'])) {
+            $parent = $this->space((string)$payload['parent_public_id']);
+            $parentId = $parent ? (int)$parent['id'] : null;
+        } elseif (!empty($payload['parent_id'])) {
+            $parentId = (int)$payload['parent_id'];
+        }
+        $hasParentCol = $this->columnExists('knowledge_spaces', 'parent_id');
+        if ($hasParentCol) {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+        } else {
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+        }
+        $params = [
+            'public_id' => $publicId,
+            'title' => $title,
+            'slug' => $slug,
+            'description' => $this->nullableText($payload['description'] ?? null),
+            'icon' => $this->nullableShort($payload['icon'] ?? 'book-open', 64),
+            'color' => $this->nullableShort($payload['color'] ?? '#0f8f72', 32),
+            'owner_user_id' => $actorId,
+            'visibility' => $this->choice((string)($payload['visibility'] ?? 'public'), ['public', 'restricted', 'private'], 'public'),
+            'default_access_level' => $this->choice((string)($payload['default_access_level'] ?? 'view'), ['view', 'comment', 'edit'], 'view'),
+            'sort_order' => (int)($payload['sort_order'] ?? 100),
+            'source_type' => $this->nullableShort($payload['source_type'] ?? null, 64),
+            'source_id' => $this->nullableShort($payload['source_id'] ?? null, 255),
+            'source_url' => $this->nullableShort($payload['source_url'] ?? null, 2048),
+            'source_payload_json' => isset($payload['source_payload_json']) ? json_encode($payload['source_payload_json'], JSON_UNESCAPED_UNICODE) : null,
+            'created_at' => (string)($payload['created_at'] ?? $now),
+            'updated_at' => (string)($payload['updated_at'] ?? $now),
+        ];
+        if ($hasParentCol) {
+            $params['parent_id'] = $parentId;
+        }
+        $stmt->execute($params);
+        return $this->space($publicId) ?? [];
+    }
+
+    public function updateSpaceSource(string $publicId, array $source): ?array
+    {
+        $current = $this->space($publicId);
+        if (!$current) {
+            return null;
+        }
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare('UPDATE knowledge_spaces SET source_type = :source_type, source_id = :source_id, source_url = :source_url, source_payload_json = :source_payload_json, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id');
+        $stmt->execute([
+            'source_type' => $this->nullableShort($source['source_type'] ?? null, 64),
+            'source_id' => $this->nullableShort($source['source_id'] ?? null, 255),
+            'source_url' => $this->nullableShort($source['source_url'] ?? null, 2048),
+            'source_payload_json' => isset($source['source_payload_json']) ? json_encode($source['source_payload_json'], JSON_UNESCAPED_UNICODE) : null,
+            'updated_at' => $now,
+            'public_id' => $publicId,
+        ]);
+        return $this->space($publicId);
+    }
+
+    public function createPageShell(array $payload, ?int $actorId, ?array $actor = null): array
+    {
+        $space = !empty($payload['space_public_id'])
+            ? $this->resolveSpace((string)$payload['space_public_id'], $actor, 'edit')
+            : null;
+        if (!$space) {
+            throw new \RuntimeException('Knowledge space with edit access is required');
+        }
+        $parent = !empty($payload['parent_public_id'])
+            ? $this->resolvePage((string)$payload['parent_public_id'], $actor, 'edit')
+            : null;
+        $title = trim((string)($payload['title'] ?? ''));
+        $now = gmdate('Y-m-d H:i:s');
+        $publicId = $this->publicId('kbp');
+
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, sort_order, path, depth, owner_user_id, last_editor_user_id, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :sort_order, :path, :depth, :owner_user_id, :last_editor_user_id, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+        $stmt->execute([
+            'public_id' => $publicId,
+            'space_id' => (int)$space['id'],
+            'parent_id' => $parent ? (int)$parent['id'] : null,
+            'title' => $title,
+            'slug' => $this->uniquePageSlug((int)$space['id'], $this->slug((string)($payload['slug'] ?? $title), 'page'), null),
+            'page_type' => $this->choice((string)($payload['page_type'] ?? 'article'), self::PAGE_TYPES, 'article'),
+            'status' => $this->choice((string)($payload['status'] ?? 'draft'), ['draft', 'review', 'published', 'archived', 'needs_update'], 'draft'),
+            'sort_order' => (int)($payload['sort_order'] ?? 0),
+            'path' => '',
+            'depth' => $parent ? ((int)($parent['depth'] ?? 0) + 1) : 0,
+            'owner_user_id' => $actorId,
+            'last_editor_user_id' => $actorId,
+            'source_type' => $this->nullableShort($payload['source_type'] ?? null, 64),
+            'source_id' => $this->nullableShort($payload['source_id'] ?? null, 255),
+            'source_url' => $this->nullableShort($payload['source_url'] ?? null, 2048),
+            'source_payload_json' => isset($payload['source_payload_json']) ? json_encode($payload['source_payload_json'], JSON_UNESCAPED_UNICODE) : null,
+            'created_at' => (string)($payload['created_at'] ?? $now),
+            'updated_at' => (string)($payload['updated_at'] ?? $now),
+        ]);
+        $page = $this->page($publicId) ?? [];
+        $this->refreshPagePath((int)$page['id']);
+        $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
+        return $this->page($publicId) ?? $page;
+    }
+
+    public function updatePageParent(string $publicId, ?string $parentPublicId, ?array $actor = null): ?array
+    {
+        $current = $this->page($publicId, $actor, 'edit');
+        if (!$current) {
+            return null;
+        }
+        $parent = $parentPublicId !== null ? $this->resolvePage($parentPublicId, $actor, 'edit') : null;
+        $now = gmdate('Y-m-d H:i:s');
+        $this->pdo->prepare('UPDATE knowledge_pages SET parent_id = :parent_id, depth = :depth, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id')->execute([
+            'parent_id' => $parent ? (int)$parent['id'] : null,
+            'depth' => $parent ? ((int)($parent['depth'] ?? 0) + 1) : 0,
+            'updated_at' => $now,
+            'public_id' => $publicId,
+        ]);
+        $this->refreshPagePath((int)$current['id']);
+        $this->refreshChildrenCount(isset($current['parent_id']) ? (int)$current['parent_id'] : null);
+        $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
+        return $this->page($publicId);
+    }
+
+    public function batchPublish(string $publicId, ?int $actorId, bool $silent = false): ?array
+    {
+        $page = $this->page($publicId);
+        if (!$page) {
+            return null;
+        }
+        $now = gmdate('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id");
+        $stmt->execute([
+            'actor' => $actorId,
+            'published_at' => !$silent ? $now : ((string)($page['published_at'] ?? $now)),
+            'reviewed_at' => $now,
+            'updated_at' => $now,
+            'public_id' => $publicId,
+        ]);
+        if (!$silent) {
+            $this->legacyAddVersion($publicId, $actorId, 'Imported and published');
+        }
+        return $this->page($publicId);
+    }
+
+    public function findPageBySource(string $sourceType, string $sourceId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_pages WHERE source_type = :source_type AND source_id = :source_id AND deleted_at IS NULL LIMIT 1');
+        $stmt->execute(['source_type' => $sourceType, 'source_id' => $sourceId]);
+        $publicId = $stmt->fetchColumn();
+        if ($publicId === false) {
+            return null;
+        }
+        return $this->page((string)$publicId);
+    }
+
+    public function findSpaceBySource(string $sourceType, string $sourceId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE source_type = :source_type AND source_id = :source_id LIMIT 1');
+        $stmt->execute(['source_type' => $sourceType, 'source_id' => $sourceId]);
+        $publicId = $stmt->fetchColumn();
+        if ($publicId === false) {
+            return null;
+        }
+        return $this->space((string)$publicId);
+    }
+
+    // ── Page Properties ──
+
+    public function pageProperties(string $pagePublicId): array
+    {
+        $page = $this->pageIdentity($pagePublicId);
+        if (!$page) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_properties WHERE page_id = :page_id ORDER BY sort_order ASC, property_key ASC');
+        $stmt->execute(['page_id' => (int)$page['id']]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function setPageProperty(string $pagePublicId, string $key, mixed $value, string $type = 'string', ?string $sourceType = null, ?string $sourceId = null): ?array
+    {
+        $page = $this->pageIdentity($pagePublicId);
+        if (!$page) {
+            return null;
+        }
+        $now = gmdate('Y-m-d H:i:s');
+        $jsonValue = is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE);
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_page_properties (page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at) VALUES (:page_id, :pkey, :pvalue, :ptype, :stype, :sid, 0, :now, :now) ON DUPLICATE KEY UPDATE property_value = :pvalue2, property_type = :ptype2, source_type = :stype2, source_id = :sid2, updated_at = :now2');
+        $stmt->execute([
+            'page_id' => (int)$page['id'],
+            'pkey' => $key,
+            'pvalue' => $jsonValue,
+            'ptype' => $type,
+            'stype' => $sourceType,
+            'sid' => $sourceId,
+            'now' => $now,
+            'pvalue2' => $jsonValue,
+            'ptype2' => $type,
+            'stype2' => $sourceType,
+            'sid2' => $sourceId,
+            'now2' => $now,
+        ]);
+        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_properties WHERE page_id = :page_id AND property_key = :pkey LIMIT 1');
+        $stmt->execute(['page_id' => (int)$page['id'], 'pkey' => $key]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    public function deletePageProperty(string $pagePublicId, string $key): bool
+    {
+        $page = $this->pageIdentity($pagePublicId);
+        if (!$page) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_page_properties WHERE page_id = :page_id AND property_key = :pkey');
+        $stmt->execute(['page_id' => (int)$page['id'], 'pkey' => $key]);
+        return $stmt->rowCount() > 0;
+    }
+
+    // ── Comments with source metadata ──
+
+    public function addCommentWithSource(string $pagePublicId, string $body, int $userId, array $source = [], ?string $parentPublicId = null): ?array
+    {
+        $page = $this->pageIdentity($pagePublicId);
+        if (!$page) {
+            return null;
+        }
+        $parentId = null;
+        if ($parentPublicId !== null) {
+            $pStmt = $this->pdo->prepare('SELECT id FROM knowledge_comments WHERE public_id = :public_id AND page_id = :page_id LIMIT 1');
+            $pStmt->execute(['public_id' => $parentPublicId, 'page_id' => (int)$page['id']]);
+            $parentId = $pStmt->fetchColumn() ?: null;
+        }
+        $publicId = $this->publicId('kbc');
+        $now = gmdate('Y-m-d H:i:s');
+        $bodyClean = strip_tags($body);
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, source_type, source_id, source_author_name, source_created_at, anchor_text, anchor_path, is_inline, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :source_type, :source_id, :source_author_name, :source_created_at, :anchor_text, :anchor_path, :is_inline, :created_at, :updated_at)');
+        $stmt->execute([
+            'public_id' => $publicId,
+            'page_id' => (int)$page['id'],
+            'parent_id' => $parentId,
+            'user_id' => $userId,
+            'body' => $bodyClean,
+            'source_type' => $this->nullableShort($source['source_type'] ?? null, 64),
+            'source_id' => $this->nullableShort($source['source_id'] ?? null, 255),
+            'source_author_name' => $this->nullableShort($source['source_author_name'] ?? null, 255),
+            'source_created_at' => $source['source_created_at'] ?? null,
+            'anchor_text' => $this->nullableShort($source['anchor_text'] ?? null, 500),
+            'anchor_path' => $this->nullableShort($source['anchor_path'] ?? null, 500),
+            'is_inline' => !empty($source['is_inline']) ? 1 : 0,
+            'created_at' => (string)($source['source_created_at'] ?? $now),
+            'updated_at' => $now,
+        ]);
+        $this->pdo->prepare('UPDATE knowledge_pages SET comments_count = comments_count + 1 WHERE id = :id')->execute(['id' => (int)$page['id']]);
+        $row = $this->comment($publicId);
+        $row['user_public_id'] = null;
+        $row['user_name'] = null;
+        return $row;
+    }
+
+    public function reindexPage(int $pageId): void
+    {
+        $stmt = $this->pdo->prepare('SELECT p.id, p.space_id, p.title, p.content_text, p.status, p.page_type, p.updated_at FROM knowledge_pages p WHERE p.id = :id LIMIT 1');
+        $stmt->execute(['id' => $pageId]);
+        $page = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($page)) {
+            return;
+        }
+        // Gather tags
+        $tagStmt = $this->pdo->prepare("SELECT t.title FROM entity_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entity_type = 'knowledge_page' AND et.entity_public_id = (SELECT public_id FROM knowledge_pages WHERE id = :id)");
+        $tagStmt->execute(['id' => $pageId]);
+        $tags = $tagStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $tagsText = implode(' ', $tags);
+        $stmt = $this->pdo->prepare('REPLACE INTO knowledge_search_index (page_id, space_id, title, content_text, tags_text, entity_text, status, page_type, updated_at) VALUES (:page_id, :space_id, :title, :content_text, :tags_text, :entity_text, :status, :page_type, :updated_at)');
+        $stmt->execute([
+            'page_id' => (int)$page['id'],
+            'space_id' => (int)$page['space_id'],
+            'title' => (string)$page['title'],
+            'content_text' => (string)$page['content_text'],
+            'tags_text' => $tagsText,
+            'entity_text' => '',
+            'status' => (string)$page['status'],
+            'page_type' => (string)$page['page_type'],
+            'updated_at' => (string)$page['updated_at'],
+        ]);
+    }
+
+    public function removePageFromSearchIndex(int $pageId): void
+    {
+        $this->pdo->prepare('DELETE FROM knowledge_search_index WHERE page_id = :page_id')->execute(['page_id' => $pageId]);
+    }
+
+    public function hasColumn(string $table, string $column): bool
+    {
+        return $this->columnExists($table, $column);
+    }
+
+    // ── End batch import methods ──
+
     private function refreshPagePath(int $pageId): void
     {
         $stmt = $this->pdo->prepare('SELECT id, parent_id, slug FROM knowledge_pages WHERE id = :id');

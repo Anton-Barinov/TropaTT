@@ -1,0 +1,32 @@
+{
+    "name": "crm.confluence-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Confluence",
+    "description": "Модуль миграции пространств и страниц из Confluence Cloud в базу знаний TropaTT",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": ["knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.import", "knowledge.publish", "knowledge.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js": ["web/assets/js/module-confluence-migration.js"],
+        "css": ["web/assets/css/module-confluence-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\ConfluenceMigration\\ConfluenceMigrationServiceProvider",
+    "config_defaults": {
+        "max_attachment_size_mb": 50,
+        "allowed_mime_types": ["image/jpeg","image/png","image/gif","image/webp","image/svg+xml","application/pdf","application/zip","application/x-zip-compressed","application/vnd.openxmlformats-officedocument","application/vnd.ms-","text/plain","text/csv","text/markdown","application/json","application/xml"],
+        "deny_file_extensions": ["exe","bat","cmd","com","msi","scr","pif","vbs","js","sh","dll","sys"],
+        "default_batch_size": 50,
+        "allowed_confluence_hosts": ["*.atlassian.net"],
+        "custom_domain_allowlist": [],
+        "request_timeout_seconds": 30,
+        "max_retries": 3,
+        "dry_run_sample_limit": 100
+    }
+}
