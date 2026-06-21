@@ -27,14 +27,14 @@
 
 #migrationSteps .nav-link:hover:not(.disabled) {
     color: var(--crm-text);
-    border-color: var(--crm-primary-300, #a5b4fc);
-    background: var(--crm-primary-50, #eef2ff);
+    border-color: var(--color-primary-500, #0f8f72);
+    background: var(--color-primary-50, #e8f4f0);
 }
 
 #migrationSteps .nav-link.active {
     color: #fff;
-    background: var(--crm-primary-600, #4f46e5);
-    border-color: var(--crm-primary-600, #4f46e5);
+    background: var(--color-primary-600, #0b725c);
+    border-color: var(--color-primary-600, #0b725c);
     font-weight: 600;
 }
 
@@ -50,8 +50,8 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--crm-primary-100, #e0e7ff);
-    color: var(--crm-primary-700, #4338ca);
+    background: var(--color-primary-100, #d0eae1);
+    color: var(--color-primary-700, #095e4c);
     font-size: 11px;
     font-weight: 700;
     flex-shrink: 0;
@@ -63,8 +63,8 @@
 }
 
 #migrationSteps .nav-link:not(.disabled):hover .step-number {
-    background: var(--crm-primary-200, #c7d2fe);
-    color: var(--crm-primary-700, #4338ca);
+    background: var(--color-primary-100, #d0eae1);
+    color: var(--color-primary-700, #095e4c);
 }
 
 .migration-step .list-group-item {
@@ -73,12 +73,12 @@
 }
 
 .migration-step .list-group-item:hover {
-    background-color: var(--crm-primary-50, #eef2ff);
+    background-color: var(--color-primary-50, #e8f4f0);
 }
 
 .migration-step .list-group-item.selected {
-    background-color: var(--crm-primary-50, #eef2ff);
-    border-color: var(--crm-primary-400, #818cf8);
+    background-color: var(--color-primary-50, #e8f4f0);
+    border-color: var(--color-primary-500, #0f8f72);
 }
 
 #jobLog {
@@ -122,7 +122,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px 12px;
-    background: var(--crm-primary-50, #eef2ff);
+    background: var(--color-primary-50, #e8f4f0);
     border-radius: var(--radius-sm);
     font-size: 14px;
 }
@@ -139,6 +139,6 @@
 }
 
 .space-checkbox-label:hover {
-    border-color: var(--crm-primary-400, #818cf8);
-    background-color: var(--crm-primary-50, #eef2ff);
+    border-color: var(--color-primary-500, #0f8f72);
+    background-color: var(--color-primary-50, #e8f4f0);
 }
