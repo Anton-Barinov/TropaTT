@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const API_BASE = '/_module/crm.confluence-migration';
+    const API_PREFIX = '_module/crm.confluence-migration';
 
     /** @type {{t: function(string, string=): string}} */
     let i18n = { t: function (k, d) { return d || k; } };
@@ -95,30 +95,25 @@
 
     // --- API helpers ---
 
-    function apiUrl(path) {
-        return API_BASE + path;
+    function apiGet(path) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'GET' })
+            .then(function (env) { return env.data || {}; });
     }
 
-    function apiFetch(method, path, body) {
-        const opts = {
-            method: method,
-            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        };
-        if (body !== undefined) {
-            opts.body = JSON.stringify(body);
-        }
-        return fetch(apiUrl(path), opts).then(function (r) {
-            if (!r.ok) {
-                return r.json().then(function (err) { throw new Error(err.error || err.message || 'Request failed'); });
-            }
-            return r.json();
-        });
+    function apiPost(path, body) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'POST', body: body })
+            .then(function (env) { return env.data || {}; });
     }
 
-    function apiGet(path) { return apiFetch('GET', path); }
-    function apiPost(path, body) { return apiFetch('POST', path, body); }
-    function apiPatch(path, body) { return apiFetch('PATCH', path, body); }
-    function apiDelete(path) { return apiFetch('DELETE', path); }
+    function apiPatch(path, body) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'PATCH', body: body })
+            .then(function (env) { return env.data || {}; });
+    }
+
+    function apiDelete(path) {
+        return window.CRM.api.request(API_PREFIX + path, { method: 'DELETE' })
+            .then(function (env) { return env.data || {}; });
+    }
 
     function apiPathWithConn(path) {
         return '/connections/' + state.connectionId + path;
@@ -160,7 +155,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiGet('/connections').then(function (data) {
-            var connections = data.data?.connections || [];
+            var connections = data.connections || [];
             if (connections.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.no_connections', 'Нет подключений. Создайте новое.') + '</div>';
                 return;
@@ -233,7 +228,7 @@
 
         var payload = { name: name, base_url: baseUrl, auth_type: 'api_token', email: email, api_token: token };
         apiPost('/connections', payload).then(function (data) {
-            var conn = data.data?.connection || data.data;
+            var conn = data.connection || data;
             if (conn && conn.public_id) {
                 document.getElementById('testConnectionBtn').dataset.connId = conn.public_id;
             }
@@ -259,7 +254,7 @@
 
         apiPost('/connections/' + connId + '/test').then(function (data) {
             resultEl.classList.remove('alert-info');
-            var resp = data.data || data;
+            var resp = data || {};
             if (resp.success) {
                 resultEl.classList.add('alert-success');
                 resultEl.textContent = i18n.t('confluence_migration.test_success', 'Подключение успешно');
@@ -281,7 +276,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiPost('/connections/' + connectionId + '/discover', {}).then(function (data) {
-            var spaces = (data.data?.spaces) || [];
+            var spaces = data.spaces || [];
             if (spaces.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.no_spaces', 'Нет доступных пространств') + '</div>';
                 return;
@@ -335,7 +330,7 @@
             source_space_keys: state.selectedSpaces,
             options: options,
         }).then(function (data) {
-            state.jobId = data.data.public_id;
+            state.jobId = data.job?.public_id || data.public_id;
             return apiPost('/jobs/' + state.jobId + '/start');
         }).then(function () {
             goToStep('run');
@@ -351,7 +346,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiGet('/connections/' + connectionId + '/user-mappings').then(function (data) {
-            var mappings = data.data?.mappings || data.data || [];
+            var mappings = data.mappings || [];
             if (mappings.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_users', 'Нет пользователей для сопоставления') + '</div>';
                 return;
@@ -421,7 +416,7 @@
         container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.loading', 'Загрузка...') + '</div>';
 
         apiGet('/connections/' + connectionId + '/group-mappings').then(function (data) {
-            var mappings = data.data?.mappings || [];
+            var mappings = data.mappings || [];
             if (mappings.length === 0) {
                 container.innerHTML = '<div class="text-muted py-3">' + i18n.t('confluence_migration.mapping_no_groups', 'Нет групп для сопоставления') + '</div>';
                 return;
@@ -453,7 +448,7 @@
             source_space_keys: state.selectedSpaces,
             options: options,
         }).then(function (data) {
-            state.jobId = data.data.public_id;
+            state.jobId = data.job?.public_id || data.public_id;
             return apiPost('/jobs/' + state.jobId + '/start');
         }).then(function () {
             goToStep('run');
@@ -494,7 +489,7 @@
 
     function pollJob(jobId, isDryRun) {
         apiGet('/jobs/' + jobId).then(function (data) {
-            var job = data.data?.job || data.data;
+            var job = data.job || data;
             if (!job) return;
 
             // Progress bar
@@ -539,7 +534,7 @@
 
     function loadLogs(jobId) {
         apiGet('/jobs/' + jobId + '/logs?limit=50').then(function (data) {
-            var logs = data.data?.logs || data.data || [];
+            var logs = data.logs || [];
             var container = document.getElementById('jobLog');
             var html = '';
             logs.forEach(function (log) {
@@ -574,7 +569,7 @@
     function showPreview(jobId) {
         goToStep('preview');
         apiGet('/jobs/' + jobId + '/report').then(function (data) {
-            var report = data.data?.report || data.data || {};
+            var report = data.report || data || {};
             var container = document.getElementById('previewContent');
             var items = report.items || {};
 
@@ -639,7 +634,7 @@
     function showReport(jobId) {
         goToStep('report');
         apiGet('/jobs/' + jobId + '/report').then(function (data) {
-            var report = data.data?.report || data.data || {};
+            var report = data.report || data || {};
             var container = document.getElementById('reportContent');
 
             var statusBadge = '';
@@ -700,7 +695,7 @@
     function retryFailed() {
         if (!state.jobId) return;
         apiPost('/jobs/' + state.jobId + '/retry-failed').then(function (data) {
-            var job = data.data?.job || data.data;
+            var job = data.job || data;
             state.jobId = job?.public_id || state.jobId;
             startPolling(state.jobId, false);
         }).catch(function (err) {
