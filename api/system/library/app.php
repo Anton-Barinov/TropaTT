@@ -1618,18 +1618,6 @@ final class App
                     $autoloader->registerModule($manifest->name, $manifest->vendor);
                 }
             }
-
-            foreach ($pluginManager->getDiscovered() as $moduleName => $manifest) {
-                if (isset($loadedModuleNames[$moduleName])) {
-                    continue;
-                }
-
-                $pluginManager->load($moduleName);
-                if ($pluginManager->isLoaded($moduleName)) {
-                    $autoloader = $this->container->get('module.autoloader');
-                    $autoloader->registerModule($manifest->name, $manifest->vendor);
-                }
-            }
         } catch (\Throwable) {}
 
         try {
