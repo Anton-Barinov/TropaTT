@@ -71,7 +71,6 @@ abstract class Controller
         $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
         $data['base_path'] = $data['base_path'] ?? rtrim(str_replace('index.php', '', $_SERVER['SCRIPT_NAME'] ?? '/index.php'), '/');
         $data['locale'] = $data['locale'] ?? $i18n->locale();
-        $data['lang_messages'] = $i18n->all();
         $data['i18n'] = $i18n;
         $data['module_css_files'] = self::$moduleCssFiles ?? [];
         $data['module_js_files'] = self::$moduleJsFiles ?? [];
@@ -92,6 +91,7 @@ abstract class Controller
             }
         }
 
+        $data['lang_messages'] = $i18n->all();
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 
         extract($data, EXTR_SKIP);
