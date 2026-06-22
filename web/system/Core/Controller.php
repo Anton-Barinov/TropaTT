@@ -67,9 +67,6 @@ abstract class Controller
 
         $data['route'] = $data['route'] ?? '';
         $routeKey = str_replace('-', '_', (string)$data['route']);
-        $titleKey = str_starts_with($routeKey, 'module_') ? substr($routeKey, 7) : $routeKey;
-        $routeTitle = $titleKey !== '' ? $i18n->t($titleKey . '.title', '') : '';
-        $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
         $data['base_path'] = $data['base_path'] ?? rtrim(str_replace('index.php', '', $_SERVER['SCRIPT_NAME'] ?? '/index.php'), '/');
         $data['locale'] = $data['locale'] ?? $i18n->locale();
         $data['i18n'] = $i18n;
@@ -92,6 +89,9 @@ abstract class Controller
             }
         }
 
+        $titleKey = str_starts_with($routeKey, 'module_') ? substr($routeKey, 7) : $routeKey;
+        $routeTitle = $titleKey !== '' ? $i18n->t($titleKey . '.title', '') : '';
+        $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
         $data['lang_messages'] = $i18n->all();
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 
