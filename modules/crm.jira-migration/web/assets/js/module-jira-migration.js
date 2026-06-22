@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const BASE_API = 'api/v1/modules/jira-migration';
+    const BASE_API = '_module/crm.jira-migration';
     let selectedConnection = null;
     let selectedProjects = [];
     let currentJobId = null;
