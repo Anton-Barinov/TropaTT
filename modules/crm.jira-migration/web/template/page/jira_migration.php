@@ -222,7 +222,7 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="btn crm-btn-secondary me-2" id="backToMappingsFromPreviewBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToSettingsBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('jira_migration.back', 'Назад') ?>
                 </button>
                 <button class="btn crm-btn-primary" id="startImportBtn">
