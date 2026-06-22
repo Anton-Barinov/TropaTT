@@ -36,6 +36,7 @@ return [
 
     // Mappings
     ['methods' => ['GET'], 'route' => '/mappings', 'controller' => JiraMigrationController::class, 'action' => 'listMappings', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/mappings/discover', 'controller' => JiraMigrationController::class, 'action' => 'discoverMappings', 'auth' => true, 'required_permissions' => ['module.jira-migration.manage']],
     ['methods' => ['PATCH'], 'route' => '/mappings/{public_id}', 'controller' => JiraMigrationController::class, 'action' => 'updateMapping', 'auth' => true, 'required_permissions' => ['module.jira-migration.manage']],
 
     // Unresolved

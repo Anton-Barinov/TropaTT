@@ -599,6 +599,99 @@ final class JiraMigrationController
         return JsonResponse::success('JIRA_MAPPING_UPDATED', 'Mapping updated');
     }
 
+    public function discoverMappings(): JsonResponse
+    {
+        if (!$this->actorHasPermission('module.jira-migration.manage')) {
+            return JsonResponse::error('FORBIDDEN', 'Insufficient permissions', 403);
+        }
+
+        $body = $this->requestBody();
+        $connectionPublicId = trim((string)($body['connection_public_id'] ?? ''));
+
+        if ($connectionPublicId === '') {
+            return JsonResponse::error('VALIDATION_ERROR', 'connection_public_id is required', 422);
+        }
+
+        $connection = $this->repo->getConnection($connectionPublicId);
+        if (!$connection) {
+            return JsonResponse::error('NOT_FOUND', 'Connection not found', 404);
+        }
+        try { $this->requireConnectionAccess($connection); } catch (\RuntimeException) {
+            return JsonResponse::error('FORBIDDEN', 'Insufficient permissions', 403);
+        }
+
+        $token = EncryptionService::decrypt((string)($connection['token_encrypted'] ?? ''));
+        if ($token === null) {
+            return JsonResponse::error('JIRA_AUTH_FAILED', 'Failed to decrypt token', 500);
+        }
+
+        $siteUrl = (string)$connection['site_url'];
+        $email = (string)$connection['email'];
+        $connId = (int)$connection['id'];
+
+        $client = new JiraClient(repo: $this->repo);
+        $client->setConnectionId($connId);
+
+        // Discover users from Jira
+        $jiraUsers = $client->searchUsers($siteUrl, $email, $token);
+        $userMappings = [];
+        foreach ($jiraUsers as $ju) {
+            $accountId = (string)($ju['accountId'] ?? '');
+            if ($accountId === '') continue;
+            $displayName = (string)($ju['displayName'] ?? $accountId);
+            $this->repo->upsertMapping($connId, 'user', $accountId, $displayName);
+        }
+
+        // Discover statuses as mappings
+        $statuses = [];
+        try {
+            $jiraStatuses = $client->getStatuses($siteUrl, $email, $token);
+            foreach ($jiraStatuses as $js) {
+                $statusId = (string)($js['id'] ?? '');
+                if ($statusId === '') continue;
+                $statusName = (string)($js['name'] ?? $statusId);
+                $this->repo->upsertMapping($connId, 'status', $statusId, $statusName);
+            }
+        } catch (\Throwable) {}
+
+        // Discover priorities as mappings
+        try {
+            $fields = $client->getFields($siteUrl, $email, $token);
+            foreach ($fields as $f) {
+                if (($f['name'] ?? '') === 'Priority' && !empty($f['allowedValues'])) {
+                    foreach ($f['allowedValues'] as $pv) {
+                        $pId = (string)($pv['id'] ?? '');
+                        if ($pId === '') continue;
+                        $pName = (string)($pv['name'] ?? $pId);
+                        $this->repo->upsertMapping($connId, 'priority', $pId, $pName);
+                    }
+                }
+            }
+        } catch (\Throwable) {}
+
+        // Discover issue types as mappings
+        try {
+            foreach ($fields as $f) {
+                if (($f['name'] ?? '') === 'Issue Type' && !empty($f['allowedValues'])) {
+                    foreach ($f['allowedValues'] as $it) {
+                        $itId = (string)($it['id'] ?? '');
+                        if ($itId === '') continue;
+                        $itName = (string)($it['name'] ?? $itId);
+                        $this->repo->upsertMapping($connId, 'issuetype', $itId, $itName);
+                    }
+                }
+            }
+        } catch (\Throwable) {}
+
+        // Return all mappings for this connection
+        $allMappings = $this->repo->listMappings($connId);
+
+        return JsonResponse::success('JIRA_MAPPINGS_DISCOVERED', 'Mappings discovered', [
+            'mappings' => $allMappings,
+            'users_count' => count($jiraUsers),
+        ]);
+    }
+
     // ── Unresolved ──
 
     public function listUnresolved(): JsonResponse

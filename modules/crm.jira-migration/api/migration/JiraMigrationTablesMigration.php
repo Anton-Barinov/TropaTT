@@ -20,9 +20,9 @@ class JiraMigrationTablesMigration
 
     public function up(): void
     {
-        // ── jira_connections ──
+        // ── module_jira_connections ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_connections` (
+            CREATE TABLE IF NOT EXISTS `module_jira_connections` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `public_id` VARCHAR(64) NOT NULL UNIQUE,
                 `name` VARCHAR(255) NOT NULL,
@@ -41,9 +41,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_jobs ──
+        // ── module_jira_jobs ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_jobs` (
+            CREATE TABLE IF NOT EXISTS `module_jira_jobs` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `public_id` VARCHAR(64) NOT NULL UNIQUE,
                 `connection_id` BIGINT UNSIGNED NOT NULL,
@@ -61,15 +61,15 @@ class JiraMigrationTablesMigration
                 `created_by_user_id` BIGINT UNSIGNED NOT NULL,
                 `created_at` DATETIME NOT NULL,
                 `updated_at` DATETIME NOT NULL,
-                INDEX `idx_jira_jobs_status` (`status`),
-                INDEX `idx_jira_jobs_connection` (`connection_id`),
-                INDEX `idx_jira_jobs_user` (`created_by_user_id`)
+                INDEX `idx_module_jira_jobs_status` (`status`),
+                INDEX `idx_module_jira_jobs_connection` (`connection_id`),
+                INDEX `idx_module_jira_jobs_user` (`created_by_user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_job_items ──
+        // ── module_jira_job_items ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_job_items` (
+            CREATE TABLE IF NOT EXISTS `module_jira_job_items` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `job_id` BIGINT UNSIGNED NOT NULL,
                 `source_type` VARCHAR(64) NOT NULL,
@@ -95,9 +95,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_job_logs ──
+        // ── module_jira_job_logs ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_job_logs` (
+            CREATE TABLE IF NOT EXISTS `module_jira_job_logs` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `job_id` BIGINT UNSIGNED NOT NULL,
                 `level` VARCHAR(16) NOT NULL,
@@ -109,9 +109,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_identity_mappings ──
+        // ── module_jira_identity_mappings ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_identity_mappings` (
+            CREATE TABLE IF NOT EXISTS `module_jira_identity_mappings` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `public_id` VARCHAR(64) NOT NULL UNIQUE,
                 `connection_id` BIGINT UNSIGNED NOT NULL,
@@ -129,9 +129,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_unresolved_entities ──
+        // ── module_jira_unresolved_entities ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_unresolved_entities` (
+            CREATE TABLE IF NOT EXISTS `module_jira_unresolved_entities` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `job_id` BIGINT UNSIGNED NOT NULL,
                 `source_type` VARCHAR(64) NOT NULL,
@@ -145,9 +145,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_unsupported_fields ──
+        // ── module_jira_unsupported_fields ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_unsupported_fields` (
+            CREATE TABLE IF NOT EXISTS `module_jira_unsupported_fields` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `job_id` BIGINT UNSIGNED NOT NULL,
                 `issue_id` VARCHAR(191) NULL,
@@ -162,9 +162,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_rate_limits ──
+        // ── module_jira_rate_limits ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_rate_limits` (
+            CREATE TABLE IF NOT EXISTS `module_jira_rate_limits` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `connection_id` BIGINT UNSIGNED NOT NULL UNIQUE,
                 `requests_made` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -175,9 +175,9 @@ class JiraMigrationTablesMigration
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        // ── jira_settings ──
+        // ── module_jira_settings ──
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `jira_settings` (
+            CREATE TABLE IF NOT EXISTS `module_jira_settings` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `module_name` VARCHAR(190) NOT NULL,
                 `setting_key` VARCHAR(190) NOT NULL,
@@ -191,15 +191,15 @@ class JiraMigrationTablesMigration
     public function down(): void
     {
         $tables = [
-            'jira_settings',
-            'jira_rate_limits',
-            'jira_unsupported_fields',
-            'jira_unresolved_entities',
-            'jira_identity_mappings',
-            'jira_job_logs',
-            'jira_job_items',
-            'jira_jobs',
-            'jira_connections',
+            'module_jira_settings',
+            'module_jira_rate_limits',
+            'module_jira_unsupported_fields',
+            'module_jira_unresolved_entities',
+            'module_jira_identity_mappings',
+            'module_jira_job_logs',
+            'module_jira_job_items',
+            'module_jira_jobs',
+            'module_jira_connections',
         ];
 
         foreach ($tables as $table) {
@@ -210,7 +210,7 @@ class JiraMigrationTablesMigration
     public function isApplied(): bool
     {
         try {
-            $stmt = $this->pdo->query("SHOW TABLES LIKE 'jira_connections'");
+            $stmt = $this->pdo->query("SHOW TABLES LIKE 'module_jira_connections'");
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
             return false;

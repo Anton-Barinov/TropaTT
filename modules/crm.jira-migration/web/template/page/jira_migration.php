@@ -168,13 +168,50 @@
                 <button class="btn crm-btn-secondary me-2" id="backToSourceBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('jira_migration.back', 'Назад') ?>
                 </button>
-                <button class="btn crm-btn-primary" id="toPreviewBtn">
+                <button class="btn crm-btn-primary" id="toMappingsBtn">
                     <?= $t('jira_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Step 4: Preview -->
+        <!-- Step 4: Mappings -->
+        <div id="step-mappings" class="migration-step d-none">
+            <div class="crm-card mb-3">
+                <div class="crm-card-header">
+                    <h5 class="mb-0" data-i18n="jira_migration.mappings_title"><?= htmlspecialchars($t('jira_migration.mappings_title', 'Сопоставление сущностей'), ENT_QUOTES, 'UTF-8') ?></h5>
+                </div>
+                <div class="crm-card-body">
+                    <p class="text-muted" data-i18n="jira_migration.mappings_desc"><?= htmlspecialchars($t('jira_migration.mappings_desc', 'Сопоставьте пользователей, статусы и приоритеты Jira с сущностями TropaTT. Несопоставленные пользователи будут отображаться как текст.'), ENT_QUOTES, 'UTF-8') ?></p>
+                    <ul class="nav nav-tabs mb-3" id="mappingTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-mapping-tab="users" href="#"><?= $t('jira_migration.mappings_users', 'Пользователи') ?></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-mapping-tab="statuses" href="#"><?= $t('jira_migration.mappings_statuses', 'Статусы') ?></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-mapping-tab="priorities" href="#"><?= $t('jira_migration.mappings_priorities', 'Приоритеты') ?></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-mapping-tab="issuetypes" href="#"><?= $t('jira_migration.mappings_issue_types', 'Типы задач') ?></a>
+                        </li>
+                    </ul>
+                    <div id="mappingsContainer">
+                        <div class="text-muted py-3"><?= $t('jira_migration.loading', 'Загрузка...') ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-end mt-3">
+                <button class="btn crm-btn-secondary me-2" id="backToSettingsFromMappingsBtn">
+                    <i class="fa-solid fa-arrow-left"></i> <?= $t('jira_migration.back', 'Назад') ?>
+                </button>
+                <button class="btn crm-btn-primary" id="toPreviewFromMappingsBtn">
+                    <?= $t('jira_migration.next', 'Далее') ?> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 5: Preview -->
         <div id="step-preview" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">

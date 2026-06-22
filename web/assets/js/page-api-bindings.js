@@ -2642,6 +2642,7 @@ window.CRM.pageApiBindings = (function () {
     var assigneeFilter = String(query.get('assignee') || '').trim();
     var managerFilter = String(query.get('manager') || '').trim();
     var projectFilter = String(query.get('project') || '').trim();
+    var cycleFilter = String(query.get('cycle_public_id') || '').trim();
     var tagFilter = String(query.get('tag') || '').trim();
     var dueFilter = String(query.get('due') || '').trim();
     var sortFilter = String(query.get('sort') || '');
@@ -2667,11 +2668,15 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var tasksProjectSelect = document.getElementById('tasksProjectFilter');
+    var tasksCycleSelect = document.getElementById('tasksCycleFilter');
     var tasksTagSelect = document.getElementById('tasksTagFilter');
     var tasksPromise = tryRequest('api/v1/tasks', { query: apiQuery });
     var savedViewsPromise = tryRequest('api/v1/views', { query: { entity_type: 'task', limit: 100 } });
     var projectOptionsPromise = tasksProjectSelect
       ? tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true })
+      : Promise.resolve(null);
+    var cycleOptionsPromise = tasksCycleSelect
+      ? tryRequest('api/v1/cycles', { query: { limit: 100, archived: '1' }, silent: true })
       : Promise.resolve(null);
     var tagOptionsPromise = tasksTagSelect
       ? tryRequest('api/v1/tags', { query: { limit: 100 }, silent: true })
@@ -2733,6 +2738,13 @@ window.CRM.pageApiBindings = (function () {
     if (projectFilter) {
       items = items.filter(function (item) { return String(item.project_public_id || '') === projectFilter; });
     }
+    if (cycleFilter) {
+      items = items.filter(function (item) {
+        var cycleKey = String(item.cycle_public_id || '').trim();
+        if (cycleFilter === '__none') return !cycleKey;
+        return cycleKey === cycleFilter;
+      });
+    }
     if (tagFilter) {
       items = items.filter(function (item) {
         if (!item.tags) return false;
@@ -2782,7 +2794,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
         delete queryObj[key];
       });
       if (!next.keepViewPublicId) {
@@ -2794,6 +2806,7 @@ window.CRM.pageApiBindings = (function () {
       if (next.assignee) queryObj.assignee = next.assignee;
       if (next.manager) queryObj.manager = next.manager;
       if (next.project) queryObj.project = next.project;
+      if (next.cycle) queryObj.cycle_public_id = next.cycle;
       if (next.tag) queryObj.tag = next.tag;
       if (next.due) queryObj.due = next.due;
       if (next.sort) queryObj.sort = next.sort;
@@ -3006,6 +3019,7 @@ window.CRM.pageApiBindings = (function () {
           assignee: assigneeSelect ? assigneeSelect.value : '',
           manager: managerSelect ? managerSelect.value : '',
           project: projectSelect ? projectSelect.value : '',
+          cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
           tag: tagSelect ? tagSelect.value : '',
           due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
           sort: sortFilter,
@@ -3027,7 +3041,7 @@ window.CRM.pageApiBindings = (function () {
         }
       }
 
-      [assigneeSelect, managerSelect, projectSelect, tagSelect].forEach(function (sel) {
+      [assigneeSelect, managerSelect, projectSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
         if (!sel || sel.dataset.bound === '1') return;
         sel.addEventListener('change', function () {
           applyTaskRouteQuery(tasksFiltersFromDom());
@@ -3060,19 +3074,20 @@ window.CRM.pageApiBindings = (function () {
           if (assigneeSelect) assigneeSelect.value = '';
           if (managerSelect) managerSelect.value = '';
           if (projectSelect) projectSelect.value = '';
+          if (tasksCycleSelect) tasksCycleSelect.value = '';
           if (tagSelect) tagSelect.value = '';
           // Clear searchable inputs
           document.querySelectorAll('.crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
           document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
           // Clear due-date buttons
           dueBtns.forEach(function (b) { b.classList.remove('is-active'); });
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', tag: '', due: '', sort: '', order: '' });
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', cycle: '', tag: '', due: '', sort: '', order: '' });
         });
         resetBtn.dataset.bound = '1';
       }
 
       // Enable/disable reset button based on active filters
-      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || tagFilter || dueFilter);
+      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || cycleFilter || tagFilter || dueFilter);
       if (resetBtn) {
         resetBtn.disabled = !hasActive;
         resetBtn.classList.toggle('is-active', hasActive);
@@ -3257,6 +3272,17 @@ window.CRM.pageApiBindings = (function () {
       var projEnv = await projectOptionsPromise;
       var projItems = mapItems(projEnv);
       fillSelect(tasksProjectSelect, projItems, 'public_id', function (p) { return p.title; });
+    }
+    if (tasksCycleSelect) {
+      var cycleEnv = await cycleOptionsPromise;
+      var cycleItems = mapItems(cycleEnv);
+      fillSelect(tasksCycleSelect, cycleItems, 'public_id', function (c) { return c.title; });
+      // Add "no cycle" option
+      var noCycleOpt = document.createElement('option');
+      noCycleOpt.value = '__none';
+      noCycleOpt.textContent = window.CRM.i18n.t('tasks.filter_no_cycle', 'Без цикла');
+      tasksCycleSelect.insertBefore(noCycleOpt, tasksCycleSelect.options[tasksCycleSelect.options.length - 1] || null);
+      if (cycleFilter) tasksCycleSelect.value = cycleFilter;
     }
     if (tasksTagSelect) {
       var tagEnv = await tagOptionsPromise;
@@ -27239,7 +27265,7 @@ window.CRM.pageApiBindings = (function () {
     var taskFilterSelectors = [
       '#tasksAssigneeFilter',
       '#tasksManagerFilter',
-      '#tasksProjectFilter',
+      '#tasksCycleFilter',
       '#tasksTagFilter'
     ];
     // Projects page filter selects

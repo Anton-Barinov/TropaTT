@@ -27,7 +27,7 @@ final class JiraWorkerHandler
         $repo = new JiraMigrationRepository($pdo);
 
         // Find next queued job
-        $stmt = $pdo->prepare("SELECT public_id FROM jira_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT public_id FROM module_jira_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1");
         $stmt->execute();
         $jobPublicId = (string)$stmt->fetchColumn();
 
