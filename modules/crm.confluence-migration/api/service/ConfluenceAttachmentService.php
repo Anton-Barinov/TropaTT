@@ -75,7 +75,7 @@ final class ConfluenceAttachmentService
                     'content_base64' => base64_encode(file_get_contents($tmpPath)),
                     'source_type' => 'confluence',
                     'source_id' => $attachmentId,
-                    'source_url' => $baseUrl . ($attachment['downloadLink'] ?? ''),
+                    'source_url' => $this->resolveDownloadUrl($baseUrl, $attachment['downloadLink'] ?? ''),
                     'checksum' => hash_file('sha256', $tmpPath),
                 ],
                 [],
@@ -116,5 +116,17 @@ final class ConfluenceAttachmentService
                 @unlink($tmpPath);
             }
         }
+    }
+
+    private function resolveDownloadUrl(string $baseUrl, string $downloadLink): string
+    {
+        if ($downloadLink === '') {
+            return $baseUrl;
+        }
+        if (str_starts_with($downloadLink, 'http://') || str_starts_with($downloadLink, 'https://')) {
+            return $downloadLink;
+        }
+        $origin = parse_url($baseUrl, PHP_URL_SCHEME) . '://' . parse_url($baseUrl, PHP_URL_HOST);
+        return $origin . $downloadLink;
     }
 }
