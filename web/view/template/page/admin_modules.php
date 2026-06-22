@@ -66,7 +66,10 @@
                 bindActions();
             })
             .catch(function (err) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-danger">' + window.CRM.i18n.t('admin_modules.error_load', 'Ошибка загрузки') + ': ' + window.CRM.text.escapeHtml((err.envelope && err.envelope.message) || (err.message) || window.CRM.i18n.t('admin_modules.unknown_error', 'Неизвестная ошибка')) + '</td></tr>';
+                var esc = window.CRM && window.CRM.text && window.CRM.text.escapeHtml
+                    ? window.CRM.text.escapeHtml
+                    : function (v) { return String(v || '').replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c] || c; }); };
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-danger">' + window.CRM.i18n.t('admin_modules.error_load', 'Ошибка загрузки') + ': ' + esc((err.envelope && err.envelope.message) || (err.message) || window.CRM.i18n.t('admin_modules.unknown_error', 'Неизвестная ошибка')) + '</td></tr>';
             });
     }
 
@@ -245,8 +248,11 @@
                     else if (action === 'deactivate') btnEl.innerHTML = '<i class="fa-solid fa-pause"></i>';
                     else btnEl.innerHTML = '<i class="fa-solid fa-trash"></i>';
                 }
+                var esc = window.CRM && window.CRM.text && window.CRM.text.escapeHtml
+                    ? window.CRM.text.escapeHtml
+                    : function (v) { return String(v || '').replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c] || c; }); };
                 if (window.CRM.br1 && typeof window.CRM.br1.notify === 'function') {
-                    window.CRM.br1.notify('error', window.CRM.i18n.t('admin_modules.error_action', 'Ошибка') + ': ' + window.CRM.text.escapeHtml((err.envelope && err.envelope.message) || (err.message) || ''));
+                    window.CRM.br1.notify('error', window.CRM.i18n.t('admin_modules.error_action', 'Ошибка') + ': ' + esc((err.envelope && err.envelope.message) || (err.message) || ''));
                 }
             });
     }
