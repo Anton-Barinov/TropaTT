@@ -6,7 +6,7 @@ namespace Api\System\Library\Service;
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
 use Api\System\Library\Logger\JsonLogger;
-use Api\System\Library\Security\LoginRateLimiter;
+use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -20,7 +20,7 @@ final class AuthService
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
         private readonly int $tokenTtlSeconds,
-        private readonly LoginRateLimiter $rateLimiter
+        private readonly RateLimiterInterface $rateLimiter
     ) {
     }
 

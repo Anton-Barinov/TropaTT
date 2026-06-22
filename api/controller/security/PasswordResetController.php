@@ -38,9 +38,10 @@ final class PasswordResetController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $validator->errors());
         }
 
-        if (strlen((string)$input['new_password']) < 8) {
+        $newPassword = (string)$input['new_password'];
+        if (strlen($newPassword) < 12 || !preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'new_password' => [$this->t('security/messages.min_password_8')],
+                'new_password' => [$this->t('security/messages.min_password_12_complex')],
             ]);
         }
 

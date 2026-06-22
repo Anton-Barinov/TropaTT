@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Security;
 
-final class LoginRateLimiter
+final class LoginRateLimiter implements RateLimiterInterface
 {
     public function __construct(
         private readonly string $storageFile,

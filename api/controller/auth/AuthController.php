@@ -117,13 +117,11 @@ final class AuthController extends BaseController
             return;
         }
 
-        $isProduction = $this->isProductionEnvironment();
-
         setcookie($this->cookieName(), $token, [
             'expires' => time() + max(60, $ttlSeconds),
             'path' => $this->cookiePath(),
             'secure' => $this->cookieSecure(),
-            'httponly' => $isProduction, // Allow JS access in local dev
+            'httponly' => true,
             'samesite' => $this->cookieSameSite(),
         ]);
     }

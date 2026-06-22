@@ -3015,7 +3015,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.view_cron_results"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -4040,7 +4042,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.view_cron_results"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -4130,7 +4134,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.manage_cron_jobs"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -4231,7 +4237,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.manage_cron_jobs"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -4311,7 +4319,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.view_cron_results"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -4401,7 +4411,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.manage_cron_jobs"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -8907,7 +8919,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.view_cron_results"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -34862,7 +34876,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.admin"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -34950,7 +34966,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "ai.admin"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57534,7 +57552,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57630,7 +57650,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57729,7 +57751,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57798,7 +57822,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57886,7 +57912,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -57966,7 +57994,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58051,7 +58081,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58147,7 +58179,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58246,7 +58280,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58336,7 +58372,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58485,7 +58523,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58573,7 +58613,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58653,7 +58695,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58741,7 +58785,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58842,7 +58888,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58911,7 +58959,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -58980,7 +59030,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -59068,7 +59120,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -59169,7 +59223,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "project.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -68705,7 +68761,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "logs.view"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -80951,7 +81009,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "team.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -81121,7 +81181,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "team.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -81206,7 +81268,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "team.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -81302,7 +81366,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "team.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -81401,7 +81467,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "team.manage"
+                ],
                 "security": [
                     {
                         "bearerAuth": []
@@ -82061,7 +82129,9 @@
                     }
                 },
                 "x-auth-required": true,
-                "x-required-permissions": [],
+                "x-required-permissions": [
+                    "logs.view"
+                ],
                 "security": [
                     {
                         "bearerAuth": []

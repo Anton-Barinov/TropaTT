@@ -71,7 +71,7 @@ $L = [];
 $L['ru'] = [
     'title' => 'Установка CRM',
     'already_installed' => 'Система уже установлена',
-    'already_installed_desc' => 'Файл конфигурации .env найден и база данных доступна. Если хотите переустановить систему, удалите файл api/.env и api/.install.lock.',
+    'already_installed_desc' => 'Система уже установлена. Для переустановки удалите конфигурационный файл и файл блокировки установки из папки api/.',
     'go_to_dashboard' => 'Перейти в панель управления',
     'step' => 'Шаг',
     'step_db' => 'База данных',
@@ -146,7 +146,7 @@ $L['ru'] = [
 $L['en'] = [
     'title' => 'CRM Installation',
     'already_installed' => 'System already installed',
-    'already_installed_desc' => 'Configuration file .env found and database is accessible. To reinstall, delete api/.env and api/.install.lock.',
+    'already_installed_desc' => 'System is already installed. To reinstall, remove the configuration file and the installer lock file from the api/ directory.',
     'go_to_dashboard' => 'Go to Dashboard',
     'step' => 'Step',
     'step_db' => 'Database',
@@ -221,7 +221,7 @@ $L['en'] = [
 $L['zh'] = [
     'title' => 'CRM 安装',
     'already_installed' => '系统已安装',
-    'already_installed_desc' => '已找到配置文件 .env 且数据库可访问。如需重新安装，请删除 api/.env 和 api/.install.lock。',
+    'already_installed_desc' => '系统已安装。如需重新安装，请删除 api/ 目录中的配置文件和安装锁定文件。',
     'go_to_dashboard' => '进入控制面板',
     'step' => '步骤',
     'step_db' => '数据库',
@@ -296,7 +296,7 @@ $L['zh'] = [
 $L['es'] = [
     'title' => 'Instalación de CRM',
     'already_installed' => 'Sistema ya instalado',
-    'already_installed_desc' => 'Archivo de configuración .env encontrado y base de datos accesible. Para reinstalar, elimine api/.env y api/.install.lock.',
+    'already_installed_desc' => 'El sistema ya está instalado. Para reinstalar, elimine el archivo de configuración y el archivo de bloqueo del instalador del directorio api/.',
     'go_to_dashboard' => 'Ir al Panel de Control',
     'step' => 'Paso',
     'step_db' => 'Base de Datos',
@@ -371,7 +371,7 @@ $L['es'] = [
 $L['pt'] = [
     'title' => 'Instalação do CRM',
     'already_installed' => 'Sistema já instalado',
-    'already_installed_desc' => 'Arquivo de configuração .env encontrado e banco de dados acessível. Para reinstalar, exclua api/.env e api/.install.lock.',
+    'already_installed_desc' => 'O sistema já está instalado. Para reinstalar, remova o arquivo de configuração e o arquivo de bloqueio do instalador do diretório api/.',
     'go_to_dashboard' => 'Ir para o Painel de Controle',
     'step' => 'Etapa',
     'step_db' => 'Banco de Dados',
@@ -446,7 +446,7 @@ $L['pt'] = [
 $L['de'] = [
     'title' => 'CRM-Installation',
     'already_installed' => 'System bereits installiert',
-    'already_installed_desc' => 'Konfigurationsdatei .env gefunden und Datenbank erreichbar. Zum Neuinstallieren löschen Sie api/.env und api/.install.lock.',
+    'already_installed_desc' => 'System ist bereits installiert. Zum Neuinstallieren entfernen Sie die Konfigurationsdatei und die Installer-Sperrdatei aus dem api/-Verzeichnis.',
     'go_to_dashboard' => 'Zum Dashboard',
     'step' => 'Schritt',
     'step_db' => 'Datenbank',
@@ -521,7 +521,7 @@ $L['de'] = [
 $L['fr'] = [
     'title' => 'Installation de CRM',
     'already_installed' => 'Système déjà installé',
-    'already_installed_desc' => 'Fichier de configuration .env trouvé et base de données accessible. Pour réinstaller, supprimez api/.env et api/.install.lock.',
+    'already_installed_desc' => 'Le système est déjà installé. Pour réinstaller, supprimez le fichier de configuration et le fichier de verrouillage d\'installation du répertoire api/.',
     'go_to_dashboard' => 'Aller au tableau de bord',
     'step' => 'Étape',
     'step_db' => 'Base de données',
@@ -3762,15 +3762,15 @@ $js = <<<'JS'
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data.success) {
-                        resultDiv.innerHTML = '&#10003; ' + data.message;
+                        resultDiv.textContent = '\u2713 ' + data.message;
                         resultDiv.className = 'test-result success';
                     } else {
-                        resultDiv.innerHTML = '&#10007; ' + data.message;
+                        resultDiv.textContent = '\u2717 ' + data.message;
                         resultDiv.className = 'test-result error';
                     }
                 })
                 .catch(function(err) {
-                    resultDiv.innerHTML = '&#10007; Network error: ' + err.message;
+                    resultDiv.textContent = '\u2717 Network error: ' + err.message;
                     resultDiv.className = 'test-result error';
                 })
                 .finally(function() {

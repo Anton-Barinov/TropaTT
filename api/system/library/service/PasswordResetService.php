@@ -8,7 +8,7 @@ use Api\Model\Security\PasswordResetRepository;
 use Api\Model\Security\SessionRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Logger\JsonLogger;
-use Api\System\Library\Security\LoginRateLimiter;
+use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -23,7 +23,7 @@ final class PasswordResetService
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly LoginRateLimiter $rateLimiter
+        private readonly RateLimiterInterface $rateLimiter
     ) {
     }
 
