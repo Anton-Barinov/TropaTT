@@ -426,8 +426,8 @@
         showStep('settings');
     });
 
-    document.getElementById('backToMappingsFromPreviewBtn').addEventListener('click', function() {
-        showStep('mappings');
+    document.getElementById('backToSettingsBtn').addEventListener('click', function() {
+        showStep('settings');
     });
 
     document.getElementById('toPreviewFromMappingsBtn').addEventListener('click', async function() {
