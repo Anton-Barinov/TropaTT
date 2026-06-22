@@ -37,7 +37,6 @@ use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Router\Router;
 use Api\System\Library\Security\PasswordHasher;
-use Api\System\Library\Security\LoginRateLimiter;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Service\AuthService;
 use Api\System\Library\Service\CommentService;
@@ -314,7 +313,7 @@ final class App
             }
 
             if ($this->shouldApplyGlobalRouteRateLimit($request, $routePath)) {
-                /** @var LoginRateLimiter $routeRateLimiter */
+                    /** @var RateLimiterInterface $routeRateLimiter */
                 $routeRateLimiter = $this->container->get('security.route_rate_limiter');
                 $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
                 $rateKey = $this->globalRouteRateLimitKey($request, $routePath, is_array($auth) ? $auth : null);
@@ -454,11 +453,13 @@ final class App
             $statusCode = 500;
             $resultCode = 'INTERNAL_ERROR';
 
+            $exceptionDetail = $this->config->get('default.app.debug', false) ? $e->getMessage() : null;
+            $errors = $exceptionDetail !== null ? ['exception' => [$exceptionDetail]] : [];
             return JsonResponse::error(
                 code: 'INTERNAL_ERROR',
                 message: $this->container->get('lang')->get('common/messages.internal_error', 'Internal server error'),
                 status: 500,
-                errors: ['exception' => [$this->config->get('default.app.debug', false) ? $e->getMessage() : 'Internal error']],
+                errors: $errors,
                 requestId: $request->requestId,
                 correlationId: $request->correlationId
             );
@@ -673,6 +674,10 @@ final class App
         header('Access-Control-Allow-Headers: ' . $corsHeaders);
         header('X-Request-Id: ' . $request->requestId);
         header('X-Correlation-Id: ' . $request->correlationId);
+        header('X-Frame-Options: DENY');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('X-Powered-By: TropaTT');
 
         $lang = new LanguageManager($this->basePath . '/language', (string)$this->config->get('default.locale.fallback', 'en-gb'));
         $lang->setLocale($request->locale);
@@ -774,7 +779,7 @@ final class App
 
         $this->container->factory('security.hasher', fn() => new PasswordHasher((string)$this->config->get('security.auth.password_algo', PASSWORD_ARGON2ID)));
         $this->container->factory('security.token', fn() => new TokenManager());
-        $this->container->factory('security.login_rate_limiter', function (): LoginRateLimiter {
+        $this->container->factory('security.login_rate_limiter', function (Container $c): DatabaseRateLimiter {
             $rateLimitConfig = (array)$this->config->get('security.rate_limit.auth_login', []);
             $authConfig = (array)$this->config->get('security.auth', []);
 
@@ -782,28 +787,28 @@ final class App
             $lockThreshold = (int)($authConfig['lock_threshold'] ?? 5);
             $maxAttempts = max(1, min($configuredMax > 0 ? $configuredMax : 15, $lockThreshold > 0 ? $lockThreshold : 5));
 
-            return new LoginRateLimiter(
-                (string)$this->config->get('default.storage.cache', $this->basePath . '/../storage_api/cache') . '/auth_login_rate_limit.json',
+            return new DatabaseRateLimiter(
+                $c->get('db.pdo'),
                 max(1, (int)($rateLimitConfig['window_sec'] ?? 60)),
                 $maxAttempts,
                 max(1, (int)($authConfig['lock_seconds'] ?? 300))
             );
         });
-        $this->container->factory('security.password_reset_rate_limiter', function (): LoginRateLimiter {
+        $this->container->factory('security.password_reset_rate_limiter', function (Container $c): DatabaseRateLimiter {
             $cfg = (array)$this->config->get('security.rate_limit.password_reset', []);
 
-            return new LoginRateLimiter(
-                (string)$this->config->get('default.storage.cache', $this->basePath . '/../storage_api/cache') . '/password_reset_rate_limit.json',
+            return new DatabaseRateLimiter(
+                $c->get('db.pdo'),
                 max(1, (int)($cfg['window_sec'] ?? 300)),
                 max(1, (int)($cfg['max'] ?? 5)),
                 max(1, (int)($cfg['lock_seconds'] ?? 900))
             );
         });
-        $this->container->factory('security.route_rate_limiter', function (): LoginRateLimiter {
+        $this->container->factory('security.route_rate_limiter', function (Container $c): DatabaseRateLimiter {
             $cfg = (array)$this->config->get('security.rate_limit.route_global', []);
 
-            return new LoginRateLimiter(
-                (string)$this->config->get('default.storage.cache', $this->basePath . '/../storage_api/cache') . '/route_global_rate_limit.json',
+            return new DatabaseRateLimiter(
+                $c->get('db.pdo'),
                 max(1, (int)($cfg['window_sec'] ?? 60)),
                 max(1, (int)($cfg['max'] ?? 120)),
                 max(1, (int)($cfg['lock_seconds'] ?? 60))

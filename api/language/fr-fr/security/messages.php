@@ -15,6 +15,7 @@ return [
     'profile_change_password_failed' => 'Échec de la modification du mot de passe',
     'preferences_object_expected' => 'L\'objet/tableau preferences est attendu',
     'min_password_8' => 'La longueur minimale est de 8 caractères',
+    'min_password_12_complex' => 'Minimum 12 caractères, majuscule, minuscule et chiffre',
     'max_255' => 'Maximum 255 caractères',
     'max_190' => 'Maximum 190 caractères',
     'max_20' => 'Maximum 20 caractères',

@@ -40,8 +40,8 @@ if (!$isProduction) {
     }
 }
 
-$accessTokenTtl = (int)(getenv('CRM_AUTH_ACCESS_TOKEN_TTL') ?: getenv('AUTH_ACCESS_TOKEN_TTL') ?: (3600 * 24 * 7));
-$refreshTokenTtl = (int)(getenv('CRM_AUTH_REFRESH_TOKEN_TTL') ?: getenv('AUTH_REFRESH_TOKEN_TTL') ?: (3600 * 24 * 30));
+$accessTokenTtl = (int)(getenv('CRM_AUTH_ACCESS_TOKEN_TTL') ?: getenv('AUTH_ACCESS_TOKEN_TTL') ?: (3600 * 24 * 3));
+$refreshTokenTtl = (int)(getenv('CRM_AUTH_REFRESH_TOKEN_TTL') ?: getenv('AUTH_REFRESH_TOKEN_TTL') ?: (3600 * 24 * 14));
 
 return [
     'auth' => [

@@ -15,6 +15,7 @@ return [
     'profile_change_password_failed' => '无法修改密码',
     'preferences_object_expected' => '需要 preferences 对象/数组',
     'min_password_8' => '密码最短 8 个字符',
+    'min_password_12_complex' => '至少12个字符，包含大写、小写字母和数字',
     'max_255' => '最多 255 个字符',
     'max_190' => '最多 190 个字符',
     'max_20' => '最多 20 个字符',
