@@ -122,9 +122,9 @@ final class ProfileController extends BaseController
 
         $current = (string)$input['current_password'];
         $new = (string)$input['new_password'];
-        if (strlen($new) < 8) {
+        if (strlen($new) < 12 || !preg_match('/[A-Z]/', $new) || !preg_match('/[a-z]/', $new) || !preg_match('/[0-9]/', $new)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'new_password' => [$this->t('security/messages.min_password_8')],
+                'new_password' => [$this->t('security/messages.min_password_12_complex')],
             ]);
         }
 

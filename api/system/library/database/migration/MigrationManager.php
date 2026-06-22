@@ -55,6 +55,7 @@ final class MigrationManager
             new StickyNotesMigration(),
             new TaskEstimatesMigration(),
             new KnowledgeSourceMetadataMigration(),
+            new RateLimitsMigration(),
         ];
     }
 

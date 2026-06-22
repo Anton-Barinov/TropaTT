@@ -15,6 +15,7 @@ return [
     'profile_change_password_failed' => 'Error al cambiar la contraseña',
     'preferences_object_expected' => 'Se espera un objeto/array de preferencias',
     'min_password_8' => 'La longitud mínima es de 8 caracteres',
+    'min_password_12_complex' => 'Mínimo 12 caracteres, mayúscula, minúscula y dígito',
     'max_255' => 'Máximo 255 caracteres',
     'max_190' => 'Máximo 190 caracteres',
     'max_20' => 'Máximo 20 caracteres',

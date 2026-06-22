@@ -97,9 +97,10 @@ final class InvitationController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $validator->errors());
         }
 
-        if (strlen((string)$input['password']) < 8) {
+        $password = (string)$input['password'];
+        if (strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'password' => [$this->t('security/messages.min_password_8')],
+                'password' => [$this->t('security/messages.min_password_12_complex')],
             ]);
         }
 
