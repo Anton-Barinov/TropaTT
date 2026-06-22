@@ -69,10 +69,10 @@ final class I18n
      */
     public function loadModuleTranslations(string $vendor, string $name): void
     {
-        $locales = ['ru-ru', 'en-gb', 'pt-br'];
         $current = $this->locale();
-        if (!in_array($current, $locales, true)) {
-            $locales[] = $current;
+        $locales = [$current];
+        if ($current !== 'ru-ru') {
+            $locales[] = 'ru-ru';
         }
 
         foreach ($locales as $locale) {
