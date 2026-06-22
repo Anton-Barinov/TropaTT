@@ -94,6 +94,8 @@ return [
         'mapping_unmapped' => 'Unmapped',
         'mapping_mapped' => 'Mapped',
         'mapping_save' => 'Save',
+        'mappings_issue_types' => 'Issue Types',
+        'no_mappings' => 'No data for mapping',
         'select' => 'Select',
 
         'start_import' => 'Start Migration',

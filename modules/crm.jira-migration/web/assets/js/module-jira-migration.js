@@ -7,7 +7,7 @@
     let currentJobId = null;
     let pollTimer = null;
 
-    const steps = ['connections', 'source', 'settings', 'preview', 'run', 'report'];
+    const steps = ['connections', 'source', 'settings', 'mappings', 'preview', 'run', 'report'];
 
     function showStep(stepId) {
         document.querySelectorAll('.migration-step').forEach(el => el.classList.add('d-none'));
@@ -224,13 +224,214 @@
         showStep('settings');
     });
 
-    // ── Step 3: Settings → Preview ──
+    // ── Step 3: Settings → Mappings ──
 
     document.getElementById('backToSourceBtn').addEventListener('click', function() {
         showStep('source');
     });
 
-    document.getElementById('toPreviewBtn').addEventListener('click', async function() {
+    document.getElementById('toMappingsBtn').addEventListener('click', function() {
+        showStep('mappings');
+        loadMappings();
+    });
+
+    // ── Step 4: Mappings ──
+
+    let currentMappingTab = 'users';
+
+    document.querySelectorAll('#mappingTabs .nav-link').forEach(function(tab) {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('#mappingTabs .nav-link').forEach(function(t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            currentMappingTab = this.dataset.mappingTab;
+            renderMappingTab(currentMappingTab);
+        });
+    });
+
+    let allMappings = [];
+    let crmUsers = [];
+    let crmStatuses = [];
+    let crmPriorities = [];
+
+    async function loadCrmOptions() {
+        try {
+            const statusResp = await window.CRM.api.request('api/v1/statuses');
+            crmStatuses = statusResp.data?.statuses || [];
+
+            const priorityResp = await window.CRM.api.request('api/v1/priorities');
+            crmPriorities = priorityResp.data?.priorities || [];
+
+            const userResp = await window.CRM.api.request('api/v1/users');
+            crmUsers = userResp.data?.users || [];
+        } catch (e) {
+            console.warn('Failed to load CRM options:', e);
+        }
+    }
+
+    async function loadMappings() {
+        const container = document.getElementById('mappingsContainer');
+        container.innerHTML = '<div class="text-muted py-3">' + window.CRM.i18n.t('jira_migration.loading', 'Загрузка...') + '</div>';
+
+        await loadCrmOptions();
+
+        try {
+            const resp = await window.CRM.api.request(BASE_API + '/mappings/discover', {
+                method: 'POST',
+                body: JSON.stringify({ connection_public_id: selectedConnection })
+            });
+
+            allMappings = resp.data?.mappings || [];
+            renderMappingTab(currentMappingTab);
+        } catch (err) {
+            container.innerHTML = '<div class="text-danger py-3">' + window.CRM.i18n.t('jira_migration.load_error', 'Ошибка загрузки') + ': ' + err.message + '</div>';
+        }
+    }
+
+    function renderMappingTab(tab) {
+        const container = document.getElementById('mappingsContainer');
+        const filtered = allMappings.filter(function(m) {
+            return m.jira_subject_type === tab;
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="text-muted py-3">' + window.CRM.i18n.t('jira_migration.no_mappings', 'Нет данных для сопоставления') + '</div>';
+            return;
+        }
+
+        let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr>';
+        html += '<th>' + window.CRM.i18n.t('jira_migration.mapping_jira_entity', 'Jira') + '</th>';
+        html += '<th>' + window.CRM.i18n.t('jira_migration.mapping_crm_entity', 'CRM') + '</th>';
+        html += '<th>' + window.CRM.i18n.t('jira_migration.mapping_status', 'Статус') + '</th>';
+        html += '</tr></thead><tbody>';
+
+        filtered.forEach(function(m) {
+            const isMapped = m.status === 'mapped' && m.crm_subject_public_id;
+            const statusClass = isMapped ? 'text-success' : 'text-warning';
+            const statusLabel = isMapped
+                ? window.CRM.i18n.t('jira_migration.mapping_mapped', 'Сопоставлен')
+                : window.CRM.i18n.t('jira_migration.mapping_unmapped', 'Не сопоставлен');
+
+            html += '<tr>';
+            html += '<td><strong>' + window.CRM.escapeHtml(m.jira_subject_name || m.jira_subject_id) + '</strong>';
+            if (m.jira_subject_id) {
+                html += '<br><small class="text-muted">' + window.CRM.escapeHtml(m.jira_subject_id) + '</small>';
+            }
+            html += '</td>';
+            html += '<td>' + getMappingSelect(tab, m) + '</td>';
+            html += '<td class="' + statusClass + '">' + statusLabel + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    }
+
+    function getMappingSelect(tab, mapping) {
+        let options = getOptionsForTab(tab);
+        let selectId = 'map-' + mapping.public_id;
+        let currentValue = mapping.crm_subject_public_id || '';
+
+        let html = '<select class="form-select form-select-sm mapping-select" data-map-pub="' + mapping.public_id + '" id="' + selectId + '">';
+        html += '<option value="">' + window.CRM.i18n.t('jira_migration.mapping_unmapped', 'Не сопоставлен') + '</option>';
+
+        options.forEach(function(opt) {
+            let selected = (opt.value === currentValue) ? ' selected' : '';
+            html += '<option value="' + opt.value + '"' + selected + '>' + window.CRM.escapeHtml(opt.label) + '</option>';
+        });
+
+        html += '</select>';
+        return html;
+    }
+
+    function getOptionsForTab(tab) {
+        switch (tab) {
+            case 'users':
+                return crmUsers.map(function(u) {
+                    return { value: u.public_id, label: u.full_name || u.login || u.email || u.public_id };
+                });
+            case 'statuses':
+                return crmStatuses.map(function(s) {
+                    return { value: s.code, label: s.title + ' (' + s.scope + ')' };
+                });
+            case 'priorities':
+                return crmPriorities.map(function(p) {
+                    return { value: p.code, label: p.title };
+                });
+            case 'issuetypes':
+                return [
+                    { value: 'task', label: 'Task' },
+                    { value: 'subtask', label: 'Subtask' },
+                    { value: 'epic', label: 'Epic' },
+                ];
+            default:
+                return [];
+        }
+    }
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('mapping-select')) {
+            const mapPub = e.target.dataset.mapPub;
+            const selectValue = e.target.value;
+            if (mapPub) {
+                saveMapping(mapPub, selectValue);
+            }
+        }
+    });
+
+    async function saveMapping(mapPub, crmValue) {
+        // Find the mapping to get its type
+        const mapping = allMappings.find(function(m) { return m.public_id === mapPub; });
+        const subjectType = mapping ? mapping.jira_subject_type : 'user';
+
+        try {
+            await window.CRM.api.request(BASE_API + '/mappings/' + mapPub, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    crm_subject_public_id: crmValue || null,
+                    crm_subject_type: crmValue ? subjectType : null,
+                    status: crmValue ? 'mapped' : 'unresolved'
+                })
+            });
+
+            // Update local state without re-rendering full list
+            allMappings = allMappings.map(function(m) {
+                if (m.public_id === mapPub) {
+                    m.crm_subject_public_id = crmValue;
+                    m.crm_subject_type = crmValue ? subjectType : null;
+                    m.status = crmValue ? 'mapped' : 'unresolved';
+                }
+                return m;
+            });
+            // Update just this row's status cell instead of full re-render
+            const statusCell = document.querySelector('#map-' + mapPub)?.closest('tr')?.querySelector('td:last-child');
+            if (statusCell) {
+                statusCell.className = crmValue ? 'text-success' : 'text-warning';
+                statusCell.textContent = crmValue
+                    ? window.CRM.i18n.t('jira_migration.mapping_mapped', 'Сопоставлен')
+                    : window.CRM.i18n.t('jira_migration.mapping_unmapped', 'Не сопоставлен');
+            }
+        } catch (err) {
+            console.error('Failed to save mapping:', err);
+            // Show error feedback to user
+            const row = document.querySelector('#map-' + mapPub)?.closest('tr');
+            if (row) {
+                row.style.backgroundColor = '#fce4e4';
+                setTimeout(function() { row.style.backgroundColor = ''; }, 3000);
+            }
+        }
+    }
+
+    document.getElementById('backToSettingsFromMappingsBtn').addEventListener('click', function() {
+        showStep('settings');
+    });
+
+    document.getElementById('backToMappingsFromPreviewBtn').addEventListener('click', function() {
+        showStep('mappings');
+    });
+
+    document.getElementById('toPreviewFromMappingsBtn').addEventListener('click', async function() {
+        showStep('preview');
         showStep('preview');
         const content = document.getElementById('previewContent');
         content.innerHTML = '<div class="text-muted py-3">' + window.CRM.i18n.t('jira_migration.loading', 'Загрузка...') + '</div>';

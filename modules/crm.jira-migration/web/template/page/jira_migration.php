@@ -222,7 +222,7 @@
                 </div>
             </div>
             <div class="text-end mt-3">
-                <button class="btn crm-btn-secondary me-2" id="backToSettingsBtn">
+                <button class="btn crm-btn-secondary me-2" id="backToMappingsFromPreviewBtn">
                     <i class="fa-solid fa-arrow-left"></i> <?= $t('jira_migration.back', 'Назад') ?>
                 </button>
                 <button class="btn crm-btn-primary" id="startImportBtn">
@@ -231,7 +231,7 @@
             </div>
         </div>
 
-        <!-- Step 5: Execution -->
+        <!-- Step 6: Execution -->
         <div id="step-run" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">
@@ -280,7 +280,7 @@
             </div>
         </div>
 
-        <!-- Step 6: Report -->
+        <!-- Step 7: Report -->
         <div id="step-report" class="migration-step d-none">
             <div class="crm-card mb-3">
                 <div class="crm-card-header">

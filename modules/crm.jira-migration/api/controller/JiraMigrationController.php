@@ -632,9 +632,8 @@ final class JiraMigrationController
         $client = new JiraClient(repo: $this->repo);
         $client->setConnectionId($connId);
 
-        // Discover users from Jira
-        $jiraUsers = $client->searchUsers($siteUrl, $email, $token);
-        $userMappings = [];
+        // Discover users from Jira (up to 1000)
+        $jiraUsers = $client->searchAllUsers($siteUrl, $email, $token);
         foreach ($jiraUsers as $ju) {
             $accountId = (string)($ju['accountId'] ?? '');
             if ($accountId === '') continue;
@@ -643,7 +642,6 @@ final class JiraMigrationController
         }
 
         // Discover statuses as mappings
-        $statuses = [];
         try {
             $jiraStatuses = $client->getStatuses($siteUrl, $email, $token);
             foreach ($jiraStatuses as $js) {
@@ -654,32 +652,25 @@ final class JiraMigrationController
             }
         } catch (\Throwable) {}
 
-        // Discover priorities as mappings
+        // Discover priorities via dedicated endpoint
         try {
-            $fields = $client->getFields($siteUrl, $email, $token);
-            foreach ($fields as $f) {
-                if (($f['name'] ?? '') === 'Priority' && !empty($f['allowedValues'])) {
-                    foreach ($f['allowedValues'] as $pv) {
-                        $pId = (string)($pv['id'] ?? '');
-                        if ($pId === '') continue;
-                        $pName = (string)($pv['name'] ?? $pId);
-                        $this->repo->upsertMapping($connId, 'priority', $pId, $pName);
-                    }
-                }
+            $priorities = $client->getPriorities($siteUrl, $email, $token);
+            foreach ($priorities as $pv) {
+                $pId = (string)($pv['id'] ?? '');
+                if ($pId === '') continue;
+                $pName = (string)($pv['name'] ?? $pId);
+                $this->repo->upsertMapping($connId, 'priority', $pId, $pName);
             }
         } catch (\Throwable) {}
 
-        // Discover issue types as mappings
+        // Discover issue types via dedicated endpoint
         try {
-            foreach ($fields as $f) {
-                if (($f['name'] ?? '') === 'Issue Type' && !empty($f['allowedValues'])) {
-                    foreach ($f['allowedValues'] as $it) {
-                        $itId = (string)($it['id'] ?? '');
-                        if ($itId === '') continue;
-                        $itName = (string)($it['name'] ?? $itId);
-                        $this->repo->upsertMapping($connId, 'issuetype', $itId, $itName);
-                    }
-                }
+            $jiraIssueTypes = $client->getIssueTypes($siteUrl, $email, $token);
+            foreach ($jiraIssueTypes as $it) {
+                $itId = (string)($it['id'] ?? '');
+                if ($itId === '') continue;
+                $itName = (string)($it['name'] ?? $itId);
+                $this->repo->upsertMapping($connId, 'issuetype', $itId, $itName);
             }
         } catch (\Throwable) {}
 

@@ -27245,7 +27245,8 @@ window.CRM.pageApiBindings = (function () {
       '#timeAnalyticsEarningsProjectFilter',
       '#timeAnalyticsMatrixProjectFilter',
       '#kanbanProjectFilter',
-      '#taskProjectInlineSelect'
+      '#taskProjectInlineSelect',
+      '#tasksProjectFilter'
     ];
     // Remove kanbanTagFilter from selectors
     selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
