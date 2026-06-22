@@ -248,7 +248,7 @@ final class ConfluenceMigrationController
             $token
         );
 
-        $this->repo->updateConnectionLastCheck($publicId, $result['success'] ? 'ok' : 'failed', $result['message']);
+        $this->repo->updateConnectionLastCheck($publicId, $result['success'] ? 'success' : 'failed', $result['message']);
 
         if (!$result['success']) {
             return JsonResponse::error('CONFLUENCE_AUTH_FAILED', $result['message'], 400, [

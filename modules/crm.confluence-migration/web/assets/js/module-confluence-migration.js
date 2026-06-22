@@ -308,7 +308,8 @@
         var query = document.getElementById('spaceSearch').value.toLowerCase();
         document.querySelectorAll('.space-item').forEach(function (item) {
             var key = item.dataset.key.toLowerCase();
-            item.style.display = key.indexOf(query) !== -1 ? '' : 'none';
+            var name = (item.dataset.name || '').toLowerCase();
+            item.style.display = (key.indexOf(query) !== -1 || name.indexOf(query) !== -1) ? '' : 'none';
         });
     }
 
