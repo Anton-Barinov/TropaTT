@@ -478,6 +478,57 @@ final class JiraClient
         }
     }
 
+    public function searchAllUsers(string $siteUrl, string $email, string $token): array
+    {
+        $all = [];
+        try {
+            $result = $this->request($siteUrl, $email, $token, '/rest/api/3/users/search', 'GET', ['maxResults' => 1000, 'startAt' => 0]);
+            if (is_array($result)) {
+                return $result;
+            }
+        } catch (\Throwable) {
+        }
+        return $all;
+    }
+
+    // ── Priorities ──
+
+    public function getPriorities(string $siteUrl, string $email, string $token): array
+    {
+        try {
+            $data = $this->request($siteUrl, $email, $token, '/rest/api/3/priority');
+            $result = [];
+            foreach ((array)$data as $p) {
+                $result[] = [
+                    'id' => (string)($p['id'] ?? ''),
+                    'name' => (string)($p['name'] ?? ''),
+                ];
+            }
+            return $result;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    // ── Issue Types ──
+
+    public function getIssueTypes(string $siteUrl, string $email, string $token): array
+    {
+        try {
+            $data = $this->request($siteUrl, $email, $token, '/rest/api/3/issuetype');
+            $result = [];
+            foreach ((array)$data as $it) {
+                $result[] = [
+                    'id' => (string)($it['id'] ?? ''),
+                    'name' => (string)($it['name'] ?? ''),
+                ];
+            }
+            return $result;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     // ── URL Validation ──
 
     public static function isValidJiraUrl(string $url): bool

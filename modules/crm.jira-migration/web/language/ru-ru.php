@@ -94,6 +94,8 @@ return [
         'mapping_unmapped' => 'Не сопоставлен',
         'mapping_mapped' => 'Сопоставлен',
         'mapping_save' => 'Сохранить',
+        'mappings_issue_types' => 'Типы задач',
+        'no_mappings' => 'Нет данных для сопоставления',
         'select' => 'Выбрать',
 
         'start_import' => 'Запустить миграцию',
