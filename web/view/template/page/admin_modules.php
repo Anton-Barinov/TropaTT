@@ -28,6 +28,16 @@
             return;
         }
 
+        if (!window.CRM.text || typeof window.CRM.text.escapeHtml !== 'function') {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + window.CRM.i18n.t('admin_modules.waiting_text', 'Ожидание текстовых утилит...') + '</td></tr>';
+            if (window.requestAnimationFrame) {
+                window.requestAnimationFrame(loadModules);
+            } else {
+                setTimeout(loadModules, 200);
+            }
+            return;
+        }
+
         window.CRM.api.request('api/v1/modules', { method: 'GET', timeoutMs: 30000 })
             .then(function (env) {
                 var modules = env.data || [];
