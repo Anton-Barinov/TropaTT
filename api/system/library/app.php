@@ -421,9 +421,12 @@ final class App
             if ($result instanceof RawJsonResponse) {
                 $statusCode = $result->status();
                 $rawPayload = $result->payload();
-                $resultCode = is_array($rawPayload)
-                    ? (string)($rawPayload['error']['code'] ?? $rawPayload['result']['code'] ?? 'MCP_JSON_RPC')
-                    : 'MCP_JSON_RPC';
+                $resultCode = 'MCP_JSON_RPC';
+                if (is_array($rawPayload)) {
+                    $resultCode = (string)($rawPayload['error']['code']
+                        ?? (is_array($rawPayload['result'] ?? null) ? ($rawPayload['result']['code'] ?? 'MCP_JSON_RPC') : null)
+                        ?? 'MCP_JSON_RPC');
+                }
 
                 return $result;
             }
