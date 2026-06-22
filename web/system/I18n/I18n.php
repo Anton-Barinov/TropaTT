@@ -69,8 +69,6 @@ final class I18n
      */
     public function loadModuleTranslations(string $vendor, string $name): void
     {
-        $moduleKey = "module.{$vendor}.{$name}";
-
         foreach (['ru-ru', 'en-gb', 'pt-br'] as $locale) {
             $file = $this->baseDir . '/modules/' . $vendor . '.' . $name . '/web/language/' . $locale . '.php';
             if (!is_file($file)) {
@@ -82,11 +80,7 @@ final class I18n
                 continue;
             }
 
-            foreach ($data as $key => $value) {
-                if (is_string($value)) {
-                    $this->messages[$moduleKey][$key] = $value;
-                }
-            }
+            $this->messages = self::mergeRecursive($this->messages, $data);
         }
     }
 
