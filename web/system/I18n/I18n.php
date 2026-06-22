@@ -69,6 +69,7 @@ final class I18n
      */
     public function loadModuleTranslations(string $vendor, string $name): void
     {
+        $modulesDir = dirname($this->baseDir) . '/modules';
         $current = $this->locale();
         $locales = [$current];
         if ($current !== 'ru-ru') {
@@ -76,7 +77,7 @@ final class I18n
         }
 
         foreach ($locales as $locale) {
-            $file = $this->baseDir . '/modules/' . $vendor . '.' . $name . '/web/language/' . $locale . '.php';
+            $file = $modulesDir . '/' . $vendor . '.' . $name . '/web/language/' . $locale . '.php';
             if (!is_file($file)) {
                 continue;
             }
