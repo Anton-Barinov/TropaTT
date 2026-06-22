@@ -136,6 +136,7 @@ final class ModuleController
             $result = $mm->migrate($name, $migrationDir);
 
             if ($result['errors'] !== []) {
+                $mc->unregister($name);
                 return JsonResponse::error('MIGRATION_ERROR', $this->t('module/messages.migration_failed'), 500, ['errors' => $result['errors']]);
             }
         }
