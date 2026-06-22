@@ -37,6 +37,8 @@ use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Router\Router;
 use Api\System\Library\Security\PasswordHasher;
+use Api\System\Library\Security\DatabaseRateLimiter;
+use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Service\AuthService;
 use Api\System\Library\Service\CommentService;
