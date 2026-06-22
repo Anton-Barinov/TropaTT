@@ -69,7 +69,13 @@ final class I18n
      */
     public function loadModuleTranslations(string $vendor, string $name): void
     {
-        foreach (['ru-ru', 'en-gb', 'pt-br'] as $locale) {
+        $locales = ['ru-ru', 'en-gb', 'pt-br'];
+        $current = $this->locale();
+        if (!in_array($current, $locales, true)) {
+            $locales[] = $current;
+        }
+
+        foreach ($locales as $locale) {
             $file = $this->baseDir . '/modules/' . $vendor . '.' . $name . '/web/language/' . $locale . '.php';
             if (!is_file($file)) {
                 continue;
