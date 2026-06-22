@@ -17672,6 +17672,7 @@ window.CRM.pageApiBindings = (function () {
       window.CRM.kanbanMobileStatus = statusOrder[0] || 'new';
     }
     bindKanbanFilters();
+    applySearchableSelects();
     updateKanbanColumns();
     initKanbanSortable();
   }
@@ -27195,6 +27196,7 @@ window.CRM.pageApiBindings = (function () {
       '[name="manager_user_public_id"]',
       '#kanbanAssigneeFilter',
       '#kanbanManagerFilter',
+      '#kanbanCycleFilter',
       '#timeAnalyticsUserFilter',
       '#timeAnalyticsEarningsUserFilter',
       '#timeAnalyticsMatrixUserFilter',
