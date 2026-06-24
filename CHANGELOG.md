@@ -28,6 +28,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 ### Changed
 
 - README positioning expanded to describe TropaTT as CRM, task manager, task tracker, project platform, AI-assisted workspace, and self-hosted work system.
+- Update smoke-test marker for verifying update-center delivery without direct demo deploy.
 
 ## [0.1.0] - First Public Preview
 
