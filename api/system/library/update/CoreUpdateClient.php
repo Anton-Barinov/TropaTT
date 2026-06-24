@@ -21,12 +21,15 @@ final class CoreUpdateClient
 
     public function channel(): array
     {
-        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/channels/' . rawurlencode((string)$this->config['channel']));
+        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/channels/' . rawurlencode((string)$this->config['channel']) . '?' . http_build_query($this->installationParams()));
     }
 
     public function plan(string $currentBuild): array
     {
-        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/update-plan?current_build=' . rawurlencode($currentBuild) . '&channel=' . rawurlencode((string)$this->config['channel']));
+        return $this->get('/api/v1/products/' . rawurlencode((string)$this->config['product']) . '/update-plan?' . http_build_query(array_merge([
+            'current_build' => $currentBuild,
+            'channel' => (string)$this->config['channel'],
+        ], $this->installationParams())));
     }
 
     public function changes(?string $from, string $to): array
@@ -42,6 +45,32 @@ final class CoreUpdateClient
     private function get(string $path): array
     {
         return $this->request(rtrim((string)$this->config['update_center_url'], '/') . $path);
+    }
+
+    private function installationParams(): array
+    {
+        $domain = $this->currentDomain();
+        return $domain !== '' ? ['installation_domain' => $domain] : [];
+    }
+
+    private function currentDomain(): string
+    {
+        $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+        if ($host === '') {
+            $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? ''));
+            if ($origin !== '') {
+                $host = (string)(parse_url($origin, PHP_URL_HOST) ?: '');
+            }
+        }
+        $host = strtolower($host);
+        if (str_starts_with($host, '[')) {
+            $end = strpos($host, ']');
+            return $end === false ? '' : substr($host, 1, $end - 1);
+        }
+        if (str_contains($host, ':')) {
+            $host = explode(':', $host, 2)[0];
+        }
+        return preg_match('/^[a-z0-9.-]+$/', $host) === 1 ? trim($host, '.') : '';
     }
 
     private function request(string $url): array

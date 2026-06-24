@@ -13,6 +13,9 @@ define('ENV_EXAMPLE_PATH', dirname(__DIR__) . '/api/.env.example');
 define('LOCK_FILE_PATH', dirname(__DIR__) . '/api/.install.lock');
 define('STORAGE_BASE_DEFAULT', dirname(__DIR__) . '/storage_api');
 define('MYSQL_SCHEMA_SNAPSHOT_PATH', __DIR__ . '/install/mysql-schema.snapshot.sql');
+define('UPDATE_CENTER_URL', 'https://update.tropatt.com');
+define('UPDATE_PRODUCT', 'tropatt-core');
+define('UPDATE_CHANNEL', 'stable');
 
 function hasEnvConfig(): bool
 {
@@ -140,6 +143,8 @@ $L['ru'] = [
     'lock_file_error' => 'Система уже установлена. Если нужно переустановить — удалите api/.env и api/.install.lock.',
     'install' => 'Установка',
     'optional' => 'опционально',
+    'update_check_notice' => 'Установщик проверит доступность обновлений и передаст домен этой установки на сервер обновлений.',
+    'update_available_after_install' => 'Доступна более новая версия %s. После установки зайдите в раздел обновлений и обновите систему.',
 ];
 
 // English
@@ -215,6 +220,8 @@ $L['en'] = [
     'lock_file_error' => 'System already installed. To reinstall, delete api/.env and api/.install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
+    'update_check_notice' => 'The installer will check update availability and send this installation domain to the update server.',
+    'update_available_after_install' => 'A newer version %s is available. After installation, open Updates and update the system.',
 ];
 
 // Chinese
@@ -658,6 +665,88 @@ function autoDetectSiteUrl(): string
         $host .= ':' . $port;
     }
     return rtrim($scheme . '://' . $host . $base, '/');
+}
+
+function normalizedInstallDomain(?string $url = null): string
+{
+    $host = '';
+    if ($url !== null && trim($url) !== '') {
+        $host = (string)(parse_url(trim($url), PHP_URL_HOST) ?: '');
+        if ($host === '' && !str_contains($url, '://')) {
+            $host = (string)(parse_url('https://' . trim($url), PHP_URL_HOST) ?: '');
+        }
+    }
+    if ($host === '') {
+        $host = (string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+    }
+    $host = strtolower(trim($host));
+    if (str_starts_with($host, '[')) {
+        $end = strpos($host, ']');
+        return $end === false ? '' : substr($host, 1, $end - 1);
+    }
+    if (str_contains($host, ':')) {
+        $host = explode(':', $host, 2)[0];
+    }
+    return preg_match('/^[a-z0-9.-]+$/', $host) === 1 ? trim($host, '.') : '';
+}
+
+function installingCoreVersion(): string
+{
+    $versionFile = dirname(__DIR__) . '/VERSION';
+    if (is_file($versionFile)) {
+        $version = trim((string)file_get_contents($versionFile));
+        if ($version !== '') {
+            return $version;
+        }
+    }
+    return INSTALL_VERSION;
+}
+
+function checkLatestCoreVersion(array $installData): ?array
+{
+    $domain = normalizedInstallDomain((string)($installData['site_url'] ?? autoDetectSiteUrl()));
+    $query = http_build_query(array_filter([
+        'installation_domain' => $domain,
+        'context' => 'install',
+        'installed_version' => installingCoreVersion(),
+    ], static fn($value): bool => $value !== null && $value !== ''));
+    $url = rtrim(UPDATE_CENTER_URL, '/') . '/api/v1/products/' . rawurlencode(UPDATE_PRODUCT) . '/channels/' . rawurlencode(UPDATE_CHANNEL) . ($query !== '' ? '?' . $query : '');
+    $response = @file_get_contents($url, false, stream_context_create([
+        'http' => [
+            'timeout' => 5,
+            'ignore_errors' => true,
+        ],
+    ]));
+    if ($response === false) {
+        return null;
+    }
+    $payload = json_decode($response, true);
+    if (!is_array($payload)) {
+        return null;
+    }
+    $latestVersion = trim((string)($payload['latest_version'] ?? ''));
+    if ($latestVersion === '') {
+        return null;
+    }
+    return [
+        'latest_version' => $latestVersion,
+        'latest_build' => $payload['latest_build'] ?? null,
+        'current_version' => installingCoreVersion(),
+        'update_available' => version_compare($latestVersion, installingCoreVersion(), '>'),
+    ];
+}
+
+function installUpdateNotice(array $installData): ?string
+{
+    try {
+        $latest = checkLatestCoreVersion($installData);
+    } catch (Throwable) {
+        return null;
+    }
+    if (!is_array($latest) || ($latest['update_available'] ?? false) !== true) {
+        return null;
+    }
+    return sprintf(t('update_available_after_install'), (string)$latest['latest_version']);
 }
 
 function sqliteDatabasePath(): string
@@ -2513,12 +2602,15 @@ if ($isAjax) {
                     createDemoData($pdo, $adminUser);
                 }
                 finalizeInstall($pdo);
+                $updateNotice = installUpdateNotice($installData);
+                $_SESSION['install_update_notice'] = $updateNotice;
                 $_SESSION['install_done'] = true;
                 echo json_encode([
                     'success' => true,
                     'substep' => 5,
                     'message' => t('install_success'),
                     'done' => true,
+                    'update_notice' => $updateNotice,
                     'credentials' => [
                         'login' => $installData['admin_login'] ?? $installData['admin_email'] ?? 'admin',
                         'password' => $installData['admin_password'] ?? '',
@@ -2565,6 +2657,7 @@ if (!isAlreadyInstalled() && ($_SESSION['install_done'] ?? false)) {
     $_SESSION['install_data'] = [];
     $_SESSION['install_admin'] = [];
     $_SESSION['install_credentials'] = [];
+    $_SESSION['install_update_notice'] = null;
 }
 
 if (isAlreadyInstalled()) {
@@ -2735,6 +2828,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
                     createDemoData($pdo, $adminUser);
                     finalizeInstall($pdo);
 
+                    $_SESSION['install_update_notice'] = installUpdateNotice($installData);
                     $_SESSION['install_done'] = true;
                     $_SESSION['install_admin'] = $adminUser;
                     $_SESSION['install_credentials'] = [
@@ -3168,6 +3262,12 @@ select.form-control {
     color: var(--text-secondary);
 }
 
+.alert-warning {
+    background: #fff9ed;
+    border: 1px solid #efd6a8;
+    color: #7a4b00;
+}
+
 .test-result {
     margin-top: 8px;
     font-size: 0.85rem;
@@ -3584,6 +3684,9 @@ echo $css;
         <h1 style="color: var(--success);">&#10003;</h1>
         <h2><?php echo t('install_success'); ?></h2>
         <p style="color: var(--text-secondary); text-align: center; margin-bottom: 20px;"><?php echo t('install_success_desc'); ?></p>
+        <?php if (!empty($_SESSION['install_update_notice'])): ?>
+        <div class="alert alert-warning"><?php echo e((string)$_SESSION['install_update_notice']); ?></div>
+        <?php endif; ?>
 
         <div class="credential-box">
             <h3><?php echo t('login_credentials'); ?></h3>
@@ -3636,6 +3739,8 @@ echo $css;
                 <div class="value"><?php echo e($formData['admin_name'] ?? 'Administrator'); ?> &lt;<?php echo e($formData['admin_email'] ?? ''); ?>&gt;</div>
             </div>
         </div>
+
+        <div class="alert alert-info"><?php echo e(t('update_check_notice')); ?></div>
 
         <form method="post" id="install-form">
             <?php echo csrfField(); ?>
@@ -3870,7 +3975,7 @@ $js = <<<'JS'
 
                             if (data.done) {
                                 updateProgress(100);
-                                showSuccess(data.credentials);
+                                showSuccess(data.credentials, data.update_notice);
                             } else {
                                 // Get fresh CSRF token from success response
                                 runStep(index + 1);
@@ -3886,7 +3991,11 @@ $js = <<<'JS'
                     });
             }
 
-            function showSuccess(credentials) {
+            function escapeHtml(value) {
+                return String(value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g, '&quot;');
+            }
+
+            function showSuccess(credentials, updateNotice) {
                 var successDiv = document.getElementById('install-success');
                 var errorDiv = document.getElementById('install-error');
                 errorDiv.style.display = 'none';
@@ -3894,18 +4003,19 @@ $js = <<<'JS'
                 var name = credentials ? credentials.name : 'Administrator';
                 var login = credentials ? credentials.login : 'admin';
                 var pwd = credentials ? credentials.password : '';
+                var noticeHtml = updateNotice ? '<div class="alert alert-warning">' + escapeHtml(updateNotice) + '</div>' : '';
 
                 successDiv.innerHTML = '<h1 style="color: var(--success);">&#10003;</h1>' +
                     '<h2>' + (document.documentElement.lang === 'ru' ? 'Установка завершена!' : (document.documentElement.lang === 'zh' ? '安装完成！' : 'Installation complete!')) + '</h2>' +
                     '<p style="color: #94a3b8; text-align: center; margin-bottom: 20px;">' +
                     (document.documentElement.lang === 'ru' ? 'Система успешно установлена. Используйте данные ниже для входа.' :
                      (document.documentElement.lang === 'zh' ? '系统安装成功。请使用下方凭据登录。' : 'The system has been installed successfully.')) +
-                    '</p>' +
+                    '</p>' + noticeHtml +
                     '<div class="credential-box">' +
                     '<h3>' + (document.documentElement.lang === 'ru' ? 'Данные для входа' : (document.documentElement.lang === 'zh' ? '登录凭据' : 'Login Credentials')) + '</h3>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Логин' : (document.documentElement.lang === 'zh' ? '用户名' : 'Login')) + ':</span><span class="val">' + login.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Пароль' : (document.documentElement.lang === 'zh' ? '密码' : 'Password')) + ':</span><span class="val">' + pwd.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Имя' : (document.documentElement.lang === 'zh' ? '名称' : 'Name')) + ':</span><span class="val">' + name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>' +
+                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Логин' : (document.documentElement.lang === 'zh' ? '用户名' : 'Login')) + ':</span><span class="val">' + escapeHtml(login) + '</span></div>' +
+                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Пароль' : (document.documentElement.lang === 'zh' ? '密码' : 'Password')) + ':</span><span class="val">' + escapeHtml(pwd) + '</span></div>' +
+                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Имя' : (document.documentElement.lang === 'zh' ? '名称' : 'Name')) + ':</span><span class="val">' + escapeHtml(name) + '</span></div>' +
                     '</div>' +
                     '<div class="btn-group" style="margin-top:24px;">' +
                     '<a href="index.php?route=login" class="btn btn-primary btn-block">' + (document.documentElement.lang === 'ru' ? 'Перейти в панель управления' : (document.documentElement.lang === 'zh' ? '进入控制面板' : 'Go to Dashboard')) + '</a>' +
