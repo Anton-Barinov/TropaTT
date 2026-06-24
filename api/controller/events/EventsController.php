@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Events;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Service\NotificationPushService;
 use Api\System\Library\Service\NotificationService;
 use Api\System\Library\Service\ReminderService;
 
@@ -89,6 +90,12 @@ final class EventsController extends BaseController
                         $nextDomainScanAt = time() + 15;
                         $reminders->dispatchDueNotificationsForUser($actor, gmdate('Y-m-d H:i:s'));
                         $notifications->dispatchOverdueSignalsForUser($userId, $actor);
+
+                        if ($this->container->has('service.notification_push')) {
+                            /** @var NotificationPushService $push */
+                            $push = $this->container->get('service.notification_push');
+                            $push->runQueued(5);
+                        }
                     }
 
                     $newItems = $notifications->streamItemsAfterId($userId, $lastId, 100);

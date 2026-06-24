@@ -3,6 +3,7 @@ declare(strict_types=1);
 $currentLocale = strtolower((string)($locale ?? 'ru-ru'));
 $htmlLang = str_contains($currentLocale, '-') ? explode('-', $currentLocale, 2)[0] : $currentLocale;
 $assetsVersion = trim((string)getenv('CRM_WEB_ASSETS_VERSION'));
+$vapidPublicKey = trim((string)getenv('NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY'));
 if ($assetsVersion === '') {
   $deployHashFile = dirname(__DIR__, 3) . '/DEPLOY_HASH';
   if (is_file($deployHashFile)) {
@@ -87,5 +88,6 @@ if ($assetsVersion === '') {
     })();
     window.CRM.config = window.CRM.config || {};
     window.CRM.config.assetsVersion = <?= json_encode($assetsVersion, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.pushVapidPublicKey = <?= json_encode($vapidPublicKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
 </head>

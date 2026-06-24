@@ -182,6 +182,11 @@ final class NotificationPushService
         $timeoutSec = max(1, (int)$this->config->get('notifications.push.timeout_sec', 5));
         $maxSubscriptions = max(1, (int)$this->config->get('notifications.push.max_subscriptions_per_dispatch', 100));
 
+        $vapidPub = trim((string)$this->config->get('notifications.push.vapid_public_key', ''));
+        $vapidPriv = trim((string)$this->config->get('notifications.push.vapid_private_key', ''));
+        $vapidSub = trim((string)$this->config->get('notifications.push.vapid_subject', ''));
+        $useDirect = $vapidPub !== '' && $vapidPriv !== '' && $vapidSub !== '';
+
         for ($i = 0; $i < $limit; $i++) {
             $now = gmdate('Y-m-d H:i:s');
             $job = $this->queue->claimNextRunnable($now);
@@ -197,10 +202,6 @@ final class NotificationPushService
             }
 
             try {
-                if ($gateway === '') {
-                    throw new \RuntimeException('PUSH_GATEWAY_NOT_CONFIGURED');
-                }
-
                 $active = $this->subscriptions->activeByUser($userId);
                 $attempted = 0;
                 foreach ($active as $subscription) {
@@ -214,20 +215,22 @@ final class NotificationPushService
                         continue;
                     }
 
-                    $result = $this->dispatchToGateway($gateway, $timeoutSec, [
-                        'subscription' => [
-                            'public_id' => $subPublicId,
-                            'endpoint' => $endpoint,
-                            'p256dh' => (string)($subscription['p256dh'] ?? ''),
-                            'auth' => (string)($subscription['auth'] ?? ''),
-                            'device_label' => $subscription['device_label'] ?? null,
-                            'user_agent' => $subscription['user_agent'] ?? null,
-                        ],
-                        'notification' => $payload,
-                    ]);
+                    $result = $useDirect
+                        ? $this->dispatchWebPush($endpoint, (string)($subscription['p256dh'] ?? ''), (string)($subscription['auth'] ?? ''), $payload, $vapidPub, $vapidPriv, $vapidSub, $timeoutSec)
+                        : $this->dispatchToGateway($gateway, $timeoutSec, [
+                            'subscription' => [
+                                'public_id' => $subPublicId,
+                                'endpoint' => $endpoint,
+                                'p256dh' => (string)($subscription['p256dh'] ?? ''),
+                                'auth' => (string)($subscription['auth'] ?? ''),
+                                'device_label' => $subscription['device_label'] ?? null,
+                                'user_agent' => $subscription['user_agent'] ?? null,
+                            ],
+                            'notification' => $payload,
+                        ]);
 
-                    if (in_array($result['status_code'], [404, 410], true)) {
-                        $this->subscriptions->markInactiveByPublicIdForUser($subPublicId, $userId, 'gateway_http_' . $result['status_code'], $now);
+                    if (in_array($result['status_code'], [401, 403, 404, 410], true)) {
+                        $this->subscriptions->markInactiveByPublicIdForUser($subPublicId, $userId, 'push_http_' . $result['status_code'], $now);
                     } elseif ($result['status_code'] >= 200 && $result['status_code'] < 300) {
                         $this->subscriptions->touchDeliverySuccessByPublicIdForUser($subPublicId, $userId, $now);
                     }
@@ -284,6 +287,11 @@ final class NotificationPushService
         $gateway = trim((string)$this->config->get('notifications.push.gateway_url', ''));
         $gatewayConfigured = $gateway !== '';
 
+        $vapidPub = trim((string)$this->config->get('notifications.push.vapid_public_key', ''));
+        $vapidPriv = trim((string)$this->config->get('notifications.push.vapid_private_key', ''));
+        $vapidSub = trim((string)$this->config->get('notifications.push.vapid_subject', ''));
+        $useDirect = $vapidPub !== '' && $vapidPriv !== '' && $vapidSub !== '';
+
         $attempted = 0;
         $delivered = 0;
         $deactivated = 0;
@@ -305,29 +313,30 @@ final class NotificationPushService
             }
             $publicId = (string)($subscription['public_id'] ?? '');
             $endpoint = trim((string)($subscription['endpoint'] ?? ''));
-            if ($publicId === '' || $endpoint === '' || !$gatewayConfigured) {
+            if ($publicId === '' || $endpoint === '') {
+                continue;
+            }
+            if (!$useDirect && !$gatewayConfigured) {
                 continue;
             }
             $attempted++;
-            $result = $this->dispatchToGateway($gateway, $timeoutSec, [
-                'subscription' => [
-                    'public_id' => $publicId,
-                    'endpoint' => $endpoint,
-                    'p256dh' => (string)($subscription['p256dh'] ?? ''),
-                    'auth' => (string)($subscription['auth'] ?? ''),
-                    'device_label' => $subscription['device_label'] ?? null,
-                    'user_agent' => $subscription['user_agent'] ?? null,
-                ],
-                'notification' => $payload,
-            ]);
 
-            if (in_array($result['status_code'], [404, 410], true)) {
-                $this->subscriptions->markInactiveByPublicIdForUser(
-                    $publicId,
-                    $userId,
-                    'gateway_http_' . $result['status_code'],
-                    $now
-                );
+            $result = $useDirect
+                ? $this->dispatchWebPush($endpoint, (string)($subscription['p256dh'] ?? ''), (string)($subscription['auth'] ?? ''), $payload, $vapidPub, $vapidPriv, $vapidSub, $timeoutSec)
+                : $this->dispatchToGateway($gateway, $timeoutSec, [
+                    'subscription' => [
+                        'public_id' => $publicId,
+                        'endpoint' => $endpoint,
+                        'p256dh' => (string)($subscription['p256dh'] ?? ''),
+                        'auth' => (string)($subscription['auth'] ?? ''),
+                        'device_label' => $subscription['device_label'] ?? null,
+                        'user_agent' => $subscription['user_agent'] ?? null,
+                    ],
+                    'notification' => $payload,
+                ]);
+
+            if (in_array($result['status_code'], [401, 403, 404, 410], true)) {
+                $this->subscriptions->markInactiveByPublicIdForUser($publicId, $userId, 'push_http_' . $result['status_code'], $now);
                 $deactivated++;
             } elseif ($result['status_code'] >= 200 && $result['status_code'] < 300) {
                 $this->subscriptions->touchDeliverySuccessByPublicIdForUser($publicId, $userId, $now);
@@ -366,6 +375,295 @@ final class NotificationPushService
             'category' => (string)($notification['category'] ?? ''),
             'created_at' => gmdate('c'),
         ];
+    }
+
+    /**
+     * Dispatch a Web Push notification directly using the Web Push Protocol (RFC 8291).
+     *
+     * @param array<string,mixed> $payload
+     * @return array{ok:bool,status_code:int,error:string}
+     */
+    private function dispatchWebPush(
+        string $endpoint,
+        string $userPublicKeyBase64,
+        string $userAuthBase64,
+        array $payload,
+        string $vapidPublicKey,
+        string $vapidPrivateKey,
+        string $vapidSubject,
+        int $timeoutSec
+    ): array {
+        $plaintext = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($plaintext) || $plaintext === '') {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'encode_failed'];
+        }
+
+        $encrypted = $this->encryptPayload($plaintext, $userPublicKeyBase64, $userAuthBase64);
+        if ($encrypted === '') {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'encryption_failed'];
+        }
+
+        $origin = parse_url($endpoint, PHP_URL_SCHEME . '://' . parse_url($endpoint, PHP_URL_HOST));
+        $jwt = $this->generateVapidJwt($vapidPrivateKey, $vapidPublicKey, $vapidSubject, $origin);
+        if ($jwt === '') {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'vapid_jwt_failed'];
+        }
+
+        $vapidHeader = 'vapid t=' . $jwt . ', k=' . $vapidPublicKey;
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($endpoint);
+            if ($ch === false) {
+                return ['ok' => false, 'status_code' => 0, 'error' => 'curl_init_failed'];
+            }
+
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $encrypted,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/octet-stream',
+                    'Content-Encoding: aes128gcm',
+                    'Content-Length: ' . strlen($encrypted),
+                    'TTL: 86400',
+                    'Authorization: ' . $vapidHeader,
+                ],
+                CURLOPT_TIMEOUT => $timeoutSec,
+                CURLOPT_CONNECTTIMEOUT => $timeoutSec,
+            ]);
+
+            $response = curl_exec($ch);
+            $errno = curl_errno($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+            if ($response === false || $errno !== 0) {
+                return ['ok' => false, 'status_code' => $status, 'error' => 'curl_transport_error'];
+            }
+
+            return [
+                'ok' => $status >= 200 && $status < 300,
+                'status_code' => $status,
+                'error' => '',
+            ];
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/octet-stream\r\nContent-Encoding: aes128gcm\r\nContent-Length: " . strlen($encrypted) . "\r\nTTL: 86400\r\nAuthorization: {$vapidHeader}\r\n",
+                'content' => $encrypted,
+                'ignore_errors' => true,
+                'timeout' => $timeoutSec,
+            ],
+        ]);
+        $response = @file_get_contents($endpoint, false, $context);
+        $statusCode = 0;
+        foreach (($http_response_header ?? []) as $line) {
+            if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
+                $statusCode = (int)$m[1];
+                break;
+            }
+        }
+        if ($response === false && $statusCode === 0) {
+            return ['ok' => false, 'status_code' => 0, 'error' => 'stream_transport_error'];
+        }
+
+        return [
+            'ok' => $statusCode >= 200 && $statusCode < 300,
+            'status_code' => $statusCode,
+            'error' => '',
+        ];
+    }
+
+    /**
+     * Generate a VAPID JWT token (RFC 8292).
+     */
+    private function generateVapidJwt(string $privateKeyBase64, string $publicKeyBase64, string $subject, string $audience): string
+    {
+        $header = $this->base64UrlEncode(json_encode(['alg' => 'ES256', 'typ' => 'JWT'], JSON_UNESCAPED_SLASHES));
+        $payload = $this->base64UrlEncode(json_encode([
+            'aud' => $audience,
+            'exp' => time() + 43200,
+            'sub' => $subject,
+        ], JSON_UNESCAPED_SLASHES));
+        $signingInput = $header . '.' . $payload;
+
+        $privateKeyDer = $this->base64UrlDecode($privateKeyBase64);
+        $pem = "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode("\x30\x30\x02\x01\x00\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x04\x22" . $privateKeyDer), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+
+        $signingKey = openssl_pkey_get_private($pem);
+        if ($signingKey === false) {
+            return '';
+        }
+
+        $signature = '';
+        $ok = openssl_sign($signingInput, $signature, $signingKey, OPENSSL_ALGO_SHA256);
+        openssl_pkey_free($signingKey);
+        if (!$ok || $signature === '') {
+            return '';
+        }
+
+        $derSignature = $this->signatureDerToRaw($signature);
+        return $signingInput . '.' . $this->base64UrlEncode($derSignature);
+    }
+
+    /**
+     * Convert DER-encoded ECDSA signature to raw r||s format (64 bytes).
+     */
+    private function signatureDerToRaw(string $der): string
+    {
+        $offset = 0;
+        if (ord($der[$offset++]) !== 0x30) {
+            return '';
+        }
+        $offset++;
+
+        if (ord($der[$offset++]) !== 0x02) {
+            return '';
+        }
+        $rLen = ord($der[$offset++]);
+        $r = substr($der, $offset, $rLen);
+        $offset += $rLen;
+
+        if (ord($der[$offset++]) !== 0x02) {
+            return '';
+        }
+        $sLen = ord($der[$offset++]);
+        $s = substr($der, $offset, $sLen);
+
+        $r = ltrim($r, "\x00");
+        $s = ltrim($s, "\x00");
+
+        $r = str_pad($r, 32, "\x00", STR_PAD_LEFT);
+        $s = str_pad($s, 32, "\x00", STR_PAD_LEFT);
+
+        return $r . $s;
+    }
+
+    /**
+     * Encrypt a push payload using Web Push Content Encoding: aes128gcm (RFC 8291).
+     *
+     * @return string binary encrypted payload, or '' on failure
+     */
+    private function encryptPayload(string $plaintext, string $userPublicKeyBase64, string $userAuthBase64): string
+    {
+        $userPublicKey = $this->base64UrlDecode($userPublicKeyBase64);
+        if (strlen($userPublicKey) !== 65 || $userPublicKey[0] !== "\x04") {
+            return '';
+        }
+        $userAuthSecret = $this->base64UrlDecode($userAuthBase64);
+        if (strlen($userAuthSecret) !== 16) {
+            return '';
+        }
+
+        $localKey = openssl_pkey_new([
+            'curve_name' => 'prime256v1',
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+        ]);
+        if ($localKey === false) {
+            return '';
+        }
+        $localDetails = openssl_pkey_get_details($localKey);
+        if (!isset($localDetails['ec']['x'], $localDetails['ec']['y'], $localDetails['ec']['d'])) {
+            return '';
+        }
+        $localPublicKey = "\x04" . $localDetails['ec']['x'] . $localDetails['ec']['y'];
+        $localPrivateKey = $localDetails['ec']['d'];
+
+        $ecdhKey = openssl_pkey_new([
+            'curve_name' => 'prime256v1',
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+        ]);
+        $localEcKey = openssl_pkey_get_private($this->buildEcPem($localPrivateKey));
+        $peerEcKey = openssl_pkey_get_public($userPublicKey);
+        if ($localEcKey === false || $peerEcKey === false) {
+            return '';
+        }
+
+        $sharedSecret = '';
+        $ok = openssl_ec_derive($localEcKey, $peerEcKey, $sharedSecret);
+        openssl_pkey_free($localEcKey);
+        openssl_pkey_free($peerEcKey);
+        if (!$ok || strlen($sharedSecret) < 32) {
+            return '';
+        }
+
+        $prk = $this->hkdf($sharedSecret, $userAuthSecret, "WebPush: info\x00" . $userPublicKey . $localPublicKey, 32);
+
+        $keyInfo = "Content-Encoding: aes128gcm\x00";
+        $key = $this->hkdf($prk, str_repeat("\x00", 12), $keyInfo, 16);
+        $nonceInfo = "Content-Encoding: nonce\x00";
+        $nonce = $this->hkdf($prk, str_repeat("\x00", 12), $nonceInfo, 12);
+
+        $salt = random_bytes(16);
+        $rs = 4096;
+        $rsBytes = pack('N', $rs);
+        $idLength = 6;
+        $header = $salt . $rsBytes . chr($idLength) . 'aes128gcm';
+
+        $recordHeader = $header;
+        $keyId = $header;
+
+        $ciphertext = '';
+        $tag = '';
+        $encOk = openssl_encrypt(
+            $plaintext,
+            'aes-128-gcm',
+            $key,
+            OPENSSL_RAW_DATA,
+            $nonce,
+            $ciphertext,
+            $tag,
+            $recordHeader,
+            16
+        );
+        if ($encOk === false) {
+            return '';
+        }
+
+        return $header . $ciphertext . $tag;
+    }
+
+    /**
+     * Build a PEM string for an EC private key from raw 32-byte scalar.
+     */
+    private function buildEcPem(string $privateKeyDer): string
+    {
+        $der = "\x30\x30\x02\x01\x00\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x04\x22" . $privateKeyDer;
+        return "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+    }
+
+    /**
+     * HKDF-SHA256 key derivation.
+     */
+    private function hkdf(string $ikm, string $salt, string $info, int $length): string
+    {
+        $prk = hash_hmac('sha256', $ikm, $salt, true);
+        $t = '';
+        $okm = '';
+        $i = 1;
+        while (strlen($okm) < $length) {
+            $t = hash_hmac('sha256', $t . $info . chr($i), $prk, true);
+            $okm .= $t;
+            $i++;
+        }
+        return substr($okm, 0, $length);
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    private function base64UrlDecode(string $data): string
+    {
+        $data = strtr($data, '-_', '+/');
+        $mod = strlen($data) % 4;
+        if ($mod > 0) {
+            $data .= str_repeat('=', 4 - $mod);
+        }
+        return base64_decode($data, true) ?: '';
     }
 
     /** @param array<string,mixed> $payload
