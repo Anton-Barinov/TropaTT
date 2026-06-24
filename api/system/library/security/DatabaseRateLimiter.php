@@ -8,6 +8,7 @@ use PDO;
 final class DatabaseRateLimiter implements RateLimiterInterface
 {
     private readonly string $driver;
+    private bool $schemaReady = false;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -68,12 +69,20 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     public function clear(string $key): void
     {
+        if (!$this->ensureSchema()) {
+            return;
+        }
+
         $stmt = $this->pdo->prepare('DELETE FROM rate_limits WHERE `key` = ?');
         $stmt->execute([$key]);
     }
 
     private function fetch(string $key): ?array
     {
+        if (!$this->ensureSchema()) {
+            return null;
+        }
+
         $stmt = $this->pdo->prepare('SELECT `key`, attempts, blocked_until FROM rate_limits WHERE `key` = ?');
         $stmt->execute([$key]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -82,6 +91,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     private function upsert(string $key, string $attemptsJson, int $blockedUntil): void
     {
+        if (!$this->ensureSchema()) {
+            return;
+        }
+
         if ($this->driver === 'mysql') {
             $stmt = $this->pdo->prepare(
                 'INSERT INTO rate_limits (`key`, attempts, blocked_until, updated_at)
@@ -92,6 +105,38 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         } else {
             $this->pdo->exec('INSERT OR REPLACE INTO rate_limits (`key`, attempts, blocked_until, updated_at)
                 VALUES (' . $this->pdo->quote($key) . ', ' . $this->pdo->quote($attemptsJson) . ', ' . $blockedUntil . ', datetime(\'now\'))');
+        }
+    }
+
+    private function ensureSchema(): bool
+    {
+        if ($this->schemaReady) {
+            return true;
+        }
+
+        try {
+            if ($this->driver === 'mysql') {
+                $this->pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
+                    `key` VARCHAR(64) NOT NULL,
+                    attempts TEXT NOT NULL,
+                    blocked_until INT NOT NULL DEFAULT 0,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`key`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+            } else {
+                $this->pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
+                    `key` VARCHAR(64) NOT NULL,
+                    attempts TEXT NOT NULL,
+                    blocked_until INTEGER NOT NULL DEFAULT 0,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`key`)
+                )');
+            }
+            $this->schemaReady = true;
+            return true;
+        } catch (\Throwable) {
+            // Rate limiting should never make the CRM unavailable during install/upgrade.
+            return false;
         }
     }
 
@@ -106,7 +151,9 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         if (!is_array($decoded)) {
             return [];
         }
-        return array_values(array_filter($decoded, static fn($v): bool => is_int($v) || (is_string($v) && ctype_digit($v))));
+
+        $attempts = array_filter($decoded, static fn($v): bool => is_int($v) || (is_string($v) && ctype_digit($v)));
+        return array_values(array_map(static fn($v): int => (int)$v, $attempts));
     }
 
     private function encodeAttempts(array $attempts): string

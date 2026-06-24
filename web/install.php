@@ -1487,6 +1487,14 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             created_at {$dt}
         )",
 
+        "CREATE TABLE IF NOT EXISTS rate_limits (
+            `key` VARCHAR(64) NOT NULL,
+            attempts {$text} NOT NULL,
+            blocked_until INTEGER NOT NULL DEFAULT 0,
+            updated_at {$dt} NOT NULL,
+            PRIMARY KEY (`key`)
+        )",
+
         "CREATE TABLE IF NOT EXISTS audit_logs (
             id {$id},
             public_id VARCHAR(64) UNIQUE,

@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 return [
     // install
-    ['methods' => ['GET'], 'pattern' => '/install/status', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'status', 'auth' => true],
-    ['methods' => ['GET', 'POST'], 'pattern' => '/install/check', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'check', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/install/setup', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'setup', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/install/status', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'status', 'auth' => false],
+    ['methods' => ['GET', 'POST'], 'pattern' => '/install/check', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'check', 'auth' => false],
+    ['methods' => ['POST'], 'pattern' => '/install/setup', 'controller' => Api\Controller\Install\InstallController::class, 'action' => 'setup', 'auth' => false],
     ['methods' => ['GET'], 'pattern' => '/internal/migration/status', 'controller' => Api\Controller\Install\MigrationController::class, 'action' => 'status', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/internal/migration/up', 'controller' => Api\Controller\Install\MigrationController::class, 'action' => 'up', 'auth' => true],
     ['methods' => ['GET'], 'pattern' => '/internal/migration/dry-run', 'controller' => Api\Controller\Install\MigrationController::class, 'action' => 'dryRun', 'auth' => true],
