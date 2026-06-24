@@ -637,6 +637,33 @@ function generateRandomHex(int $bytes = 32): string
     return bin2hex(random_bytes($bytes));
 }
 
+function generateVapidKeys(): array
+{
+    if (!function_exists('openssl_pkey_new')) {
+        return ['public_key' => '', 'private_key' => ''];
+    }
+
+    $key = openssl_pkey_new([
+        'curve_name' => 'prime256v1',
+        'private_key_type' => OPENSSL_KEYTYPE_EC,
+    ]);
+    if ($key === false) {
+        return ['public_key' => '', 'private_key' => ''];
+    }
+
+    $details = openssl_pkey_get_details($key);
+    if (!isset($details['ec'])) {
+        return ['public_key' => '', 'private_key' => ''];
+    }
+
+    $ec = $details['ec'];
+    $publicKeyRaw = "\x04" . $ec['x'] . $ec['y'];
+    $publicKey = rtrim(strtr(base64_encode($publicKeyRaw), '+/', '-_'), '=');
+    $privateKey = rtrim(strtr(base64_encode($ec['d']), '+/', '-_'), '=');
+
+    return ['public_key' => $publicKey, 'private_key' => $privateKey];
+}
+
 function sanitizeInput(string $value): string
 {
     return trim(strip_tags($value));
@@ -1053,6 +1080,12 @@ function writeEnvFile(array $data): bool
 
     $envContent .= "# Optional push gateway\n";
     $envContent .= "NOTIFICATIONS_PUSH_GATEWAY_URL=\n";
+
+    $vapidKeys = generateVapidKeys();
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY=" . $vapidKeys['public_key'] . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY=" . $vapidKeys['private_key'] . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_SUBJECT=mailto:" . ($data['admin_email'] ?? 'admin@example.com') . "\n";
+
     $envContent .= "NOTIFICATIONS_PUSH_TIMEOUT_SEC=5\n";
     $envContent .= "NOTIFICATIONS_PUSH_MAX_SUBSCRIPTIONS_PER_DISPATCH=100\n";
 
