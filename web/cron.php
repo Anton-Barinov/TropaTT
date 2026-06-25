@@ -64,12 +64,37 @@ $push = new Api\System\Library\Service\NotificationPushService($subscriptions, $
 $limit = max(1, min(50, (int)($_GET['limit'] ?? 10)));
 $result = $push->runQueued($limit);
 
-echo json_encode([
+$userRepo = new Api\Model\Common\UserRepository($pdo);
+$calendarRepo = new Api\Model\Calendar\CalendarEventRepository($pdo);
+$notificationRepo = new Api\Model\Notification\NotificationRepository($pdo);
+$lang = new Api\System\Library\Language\LanguageManager($apiRoot . '/language');
+
+$notifications = new Api\System\Library\Service\NotificationService(
+    $notificationRepo,
+    $userRepo,
+    $logger,
+    null,
+    $push,
+    $lang,
+    null,
+    $calendarRepo
+);
+
+$activeUserIds = $userRepo->findActiveUserIds();
+$upcomingCreated = 0;
+foreach ($activeUserIds as $uid) {
+    $upcomingCreated += $notifications->dispatchUpcomingCalendarReminders($uid, ['id' => $uid]);
+}
+
+$response = [
     'ok' => true,
     'processed' => $result['processed'],
     'completed' => $result['completed'],
     'retried' => $result['retried'],
     'dead_lettered' => $result['dead_lettered'],
     'failed' => $result['failed'],
+    'upcoming_calendar_reminders' => $upcomingCreated,
     'generated_at' => gmdate('c'),
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+];
+
+echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

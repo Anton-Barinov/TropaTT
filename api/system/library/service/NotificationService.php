@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Service;
 
+use Api\Model\Calendar\CalendarEventRepository;
 use Api\Model\Notification\NotificationRepository;
 use Api\Model\Common\UserRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Service\SettingService;
 use Api\System\Library\Support\Ulid;
 
 final class NotificationService
@@ -21,9 +23,37 @@ final class NotificationService
         private readonly JsonLogger $logger,
         private readonly ?TaskRepository $tasks = null,
         private readonly ?NotificationPushService $push = null,
-        ?LanguageManager $lang = null
+        ?LanguageManager $lang = null,
+        private readonly ?SettingService $settings = null,
+        private readonly ?CalendarEventRepository $calendarEvents = null,
     ) {
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
+    }
+
+    private function isPushChannelEnabled(int $userId, string $category): bool
+    {
+        if ($this->settings === null) {
+            return true;
+        }
+
+        $user = $this->users->findByPublicId((string)$userId) ?? $this->users->find($userId);
+        if (!is_array($user) || empty($user['public_id'])) {
+            return true;
+        }
+
+        $scope = 'user:' . $user['public_id'];
+        $name = 'notify_' . $category . '_push';
+        $setting = $this->settings->get($scope, $name);
+        if ($setting === null) {
+            return true;
+        }
+
+        $value = $setting['value'] ?? null;
+        if ($value === null) {
+            return true;
+        }
+
+        return (bool)$value;
     }
 
     public function list(array $filters, array $actor): array
@@ -1008,6 +1038,51 @@ final class NotificationService
         return $created;
     }
 
+    public function dispatchUpcomingCalendarReminders(int $userId, array $actor = []): int
+    {
+        if ($this->calendarEvents === null || $userId <= 0) {
+            return 0;
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $in15 = gmdate('Y-m-d H:i:s', time() + 900);
+
+        $events = $this->calendarEvents->findUpcomingForUser($userId, $now, $in15);
+
+        $created = 0;
+        foreach ($events as $event) {
+            $eventPublicId = trim((string)($event['public_id'] ?? ''));
+            if ($eventPublicId === '') {
+                continue;
+            }
+
+            if ($this->notifiedRecently($userId, 'calendar_event_upcoming', 'calendar_event', $eventPublicId, 900)) {
+                continue;
+            }
+
+            $eventTitle = trim((string)($event['title'] ?? '')) ?: $eventPublicId;
+
+            $created += $this->notifyUsers([$userId], [
+                'category' => 'calendar',
+                'title' => $this->t('notification/messages.calendar_event_upcoming'),
+                'body' => $this->t('notification/messages.calendar_event_upcoming_body') . ' "' . $eventTitle . '".',
+                'entity_type' => 'calendar_event',
+                'entity_public_id' => $eventPublicId,
+                'action_code' => 'calendar_event_upcoming',
+                'link' => 'index.php?route=calendar',
+                'payload' => [
+                    'event_title' => $eventTitle,
+                    'starts_at' => $event['starts_at'] ?? null,
+                    'ends_at' => $event['ends_at'] ?? null,
+                    'task_public_id' => $event['task_public_id'] ?? null,
+                    'project_public_id' => $event['project_public_id'] ?? null,
+                ],
+            ]);
+        }
+
+        return $created;
+    }
+
     private function resolveTargetUserId(array $input, array $actor): int
     {
         $actorUserId = (int)($actor['id'] ?? 0);
@@ -1058,14 +1133,17 @@ final class NotificationService
             'read_at' => null,
         ]);
 
-        $this->push?->notifyUserNewNotification($userId, [
-            'public_id' => $publicId,
-            'action_code' => $input['action_code'] ?? null,
-            'actor_public_id' => $actorPublicId !== '' ? $actorPublicId : null,
-            'title' => trim((string)($input['title'] ?? '')),
-            'body' => trim((string)($input['body'] ?? '')),
-            'link' => $this->nullableString($input['link'] ?? null),
-        ]);
+        $category = trim((string)($input['category'] ?? 'system'));
+        if ($this->isPushChannelEnabled($userId, $category)) {
+            $this->push?->notifyUserNewNotification($userId, [
+                'public_id' => $publicId,
+                'action_code' => $input['action_code'] ?? null,
+                'actor_public_id' => $actorPublicId !== '' ? $actorPublicId : null,
+                'title' => trim((string)($input['title'] ?? '')),
+                'body' => trim((string)($input['body'] ?? '')),
+                'link' => $this->nullableString($input['link'] ?? null),
+            ]);
+        }
 
         return $publicId;
     }

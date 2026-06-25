@@ -366,6 +366,10 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'manage')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
+        $page = $this->repo()->page((string)$params['public_id']);
+        if ($page) {
+            $this->notifyPageEvent($page, 'deleted', $this->user() ?: []);
+        }
         if (!$this->repo()->deletePage((string)$params['public_id'])) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -1367,6 +1371,11 @@ final class KnowledgeController extends BaseController
                 $notifTitle = $this->t('knowledge/messages.notif_mentioned_title', 'Page mentioned');
                 $notifBody = $this->t('knowledge/messages.notif_mentioned_body', 'Page "%s" was mentioned by %s');
                 $actionCode = 'knowledge_page_mentioned';
+                break;
+            case 'deleted':
+                $notifTitle = $this->t('knowledge/messages.notif_deleted_title', 'Page deleted');
+                $notifBody = $this->t('knowledge/messages.notif_deleted_body', 'Page "%s" was deleted by %s');
+                $actionCode = 'knowledge_page_deleted';
                 break;
             default:
                 $notifTitle = $this->t('knowledge/messages.notif_updated_title', 'Page updated');

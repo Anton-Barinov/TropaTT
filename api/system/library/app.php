@@ -965,7 +965,8 @@ final class App
             $c->get('repository.workflow'),
             $c->get('repository.user_management'),
             $c->get('policy.hierarchy'),
-            $c->get('lang')
+            $c->get('lang'),
+            $c->get('service.notification'),
         ));
         $this->container->factory('service.sla', fn(Container $c) => new SlaService(
             $c->get('repository.sla')
@@ -1141,7 +1142,9 @@ final class App
             $c->get('logger'),
             $c->get('repository.task'),
             $c->get('service.notification_push'),
-            $c->get('lang')
+            $c->get('lang'),
+            $c->get('service.setting'),
+            $c->get('repository.calendar_event')
         ));
         $this->container->factory('service.chat', fn(Container $c) => new ChatService(
             $c->get('db.pdo'),

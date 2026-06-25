@@ -90,6 +90,7 @@ final class EventsController extends BaseController
                         $nextDomainScanAt = time() + 15;
                         $reminders->dispatchDueNotificationsForUser($actor, gmdate('Y-m-d H:i:s'));
                         $notifications->dispatchOverdueSignalsForUser($userId, $actor);
+                        $notifications->dispatchUpcomingCalendarReminders($userId, $actor);
 
                         if ($this->container->has('service.notification_push')) {
                             /** @var NotificationPushService $push */
