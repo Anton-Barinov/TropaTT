@@ -162,6 +162,32 @@ final class CalendarEventRepository
             ->get();
     }
 
+    public function findUpcomingForUser(int $userId, string $from, string $to): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('calendar_events e')
+            ->leftJoin('projects p', 'p.id', '=', 'e.project_id')
+            ->leftJoin('tasks t', 't.id', '=', 'e.task_id')
+            ->select([
+                'e.public_id',
+                'e.owner_user_id',
+                'e.title',
+                'e.description',
+                'e.starts_at',
+                'e.ends_at',
+                'e.created_at',
+                'p.public_id AS project_public_id',
+                'p.title AS project_title',
+                't.public_id AS task_public_id',
+                't.title AS task_title',
+            ])
+            ->where('e.owner_user_id', '=', $userId)
+            ->where('e.starts_at', '>=', $from)
+            ->where('e.starts_at', '<=', $to)
+            ->orderBy('e.starts_at', 'ASC')
+            ->get();
+    }
+
     public function listTasksDueInRange(int $userId, bool $isRoot, string $startAt, string $endAt): array
     {
         $query = (new QueryBuilder($this->pdo))

@@ -46,6 +46,28 @@ $logger = new Api\System\Library\Logger\JsonLogger($basePath . '/logs');
 
 $push = new Api\System\Library\Service\NotificationPushService($subscriptions, $queue, $logger, $config);
 
+$userRepo = new Api\Model\Common\UserRepository($pdo);
+$notificationRepo = new Api\Model\Notification\NotificationRepository($pdo);
+$taskRepo = new Api\Model\Task\TaskRepository($pdo);
+$reminderRepo = new Api\Model\Reminder\ReminderRepository($pdo);
+$lang = new Api\System\Library\Language\LanguageManager($basePath . '/system/language');
+
+$notificationService = new Api\System\Library\Service\NotificationService(
+    $notificationRepo,
+    $userRepo,
+    $logger,
+    $taskRepo,
+    $push,
+    $lang
+);
+
+$reminderService = new Api\System\Library\Service\ReminderService(
+    $reminderRepo,
+    $taskRepo,
+    $logger,
+    $notificationService
+);
+
 $limit = 10;
 $all = false;
 foreach (array_slice($argv, 1) as $arg) {
@@ -75,4 +97,44 @@ if ($processed === 0) {
     echo "[{$timestamp}] Push cron: no jobs\n";
 } else {
     echo "[{$timestamp}] Push cron: {$result['completed']} completed, {$result['retried']} retried, {$result['dead_lettered']} dead-lettered, {$result['failed']} failed\n";
+}
+
+$overdueTotal = 0;
+$reminderTotal = 0;
+$activeUserIds = $userRepo->findActiveUserIds();
+$cutoff = gmdate('Y-m-d H:i:s');
+foreach ($activeUserIds as $uid) {
+    $actor = ['id' => $uid];
+    $reminderTotal += $reminderService->dispatchDueNotificationsForUser($actor, $cutoff);
+    $overdueTotal += $notificationService->dispatchOverdueSignalsForUser($uid, $actor);
+}
+
+$timestamp = gmdate('Y-m-d H:i:s');
+echo "[{$timestamp}] Cron: overdue signals={$overdueTotal}, reminders={$reminderTotal} for " . count($activeUserIds) . " active users\n";
+
+$userRepo = new Api\Model\Common\UserRepository($pdo);
+$calendarRepo = new Api\Model\Calendar\CalendarEventRepository($pdo);
+$notificationRepo = new Api\Model\Notification\NotificationRepository($pdo);
+$lang = new Api\System\Library\Language\LanguageManager($basePath . '/language');
+
+$notifications = new Api\System\Library\Service\NotificationService(
+    $notificationRepo,
+    $userRepo,
+    $logger,
+    null,
+    $push,
+    $lang,
+    null,
+    $calendarRepo
+);
+
+$activeUserIds = $userRepo->findActiveUserIds();
+$upcomingCreated = 0;
+foreach ($activeUserIds as $uid) {
+    $upcomingCreated += $notifications->dispatchUpcomingCalendarReminders($uid, ['id' => $uid]);
+}
+
+$timestamp = gmdate('Y-m-d H:i:s');
+if ($upcomingCreated > 0) {
+    echo "[{$timestamp}] Upcoming calendar reminders: {$upcomingCreated} sent\n";
 }

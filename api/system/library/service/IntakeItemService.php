@@ -175,10 +175,32 @@ final class IntakeItemService
             'updated_at' => $now,
         ]);
 
-        // Log created activity
         $this->logActivity($item['id'], $actor, 'created');
 
-        // @todo TZ §16: send notification for intake.created / intake.assigned via $this->notificationService
+        if ($this->notificationService !== null) {
+            $actorUserId = (int)($actor['id'] ?? 0);
+            $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
+            $itemTitle = $title;
+            $itemLink = 'index.php?route=intake-detail&public_id=' . rawurlencode($publicId);
+            $recipients = [];
+            if ($assigneeUserId > 0 && $assigneeUserId !== $actorUserId) {
+                $recipients[] = $assigneeUserId;
+            }
+            if ($recipients !== []) {
+                $this->notificationService->notifyUsers($recipients, [
+                    'category' => 'assignments',
+                    'title' => $this->t('notification/messages.intake_assigned_to_you'),
+                    'body' => ($actorName !== '' ? $actorName . ' ' : '') . $this->t('notification/messages.assigned_intake_to_you') . ' "' . $itemTitle . '".',
+                    'action_code' => 'intake_assigned',
+                    'entity_type' => 'intake_item',
+                    'entity_public_id' => $publicId,
+                    'actor_user_id' => $actorUserId > 0 ? $actorUserId : null,
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'actor_name' => $actorName,
+                    'link' => $itemLink,
+                ], $actorUserId > 0 ? $actorUserId : null);
+            }
+        }
 
         return $item;
     }
@@ -445,10 +467,33 @@ final class IntakeItemService
             'updated_at' => $now,
         ]);
 
-        // @todo TZ §16: send notification for intake.accepted via $this->notificationService
-
         $this->logActivity((int)$item['id'], $actor, 'accepted');
         $this->logActivity((int)$item['id'], $actor, 'linked_task_created', null, null, null, 'Task: ' . $task['public_id']);
+
+        if ($this->notificationService !== null) {
+            $actorUserId = (int)($actor['id'] ?? 0);
+            $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
+            $creatorUserId = (int)($item['creator_user_id'] ?? 0);
+            $itemLink = 'index.php?route=intake-detail&public_id=' . rawurlencode($publicId);
+            $itemTitle = (string)($item['title'] ?? $publicId);
+            if ($creatorUserId > 0 && $creatorUserId !== $actorUserId) {
+                $this->notificationService->notifyUsers([$creatorUserId], [
+                    'category' => 'tasks',
+                    'title' => $this->t('notification/messages.intake_accepted'),
+                    'body' => ($actorName !== '' ? $actorName . ' ' : '') . $this->t('notification/messages.accepted_intake') . ' "' . $itemTitle . '".',
+                    'action_code' => 'intake_accepted',
+                    'entity_type' => 'intake_item',
+                    'entity_public_id' => $publicId,
+                    'actor_user_id' => $actorUserId > 0 ? $actorUserId : null,
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'actor_name' => $actorName,
+                    'link' => $itemLink,
+                    'payload' => [
+                        'task_public_id' => $task['public_id'] ?? null,
+                    ],
+                ], $actorUserId > 0 ? $actorUserId : null);
+            }
+        }
 
         $updated = $this->repository->findByPublicId($publicId);
         return [
@@ -497,9 +542,32 @@ final class IntakeItemService
             'updated_at' => $now,
         ]);
 
-        // @todo TZ §16: send notification for intake.rejected via $this->notificationService
-
         $this->logActivity((int)$item['id'], $actor, 'rejected', null, null, null, $reason);
+
+        if ($this->notificationService !== null) {
+            $actorUserId = (int)($actor['id'] ?? 0);
+            $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
+            $creatorUserId = (int)($item['creator_user_id'] ?? 0);
+            $itemTitle = (string)($item['title'] ?? $publicId);
+            $itemLink = 'index.php?route=intake-detail&public_id=' . rawurlencode($publicId);
+            if ($creatorUserId > 0 && $creatorUserId !== $actorUserId) {
+                $this->notificationService->notifyUsers([$creatorUserId], [
+                    'category' => 'system',
+                    'title' => $this->t('notification/messages.intake_rejected'),
+                    'body' => ($actorName !== '' ? $actorName . ' ' : '') . $this->t('notification/messages.rejected_intake') . ' "' . $itemTitle . '". ' . $reason,
+                    'action_code' => 'intake_rejected',
+                    'entity_type' => 'intake_item',
+                    'entity_public_id' => $publicId,
+                    'actor_user_id' => $actorUserId > 0 ? $actorUserId : null,
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'actor_name' => $actorName,
+                    'link' => $itemLink,
+                    'payload' => [
+                        'reason' => $reason,
+                    ],
+                ], $actorUserId > 0 ? $actorUserId : null);
+            }
+        }
 
         return $this->repository->findByPublicId($publicId);
     }
@@ -544,9 +612,32 @@ final class IntakeItemService
             'updated_at' => $now,
         ]);
 
-        // @todo TZ §16: send notification for intake.snoozed via $this->notificationService
-
         $this->logActivity((int)$item['id'], $actor, 'snoozed', null, null, null, $reason);
+
+        if ($this->notificationService !== null) {
+            $actorUserId = (int)($actor['id'] ?? 0);
+            $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
+            $creatorUserId = (int)($item['creator_user_id'] ?? 0);
+            $itemTitle = (string)($item['title'] ?? $publicId);
+            $itemLink = 'index.php?route=intake-detail&public_id=' . rawurlencode($publicId);
+            if ($creatorUserId > 0 && $creatorUserId !== $actorUserId) {
+                $this->notificationService->notifyUsers([$creatorUserId], [
+                    'category' => 'system',
+                    'title' => $this->t('notification/messages.intake_snoozed'),
+                    'body' => ($actorName !== '' ? $actorName . ' ' : '') . $this->t('notification/messages.snoozed_intake') . ' "' . $itemTitle . '" ' . $this->t('notification/messages.until') . ' ' . $snoozedUntil . '.',
+                    'action_code' => 'intake_snoozed',
+                    'entity_type' => 'intake_item',
+                    'entity_public_id' => $publicId,
+                    'actor_user_id' => $actorUserId > 0 ? $actorUserId : null,
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'actor_name' => $actorName,
+                    'link' => $itemLink,
+                    'payload' => [
+                        'snoozed_until' => $snoozedUntil,
+                    ],
+                ], $actorUserId > 0 ? $actorUserId : null);
+            }
+        }
 
         return $this->repository->findByPublicId($publicId);
     }
@@ -615,9 +706,33 @@ final class IntakeItemService
             'updated_at' => $now,
         ]);
 
-        // @todo TZ §16: send notification for intake.duplicate via $this->notificationService
-
         $this->logActivity((int)$item['id'], $actor, 'marked_duplicate', null, null, null, $reason);
+
+        if ($this->notificationService !== null) {
+            $actorUserId = (int)($actor['id'] ?? 0);
+            $actorName = trim((string)($actor['full_name'] ?? $actor['login'] ?? ''));
+            $creatorUserId = (int)($item['creator_user_id'] ?? 0);
+            $itemTitle = (string)($item['title'] ?? $publicId);
+            $itemLink = 'index.php?route=intake-detail&public_id=' . rawurlencode($publicId);
+            $dupTarget = $duplicateIntakeItemPublicId !== '' ? $duplicateIntakeItemPublicId : $duplicateTaskPublicId;
+            if ($creatorUserId > 0 && $creatorUserId !== $actorUserId) {
+                $this->notificationService->notifyUsers([$creatorUserId], [
+                    'category' => 'system',
+                    'title' => $this->t('notification/messages.intake_duplicate'),
+                    'body' => ($actorName !== '' ? $actorName . ' ' : '') . $this->t('notification/messages.marked_intake_duplicate') . ' "' . $itemTitle . '".',
+                    'action_code' => 'intake_duplicate',
+                    'entity_type' => 'intake_item',
+                    'entity_public_id' => $publicId,
+                    'actor_user_id' => $actorUserId > 0 ? $actorUserId : null,
+                    'actor_public_id' => $actor['public_id'] ?? null,
+                    'actor_name' => $actorName,
+                    'link' => $itemLink,
+                    'payload' => [
+                        'duplicate_target' => $dupTarget,
+                    ],
+                ], $actorUserId > 0 ? $actorUserId : null);
+            }
+        }
 
         return $this->repository->findByPublicId($publicId);
     }

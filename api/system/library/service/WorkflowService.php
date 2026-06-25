@@ -18,7 +18,8 @@ final class WorkflowService
         private readonly WorkflowRepository $workflow,
         private readonly UserManagementRepository $users,
         private readonly HierarchyPolicy $hierarchy,
-        LanguageManager $lang
+        LanguageManager $lang,
+        private readonly ?NotificationService $notification = null,
     ) {
         $this->lang = $lang;
     }
@@ -349,7 +350,19 @@ final class WorkflowService
                     $title = trim((string)($payload['title'] ?? $this->t('workflow/messages.default_notification_title')));
                     $body = trim((string)($payload['body'] ?? $payload['message'] ?? ''));
                     if ($userIds !== []) {
-                        $this->workflow->createNotifications($userIds, $title, $body, (string)($context['task_public_id'] ?? ''));
+                        $taskPublicId = (string)($context['task_public_id'] ?? '');
+                        if ($this->notification !== null) {
+                            $this->notification->notifyUsers($userIds, [
+                                'category' => 'workflow',
+                                'title' => $title,
+                                'body' => $body,
+                                'entity_type' => $taskPublicId !== '' ? 'task' : null,
+                                'entity_public_id' => $taskPublicId !== '' ? $taskPublicId : null,
+                                'action_code' => 'workflow',
+                            ]);
+                        } else {
+                            $this->workflow->createNotifications($userIds, $title, $body, $taskPublicId);
+                        }
                         return ['success' => true, 'error' => null];
                     }
                     return ['success' => false, 'error' => $this->t('workflow/messages.action_no_notification_recipient')];

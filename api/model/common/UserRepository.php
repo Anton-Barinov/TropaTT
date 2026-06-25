@@ -52,4 +52,15 @@ final class UserRepository
             ->from('users')
             ->insertGetId($payload);
     }
+
+    public function findActiveUserIds(): array
+    {
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->where('is_active', '=', 1)
+            ->whereNull('deleted_at')
+            ->select(['id'])
+            ->get();
+        return array_map(fn(array $r) => (int)$r['id'], $rows);
+    }
 }
