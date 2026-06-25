@@ -58,7 +58,7 @@ $driver = (string)($dbConfig['driver'] ?? 'sqlite');
 $subscriptions = new Api\Model\Notification\PushSubscriptionRepository($pdo);
 $queue = new Api\Model\Notification\PushDispatchQueueRepository($pdo);
 
-$logger = new Api\System\Library\Logger\JsonLogger($apiRoot . '/logs');
+$logger = new Api\System\Library\Logger\JsonLogger(['push' => $apiRoot . '/logs/cron_push.log']);
 
 $push = new Api\System\Library\Service\NotificationPushService($subscriptions, $queue, $logger, $config);
 
