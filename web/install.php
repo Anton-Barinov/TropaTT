@@ -634,34 +634,55 @@ function csrfCheck(): bool
 
 function generateRandomHex(int $bytes = 32): string
 {
-    return bin2hex(random_bytes($bytes));
+    try {
+        return bin2hex(random_bytes($bytes));
+    } catch (\Throwable) {
+        // Fallback: use openssl if random_bytes fails
+        try {
+            $data = '';
+            if (function_exists('openssl_random_pseudo_bytes')) {
+                $data = openssl_random_pseudo_bytes($bytes);
+            }
+            if ($data !== '' && $data !== false) {
+                return bin2hex($data);
+            }
+        } catch (\Throwable) {
+            // Give up
+        }
+        // Last resort: deterministic fallback (not cryptographically secure, but prevents crash)
+        return hash('sha256', microtime(true) . random_int(0, PHP_INT_MAX));
+    }
 }
 
 function generateVapidKeys(): array
 {
-    if (!function_exists('openssl_pkey_new')) {
+    try {
+        if (!function_exists('openssl_pkey_new')) {
+            return ['public_key' => '', 'private_key' => ''];
+        }
+
+        $key = openssl_pkey_new([
+            'curve_name' => 'prime256v1',
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+        ]);
+        if ($key === false) {
+            return ['public_key' => '', 'private_key' => ''];
+        }
+
+        $details = openssl_pkey_get_details($key);
+        if (!isset($details['ec'])) {
+            return ['public_key' => '', 'private_key' => ''];
+        }
+
+        $ec = $details['ec'];
+        $publicKeyRaw = "\x04" . $ec['x'] . $ec['y'];
+        $publicKey = rtrim(strtr(base64_encode($publicKeyRaw), '+/', '-_'), '=');
+        $privateKey = rtrim(strtr(base64_encode($ec['d']), '+/', '-_'), '=');
+
+        return ['public_key' => $publicKey, 'private_key' => $privateKey];
+    } catch (\Throwable) {
         return ['public_key' => '', 'private_key' => ''];
     }
-
-    $key = openssl_pkey_new([
-        'curve_name' => 'prime256v1',
-        'private_key_type' => OPENSSL_KEYTYPE_EC,
-    ]);
-    if ($key === false) {
-        return ['public_key' => '', 'private_key' => ''];
-    }
-
-    $details = openssl_pkey_get_details($key);
-    if (!isset($details['ec'])) {
-        return ['public_key' => '', 'private_key' => ''];
-    }
-
-    $ec = $details['ec'];
-    $publicKeyRaw = "\x04" . $ec['x'] . $ec['y'];
-    $publicKey = rtrim(strtr(base64_encode($publicKeyRaw), '+/', '-_'), '=');
-    $privateKey = rtrim(strtr(base64_encode($ec['d']), '+/', '-_'), '=');
-
-    return ['public_key' => $publicKey, 'private_key' => $privateKey];
 }
 
 function sanitizeInput(string $value): string

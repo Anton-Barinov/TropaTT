@@ -163,6 +163,7 @@ final class App
     public function run(): JsonResponse|RawJsonResponse
     {
         $this->bootstrapConfig();
+        $this->guardKeys();
         $this->bootstrapRuntime();
 
         /** @var Request $request */
@@ -520,6 +521,72 @@ final class App
 
         $this->validateSecurityConfig();
         $this->validateProductionRuntimeConfig();
+    }
+
+    private function guardKeys(): void
+    {
+        try {
+            $guard = new \Api\System\Library\Service\KeyGuard();
+            $allPresent = $guard->ensureKeys();
+
+            if ($guard->hasMissing() && !$allPresent) {
+                $failed = $guard->getFailed();
+                $generated = $guard->getGenerated();
+
+                error_log(sprintf(
+                    'KeyGuard: %d keys missing, %d auto-generated, %d failed: %s',
+                    count($generated) + count($failed),
+                    count($generated),
+                    count($failed),
+                    implode(', ', $failed)
+                ));
+
+                if ($failed !== []) {
+                    $this->notifyAdminsOfMissingKeys($failed);
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('KeyGuard error: ' . $e->getMessage());
+        }
+    }
+
+    private function notifyAdminsOfMissingKeys(array $failedKeys): void
+    {
+        try {
+            $db = (new \Api\System\Library\Database\ConnectionManager($this->config))->connect();
+            $userRepo = new \Api\Model\Common\UserRepository($db);
+            $adminUsers = $userRepo->findByCondition('is_root = 1 OR role_code = ?', ['admin']);
+
+            if (empty($adminUsers)) {
+                return;
+            }
+
+            $notificationService = $this->container->get('service.notification');
+            $keyList = implode("\n• ", $failedKeys);
+
+            foreach ($adminUsers as $admin) {
+                $adminId = (int)($admin['id'] ?? 0);
+                if ($adminId <= 0) {
+                    continue;
+                }
+
+                try {
+                    $notificationService->notifyUsers([$adminId], (array)$admin, [
+                        'title' => '⚠️ Не сгенерированы ключи безопасности',
+                        'body' => "Следующие ключи не удалось сгенерировать автоматически:\n• {$keyList}\n\nНекоторые функции CRM могут работать некорректно. Перегенерируйте ключи вручную.",
+                        'category' => 'system',
+                        'action_code' => 'security_key_generation_failed',
+                        'entity_type' => 'system',
+                        'link' => 'index.php?route=admin-settings',
+                    ]);
+                } catch (\Throwable) {
+                    // Notification itself failed — log but don't crash
+                }
+            }
+        } catch (\Throwable) {
+            // DB not available yet — just log
+            error_log('KeyGuard: could not notify admins about missing keys');
+        }
     }
 
     private function loadLocalConfig(string $file, string $namespace): void
