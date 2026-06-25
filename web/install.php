@@ -1069,7 +1069,9 @@ function writeEnvFile(array $data): bool
     $envContent .= "APP_KEY=" . ($data['app_key'] ?? '') . "\n";
     $envContent .= "CSRF_SECRET_KEY=" . ($data['csrf_key'] ?? '') . "\n";
     $envContent .= "WEBHOOK_SECRET_KEY=" . ($data['webhook_key'] ?? '') . "\n";
-    $envContent .= "AI_ENCRYPTION_KEY=" . ($data['ai_key'] ?? '') . "\n\n";
+    $envContent .= "AI_ENCRYPTION_KEY=" . ($data['ai_key'] ?? '') . "\n";
+    $envContent .= "CRM_LOCAL_SECRET=" . ($data['local_secret'] ?? '') . "\n";
+    $envContent .= "CRON_SECRET_KEY=" . ($data['cron_secret'] ?? '') . "\n\n";
 
     $siteUrl = rtrim($data['site_url'] ?? 'http://localhost', '/');
     $envContent .= "# CORS allowlist\n";
@@ -2813,6 +2815,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
                     $formData['csrf_key'] = generateRandomHex(32);
                     $formData['webhook_key'] = generateRandomHex(32);
                     $formData['ai_key'] = generateRandomHex(32);
+                    $formData['local_secret'] = generateRandomHex(32);
+                    $formData['cron_secret'] = generateRandomHex(32);
                 }
                 $_SESSION['install_data'] = $formData;
                 $step = 3;
