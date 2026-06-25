@@ -496,6 +496,7 @@ final class App
         $files = [
             'default',
             'database',
+            'notifications',
             'security',
             'install',
             'api',
