@@ -17,6 +17,7 @@ $basePath = __DIR__ . '/../';
 $projectRoot = dirname($basePath);
 
 require_once $basePath . '/system/library/support/Autoloader.php';
+require_once $basePath . '/system/library/support/EnvLoader.php';
 
 if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     Api\System\Library\Support\EnvLoader::loadFiles([
