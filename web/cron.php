@@ -18,6 +18,7 @@ $projectRoot = dirname(__DIR__);
 $apiRoot = $projectRoot . '/api';
 
 require_once $apiRoot . '/system/library/support/Autoloader.php';
+require_once $apiRoot . '/system/library/support/EnvLoader.php';
 
 if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     Api\System\Library\Support\EnvLoader::loadFiles([
