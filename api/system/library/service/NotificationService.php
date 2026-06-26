@@ -36,7 +36,7 @@ final class NotificationService
             return true;
         }
 
-        $user = $this->users->findByPublicId((string)$userId) ?? $this->users->find($userId);
+        $user = $this->users->findById($userId);
         if (!is_array($user) || empty($user['public_id'])) {
             return true;
         }
