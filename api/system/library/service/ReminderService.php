@@ -18,6 +18,19 @@ final class ReminderService
     ) {
     }
 
+    private function normalizeDatetime(string $value): string
+    {
+        $raw = trim($value);
+        if ($raw === '') {
+            return gmdate('Y-m-d H:i:s');
+        }
+        $ts = strtotime($raw);
+        if ($ts === false) {
+            return gmdate('Y-m-d H:i:s');
+        }
+        return gmdate('Y-m-d H:i:s', $ts);
+    }
+
     public function list(array $filters, array $actor): array
     {
         $userId = (int)($actor['id'] ?? 0);
@@ -67,7 +80,7 @@ final class ReminderService
             'public_id' => $publicId,
             'user_id' => $userId,
             'task_id' => $taskId,
-            'remind_at' => (string)$input['remind_at'],
+            'remind_at' => $this->normalizeDatetime((string)$input['remind_at']),
             'status' => (string)($input['status'] ?? 'new'),
             'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
@@ -106,7 +119,7 @@ final class ReminderService
             $set['status'] = (string)$input['status'];
         }
         if (array_key_exists('remind_at', $input)) {
-            $set['remind_at'] = (string)$input['remind_at'];
+            $set['remind_at'] = $this->normalizeDatetime((string)$input['remind_at']);
         }
         if (array_key_exists('task_public_id', $input)) {
             if ($input['task_public_id'] === null || $input['task_public_id'] === '') {

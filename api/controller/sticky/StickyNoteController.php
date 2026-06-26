@@ -68,7 +68,6 @@ final class StickyNoteController extends BaseController
             'STICKY_NOTE_CREATED',
             $this->lang()->get('sticky/messages.created', 'Sticky note created'),
             ['sticky_note' => $result],
-            null,
             201
         );
     }

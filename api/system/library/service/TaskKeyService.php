@@ -70,7 +70,7 @@ final class TaskKeyService
             $base = $prefix;
             $suffix = 2;
 
-            while (true) {
+            while ($suffix <= 999) {
                 $candidate = substr($base, 0, 8) . (string)$suffix;
                 if (!in_array($candidate, self::RESERVED_PREFIXES, true) && !$this->projects->taskKeyPrefixExists($candidate, $exceptProjectPublicId)) {
                     return $candidate;
