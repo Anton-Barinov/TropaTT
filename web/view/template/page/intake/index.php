@@ -88,7 +88,7 @@
             </div>
             <div class="col-12">
               <label class="form-label" for="intakeDescription" data-i18n="intake.field_description"><?= htmlspecialchars($t('intake.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" id="intakeDescription" rows="4" maxlength="65535"></textarea>
+              <textarea class="form-control" id="intakeDescription" rows="4" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="intakePriority" data-i18n="intake.field_priority"><?= htmlspecialchars($t('intake.field_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></label>

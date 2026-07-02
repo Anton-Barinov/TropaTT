@@ -45,7 +45,7 @@
           </div>
           <div class="col-md-8">
             <label class="form-label" for="projectTaskDescriptionInput" data-i18n="project_detail.field_description"><?= htmlspecialchars($t('project_detail.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-            <textarea class="form-control" id="projectTaskDescriptionInput" name="description" rows="2" placeholder="<?= htmlspecialchars($t('project_detail.placeholder_task_description', 'Что нужно сделать'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.placeholder_task_description"></textarea>
+            <textarea class="form-control" id="projectTaskDescriptionInput" name="description" rows="2" placeholder="<?= htmlspecialchars($t('project_detail.placeholder_task_description', 'Что нужно сделать'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="project_detail.placeholder_task_description" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
           </div>
           <div class="col-md-4">
             <label class="form-label" for="projectTaskDueAtInput" data-i18n="project_detail.field_due_at"><?= htmlspecialchars($t('project_detail.field_due_at', 'Срок'), ENT_QUOTES, 'UTF-8') ?></label>
