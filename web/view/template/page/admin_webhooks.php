@@ -37,7 +37,7 @@
           <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="events[]" value="project.updated" id="evt_project_updated"><label class="form-check-label" for="evt_project_updated">project.updated</label></div></div>
         </div>
       </div>
-      <div class="mb-3"><label class="form-label" for="webhookDescription" data-i18n="admin_webhooks.field_description"><?= htmlspecialchars($t('admin_webhooks.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="webhookDescription" name="description" rows="2"></textarea></div>
+      <div class="mb-3"><label class="form-label" for="webhookDescription" data-i18n="admin_webhooks.field_description"><?= htmlspecialchars($t('admin_webhooks.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="webhookDescription" name="description" rows="2" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>
       <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_active" id="webhookIsActive" checked><label class="form-check-label" for="webhookIsActive" data-i18n="admin_webhooks.field_is_active"><?= htmlspecialchars($t('admin_webhooks.field_is_active', 'Активен'), ENT_QUOTES, 'UTF-8') ?></label></div></div>
     </div><div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button type="submit" class="btn crm-btn-primary" data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button></div></form>
   </div></div>

@@ -21,7 +21,7 @@
     <form id="createTagForm"><div class="modal-body">
       <div class="mb-3"><label class="form-label" for="tagName" data-i18n="admin_tags.field_name"><?= htmlspecialchars($t('admin_tags.field_name', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="tagName" name="name" required maxlength="64"></div>
       <div class="mb-3"><label class="form-label" for="tagColor" data-i18n="admin_tags.field_color"><?= htmlspecialchars($t('admin_tags.field_color', 'Цвет'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="tagColor" name="color" type="color" value="#0f8f72"></div>
-      <div class="mb-3"><label class="form-label" for="tagDescription" data-i18n="admin_tags.field_description"><?= htmlspecialchars($t('admin_tags.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="tagDescription" name="description" rows="2"></textarea></div>
+      <div class="mb-3"><label class="form-label" for="tagDescription" data-i18n="admin_tags.field_description"><?= htmlspecialchars($t('admin_tags.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="tagDescription" name="description" rows="2" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>
     </div><div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button type="submit" class="btn crm-btn-primary" data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button></div></form>
   </div></div>
 </div>
@@ -33,7 +33,7 @@
       <input type="hidden" id="editTagPublicId" name="public_id">
       <div class="mb-3"><label class="form-label" for="editTagName" data-i18n="admin_tags.field_name"><?= htmlspecialchars($t('admin_tags.field_name', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="editTagName" name="name" required maxlength="64"></div>
       <div class="mb-3"><label class="form-label" for="editTagColor" data-i18n="admin_tags.field_color"><?= htmlspecialchars($t('admin_tags.field_color', 'Цвет'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="editTagColor" name="color" type="color"></div>
-      <div class="mb-3"><label class="form-label" for="editTagDescription" data-i18n="admin_tags.field_description"><?= htmlspecialchars($t('admin_tags.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="editTagDescription" name="description" rows="2"></textarea></div>
+      <div class="mb-3"><label class="form-label" for="editTagDescription" data-i18n="admin_tags.field_description"><?= htmlspecialchars($t('admin_tags.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" id="editTagDescription" name="description" rows="2" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>
     </div><div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button type="submit" class="btn crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form>
   </div></div>
 </div>

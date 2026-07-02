@@ -121,11 +121,11 @@
             </div>
             <div class="col-12">
               <label class="form-label"><?= htmlspecialchars($t('cycles.form_label_goal', 'Цель цикла'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" id="cycleFormGoal" rows="2" maxlength="65535"></textarea>
+              <textarea class="form-control" id="cycleFormGoal" rows="2" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
             </div>
             <div class="col-12">
               <label class="form-label"><?= htmlspecialchars($t('cycles.form_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" id="cycleFormDescription" rows="3" maxlength="65535"></textarea>
+              <textarea class="form-control" id="cycleFormDescription" rows="3" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
             </div>
           </div>
         </form>

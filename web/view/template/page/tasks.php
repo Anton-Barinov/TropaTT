@@ -120,7 +120,7 @@
         </div>
         <div class="mb-3">
           <label for="savedViewDescInput" class="form-label" data-i18n="tasks.views_desc_label"><?= htmlspecialchars($t('tasks.views_desc_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-          <textarea id="savedViewDescInput" class="form-control" rows="2" maxlength="2000" placeholder="<?= htmlspecialchars($t('tasks.views_desc_placeholder', 'Необязательное описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_desc_placeholder"></textarea>
+          <textarea id="savedViewDescInput" class="form-control" rows="2" maxlength="2000" placeholder="<?= htmlspecialchars($t('tasks.views_desc_placeholder', 'Необязательное описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_desc_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
         </div>
         <div class="mb-3">
           <label for="savedViewAccessSelect" class="form-label" data-i18n="tasks.views_access_label"><?= htmlspecialchars($t('tasks.views_access_label', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></label>

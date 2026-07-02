@@ -128,6 +128,7 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php if ($needsRichText): ?>
 <script defer src="assets/js/richtext.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
+<script defer src="assets/js/visual-editor.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script><?php if ($needsPageApiBindings):
 ?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;

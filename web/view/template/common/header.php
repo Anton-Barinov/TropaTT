@@ -57,6 +57,7 @@ if ($assetsVersion === '') {
   <link rel="stylesheet" href="assets/css/animations.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/responsive.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/ui.css?v=<?= urlencode($assetsVersion) ?>">
+  <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
   <link rel="stylesheet" href="/<?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
