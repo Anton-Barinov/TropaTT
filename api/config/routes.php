@@ -992,5 +992,5 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/chats/{public_id}/restore', 'controller' => Api\Controller\Chat\ChatController::class, 'action' => 'restore', 'auth' => true],
 
     // visual editor image upload
-    ['methods' => ['POST'], 'pattern' => '/api/v1/visual-editor/upload-image', 'controller' => Api\Controller\VisualEditor\UploadController::class, 'action' => 'upload', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/visual-editor/upload-image', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'upload', 'auth' => true],
 ];

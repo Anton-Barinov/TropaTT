@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Api\Controller\VisualEditor;
+namespace Api\Controller\visualeditor;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
