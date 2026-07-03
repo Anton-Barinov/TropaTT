@@ -214,6 +214,138 @@ window.CRM.br1 = (function () {
     return template.innerHTML;
   }
 
+  function fileInputPlaceholder(input) {
+    return input && input.multiple
+      ? window.CRM.i18n.t('js.br1.vyberite_fayly', 'Выберите файлы')
+      : window.CRM.i18n.t('js.br1.vyberite_fayl', 'Выберите файл');
+  }
+
+  function fileInputEmptyLabel() {
+    return window.CRM.i18n.t('js.br1.fayl_ne_vybran', 'Файл не выбран');
+  }
+
+  function fileInputSelectionLabel(input) {
+    var files = input && input.files ? input.files : null;
+    var list = [];
+    var i;
+    if (!files || !files.length) return fileInputEmptyLabel();
+    if (files.length === 1) return files[0].name || fileInputEmptyLabel();
+    for (i = 0; i < files.length && i < 2; i += 1) {
+      if (files[i] && files[i].name) list.push(files[i].name);
+    }
+    if (files.length > 2) {
+      return window.CRM.i18n.t('js.br1.faylov_vybrano_count', '{count} файлов выбрано')
+        .replace('{count}', String(files.length));
+    }
+    return list.join(', ');
+  }
+
+  function updateEnhancedFileInput(input) {
+    var shell = input && input.closest ? input.closest('.crm-file-input-shell') : null;
+    var display = shell ? shell.querySelector('.crm-file-input-display') : null;
+    if (!shell || !display) return;
+    var label = fileInputSelectionLabel(input);
+    display.textContent = label;
+    display.title = label;
+    if (label !== fileInputEmptyLabel()) {
+      shell.classList.add('is-filled');
+    } else {
+      shell.classList.remove('is-filled');
+    }
+  }
+
+  function enhanceFileInput(input) {
+    if (!input || input.getAttribute('data-crm-file-enhanced') === '1') return;
+    if (input.type !== 'file' || input.getAttribute('data-crm-file-native') === '1') return;
+    if (input.closest && input.closest('.crm-file-input-shell')) {
+      input.setAttribute('data-crm-file-enhanced', '1');
+      return;
+    }
+
+    var shell = document.createElement('div');
+    var trigger = document.createElement('button');
+    var display = document.createElement('div');
+    var parent = input.parentNode;
+    var beforeNode = input.nextSibling;
+
+    shell.className = 'crm-file-input-shell';
+    if (input.id) {
+      shell.setAttribute('data-crm-file-shell-for', input.id);
+    }
+    trigger.type = 'button';
+    trigger.className = 'btn crm-file-input-trigger';
+    trigger.textContent = fileInputPlaceholder(input);
+    display.className = 'crm-file-input-display';
+    display.textContent = fileInputEmptyLabel();
+
+    if (parent) {
+      parent.insertBefore(shell, beforeNode);
+      shell.appendChild(trigger);
+      shell.appendChild(display);
+      shell.appendChild(input);
+    }
+
+    input.classList.add('crm-file-input-native');
+    input.setAttribute('data-crm-file-enhanced', '1');
+    input.setAttribute('tabindex', '-1');
+
+    trigger.addEventListener('click', function () {
+      if (input.disabled) return;
+      input.click();
+    });
+
+    shell.addEventListener('click', function (event) {
+      if (event.target === trigger) return;
+      if (input.disabled) return;
+      input.click();
+    });
+
+    input.addEventListener('change', function () {
+      updateEnhancedFileInput(input);
+    });
+
+    updateEnhancedFileInput(input);
+  }
+
+  function enhanceFileInputs(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var inputs = scope.querySelectorAll ? scope.querySelectorAll('input[type="file"].crm-file-input') : [];
+    var i;
+    for (i = 0; i < inputs.length; i += 1) {
+      enhanceFileInput(inputs[i]);
+    }
+  }
+
+  function observeFileInputs() {
+    if (!window.MutationObserver) return;
+    var scheduled = false;
+    var observer = new MutationObserver(function (mutations) {
+      var needsEnhance = false;
+      var i;
+      var j;
+      for (i = 0; i < mutations.length; i += 1) {
+        if (mutations[i].type !== 'childList') continue;
+        for (j = 0; j < mutations[i].addedNodes.length; j += 1) {
+          var node = mutations[i].addedNodes[j];
+          if (!node || node.nodeType !== 1) continue;
+          if ((node.matches && node.matches('input[type="file"].crm-file-input')) || (node.querySelector && node.querySelector('input[type="file"].crm-file-input'))) {
+            needsEnhance = true;
+            break;
+          }
+        }
+        if (needsEnhance) break;
+      }
+      if (needsEnhance && !scheduled) {
+        scheduled = true;
+        window.requestAnimationFrame(function () {
+          scheduled = false;
+          enhanceFileInputs(document);
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   function renderRichTextOrPlain(value) {
     var text = String(value || '').trim();
     if (!text) return '';
@@ -709,6 +841,7 @@ window.CRM.br1 = (function () {
           '#worklogCreateForm',
           '#commentForm',
           '#taskFileUploadBtn',
+          '[data-crm-file-shell-for="taskFileInput"]',
           '#statusCreateOpenBtn',
           '#statusCreateForm',
           '#statusEditForm',
@@ -6977,6 +7110,8 @@ window.CRM.br1 = (function () {
     console.log('CRM API available, proceeding with init');
 
     bindLogoutButtons();
+    enhanceFileInputs(document);
+    observeFileInputs();
 
     ensureProtectedAccess();
     if (!enforceRoutePermission()) return;
