@@ -7,6 +7,7 @@
 !/modules/
 !/web/
 !/updater/
+!/scripts
 
 # Allow only these root files
 !/AGENTS.md
@@ -109,3 +110,6 @@ web/assets/js/i18n_convert.py
 /docs/landing/**
 /docs/web/
 /docs/web/**
+
+# AtomCode local-scope configs (machine-specific)
+.atomcode/local/
