@@ -16348,6 +16348,30 @@ a.task-tag:hover {
   font-size: 0.875rem;
 }
 
+.crm-knowledge-comment-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.crm-knowledge-comment-compose .crm-ve-editor,
+.crm-knowledge-comment-compose .crm-ve-wrapper {
+  width: 100%;
+}
+
+.crm-knowledge-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+@media (max-width: 575.98px) {
+  .crm-knowledge-comment-actions .btn {
+    width: 100%;
+  }
+}
+
 /* ── File form ── */
 .kb-bottom-panels .kb-file-form .form-control {
   font-size: 0.875rem;

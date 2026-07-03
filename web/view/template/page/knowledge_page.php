@@ -157,9 +157,11 @@
                 <span id="knowledgeCommentReplyLabel"></span>
                 <button type="button" class="btn crm-btn-secondary btn-sm" id="knowledgeCommentCancelReply"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>
-              <div class="d-flex gap-2">
+              <div class="crm-knowledge-comment-compose">
                 <textarea id="knowledgeCommentInput" class="form-control form-control-sm" rows="2" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
-                <button class="btn crm-btn-primary btn-sm flex-shrink-0 align-self-end" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
+                <div class="crm-knowledge-comment-actions">
+                  <button class="btn crm-btn-primary btn-sm" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
+                </div>
               </div>
             </div>
           </div>
