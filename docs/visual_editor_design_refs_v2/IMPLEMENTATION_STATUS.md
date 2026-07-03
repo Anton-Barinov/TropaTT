@@ -1,7 +1,7 @@
 # IMPLEMENTATION_STATUS.md — Visual Editor (Vanilla JS WYSIWYG)
 
-**Last updated:** 2026-07-03 23:28 MSK  
-**Current phase:** Shared file-upload shell verified on demo; awaiting final status sync and cleanup  
+**Last updated:** 2026-07-03 23:40 MSK  
+**Current phase:** Fixing knowledge-page attachment URLs so uploaded files display and open correctly; awaiting redeploy/browser verification on demo  
 **Branch:** main  
 **Commit hash:** c624e5a (modal/file polish), ce5e74d (new task comment layout), 07ecff0 (knowledge/project-module integration), e4ac0ca (task edit UX/localization), edaa8cb (knowledge comment HTML), 6aa1809 (task comment VE sync), e2a8349 (stable image toolbar controls), 1ad168a (empty editor click fix), 3f9d12d (legacy rich text replacement), 536c3ae (modal reopen refresh), fc9e52f (upload endpoint hotfix), c443bba (image persistence/rendering)
 
@@ -104,6 +104,11 @@ Implementing a block-based visual editor on pure JavaScript without third-party 
 - [x] Task detail attachment row now renders as a consistent shell with a fixed-height filename area and the upload button aligned to the right.
 - [x] The native file input is visually hidden but remains functional for selection and existing upload handlers.
 - [x] The shared shell shape is suitable for the other CRM file-upload fields that use `.crm-file-input`.
+
+2026-07-03 23:40 MSK continuation updates:
+- [x] Replaced knowledge-page attachment links and previews with absolute API URLs via `window.CRM.api.buildUrl(...)` so images and filenames no longer depend on the current route.
+- [x] This should restore both the thumbnail preview and the filename click target on knowledge pages.
+- [ ] Browser verification after redeploy is pending.
 
 2026-07-03 16:12 MSK continuation updates:
 - [x] User reported from screenshot that the new task comment form still puts the save button to the right of the editor, shrinking useful editor width.
