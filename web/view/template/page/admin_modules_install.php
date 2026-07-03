@@ -29,7 +29,7 @@
       <form id="installFileForm" onsubmit="return false;">
         <div class="mb-3">
           <label for="moduleFile" class="form-label" data-i18n="admin_modules_install.label_file"><?= htmlspecialchars($t('admin_modules_install.label_file', 'ZIP-архив модуля'), ENT_QUOTES, 'UTF-8') ?></label>
-          <input type="file" class="form-control" id="moduleFile" name="moduleFile" accept=".zip" required>
+          <input type="file" class="form-control crm-file-input" id="moduleFile" name="moduleFile" accept=".zip" required>
           <div class="form-text" data-i18n="admin_modules_install.hint_file_size"><?= htmlspecialchars($t('admin_modules_install.hint_file_size', 'Максимальный размер: 50 MB'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
         <button type="submit" class="btn crm-btn-primary" id="fileInstallBtn" data-i18n="admin_modules_install.btn_install_file"><i class="fa-solid fa-upload me-1"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_file', 'Установить из файла'), ENT_QUOTES, 'UTF-8') ?></button>

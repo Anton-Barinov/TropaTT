@@ -97,7 +97,7 @@
 <div id="intakePager" class="crm-table-pager d-none"></div>
 
 <!-- Create Modal -->
-<div class="modal fade" id="intakeCreateModal" tabindex="-1" data-intake-modal="create"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('intake.modal_create_title', 'Новая заявка'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
+<div class="modal fade" id="intakeCreateModal" tabindex="-1" data-intake-modal="create"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><?= htmlspecialchars($t('intake.modal_create_title', 'Новая заявка'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
   <form id="intakeCreateForm" novalidate>
     <div class="mb-3"><label class="form-label"><?= htmlspecialchars($t('intake.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label><input class="form-control" name="title" required maxlength="255" placeholder="<?= htmlspecialchars($t('intake.field_title_placeholder', 'Введите название заявки'), ENT_QUOTES, 'UTF-8') ?>"></div>
     <div class="mb-3"><label class="form-label"><?= htmlspecialchars($t('intake.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="description" rows="4" maxlength="65535" placeholder="<?= htmlspecialchars($t('intake.field_description_placeholder', 'Подробное описание обращения'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>

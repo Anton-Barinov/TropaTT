@@ -175,8 +175,8 @@
         <div class="crm-knowledge-tab-panel p-3" id="kb-panel-files" role="tabpanel" aria-labelledby="kb-tab-files">
           <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
           <div class="mt-2">
-            <div class="d-flex gap-2">
-              <input type="file" id="knowledgeFileInput" class="form-control form-control-sm" multiple>
+            <div class="crm-file-upload-row">
+              <input type="file" id="knowledgeFileInput" class="form-control form-control-sm crm-file-input" multiple>
               <button class="btn crm-btn-primary btn-sm flex-shrink-0" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
             <div class="small text-muted mt-1"><?= htmlspecialchars($t('knowledge_page.attachments_drag_hint', 'или перетащите файл сюда'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -809,7 +809,13 @@
     els.status.className = 'crm-badge ' + (statusMap[page.status] || 'crm-badge-secondary');
     els.status.textContent = statusLabels[page.status] || page.status || '';
     var publishBtn = document.getElementById('knowledgePublishBtn');
-    if (publishBtn) publishBtn.style.display = (page.status === 'published' || page.status === 'archived') ? 'none' : '';
+    var pageStatus = String(page.status || '').toLowerCase().trim();
+    var canPublish = pageStatus !== 'published' && pageStatus !== 'archived';
+    if (publishBtn) {
+      publishBtn.hidden = !canPublish;
+      publishBtn.style.display = canPublish ? '' : 'none';
+      publishBtn.setAttribute('aria-hidden', canPublish ? 'false' : 'true');
+    }
     els.content.innerHTML = renderVisualEditorHtml(page.content_html || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>');
     hydrateVisualEditorReadonly(els.content);
     renderToc();
@@ -858,6 +864,27 @@
       return '<div class="crm-knowledge-version"><div><strong>v' + esc(item.version_number) + '</strong><span>' + esc(item.created_at || '') + '</span>' + (item.change_summary ? '<br><span class="text-muted">' + esc(item.change_summary) + '</span>' : '') + '</div><div class="d-flex gap-1 mt-1"><button class="btn btn-sm crm-btn-secondary" data-restore-version="' + esc(item.version_number) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.restore', 'Восстановить')) + '</button><button class="btn btn-sm crm-btn-secondary" data-diff-version="' + esc(item.version_number) + '" style="font-size:0.78rem;padding:0.12rem 0.45rem">' + esc(t('knowledge_page.btn_diff', 'Сравнить')) + '</button></div></div>';
     }).join('');
   }
+  function setKnowledgeBottomTab(targetPanelId) {
+    var buttons = document.querySelectorAll('.crm-knowledge-tab-btn');
+    var panels = document.querySelectorAll('.crm-knowledge-tab-panel');
+    buttons.forEach(function (btn) {
+      var active = btn.getAttribute('data-bs-target') === targetPanelId;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panels.forEach(function (panel) {
+      var active = ('#' + panel.id) === targetPanelId;
+      panel.classList.toggle('is-active', active);
+      panel.hidden = !active;
+    });
+  }
+  document.querySelectorAll('.crm-knowledge-tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      setKnowledgeBottomTab(btn.getAttribute('data-bs-target') || '#kb-panel-comments');
+    });
+  });
+  setKnowledgeBottomTab('#kb-panel-comments');
   function updateFavSubButtons() {
     isFav = current && current.is_favorited ? true : false;
     isSub = current && current.is_subscribed ? true : false;

@@ -5858,7 +5858,8 @@ font-size: 0.72rem;
   display: none;
 }
 
-.crm-task-detail-page .crm-task-description-edit-form .crm-ve-editor {
+.crm-task-detail-page .crm-task-description-edit-form .crm-ve-editor,
+.crm-task-detail-page .crm-task-description-edit-form .crm-ve-wrapper {
   width: 100%;
 }
 
@@ -5868,21 +5869,26 @@ font-size: 0.72rem;
   border: 1px solid #d9e1ec;
   border-radius: 12px;
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.crm-task-detail-page .crm-comment-edit-shell .crm-ve-editor {
+.crm-task-detail-page .crm-comment-edit-shell .crm-ve-editor,
+.crm-task-detail-page .crm-comment-edit-shell .crm-ve-wrapper {
   width: 100%;
   --crm-ve-min-height: 120px;
 }
 
-.crm-task-detail-page .crm-comment-create-shell .crm-ve-editor {
+.crm-task-detail-page .crm-comment-create-shell .crm-ve-editor,
+.crm-task-detail-page .crm-comment-create-shell .crm-ve-wrapper {
   width: 100%;
 }
 
 .crm-task-detail-page .crm-comment-create-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
@@ -5896,6 +5902,7 @@ font-size: 0.72rem;
 
 .crm-task-detail-page .crm-comment-create-actions .btn {
   flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .crm-task-detail-page .crm-comment-edit-actions {
@@ -5916,6 +5923,10 @@ font-size: 0.72rem;
   .crm-task-detail-page .crm-comment-create-actions .btn,
   .crm-task-detail-page .crm-comment-mention-field .form-select {
     width: 100%;
+  }
+
+  .crm-task-detail-page .crm-comment-create-actions .btn {
+    align-self: stretch;
   }
 
   .crm-task-detail-page .crm-comment-edit-actions {
@@ -16334,20 +16345,6 @@ a.task-tag:hover {
   }
 }
 
-/* ── Comment form ── */
-#knowledgeCommentInput,
-#knowledgeFileInput {
-  min-height: 30px;
-  padding: 6px 9px;
-  height: 34px;
-  font-size: 12px;
-  resize: none;
-}
-
-.kb-bottom-panels .kb-comment-form .form-control {
-  font-size: 0.875rem;
-}
-
 .crm-knowledge-comment-compose {
   display: flex;
   flex-direction: column;
@@ -16372,9 +16369,71 @@ a.task-tag:hover {
   }
 }
 
-/* ── File form ── */
-.kb-bottom-panels .kb-file-form .form-control {
+.crm-file-input {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.45rem 0.75rem;
   font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--crm-text);
+  background-color: var(--crm-surface);
+  border: 1px solid var(--crm-border);
+  border-radius: var(--radius-md);
+}
+
+.crm-file-input::file-selector-button {
+  margin: -0.45rem 0.75rem -0.45rem -0.75rem;
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  border-right: 1px solid var(--crm-border);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crm-file-input:hover::file-selector-button {
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.crm-file-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 143, 114, 0.18);
+}
+
+.crm-file-input:disabled {
+  opacity: 0.65;
+}
+
+.crm-file-input:disabled::file-selector-button {
+  cursor: not-allowed;
+}
+
+.crm-file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crm-file-upload-row .crm-file-input {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.crm-file-upload-row .btn {
+  flex: 0 0 auto;
+}
+
+.kb-bottom-panels .tab-content {
+  width: 100%;
+}
+
+.kb-bottom-panels .crm-knowledge-tab-panel {
+  width: 100%;
 }
 
 /* ── Responsive ── */

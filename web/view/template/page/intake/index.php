@@ -71,7 +71,7 @@
 
 <!-- Create/Edit Intake Modal -->
 <div class="modal fade" id="intakeModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="intakeModalTitle" data-i18n="intake.modal_create_title"><?= htmlspecialchars($t('intake.modal_create_title', 'Создать заявку'), ENT_QUOTES, 'UTF-8') ?></h5>

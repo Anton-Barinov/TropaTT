@@ -174,8 +174,8 @@
         <h2 class="h6" data-i18n="task_detail.files_title"><?= htmlspecialchars($t('task_detail.files_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div class="mb-3">
           <label class="form-label" data-i18n="task_detail.files_add_label"><?= htmlspecialchars($t('task_detail.files_add_label', 'Добавить файл'), ENT_QUOTES, 'UTF-8') ?></label>
-          <div class="d-flex gap-2">
-            <input class="form-control" type="file" id="taskFileInput">
+          <div class="crm-file-upload-row">
+            <input class="form-control crm-file-input" type="file" id="taskFileInput">
             <button class="btn crm-btn-primary" type="button" id="taskFileUploadBtn" data-i18n="task_detail.files_upload_btn"><?= htmlspecialchars($t('task_detail.files_upload_btn', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
           

@@ -118,6 +118,18 @@
   pointer-events: none;
 }
 
+.crm-ve-toolbar-btn i {
+  display: block;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.crm-ve-toolbar-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 .crm-ve-content {
   padding: 12px 16px;
   min-height: var(--crm-ve-min-height);

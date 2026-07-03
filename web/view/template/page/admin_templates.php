@@ -22,7 +22,7 @@
 </main></div></div>
 
 <div class="modal fade" id="createTaskTemplateModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog"><div class="modal-content">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title" data-i18n="admin_templates.modal_title_task"><?= htmlspecialchars($t('admin_templates.modal_title_task', 'Создать шаблон задачи'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div>
     <form id="createTaskTemplateForm"><div class="modal-body">
       <div class="mb-3"><label class="form-label" for="taskTemplateTitle" data-i18n="admin_templates.field_title"><?= htmlspecialchars($t('admin_templates.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="taskTemplateTitle" name="title" required maxlength="255"></div>
@@ -34,7 +34,7 @@
 </div>
 
 <div class="modal fade" id="createProjectTemplateModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog"><div class="modal-content">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title" data-i18n="admin_templates.modal_title_project"><?= htmlspecialchars($t('admin_templates.modal_title_project', 'Создать шаблон проекта'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div>
     <form id="createProjectTemplateForm"><div class="modal-body">
       <div class="mb-3"><label class="form-label" for="projectTemplateTitle" data-i18n="admin_templates.field_title"><?= htmlspecialchars($t('admin_templates.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="projectTemplateTitle" name="title" required maxlength="255"></div>

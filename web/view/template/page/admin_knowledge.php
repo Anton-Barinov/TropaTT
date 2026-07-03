@@ -798,7 +798,7 @@
       </div>
       <div class="mb-3">
         <label class="crm-filter-label" for="adminKnowledgeImportFile">' . htmlspecialchars($t('admin_knowledge.import_file_label', 'Файл импорта'), ENT_QUOTES, 'UTF-8') . '</label>
-        <input type="file" id="adminKnowledgeImportFile" class="form-control" accept=".json,.md,.markdown,.txt">
+        <input type="file" id="adminKnowledgeImportFile" class="form-control crm-file-input" accept=".json,.md,.markdown,.txt">
       </div>
       <div id="adminKnowledgeImportResult" class="d-none"></div>
     </div>
