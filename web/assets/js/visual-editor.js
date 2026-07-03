@@ -1184,7 +1184,7 @@ window.CRM.VisualEditor = (function () {
       'insertUnorderedList'
     );
     addBtn(
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M3 5.5h2.5M3 5.5L5.5 7V3"/><path d="M3 11.5h2.5M3 11.5l2.5-1v3"/><path d="M2.5 17.5c0-.8.7-1.2 1.3-1.2s1.3.3 1.3.9c0 .6-.4.8-.8 1L3 19h2.5"/></svg>',
+      '<i class="fa-solid fa-list-ol" aria-hidden="true"></i>',
       t('visual_editor.ordered_list', 'Ordered list'),
       'insertOrderedList'
     );

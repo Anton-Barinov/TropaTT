@@ -1533,7 +1533,7 @@ load();
 
 <!-- New Idea Modal -->
 <div class="modal fade" id="newIdeaModal" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title" data-i18n="ideas.modal_new_title"><?= htmlspecialchars($t('ideas.modal_new_title', 'Новая идея'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button></div>
     <div class="modal-body">
       <div class="mb-3"><label class="form-label" for="newIdeaTitle" data-i18n="ideas.field_title"><?= htmlspecialchars($t('ideas.field_title', 'Заголовок'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" id="newIdeaTitle" placeholder="<?= htmlspecialchars($t('ideas.placeholder_idea_title', 'Кратко опишите идею'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="ideas.placeholder_idea_title"></div>
