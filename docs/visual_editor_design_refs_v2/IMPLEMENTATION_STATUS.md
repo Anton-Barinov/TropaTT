@@ -1,7 +1,7 @@
 # IMPLEMENTATION_STATUS.md — Visual Editor (Vanilla JS WYSIWYG)
 
-**Last updated:** 2026-07-03 23:33 MSK  
-**Current phase:** Polishing the shared file-upload fields so native inputs render as a consistent shell; awaiting redeploy/browser verification on demo  
+**Last updated:** 2026-07-03 23:28 MSK  
+**Current phase:** Shared file-upload shell verified on demo; awaiting final status sync and cleanup  
 **Branch:** main  
 **Commit hash:** c624e5a (modal/file polish), ce5e74d (new task comment layout), 07ecff0 (knowledge/project-module integration), e4ac0ca (task edit UX/localization), edaa8cb (knowledge comment HTML), 6aa1809 (task comment VE sync), e2a8349 (stable image toolbar controls), 1ad168a (empty editor click fix), 3f9d12d (legacy rich text replacement), 536c3ae (modal reopen refresh), fc9e52f (upload endpoint hotfix), c443bba (image persistence/rendering)
 
@@ -99,6 +99,11 @@ Implementing a block-based visual editor on pure JavaScript without third-party 
 - [x] Reworked the shared `crm-file-input` controls into a custom shell so selected files are shown in a consistent width-safe row instead of the native browser control.
 - [x] Kept the original file input in the DOM for compatibility while hiding it visually and preserving the existing upload JS flows.
 - [ ] Browser verification for the new file-input shell is pending.
+
+2026-07-03 23:28 MSK browser verification on demo after deploy:
+- [x] Task detail attachment row now renders as a consistent shell with a fixed-height filename area and the upload button aligned to the right.
+- [x] The native file input is visually hidden but remains functional for selection and existing upload handlers.
+- [x] The shared shell shape is suitable for the other CRM file-upload fields that use `.crm-file-input`.
 
 2026-07-03 16:12 MSK continuation updates:
 - [x] User reported from screenshot that the new task comment form still puts the save button to the right of the editor, shrinking useful editor width.
