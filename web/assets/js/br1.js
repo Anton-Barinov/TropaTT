@@ -229,6 +229,19 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function getVisualEditorTextareaValue(textarea) {
+    if (!textarea) return '';
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function') {
+      var instances = window.CRM.VisualEditor.getInstances();
+      for (var i = 0; i < instances.length; i += 1) {
+        if (instances[i] && instances[i]._textarea === textarea && typeof instances[i].getValue === 'function') {
+          return String(instances[i].getValue() || '');
+        }
+      }
+    }
+    return String(textarea.value || '');
+  }
+
   function notify(text, type) {
     var toastEl = document.getElementById('toastSuccess');
     if (!toastEl || !window.bootstrap) return;
@@ -3810,7 +3823,7 @@ window.CRM.br1 = (function () {
 
     if (textArea) {
       textArea.addEventListener('blur', async function () {
-        var value = textArea.value.trim();
+        var value = getVisualEditorTextareaValue(textArea).trim();
         if (!value) return;
 
         try {
@@ -3826,7 +3839,7 @@ window.CRM.br1 = (function () {
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      var text = textArea ? textArea.value.trim() : '';
+      var text = textArea ? getVisualEditorTextareaValue(textArea).trim() : '';
       if (!text) {
         notify(window.CRM.i18n.t('js.br1.vvedite_tekst_kommentariya', 'Введите текст комментария'), 'warning');
         return;
@@ -4004,7 +4017,7 @@ window.CRM.br1 = (function () {
       }
 
       var editText = editorCard.querySelector('[data-comment-edit-text="' + commentPublicId + '"]');
-      var body = editText ? editText.value.trim() : '';
+      var body = editText ? getVisualEditorTextareaValue(editText).trim() : '';
       if (!body) {
         notify(window.CRM.i18n.t('js.br1.tekst_kommentariya_ne_mozhet_byt_pustym', 'Текст комментария не может быть пустым'), 'warning');
         return;
