@@ -1,7 +1,7 @@
 # IMPLEMENTATION_STATUS.md — Visual Editor (Vanilla JS WYSIWYG)
 
 **Last updated:** 2026-07-03 23:40 MSK  
-**Current phase:** Fixing knowledge-page attachment URLs so uploaded files display and open correctly; awaiting redeploy/browser verification on demo  
+**Current phase:** Knowledge-page attachment URLs fixed and verified on demo; awaiting final status sync and cleanup  
 **Branch:** main  
 **Commit hash:** c624e5a (modal/file polish), ce5e74d (new task comment layout), 07ecff0 (knowledge/project-module integration), e4ac0ca (task edit UX/localization), edaa8cb (knowledge comment HTML), 6aa1809 (task comment VE sync), e2a8349 (stable image toolbar controls), 1ad168a (empty editor click fix), 3f9d12d (legacy rich text replacement), 536c3ae (modal reopen refresh), fc9e52f (upload endpoint hotfix), c443bba (image persistence/rendering)
 
@@ -109,6 +109,10 @@ Implementing a block-based visual editor on pure JavaScript without third-party 
 - [x] Replaced knowledge-page attachment links and previews with absolute API URLs via `window.CRM.api.buildUrl(...)` so images and filenames no longer depend on the current route.
 - [x] This should restore both the thumbnail preview and the filename click target on knowledge pages.
 - [ ] Browser verification after redeploy is pending.
+
+2026-07-03 23:40 MSK browser verification on demo after deploy:
+- [x] Knowledge page `kbp_f59ea1bd2382838f4828` shows a loaded PNG thumbnail in the Files tab instead of a broken image icon.
+- [x] The attachment filename and thumbnail both point at a working absolute download URL and open/download correctly when clicked.
 
 2026-07-03 16:12 MSK continuation updates:
 - [x] User reported from screenshot that the new task comment form still puts the save button to the right of the editor, shrinking useful editor width.
