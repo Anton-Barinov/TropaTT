@@ -1560,6 +1560,8 @@ load();
     if(window.CRM&&typeof window.CRM.ideaLocale==='function')return window.CRM.ideaLocale();
     return String((window.CRM&&(window.CRM.locale||window.CRM.currentLocale))||document.documentElement.lang||'en-GB').replace('_','-');
   }
+  function refreshVisualEditorScope(root){if(window.CRM.VisualEditor&&typeof window.CRM.VisualEditor.refreshEditors==='function')window.CRM.VisualEditor.refreshEditors(root||document,true);}
+  function getVisualEditorValue(textarea){var value=textarea?textarea.value:'';if(textarea&&window.CRM.VisualEditor&&typeof window.CRM.VisualEditor.getInstances==='function'){window.CRM.VisualEditor.getInstances().forEach(function(editor){if(editor&&editor._textarea===textarea&&typeof editor.getValue==='function')value=editor.getValue();});}return value;}
   function load(){if(!window.CRM||!window.CRM.api){setTimeout(load,200);return;}
   window.CRM.api.request('api/v1/ideas',{method:'GET'}).then(function(env){allItems=((env&&env.data&&env.data.items)||[]);
   renderTable(sortItems(allItems,sortField,sortAsc));
