@@ -490,6 +490,18 @@
     }
     return null;
   }
+  function getTextareaVisualEditorValue(textarea) {
+    if (!textarea) return '';
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function') {
+      var instances = window.CRM.VisualEditor.getInstances();
+      for (var i = 0; i < instances.length; i += 1) {
+        if (instances[i] && instances[i]._textarea === textarea && typeof instances[i].getValue === 'function') {
+          return String(instances[i].getValue() || '');
+        }
+      }
+    }
+    return String(textarea.value || '');
+  }
   function refreshKnowledgeVisualEditor(force) {
     if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
       window.CRM.VisualEditor.refreshEditors(els.editor || document, !!force);
@@ -1006,7 +1018,7 @@
       if (els.editor.classList.contains('d-none')) return;
       syncHiddenContent();
       if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saving', 'Сохранение...');
-      var draftBody = { title: els.editTitle.value, content_html: els.editContent.value };
+      var draftBody = { title: els.editTitle.value, content_html: getTextareaVisualEditorValue(els.editContent) };
       if (els.editReviewDue) {
         var rv = els.editReviewDue.value;
         if (rv) draftBody.review_due_at = rv;
@@ -1024,7 +1036,7 @@
   document.getElementById('knowledgeCancelEditBtn').addEventListener('click', function () { showEditor(false); });
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
     syncHiddenContent();
-    var draftBody = { title: els.editTitle.value, content_html: els.editContent.value };
+    var draftBody = { title: els.editTitle.value, content_html: getTextareaVisualEditorValue(els.editContent) };
     if (els.editReviewDue) {
       var rv = els.editReviewDue.value;
       if (rv) draftBody.review_due_at = rv;
@@ -1103,7 +1115,7 @@
   els.editor.addEventListener('submit', async function (event) {
     event.preventDefault();
     syncHiddenContent();
-    var patchBody = { title: els.editTitle.value, content_html: els.editContent.value };
+    var patchBody = { title: els.editTitle.value, content_html: getTextareaVisualEditorValue(els.editContent) };
     if (els.editReviewDue) {
       var rv = els.editReviewDue.value;
       if (rv) patchBody.review_due_at = rv;
@@ -1166,7 +1178,7 @@
     updateFavSubButtons();
   });
   els.commentSend.addEventListener('click', async function () {
-    var body = (els.commentInput.value || '').trim();
+    var body = getTextareaVisualEditorValue(els.commentInput).trim();
     if (!body) return;
     els.commentInput.disabled = true;
     try {
