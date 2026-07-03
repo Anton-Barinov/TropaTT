@@ -26,6 +26,35 @@ window.CRM.projectModules = (function () {
     return d.innerHTML;
   }
 
+  function plainText(value) {
+    var text = String(value == null ? '' : value);
+    if (/<[a-z][\s\S]*>/i.test(text)) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = text;
+      text = tmp.textContent || tmp.innerText || '';
+    }
+    return text.replace(/\s+/g, ' ').trim();
+  }
+
+  function getVisualEditorValue(textarea) {
+    if (!textarea || !window.CRM || !window.CRM.VisualEditor || typeof window.CRM.VisualEditor.getInstances !== 'function') {
+      return textarea ? textarea.value : '';
+    }
+    var value = textarea.value;
+    window.CRM.VisualEditor.getInstances().forEach(function (editor) {
+      if (editor && editor._textarea === textarea && typeof editor.getValue === 'function') {
+        value = editor.getValue();
+      }
+    });
+    return value;
+  }
+
+  function refreshVisualEditors(scope) {
+    if (window.CRM && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
+      window.CRM.VisualEditor.refreshEditors(scope || document, true);
+    }
+  }
+
   function getApi() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
   }
@@ -165,8 +194,10 @@ window.CRM.projectModules = (function () {
       var targetStr = m.target_at ? m.target_at.slice(0, 10) : '';
       var tasksCount = (m.open_tasks_count != null ? m.open_tasks_count : 0) + '/' + (m.tasks_count != null ? m.tasks_count : 0);
 
+      var descriptionPreview = plainText(m.description || '');
+
       return '<tr>'
-        + '<td><strong>' + esc(m.title) + '</strong>' + (m.description ? '<br><small class="text-muted">' + esc(m.description.slice(0, 80)) + '</small>' : '') + '</td>'
+        + '<td><strong>' + esc(m.title) + '</strong>' + (descriptionPreview ? '<br><small class="text-muted">' + esc(descriptionPreview.slice(0, 80)) + '</small>' : '') + '</td>'
         + '<td>' + esc(projectTitle) + '</td>'
         + '<td>' + statusBadgeHtml(m.status || 'planned') + '</td>'
         + '<td>' + esc(leadName || t('project_modules.no_lead', '—')) + '</td>'
@@ -211,8 +242,10 @@ window.CRM.projectModules = (function () {
     document.getElementById('projectModuleProject').value = '';
     document.getElementById('projectModuleLead').value = '';
 
-    var modal = new bootstrap.Modal(document.getElementById('projectModuleModal'));
+    var modalEl = document.getElementById('projectModuleModal');
+    var modal = new bootstrap.Modal(modalEl);
     modal.show();
+    window.setTimeout(function () { refreshVisualEditors(modalEl); }, 80);
   }
 
   function openEditModal(id) {
@@ -231,8 +264,10 @@ window.CRM.projectModules = (function () {
     document.getElementById('projectModuleProject').value = mod.project_public_id || '';
     document.getElementById('projectModuleLead').value = mod.lead_user_public_id || '';
 
-    var modal = new bootstrap.Modal(document.getElementById('projectModuleModal'));
+    var modalEl = document.getElementById('projectModuleModal');
+    var modal = new bootstrap.Modal(modalEl);
     modal.show();
+    window.setTimeout(function () { refreshVisualEditors(modalEl); }, 80);
   }
 
   function handleSave(e) {
@@ -240,7 +275,8 @@ window.CRM.projectModules = (function () {
 
     var title = document.getElementById('projectModuleTitle').value.trim();
     var projectPublicId = document.getElementById('projectModuleProject').value;
-    var description = document.getElementById('projectModuleDescription').value.trim();
+    var descriptionTextarea = document.getElementById('projectModuleDescription');
+    var description = getVisualEditorValue(descriptionTextarea).trim();
     var status = document.getElementById('projectModuleStatus').value;
     var leadUserPublicId = document.getElementById('projectModuleLead').value;
     var color = document.getElementById('projectModuleColor').value;

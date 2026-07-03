@@ -101,7 +101,7 @@
             </div>
             <div class="col-12">
               <label class="form-label" for="projectModuleDescription" data-i18n="project_modules.field_description"><?= htmlspecialchars($t('project_modules.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" id="projectModuleDescription" rows="3" maxlength="65535"></textarea>
+              <textarea class="form-control" id="projectModuleDescription" rows="3" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
             </div>
           </div>
         </div>

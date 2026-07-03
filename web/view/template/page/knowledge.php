@@ -168,7 +168,7 @@
 
 <!-- ─── MODALS ─── -->
 <div class="modal fade" id="kbPageModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><?= htmlspecialchars($t('knowledge.modal_new_page', 'Новая страница'), ENT_QUOTES, 'UTF-8') ?></h5>
@@ -203,7 +203,7 @@
         </div>
         <div class="mb-3">
           <label for="kbPageContent" class="form-label fw-semibold"><?= htmlspecialchars($t('knowledge.modal_label_content', 'Содержание'), ENT_QUOTES, 'UTF-8') ?></label>
-          <textarea id="kbPageContent" class="form-control" rows="6" placeholder="<?= htmlspecialchars($t('knowledge.modal_content_placeholder', 'Опишите решение, шаги, правила...'), ENT_QUOTES, 'UTF-8') ?>"></textarea>
+          <textarea id="kbPageContent" class="form-control" rows="6" placeholder="<?= htmlspecialchars($t('knowledge.modal_content_placeholder', 'Опишите решение, шаги, правила...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -593,7 +593,13 @@
   document.getElementById('btnCreatePage').addEventListener('click', function(){
     var sel = document.getElementById('kbPageSpace');
     sel.innerHTML = flatSpaces.map(function(s){ return '<option value="'+esc(s.public_id)+'">'+esc(s.title)+'</option>'; }).join('');
-    new bootstrap.Modal(document.getElementById('kbPageModal')).show();
+    var modalEl = document.getElementById('kbPageModal');
+    new bootstrap.Modal(modalEl).show();
+    window.setTimeout(function(){
+      if(window.CRM && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function'){
+        window.CRM.VisualEditor.refreshEditors(modalEl, true);
+      }
+    }, 80);
   });
 
   document.getElementById('btnCreateSpace').addEventListener('click', function(){
@@ -607,12 +613,21 @@
   document.getElementById('kbPageSubmit').addEventListener('click', async function(){
     var title = document.getElementById('kbPageTitleInput').value.trim();
     if(!title){ alert(_t('knowledge.alert_title_required', 'Укажите название')); return; }
+    var contentEl = document.getElementById('kbPageContent');
+    var contentHtml = contentEl.value;
+    if(window.CRM && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function'){
+      window.CRM.VisualEditor.getInstances().forEach(function(editor){
+        if(editor && editor._textarea === contentEl && typeof editor.getValue === 'function'){
+          contentHtml = editor.getValue();
+        }
+      });
+    }
     try {
       await req('api/v1/knowledge/pages', {method:'POST', body:{
         title: title,
         space_public_id: document.getElementById('kbPageSpace').value,
         page_type: document.getElementById('kbPageType').value,
-        content_html: document.getElementById('kbPageContent').value
+        content_html: contentHtml
       }});
       bootstrap.Modal.getInstance(document.getElementById('kbPageModal')).hide();
       document.getElementById('kbPageTitleInput').value='';
