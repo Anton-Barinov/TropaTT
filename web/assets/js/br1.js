@@ -105,7 +105,10 @@ window.CRM.br1 = (function () {
       CODE: true,
       DIV: true,
       EM: true,
+      FIGCAPTION: true,
+      FIGURE: true,
       I: true,
+      IMG: true,
       LI: true,
       OL: true,
       P: true,
@@ -159,6 +162,26 @@ window.CRM.br1 = (function () {
           }
           return;
         }
+        if (tag === 'IMG' && (attrName === 'src' || attrName === 'alt')) {
+          if (attrName === 'src' && !isSafeHref(attr.value || '')) {
+            node.removeAttribute(attr.name);
+          }
+          return;
+        }
+        if (tag === 'FIGURE' && (attrName === 'data-align' || attrName === 'data-width')) {
+          if (attrName === 'data-align' && ['left', 'center', 'right'].indexOf(String(attr.value || '')) === -1) {
+            node.setAttribute('data-align', 'center');
+          }
+          if (attrName === 'data-width') {
+            var widthNum = parseFloat(String(attr.value || ''));
+            if (!Number.isFinite(widthNum)) {
+              node.removeAttribute(attr.name);
+            } else {
+              node.setAttribute('data-width', String(Math.min(Math.max(widthNum, 10), 100)));
+            }
+          }
+          return;
+        }
         if (tag === 'A' && (attrName === 'target' || attrName === 'rel')) {
           return;
         }
@@ -176,12 +199,28 @@ window.CRM.br1 = (function () {
           node.removeAttribute('rel');
         }
       }
+      if (tag === 'IMG') {
+        var src = String(node.getAttribute('src') || '').trim();
+        if (!src || src.toLowerCase().indexOf('data:') === 0) {
+          node.remove();
+          return;
+        }
+      }
 
       Array.prototype.slice.call(node.childNodes || []).forEach(sanitizeNode);
     }
 
     Array.prototype.slice.call(template.content.childNodes || []).forEach(sanitizeNode);
     return template.innerHTML;
+  }
+
+  function renderRichTextOrPlain(value) {
+    var text = String(value || '').trim();
+    if (!text) return '';
+    if (/<[a-z][\s\S]*>/i.test(text)) {
+      return sanitizeRichTextHtml(text);
+    }
+    return escapeHtml(text).replace(/\n/g, '<br>');
   }
 
   function notify(text, type) {
@@ -2031,6 +2070,9 @@ window.CRM.br1 = (function () {
         if (hasMarkup) {
           var sanitized = sanitizeRichTextHtml(text);
           detail.innerHTML = sanitized || window.CRM.i18n.t('js.br1.p_class_text_muted_mb_0_opisanie_zadachi_ne_zapolneno_p', '<p class="text-muted mb-0">Описание задачи не заполнено.</p>');
+          if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.renderReadonly === 'function') {
+            window.CRM.VisualEditor.renderReadonly(detail);
+          }
         } else {
           detail.innerHTML = '<p class="mb-0">' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>';
         }
@@ -2864,7 +2906,7 @@ window.CRM.br1 = (function () {
         + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong></div>'
         + editButton
         + '</div>'
-        + '<p class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + escapeHtml(item.body || '') + '</p>'
+        + '<div class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + renderRichTextOrPlain(item.body || '') + '</div>'
         + '<div class="d-flex gap-2 flex-wrap align-items-center mb-1">'
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="like">👍</button>'
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-react="' + escapeHtml(commentId) + '" data-reaction="love">❤️</button>'
@@ -2875,6 +2917,9 @@ window.CRM.br1 = (function () {
         + '<small class="text-muted">' + escapeHtml(formatDate(item.created_at)) + '</small>'
         + '</div>';
     }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_empty_h3_class_h6_kommentariev_poka_net_h', '<div class="crm-empty"><h3 class="h6">Комментариев пока нет</h3><p class="text-muted mb-0">Добавьте первый комментарий к задаче.</p></div>');
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.renderReadonly === 'function') {
+      window.CRM.VisualEditor.renderReadonly(list);
+    }
   }
 
   function matchMentionedUsersFromText(text) {

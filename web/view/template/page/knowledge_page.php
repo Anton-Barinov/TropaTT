@@ -904,10 +904,24 @@
         var childrenHtml = renderThread(c.id, depth + 1);
         var replyTo = depth > 0 && c.parent_user_name ? ' <span class="crm-comment-reply-to">' + esc(t('knowledge_page.comments_reply_to', 'reply to')) + ' <span class="crm-comment-reply-name">@' + esc(c.parent_user_name) + '</span></span>' : '';
         var cls = 'crm-knowledge-comment' + (c.resolved_at ? ' crm-knowledge-comment-resolved' : '') + (hasChildren ? ' crm-knowledge-comment-has-children' : '') + (depth > 0 ? ' crm-knowledge-comment-nested' : '');
-        return '<div class="' + cls + '" data-depth="' + depth + '"><div class="crm-knowledge-comment-inner"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + replyTo + resolved + '</div><div class="crm-knowledge-comment-body">' + esc(c.body) + '</div><div class="crm-knowledge-comment-actions">' + replyBtn + resolveBtn + '</div></div>' + childrenHtml + '</div>';
+        return '<div class="' + cls + '" data-depth="' + depth + '"><div class="crm-knowledge-comment-inner"><div class="crm-knowledge-comment-head"><strong>' + esc(c.user_name || t('common.unknown', 'Неизвестно')) + '</strong><span class="text-muted small">' + esc(c.created_at || '') + '</span>' + replyTo + resolved + '</div><div class="crm-knowledge-comment-body">' + renderVisualEditorHtml(c.body) + '</div><div class="crm-knowledge-comment-actions">' + replyBtn + resolveBtn + '</div></div>' + childrenHtml + '</div>';
       }).join('');
     }
     els.commentsList.innerHTML = renderThread('root', 0);
+    hydrateVisualEditorReadonly(els.commentsList);
+  }
+  function renderVisualEditorHtml(value) {
+    var text = String(value || '').trim();
+    if (!text) return '';
+    if (/<[a-z][\s\S]*>/i.test(text) && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.sanitizeHtml === 'function') {
+      return window.CRM.VisualEditor.sanitizeHtml(text);
+    }
+    return esc(text).replace(/\n/g, '<br>');
+  }
+  function hydrateVisualEditorReadonly(root) {
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.renderReadonly === 'function') {
+      window.CRM.VisualEditor.renderReadonly(root);
+    }
   }
   async function loadAttachments() {
     if (!pageId) return;
