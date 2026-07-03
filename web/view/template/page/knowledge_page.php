@@ -143,47 +143,45 @@
       </div>
     </form>
 
-    <div class="row g-3 kb-bottom-panels">
-      <div class="col-12 col-lg-6">
-        <section class="card h-100" id="knowledgeCommentsSection">
-          <div class="card-header bg-transparent border-bottom d-flex align-items-center gap-2 py-2 px-3">
+    <div class="card kb-bottom-panels">
+      <div class="card-header bg-transparent border-bottom p-0">
+        <nav class="crm-knowledge-tab-nav" role="tablist">
+          <button class="crm-knowledge-tab-btn is-active" id="kb-tab-comments" data-bs-toggle="tab" data-bs-target="#kb-panel-comments" type="button" role="tab" aria-controls="kb-panel-comments" aria-selected="true">
             <i class="fa-regular fa-comments" aria-hidden="true"></i>
-            <h5 class="h6 mb-0"><?= htmlspecialchars($t('knowledge_page.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?></h5>
-          </div>
-          <div class="card-body p-3">
-            <div id="knowledgeCommentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-            <div class="mt-2">
-              <div id="knowledgeCommentReplyIndicator" class="small text-muted d-none mb-1">
-                <span id="knowledgeCommentReplyLabel"></span>
-                <button type="button" class="btn crm-btn-secondary btn-sm" id="knowledgeCommentCancelReply"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-              </div>
-              <div class="crm-knowledge-comment-compose">
-                <textarea id="knowledgeCommentInput" class="form-control form-control-sm" rows="2" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
-                <div class="crm-knowledge-comment-actions">
-                  <button class="btn crm-btn-primary btn-sm" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-      <div class="col-12 col-lg-6">
-        <section class="card h-100" id="knowledgeAttachmentsSection">
-          <div class="card-header bg-transparent border-bottom d-flex align-items-center gap-2 py-2 px-3">
+            <?= htmlspecialchars($t('knowledge_page.comments_title', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+          <button class="crm-knowledge-tab-btn" id="kb-tab-files" data-bs-toggle="tab" data-bs-target="#kb-panel-files" type="button" role="tab" aria-controls="kb-panel-files" aria-selected="false">
             <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
-            <h5 class="h6 mb-0"><?= htmlspecialchars($t('knowledge_page.attachments_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></h5>
-          </div>
-          <div class="card-body p-3">
-            <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-            <div class="mt-2">
-              <div class="d-flex gap-2">
-                <input type="file" id="knowledgeFileInput" class="form-control form-control-sm" multiple>
-                <button class="btn crm-btn-primary btn-sm flex-shrink-0" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <?= htmlspecialchars($t('knowledge_page.attachments_title', 'Файлы'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+        </nav>
+      </div>
+      <div class="tab-content">
+        <div class="crm-knowledge-tab-panel is-active p-3" id="kb-panel-comments" role="tabpanel" aria-labelledby="kb-tab-comments">
+          <div id="knowledgeCommentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+          <div class="mt-2">
+            <div id="knowledgeCommentReplyIndicator" class="small text-muted d-none mb-1">
+              <span id="knowledgeCommentReplyLabel"></span>
+              <button type="button" class="btn crm-btn-secondary btn-sm" id="knowledgeCommentCancelReply"><?= htmlspecialchars($t('knowledge_page.comments_cancel_reply', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
+            <div class="crm-knowledge-comment-compose">
+              <textarea id="knowledgeCommentInput" class="form-control form-control-sm" rows="2" placeholder="<?= htmlspecialchars($t('knowledge_page.comments_placeholder', 'Напишите комментарий...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+              <div class="crm-knowledge-comment-actions">
+                <button class="btn crm-btn-primary btn-sm" type="button" id="knowledgeCommentSendBtn"><?= htmlspecialchars($t('knowledge_page.comments_send', 'Отправить'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>
-              <div class="small text-muted mt-1"><?= htmlspecialchars($t('knowledge_page.attachments_drag_hint', 'или перетащите файл сюда'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
           </div>
-        </section>
+        </div>
+        <div class="crm-knowledge-tab-panel p-3" id="kb-panel-files" role="tabpanel" aria-labelledby="kb-tab-files">
+          <div id="knowledgeAttachmentsList"><div class="text-muted small"><?= htmlspecialchars($t('knowledge.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+          <div class="mt-2">
+            <div class="d-flex gap-2">
+              <input type="file" id="knowledgeFileInput" class="form-control form-control-sm" multiple>
+              <button class="btn crm-btn-primary btn-sm flex-shrink-0" type="button" id="knowledgeFileUploadBtn"><?= htmlspecialchars($t('knowledge_page.attachments_upload', 'Загрузить'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
+            <div class="small text-muted mt-1"><?= htmlspecialchars($t('knowledge_page.attachments_drag_hint', 'или перетащите файл сюда'), ENT_QUOTES, 'UTF-8') ?></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -810,6 +808,8 @@
     var statusLabels = { draft: t('knowledge.status_draft', 'Черновик'), review: t('knowledge.status_review', 'На проверке'), published: t('knowledge.status_published', 'Опубликовано'), archived: t('knowledge.status_archived', 'В архиве'), needs_update: t('knowledge.status_needs_update', 'Требует обновления') };
     els.status.className = 'crm-badge ' + (statusMap[page.status] || 'crm-badge-secondary');
     els.status.textContent = statusLabels[page.status] || page.status || '';
+    var publishBtn = document.getElementById('knowledgePublishBtn');
+    if (publishBtn) publishBtn.style.display = (page.status === 'published' || page.status === 'archived') ? 'none' : '';
     els.content.innerHTML = renderVisualEditorHtml(page.content_html || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>');
     hydrateVisualEditorReadonly(els.content);
     renderToc();
@@ -1189,7 +1189,7 @@
       await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/comments', { method: 'POST', body: payload, idempotent: true });
       els.commentInput.value = '';
       if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
-        window.CRM.VisualEditor.refreshEditors(document.getElementById('knowledgeCommentsSection') || document, true);
+        window.CRM.VisualEditor.refreshEditors(document.getElementById('kb-panel-comments') || document, true);
       }
       replyToId = null; replyToName = '';
       updateReplyIndicator();
