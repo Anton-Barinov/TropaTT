@@ -471,12 +471,17 @@ window.CRM.VisualEditor = (function () {
       + 'max-width:calc(100vw - 32px);'
     );
 
-    function btn(label, title, action) {
+    function btn(label, title, action, attrs) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'crm-ve-image-toolbar-btn';
       b.innerHTML = label;
       b.title = title || '';
+      if (attrs) {
+        Object.keys(attrs).forEach(function (name) {
+          b.setAttribute(name, attrs[name]);
+        });
+      }
       b.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -495,50 +500,58 @@ window.CRM.VisualEditor = (function () {
     toolbar.appendChild(btn(
       '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3v10h12V3H2zm1 1h10v5.586l-2.293-2.293a1 1 0 0 0-1.414 0L7 9.586 5.707 8.293a1 1 0 0 0-1.414 0L3 9.586V4zm0 7.414L4.293 10.12l1.293 1.293a1 1 0 0 0 1.414 0L9 10.12l3 3H3v-1.707zM12 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>',
       t('visual_editor.align_left', 'Align left'),
-      function () { setImageAlign(editorInstance, 'left'); }
+      function () { setImageAlign(editorInstance, 'left'); },
+      { 'data-align': 'left' }
     ));
     toolbar.appendChild(btn(
       '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3v10h14V3H1zm1 1h12v5.586l-2.293-2.293a1 1 0 0 0-1.414 0L8 9.586l-1.293-1.293a1 1 0 0 0-1.414 0L3 9.586V4zm0 7.414L4.293 10.12l1.293 1.293a1 1 0 0 0 1.414 0L8 10.12l1.293 1.293a1 1 0 0 0 1.414 0L12 10.12l2 2H3v-1.707zM13 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>',
       t('visual_editor.align_center', 'Center'),
-      function () { setImageAlign(editorInstance, 'center'); }
+      function () { setImageAlign(editorInstance, 'center'); },
+      { 'data-align': 'center' }
     ));
     toolbar.appendChild(btn(
       '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3v10h12V3H2zm1 1h10v5.586l-2.293-2.293a1 1 0 0 0-1.414 0L9 9.586 7.707 8.293a1 1 0 0 0-1.414 0L5 9.586 3.707 8.293a1 1 0 0 0-1.414 0L3 9.586V4zm0 7.414L4.293 10.12l1.293 1.293a1 1 0 0 0 1.414 0L7.707 10.12 9 11.414a1 1 0 0 0 1.414 0L11.707 10.12 14 12.414V14H3v-2.586zM11 6.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z"/></svg>',
       t('visual_editor.align_right', 'Align right'),
-      function () { setImageAlign(editorInstance, 'right'); }
+      function () { setImageAlign(editorInstance, 'right'); },
+      { 'data-align': 'right' }
     ));
     toolbar.appendChild(sep());
 
-    toolbar.appendChild(btn('25%', t('visual_editor.width_25', '25% width'), function () { setImageWidth(editorInstance, 25); }));
-    toolbar.appendChild(btn('50%', t('visual_editor.width_50', '50% width'), function () { setImageWidth(editorInstance, 50); }));
-    toolbar.appendChild(btn('75%', t('visual_editor.width_75', '75% width'), function () { setImageWidth(editorInstance, 75); }));
-    toolbar.appendChild(btn('100%', t('visual_editor.width_100', '100% width'), function () { setImageWidth(editorInstance, 100); }));
+    toolbar.appendChild(btn('25%', t('visual_editor.width_25', '25% width'), function () { setImageWidth(editorInstance, 25); }, { 'data-width': '25' }));
+    toolbar.appendChild(btn('50%', t('visual_editor.width_50', '50% width'), function () { setImageWidth(editorInstance, 50); }, { 'data-width': '50' }));
+    toolbar.appendChild(btn('75%', t('visual_editor.width_75', '75% width'), function () { setImageWidth(editorInstance, 75); }, { 'data-width': '75' }));
+    toolbar.appendChild(btn('100%', t('visual_editor.width_100', '100% width'), function () { setImageWidth(editorInstance, 100); }, { 'data-width': '100' }));
     toolbar.appendChild(sep());
 
     toolbar.appendChild(btn(
       'Alt',
       t('visual_editor.edit_alt', 'Edit alt text'),
-      function () { editImageAlt(editorInstance); }
+      function () { editImageAlt(editorInstance); },
+      { 'data-action': 'alt' }
     ));
     toolbar.appendChild(btn(
       t('visual_editor.caption', 'Caption'),
       t('visual_editor.toggle_caption', 'Toggle caption'),
-      function () { toggleImageCaption(editorInstance); }
+      function () { toggleImageCaption(editorInstance); },
+      { 'data-action': 'caption' }
     ));
     toolbar.appendChild(btn(
       t('visual_editor.link', 'Link'),
       t('visual_editor.edit_link', 'Edit link'),
-      function () { editImageLink(editorInstance); }
+      function () { editImageLink(editorInstance); },
+      { 'data-action': 'link' }
     ));
     toolbar.appendChild(btn(
       t('visual_editor.replace', 'Replace'),
       t('visual_editor.replace_image', 'Replace image'),
-      function () { replaceImage(editorInstance); }
+      function () { replaceImage(editorInstance); },
+      { 'data-action': 'replace' }
     ));
     toolbar.appendChild(btn(
       t('visual_editor.delete', 'Delete'),
       t('visual_editor.delete_image', 'Delete image'),
-      function () { deleteSelectedImage(editorInstance); }
+      function () { deleteSelectedImage(editorInstance); },
+      { 'data-action': 'delete' }
     ));
 
     return toolbar;
