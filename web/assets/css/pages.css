@@ -5850,6 +5850,49 @@ font-size: 0.72rem;
   border-radius: 10px;
 }
 
+.crm-task-detail-page .crm-task-description-edit-form {
+  margin: 0;
+}
+
+.crm-task-detail-page .crm-task-description-edit-form .form-label {
+  display: none;
+}
+
+.crm-task-detail-page .crm-task-description-edit-form .crm-ve-editor {
+  width: 100%;
+}
+
+.crm-task-detail-page .crm-comment-edit-shell {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #d9e1ec;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.crm-task-detail-page .crm-comment-edit-shell .crm-ve-editor {
+  width: 100%;
+  --crm-ve-min-height: 120px;
+}
+
+.crm-task-detail-page .crm-comment-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 575.98px) {
+  .crm-task-detail-page .crm-comment-edit-actions {
+    justify-content: stretch;
+  }
+
+  .crm-task-detail-page .crm-comment-edit-actions .btn {
+    flex: 1 1 0;
+  }
+}
+
 .crm-task-detail-page .crm-subtasks-table thead th {
   font-size: 0.77rem;
   text-transform: uppercase;

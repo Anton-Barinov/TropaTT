@@ -21,7 +21,7 @@ window.CRM.modals = (function () {
 </div>\
 \
 <div class="modal fade" id="createTaskModal" tabindex="-1" aria-hidden="true">\
-  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.create_task', 'Create Task') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
     <form id="createTaskForm">\
       <div class="modal-body"><div class="row g-3">\
@@ -42,7 +42,7 @@ window.CRM.modals = (function () {
 </div>\
 \
 <div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">\
-  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">\
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">\
     <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.edit_task', 'Edit Task') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
     <form id="editTaskForm">\
       <div class="modal-body"><div class="row g-3">\
