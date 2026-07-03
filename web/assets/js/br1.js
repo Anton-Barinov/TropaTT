@@ -6919,6 +6919,7 @@ window.CRM.br1 = (function () {
       };
       setTaskEditAvailability(Boolean(canEditTask));
       applyTaskInlinePermissions(currentTaskPermissions);
+      bindTaskInlineEditors(taskId);
 
     }
 
@@ -6949,7 +6950,6 @@ window.CRM.br1 = (function () {
     bindTaskStatusButtons(taskId);
     bindTaskCommentFlow(taskId);
     bindTaskFileUpload(taskId);
-    bindTaskInlineEditors(taskId);
     bindTaskEditFlow(taskId);
     bindSubtaskFlow(taskId, canWorkTask, canEditTask);
     bindChecklistFlow(taskId, canWorkTask);
