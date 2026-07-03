@@ -223,6 +223,12 @@ window.CRM.br1 = (function () {
     return escapeHtml(text).replace(/\n/g, '<br>');
   }
 
+  function refreshVisualEditors(scope, force) {
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
+      window.CRM.VisualEditor.refreshEditors(scope || document, !!force);
+    }
+  }
+
   function notify(text, type) {
     var toastEl = document.getElementById('toastSuccess');
     if (!toastEl || !window.bootstrap) return;
@@ -2901,7 +2907,7 @@ window.CRM.br1 = (function () {
         ? (window.CRM.i18n.t('js.br1.moya_reaktsiya', 'Моя реакция: ') + String(ownReaction.reaction))
         : window.CRM.i18n.t('js.br1.bez_reaktsii', 'Без реакции');
 
-      return '<div class="crm-comment mb-2" data-comment-id="' + escapeHtml(item.public_id || '') + '" data-comment-author="' + escapeHtml(item.author_public_id || '') + '">'
+      return '<div class="crm-comment mb-2" data-comment-id="' + escapeHtml(item.public_id || '') + '" data-comment-author="' + escapeHtml(item.author_public_id || '') + '" data-comment-raw="' + escapeHtml(item.body || '') + '">'
         + '<div class="d-flex justify-content-between align-items-start gap-2">'
         + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong></div>'
         + editButton
@@ -3862,7 +3868,10 @@ window.CRM.br1 = (function () {
           }
         }
 
-        if (textArea) textArea.value = '';
+        if (textArea) {
+          textArea.value = '';
+          refreshVisualEditors(form, true);
+        }
         if (mentionSelect) mentionSelect.value = '';
 
         await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft', {
@@ -3897,14 +3906,14 @@ window.CRM.br1 = (function () {
       var oldEditor = commentCard.querySelector('[data-comment-edit-form]');
       if (oldEditor) return;
 
-      var currentBody = bodyEl.textContent || '';
+      var currentBody = commentCard.getAttribute('data-comment-raw') || bodyEl.innerHTML || bodyEl.textContent || '';
       bodyEl.classList.add('d-none');
 
       var editor = document.createElement('div');
       editor.setAttribute('data-comment-edit-form', '1');
       editor.className = 'mt-2';
       editor.innerHTML = ''
-        + '<textarea class="form-control mb-2" rows="3" data-comment-edit-text="' + commentPublicId + '"></textarea>'
+        + '<textarea class="form-control mb-2" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1" data-richtext-off="1"></textarea>'
         + '<div class="d-flex gap-2">'
         + '<button type="button" class="btn btn-sm crm-btn-primary" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
         + '<button type="button" class="btn btn-sm btn-light" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
@@ -3912,7 +3921,11 @@ window.CRM.br1 = (function () {
       commentCard.appendChild(editor);
 
       var textArea = editor.querySelector('[data-comment-edit-text="' + commentPublicId + '"]');
-      if (textArea) textArea.value = currentBody.trim();
+      if (textArea) {
+        textArea.value = currentBody.trim();
+        window.setTimeout(function () { refreshVisualEditors(editor, true); }, 0);
+        window.setTimeout(function () { refreshVisualEditors(editor, true); }, 120);
+      }
     });
 
     commentsList.addEventListener('click', async function (e) {
@@ -6878,7 +6891,10 @@ window.CRM.br1 = (function () {
       var draftEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft');
       var draftBody = draftEnvelope && draftEnvelope.data && draftEnvelope.data.draft ? draftEnvelope.data.draft.body : '';
       var textArea = document.querySelector('#commentForm [name="comment_text"]');
-      if (textArea && draftBody) textArea.value = draftBody;
+      if (textArea && draftBody) {
+        textArea.value = draftBody;
+        refreshVisualEditors(document.getElementById('commentForm'), true);
+      }
     } catch (draftError) {
       // no draft is normal
     }

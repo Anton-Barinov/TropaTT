@@ -2228,6 +2228,7 @@ window.CRM.VisualEditor = (function () {
   return {
     Editor: Editor,
     init: init,
+    initScope: initScope,
     instances: instances,
     getInstances: function () { return instances; },
     refreshEditors: function (scope, force) { refreshEditors(scope || document, !!force); },

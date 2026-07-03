@@ -125,7 +125,7 @@
             <input id="knowledgeEditReviewDue" class="form-control form-control-sm" type="date" name="review_due_at" style="width:200px">
           </div>
         </div>
-        <div class="crm-knowledge-toolbar" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
+        <div class="crm-knowledge-toolbar d-none" role="toolbar" aria-label="<?= htmlspecialchars($t('knowledge_page.editor_toolbar', 'Панель форматирования'), ENT_QUOTES, 'UTF-8') ?>">
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="bold" title="<?= htmlspecialchars($t('knowledge_page.bold', 'Жирный'), ENT_QUOTES, 'UTF-8') ?>"><b>B</b></button>
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="italic" title="<?= htmlspecialchars($t('knowledge_page.italic', 'Курсив'), ENT_QUOTES, 'UTF-8') ?>"><i>I</i></button>
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="h2" title="<?= htmlspecialchars($t('knowledge_page.h2', 'Заголовок H2'), ENT_QUOTES, 'UTF-8') ?>">H2</button>
@@ -138,22 +138,8 @@
           <button type="button" class="btn btn-sm crm-btn-secondary" data-editor-cmd="checklist" title="<?= htmlspecialchars($t('knowledge_page.checklist', 'Чеклист'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-check-square"></i></button>
         </div>
         <div class="crm-knowledge-visual-wrap">
-          <button class="crm-knowledge-block-add" type="button" id="knowledgeBlockAddBtn" aria-label="<?= htmlspecialchars($t('knowledge_page.block_add', 'Добавить блок'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-plus"></i></button>
-          <div id="knowledgeVisualEditor" class="crm-knowledge-visual-editor" contenteditable="true" spellcheck="true" data-placeholder="<?= htmlspecialchars($t('knowledge_page.editor_placeholder', 'Начните писать материал...'), ENT_QUOTES, 'UTF-8') ?>"></div>
-          <div id="knowledgeBlockMenu" class="crm-knowledge-block-menu d-none">
-            <label class="crm-knowledge-block-search">
-              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <input id="knowledgeBlockSearch" type="search" placeholder="<?= htmlspecialchars($t('knowledge_page.block_search', 'Найти блок'), ENT_QUOTES, 'UTF-8') ?>">
-            </label>
-            <button type="button" data-editor-block="p"><i class="fa-solid fa-align-left"></i><span><?= htmlspecialchars($t('knowledge_page.block_text', 'Текст'), ENT_QUOTES, 'UTF-8') ?></span></button>
-            <button type="button" data-editor-block="h2"><strong>H2</strong><span><?= htmlspecialchars($t('knowledge_page.block_h2', 'Подзаголовок H2'), ENT_QUOTES, 'UTF-8') ?></span></button>
-            <button type="button" data-editor-block="h3"><strong>H3</strong><span><?= htmlspecialchars($t('knowledge_page.block_h3', 'Подзаголовок H3'), ENT_QUOTES, 'UTF-8') ?></span></button>
-            <button type="button" data-editor-block="ul"><i class="fa-solid fa-list-ul"></i><span><?= htmlspecialchars($t('knowledge_page.ul', 'Список'), ENT_QUOTES, 'UTF-8') ?></span></button>
-            <button type="button" data-editor-block="blockquote"><i class="fa-solid fa-quote-right"></i><span><?= htmlspecialchars($t('knowledge_page.blockquote', 'Цитата'), ENT_QUOTES, 'UTF-8') ?></span></button>
-            <button type="button" data-editor-block="link"><i class="fa-solid fa-link"></i><span><?= htmlspecialchars($t('knowledge_page.link', 'Ссылка'), ENT_QUOTES, 'UTF-8') ?></span></button>
-          </div>
+          <textarea id="knowledgeEditContent" class="crm-knowledge-editor-source" name="content_html" rows="12" placeholder="<?= htmlspecialchars($t('knowledge_page.editor_placeholder', 'Начните писать материал...'), ENT_QUOTES, 'UTF-8') ?>" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
         </div>
-        <textarea id="knowledgeEditContent" class="crm-knowledge-editor-source" name="content_html" rows="1" tabindex="-1" aria-hidden="true"></textarea>
       </div>
     </form>
 
@@ -486,8 +472,39 @@
     ta.dispatchEvent(new Event('input', {bubbles: true}));
   }
   function syncHiddenContent() {
-    if (!els.editContent || !els.visualEditor) return;
-    els.editContent.value = sanitizePreviewHtml(els.visualEditor.innerHTML || '');
+    if (!els.editContent) return;
+    var editor = getVisualEditorInstance();
+    if (editor && typeof editor.getValue === 'function') {
+      els.editContent.value = editor.getValue();
+      return;
+    }
+    if (els.visualEditor) {
+      els.editContent.value = sanitizePreviewHtml(els.visualEditor.innerHTML || '');
+    }
+  }
+  function getVisualEditorInstance() {
+    if (!els.editContent || !window.CRM.VisualEditor || typeof window.CRM.VisualEditor.getInstances !== 'function') return null;
+    var instances = window.CRM.VisualEditor.getInstances();
+    for (var i = 0; i < instances.length; i += 1) {
+      if (instances[i] && instances[i]._textarea === els.editContent) return instances[i];
+    }
+    return null;
+  }
+  function refreshKnowledgeVisualEditor(force) {
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
+      window.CRM.VisualEditor.refreshEditors(els.editor || document, !!force);
+    }
+  }
+  function setKnowledgeEditorContent(html) {
+    if (!els.editContent) return;
+    els.editContent.value = sanitizePreviewHtml(html || '');
+    var editor = getVisualEditorInstance();
+    if (editor && typeof editor.setValue === 'function') {
+      editor.setValue(els.editContent.value);
+    } else {
+      refreshKnowledgeVisualEditor(true);
+      window.setTimeout(function () { refreshKnowledgeVisualEditor(true); }, 120);
+    }
   }
   function rememberEditorSelection() {
     if (!els.visualEditor || !window.getSelection) return;
@@ -503,6 +520,11 @@
     selection.addRange(savedEditorRange);
   }
   function focusVisualEditor() {
+    var editor = getVisualEditorInstance();
+    if (editor && editor._content) {
+      editor._content.focus();
+      return;
+    }
     if (!els.visualEditor) return;
     els.visualEditor.focus();
     restoreEditorSelection();
@@ -530,6 +552,13 @@
     });
   }
   function insertVisualHtml(html) {
+    var editor = getVisualEditorInstance();
+    if (editor && typeof editor.setValue === 'function' && typeof editor.getValue === 'function') {
+      editor.setValue((editor.getValue() || '') + html);
+      syncHiddenContent();
+      startAutosave();
+      return;
+    }
     focusVisualEditor();
     document.execCommand('insertHTML', false, html);
     syncHiddenContent();
@@ -749,7 +778,7 @@
     if (show && current) {
       els.editTitle.value = current.title || '';
       if (els.editReviewDue) els.editReviewDue.value = current.review_due_at ? current.review_due_at.substring(0, 10) : '';
-      els.editContent.value = current.content_html || '';
+      setKnowledgeEditorContent(current.content_html || '<p></p>');
       if (els.visualEditor) {
         els.visualEditor.innerHTML = sanitizePreviewHtml(current.content_html || '<p></p>');
       }
@@ -767,7 +796,8 @@
     var statusLabels = { draft: t('knowledge.status_draft', 'Черновик'), review: t('knowledge.status_review', 'На проверке'), published: t('knowledge.status_published', 'Опубликовано'), archived: t('knowledge.status_archived', 'В архиве'), needs_update: t('knowledge.status_needs_update', 'Требует обновления') };
     els.status.className = 'crm-badge ' + (statusMap[page.status] || 'crm-badge-secondary');
     els.status.textContent = statusLabels[page.status] || page.status || '';
-    els.content.innerHTML = page.content_html || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>';
+    els.content.innerHTML = renderVisualEditorHtml(page.content_html || '<p class="text-muted">' + esc(t('knowledge_page.empty_content', 'Содержание пока не заполнено.')) + '</p>');
+    hydrateVisualEditorReadonly(els.content);
     renderToc();
     els.metaSpace.textContent = page.space_title || '—';
     var typeLabels = { article: t('knowledge.type_article', 'Статья'), instruction: t('knowledge.type_instruction', 'Инструкция'), regulation: t('knowledge.type_regulation', 'Регламент'), faq: t('knowledge.type_faq', 'FAQ'), checklist: t('knowledge.type_checklist', 'Чек-лист'), runbook: t('knowledge.type_runbook', 'Runbook'), meeting_note: t('knowledge.type_meeting_note', 'Протокол'), decision: t('knowledge.type_decision', 'Решение'), client_note: t('knowledge.type_client_note', 'Заметка клиента'), project_note: t('knowledge.type_project_note', 'Заметка проекта'), onboarding: t('knowledge.type_onboarding', 'Онбординг') };
@@ -1003,6 +1033,7 @@
     if (els.autosaveStatus) els.autosaveStatus.textContent = t('knowledge_page.autosave_saved', 'Сохранено');
   });
   els.editContent && els.editContent.addEventListener('input', function () { updateEditorPreview(); startAutosave(); });
+  els.editContent && els.editContent.addEventListener('change', function () { updateEditorPreview(); startAutosave(); });
   els.visualEditor && els.visualEditor.addEventListener('input', function () { syncHiddenContent(); startAutosave(); });
   els.visualEditor && els.visualEditor.addEventListener('keyup', function () { rememberEditorSelection(); updateToolbarState(); });
   els.visualEditor && els.visualEditor.addEventListener('mouseup', function () { rememberEditorSelection(); updateToolbarState(); });
@@ -1143,6 +1174,9 @@
       if (replyToId) payload.parent_public_id = replyToId;
       await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/comments', { method: 'POST', body: payload, idempotent: true });
       els.commentInput.value = '';
+      if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
+        window.CRM.VisualEditor.refreshEditors(document.getElementById('knowledgeCommentsSection') || document, true);
+      }
       replyToId = null; replyToName = '';
       updateReplyIndicator();
       loadComments();
