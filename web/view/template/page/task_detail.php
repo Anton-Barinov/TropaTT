@@ -189,15 +189,15 @@
           <button id="taskFollowBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="task_detail.comments_follow_btn"><?= htmlspecialchars($t('task_detail.comments_follow_btn', 'Отслеживать задачу'), ENT_QUOTES, 'UTF-8') ?></button>
           <button id="taskFavoriteBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="task_detail.comments_favorite_btn"><?= htmlspecialchars($t('task_detail.comments_favorite_btn', 'В избранное'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
-        <form id="commentForm" class="mb-3">
+        <form id="commentForm" class="mb-3 crm-comment-create-shell">
           <label class="form-label" data-i18n="task_detail.comment_new_label"><?= htmlspecialchars($t('task_detail.comment_new_label', 'Новый комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
-          <div class="d-flex gap-2">
-            <textarea class="form-control" name="comment_text" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.comment_placeholder', 'Добавьте комментарий и сохраните его в карточке задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.comment_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+          <textarea class="form-control" name="comment_text" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.comment_placeholder', 'Добавьте комментарий и сохраните его в карточке задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.comment_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+          <div class="crm-comment-create-actions">
+            <div class="crm-comment-mention-field">
+              <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>
+              <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="" data-i18n="task_detail.comment_no_mention"><?= htmlspecialchars($t('task_detail.comment_no_mention', 'Без упоминания'), ENT_QUOTES, 'UTF-8') ?></option></select>
+            </div>
             <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-          </div>
-          <div class="d-flex gap-2 align-items-center mt-2">
-            <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>
-            <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="" data-i18n="task_detail.comment_no_mention"><?= htmlspecialchars($t('task_detail.comment_no_mention', 'Без упоминания'), ENT_QUOTES, 'UTF-8') ?></option></select>
           </div>
         </form>
         <div id="commentsList"><div class="text-muted" data-i18n="task_detail.comments_loading"><?= htmlspecialchars($t('task_detail.comments_loading', 'Комментарии загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>

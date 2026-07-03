@@ -5875,6 +5875,29 @@ font-size: 0.72rem;
   --crm-ve-min-height: 120px;
 }
 
+.crm-task-detail-page .crm-comment-create-shell .crm-ve-editor {
+  width: 100%;
+}
+
+.crm-task-detail-page .crm-comment-create-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.crm-task-detail-page .crm-comment-mention-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.crm-task-detail-page .crm-comment-create-actions .btn {
+  flex: 0 0 auto;
+}
+
 .crm-task-detail-page .crm-comment-edit-actions {
   display: flex;
   justify-content: flex-end;
@@ -5884,6 +5907,17 @@ font-size: 0.72rem;
 }
 
 @media (max-width: 575.98px) {
+  .crm-task-detail-page .crm-comment-create-actions,
+  .crm-task-detail-page .crm-comment-mention-field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .crm-task-detail-page .crm-comment-create-actions .btn,
+  .crm-task-detail-page .crm-comment-mention-field .form-select {
+    width: 100%;
+  }
+
   .crm-task-detail-page .crm-comment-edit-actions {
     justify-content: stretch;
   }
