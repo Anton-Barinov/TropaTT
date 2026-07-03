@@ -371,6 +371,9 @@ window.CRM.VisualEditor = (function () {
     div.setAttribute('data-type', 'image');
     div.setAttribute('data-block-id', bid);
     div.setAttribute('data-align', 'center');
+    if (widthPercent) {
+      div.setAttribute('data-width', String(widthPercent));
+    }
 
     var figure = document.createElement('figure');
     figure.className = 'crm-ve-image-figure';
@@ -1000,6 +1003,7 @@ window.CRM.VisualEditor = (function () {
     this._replaceTarget = null;
     this._destroyed = false;
     this._debouceTimer = null;
+    this._lastTextareaValue = textarea.value || '';
 
     this._build();
     this._bindEvents();
@@ -1271,6 +1275,7 @@ window.CRM.VisualEditor = (function () {
     });
 
     content.addEventListener('focus', function () {
+      self.refreshFromTextarea(false);
       self._wrapper.classList.add('is-focused');
     });
 
@@ -1497,6 +1502,7 @@ window.CRM.VisualEditor = (function () {
     if (this._destroyed) return;
     var html = this._toOutputHtml();
     this._textarea.value = html;
+    this._lastTextareaValue = html;
     this._textarea.dispatchEvent(new Event('change', { bubbles: true }));
     this._updateEmptyState();
   };
@@ -1510,7 +1516,18 @@ window.CRM.VisualEditor = (function () {
     } else {
       this._content.innerHTML = htmlToParagraphs(value);
     }
+    this._lastTextareaValue = value;
     this._updateEmptyState();
+  };
+
+  Editor.prototype.refreshFromTextarea = function (force) {
+    if (this._destroyed) return false;
+    var value = this._textarea.value || '';
+    if (!force && value === this._lastTextareaValue) return false;
+    if (!force && this._wrapper && this._wrapper.classList.contains('is-focused')) return false;
+    this._syncEditorFromTextarea();
+    this._history.push(this._content.innerHTML, true);
+    return true;
   };
 
   Editor.prototype._isEmpty = function () {
@@ -1642,6 +1659,7 @@ window.CRM.VisualEditor = (function () {
 
       var block = createImageBlock(src, alt, widthPct, bid);
       block.setAttribute('data-align', align);
+      block.setAttribute('data-width', String(widthPct));
 
       var blockFigure = block.querySelector('.crm-ve-image-figure');
       if (blockFigure && widthPct) {
@@ -2135,6 +2153,31 @@ window.CRM.VisualEditor = (function () {
     }
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    var rect = el.getBoundingClientRect();
+    return !!(rect.width || rect.height || el.getClientRects().length);
+  }
+
+  function refreshEditors(scope, force) {
+    var root = scope && scope.querySelectorAll ? scope : document;
+    instances.forEach(function (editor) {
+      if (!editor || editor._destroyed) return;
+      if (root !== document && !root.contains(editor._textarea)) return;
+      if (!force && !isVisible(editor._wrapper)) return;
+      editor.refreshFromTextarea(!!force);
+    });
+  }
+
+  function scheduleRefresh(scope) {
+    var delays = [0, 120, 400, 900, 1600];
+    delays.forEach(function (delay) {
+      window.setTimeout(function () {
+        refreshEditors(scope || document, false);
+      }, delay);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   //  Public API
   // ---------------------------------------------------------------------------
@@ -2163,6 +2206,16 @@ window.CRM.VisualEditor = (function () {
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+
+    document.addEventListener('shown.bs.modal', function (e) {
+      scheduleRefresh(e.target || document);
+    });
+
+    document.addEventListener('click', function (e) {
+      var trigger = e.target && e.target.closest && e.target.closest('[data-open-modal], [data-bs-toggle="modal"], button, a');
+      if (!trigger) return;
+      scheduleRefresh(document);
+    }, true);
   }
 
   // Auto-init on DOMContentLoaded
@@ -2177,6 +2230,7 @@ window.CRM.VisualEditor = (function () {
     init: init,
     instances: instances,
     getInstances: function () { return instances; },
+    refreshEditors: function (scope, force) { refreshEditors(scope || document, !!force); },
     sanitizeHtml: sanitizeHtml,
     renderReadonly: renderReadonly
   };
