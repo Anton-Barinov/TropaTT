@@ -882,7 +882,7 @@ final class KnowledgeRepository
         }
         $publicId = $this->publicId('kbc');
         $now = gmdate('Y-m-d H:i:s');
-        $body = strip_tags($body);
+        $body = $this->sanitizeHtml($body);
         $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
@@ -1771,7 +1771,7 @@ final class KnowledgeRepository
         }
         $publicId = $this->publicId('kbc');
         $now = gmdate('Y-m-d H:i:s');
-        $bodyClean = strip_tags($body);
+        $bodyClean = $this->sanitizeHtml($body);
         $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, source_type, source_id, source_author_name, source_created_at, anchor_text, anchor_path, is_inline, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :source_type, :source_id, :source_author_name, :source_created_at, :anchor_text, :anchor_path, :is_inline, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
