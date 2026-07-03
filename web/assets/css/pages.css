@@ -14127,7 +14127,7 @@ a.task-tag:hover {
   opacity: 0.5;
 }
 
-.crm-knowledge-editor-source {
+.crm-knowledge-editor-source:not([data-crm-visual-editor="1"]) {
   position: absolute;
   opacity: 0;
   height: 0;
@@ -16015,7 +16015,7 @@ a.task-tag:hover {
   color: #111827;
 }
 
-.kb-editor-form .crm-knowledge-editor-source {
+.kb-editor-form .crm-knowledge-editor-source:not([data-crm-visual-editor="1"]) {
   position: absolute;
   opacity: 0;
   height: 0;

@@ -16,6 +16,8 @@
   --crm-ve-min-height: 160px;
 
   position: relative;
+  width: 100%;
+  flex: 1 1 auto;
   border: 1px solid var(--crm-ve-border);
   border-radius: var(--crm-ve-radius);
   background: var(--crm-ve-surface);

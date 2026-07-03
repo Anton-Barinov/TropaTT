@@ -38,9 +38,19 @@ window.CRM.richtext = (function () {
   function shouldEnhance(textarea) {
     if (!textarea || textarea.tagName !== 'TEXTAREA') return false;
     if (textarea.hasAttribute(FIELD_MARKER)) return false;
+    if (textarea.getAttribute('data-crm-visual-editor') === '1') return false;
     if (textarea.dataset.richtextOff === '1') return false;
     if (textarea.closest('[data-richtext-off="1"]')) return false;
     return hasDescriptionIntent(textarea);
+  }
+
+  function handoffToVisualEditor(textarea) {
+    textarea.setAttribute(FIELD_MARKER, '1');
+    textarea.setAttribute('data-crm-visual-editor', '1');
+    textarea.setAttribute('data-richtext-off', '1');
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.initScope === 'function') {
+      window.CRM.VisualEditor.initScope(textarea.parentElement || document);
+    }
   }
 
   function normalizeEmpty(html) {
@@ -252,7 +262,7 @@ window.CRM.richtext = (function () {
   function enhanceScope(scope) {
     var root = scope && scope.querySelectorAll ? scope : document;
     root.querySelectorAll('textarea').forEach(function (textarea) {
-      if (shouldEnhance(textarea)) enhance(textarea);
+      if (shouldEnhance(textarea)) handoffToVisualEditor(textarea);
     });
   }
 
