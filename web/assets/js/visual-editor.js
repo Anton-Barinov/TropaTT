@@ -979,7 +979,7 @@ window.CRM.VisualEditor = (function () {
     this._textarea = textarea;
     this._options = {
       textarea: textarea,
-      uploadUrl: textarea.getAttribute('data-crm-visual-editor-upload-url') || '/api/v1/visual-editor/upload-image',
+      uploadUrl: textarea.getAttribute('data-crm-visual-editor-upload-url') || '/api/index.php?route=api/v1/visual-editor/upload-image',
       placeholder: textarea.getAttribute('data-crm-visual-editor-placeholder') || textarea.getAttribute('placeholder') || '',
       readonly: false,
       minImageWidth: parseInt(textarea.getAttribute('data-crm-visual-editor-min-image-width') || '120', 10) || 120,
