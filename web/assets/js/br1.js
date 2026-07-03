@@ -2380,6 +2380,29 @@ window.CRM.br1 = (function () {
     var tagsForm = document.getElementById('taskTagsInlineForm');
     var projectForm = document.getElementById('taskProjectInlineForm');
     var datesForm = document.getElementById('taskDatesInlineForm');
+    var descContent = document.getElementById('taskDescriptionContent');
+
+    function openDescriptionEditor() {
+      if (!descForm) return;
+      var input = document.getElementById('taskDescriptionInlineInput');
+      if (input) {
+        input.value = currentTask && currentTask.description ? String(currentTask.description) : '';
+      }
+      if (descContent) descContent.classList.add('d-none');
+      descForm.classList.remove('d-none');
+      refreshVisualEditors(descForm, true);
+      window.setTimeout(function () {
+        refreshVisualEditors(descForm, true);
+        var content = descForm.querySelector('.crm-ve-content');
+        if (content) content.focus();
+      }, 80);
+    }
+
+    function closeDescriptionEditor() {
+      if (descForm) descForm.classList.add('d-none');
+      if (descContent) descContent.classList.remove('d-none');
+    }
+
     if (descForm && descForm.dataset.bound !== '1') {
       descForm.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -2388,7 +2411,7 @@ window.CRM.br1 = (function () {
           return;
         }
         var input = document.getElementById('taskDescriptionInlineInput');
-        var description = input ? String(input.value || '').trim() : '';
+        var description = input ? getVisualEditorTextareaValue(input).trim() : '';
         try {
           var envelope = await window.CRM.api.request('api/v1/tasks/' + taskId, {
             method: 'PATCH',
@@ -2399,7 +2422,7 @@ window.CRM.br1 = (function () {
           });
           currentTask = mergeTaskState(extractTaskPayload(envelope));
           renderTaskDescription(currentTask.description);
-          descForm.classList.add('d-none');
+          closeDescriptionEditor();
           await loadTaskActivity(taskId);
           notify(window.CRM.i18n.t('js.br1.opisanie_obnovleno', 'Описание обновлено'));
         } catch (error) {
@@ -2639,8 +2662,7 @@ window.CRM.br1 = (function () {
               notify(window.CRM.i18n.t('js.br1.izmenenie_opisaniya_dostupno_tolko_avtoru_zadachi_2', 'Изменение описания доступно только автору задачи'), 'warning');
               return;
             }
-            var descriptionForm = document.getElementById('taskDescriptionInlineForm');
-            if (descriptionForm) descriptionForm.classList.remove('d-none');
+            openDescriptionEditor();
           }
           if (block === 'assignee') {
             if (!currentTaskPermissions.canEditAssignment) {
@@ -2688,7 +2710,7 @@ window.CRM.br1 = (function () {
         var cancel = e.target.closest('[data-task-inline-cancel]');
         if (!cancel) return;
         var cancelTarget = String(cancel.getAttribute('data-task-inline-cancel') || '');
-        if (cancelTarget === 'description' && descForm) descForm.classList.add('d-none');
+        if (cancelTarget === 'description') closeDescriptionEditor();
         if (cancelTarget === 'assignee' && assigneeForm) assigneeForm.classList.add('d-none');
         if (cancelTarget === 'manager' && managerForm) managerForm.classList.add('d-none');
         if (cancelTarget === 'tags' && tagsForm) tagsForm.classList.add('d-none');
@@ -3924,12 +3946,12 @@ window.CRM.br1 = (function () {
 
       var editor = document.createElement('div');
       editor.setAttribute('data-comment-edit-form', '1');
-      editor.className = 'mt-2';
+      editor.className = 'crm-comment-edit-shell';
       editor.innerHTML = ''
-        + '<textarea class="form-control mb-2" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1" data-richtext-off="1"></textarea>'
-        + '<div class="d-flex gap-2">'
-        + '<button type="button" class="btn btn-sm crm-btn-primary" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
-        + '<button type="button" class="btn btn-sm btn-light" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
+        + '<textarea class="form-control" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1" data-richtext-off="1"></textarea>'
+        + '<div class="crm-comment-edit-actions">'
+        + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
+        + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')
         + '</div>';
       commentCard.appendChild(editor);
 

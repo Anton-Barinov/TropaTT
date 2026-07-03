@@ -69,8 +69,7 @@
             <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span>
           </button>
         </div>
-        <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-        <form id="taskDescriptionInlineForm" class="mt-3 d-none">
+        <form id="taskDescriptionInlineForm" class="d-none crm-task-description-edit-form">
           <label class="form-label" data-i18n="task_detail.desc_field_label"><?= htmlspecialchars($t('task_detail.desc_field_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
           <textarea id="taskDescriptionInlineInput" class="form-control" rows="5" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
           <div class="d-flex gap-2 mt-2">
@@ -78,6 +77,7 @@
             <button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="description" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
+        <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
 
       <section id="detailSubtasks" class="tab-pane fade crm-card crm-task-section">
