@@ -22,6 +22,39 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.br1 ? window.CRM.br1.safeText(value) : String(value || '');
   }
 
+  function renderVisualEditorHtml(value) {
+    var text = String(value || '').trim();
+    if (!text) return '';
+    if (/<[a-z][\s\S]*>/i.test(text) && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.sanitizeHtml === 'function') {
+      return window.CRM.VisualEditor.sanitizeHtml(text);
+    }
+    return safeText(text).replace(/\n/g, '<br>');
+  }
+
+  function hydrateVisualEditorReadonly(root) {
+    if (root && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.renderReadonly === 'function') {
+      window.CRM.VisualEditor.renderReadonly(root);
+    }
+  }
+
+  function refreshVisualEditors(root, force) {
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
+      window.CRM.VisualEditor.refreshEditors(root || document, !!force);
+    }
+  }
+
+  function getTextareaVisualEditorValue(textarea) {
+    var value = textarea ? textarea.value : '';
+    if (textarea && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function') {
+      window.CRM.VisualEditor.getInstances().forEach(function (editor) {
+        if (editor && editor._textarea === textarea && typeof editor.getValue === 'function') {
+          value = editor.getValue();
+        }
+      });
+    }
+    return value;
+  }
+
   function tp(key, fallback) {
     if (window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
       var sentinel = '__CRM_I18N_MISSING__';
@@ -1781,7 +1814,11 @@ window.CRM.pageApiBindings = (function () {
     setText('#projectSummaryUpdatedAt', formatDate(project.updated_at));
     setText('#projectSummaryStatus', statusLabel(project.status_code));
     setText('#projectSummaryPriority', project.priority_code || 'normal');
-    setText('#projectSummaryDescription', project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
+    var projectSummaryDescription = document.querySelector('#projectSummaryDescription');
+    if (projectSummaryDescription) {
+      projectSummaryDescription.innerHTML = renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
+      hydrateVisualEditorReadonly(projectSummaryDescription);
+    }
 
     function renderCurrentProjectPreview() {
       var drawer = document.getElementById('projectQuickPreviewDrawer');
@@ -2327,10 +2364,10 @@ window.CRM.pageApiBindings = (function () {
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
         + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.name_and_description', 'Name and description') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="identity">✏️</button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.name', 'Name') + '</div><div class="mb-2">' + safeText(project.title || '—') + '</div>'
-        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</div><div class="mb-2">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</div><div class="mb-2 crm-project-description-readonly">' + renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="identity">'
         + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.project_name', 'Project name') + '</label><input class="form-control" name="title" maxlength="255" value="' + safeText(project.title || '') + '"></div>'
-        + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</label><textarea class="form-control" name="description" rows="4">' + safeText(project.description || '') + '</textarea></div>'
+        + '<div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.pab.description', 'Description') + '</label><textarea class="form-control" name="description" rows="4" data-crm-visual-editor="1" data-richtext-off="1">' + safeText(project.description || '') + '</textarea></div>'
         + '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn btn-sm btn-light" data-project-edit-cancel="identity">' + window.CRM.i18n.t('js.pab.cancel', 'Cancel') + '</button></div>'
         + '</form>'
         + '</article></div>'
@@ -2368,12 +2405,18 @@ window.CRM.pageApiBindings = (function () {
         + '</article></div>'
         + '</div>';
 
+      hydrateVisualEditorReadonly(blocksWrap);
+
       blocksWrap.querySelectorAll('[data-project-edit-open]').forEach(function (button) {
         button.addEventListener('click', function () {
           var section = String(button.getAttribute('data-project-edit-open') || '');
           if (!section) return;
           var form = blocksWrap.querySelector('[data-project-edit-form="' + section + '"]');
-          if (form) form.classList.remove('d-none');
+          if (form) {
+            form.classList.remove('d-none');
+            refreshVisualEditors(form, true);
+            window.setTimeout(function () { refreshVisualEditors(form, true); }, 120);
+          }
         });
       });
 
@@ -2395,7 +2438,7 @@ window.CRM.pageApiBindings = (function () {
           var body = { row_version: Number(project.row_version || 1) };
           if (section === 'identity') {
             body.title = String((form.querySelector('[name="title"]') || {}).value || '').trim();
-            body.description = String((form.querySelector('[name="description"]') || {}).value || '').trim();
+            body.description = String(getTextareaVisualEditorValue(form.querySelector('[name="description"]')) || '').trim();
           } else if (section === 'workflow') {
             body.status = String((form.querySelector('[name="status"]') || {}).value || 'new');
             body.priority = String((form.querySelector('[name="priority"]') || {}).value || 'normal');
