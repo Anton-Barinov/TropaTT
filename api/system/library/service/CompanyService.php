@@ -37,7 +37,7 @@ final class CompanyService
         [$items, $total, $page, $limit] = $this->counterparties->list($filters);
 
         return [
-            'items' => $items,
+            'items' => array_map(fn(array $item): array => $this->publicCompany($item), $items),
             'meta' => [
                 'pagination' => [
                     'page' => $page,
@@ -60,7 +60,7 @@ final class CompanyService
             return null;
         }
 
-        return $item;
+        return $this->publicCompany($item);
     }
 
     public function create(array $input, array $actor): array
@@ -73,12 +73,16 @@ final class CompanyService
             'counterparty_type' => self::COMPANY_COUNTERPARTY_TYPE,
             'title' => trim((string)$input['title']),
             'status' => trim((string)($input['status'] ?? 'active')) ?: 'active',
+            'tax_inn' => trim((string)($input['tax_number'] ?? $input['tax_inn'] ?? '')),
+            'email' => trim((string)($input['email'] ?? '')),
             'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        return $this->counterparties->findByPublicId($publicId) ?: ['public_id' => $publicId];
+        $created = $this->counterparties->findByPublicId($publicId) ?: ['public_id' => $publicId];
+
+        return $this->publicCompany($created);
     }
 
     public function update(string $publicId, array $input, array $actor): ?array
@@ -99,12 +103,20 @@ final class CompanyService
         if (array_key_exists('status', $input)) {
             $set['status'] = trim((string)$input['status']) ?: 'active';
         }
+        if (array_key_exists('tax_number', $input) || array_key_exists('tax_inn', $input)) {
+            $set['tax_inn'] = trim((string)($input['tax_number'] ?? $input['tax_inn'] ?? ''));
+        }
+        if (array_key_exists('email', $input)) {
+            $set['email'] = trim((string)$input['email']);
+        }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
         $this->counterparties->updateByPublicId($publicId, $set);
         $this->semanticIndex?->removeEntityDocument('company', $publicId);
 
-        return $this->counterparties->findByPublicId($publicId);
+        $updated = $this->counterparties->findByPublicId($publicId);
+
+        return $updated === null ? null : $this->publicCompany($updated);
     }
 
     public function delete(string $publicId, array $actor): bool
@@ -147,6 +159,18 @@ final class CompanyService
         }
 
         return $this->hierarchy->isAncestor($actorId, $creatorId);
+    }
+
+    /**
+     * Keeps the legacy companies API compatible with the counterparty-backed storage.
+     */
+    private function publicCompany(array $item): array
+    {
+        if (!array_key_exists('tax_number', $item) || (string)$item['tax_number'] === '') {
+            $item['tax_number'] = (string)($item['tax_inn'] ?? '');
+        }
+
+        return $item;
     }
 
     private function accessScope(array $actor): array
