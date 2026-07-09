@@ -1157,6 +1157,12 @@ return array (
           'teams' => '团队',
           'projects' => '项目',
           'calendar' => '日历',
+          'approvals' => '审批',
+          'chat' => '聊天',
+          'knowledge' => '知识库',
+          'mentions' => '提及',
+          'reminders' => '提醒',
+          'workflow' => '自动化',
           'system' => '系统',
         ),
         'actions' => 

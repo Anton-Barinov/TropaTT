@@ -2369,6 +2369,12 @@ return array (
           'teams' => 'Equipes',
           'projects' => 'Projetos',
           'calendar' => 'Calendário',
+          'approvals' => 'Aprovações',
+          'chat' => 'Chats',
+          'knowledge' => 'Base de conhecimento',
+          'mentions' => 'Menções',
+          'reminders' => 'Lembretes',
+          'workflow' => 'Automação',
           'system' => 'Sistema',
         ),
         'actions' => 

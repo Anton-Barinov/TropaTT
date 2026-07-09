@@ -1258,6 +1258,12 @@ return array (
           'teams' => 'Teams',
           'projects' => 'Projects',
           'calendar' => 'Calendar',
+          'approvals' => 'Approvals',
+          'chat' => 'Chats',
+          'knowledge' => 'Knowledge base',
+          'mentions' => 'Mentions',
+          'reminders' => 'Reminders',
+          'workflow' => 'Automation',
           'system' => 'System',
         ),
         'actions' => 

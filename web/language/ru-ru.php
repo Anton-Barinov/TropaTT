@@ -1313,6 +1313,12 @@ return array (
           'teams' => 'Команды',
           'projects' => 'Проекты',
           'calendar' => 'Календарь',
+          'approvals' => 'Согласования',
+          'chat' => 'Чаты',
+          'knowledge' => 'База знаний',
+          'mentions' => 'Упоминания',
+          'reminders' => 'Напоминания',
+          'workflow' => 'Автоматизация',
           'system' => 'Система',
         ),
         'actions' => 
