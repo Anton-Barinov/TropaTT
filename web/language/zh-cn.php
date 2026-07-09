@@ -80,6 +80,8 @@ return array (
     'system_actor' => '系统',
     'reminder_fired_for_task' => '任务提醒已触发',
     'reminder_fired_scheduled' => '计划提醒已触发',
+    'task_overdue' => '任务已逾期',
+    'task_overdue_body' => '任务',
   ),
   'ideas' => 
   array (
