@@ -4020,7 +4020,7 @@ window.CRM.pageApiBindings = (function () {
       var kpiBadges = document.querySelectorAll('.crm-dashboard-kpi .crm-badge');
       if (kpiBadges[0]) {
         kpiBadges[0].className = 'crm-badge active';
-        kpiBadges[0].textContent = Number(summary.tasks_today || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_has_focus', 'Has focus') : window.CRM.i18n.t('js.pab.kpi_no_tasks', 'No tasks');
+        kpiBadges[0].textContent = Number(summary.active_tasks || 0) > 0 ? window.CRM.i18n.t('js.pab.kpi_has_focus', 'Has focus') : window.CRM.i18n.t('js.pab.kpi_no_active', 'No active');
       }
       if (kpiBadges[1]) {
         kpiBadges[1].className = 'crm-badge ' + (Number(summary.overdue_tasks || 0) > 0 ? 'overdue' : 'success');
