@@ -2373,6 +2373,12 @@ return array (
           'teams' => 'Teams',
           'projects' => 'Projekte',
           'calendar' => 'Kalender',
+          'approvals' => 'Freigaben',
+          'chat' => 'Chats',
+          'knowledge' => 'Wissensdatenbank',
+          'mentions' => 'Erwähnungen',
+          'reminders' => 'Erinnerungen',
+          'workflow' => 'Automatisierung',
           'system' => 'System',
         ),
         'actions' => 

@@ -6401,6 +6401,12 @@ window.CRM.pageApiBindings = (function () {
       teams: tp('notifications.categories.teams', 'Teams'),
       projects: tp('notifications.categories.projects', 'Projects'),
       calendar: tp('notifications.categories.calendar', 'Calendar'),
+      approvals: tp('notifications.categories.approvals', 'Approvals'),
+      chat: tp('notifications.categories.chat', 'Chats'),
+      knowledge: tp('notifications.categories.knowledge', 'Knowledge base'),
+      mentions: tp('notifications.categories.mentions', 'Mentions'),
+      reminders: tp('notifications.categories.reminders', 'Reminders'),
+      workflow: tp('notifications.categories.workflow', 'Automation'),
       system: tp('notifications.categories.system', 'System')
     };
     var key = String(category || 'system').trim();
