@@ -6747,10 +6747,19 @@ window.CRM.pageApiBindings = (function () {
     var hasError = false;
 
     try {
-      var envelope = await tryRequest('api/v1/notifications', { query: { limit: 7 } });
+      var notificationResponses = await Promise.all([
+        tryRequest('api/v1/notifications', { query: { limit: 7 } }),
+        tryRequest('api/v1/notifications/counters', { silent: true })
+      ]);
+      var envelope = notificationResponses[0];
+      var countersEnvelope = notificationResponses[1];
+      var counters = countersEnvelope && countersEnvelope.data && countersEnvelope.data.counters;
+      var countersUnread = Number(counters && counters.unread);
 
       items = mapItems(envelope);
-      unread = items.filter(function (item) { return !item.is_read; }).length;
+      unread = Number.isFinite(countersUnread)
+        ? Math.max(0, countersUnread)
+        : items.filter(function (item) { return !item.is_read; }).length;
     } catch (error) {
       hasError = true;
     }
@@ -6840,9 +6849,11 @@ window.CRM.pageApiBindings = (function () {
         navLink.appendChild(navBadge);
       }
       if (unread > 0) {
-        navBadge.textContent = String(unread);
+        navBadge.textContent = unread > 99 ? '99+' : String(unread);
+        navBadge.setAttribute('aria-label', tp('notifications.aria_with_count_prefix', 'Notifications (') + unread + ')');
         navBadge.style.display = 'inline-block';
       } else {
+        navBadge.setAttribute('aria-label', '');
         navBadge.style.display = 'none';
       }
     }
