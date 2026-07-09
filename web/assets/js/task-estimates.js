@@ -82,7 +82,7 @@ window.CRM.taskEstimates = (function () {
     if (!container) return;
 
     if (!estimates.length) {
-      container.innerHTML = '<div class="text-muted small">' + esc(t('task_estimates.empty', 'No estimates assigned')) + '</div>';
+      container.innerHTML = '<div class="text-muted small">' + esc(t('task_detail.estimates_empty', 'Оценок пока нет')) + '</div>';
       return;
     }
 

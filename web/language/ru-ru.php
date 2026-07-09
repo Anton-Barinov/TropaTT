@@ -2889,7 +2889,7 @@ return array (
     'history_loading' => 'Загрузка...',
     'timer_eyebrow' => 'Таймер',
     'timer_title' => 'Таймер задачи',
-    'timer_running_label' => 'Таймер задачи запущен',
+    'timer_running_label' => 'Таймер работы по задаче',
     'timer_not_started' => 'Таймер не запущен',
     'timer_start_btn' => 'Начать работу',
     'timer_stop_btn' => 'Стоп',
