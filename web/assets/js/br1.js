@@ -992,25 +992,8 @@ window.CRM.br1 = (function () {
     });
   }
 
-  // Persistent logger that sends logs to server file
-  function plog(msg) {
-    var entry = { t: Date.now(), m: msg };
-    console.log('[BR1]', msg);
-    // Send to server for file logging
-    try {
-      navigator.sendBeacon(
-        '/api/index.php?route=api/v1/telemetry/login-debug',
-        new Blob([JSON.stringify(entry)], { type: 'application/json' })
-      );
-    } catch(e) {}
-    // Also store in localStorage as backup
-    try {
-      var logs = JSON.parse(localStorage.getItem('crm_login_debug') || '[]');
-      logs.push(entry);
-      if (logs.length > 50) logs = logs.slice(-50);
-      localStorage.setItem('crm_login_debug', JSON.stringify(logs));
-    } catch(e) {}
-  }
+  // Login diagnostics must never persist credentials or authentication metadata.
+  function plog() {}
 
   function showLoginError(message) {
     var errorNode = document.getElementById('loginError');
@@ -1382,16 +1365,13 @@ window.CRM.br1 = (function () {
   }
 
   async function hydrateSessionUi() {
-    console.log('BR1: Starting hydrateSessionUi...');
     var cachedUser = window.CRM.api.getUser();
     if (cachedUser) {
       setSessionUiUser(cachedUser);
       currentUserPublicId = cachedUser.public_id ? String(cachedUser.public_id) : '';
-      console.log('BR1: Using cached user:', cachedUser);
     }
 
     if (document.body.dataset.protected !== '1') {
-      console.log('BR1: Not protected page, skipping me() call');
       return;
     }
 
@@ -7074,17 +7054,14 @@ window.CRM.br1 = (function () {
   }
 
   function init() {
-    console.log('[BR1] init starting, page:', document.body.dataset.page);
     initLoginFlow();
     initPasswordResetRequestFlow();
     initPasswordResetConfirmFlow();
     initInvitationAcceptFlow();
 
     if (!window.CRM.api) {
-      console.log('CRM API not available');
       return;
     }
-    console.log('CRM API available, proceeding with init');
 
     bindLogoutButtons();
     enhanceFileInputs(document);
