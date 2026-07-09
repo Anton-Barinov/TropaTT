@@ -23054,7 +23054,7 @@ window.CRM.pageApiBindings = (function () {
         tr.appendChild(titleTd);
 
         var taxTd = document.createElement('td');
-        taxTd.textContent = String(item.tax_number || '');
+        taxTd.textContent = String(item.tax_number || item.tax_inn || '');
         tr.appendChild(taxTd);
 
         var emailTd = document.createElement('td');
@@ -23062,7 +23062,7 @@ window.CRM.pageApiBindings = (function () {
         tr.appendChild(emailTd);
 
         var statusTd = document.createElement('td');
-        statusTd.textContent = String(item.status || '');
+        statusTd.textContent = companyStatusLabel(item.status);
         tr.appendChild(statusTd);
 
         var actionTd = document.createElement('td');
@@ -23088,6 +23088,16 @@ window.CRM.pageApiBindings = (function () {
       table.appendChild(tbody);
       wrap.appendChild(table);
       list.appendChild(wrap);
+    }
+
+    function companyStatusLabel(value) {
+      var status = String(value || '').trim().toLowerCase();
+      var labels = {
+        active: tp('clients.status_active', 'Active'),
+        inactive: tp('clients.status_inactive', 'Inactive'),
+        archived: tp('clients.status_archived', 'Archived')
+      };
+      return labels[status] || String(value || '—');
     }
 
     async function loadCompanies() {
