@@ -94,6 +94,8 @@ return array (
     'system_actor' => 'Система',
     'reminder_fired_for_task' => 'Сработало напоминание по задаче',
     'reminder_fired_scheduled' => 'Сработало запланированное напоминание',
+    'task_overdue' => 'Задача просрочена',
+    'task_overdue_body' => 'Задача',
   ),
   'ideas' => 
   array (

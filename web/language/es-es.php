@@ -3790,6 +3790,8 @@ return array (
     'system_actor' => 'System',
     'reminder_fired_for_task' => 'Reminder triggered for task',
     'reminder_fired_scheduled' => 'Scheduled reminder triggered',
+    'task_overdue' => 'Tarea vencida',
+    'task_overdue_body' => 'Tarea',
   ),
   'modals' => 
   array (
