@@ -4080,7 +4080,7 @@ return array (
     'card_jobs_title' => 'Задания / импорт / экспорт',
     'card_jobs_desc' => 'Очередь задач импорта, экспорта и фоновых AI-заданий.',
     'card_ai_title' => 'AI-интеграция',
-    'card_ai_desc' => 'LLM-провайдеры, секреты доступа и retention policy.',
+    'card_ai_desc' => 'LLM-провайдеры, секреты доступа и политика хранения данных.',
     'card_modules_title' => 'Модули',
     'card_modules_desc' => 'Установка, активация и управление модулями расширения.',
     'kpi_services_label' => 'Сервисы онлайн',
