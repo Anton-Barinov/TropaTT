@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 /**
- * Integration test runner for new modules (Sticky Notes, Project Modules, etc.)
+ * Integration test runner for repository integration coverage.
  * Usage: php scripts/test_runner.php [group]
  *
  * Groups:
- *   all       - Run all module integration tests
+ *   all       - Run all available integration tests
  *   sticky    - Run only Sticky Notes tests
  *   modules   - Run only Project Modules tests
  *   fast      - Same as 'all'
@@ -50,6 +50,11 @@ function extractResultSummary(string $output): array
     } elseif (preg_match('/(\d+)\s+passed,\s*(\d+)\s+failed/i', $output, $m)) {
         $passed = (int)$m[1];
         $failed = (int)$m[2];
+    } elseif (preg_match('/Passed:\s*(\d+)\s*\R\s*Failed:\s*(\d+)/i', $output, $m)) {
+        $passed = (int)$m[1];
+        $failed = (int)$m[2];
+    } elseif (preg_match('/All tests passed!/i', $output) === 1) {
+        $passed = preg_match_all('/\bPASS:/', $output);
     }
 
     return ['passed' => $passed, 'failed' => $failed];
@@ -67,9 +72,24 @@ $groups = [
         'label' => 'Project Modules',
         'files' => [$testsDir . '/ProjectModuleIntegrationTest.php'],
     ],
+    'knowledge' => [
+        'label' => 'Knowledge Page Versions',
+        'files' => [$testsDir . '/KnowledgePageVersionIntegrationTest.php'],
+    ],
+    'cycles' => [
+        'label' => 'Work Cycles',
+        'files' => [$testsDir . '/WorkCycleIntegrationTest.php'],
+    ],
 ];
 
 $group = isset($_SERVER['argv'][1]) ? trim((string)$_SERVER['argv'][1]) : 'all';
+
+// Composer exposes these compatibility commands. The project currently uses a
+// single self-contained integration runner, so each alias executes its full
+// available coverage instead of failing with an unknown group.
+if (in_array($group, ['unit', 'integration', 'contract', 'openapi', 'e2e-web', 'live', 'full'], true)) {
+    $group = 'all';
+}
 
 if ($group === 'all' || $group === 'fast') {
     $selectedFiles = [];
@@ -84,7 +104,7 @@ if ($group === 'all' || $group === 'fast') {
     $label = strtoupper($groups[$group]['label']) . ' TESTS';
 } else {
     echo "Unknown group: {$group}\n";
-    echo "Available: all, fast, sticky, modules\n";
+    echo "Available: all, fast, sticky, modules, knowledge, cycles\n";
     exit(1);
 }
 
