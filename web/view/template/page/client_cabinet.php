@@ -51,7 +51,12 @@
               </div>
               <div class="col-md-2">
                 <label class="form-label" for="clientCabinetFilterStatus" data-i18n="client_cabinet.filter_status_label"><?= htmlspecialchars($t('client_cabinet.filter_status_label', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label>
-                <input class="form-control" id="clientCabinetFilterStatus" placeholder="<?= htmlspecialchars($t('client_cabinet.filter_status_placeholder', $t('clients.status_active', 'Активен')), ENT_QUOTES, 'UTF-8') ?>">
+                <select class="form-select" id="clientCabinetFilterStatus">
+                  <option value="" data-i18n="page.all_statuses"><?= htmlspecialchars($t('page.all_statuses', 'Все статусы'), ENT_QUOTES, 'UTF-8') ?></option>
+                  <option value="active" data-i18n="clients.status_active"><?= htmlspecialchars($t('clients.status_active', 'Активен'), ENT_QUOTES, 'UTF-8') ?></option>
+                  <option value="inactive" data-i18n="clients.status_inactive"><?= htmlspecialchars($t('clients.status_inactive', 'Неактивен'), ENT_QUOTES, 'UTF-8') ?></option>
+                  <option value="archived" data-i18n="clients.status_archived"><?= htmlspecialchars($t('clients.status_archived', 'Архив'), ENT_QUOTES, 'UTF-8') ?></option>
+                </select>
               </div>
               <div class="col-md-2 d-flex align-items-end">
                 <button class="btn crm-btn-muted w-100" type="button" id="clientCabinetFilterReset" data-i18n="page.reset"><?= htmlspecialchars($t('page.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
