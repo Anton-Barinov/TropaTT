@@ -1,5 +1,5 @@
 <?php declare(strict_types=1); ?>
-<?php $title = $t('intake.page_title', 'TropaTT — Входящие'); ?>
+<?php $title = $t('intake.title', 'TropaTT — Входящие'); ?>
 <body data-page="intake" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-intake-page">
