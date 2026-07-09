@@ -23018,7 +23018,13 @@ window.CRM.pageApiBindings = (function () {
     if (routeName() !== 'companies') return;
     var list = document.getElementById('companiesList');
     var createForm = document.getElementById('companiesCreateForm');
+    var editForm = document.getElementById('companyEditForm');
+    var editModalNode = document.getElementById('companyEditModal');
+    var editModal = editModalNode && window.bootstrap && window.bootstrap.Modal
+      ? window.bootstrap.Modal.getOrCreateInstance(editModalNode)
+      : null;
     var refreshBtn = document.getElementById('companiesRefreshBtn');
+    var companiesById = {};
     if (!list) return;
 
     function setListMessage(message, isError) {
@@ -23030,6 +23036,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function renderCompaniesTable(items) {
+      companiesById = {};
       list.textContent = '';
       var wrap = document.createElement('div');
       wrap.className = 'table-responsive';
@@ -23046,8 +23053,10 @@ window.CRM.pageApiBindings = (function () {
       table.appendChild(thead);
       var tbody = document.createElement('tbody');
       items.forEach(function (item) {
+        var publicId = String(item.public_id || '').trim();
+        if (publicId) companiesById[publicId] = item;
         var tr = document.createElement('tr');
-        tr.setAttribute('data-company-id', String(item.public_id || ''));
+        tr.setAttribute('data-company-id', publicId);
 
         var titleTd = document.createElement('td');
         titleTd.textContent = String(item.title || '');
@@ -23143,6 +23152,31 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    if (editForm && editForm.dataset.bound !== '1') {
+      editForm.dataset.bound = '1';
+      editForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var formData = new FormData(editForm);
+        var publicId = String(formData.get('public_id') || '').trim();
+        if (!publicId) return;
+        var payload = {
+          title: String(formData.get('title') || '').trim(),
+          status: String(formData.get('status') || '').trim(),
+          tax_number: String(formData.get('tax_number') || '').trim(),
+          email: String(formData.get('email') || '').trim()
+        };
+        try {
+          await request('api/v1/companies/' + encodeURIComponent(publicId), { method: 'PATCH', body: payload });
+          if (editModal) editModal.hide();
+          notify(tp('companies.updated', 'Company updated'));
+          await loadCompanies();
+        } catch (error) {
+          var updateError = window.CRM.api.normalizeError(error, tp('companies.update_fail', 'Failed to update company'));
+          notify(window.CRM.api.formatErrorMessage(updateError, { withRequestId: true }), 'error');
+        }
+      });
+    }
+
     if (list.dataset.bound !== '1') {
       list.dataset.bound = '1';
       list.addEventListener('click', async function (event) {
@@ -23165,23 +23199,22 @@ window.CRM.pageApiBindings = (function () {
         }
 
         if (event.target.closest('[data-company-edit]')) {
-          var titleCell = row.children[0];
-          var statusCell = row.children[3];
-          var nextTitle = window.prompt(tp('companies.prompt_title', 'Company name'), String(titleCell ? titleCell.textContent || '' : '').trim());
-          if (nextTitle === null) return;
-          var nextStatus = window.prompt(tp('companies.prompt_status', 'Status'), String(statusCell ? statusCell.textContent || '' : '').trim());
-          if (nextStatus === null) return;
-          try {
-            await request('api/v1/companies/' + encodeURIComponent(id), {
-              method: 'PATCH',
-              body: { title: String(nextTitle).trim(), status: String(nextStatus).trim() }
-            });
-            notify(tp('companies.updated', 'Company updated'));
-            await loadCompanies();
-          } catch (error) {
-            var updErr = window.CRM.api.normalizeError(error, tp('companies.update_fail', 'Failed to update company'));
-            notify(window.CRM.api.formatErrorMessage(updErr, { withRequestId: true }), 'error');
+          var company = companiesById[id];
+          if (!company || !editForm || !editModal) return;
+          var statusInput = editForm.querySelector('[name="status"]');
+          var status = String(company.status || 'active').trim();
+          if (statusInput && !Array.from(statusInput.options).some(function (option) { return option.value === status; })) {
+            var customStatus = document.createElement('option');
+            customStatus.value = status;
+            customStatus.textContent = companyStatusLabel(status);
+            statusInput.appendChild(customStatus);
           }
+          editForm.querySelector('[name="public_id"]').value = id;
+          editForm.querySelector('[name="title"]').value = String(company.title || '');
+          if (statusInput) statusInput.value = status;
+          editForm.querySelector('[name="tax_number"]').value = String(company.tax_number || company.tax_inn || '');
+          editForm.querySelector('[name="email"]').value = String(company.email || '');
+          editModal.show();
         }
       });
     }

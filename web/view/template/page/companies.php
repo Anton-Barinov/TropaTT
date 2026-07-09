@@ -22,5 +22,29 @@
   </div>
   <div id="companiesList"><div class="text-muted" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
 </section>
-</main></div></div>
+</main>
+
+<div class="modal fade" id="companyEditModal" tabindex="-1" aria-labelledby="companyEditModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="companyEditModalTitle" data-i18n="companies.edit_modal_title"><?= htmlspecialchars($t('companies.edit_modal_title', 'Редактировать компанию'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <form id="companyEditForm">
+        <div class="modal-body">
+          <input type="hidden" name="public_id">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label" for="companyEditTitle" data-i18n="companies.field_title"><?= htmlspecialchars($t('companies.field_title', 'Название *'), ENT_QUOTES, 'UTF-8') ?></label><input id="companyEditTitle" class="form-control" name="title" required maxlength="255"></div>
+            <div class="col-md-4"><label class="form-label" for="companyEditStatus" data-i18n="companies.field_status"><?= htmlspecialchars($t('companies.field_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label><select id="companyEditStatus" class="form-select" name="status"><option value="active" data-i18n="clients.status_active"><?= htmlspecialchars($t('clients.status_active', 'Активен'), ENT_QUOTES, 'UTF-8') ?></option><option value="inactive" data-i18n="clients.status_inactive"><?= htmlspecialchars($t('clients.status_inactive', 'Неактивен'), ENT_QUOTES, 'UTF-8') ?></option><option value="archived" data-i18n="clients.status_archived"><?= htmlspecialchars($t('clients.status_archived', 'Архив'), ENT_QUOTES, 'UTF-8') ?></option></select></div>
+            <div class="col-md-6"><label class="form-label" for="companyEditTaxNumber" data-i18n="companies.field_tax_number"><?= htmlspecialchars($t('companies.field_tax_number', 'ИНН'), ENT_QUOTES, 'UTF-8') ?></label><input id="companyEditTaxNumber" class="form-control" name="tax_number" maxlength="32"></div>
+            <div class="col-md-6"><label class="form-label" for="companyEditEmail" data-i18n="companies.field_email"><?= htmlspecialchars($t('companies.field_email', 'Email'), ENT_QUOTES, 'UTF-8') ?></label><input id="companyEditEmail" class="form-control" name="email" type="email" maxlength="190"></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div>
+      </form>
+    </div>
+  </div>
+</div>
+</div></div>
 </body>
