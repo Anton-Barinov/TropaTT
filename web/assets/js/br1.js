@@ -1164,17 +1164,8 @@ window.CRM.br1 = (function () {
   }
 
   async function initLoginFlow() {
-    console.log('[BR1] initLoginFlow called');
     var loginForm = document.getElementById('loginForm');
-    if (!loginForm) {
-      console.log('[BR1] loginForm not found');
-      return;
-    }
-    if (loginForm.dataset.crmLoginBound === '1') {
-      console.log('[BR1] loginForm already bound');
-      return;
-    }
-    console.log('[BR1] loginForm found, binding handlers');
+    if (!loginForm || loginForm.dataset.crmLoginBound === '1') return;
     var loginInput = loginForm.querySelector('[name="login"]') || loginForm.querySelector('[name="email"]');
 
     var localeSelect = loginForm.querySelector('[name="locale"]');
@@ -1209,18 +1200,14 @@ window.CRM.br1 = (function () {
     var submitBtn = loginForm.querySelector('button[type="submit"]') || loginForm.querySelector('button[type="button"]') || loginForm.querySelector('button');
 
     async function handleLogin(e) {
-      console.log('[BR1] handleLogin called, event type:', e ? e.type : 'direct');
       if (e) {
         e.preventDefault();
         e.stopPropagation();
       }
-      console.log('[BR1] checking CRM.api');
       if (!window.CRM.api || typeof window.CRM.api.login !== 'function') {
-        console.log('[BR1] CRM.api.login not available');
         showLoginError(window.CRM.i18n.t('js.br1.ne_udalos_initsializirovat_modul_avtorizatsii_obnovite_2', 'Не удалось инициализировать модуль авторизации. Обновите страницу (Ctrl+F5).'));
         return;
       }
-      console.log('[BR1] CRM.api.login available');
 
       var passInput = loginForm.querySelector('[name="password"]');
 
@@ -1229,23 +1216,18 @@ window.CRM.br1 = (function () {
       var locale = localeSelect ? String(localeSelect.value || '').trim().toLowerCase() : '';
 
       if (!login || !password) {
-        console.log('[BR1] credentials missing');
         showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol_2', 'Введите логин и пароль.'));
         return;
       }
       try {
-        console.log('[BR1] calling CRM.api.login...');
         await window.CRM.api.login(login, password, locale);
-        console.log('[BR1] login successful, calling CRM.api.me...');
         await window.CRM.api.me();
-        console.log('[BR1] me() successful, redirecting');
         notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen_2', 'Вход выполнен'));
 
         var query = new URLSearchParams(window.location.search);
         var returnRoute = query.get('return_route') || query.get('redirect');
         window.location.href = withQuery(returnRoute || 'dashboard');
       } catch (error) {
-        console.log('[BR1] login error:', error);
         var normalized = window.CRM.api && typeof window.CRM.api.normalizeError === 'function'
           ? window.CRM.api.normalizeError(error, window.CRM.i18n.t('js.br1.oshibka_vkhoda_4', 'Ошибка входа'))
           : { message: window.CRM.i18n.t('js.br1.oshibka_vkhoda_5', 'Ошибка входа'), fieldErrors: {} };
@@ -1261,15 +1243,10 @@ window.CRM.br1 = (function () {
     // Bind click handler on submit button (most reliable)
     if (submitBtn) {
       submitBtn.addEventListener('click', handleLogin, true);
-      submitBtn.addEventListener('mousedown', function(e) {
-        console.log('[BR1] submit button mousedown');
-      });
-      console.log('[BR1] button click handler bound');
     }
 
     // Also bind form submit as backup
     loginForm.addEventListener('submit', handleLogin, true);
-    console.log('[BR1] form submit handler bound');
     loginForm.dataset.crmLoginBound = '1';
   }
 
