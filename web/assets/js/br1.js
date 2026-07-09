@@ -1067,8 +1067,6 @@ window.CRM.br1 = (function () {
       var login = loginInput ? loginInput.value.trim() : '';
       var password = passInput ? passInput.value.trim() : '';
       var locale = localeSelect ? String(localeSelect.value || '').trim().toLowerCase() : '';
-      plog('login: ' + login + ' password length: ' + password.length);
-
       if (!login || !password) {
         plog('login or password empty');
         showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol', 'Введите логин и пароль.'));
