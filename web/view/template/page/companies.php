@@ -8,7 +8,7 @@
 <section class="crm-card crm-section-card mb-3">
   <form id="companiesCreateForm" class="row g-2">
     <div class="col-md-3"><label class="form-label" data-i18n="companies.field_title"><?= htmlspecialchars($t('companies.field_title', 'Название *'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="title" required maxlength="255"></div>
-    <div class="col-md-2"><label class="form-label" data-i18n="companies.field_status"><?= htmlspecialchars($t('companies.field_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="status" maxlength="64" placeholder="active"></div>
+    <div class="col-md-2"><span class="form-label d-block" data-i18n="companies.field_status"><?= htmlspecialchars($t('companies.field_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-badge success" data-i18n="clients.status_active"><?= htmlspecialchars($t('clients.status_active', 'Активен'), ENT_QUOTES, 'UTF-8') ?></span><input type="hidden" name="status" value="active"></div>
     <div class="col-md-2"><label class="form-label" data-i18n="companies.field_tax_number"><?= htmlspecialchars($t('companies.field_tax_number', 'ИНН'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="tax_number" maxlength="32"></div>
     <div class="col-md-3"><label class="form-label" data-i18n="companies.field_email"><?= htmlspecialchars($t('companies.field_email', 'Email'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="email" maxlength="190"></div>
     <div class="col-md-2 d-flex align-items-end"><button class="btn crm-btn-primary w-100" type="submit" data-i18n="page.create"><?= htmlspecialchars($t('page.create', 'Создать'), ENT_QUOTES, 'UTF-8') ?></button></div>

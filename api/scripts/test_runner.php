@@ -80,6 +80,10 @@ $groups = [
         'label' => 'Work Cycles',
         'files' => [$testsDir . '/WorkCycleIntegrationTest.php'],
     ],
+    'companies' => [
+        'label' => 'Company Compatibility',
+        'files' => [$testsDir . '/CompanyCompatibilityTest.php'],
+    ],
 ];
 
 $group = isset($_SERVER['argv'][1]) ? trim((string)$_SERVER['argv'][1]) : 'all';
@@ -104,7 +108,7 @@ if ($group === 'all' || $group === 'fast') {
     $label = strtoupper($groups[$group]['label']) . ' TESTS';
 } else {
     echo "Unknown group: {$group}\n";
-    echo "Available: all, fast, sticky, modules, knowledge, cycles\n";
+    echo "Available: all, fast, sticky, modules, knowledge, cycles, companies\n";
     exit(1);
 }
 
