@@ -5582,7 +5582,8 @@ return array (
   ),
   'intake' => 
   array (
-    'page_title' => 'TropaTT — Intake',
+    'title' => 'TropaTT — Intake',
+    'page_title' => 'Intake',
     'subtitle' => 'Collect and process incoming requests: capture, triage, accept into task or reject.',
     'filter_all_statuses' => 'All statuses',
     'filter_all_sources' => 'All sources',

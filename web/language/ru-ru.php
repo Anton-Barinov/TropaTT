@@ -5610,7 +5610,7 @@ return array (
   'intake' => 
   array (
     'title' => 'TropaTT — Входящие',
-    'page_title' => 'TropaTT — Входящие',
+    'page_title' => 'Входящие',
     'subtitle' => 'Сбор и обработка входящих заявок: фиксация, triage, принятие в задачу или отклонение.',
     'filter_all_statuses' => 'Все статусы',
     'filter_all_sources' => 'Все источники',
