@@ -1,0 +1,620 @@
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:56:    listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.loading', 'Загрузка...')) + '</small></div>';
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:60:      listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.api_not_available', 'API not available')) + '</small></div>';
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:68:          listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.empty', 'История пока пуста. Новые изменения по задаче появятся здесь.')) + '</small></div>';
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:107:        listEl.innerHTML = '<div class="crm-timeline-item text-muted"><small>' + escapeActivityText(t('task_activity.load_error', 'Ошибка загрузки истории')) + '</small></div>';
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:113:      listEl.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/task/task-activity.js:135:    el.innerHTML =
+/Users/bps/sites/crm.ru/web/assets/js/modals.js:5:    document.body.insertAdjacentHTML('beforeend', '\
+/Users/bps/sites/crm.ru/web/assets/js/modals.js:124:    document.body.insertAdjacentHTML('beforeend', buildOverlays());
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:93:    template.innerHTML = String(rawHtml || '');
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:139:    return normalizeEmpty(template.innerHTML.trim());
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:161:    var cleanHtml = sanitizeHtml(editor.innerHTML);
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:167:    editor.innerHTML = htmlFromTextareaValue(textarea.value || '');
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:181:    toolbar.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:211:    editor.innerHTML = htmlFromTextareaValue(textarea.value || '');
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:254:      var current = sanitizeHtml(editor.innerHTML);
+/Users/bps/sites/crm.ru/web/assets/js/richtext.js:256:        editor.innerHTML = next;
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:26:    return d.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:33:      tmp.innerHTML = text;
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:135:      el.innerHTML = '<option value="">' + (el.id === 'projectModuleProject' ? esc(t('project_modules.option_select_project', 'Выберите проект...')) : esc(t('project_modules.filter_all_projects', 'Все проекты'))) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:150:    el.innerHTML = '<option value="">' + esc(t('project_modules.option_no_lead', 'Не назначен')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:163:    body.innerHTML = '<tr><td colspan="8" class="text-muted">' + esc(t('page.loading', 'Загрузка...')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:176:        body.innerHTML = '<tr><td colspan="8" class="text-muted">' + esc(t('project_modules.load_error', 'Ошибка загрузки модулей')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:186:      body.innerHTML = '<tr><td colspan="8" class="text-muted">' + esc(t('project_modules.no_modules', 'Нет модулей. Создайте первый модуль.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/project-modules.js:190:    body.innerHTML = items.map(function (m) {
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:25:    return d.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:59:    list.innerHTML = '<div class="col-12 text-muted small">' + esc(t('dashboard.sticky_notes_loading', 'Загрузка заметок...')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:67:        list.innerHTML = '<div class="col-12 text-muted small">' + esc(t('dashboard.sticky_notes_error', 'Не удалось загрузить заметки')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:77:      list.innerHTML = '<div class="col-12 crm-empty-state py-2"><p class="mb-2 small">' + esc(t('dashboard.sticky_notes_empty', 'Пока нет заметок')) + '</p><button class="btn crm-btn-primary btn-sm" id="stickyNoteEmptyAddBtn">' + esc(t('dashboard.sticky_notes_add', '+ Добавить заметку')) + '</button></div>';
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:90:    list.innerHTML = items.map(function (note) {
+/Users/bps/sites/crm.ru/web/assets/js/sticky-notes.js:248:    document.body.insertAdjacentHTML('beforeend', html);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:164:    template.innerHTML = String(rawHtml);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:272:    var result = template.innerHTML.trim();
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:478:      b.innerHTML = label;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:596:    editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:608:    editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:626:    editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:678:    editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:693:    editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:839:      editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:979:      editorInstance._history.push(editorInstance._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1026:    this._history.push(this._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1061:    emptyActions.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1134:      btn.innerHTML = label;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1154:        self._history.push(self._content.innerHTML, false);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1280:      self._history.push(content.innerHTML, false);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1389:        p.innerHTML = '<br>';
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1393:        self._history.push(self._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1459:        temp.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1475:        html = temp.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1482:        self._history.push(self._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1492:      self._history.push(self._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1526:      this._content.innerHTML = '<p><br></p>';
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1528:      this._content.innerHTML = this._fromOutputHtml(value);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1530:      this._content.innerHTML = htmlToParagraphs(value);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1542:    this._history.push(this._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1595:    container.innerHTML = this._content.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1636:      if (caption && caption.style.display !== 'none' && caption.innerHTML.trim()) {
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1638:        outCaption.innerHTML = caption.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1645:    return sanitizeHtml(container.innerHTML);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1652:    container.innerHTML = sanitizeHtml(html);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1685:        if (caption && caption.innerHTML.trim()) {
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1686:          blockCaption.innerHTML = caption.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1711:    return container.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1725:      this._content.innerHTML = this._fromOutputHtml(html);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1727:      this._content.innerHTML = htmlToParagraphs(html);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1730:    this._history.push(this._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1756:    this._content.innerHTML = '<p><br></p>';
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1760:    this._history.push(this._content.innerHTML, true);
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1801:    var current = this._content.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1804:      this._content.innerHTML = prev;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1812:    var current = this._content.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/visual-editor.js:1815:      this._content.innerHTML = next;
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:218:      container.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.search_no_results', 'Nothing found') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:222:    container.innerHTML = results.slice(0, 12).map(function (item, index) {
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:267:      container.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.ai_no_results', 'AI found nothing') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:271:    container.innerHTML = results.slice(0, 12).map(function (item, index) {
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:300:    nav.innerHTML = topLevel.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:344:    nav.innerHTML = topLevel.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:391:      brand.insertAdjacentHTML('beforeend', sidebarToggleMarkup());
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:409:      toggle.innerHTML = sidebarCollapsed ? icon('chevronRight') : icon('chevronLeft');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:436:    if (iconSlot) iconSlot.innerHTML = icon('search');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:450:      toggleBtn.innerHTML = icon('menu');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:456:      if (sidebarToggle && !sidebarToggle.querySelector('i')) sidebarToggle.innerHTML = icon('menu');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:461:      bar.insertAdjacentHTML('beforeend', '<div class="input-group" data-global-search><span class="input-group-text">' + icon('search') + '</span><input class="form-control" placeholder="' + t('topbar.search_placeholder', 'Search') + '"></div>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:490:      right.insertAdjacentHTML('afterbegin', '<button class="btn crm-btn-ghost crm-btn-icon" data-search-toggle aria-label="' + t('topbar.open_search', 'Open search') + '" title="' + t('topbar.search_title', 'Search') + '">' + icon('search') + '</button>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:494:      existingSearchToggle.innerHTML = icon('search');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:498:      right.insertAdjacentHTML('beforeend', '<a class="btn crm-btn-ghost crm-btn-icon position-relative" data-global-chat href="index.php?route=chat" aria-label="' + t('nav.chats', 'Chats') + '" title="' + t('nav.chats', 'Chats') + '">' + icon('chat') + '<span class="crm-topbar-badge d-none" data-chat-unread-badge aria-label=""></span></a>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:502:      right.insertAdjacentHTML('beforeend', '<button class="btn crm-btn-ghost crm-btn-icon" data-global-notifications data-bs-toggle="popover" data-bs-html="true" data-bs-content="<div class=\'text-muted small\'>...</div>" aria-label="' + t('topbar.notifications', 'Notifications') + '">' + icon('bell') + '</button>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:506:      existingNotify.innerHTML = icon('bell');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:510:      right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-profile-dropdown><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">' + t('topbar.user_fallback', 'User') + '</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">' + t('topbar.profile', 'Profile') + '</a></li><li><a class="dropdown-item" href="index.php?route=notifications">' + t('topbar.notifications', 'Notifications') + '</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">' + t('topbar.logout', 'Logout') + '</button></li></ul></div>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:653:      modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-4"><div class="input-group input-group-lg"><span class="input-group-text"><span class="crm-icon crm-input-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span></span><input class="form-control" id="globalSearchModalInput" placeholder="' + t('topbar.search_placeholder', 'Search') + '" autocomplete="off" autofocus></div></div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:779:        dropdown.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:784:      dropdown.innerHTML = '<div class="dropdown-item-text text-muted small">' + t('nav.search_loading', 'Searching...') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:809:        dropdown.innerHTML = '<div class="dropdown-item-text text-danger small">' + escapeHtml(message) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1049:    btn.innerHTML = '<span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>'
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1097:    modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1212:      customList.insertAdjacentHTML('beforeend', rowHtml);
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1217:        listContainer.insertAdjacentHTML('afterend', separator + '<div class="crm-menu-customize-list" data-menu-customize-custom-list>' + rowHtml + '</div>');
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1307:      listEl.innerHTML = listHtml;
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1312:      customList.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1325:      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + escapeHtml(t('common.saving', 'Saving...'));
+/Users/bps/sites/crm.ru/web/assets/js/navigation.js:1342:        saveBtn.innerHTML = escapeHtml(t('common.save', 'Save'));
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:510:    document.body.insertAdjacentHTML('beforeend', '\
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:598:          errorNode.innerHTML = escapeHtml(message) + '<div class="mt-1"><a href="index.php?route=admin-ai">' + t('js.ai.open_ai_settings', 'Open AI settings') + '</a></div>';
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:610:      summaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>' + t('js.ai.loading_message', 'Request to AI in progress...') + '</span></div>';
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:770:      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + escapeHtml(fallbackText || '—') + '</p></div>';
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:774:    node.innerHTML = '<ul class="mb-0 ps-3">' + items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:782:      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + t('js.ai.actions_placeholder', 'No actions.') + '</p></div>';
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:786:    node.innerHTML = actions.map(function (action, index) {
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:808:      node.innerHTML = '<div class="crm-empty-state"><p class="mb-0">' + t('js.ai.diff_placeholder', 'No preview.') + '</p></div>';
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:818:    node.innerHTML = '<div class="vstack gap-2">' + actions.map(function (action, index) {
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:896:      summaryNode.innerHTML = '<strong>' + escapeHtml(String(payload.summary || suggestion.summary || t('js.ai.drawer_title', 'AI Suggestion'))) + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/ai.js:921:      sourceNode.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/saved-views.js:37:    return div.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/saved-views.js:170:      listEl.innerHTML = '<div class="dropdown-item text-muted small" style="cursor:default">' + esc(t('saved_views.loading', 'Загрузка...')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/saved-views.js:184:            listEl.innerHTML = '<div class="dropdown-item text-muted small" style="cursor:default">' + esc(t('saved_views.load_error', 'Ошибка загрузки')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/saved-views.js:201:      listEl.innerHTML = '<div class="dropdown-item text-muted small" style="cursor:default">' + esc(t('saved_views.empty', 'Нет сохранённых представлений')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/saved-views.js:222:    listEl.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:80:    listEl.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:81:    paginationEl.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:132:      container.innerHTML = '<div class="crm-cycle-command-text"><strong>' + t('cycles.command_title', 'Фокус по циклам') + '</strong><span>' + t('cycles.loading', 'Загрузка...') + '</span></div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:147:          container.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:164:      container.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:198:    container.innerHTML =
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:237:    card.innerHTML =
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:437:        document.getElementById('completeCycleSummary').innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:440:        document.getElementById('completeCycleSummary').innerHTML = '<p class="text-muted">' + t('cycles.error_load_summary', 'Не удалось загрузить сводку.') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:495:        document.getElementById('cycleOverviewContent').innerHTML = '<div class="text-danger">' + t('cycles.error_load_detail', 'Ошибка загрузки данных цикла.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:542:    document.getElementById('cycleOverviewContent').innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:549:    container.innerHTML =
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:561:    container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-muted" style="width:1.5rem;height:1.5rem;"><span class="visually-hidden">' + t('cycles.loading', 'Загрузка...') + '</span></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:567:          container.innerHTML = '<div class="text-center py-3 text-muted"><p>' + t('cycles.no_tasks', 'Нет задач в этом цикле.') + '</p>' +
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:584:        container.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:587:        container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_tasks', 'Ошибка загрузки задач.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:627:        container.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:630:        container.innerHTML = '<div class="text-danger">' + t('cycles.error_load_stats', 'Ошибка загрузки статистики.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:640:    document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.search_placeholder_min', 'Введите поисковый запрос') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:665:          document.getElementById('addTaskResults').innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.search_min_chars', 'Введите минимум 2 символа') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:685:          container.innerHTML = '<div class="text-center text-muted py-3">' + t('cycles.tasks_not_found', 'Задачи не найдены') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:700:        container.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:703:        document.getElementById('addTaskResults').innerHTML = '<div class="text-danger">' + t('cycles.error_search', 'Ошибка поиска.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:752:    sel.innerHTML = '<option value="">' + t('cycles.loading', 'Загрузка...') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:756:        sel.innerHTML = '<option value="">' + t('cycles.select_project', 'Выберите проект') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:764:      .catch(function () { sel.innerHTML = '<option value="">' + t('cycles.error_title', 'Ошибка загрузки') + '</option>'; });
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:769:    sel.innerHTML = '<option value="">' + t('cycles.no_lead', 'Не назначен') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:786:    sel.innerHTML = '<option value="">' + t('cycles.loading', 'Загрузка...') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:790:        sel.innerHTML = '<option value="">' + t('cycles.select_cycle', 'Выберите цикл') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:800:      .catch(function () { sel.innerHTML = '<option value="">' + t('cycles.error_title', 'Ошибка загрузки') + '</option>'; });
+/Users/bps/sites/crm.ru/web/assets/js/work-cycles.js:818:        sel.innerHTML = '<option value="">' + t('cycles.filter_all_projects', 'Все проекты') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:20:    return d.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:68:    container.innerHTML = '<div class="text-muted small">' + esc(t('page.loading', 'Loading...')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:76:        container.innerHTML = '<div class="text-muted small">' + esc(t('task_estimates.load_error', 'Error loading estimates')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:85:      container.innerHTML = '<div class="text-muted small">' + esc(t('task_detail.estimates_empty', 'Оценок пока нет')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:89:    container.innerHTML = estimates.map(function (e) {
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:130:    select.innerHTML = '<option value="">' + esc(t('task_estimates.select_set', 'Select set...')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:131:    optionSelect.innerHTML = '<option value="">' + esc(t('task_estimates.select_option', 'Select option...')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:158:      optionSelect.innerHTML = '<option value="">' + esc(t('task_estimates.select_option', 'Select option...')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:163:    optionSelect.innerHTML = '<option value="">' + esc(t('page.loading', 'Loading...')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:169:        optionSelect.innerHTML = '<option value="">' + esc(t('task_estimates.select_option', 'Select option...')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/task-estimates.js:179:        optionSelect.innerHTML = '<option value="">' + esc(t('task_estimates.load_options_error', 'Error loading options')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:26:    return d.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:81:    body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('page.loading', 'Loading...')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:92:        body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('admin_estimates.load_error', 'Failed to load estimate sets')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:115:      body.innerHTML = '<tr><td colspan="6" class="text-muted">' + esc(t('admin_estimates.no_sets', 'No estimate sets found')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:119:    body.innerHTML = items.map(function (set) {
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:179:    document.getElementById('estimateSetOptionsList').innerHTML = '<div class="text-muted small">' + esc(t('admin_estimates.no_options', 'No options. Add at least one option.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:213:      list.innerHTML = '<div class="text-muted small">' + esc(t('admin_estimates.no_options', 'No options. Add at least one option.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:217:    list.innerHTML = options.map(function (opt, index) {
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:245:      list.innerHTML = '<div class="text-muted small">' + esc(t('admin_estimates.no_options', 'No options. Add at least one option.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/admin-estimates.js:263:    list.insertAdjacentHTML('beforeend', html);
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:71:    return div.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:245:    select.innerHTML = '<option value="">' + esc(firstLabel) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:319:    body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:472:      body.innerHTML = detailHtml(item) + '<div class="crm-intake-activity mt-3" id="intakeDetailActivities"><p class="text-muted small mb-0">' + esc(t('intake.loading_activities', 'Загрузка истории...')) + '</p></div>';
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:475:      footer.innerHTML = '<button type="button" class="btn btn-light" data-bs-dismiss="modal">' + esc(t('intake.btn_close', 'Закрыть')) + '</button>' + detailActions(item);
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:509:          holder.innerHTML = '<p class="text-muted small mb-0">' + esc(t('intake.activities_empty', 'История пока пустая')) + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:512:        holder.innerHTML = '<h6>' + esc(t('intake.activities_title', 'История')) + '</h6>'
+/Users/bps/sites/crm.ru/web/assets/js/intake.js:521:        holder.innerHTML = '<p class="text-muted small mb-0">' + esc(t('intake.activities_error', 'Историю загрузить не удалось.')) + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:269:    bar.innerHTML = '<div class="small fw-semibold mb-1">' + safeText(label || window.CRM.i18n.t('js.pab.in_progress', 'In progress...')) + '</div>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:302:      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + loadingText + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:304:      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted">' + emptyText + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:306:      container.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-danger">' + errorText + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:318:      container.innerHTML = '<div class="text-muted">' + loadingText + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:320:      container.innerHTML = '<div class="text-muted">' + emptyText + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:322:      container.innerHTML = '<div class="text-danger">' + errorText + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:476:    tbody.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1167:      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1221:          body.innerHTML = '<form id="projectsFilterForm" novalidate>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1307:        clientSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.all_clients', 'All clients') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1309:          clientSelect.innerHTML += '<option value="' + safeText(c.public_id) + '">' + safeText(c.title || c.name || c.company_name || c.public_id) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1317:        teamSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.all_teams', 'All teams') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1319:          teamSelect.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name || t.public_id) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1327:        managerSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('js.pab.manager', 'Manager') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1330:          managerSelect.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1618:        list.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1620:        list.innerHTML = filtered.slice(0, 9).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1645:        table.innerHTML = '<tr><td colspan="7" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1647:        table.innerHTML = filtered.slice(0, 30).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1819:      projectSummaryDescription.innerHTML = renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1837:      body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1878:      metricsWrap.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1898:        teamWrap.innerHTML = teamHeading + '<div class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_distributed', 'No tasks distributed for this project yet.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1902:      teamWrap.innerHTML = teamHeading + workloadItems.slice(0, 10).map(function (member) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1920:      chipsWrap.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1927:        listWrap.innerHTML = milestones.slice(0, 12).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1938:        listWrap.innerHTML = '<div class="crm-timeline-item"><strong>' + safeText(formatDate(milestonesData.next_due.due_at)) + '</strong> '
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:1941:        listWrap.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.no_milestones', 'No milestones for this project yet.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2002:        node.innerHTML = '<div class="text-muted">' + safeText(emptyText || '—') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2005:      node.innerHTML = '<ul class="mb-0 ps-3">' + list.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2362:      blocksWrap.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2471:          tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + window.CRM.i18n.t('js.pab.no_tasks_yet', 'No tasks for this project yet.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2473:          tbody.innerHTML = tasks.slice(0, 50).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2559:          activity.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.activity_empty', 'Project change history is empty.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2561:          activity.innerHTML = activityItems.slice(0, 20).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2585:          projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">' + window.CRM.i18n.t('js.pab.no_change_history', 'No change history') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2598:          projectHistoryList.innerHTML = historyItems.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:2609:        projectHistoryList.innerHTML = '<tr><td colspan="5" class="text-muted">' + window.CRM.i18n.t('js.pab.no_change_history', 'No change history') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3297:      select.innerHTML = '<option value="">' + (select.options[0]?.text || window.CRM.i18n.t('js.pab.all', 'All')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3301:        select.innerHTML += '<option value="' + safeText(id) + '">' + safeText(label) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3364:        pagerNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3386:    tbody.innerHTML = currentView === 'list' ? pagedItems.map(mapTaskRow).join('') : '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3387:    if (treeView) treeView.innerHTML = currentView === 'tree' ? renderTaskTree(pagedItems) : '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3388:    if (cardsView) cardsView.innerHTML = currentView === 'cards' ? renderTaskCards(pagedItems) : '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3400:        pagerNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3403:        pagerNode.innerHTML = '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.showing', 'Showing') + ' '
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3684:      body.innerHTML = '<div class="text-muted mb-2">' + window.CRM.i18n.t('js.pab.no_tasks_for_quick_view', 'No available tasks for quick view.') + '</div>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3690:    body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task')) + '</h6>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3722:      taskSelect.innerHTML = taskOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:3735:      assigneeSelect.innerHTML = userOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4104:      risksList.innerHTML = alerts.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4109:      risksMetrics.innerHTML = '<div class="d-flex flex-wrap gap-2">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4184:        activityList.innerHTML = dashboardActivityItems.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4195:        activityList.innerHTML = '<div class="crm-timeline-item">' + window.CRM.i18n.t('js.pab.no_user_events', 'No user events yet.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4209:      overviewList.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4248:      knowledgeList.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4283:                    cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_cycles', 'No active cycles.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4288:                    cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_active_cycles', 'No active cycles.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4314:                cyclesList.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4317:                cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.cycles_load_error', 'Failed to load cycles.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4338:        node.innerHTML = '<div class="text-muted">' + safeText(emptyText || '—') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4341:      node.innerHTML = '<ul class="mb-0 ps-3">' + items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4506:          aiDigestSummaryNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4515:            aiDigestSummaryNode.innerHTML = '<strong>' + safeText(digestSummary || window.CRM.i18n.t('js.pab.ai_daily_digest', 'AI daily digest')) + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4518:            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_not_ready', 'AI digest not generated') + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4533:          aiDigestHighlightsNode.innerHTML = digestSections.map(function (section) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4545:          aiDigestActionsNode.innerHTML = aiActions.map(function (action, index) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4591:          aiDigestSummaryNode.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>' + window.CRM.i18n.t('js.pab.generating_ai_digest', 'Generating AI digest...') + '</span></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4618:            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_temporarily_unavailable', 'AI digest temporarily unavailable') + '</strong><p class="mb-0">' + safeText(message) + '</p>' + adminLink;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4972:        node.innerHTML = '<div class="text-muted">' + safeText(emptyText || '—') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:4975:      node.innerHTML = '<ul class="mb-0 ps-3">' + list.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5443:      document.body.insertAdjacentHTML('beforeend', '\
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5486:        node.innerHTML = '<div class="text-muted">' + safeText(fallbackText || '—') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5489:      node.innerHTML = '<ul class="mb-0 ps-3">' + list.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5586:      if (title) title.innerHTML = eventTitle(item);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5587:      if (body) body.innerHTML = '<div class="crm-calendar-loading">' + window.CRM.i18n.t('js.pab.loading_event', 'Loading event...') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5594:      if (title) title.innerHTML = eventTitle(detailedItem);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:5595:      if (body) body.innerHTML = eventDetailsHtml(detailedItem);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6076:      timeline.innerHTML = renderAgenda(sortEvents(events));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6087:      summary.innerHTML = '<span class="crm-chip">' + safeText(dayLabel(rangeStart)) + ' - ' + safeText(dayLabel(rangeEnd)) + '</span>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6125:        aiDayPlanSummary.innerHTML = '<strong>' + tp('calendar.ai_plan_not_generated_title', 'Plan not generated') + '</strong><p class="mb-0">' + tp('calendar.ai_plan_not_generated_body', 'Click "Generate preview" to get an AI suggestion.') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6126:        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">' + tp('calendar.ai_slots_after_generation', 'Slots will appear after generation.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6135:      aiDayPlanSummary.innerHTML = '<strong>' + safeText(String(payload.summary || suggestion.summary || tp('calendar.ai_day_plan_title', 'AI day plan'))) + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6139:        aiDayPlanList.innerHTML = '<div class="crm-calendar-agenda-empty">' + tp('calendar.ai_no_slots', 'AI returned no slots for the calendar.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6146:      aiDayPlanList.innerHTML = slots.map(function (slot, index) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6174:        aiDayPlanList.insertAdjacentHTML('beforeend', '<div class="crm-metric-tile mt-2"><small class="text-muted">' + tp('calendar.risks', 'Risks') + '</small><div class="mt-1">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6343:      surface.innerHTML = state.view === 'month'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6533:      body.innerHTML = '<p>' + safeText(options.message || tp('common.confirm_body', 'Continue?')) + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6879:      filter.innerHTML = '<option value="">' + tp('notifications.all_categories', 'All categories') + '</option>' + categories.map(function (category) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6931:      list.innerHTML = '<div class="crm-card crm-empty-state">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:6936:      list.innerHTML = filtered.map(renderNotificationCard).join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:7812:        tableBody.innerHTML = '<tr><td colspan="8" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:7814:        tableBody.innerHTML = clients.map(function (client) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:8617:        tableBody.innerHTML = '<tr><td colspan="9" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:8619:        tableBody.innerHTML = counterparties.map(function (cp) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:8647:        mobileList.innerHTML = '<div class="crm-empty-state"><strong>' + tp('counterparties.empty_title', 'Counterparties not found') + '</strong><p class="mb-0">' + tp('counterparties.empty_body', 'Change filters or create a new counterparty.') + '</p></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:8649:        mobileList.innerHTML = counterparties.map(function (cp) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9335:      profile.innerHTML = profileFields.length
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9346:      summaryNode.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9356:        tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + tp('client_detail.tasks_empty', 'There are no tasks for this client yet.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9358:        tasksBody.innerHTML = tasks.slice(0, 50).map(function (task) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9426:        node.innerHTML = '<div class="text-muted">' + safeText(emptyText || '—') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:9429:      node.innerHTML = '<ul class="mb-0 ps-3">' + list.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10193:        clientsBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10195:        clientsBody.innerHTML = filteredClients.map(function (client) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10253:        selectedClientWrap.innerHTML = '<div class="text-muted">' + tp('client_detail.not_selected', 'Client not selected') + '.</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10280:        selectedClientWrap.innerHTML = fields.filter(function (item) { return !isBlank(item.value); })
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10289:      tasksList.innerHTML = clientTasks.slice(0, 10).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10292:      if (!clientTasks.length) tasksList.innerHTML = '<li class="text-muted">' + tp('client_cabinet.selected_tasks_empty', 'There are no tasks for the selected client yet.') + '</li>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10311:      timeline.innerHTML = timelineSource.length
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10320:      commentsWrap.innerHTML = clientTasks.length
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10625:        body.innerHTML = '<p>' + safeText(options.message || tp('common.confirm_body', 'Continue?')) + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10795:          result.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:10854:              twoFactorResult.innerHTML = resultHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11135:          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11168:            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11186:              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11248:        container.innerHTML = '<div class="crm-tree-empty">' + tp('teams.empty', 'Teams not found.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11252:      container.innerHTML = flat.map(function (node) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11400:      select.innerHTML = '<option value="">' + tp('teams.no_parent', 'No parent') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11412:      select.innerHTML = '<option value="">' + safeText(defaultLabel) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11459:        participantList.innerHTML = participants.map(function (p) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11527:          searchResults.innerHTML = '<div class="team-search-no-results"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>' + safeText(tp('teams.search_empty_prefix', 'Nothing found for "')) + safeText(searchQuery) + safeText(tp('teams.search_empty_suffix', '"')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11531:        searchResults.innerHTML = items.map(function (u, idx) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11569:          searchResults.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11932:        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11934:        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.statuses_empty', 'No statuses found.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11936:        tbody.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:11953:      preview.innerHTML = items.slice(0, 10).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12140:          remapSelect.innerHTML = '<option value="">' + safeText(tp('admin.no_remap', 'No remap')) + '</option>' + items
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12276:        clientsTableBody.innerHTML = '<tr><td colspan="3" class="text-muted">' + safeText(tp('admin.api_clients_empty', 'API clients not found.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12278:        clientsTableBody.innerHTML = clients.map(function (client) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12452:      whTableBody.innerHTML = webhooks.map(function (wh) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12490:        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.select_webhook_for_deliveries', 'Select a webhook to see deliveries.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12496:        whDeliveriesBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.deliveries_empty', 'No deliveries yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12499:      whDeliveriesBody.innerHTML = deliveries.slice(0, 100).map(function (row) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12666:      if (keysTableBody) keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.select_api_client_first', 'Select an API client first.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12696:        keysTableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.api_keys_empty', 'The selected API client has no keys yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12698:        keysTableBody.innerHTML = keys.map(function (key) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12734:            plainKeyWrap.innerHTML = '<strong>' + safeText(tp('admin.new_key_once', 'New key (shown once):')) + '</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12755:        usageAudit.innerHTML = auditRows.length ? auditRows.slice(0, 20).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12761:        usageSecurity.innerHTML = securityRows.length ? securityRows.slice(0, 20).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12799:            plainKeyWrap.innerHTML = '<strong>' + safeText(tp('admin.rotated_key_once', 'New key after rotate (shown once):')) + '</strong><br><code>' + safeText(String(plainKey || '—')) + '</code>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12834:      if (usageAudit) usageAudit.innerHTML = '<div class="text-muted">' + safeText(tp('admin.select_key_usage_audit', 'Select a key to see usage (audit).')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12835:      if (usageSecurity) usageSecurity.innerHTML = '<div class="text-muted">' + safeText(tp('admin.select_key_usage_security', 'Select a key to see usage (security).')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12961:        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.logs_empty', 'No logs found for selected filters.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12963:        tableBody.innerHTML = currentRows.slice(0, 120).map(function (row) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:12999:        body.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13028:      activitySummary.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13090:      document.getElementById('adminLogsPreview').innerHTML = logsHtml || '<div class="crm-metric-tile mb-2 text-muted">' + safeText(tp('admin.audit_events_empty', 'No audit events')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13104:        tbody.innerHTML = users.map(function (user) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13112:    document.getElementById('adminIntegrationsPreview').innerHTML = '<div class="crm-metric-tile mb-2"><small>' + safeText(tp('admin.api_services', 'API services')) + '</small><div>' + safeText(tp('admin.all_systems_ok', 'All systems are operational')) + '</div></div><div class="crm-metric-tile mb-2"><small>' + safeText(tp('admin.database', 'Database')) + '</small><div>' + safeText(tp('admin.connection_active', 'Connection active')) + '</div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13139:      tbody.innerHTML = users.map(function (user) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13240:      savedViewSelect.innerHTML = options.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13246:      select.innerHTML = '<option value="">' + safeText(tp('admin.no_role', 'No role')) + '</option>' + roles.map(function (role) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13254:      select.innerHTML = '<option value="">' + safeText(tp('admin.no_team', 'No team')) + '</option>' + teams.map(function (team) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13416:          modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13491:            if (customList) customList.insertAdjacentHTML('beforeend', rowHtml);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13503:            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13531:              saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13551:      editFormRow.insertAdjacentHTML('beforeend', rateHtml);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13639:        indicator.innerHTML = '<strong>' + safeText(tp('admin.impersonation_label', 'Impersonation:')) + '</strong> ' + safeText(tp('admin.impersonation_current_prefix', 'you logged in as ')) + safeText(impersonatedUser) + '. <button class="btn btn-sm btn-danger ms-2" id="stopImpersonationBtn">' + safeText(tp('admin.return_as_prefix', 'Return as ')) + safeText(originalUser) + '</button>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13774:        modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13807:          saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + safeText(tp('common.saving', 'Saving...'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13825:            saveBtn.innerHTML = safeText(tp('common.save', 'Save'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13859:    tbody.innerHTML = roles.map(function (role) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:13988:    container.innerHTML = permissions.map(function (perm) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14049:          myDayAiPlanSummary.innerHTML = '<strong>' + _t('my_day.ai_plan_ready', 'AI-план сформирован') + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14052:          myDayAiPlanSummary.innerHTML = '<strong>' + _t('my_day.ai_suggest_generate', 'План пока не сформирован') + '</strong>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14058:        myDayAiPlanTasks.innerHTML = suggestion && suggestion.public_id
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14063:      myDayAiPlanTasks.innerHTML = '<ol class="crm-day-plan-list">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14234:      overdueTbody.innerHTML = overdueTasks.length > 0
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14242:      tbody.innerHTML = tasks.length > 0
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14268:      document.getElementById('myDayMeetingsList').innerHTML = eventsHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14270:      document.getElementById('myDayRemindersList').innerHTML = reminders.map(function (reminder) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14280:      summaryEl.innerHTML = '<div class="d-flex flex-wrap gap-2">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14431:      aiSummary.innerHTML = summaryText !== ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14434:      aiDetails.innerHTML = tasksByDay.map(function (day) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14567:        metricsEl.innerHTML = tiles;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14614:            overdueTbody.innerHTML = overdueHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14616:            overdueTbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + _t('my_week.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14629:            tbody.innerHTML = tasksHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14631:            tbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + _t('my_week.week_empty', 'Нет задач на неделю') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14663:          meetingsEl.innerHTML = events.slice(0, 10).map(function (event) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14667:          meetingsEl.innerHTML = '<div class="crm-empty-state crm-empty-state-compact">' + _t('my_week.events_empty', 'Нет событий на неделю') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:14680:        metricsEl.innerHTML = '<div class="crm-metric-tile text-danger">' + _t('js.user.load_fail', 'Ошибка загрузки данных') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15783:    scaleTrack.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15823:      item.innerHTML = crmGanttFormatScaleLabel(timestamp, zoomMode);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15870:    legendEl.innerHTML = codes.map(function (code) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15924:    tilesEl.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15973:      milestonesEl.innerHTML = '<div class="crm-gantt-deadline-card" style="justify-content:center;color:#64748b;font-size:0.82rem;">' + safeText(tp('gantt.no_upcoming_deadlines', 'No upcoming deadlines')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:15977:    milestonesEl.innerHTML = upcoming.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16001:      summaryEl.innerHTML = '<div class="crm-metric-tile">' + safeText(tp('gantt.summary_empty', 'No data for summary.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16014:    summaryEl.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16091:    root.innerHTML = cards.map(function (card) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16140:      if (legendEl) legendEl.innerHTML = '<span class="crm-chip text-danger">' + safeText(tp('gantt.load_error', 'Load error')) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16141:      if (milestonesEl) milestonesEl.innerHTML = '<p class="text-danger mb-0">' + safeText(tp('gantt.tasks_load_error', 'Failed to load tasks')) + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16142:      if (summaryEl) summaryEl.innerHTML = '<div class="crm-metric-tile text-danger">' + safeText(tp('gantt.chart_load_error', 'Failed to load schedule.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16215:    rowsContainer.innerHTML  = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16216:    lanesContainer.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16217:    scaleTrack.innerHTML     = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16252:      projectRow.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16314:        row.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16486:    select.innerHTML = options;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:16637:    svgEl.innerHTML = svgParts.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17424:    select.innerHTML = entries.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17615:        tagChipContainer.innerHTML = '<span class="crm-kanban-tag-chip-filter">' + safeText(kanbanT('kanban.filters.tag_prefix', 'Tag: ')) + safeText(tagName)
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17618:        tagChipContainer.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17930:    container.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17960:        mobileTabs.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:17962:        mobileTabs.innerHTML = finalOrder.map(function (statusCode) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18008:          article.innerHTML = statusTasks.map(function (task) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18012:          article.innerHTML = '<div class="crm-kanban-col-empty">' + safeText(kanbanT('kanban.empty_column', 'Нет задач')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18635:      tr.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18646:      tbody.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18736:        node.innerHTML = '<li class="text-muted">' + safeText(emptyText || tp('admin_ai.no_data', 'No data.')) + '</li>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:18739:      node.innerHTML = list.slice(0, 10).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19357:        actionTypesList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.allowed_actions_unavailable', 'Allowed actions list is unavailable.')) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19359:        actionTypesList.innerHTML = actionTypes.map(function (actionType) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19385:        usageBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.usage_unavailable', 'Usage summary is unavailable.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19411:        usageBody.innerHTML = usageStats.map(function (row) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19451:        providerHealthBody.innerHTML = providerStats.map(function (row) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19507:        auditBody.innerHTML = auditItems.slice(0, 20).map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19555:        failedJobsBody.innerHTML = failedRuns.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19574:        retentionBody.innerHTML = retentionItems.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19602:        providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">' + safeText(tp('admin_ai.providers_empty', 'No connections yet. Add an AI service to get started.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19608:          providersBody.innerHTML = '<div class="crm-admin-ai-empty-state">' + safeText(tp('admin_ai.providers_no_other', 'No other connections yet. The primary connection is already shown above.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19610:          providersBody.innerHTML = additionalProviders.map(function (provider) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19679:        defaultProviderHintNode.innerHTML = safeText(tp('admin_ai.default_connection_prefix', 'Primary connection: ')) + '<strong>' + safeText(defaultProviderTitle) + '</strong> · ' + safeText(tp('admin_ai.model_prefix', 'model: ')) + safeText(defaultProviderModel) + '.';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19751:        providerStatusSummaryNode.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19775:      if (testChecklistNode) testChecklistNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19779:      if (testChecklistNode) testChecklistNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19782:      if (testChecklistNode) testChecklistNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19824:    if (heroIconNode) heroIconNode.innerHTML = providerIconMarkup(selectedProvider, 'fa-solid fa-circle-check');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19825:    if (serviceMarkNode) serviceMarkNode.innerHTML = providerIconMarkup(selectedProvider, 'fa-solid fa-circle-plus');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19845:        attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-warning">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19851:        attentionStateNode.innerHTML = '<div class="crm-admin-ai-attention-panel is-success">'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19881:        modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.select_connection_first', 'Select a connection first.')) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19884:        modelsList.innerHTML = '<span class="text-muted">' + safeText(modelError) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19886:        modelsList.innerHTML = '<span class="text-muted">' + safeText(tp('admin_ai.models_not_received', 'No models received.')) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19911:          modelsList.innerHTML = renderedModels.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:19923:        selectedModelsSummaryNode.innerHTML = (selectedDefaultModel && !defaultModelFound
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20010:      node.innerHTML = rows.map(function (row) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20024:      var originalHtml = button ? button.innerHTML : '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20027:        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-1">' + safeText(tp('admin_ai.checking', 'Checking...')) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20043:          button.innerHTML = originalHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20640:            testChecklistNode.innerHTML = lines.map(function (line) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20652:            testChecklistNode.innerHTML = '<div>' + safeText(tp('admin_ai.connection_test_failed_line', '❌ Connection test failed')) + '</div><div class="text-muted">' + safeText(errorMessage) + '</div><div class="text-muted">' + safeText(hint) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20779:        intentsBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_ai.intents_empty', 'No intents are configured yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20913:        intentsBody.innerHTML = groupedRows.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20964:      aiFlagsBody.innerHTML = aiFlagItems.map(function (entry) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20994:        cronBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin_ai.cron_empty', 'No background intents found.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:20996:        cronBody.innerHTML = cronItems.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:21171:        promptsBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.prompts_empty', 'No prompts have been created yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:21173:        promptsBody.innerHTML = promptTemplates.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:21194:        schemasBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('admin_ai.schemas_empty', 'No response formats have been created yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:21196:        schemasBody.innerHTML = jsonSchemas.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22113:      section.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22668:        suggestionsBox.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22774:      container.innerHTML = '<div class="text-muted">' + safeText(tp('counterparty_detail.extra_fields_empty_hint', 'No extra fields. Click “Add field”.')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22777:    container.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22791:    row.innerHTML = '<div class="col-5"><input class="form-control extra-field-key" placeholder="' + safeAttr(tp('counterparty_detail.extra_key_placeholder', 'Field name')) + '" value="' + safeAttr(key || '') + '" maxlength="128"></div>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22885:    profile.innerHTML = profileFields.length
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22896:      contactsBody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('counterparty_detail.contacts_empty', 'No contacts.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22898:      contactsBody.innerHTML = contacts.map(function (contact) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22932:      summaryNode.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22945:      tasksBody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(tp('counterparty_detail.tasks_empty', 'No tasks for this counterparty yet.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22947:      tasksBody.innerHTML = tasks.slice(0, 50).map(function (task) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22981:    requisitesNode.innerHTML = filtered.length
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22992:      extraNode.innerHTML = '<div class="text-muted">' + safeText(tp('counterparty_detail.extra_empty', 'No extra attributes')) + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:22995:    extraNode.innerHTML = keys.map(function (key) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23245:        tableBody.innerHTML = '<tr><td colspan="7" class="text-muted">' + safeText(tp('contacts.empty', 'Contacts not found.')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23247:        tableBody.innerHTML = contacts.map(function (contact) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23284:      filterCounterpartyInput.innerHTML = '<option value="">' + safeText(tp('contacts.all_counterparties', 'All counterparties')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23336:      select.innerHTML = '<option value="">' + safeText(tp('contacts.select_counterparty', 'Select counterparty')) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23792:      select.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23943:          body.innerHTML = automationEmptyRow(6, tp('workflow.rules_empty_title', 'No rules yet'), tp('workflow.rules_empty_text', 'Create the first rule so CRM can react to task and project events automatically.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23946:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23973:        body.innerHTML = automationEmptyRow(6, tp('workflow.rules_load_fail_title', 'Failed to load rules'), tp('workflow.rules_load_fail_text', 'Check API access and refresh the page.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23984:          body.innerHTML = automationEmptyRow(5, tp('workflow.runs_empty_title', 'No runs yet'), tp('workflow.runs_empty_text', 'After a test or real event, rule execution history will appear here.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:23987:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24009:        body.innerHTML = automationEmptyRow(5, tp('workflow.logs_load_fail_title', 'Failed to load logs'), tp('workflow.logs_load_fail_text', 'Try refreshing the list later.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24238:          body.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('sla.empty', 'No policies')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24241:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24259:        body.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('sla.load_error', 'Loading error')) + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24411:        bodyEl.innerHTML = '<dl class="row mb-0"><dt class="col-sm-3">' + _t('approval.label_name', 'Название') + '</dt><dd class="col-sm-9 fw-bold">' + safeText(item.title || item.subject || item.public_id || '—') + '</dd>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24431:          select.innerHTML = '<option value="" disabled>' + _t('approval.select_reviewers', 'Выберите согласующих') + '</option>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24444:        picker.innerHTML = '<div class="crm-empty-state crm-empty-state-compact">' + _t('approval.no_active_reviewers', 'Нет активных пользователей для согласования.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24447:      picker.innerHTML = approvalUsers.map(function (u) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24486:      summary.innerHTML = '<i class="fa-solid fa-users" aria-hidden="true"></i><span>' + safeText(text) + '</span>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24526:        body.innerHTML = approvalsEmptyRow(6, msg, detail);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24538:      body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24579:        if (body) body.innerHTML = approvalsEmptyRow(6, _t('approval.load_error', 'Не удалось загрузить'), _t('approval.load_error_hint', 'Проверьте доступ к API.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24712:          entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.searching', 'Поиск...') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24721:            if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.no_results', 'Ничего не найдено') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24724:          entityDropdown.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24732:          if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('approval.search_error', 'Ошибка поиска') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24851:          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('recycle_bin.empty', 'Корзина пуста') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24854:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24868:        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('recycle_bin.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24930:          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('custom_field.empty', 'Нет полей') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24933:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:24949:        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('custom_field.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25103:        body.innerHTML = recurringEmptyRow(6, msg, detail);
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25106:      body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25137:        if (body) body.innerHTML = recurringEmptyRow(6, _t('recurring.load_error', 'Не удалось загрузить'), _t('recurring.load_error_hint', 'Проверьте доступ к API.'));
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25224:        if (entityDropdown) { entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('recurring.searching', 'Поиск...') + '</div>'; entityDropdown.classList.remove('d-none'); }
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25232:          if (!items.length) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + safeText(meta.empty) + '</div>'; return; }
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25233:          entityDropdown.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25243:        } catch (_) { if (entityDropdown) entityDropdown.innerHTML = '<div class="crm-autocomplete-item text-muted">' + _t('recurring.search_error', 'Ошибка') + '</div>'; }
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25369:          body.innerHTML = '<tr><td colspan="4" class="text-muted">' + _t('organization.empty', 'Нет организаций') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25372:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25387:        body.innerHTML = '<tr><td colspan="4" class="text-danger">' + _t('organization.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25478:          body.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('priority.empty', 'Нет приоритетов') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25481:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25496:        body.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('priority.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25578:          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_calendars', 'Нет календарей') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25581:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25590:        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25599:        body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.create_calendar_first', 'Сначала создайте бизнес-календарь') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25606:          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_holidays', 'Нет праздников') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25609:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25613:        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25621:        body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.create_calendar_first', 'Сначала создайте бизнес-календарь') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25628:          body.innerHTML = '<tr><td colspan="2" class="text-muted">' + _t('calendar.empty_working_hours', 'Нет записей') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25632:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25639:        body.innerHTML = '<tr><td colspan="2" class="text-danger">' + _t('calendar.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25671:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25718:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25744:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25891:          if (stats) stats.innerHTML = '<div class="text-muted">' + _t('tag.not_created', 'Теги не созданы.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25894:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:25914:          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">' + _t('tag.stat_total', 'Всего тегов') + '</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26044:          if (stats) stats.innerHTML = '<div class="text-muted">' + _t('webhook.not_configured', 'Вебхуки не настроены.') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26047:        body.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26068:          stats.innerHTML = '<div class="crm-info-panel mb-2"><small class="text-muted">' + _t('webhook.stat_total', 'Всего вебхуков') + '</small><div class="fw-semibold">' + safeText(String(items.length)) + '</div></div>'
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26271:        if (outgoingContainer) outgoingContainer.innerHTML = renderSection(outgoing, 'outgoing');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26272:        if (incomingContainer) incomingContainer.innerHTML = renderSection(incoming, 'incoming');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26283:            alert.innerHTML = '<strong>' + _t('dependency.risk_blocked', 'Зависимости:') + '</strong> '
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26290:        if (outgoingContainer) outgoingContainer.innerHTML = '<div class="text-danger small">' + errMsg + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26291:        if (incomingContainer) incomingContainer.innerHTML = '<div class="text-danger small">' + errMsg + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26351:          dropdown.innerHTML = '<div class="crm-searchable-item text-muted"><small>' + _t('page.loading', '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...') + '</small></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26361:                dropdown.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26363:                  dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('page.select_empty', '\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26389:                dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438') + '</div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26512:        sel.innerHTML = allUsersHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26529:          sel.innerHTML = allTeamsHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26543:          sel.innerHTML = allProjectsHtml;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26676:    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26685:        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26706:      tbody.innerHTML = htmlContent;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26713:      tbody.innerHTML = '<tr><td colspan="3" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26720:    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26729:        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26756:      tbody.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26763:      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26817:    wrap.innerHTML = '<p class="text-muted p-3 mb-0">' + _t('page.loading', 'Загрузка...') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26832:        wrap.innerHTML = '<p class="text-muted p-3 mb-0">' + _t('page.no_data_period_dot', 'Нет данных за выбранный период.') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26879:      wrap.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26886:      wrap.innerHTML = '<p class="text-danger p-3 mb-0">' + _t('page.load_error', 'Ошибка загрузки') + ' ' + _t('page.th_total', 'сводки').toLowerCase() + '.</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26908:        teamSel.innerHTML = '<option value="">' + _t('page.all_teams', 'Все команды') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26910:          teamSel.innerHTML += '<option value="' + safeText(t.public_id) + '">' + safeText(t.title || t.name) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26916:        projectSel.innerHTML = '<option value="">' + _t('page.all_projects', 'Все проекты') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26918:          projectSel.innerHTML += '<option value="' + safeText(p.public_id) + '">' + safeText(p.title) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26924:        userSel.innerHTML = '<option value="">' + _t('page.all_users', 'Все пользователи') + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26926:          userSel.innerHTML += '<option value="' + safeText(u.public_id) + '">' + safeText(u.full_name || u.login) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26937:    body.innerHTML = '<p class="text-muted">' + _t('page.detail_loading', 'Загрузка...') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26968:      body.innerHTML = html;
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26970:      body.innerHTML = '<p class="text-danger">' + _t('page.detail_load_error', 'Ошибка загрузки детализации.') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:26990:        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_no_results', 'Нет результатов.') + '</div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27040:        container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_no_results_query', 'Ничего не найдено по запросу «') + escapeHtml(queryInput ? queryInput.value : '') + '».</div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27044:      container.innerHTML = sections.join('');
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27055:        if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">' + _t('page.search_error', 'Ошибка поиска.') + '</div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27058:      if (container) container.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + _t('page.search_min_chars', 'Введите минимум 2 символа для поиска.') + '</div></div></div>';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27128:          removeBtn.innerHTML = '&times;';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27146:      dropdown.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27207:      clearBtn.innerHTML = '&times;';
+/Users/bps/sites/crm.ru/web/assets/js/page-api-bindings.js:27253:    // Observe the select for option changes (e.g. innerHTML replacement)
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:98:    template.innerHTML = raw;
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:214:    return template.innerHTML;
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:687:    banner.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1458:        clientSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_bez_klienta_option', '<option value="">Без клиента</option>')].concat(availableClients.map(function (client) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1466:        teamSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_komanda_ne_naznachena_option', '<option value="">Команда не назначена</option>')].concat(availableTeams.map(function (team) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1474:        managerSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_bez_menedzhera_option', '<option value="">Без менеджера</option>')].concat(availableUsers.map(function (user) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1611:    projectSelect.innerHTML = options.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1626:    assigneeSelect.innerHTML = options.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1645:    statusSelect.innerHTML = source.map(function (status) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1662:    tagsSelect.innerHTML = availableTags.map(function (tag) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1985:        contextBox.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:1990:      contextBox.innerHTML = '<div class="crm-calendar-form-context">'
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2179:          detail.innerHTML = sanitized || window.CRM.i18n.t('js.br1.p_class_text_muted_mb_0_opisanie_zadachi_ne_zapolneno_p', '<p class="text-muted mb-0">Описание задачи не заполнено.</p>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2184:          detail.innerHTML = '<p class="mb-0">' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2187:        detail.innerHTML = window.CRM.i18n.t('js.br1.p_class_text_muted_mb_0_opisanie_zadachi_ne_zapolneno_p_2', '<p class="text-muted mb-0">Описание задачи не заполнено.</p>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2234:      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_risk_strong_zadacha_prosrochena_nuzhen_prioritet', '<strong>Риск:</strong> задача просрочена, нужен приоритетный разбор блокеров.');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2240:      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_risk_strong_zadacha_v_bloke_trebuetsya_eskalatsi', '<strong>Риск:</strong> задача в блоке. Требуется эскалация/согласование.');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2246:      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_zadacha_zavershena', '<strong>Статус:</strong> задача завершена.');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2251:    alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_kritichnykh_riskov_po_zadache_ne_v', '<strong>Статус:</strong> критичных рисков по задаче не выявлено.');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2345:        tagsEl.innerHTML = currentTaskTags.map(function (tag) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2384:        copyBtn.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2389:            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2392:              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2396:            copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2398:              copyBtn.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-copy"></i></span>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2431:      projectSelect.innerHTML = projectOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2440:      assigneeSelect.innerHTML = assigneeOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2449:      managerSelect.innerHTML = managerOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2455:      tagsSelect.innerHTML = availableTags.map(function (tag) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2821:    chips.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:2944:    panel.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3021:    list.innerHTML = items.length ? items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3146:    list.innerHTML = files.length ? files.map(function (file) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3238:    projectSelect.innerHTML = '<option value="' + escapeHtml(currentProjectId) + '" selected>' + escapeHtml(optionTitle) + '</option>';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3246:    statusSelect.innerHTML = subtaskStatusOptions(status);
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3255:    prioritySelect.innerHTML = subtaskPriorityOptions(priority);
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3264:    assigneeSelect.innerHTML = window.CRM.i18n.t('js.br1.option_value_ne_naznachen_option_6', '<option value="">Не назначен</option>') + availableUsers.map(function (user) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3280:    tagsSelect.innerHTML = availableTags.map(function (tag) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3322:      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_podzadach_poka_net_nazhmite_sozdat', '<div class="text-muted">Подзадач пока нет. Нажмите «Создать подзадачу», чтобы создать первую.</div>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3326:    list.innerHTML = '<div class="table-responsive"><table class="table align-middle crm-subtasks-table mb-0">'
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3505:      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_cheklistov_poka_net_dobavte_pervyy', '<div class="text-muted">Чеклистов пока нет. Добавьте первый чеклист выше.</div>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3509:    list.innerHTML = '<div class="vstack gap-3">' + items.map(function (checklist) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3610:    list.innerHTML = items.length ? items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3647:      list.innerHTML = window.CRM.i18n.t('js.br1.tr_td_colspan_5_class_text_muted_net_istorii_izmeneniy', '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3655:      list.innerHTML = window.CRM.i18n.t('js.br1.tr_td_colspan_5_class_text_muted_net_istorii_izmeneniy_2', '<tr><td colspan="5" class="text-muted">Нет истории изменений</td></tr>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3669:    list.innerHTML = items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:3699:      select.innerHTML = options.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:4032:      var currentBody = commentCard.getAttribute('data-comment-raw') || bodyEl.innerHTML || bodyEl.textContent || '';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:4038:      editor.innerHTML = ''
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:5088:      previewNode.innerHTML = '<ul class="mb-0 ps-3">'
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:5097:      previewNode.innerHTML = '';
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:5260:        highRiskActionsNode.innerHTML = '<ul class="mb-0 ps-3">' + highRiskActions.map(function (a) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6192:          regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.peregenerirovat', 'Перегенерировать');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6206:          regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.span_class_spinner_border_spinner_border_sm_me_1_span_p', '<span class="spinner-border spinner-border-sm me-1"></span>Перегенерация...');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6219:            regenerateBtn.innerHTML = window.CRM.i18n.t('js.br1.peregenerirovat_2', 'Перегенерировать');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6276:      summary.innerHTML = '<article class="crm-worklog-summary-card">'
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6304:      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_zapisey_vremeni_poka_net_div', '<div class="text-muted">Записей времени пока нет.</div>');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6308:    list.innerHTML = '<div class="vstack gap-2">' + items.map(function (item) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6869:      projectSelect.innerHTML = projectOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6888:      statusSelect.innerHTML = statuses.map(function (s) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6904:      prioritySelect.innerHTML = priorities.map(function (p) {
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6917:      assigneeSelect.innerHTML = assigneeOptions.join('');
+/Users/bps/sites/crm.ru/web/assets/js/br1.js:6924:      tagsSelect.innerHTML = tags.map(function (tag) {
