@@ -16,8 +16,15 @@ $config = new Config();
 $config->load($basePath . '/config/default.php', 'default');
 $config->load($basePath . '/config/database.php', 'database');
 $config->load($basePath . '/config/install.php', 'install');
+$config->load($basePath . '/config/database.local.php', 'database');
 
 $pdo = (new ConnectionManager($config))->connect();
+
+if (!tableExists($pdo, 'clients')) {
+    fwrite(STDERR, "Client data quality report cannot run: required table clients is missing. Apply database migrations first.\n");
+    exit(2);
+}
+
 $repo = new ClientRepository($pdo);
 
 $duplicates = $repo->duplicatesReport();
@@ -58,3 +65,12 @@ file_put_contents($latestPath, $json);
 echo "Client data quality report generated\n";
 echo "latest=" . $latestPath . "\n";
 echo "versioned=" . $versionedPath . "\n";
+
+function tableExists(PDO $pdo, string $table): bool
+{
+    try {
+        return $pdo->query('SELECT 1 FROM ' . $table . ' WHERE 1=0') !== false;
+    } catch (Throwable) {
+        return false;
+    }
+}
