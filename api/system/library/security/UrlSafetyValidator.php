@@ -41,7 +41,7 @@ final class UrlSafetyValidator
         // Normalize IPv6: remove brackets for proper validation
         $normalizedHost = trim($host, '[]');
 
-        if ($this->isLocalHostname($host) || $this->isLocalHostname($normalizedHost)) {
+        if ($this->isLocalHostname($normalizedHost)) {
             return ['ok' => false, 'code' => 'AI_PROVIDER_URL_LOCALHOST_FORBIDDEN'];
         }
 
