@@ -49,6 +49,10 @@ final class AuthService
 
         $user = $this->users->findByLogin($login);
         if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
+            // Timing-attack mitigation (Task 1.5): simulate password hash verification
+            // so that non-existent users take the same time as existent ones.
+            // Uses a pre-generated Argon2id hash to match the system's actual hash algorithm.
+            $this->hasher->verify('dummy_plain_text', '$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHR2YWx1ZXMxMjM0NQ$wLdTJFplKxH5XKRhXQz7vA+VL0VvN8gD4v7TyzHGlc0');
             $state = $this->rateLimiter->hit($rateKey);
             $this->logger->security([
                 'event_type' => 'auth_failed',
@@ -216,7 +220,10 @@ final class AuthService
             $normalizedLogin = '_';
         }
 
-        return hash('sha256', $normalizedLogin . '|' . $ip);
+        // Key is per-login (NOT per login+IP) so that brute-force across
+        // different IPs still locks the account after N attempts.
+        // IP-level blocking is handled by the global route rate limiter.
+        return hash('sha256', $normalizedLogin);
     }
 
     private function buildDeviceFingerprint(string $userAgent): string

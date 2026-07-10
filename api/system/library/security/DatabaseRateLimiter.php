@@ -47,6 +47,14 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             return ['blocked' => false, 'retry_after' => 0];
         }
 
+        // Lazy garbage collection: on ~1% of writes, delete expired rows
+        // to prevent unbounded table growth (DoS via DB exhaustion).
+        // Uses mt_rand because hit count resets per-request (each instance handles
+        // at most a few hits), so a counter-based approach would never fire.
+        if (mt_rand(1, 100) === 1) {
+            $this->collectGarbage();
+        }
+
         $now = time();
         $windowStart = $now - ($now % $this->windowSeconds);
 
@@ -63,67 +71,22 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     private function hitMysql(string $key, int $now, int $windowStart): array
     {
-        $this->pdo->exec('SAVEPOINT rl_hit');
-
-        $inserted = $this->tryInsert($key, $windowStart);
-        if ($inserted) {
-            $this->pdo->exec('RELEASE SAVEPOINT rl_hit');
-            return ['blocked' => false, 'retry_after' => 0];
+        // Use explicit transaction with FOR UPDATE row-level lock
+        // to prevent race conditions (Task 1.4).
+        // SAVEPOINT-based approach was vulnerable to concurrent overwrites.
+        if (!$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
         }
 
-        $row = $this->fetchForUpdate($key);
-        if ($row === null) {
-            $this->pdo->exec('RELEASE SAVEPOINT rl_hit');
-            return ['blocked' => false, 'retry_after' => 0];
-        }
-
-        $blockedUntil = (int)$row['blocked_until'];
-        if ($blockedUntil > $now) {
-            $this->pdo->exec('RELEASE SAVEPOINT rl_hit');
-            return ['blocked' => true, 'retry_after' => max(1, $blockedUntil - $now)];
-        }
-
-        $rowWindowStart = (int)$row['window_start'];
-        if ($rowWindowStart < $windowStart) {
-            $newBlocked = 0;
-            $stmt = $this->pdo->prepare(
-                'UPDATE rate_limits SET attempts_count = 1, window_start = :ws, blocked_until = :bu, updated_at = NOW() WHERE `key` = :k'
-            );
-            $stmt->execute([':ws' => $windowStart, ':bu' => $newBlocked, ':k' => $key]);
-            $this->pdo->exec('RELEASE SAVEPOINT rl_hit');
-            return ['blocked' => false, 'retry_after' => 0];
-        }
-
-        $newCount = (int)$row['attempts_count'] + 1;
-        $newBlocked = 0;
-        if ($newCount >= $this->maxAttempts) {
-            $newBlocked = $now + $this->lockSeconds;
-        }
-
-        $stmt = $this->pdo->prepare(
-            'UPDATE rate_limits SET attempts_count = :cnt, blocked_until = :bu, updated_at = NOW() WHERE `key` = :k'
-        );
-        $stmt->execute([':cnt' => $newCount, ':bu' => $newBlocked, ':k' => $key]);
-        $this->pdo->exec('RELEASE SAVEPOINT rl_hit');
-
-        if ($newBlocked > $now) {
-            return ['blocked' => true, 'retry_after' => max(1, $newBlocked - $now)];
-        }
-
-        return ['blocked' => false, 'retry_after' => 0];
-    }
-
-    private function hitGeneric(string $key, int $now, int $windowStart): array
-    {
-        $this->pdo->beginTransaction();
         try {
-            $row = $this->fetchForUpdate($key);
+            $inserted = $this->tryInsert($key, $windowStart);
+            if ($inserted) {
+                $this->pdo->commit();
+                return ['blocked' => false, 'retry_after' => 0];
+            }
 
+            $row = $this->fetchForUpdate($key);
             if ($row === null) {
-                $stmt = $this->pdo->prepare(
-                    'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, updated_at) VALUES (?, 1, ?, 0, datetime(\'now\'))'
-                );
-                $stmt->execute([$key, $windowStart]);
                 $this->pdo->commit();
                 return ['blocked' => false, 'retry_after' => 0];
             }
@@ -136,24 +99,88 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
             $rowWindowStart = (int)$row['window_start'];
             if ($rowWindowStart < $windowStart) {
+                $newBlocked = 0;
+                $expiresAt = $now + $this->windowSeconds + $this->lockSeconds + 60;
                 $stmt = $this->pdo->prepare(
-                    'UPDATE rate_limits SET attempts_count = 1, window_start = ?, blocked_until = 0, updated_at = datetime(\'now\') WHERE `key` = ?'
+                    'UPDATE rate_limits SET attempts_count = 1, window_start = :ws, blocked_until = :bu, expires_at = :ex, updated_at = NOW() WHERE `key` = :k'
                 );
-                $stmt->execute([$windowStart, $key]);
+                $stmt->execute([':ws' => $windowStart, ':bu' => $newBlocked, ':ex' => $expiresAt, ':k' => $key]);
                 $this->pdo->commit();
                 return ['blocked' => false, 'retry_after' => 0];
             }
 
             $newCount = (int)$row['attempts_count'] + 1;
             $newBlocked = 0;
+            $expiresAt = $now + $this->windowSeconds + $this->lockSeconds + 60;
             if ($newCount >= $this->maxAttempts) {
                 $newBlocked = $now + $this->lockSeconds;
+                $expiresAt = $newBlocked + $this->windowSeconds + 60;
             }
 
             $stmt = $this->pdo->prepare(
-                'UPDATE rate_limits SET attempts_count = ?, blocked_until = ?, updated_at = datetime(\'now\') WHERE `key` = ?'
+                'UPDATE rate_limits SET attempts_count = :cnt, blocked_until = :bu, expires_at = :ex, updated_at = NOW() WHERE `key` = :k'
             );
-            $stmt->execute([$newCount, $newBlocked, $key]);
+            $stmt->execute([':cnt' => $newCount, ':bu' => $newBlocked, ':ex' => $expiresAt, ':k' => $key]);
+            $this->pdo->commit();
+
+            if ($newBlocked > $now) {
+                return ['blocked' => true, 'retry_after' => max(1, $newBlocked - $now)];
+            }
+
+            return ['blocked' => false, 'retry_after' => 0];
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    private function hitGeneric(string $key, int $now, int $windowStart): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $row = $this->fetchForUpdate($key);
+
+            if ($row === null) {
+                $expiresAt = $now + $this->windowSeconds + $this->lockSeconds + 60;
+                $stmt = $this->pdo->prepare(
+                    'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, expires_at, updated_at) VALUES (?, 1, ?, 0, ?, datetime(\'now\'))'
+                );
+                $stmt->execute([$key, $windowStart, $expiresAt]);
+                $this->pdo->commit();
+                return ['blocked' => false, 'retry_after' => 0];
+            }
+
+            $blockedUntil = (int)$row['blocked_until'];
+            if ($blockedUntil > $now) {
+                $this->pdo->commit();
+                return ['blocked' => true, 'retry_after' => max(1, $blockedUntil - $now)];
+            }
+
+            $rowWindowStart = (int)$row['window_start'];
+            if ($rowWindowStart < $windowStart) {
+                $expiresAt = $now + $this->windowSeconds + $this->lockSeconds + 60;
+                $stmt = $this->pdo->prepare(
+                    'UPDATE rate_limits SET attempts_count = 1, window_start = ?, blocked_until = 0, expires_at = ?, updated_at = datetime(\'now\') WHERE `key` = ?'
+                );
+                $stmt->execute([$windowStart, $expiresAt, $key]);
+                $this->pdo->commit();
+                return ['blocked' => false, 'retry_after' => 0];
+            }
+
+            $newCount = (int)$row['attempts_count'] + 1;
+            $newBlocked = 0;
+            $expiresAt = $now + $this->windowSeconds + $this->lockSeconds + 60;
+            if ($newCount >= $this->maxAttempts) {
+                $newBlocked = $now + $this->lockSeconds;
+                $expiresAt = $newBlocked + $this->windowSeconds + 60;
+            }
+
+            $stmt = $this->pdo->prepare(
+                'UPDATE rate_limits SET attempts_count = ?, blocked_until = ?, expires_at = ?, updated_at = datetime(\'now\') WHERE `key` = ?'
+            );
+            $stmt->execute([$newCount, $newBlocked, $expiresAt, $key]);
             $this->pdo->commit();
 
             if ($newBlocked > $now) {
@@ -180,10 +207,11 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     private function tryInsert(string $key, int $windowStart): bool
     {
         try {
+            $expiresAt = time() + $this->windowSeconds + $this->lockSeconds + 60;
             $stmt = $this->pdo->prepare(
-                'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, updated_at) VALUES (?, 1, ?, 0, NOW())'
+                'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, expires_at, updated_at) VALUES (?, 1, ?, 0, ?, NOW())'
             );
-            return $stmt->execute([$key, $windowStart]);
+            return $stmt->execute([$key, $windowStart, $expiresAt]);
         } catch (\Throwable) {
             return false;
         }
@@ -253,8 +281,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 attempts_count INT NOT NULL DEFAULT 0,
                 window_start INT NOT NULL DEFAULT 0,
                 blocked_until INT NOT NULL DEFAULT 0,
+                expires_at INT NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`key`)
+                PRIMARY KEY (`key`),
+                INDEX idx_rate_limits_expires (expires_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } else {
             $this->pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
@@ -262,9 +292,15 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 attempts_count INTEGER NOT NULL DEFAULT 0,
                 window_start INTEGER NOT NULL DEFAULT 0,
                 blocked_until INTEGER NOT NULL DEFAULT 0,
+                expires_at INTEGER NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`key`)
             )');
+            try {
+                $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_rate_limits_expires ON rate_limits (expires_at)');
+            } catch (\Throwable) {
+                // Index may already exist
+            }
         }
 
         $this->ensureNewColumns();
@@ -289,8 +325,39 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             if (!in_array('window_start', $cols, true)) {
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
             }
+            if (!in_array('expires_at', $cols, true)) {
+                if ($this->driver === 'mysql') {
+                    $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN expires_at INT NOT NULL DEFAULT 0, ADD INDEX idx_rate_limits_expires (expires_at)');
+                } else {
+                    $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0');
+                    try {
+                        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_rate_limits_expires ON rate_limits (expires_at)');
+                    } catch (\Throwable) {
+                        // Index may already exist
+                    }
+                }
+                // Backfill existing rows: set expires_at = blocked_until if > 0, otherwise now + 3600
+                $now = time();
+                $this->pdo->exec("UPDATE rate_limits SET expires_at = CASE WHEN blocked_until > 0 THEN blocked_until ELSE {$now} + 3600 END WHERE expires_at = 0");
+            }
         } catch (\Throwable) {
             // Best-effort migration
+        }
+    }
+
+    private function collectGarbage(): void
+    {
+        $now = time();
+
+        try {
+            if ($this->driver === 'mysql') {
+                $stmt = $this->pdo->prepare('DELETE FROM rate_limits WHERE expires_at > 0 AND expires_at < ? LIMIT 1000');
+            } else {
+                $stmt = $this->pdo->prepare('DELETE FROM rate_limits WHERE expires_at > 0 AND expires_at < ?');
+            }
+            $stmt->execute([$now]);
+        } catch (\Throwable) {
+            // Best-effort cleanup
         }
     }
 }

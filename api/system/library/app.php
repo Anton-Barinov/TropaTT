@@ -1117,7 +1117,8 @@ final class App
             $c->get('repository.role'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('security.password_reset_rate_limiter')
         ));
         $this->container->factory('service.password_reset', fn(Container $c) => new PasswordResetService(
             $c->get('repository.password_reset'),
@@ -1762,13 +1763,13 @@ final class App
         }
 
         if (
-            $path === '/api/v1/auth/login'
-            || $path === '/api/v1/security/password-reset'
+            $path === '/api/v1/security/password-reset'
             || $path === '/api/v1/security/password-reset/request'
             || $path === '/api/v1/security/password-reset/confirm'
             || $path === '/api/v1/security/invitations/accept'
         ) {
-            // Dedicated rate limiters already exist for auth/password-reset flows.
+            // Dedicated rate limiters already exist for password-reset/invitation flows.
+            // /api/v1/auth/login is intentionally NOT exempted — see Task 1.1 password spraying fix.
             return false;
         }
 
@@ -1857,9 +1858,9 @@ final class App
         }
 
         $route = trim($request->path, '/');
-        if ($route === 'api/v1/auth/logout') {
-            return true;
-        }
+        // Logout no longer bypasses CSRF (Task 1.7):
+        // cookie-authenticated logout requests must include a valid CSRF token.
+        // The frontend must supply X-CSRF-Token header on logout.
 
         $token = (string)($auth['auth_token'] ?? '');
         if ($token === '') {

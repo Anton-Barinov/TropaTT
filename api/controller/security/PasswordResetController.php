@@ -47,7 +47,7 @@ final class PasswordResetController extends BaseController
 
         /** @var PasswordResetService $service */
         $service = $this->container->get('service.password_reset');
-        $result = $service->confirm($input);
+        $result = $service->confirm($input, $this->request()->ip());
         if (!(bool)($result['ok'] ?? false)) {
             $code = (string)($result['code'] ?? '');
             $status = match ($code) {
