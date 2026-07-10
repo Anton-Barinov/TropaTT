@@ -6800,7 +6800,7 @@ MD;
         }
         /** @var PasswordResetService $service */
         $service = $this->container->get('service.password_reset');
-        $service->request(['identifier' => $identifier], '');
+        $service->request(['identifier' => $identifier], $this->request()->ip());
         return ['accepted' => true];
     }
 
@@ -6813,7 +6813,7 @@ MD;
         }
         /** @var PasswordResetService $service */
         $service = $this->container->get('service.password_reset');
-        $result = $service->confirm(['reset_token' => $token, 'new_password' => $newPassword]);
+        $result = $service->confirm(['reset_token' => $token, 'new_password' => $newPassword], $this->request()->ip());
         if (!(bool)($result['ok'] ?? false)) {
             return ['error' => (string)($result['code'] ?? 'Password reset failed.')];
         }
