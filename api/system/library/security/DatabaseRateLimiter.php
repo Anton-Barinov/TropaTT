@@ -23,6 +23,11 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     {
         $row = $this->fetch($key);
         $now = time();
+        if ($row === null) {
+            error_log('[RL_DEBUG] check: key=' . substr($key, 0, 16) . '... row=NULL max=' . $this->maxAttempts);
+        } else {
+            error_log('[RL_DEBUG] check: key=' . substr($key, 0, 16) . '... count=' . ($row['attempts_count'] ?? '?') . ' blocked_until=' . ($row['blocked_until'] ?? '?') . ' window_start=' . ($row['window_start'] ?? '?') . ' max=' . $this->maxAttempts . ' now=' . $now);
+        }
 
         if ($row === null) {
             return ['blocked' => false, 'retry_after' => 0];
@@ -257,8 +262,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->migrateSchema();
             $this->schemaReady = true;
+            error_log('[RL_DEBUG] Schema ready: OK max=' . $this->maxAttempts . ' window=' . $this->windowSeconds . ' lock=' . $this->lockSeconds);
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[RL_DEBUG] Schema FAILED: ' . $e->getMessage() . ' file=' . $e->getFile() . ':' . $e->getLine());
             return false;
         }
     }
