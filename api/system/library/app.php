@@ -913,9 +913,7 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
-            (int)$this->config->get('security.auth.access_token_ttl', 43200),
-            $c->get('security.login_rate_limiter'),
-            $c->get('security.login_ip_rate_limiter')
+            (int)$this->config->get('security.auth.access_token_ttl', 43200)
         ));
 
         $this->container->factory('service.project', fn(Container $c) => new ProjectService(
