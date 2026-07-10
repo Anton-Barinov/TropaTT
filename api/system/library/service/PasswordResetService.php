@@ -90,6 +90,9 @@ final class PasswordResetService
             'ip' => $ip,
         ]);
 
+        // Log plain token to mail log (for dev/demo; production uses real email transport)
+        $this->appendMailLog($identifier, $plainToken, (string)($user['public_id'] ?? ''));
+
         // Intentionally do not return reset token: delivery must happen out-of-band.
         return [
             'ok' => true,
@@ -147,4 +150,26 @@ final class PasswordResetService
             ],
         ];
     }
+
+    private function appendMailLog(string $identifier, string $plainToken, string $userPublicId): void
+    {
+        try {
+            $logDir = dirname(__DIR__, 4) . '/storage/logs';
+            if (!is_dir($logDir)) {
+                @mkdir($logDir, 0755, true);
+            }
+            $logFile = $logDir . '/mail.log';
+            $entry = sprintf(
+                "[%s] PASSWORD_RESET identifier=%s user=%s token=%s\n",
+                gmdate('Y-m-d H:i:s'),
+                $identifier,
+                $userPublicId,
+                $plainToken
+            );
+            @file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable) {
+            // Best-effort logging
+        }
+    }
+
 }
