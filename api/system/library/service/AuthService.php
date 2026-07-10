@@ -18,7 +18,8 @@ final class AuthService
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly int $tokenTtlSeconds
+        private readonly int $tokenTtlSeconds,
+        private readonly int $maxSessionLifetimeSeconds
     ) {
     }
 
@@ -175,6 +176,12 @@ final class AuthService
 
         $expiresAt = strtotime(((string)$session['expires_at']) . ' UTC');
         if ($expiresAt !== false && $expiresAt < time()) {
+            return null;
+        }
+
+        $createdAt = strtotime(((string)$session['created_at']) . ' UTC');
+        if ($createdAt !== false && (time() - $createdAt) > $this->maxSessionLifetimeSeconds) {
+            $this->auth->revokeByTokenHash($hash, gmdate('Y-m-d H:i:s'));
             return null;
         }
 

@@ -35,11 +35,13 @@ if ($isProduction) {
 
 $accessTokenTtl = (int)(getenv('CRM_AUTH_ACCESS_TOKEN_TTL') ?: getenv('AUTH_ACCESS_TOKEN_TTL') ?: (3600 * 24 * 3));
 $refreshTokenTtl = (int)(getenv('CRM_AUTH_REFRESH_TOKEN_TTL') ?: getenv('AUTH_REFRESH_TOKEN_TTL') ?: (3600 * 24 * 14));
+$maxSessionLifetime = (int)(getenv('CRM_AUTH_MAX_SESSION_LIFETIME') ?: (3600 * 24 * 30));
 
 return [
     'auth' => [
         'access_token_ttl' => max(3600, $accessTokenTtl),
         'refresh_token_ttl' => max(3600 * 24, $refreshTokenTtl),
+        'max_session_lifetime' => max(3600 * 24, $maxSessionLifetime),
         'password_algo' => PASSWORD_ARGON2ID,
         'lock_threshold' => 5,
         'lock_seconds' => 300,

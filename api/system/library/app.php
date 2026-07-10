@@ -913,7 +913,8 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
-            (int)$this->config->get('security.auth.access_token_ttl', 43200)
+            (int)$this->config->get('security.auth.access_token_ttl', 43200),
+            (int)$this->config->get('security.auth.max_session_lifetime', 2592000)
         ));
 
         $this->container->factory('service.project', fn(Container $c) => new ProjectService(
