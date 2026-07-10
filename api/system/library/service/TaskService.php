@@ -297,9 +297,7 @@ final class TaskService
                 if (!$parentTask) {
                     return 'PARENT_TASK_NOT_FOUND';
                 }
-                error_log('[TaskService] CYCLE CHECK: task_id=' . ($task['id'] ?? 'null') . ' parent_id=' . ($parentTask['id'] ?? 'null'));
                 if ($this->tasks->hasCycleAncestor((int)($task['id'] ?? 0), (int)($parentTask['id'] ?? 0))) {
-                    error_log('[TaskService] CYCLE DETECTED: child=' . ($task['id'] ?? 'null') . ' parent=' . ($parentTask['id'] ?? 'null'));
                     return 'CYCLIC_DEPENDENCY_DETECTED';
                 }
                 $parentRelationChange = [
