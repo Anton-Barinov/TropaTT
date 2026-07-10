@@ -187,7 +187,10 @@ final class McpController extends BaseController
                 default => $this->methodNotFound($method),
             };
         } catch (Throwable $e) {
-            $this->logMcpError($method, $e);
+            try {
+                $logger = $this->container->get('logger');
+                $logger->error(['mcp_error' => $e->getMessage(), 'method' => $method, 'trace' => $e->getTraceAsString()]);
+            } catch (\Throwable) {}
             return $this->errorPayload($id, -32603, 'Internal error');
         }
 
@@ -12707,10 +12710,19 @@ MD;
     private function isSensitiveOrInternalKey(string $key): bool
     {
         $normalized = strtolower($key);
-        if (in_array($normalized, ['id', 'password', 'password_hash', 'token', 'token_hash', 'secret', 'secret_hash', 'key_hash', 'cost_rate', 'bill_rate'], true)) {
+        if (in_array($normalized, [
+            'id', 'password', 'password_hash', 'token', 'token_hash',
+            'secret', 'secret_hash', 'key_hash', 'cost_rate', 'bill_rate',
+            'api_key', 'access_key', 'encryption_key', 'private_key',
+            'license_key', 'webhook_url', 'credential', 'auth_token_hash',
+            'refresh_token', 'reset_token', 'invitation_token',
+        ], true)) {
             return true;
         }
         if (str_contains($normalized, 'password') || str_contains($normalized, 'secret') || str_contains($normalized, 'token')) {
+            return true;
+        }
+        if (str_contains($normalized, '_key') || str_contains($normalized, '_credential')) {
             return true;
         }
         if (str_ends_with($normalized, 'public_id')) {

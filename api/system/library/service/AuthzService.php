@@ -44,7 +44,6 @@ final class AuthzService
             $requiredCode = (string)$required;
 
             if (!in_array($requiredCode, $actual, true)) {
-                error_log('[KB PERM] DENIED: user=' . json_encode(['id' => $user['id'] ?? 0, 'is_root' => $user['is_root'] ?? null, 'roles' => $user['roles'] ?? null]) . ' required=' . $requiredCode . ' actual=' . json_encode($actual));
                 return false;
             }
         }

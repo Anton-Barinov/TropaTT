@@ -44,7 +44,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     public function hit(string $key): array
     {
         if (!$this->ensureSchema()) {
-            return ['blocked' => false, 'retry_after' => 0];
+            // Fail-closed: if schema is not ready, block with minimal retry
+            return ['blocked' => true, 'retry_after' => 5];
         }
 
         // Lazy garbage collection: on ~1% of writes, delete rows that haven't
@@ -294,13 +295,11 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     {
         try {
             // Verify schema by selecting expected columns.
-            // Works regardless of ALTER TABLE permissions or SHOW COLUMNS format.
             $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
-            // Table has correct schema - nothing to do
         } catch (\Throwable) {
-            // Schema mismatch or table missing - drop so migrateSchema() recreates it cleanly
-            $this->pdo->exec('DROP TABLE IF EXISTS rate_limits');
-            throw new \RuntimeException('Rate limits schema mismatch, table dropped for recreation');
+            // Schema mismatch — log and use fail-closed (blocked with 5s retry)
+            // Never drop/recreate the table (destructive), never assume ALTER TABLE
+            error_log('RateLimiter: schema mismatch — rate limiting uses fail-closed fallback');
         }
     }
 

@@ -98,7 +98,7 @@ return [
     ],
     'uploads' => [
         'max_size_bytes' => 20 * 1024 * 1024,
-        'quarantine_extensions' => ['php', 'phtml', 'phar', 'exe', 'sh', 'bat', 'cmd', 'com', 'msi', 'dll'],
+        'quarantine_extensions' => ['php', 'phtml', 'phar', 'exe', 'sh', 'bat', 'cmd', 'com', 'msi', 'dll', 'html', 'htm', 'svg', 'xhtml'],
         'quarantine_mime_prefixes' => ['application/x-php', 'application/x-sh', 'application/x-msdownload'],
     ],
 ];

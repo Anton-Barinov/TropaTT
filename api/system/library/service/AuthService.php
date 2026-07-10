@@ -318,10 +318,10 @@ final class AuthService
             $normalizedLogin = '_';
         }
 
-        // Key is per-login (NOT per login+IP) so that brute-force across
-        // different IPs still locks the account after N attempts.
-        // IP-level blocking is handled by the global route rate limiter.
-        return hash('sha256', $normalizedLogin);
+        // Combined login+IP key prevents targeted lockout-by-login (F1-2).
+        // Per-login rate limiting is handled by a separate file-based limiter.
+        // Using both: login-only for brute-force protection, login+IP for lockout prevention.
+        return hash('sha256', $normalizedLogin) . ':' . hash('sha256', $ip);
     }
 
     private function buildDeviceFingerprint(string $userAgent): string
