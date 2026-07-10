@@ -1813,7 +1813,7 @@ window.CRM.pageApiBindings = (function () {
     setText('#projectSummaryCreatedAt', formatDate(project.created_at));
     setText('#projectSummaryUpdatedAt', formatDate(project.updated_at));
     setText('#projectSummaryStatus', statusLabel(project.status_code));
-    setText('#projectSummaryPriority', project.priority_code || 'normal');
+    setText('#projectSummaryPriority', priorityLabel(project.priority_code || 'normal'));
     var projectSummaryDescription = document.querySelector('#projectSummaryDescription');
     if (projectSummaryDescription) {
       projectSummaryDescription.innerHTML = renderVisualEditorHtml(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description'));
@@ -1838,7 +1838,7 @@ window.CRM.pageApiBindings = (function () {
         + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + '<div class="progress mb-3"><div class="progress-bar" style="width:' + safeText(String(progress)) + '%">' + safeText(String(progress)) + '%</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(project.priority_code || 'normal') + '</div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.risks', 'Risks') + '</small><div>' + window.CRM.i18n.t('js.pab.overdue', 'Overdue:') + ' ' + safeText(String(overdue)) + ' · ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked:') + ' ' + safeText(String(blocked)) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.created', 'Created') + '</small><div>' + safeText(createdAt) + '</div></div>'
         + '<div class="crm-metric-tile"><small class="text-muted">' + window.CRM.i18n.t('js.pab.updated', 'Updated') + '</small><div>' + safeText(updatedAt) + '</div></div>';
@@ -2374,7 +2374,7 @@ window.CRM.pageApiBindings = (function () {
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
         + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><span aria-hidden="true">✏️</span></button></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div>'
-        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(project.priority_code || 'normal') + '</div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
         + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
         + '<option value="new"' + (project.status_code === 'new' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
@@ -3690,7 +3690,7 @@ window.CRM.pageApiBindings = (function () {
     body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task')) + '</h6>'
       + '<p class="text-muted mb-2">' + safeText(task.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
       + '<div class="mb-2"><span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>'
-      + ' <span class="crm-chip">' + safeText(task.priority_code || 'normal') + '</span></div>'
+      + ' <span class="crm-chip">' + safeText(priorityLabel(task.priority_code || 'normal')) + '</span></div>'
       + '<ul class="small ps-3 mb-3">'
       + '<li>' + window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + safeText(task.project_title || '—') + '</li>'
       + '<li>' + window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + safeText(task.assignee_full_name || task.assignee_login || '—') + '</li>'
