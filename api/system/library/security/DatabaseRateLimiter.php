@@ -9,6 +9,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 {
     private readonly string $driver;
     private bool $schemaReady = false;
+    private ?bool $hasLegacyAttemptsColumn = null;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -21,6 +22,10 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     public function check(string $key): array
     {
+        if (!$this->ensureSchema()) {
+            return ['blocked' => true, 'retry_after' => 5];
+        }
+
         $row = $this->fetch($key);
         $now = time();
 
@@ -139,10 +144,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $row = $this->fetchForUpdate($key);
 
             if ($row === null) {
-                $stmt = $this->pdo->prepare(
-                    'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, updated_at) VALUES (?, 1, ?, 0, datetime(\'now\'))'
-                );
-                $stmt->execute([$key, $windowStart]);
+                $this->insertFirstAttempt($key, $windowStart, "datetime('now')");
                 $this->pdo->commit();
                 return ['blocked' => false, 'retry_after' => 0];
             }
@@ -199,21 +201,33 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     private function tryInsert(string $key, int $windowStart): bool
     {
         try {
-            $stmt = $this->pdo->prepare(
-                'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, updated_at) VALUES (?, 1, ?, 0, NOW())'
-            );
-            return $stmt->execute([$key, $windowStart]);
+            $this->insertFirstAttempt($key, $windowStart, 'NOW()');
+            return true;
         } catch (\Throwable) {
             return false;
         }
     }
 
-    private function fetch(string $key): ?array
+    private function insertFirstAttempt(string $key, int $windowStart, string $currentTimeSql): void
     {
-        if (!$this->ensureSchema()) {
-            return null;
+        if ($this->hasLegacyAttemptsColumn()) {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO rate_limits (`key`, attempts, attempts_count, window_start, blocked_until, updated_at)'
+                . ' VALUES (?, ?, 1, ?, 0, ' . $currentTimeSql . ')'
+            );
+            $stmt->execute([$key, '[]', $windowStart]);
+            return;
         }
 
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO rate_limits (`key`, attempts_count, window_start, blocked_until, updated_at)'
+            . ' VALUES (?, 1, ?, 0, ' . $currentTimeSql . ')'
+        );
+        $stmt->execute([$key, $windowStart]);
+    }
+
+    private function fetch(string $key): ?array
+    {
         try {
             $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
             $stmt->execute([$key]);
@@ -293,14 +307,59 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
     private function ensureNewColumns(): void
     {
-        try {
-            // Verify schema by selecting expected columns.
-            $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
-        } catch (\Throwable) {
-            // Schema mismatch — log and use fail-closed (blocked with 5s retry)
-            // Never drop/recreate the table (destructive), never assume ALTER TABLE
-            error_log('RateLimiter: schema mismatch — rate limiting uses fail-closed fallback');
+        if ($this->hasExpectedColumns()) {
+            return;
         }
+
+        try {
+            if ($this->driver === 'mysql') {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INT NOT NULL DEFAULT 0');
+            } else {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INTEGER NOT NULL DEFAULT 0');
+            }
+        } catch (\Throwable) {
+            // The column may already have been added by a concurrent request.
+        }
+
+        try {
+            if ($this->driver === 'mysql') {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
+            } else {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INTEGER NOT NULL DEFAULT 0');
+            }
+        } catch (\Throwable) {
+            // The column may already have been added by a concurrent request.
+        }
+
+        if (!$this->hasExpectedColumns()) {
+            throw new \RuntimeException('Rate limiter schema is incompatible');
+        }
+    }
+
+    private function hasExpectedColumns(): bool
+    {
+        try {
+            $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function hasLegacyAttemptsColumn(): bool
+    {
+        if ($this->hasLegacyAttemptsColumn !== null) {
+            return $this->hasLegacyAttemptsColumn;
+        }
+
+        try {
+            $this->pdo->query('SELECT attempts FROM rate_limits LIMIT 0');
+            $this->hasLegacyAttemptsColumn = true;
+        } catch (\Throwable) {
+            $this->hasLegacyAttemptsColumn = false;
+        }
+
+        return $this->hasLegacyAttemptsColumn;
     }
 
     private function collectGarbage(): void
