@@ -142,6 +142,13 @@ final class ChatController extends BaseController
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         $input = $this->request()->allInput();
         $favorite = array_key_exists('is_favorite', $input) ? (bool)$input['is_favorite'] : null;
         $mutedUntil = '__keep__';
@@ -152,8 +159,6 @@ final class ChatController extends BaseController
             $mutedUntil = (bool)$input['is_muted'] ? '9999-12-31 23:59:59' : null;
         }
 
-        /** @var ChatService $service */
-        $service = $this->container->get('service.chat');
         $state = $service->updateParticipantSettings((int)$chat['id'], $this->currentUserId(), $favorite, $mutedUntil);
 
         return $this->success('CHAT_SETTINGS_UPDATED', $this->t('chat/messages.settings_updated'), ['settings' => $state]);
@@ -299,6 +304,13 @@ final class ChatController extends BaseController
         $input = $this->request()->allInput();
         $text = trim((string)($input['text'] ?? ''));
         if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
         $messageType = (string)($input['message_type'] ?? 'text');
         if (!in_array($messageType, ['text'], true)) $messageType = 'text';
@@ -321,8 +333,6 @@ final class ChatController extends BaseController
         $msgId = (int)$pdo->lastInsertId();
         $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
 
-        /** @var ChatService $service */
-        $service = $this->container->get('service.chat');
         $service->markRead((int)$chat['id'], $this->currentUserId());
         $priorityIds = $service->mentionedParticipantIds((int)$chat['id'], $text);
         if ($reply && (int)$reply['sender_user_id'] !== $this->currentUserId()) $priorityIds[] = (int)$reply['sender_user_id'];
@@ -341,6 +351,13 @@ final class ChatController extends BaseController
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $text = trim((string)($this->request()->allInput()['text'] ?? ''));
         if (!$chat || $text === '') return $this->error('INVALID_PARAM', $this->t('chat/messages.text_required'), 400);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         if (mb_strlen($text) > 4000) return $this->error('TEXT_TOO_LONG', $this->t('chat/messages.message_too_long'), 422);
 
         $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
@@ -357,6 +374,13 @@ final class ChatController extends BaseController
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         $message = $this->editableMessage((int)$chat['id'], (string)($params['message_public_id'] ?? ''));
         if (!$message) return $this->error('DELETE_FORBIDDEN', $this->t('chat/messages.cannot_delete'), 403);
 
@@ -372,6 +396,13 @@ final class ChatController extends BaseController
     {
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         $file = $this->request()->files['file'] ?? null;
         if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return $this->error('FILE_REQUIRED', $this->t('chat/messages.file_required'), 400);
         if ((int)($file['size'] ?? 0) > 20 * 1024 * 1024) return $this->error('FILE_TOO_LARGE', $this->t('chat/messages.file_too_large'), 422);
@@ -391,8 +422,6 @@ final class ChatController extends BaseController
         $fileRow = $this->storeAttachment($msgPublicId, $file);
         $pdo->prepare("UPDATE chats SET last_message_at = NOW() WHERE id = :cid")->execute(['cid' => (int)$chat['id']]);
 
-        /** @var ChatService $service */
-        $service = $this->container->get('service.chat');
         $service->markRead((int)$chat['id'], $this->currentUserId());
         $service->notifyMessage($chat, ['public_id' => $msgPublicId, 'id' => $msgId, 'text' => $text !== '' ? $text : $this->t('chat/messages.attached_file') . ': ' . $fileRow['original_name']], $this->user()['user'] ?? []);
 
@@ -433,6 +462,9 @@ final class ChatController extends BaseController
 
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
         $service->markRead((int)$chat['id'], $this->currentUserId());
 
         return $this->success('CHAT_READ', $this->t('chat/messages.marked_read'));
@@ -470,6 +502,13 @@ final class ChatController extends BaseController
 
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
+
         if ((int)($chat['created_by_user_id'] ?? 0) !== $userId) return $this->error('NOT_ALLOWED', $this->t('chat/messages.only_creator_archive'), 422);
 
         $pdo = $this->container->get('db.pdo');
@@ -483,8 +522,6 @@ final class ChatController extends BaseController
             $chatId = (int)$stmt->fetchColumn();
             if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
-            /** @var ChatService $service */
-            $service = $this->container->get('service.chat');
             $result = $service->archiveChat($chatId, $userId);
             if ($result === []) return $this->error('ARCHIVE_FAILED', $this->t('chat/messages.archive_failed'), 500);
             return $this->success('CHAT_ARCHIVED', $this->t('common/messages.ok'), ['chat' => $result]);
@@ -500,21 +537,21 @@ final class ChatController extends BaseController
         if ($userId <= 0) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
 
         $publicId = (string)($params['public_id'] ?? '');
-        if ($publicId === '') return $this->error('MISSING_ID', $this->t('chat/messages.chat_id_required'), 422);
 
-        $pdo = $this->container->get('db.pdo');
-        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) $this->ensureChatArchiveColumns($pdo);
-
-        if (!$this->tableHasColumn($pdo, 'chats', 'archived_at')) return $this->error('NOT_AVAILABLE', $this->t('chat/messages.archive_unavailable'), 503);
+        $chat = $this->chatForCurrentUser($publicId);
+        if (!is_array($chat)) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        if ((int)($chat['archived_by_user_id'] ?? 0) !== $userId || empty($chat['archived_at'])) {
+            return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+        }
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        if (!$service->assertParticipant((int)$chat['id'], $this->currentUserId())) {
+            return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
+        }
 
         try {
-            $stmt = $pdo->prepare("SELECT id FROM chats WHERE public_id = :pid AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
-            $stmt->execute(['pid' => $publicId, 'uid' => $userId]);
-            $chatId = (int)$stmt->fetchColumn();
-            if ($chatId <= 0) return $this->error('CHAT_NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
+            $chatId = (int)$chat['id'];
 
-            /** @var ChatService $service */
-            $service = $this->container->get('service.chat');
             $result = $service->restoreChat($chatId, $userId);
             if ($result === []) return $this->error('RESTORE_FAILED', $this->t('chat/messages.restore_failed'), 500);
             return $this->success('CHAT_RESTORED', $this->t('common/messages.ok'), ['chat' => $result]);
