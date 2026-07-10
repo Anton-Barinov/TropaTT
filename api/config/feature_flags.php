@@ -10,7 +10,9 @@ return [
         'custom_fields' => true,
         'automation' => true,
         'recurring' => true,
-        'events_sse' => true,
+        // Shared hosting uses short polling by default. Enable SSE only after
+        // confirming that the PHP worker pool can sustain persistent streams.
+        'events_sse' => false,
         'ai.enabled' => true,
         'ai.task' => false,
         'ai.project' => false,
