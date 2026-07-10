@@ -1,7 +1,8 @@
 <?php
 
-if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 declare(strict_types=1);
+if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
+
 
 /**
  * Скрипт наполнения Базы Знаний реальным контентом агентства Aurora Digital

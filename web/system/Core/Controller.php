@@ -7,6 +7,37 @@ use Web\System\I18n\I18n;
 
 abstract class Controller
 {
+    /**
+     * Translation namespaces used by the shared client-side scripts.
+     *
+     * Page templates are already rendered in the selected locale, so sending the
+     * complete server dictionary to every browser only duplicates static text.
+     * Keep the dynamic UI namespaces available while retaining server-rendered
+     * text as the fallback for page-specific markup.
+     *
+     * @var array<int, string>
+     */
+    private const CLIENT_MESSAGE_NAMESPACES = [
+        'js',
+        'nav',
+        'topbar',
+        'priority',
+        'page',
+        'common',
+        'richtext',
+        'dashboard',
+        'tasks',
+        'task_detail',
+        'notifications',
+        'footer',
+        'admin_estimates',
+        'project_modules',
+        'cycles',
+        'intake',
+        'task_activity',
+        'visual_editor',
+    ];
+
     /** @var array<int, string>|null */
     private static ?array $moduleCssFiles = null;
 
@@ -92,7 +123,7 @@ abstract class Controller
         $titleKey = str_starts_with($routeKey, 'module_') ? substr($routeKey, 7) : $routeKey;
         $routeTitle = $titleKey !== '' ? $i18n->t($titleKey . '.title', '') : '';
         $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
-        $data['lang_messages'] = $i18n->all();
+        $data['lang_messages'] = $this->clientMessages($i18n->all());
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 
         extract($data, EXTR_SKIP);
@@ -112,5 +143,28 @@ abstract class Controller
             $hookContext = ['template' => $template, 'html' => ''];
             self::$webHookManager->dispatch('render.after', $hookContext);
         }
+    }
+
+    /** @param array<string, mixed> $messages
+     *  @return array<string, mixed>
+     */
+    private function clientMessages(array $messages): array
+    {
+        $selected = [];
+        foreach (self::CLIENT_MESSAGE_NAMESPACES as $namespace) {
+            if (array_key_exists($namespace, $messages)) {
+                $selected[$namespace] = $messages[$namespace];
+            }
+        }
+
+        // Module translations use their own top-level namespace. Preserve every
+        // loaded module namespace without re-sending unrelated page dictionaries.
+        foreach (['jira_migration', 'confluence_migration'] as $namespace) {
+            if (array_key_exists($namespace, $messages)) {
+                $selected[$namespace] = $messages[$namespace];
+            }
+        }
+
+        return $selected;
     }
 }
