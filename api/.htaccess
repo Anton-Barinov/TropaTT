@@ -7,3 +7,27 @@
 <FilesMatch "^\.env\.php$">
     Require all denied
 </FilesMatch>
+
+# Block all script/config/template files except the front controller
+<FilesMatch "\.(php|json|lock|md|dist|example|yml|yaml|neon|env)$">
+    <If "!%{REQUEST_URI} =~ m#/index\.php#">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# Allow front controller explicitly
+<Files "index.php">
+    Require all granted
+</Files>
+
+# Deny access to config/ directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^scripts/ - [F,L]
+    RewriteRule ^system/ - [F,L]
+    RewriteRule ^tests/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^storage_test_runtime/ - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+</IfModule>
