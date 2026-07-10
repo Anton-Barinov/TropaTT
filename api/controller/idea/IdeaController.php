@@ -275,6 +275,16 @@ final class IdeaController extends BaseController
         if (!in_array($newStatus, $allowed, true)) return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
+        $stmt = $pdo->prepare("SELECT author_user_id FROM ideas WHERE public_id = :pid");
+        $stmt->execute(['pid' => $publicId]);
+        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
+
+        $user = $this->user()['user'] ?? [];
+        if ((int)$idea['author_user_id'] !== (int)($user['id'] ?? 0) && !(bool)($user['is_root'] ?? false)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
+
         $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid")->execute(['status' => $newStatus, 'pid' => $publicId]);
 
         try {
