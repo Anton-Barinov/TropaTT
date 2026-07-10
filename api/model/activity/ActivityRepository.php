@@ -57,8 +57,23 @@ final class ActivityRepository
         $countSql = 'SELECT COUNT(*) FROM (' . $union . ') x';
         $total = (int)$this->sqlExecutor->fetchValue($countSql, $params);
 
-        $sql = 'SELECT * FROM (' . $union . ') x ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
-        $items = $this->sqlExecutor->fetchAll($sql, $params + [
+        // A global feed only needs rows that can occur on the requested page.
+        // Sorting full request/audit/security logs makes the dashboard slower as
+        // logs grow. Limit each independent channel first, then merge its window.
+        $windowSize = max(1, $offset + $limit);
+        $windowParts = [];
+        $windowParams = [];
+        foreach ($parts as $index => $part) {
+            $alias = 'activity_window_' . $index;
+            $placeholder = ':activity_window_limit_' . $index;
+            $windowParts[] = 'SELECT * FROM (SELECT * FROM (' . $part . ') AS ' . $alias
+                . ' ORDER BY created_at DESC LIMIT ' . $placeholder . ') AS ' . $alias . '_limited';
+            $windowParams[$placeholder] = $windowSize;
+        }
+
+        $sql = 'SELECT * FROM (' . implode("\nUNION ALL\n", $windowParts) . ') x'
+            . ' ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
+        $items = $this->sqlExecutor->fetchAll($sql, $params + $windowParams + [
             ':limit' => $limit,
             ':offset' => $offset,
         ]);
