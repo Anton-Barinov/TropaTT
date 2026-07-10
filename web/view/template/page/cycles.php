@@ -5,7 +5,7 @@
 <main class="crm-content crm-cycles-page">
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><?= htmlspecialchars($t('cycles.page_title', 'Циклы'), ENT_QUOTES, 'UTF-8') ?><span class="crm-badge crm-badge-secondary-outline ms-2 small fw-normal"><?= htmlspecialchars($t('cycles.subtitle_badge', 'Спринты / Итерации'), ENT_QUOTES, 'UTF-8') ?></span></h4>
+    <h1 class="h4 mb-0" data-i18n="cycles.page_title"><?= htmlspecialchars($t('cycles.page_title', 'Циклы'), ENT_QUOTES, 'UTF-8') ?><span class="crm-badge crm-badge-secondary-outline ms-2 small fw-normal" data-i18n="cycles.subtitle_badge"><?= htmlspecialchars($t('cycles.subtitle_badge', 'Спринты / Итерации'), ENT_QUOTES, 'UTF-8') ?></span></h1>
     <div>
       <button class="btn btn-sm crm-btn-primary" onclick="window.openCycleModal(null)">
         <i class="fa-solid fa-plus"></i> <?= htmlspecialchars($t('cycles.btn_create', 'Создать цикл'), ENT_QUOTES, 'UTF-8') ?>
