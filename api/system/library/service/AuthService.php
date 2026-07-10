@@ -6,7 +6,6 @@ namespace Api\System\Library\Service;
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Common\UserRepository;
 use Api\System\Library\Logger\JsonLogger;
-use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -19,9 +18,7 @@ final class AuthService
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly int $tokenTtlSeconds,
-        private readonly RateLimiterInterface $rateLimiter,
-        private readonly RateLimiterInterface $ipRateLimiter
+        private readonly int $tokenTtlSeconds
     ) {
     }
 
@@ -48,9 +45,9 @@ final class AuthService
             ];
         }
 
-        // Per-login rate limit (existing)
+        // Per-login rate limit (file-based, SEC-01)
         $rateKey = $this->rateLimitKey($login, $ip);
-        $check = $this->rateLimiter->check($rateKey);
+        $check = $this->checkLoginRateLimit($rateKey);
         if ($check['blocked'] === true) {
             $this->logger->security([
                 'event_type' => 'auth_rate_limited',
@@ -73,7 +70,7 @@ final class AuthService
             // so that non-existent users take the same time as existent ones.
             // Uses a pre-generated Argon2id hash to match the system's actual hash algorithm.
             $this->hasher->verify('dummy_plain_text', '$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHR2YWx1ZXMxMjM0NQ$wLdTJFplKxH5XKRhXQz7vA+VL0VvN8gD4v7TyzHGlc0');
-            $state = $this->rateLimiter->hit($rateKey);
+            $state = $this->hitLoginRateLimit($rateKey);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'user_not_found_or_inactive',
@@ -92,7 +89,7 @@ final class AuthService
         }
 
         if (!$this->hasher->verify($password, (string)$user['password_hash'])) {
-            $state = $this->rateLimiter->hit($rateKey);
+            $state = $this->hitLoginRateLimit($rateKey);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_password',
@@ -112,7 +109,7 @@ final class AuthService
 
         $tokenHash = (string)($user['auth_token_hash'] ?? '');
         if ($tokenHash !== '' && ($token === '' || !hash_equals($tokenHash, hash('sha256', $token)))) {
-            $state = $this->rateLimiter->hit($rateKey);
+            $state = $this->hitLoginRateLimit($rateKey);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_token_factor',
@@ -130,7 +127,7 @@ final class AuthService
             return ['ok' => false, 'code' => 'INVALID_CREDENTIALS'];
         }
 
-        $this->rateLimiter->clear($rateKey);
+        $this->clearLoginRateLimit($rateKey);
         $plainAccess = $this->tokens->generate();
         $sessionPublicId = Ulid::generate('ses');
         $expiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
@@ -233,19 +230,14 @@ final class AuthService
         ];
     }
 
-    private function checkIpRateLimit(string $ip): array
+    // ── Shared file-based rate limit engine ──
+    private function fileRateLimit(string $fileName, int $maxAttempts, int $windowSeconds, int $lockSeconds, bool $increment): array
     {
-        $maxAttempts = 30;
-        $windowSeconds = 60;
-        $lockSeconds = 300;
         $now = time();
-
-        $file = sys_get_temp_dir() . '/crm_ip_login_' . md5($ip) . '.counter';
-        $fp = @fopen($file, 'c+');
+        $fp = @fopen($fileName, 'c+');
         if (!$fp) {
             return ['blocked' => false, 'retry_after' => 0];
         }
-
         if (!flock($fp, LOCK_EX)) {
             fclose($fp);
             return ['blocked' => false, 'retry_after' => 0];
@@ -256,37 +248,67 @@ final class AuthService
         if (!is_array($data)) {
             $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
         }
-
         $data['count'] = (int)($data['count'] ?? 0);
         $data['window_start'] = (int)($data['window_start'] ?? 0);
         $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
 
+        // Already blocked
         if ($data['blocked_until'] > $now) {
             flock($fp, LOCK_UN);
             fclose($fp);
             return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
         }
 
-        if (($now - $data['window_start']) > $windowSeconds) {
-            $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
-        } else {
-            $data['count']++;
-            if ($data['count'] >= $maxAttempts) {
-                $data['blocked_until'] = $now + $lockSeconds;
+        if ($increment) {
+            if (($now - $data['window_start']) > $windowSeconds) {
+                $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
+            } else {
+                $data['count']++;
+                if ($data['count'] >= $maxAttempts) {
+                    $data['blocked_until'] = $now + $lockSeconds;
+                }
             }
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
         }
 
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
         flock($fp, LOCK_UN);
         fclose($fp);
 
         if ($data['blocked_until'] > $now) {
             return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
         }
-
         return ['blocked' => false, 'retry_after' => 0];
+    }
+
+    private function checkIpRateLimit(string $ip): array
+    {
+        return $this->fileRateLimit(
+            sys_get_temp_dir() . '/crm_ip_login_' . md5($ip) . '.counter',
+            30, 60, 300, true
+        );
+    }
+
+    private function checkLoginRateLimit(string $rateKey): array
+    {
+        return $this->fileRateLimit(
+            sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter',
+            5, 300, 900, false
+        );
+    }
+
+    private function hitLoginRateLimit(string $rateKey): array
+    {
+        return $this->fileRateLimit(
+            sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter',
+            5, 300, 900, true
+        );
+    }
+
+    private function clearLoginRateLimit(string $rateKey): void
+    {
+        @unlink(sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter');
     }
 
     private function rateLimitKey(string $login, string $ip): string
@@ -342,4 +364,5 @@ final class AuthService
 
         return $os . ' / ' . $client;
     }
+
 }
