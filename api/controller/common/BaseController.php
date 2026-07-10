@@ -145,6 +145,69 @@ abstract class BaseController
         return (string)($auth['user']['id'] ?? 0);
     }
 
+    /**
+     * File-based IP rate limit check-and-increment (SEC-04).
+     * Uses flock() for atomicity. Fail-open: returns ['blocked' => false] on any error.
+     *
+     * @param string $prefix Unique prefix for the rate limit bucket (e.g. 'inv_accept', 'pw_reset_confirm')
+     * @param int $maxAttempts Max attempts within the window
+     * @param int $windowSeconds Window duration in seconds
+     * @param int $lockSeconds Lock duration after hitting the limit
+     */
+    protected function checkIpRateLimit(string $prefix, int $maxAttempts = 20, int $windowSeconds = 60, int $lockSeconds = 300): array
+    {
+        $ip = $this->request()->ip();
+        $now = time();
+        $file = sys_get_temp_dir() . '/crm_rl_' . $prefix . '_' . md5($ip) . '.counter';
+
+        $fp = @fopen($file, 'c+');
+        if (!$fp) {
+            return ['blocked' => false, 'retry_after' => 0];
+        }
+
+        if (!flock($fp, LOCK_EX)) {
+            fclose($fp);
+            return ['blocked' => false, 'retry_after' => 0];
+        }
+
+        $raw = stream_get_contents($fp);
+        $data = ($raw !== false && $raw !== '') ? @json_decode($raw, true) : null;
+        if (!is_array($data)) {
+            $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
+        }
+
+        $data['count'] = (int)($data['count'] ?? 0);
+        $data['window_start'] = (int)($data['window_start'] ?? 0);
+        $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
+
+        if ($data['blocked_until'] > $now) {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
+        }
+
+        if (($now - $data['window_start']) > $windowSeconds) {
+            $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
+        } else {
+            $data['count']++;
+            if ($data['count'] >= $maxAttempts) {
+                $data['blocked_until'] = $now + $lockSeconds;
+            }
+        }
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
+        flock($fp, LOCK_UN);
+        fclose($fp);
+
+        if ($data['blocked_until'] > $now) {
+            return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
+        }
+
+        return ['blocked' => false, 'retry_after' => 0];
+    }
+
     /** @param array<string,mixed>|array<int,mixed> $payload */
     private function sanitizePublicContract(array $payload): array
     {
