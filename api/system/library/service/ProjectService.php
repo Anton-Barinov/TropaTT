@@ -169,11 +169,15 @@ final class ProjectService
         $beforeManagerUserId = (int)($project['manager_user_id'] ?? 0);
         $beforeTeamPublicId = trim((string)($project['team_public_id'] ?? ''));
 
+        $expectedRowVersion = null;
         if (array_key_exists('row_version', $input)) {
             $expected = (int)$input['row_version'];
             $current = (int)($project['row_version'] ?? 0);
             if ($expected > 0 && $expected !== $current) {
                 return 'ROW_VERSION_CONFLICT';
+            }
+            if ($expected > 0) {
+                $expectedRowVersion = $expected;
             }
         }
 
@@ -221,7 +225,10 @@ final class ProjectService
             $set['task_key_prefix'] = $resolved;
         }
 
-        $this->projects->updateByPublicId($publicId, $set);
+        $updated = $this->projects->updateByPublicId($publicId, $set, $expectedRowVersion);
+        if (!$updated && $expectedRowVersion !== null) {
+            return 'ROW_VERSION_CONFLICT';
+        }
         $this->semanticIndex?->removeEntityDocument('project', $publicId);
 
         // Sync counter prefix when project prefix changes
