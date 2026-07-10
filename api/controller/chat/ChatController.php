@@ -109,7 +109,12 @@ final class ChatController extends BaseController
             'archived_by_user_id' => 'INTEGER',
             'archived_participant_ids' => 'TEXT',
         ];
+        $allowedColumns = ['archived_at', 'archived_by_user_id', 'archived_participant_ids'];
+        $allowedTypes = ['DATETIME', 'INTEGER', 'TEXT', 'VARCHAR(255)', 'BOOLEAN', 'INT', 'BIGINT', 'FLOAT'];
         foreach ($columns as $col => $type) {
+            if (!in_array($col, $allowedColumns, true) || !in_array($type, $allowedTypes, true)) {
+                continue;
+            }
             try {
                 $pdo->exec("ALTER TABLE chats ADD COLUMN {$col} {$type} NULL");
             } catch (\Throwable $e) {}

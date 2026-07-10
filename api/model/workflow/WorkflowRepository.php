@@ -4,12 +4,15 @@ declare(strict_types=1);
 namespace Api\Model\Workflow;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Security\UrlSafetyValidator;
 use PDO;
 
 final class WorkflowRepository
 {
-    public function __construct(private readonly PDO $pdo)
-    {
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly ?UrlSafetyValidator $urlSafety = null
+    ) {
     }
 
     public function listRules(array $filters): array
@@ -313,6 +316,13 @@ final class WorkflowRepository
 
     public function callWebhookAsync(string $url, array $context): void
     {
+        $validator = $this->urlSafety ?? new UrlSafetyValidator();
+        $validated = $validator->validateProviderUrl($url, true, ['https']);
+        if (!(bool)($validated['ok'] ?? false)) {
+            error_log('[WorkflowRepository] SSRF blocked: ' . ($validated['code'] ?? 'UNKNOWN') . ' url=' . $url);
+            return;
+        }
+
         $payload = json_encode($context, JSON_UNESCAPED_UNICODE);
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -322,6 +332,11 @@ final class WorkflowRepository
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_TIMEOUT => 5,
             CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => 0,
         ]);
         curl_exec($ch);
         curl_close($ch);

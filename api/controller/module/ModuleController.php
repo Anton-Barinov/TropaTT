@@ -310,6 +310,10 @@ final class ModuleController
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_data_required'), 400);
         }
 
+        if (strlen($fileData) > 100 * 1024 * 1024) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_too_large'), 400);
+        }
+
         $projectRoot = dirname(__DIR__, 3);
         $tmpDir = sys_get_temp_dir() . '/crm_module_' . bin2hex(random_bytes(8));
         @mkdir($tmpDir, 0755, true);
@@ -320,7 +324,11 @@ final class ModuleController
                 return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.invalid_base64'), 400);
             }
 
-            $archivePath = $tmpDir . '/' . basename($fileName);
+            $safeFileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($fileName));
+            if ($safeFileName === '' || $safeFileName === '.' || $safeFileName === '..') {
+                $safeFileName = 'module.zip';
+            }
+            $archivePath = $tmpDir . '/' . $safeFileName;
             file_put_contents($archivePath, $decoded);
 
             $pm = $this->container->get('plugin.manager');
