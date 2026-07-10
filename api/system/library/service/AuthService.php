@@ -20,7 +20,8 @@ final class AuthService
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
         private readonly int $tokenTtlSeconds,
-        private readonly RateLimiterInterface $rateLimiter
+        private readonly RateLimiterInterface $rateLimiter,
+        private readonly RateLimiterInterface $ipRateLimiter
     ) {
     }
 
@@ -29,6 +30,27 @@ final class AuthService
         $login = trim((string)($input['login'] ?? ''));
         $password = (string)($input['password'] ?? '');
         $token = trim((string)($input['token'] ?? ''));
+
+        // Global IP-based rate limit (SEC-01: prevents password spraying)
+        $ipRateKey = hash('sha256', 'login-ip:' . $ip);
+        $ipCheck = $this->ipRateLimiter->check($ipRateKey);
+        if ($ipCheck['blocked'] === true) {
+            $this->logger->security([
+                'event_type' => 'auth_ip_rate_limited',
+                'login' => $login,
+                'ip' => $ip,
+                'user_agent' => $userAgent,
+                'retry_after' => $ipCheck['retry_after'],
+            ]);
+            return [
+                'ok' => false,
+                'code' => 'AUTH_RATE_LIMITED',
+                'retry_after' => $ipCheck['retry_after'],
+            ];
+        }
+        $this->ipRateLimiter->hit($ipRateKey);
+
+        // Per-login rate limit (existing)
         $rateKey = $this->rateLimitKey($login, $ip);
         $check = $this->rateLimiter->check($rateKey);
         if ($check['blocked'] === true) {

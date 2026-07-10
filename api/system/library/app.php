@@ -867,6 +867,15 @@ final class App
                 max(1, (int)($authConfig['lock_seconds'] ?? 300))
             );
         });
+        $this->container->factory('security.login_ip_rate_limiter', function (Container $c): DatabaseRateLimiter {
+            $rateLimitConfig = (array)$this->config->get('security.rate_limit.auth_login_ip', []);
+            return new DatabaseRateLimiter(
+                $c->get('db.pdo'),
+                max(1, (int)($rateLimitConfig['window_sec'] ?? 60)),
+                max(1, (int)($rateLimitConfig['max'] ?? 30)),
+                max(1, (int)($rateLimitConfig['lock_seconds'] ?? 300))
+            );
+        });
         $this->container->factory('security.password_reset_rate_limiter', function (Container $c): DatabaseRateLimiter {
             $cfg = (array)$this->config->get('security.rate_limit.password_reset', []);
 
@@ -905,7 +914,8 @@ final class App
             $c->get('security.token'),
             $c->get('logger'),
             (int)$this->config->get('security.auth.access_token_ttl', 43200),
-            $c->get('security.login_rate_limiter')
+            $c->get('security.login_rate_limiter'),
+            $c->get('security.login_ip_rate_limiter')
         ));
 
         $this->container->factory('service.project', fn(Container $c) => new ProjectService(
