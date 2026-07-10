@@ -14,7 +14,7 @@ final class RateLimitsMigration implements MigrationInterface
 
     public function description(): string
     {
-        return 'Create rate_limits table for DB-based rate limiting with expires_at GC column';
+        return 'Create rate_limits table for DB-based rate limiting';
     }
 
     public function up(PDO $pdo, string $driver): void
@@ -25,10 +25,8 @@ final class RateLimitsMigration implements MigrationInterface
                 attempts_count INT NOT NULL DEFAULT 0,
                 window_start INT NOT NULL DEFAULT 0,
                 blocked_until INT NOT NULL DEFAULT 0,
-                expires_at INT NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`key`),
-                INDEX idx_rate_limits_expires (expires_at)
+                PRIMARY KEY (`key`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } else {
             $pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
@@ -36,15 +34,9 @@ final class RateLimitsMigration implements MigrationInterface
                 attempts_count INTEGER NOT NULL DEFAULT 0,
                 window_start INTEGER NOT NULL DEFAULT 0,
                 blocked_until INTEGER NOT NULL DEFAULT 0,
-                expires_at INTEGER NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`key`)
             )');
-            try {
-                $pdo->exec('CREATE INDEX IF NOT EXISTS idx_rate_limits_expires ON rate_limits (expires_at)');
-            } catch (\Throwable) {
-                // Index may already exist
-            }
         }
     }
 }
