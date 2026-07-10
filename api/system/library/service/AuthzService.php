@@ -40,14 +40,8 @@ final class AuthzService
             $actual = [];
         }
 
-        $roles = is_array($user['roles'] ?? null) ? (array)$user['roles'] : [];
-        $isAdminRole = in_array('admin', $roles, true);
-
         foreach ($requiredPermissions as $required) {
             $requiredCode = (string)$required;
-            if ($requiredCode === 'ai.admin' && $isAdminRole) {
-                continue;
-            }
 
             if (!in_array($requiredCode, $actual, true)) {
                 error_log('[KB PERM] DENIED: user=' . json_encode(['id' => $user['id'] ?? 0, 'is_root' => $user['is_root'] ?? null, 'roles' => $user['roles'] ?? null]) . ' required=' . $requiredCode . ' actual=' . json_encode($actual));

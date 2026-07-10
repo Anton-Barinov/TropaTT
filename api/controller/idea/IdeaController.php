@@ -1007,14 +1007,18 @@ final class IdeaController extends BaseController
 
         // DELETE: clear all AI iterations for this idea
         if (($this->request()->method ?? '') === 'DELETE') {
-            $pdo->exec("DELETE FROM idea_ai_iterations WHERE idea_id={$ideaId}");
+            $pdo->prepare("DELETE FROM idea_ai_iterations WHERE idea_id = :iid")->execute(['iid' => $ideaId]);
             return $this->success('DEBUG_CLEARED', $this->t('idea/messages.debug_logs_cleared'));
         }
 
-        $iterations = $pdo->query("SELECT * FROM idea_ai_iterations WHERE idea_id={$ideaId} ORDER BY created_at ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $iterStmt = $pdo->prepare("SELECT * FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY created_at ASC");
+        $iterStmt->execute(['iid' => $ideaId]);
+        $iterations = $iterStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $questions = $service->getQuestions($ideaId);
         $analyses = $service->getAnalyses($ideaId);
-        $provider = $pdo->query("SELECT provider_code,default_model,is_active FROM ai_providers WHERE is_active=1 ORDER BY is_default DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $provStmt = $pdo->prepare("SELECT provider_code, default_model, is_active FROM ai_providers WHERE is_active = 1 ORDER BY is_default DESC LIMIT 1");
+        $provStmt->execute();
+        $provider = $provStmt->fetch(PDO::FETCH_ASSOC);
 
         $iterCount = count($iterations);
         $qCount = count($questions);
@@ -1046,7 +1050,7 @@ final class IdeaController extends BaseController
             'questions_count' => $qCount, 'questions' => $qArr,
             'analyses_count' => $aCount, 'analyses' => $aArr,
             'provider' => $provider ? $provider['provider_code'] . ' / ' . $provider['default_model'] : 'none',
-            'safe_mode' => (int)($pdo->query("SELECT value FROM settings WHERE scope='features' AND name='ideas_ai_safe_mode' ORDER BY created_at DESC LIMIT 1")->fetchColumn() ?: 0),
+            'safe_mode' => (int)$service->getSettingValue('ideas_ai_safe_mode'),
             'snapshot_at' => date('Y-m-d H:i:s'),
         ]);
     }
@@ -1203,7 +1207,9 @@ PROMPT;
             $rawText = $result['result']['preview']['summary'] ?? '';
 
             // Log to debug iterations
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $maxIterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$maxIterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'clarification', :req, :res, NOW())")
                 ->execute([
                     'pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter,
@@ -1219,7 +1225,9 @@ PROMPT;
             $additionalQuestions = $data['additional_questions'] ?? [];
 
             // Save each clarification question to idea_questions so answers can be stored
-            $cycleId = (int)$pdo->query("SELECT COALESCE(MAX(cycle_id),0)+1 FROM idea_questions WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxCycleStmt = $pdo->prepare("SELECT COALESCE(MAX(cycle_id), 0) + 1 FROM idea_questions WHERE idea_id = :iid");
+        $maxCycleStmt->execute(['iid' => $ideaId]);
+        $cycleId = (int)$maxCycleStmt->fetchColumn();
             $savedQs = [];
             foreach ($additionalQuestions as $idx => $q) {
                 $qId = 'iq_'.bin2hex(random_bytes(7));
@@ -1350,7 +1358,9 @@ PROMPT;
             }
 
             try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $maxIterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$maxIterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'understanding_card', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -1519,7 +1529,9 @@ PROMPT;
 
             $rawText = $result['result']['preview']['summary'] ?? '';
 
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $maxIterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$maxIterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'gap_question', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['user_prompt' => $prompt], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
@@ -1529,7 +1541,9 @@ PROMPT;
             }
 
             $gapQuestions = $data['additional_questions'] ?? [];
-            $cycleId = (int)$pdo->query("SELECT COALESCE(MAX(cycle_id),0)+1 FROM idea_questions WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxCycleStmt = $pdo->prepare("SELECT COALESCE(MAX(cycle_id), 0) + 1 FROM idea_questions WHERE idea_id = :iid");
+        $maxCycleStmt->execute(['iid' => $ideaId]);
+        $cycleId = (int)$maxCycleStmt->fetchColumn();
             $savedQs = [];
             foreach ($gapQuestions as $idx => $q) {
                 $qId = 'iq_'.bin2hex(random_bytes(7));
@@ -1659,7 +1673,9 @@ PROMPT;
             }
 
             try { $pdo->query('SELECT 1'); } catch (\Throwable) { $pdo = $this->container->get('db.pdo'); }
-            $iter = (int)$pdo->query("SELECT COALESCE(MAX(iteration),0)+1 FROM idea_ai_iterations WHERE idea_id={$ideaId}")->fetchColumn();
+            $maxIterStmt = $pdo->prepare("SELECT COALESCE(MAX(iteration), 0) + 1 FROM idea_ai_iterations WHERE idea_id = :iid");
+            $maxIterStmt->execute(['iid' => $ideaId]);
+            $iter = (int)$maxIterStmt->fetchColumn();
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'refined_card', :req, :res, NOW())")
                 ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['system_prompt' => $systemPrompt, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'res' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE)]);
 
