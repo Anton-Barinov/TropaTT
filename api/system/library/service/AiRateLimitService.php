@@ -42,6 +42,11 @@ final class AiRateLimitService
         return ['ok' => true];
     }
 
+    public function interactiveConcurrencyLimit(): int
+    {
+        return $this->limitInt('max_concurrent_interactive_requests', 2, 1, 16);
+    }
+
     private function limitInt(string $name, int $default, int $min, int $max): int
     {
         $item = $this->settings->get('ai_limits', $name);

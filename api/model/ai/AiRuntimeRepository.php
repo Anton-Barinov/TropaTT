@@ -81,6 +81,66 @@ final class AiRuntimeRepository
             ->first();
     }
 
+    /**
+     * Reserve a bounded interactive AI slot before a slow provider call.
+     *
+     * A short DB critical section is intentionally used instead of waiting in
+     * PHP-FPM. This keeps normal CRM requests responsive on shared hosting
+     * while already started generations may run up to their provider timeout.
+     *
+     * @param array<string,mixed> $payload
+     */
+    public function claimInteractiveSlot(array $payload, int $maxConcurrent, int $staleAfterSeconds = 660): ?string
+    {
+        $maxConcurrent = max(1, min(16, $maxConcurrent));
+        $staleBefore = gmdate('Y-m-d H:i:s', time() - max(60, $staleAfterSeconds));
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $hasAdvisoryLock = false;
+
+        try {
+            if ($driver === 'mysql') {
+                $lock = $this->pdo->prepare('SELECT GET_LOCK(:name, 0)');
+                $lock->execute(['name' => 'crm_ai_interactive_slots']);
+                if ((int)$lock->fetchColumn() !== 1) {
+                    return null;
+                }
+                $hasAdvisoryLock = true;
+            }
+
+            $this->pdo->beginTransaction();
+            $cleanup = $this->pdo->prepare("UPDATE ai_jobs
+                SET status = 'failed', error_code = 'AI_REQUEST_STALE', error_message = 'Interactive request did not finish', finished_at = :now, updated_at = :now
+                WHERE job_type = 'interactive' AND status = 'running' AND started_at IS NOT NULL AND started_at < :stale_before");
+            $now = gmdate('Y-m-d H:i:s');
+            $cleanup->execute(['now' => $now, 'stale_before' => $staleBefore]);
+
+            $count = $this->pdo->prepare("SELECT COUNT(*) FROM ai_jobs WHERE job_type = 'interactive' AND status = 'running'");
+            $count->execute();
+            if ((int)$count->fetchColumn() >= $maxConcurrent) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $publicId = $this->createJob($payload);
+            $this->pdo->commit();
+            return $publicId;
+        } catch (\Throwable) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            return null;
+        } finally {
+            if ($hasAdvisoryLock) {
+                try {
+                    $release = $this->pdo->prepare('SELECT RELEASE_LOCK(:name)');
+                    $release->execute(['name' => 'crm_ai_interactive_slots']);
+                } catch (\Throwable) {
+                    // The connection will release an advisory lock on close.
+                }
+            }
+        }
+    }
+
     public function listJobs(array $filters, bool $canViewAll, int $actorUserId, string $actorUserPublicId = ''): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
