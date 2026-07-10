@@ -214,12 +214,6 @@ final class AuthController extends BaseController
     private function csrfTokenForSession(string $sessionToken): string
     {
         $secret = trim((string)$this->config()->get('security.auth.csrf.secret_key', ''));
-        if ($secret === '' && !$this->isProductionEnvironment()) {
-            $secret = (string)$this->config()->get('install.bootstrap_secret', '');
-        }
-        if ($secret === '' && !$this->isProductionEnvironment()) {
-            $secret = hash('sha256', dirname(__DIR__, 2));
-        }
         if ($secret === '') {
             throw new RuntimeException('CONFIG_SECURITY_CSRF_SECRET_REQUIRED');
         }

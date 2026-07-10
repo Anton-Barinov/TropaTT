@@ -1125,8 +1125,7 @@ final class App
             $c->get('repository.role'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger'),
-            $c->get('security.password_reset_rate_limiter')
+            $c->get('logger')
         ));
         $this->container->factory('service.password_reset', fn(Container $c) => new PasswordResetService(
             $c->get('repository.password_reset'),
@@ -1135,8 +1134,7 @@ final class App
             $c->get('repository.user_management'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger'),
-            $c->get('security.password_reset_rate_limiter')
+            $c->get('logger')
         ));
         $this->container->factory('service.two_factor', fn(Container $c) => new TwoFactorService(
             $c->get('repository.two_factor'),
@@ -1918,13 +1916,7 @@ final class App
 
     private function csrfTokenForSession(string $sessionToken): string
     {
-        $secret = (string)$this->config->get('security.auth.csrf.secret_key', '');
-        if ($secret === '' && !$this->isProductionEnvironment()) {
-            $secret = (string)$this->config->get('install.bootstrap_secret', '');
-        }
-        if ($secret === '' && !$this->isProductionEnvironment()) {
-            $secret = hash('sha256', $this->basePath);
-        }
+        $secret = trim((string)$this->config->get('security.auth.csrf.secret_key', ''));
         if ($secret === '') {
             throw new RuntimeException('CONFIG_SECURITY_CSRF_SECRET_REQUIRED');
         }

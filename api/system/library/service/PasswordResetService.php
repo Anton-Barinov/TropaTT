@@ -8,7 +8,6 @@ use Api\Model\Security\PasswordResetRepository;
 use Api\Model\Security\SessionRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Logger\JsonLogger;
-use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
@@ -22,8 +21,7 @@ final class PasswordResetService
         private readonly UserManagementRepository $userManagement,
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
-        private readonly JsonLogger $logger,
-        private readonly RateLimiterInterface $rateLimiter
+        private readonly JsonLogger $logger
     ) {
     }
 
@@ -32,7 +30,7 @@ final class PasswordResetService
         $identifier = trim((string)($input['identifier'] ?? $input['login'] ?? ''));
         $normalizedIdentifier = mb_strtolower($identifier);
         $rateKey = hash('sha256', $normalizedIdentifier . '|' . trim($ip));
-        $check = $this->rateLimiter->check($rateKey);
+        $check = $this->checkFileRateLimit($rateKey, 'pwrst_req', false);
         if ($check['blocked'] === true) {
             $this->logger->security([
                 'event_type' => 'password_reset_rate_limited',
@@ -57,7 +55,7 @@ final class PasswordResetService
         }
 
         if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
-            $this->rateLimiter->hit($rateKey);
+            $this->checkFileRateLimit($rateKey, 'pwrst_req', true);
             $this->logger->security([
                 'event_type' => 'password_reset_request_missed',
                 'identifier' => $identifier,
@@ -105,11 +103,10 @@ final class PasswordResetService
         // Rate limit by IP to prevent token brute-force flooding (Task 1.6)
         if ($ip !== '') {
             $rateKey = hash('sha256', 'password-confirm-ip:' . $ip);
-            $check = $this->rateLimiter->check($rateKey);
+            $check = $this->checkFileRateLimit($rateKey, 'pwrst_cnf', true);
             if ($check['blocked'] === true) {
                 return ['ok' => false, 'code' => 'PASSWORD_RESET_RATE_LIMITED', 'retry_after' => $check['retry_after']];
             }
-            $this->rateLimiter->hit($rateKey);
         }
 
         $resetToken = trim((string)($input['reset_token'] ?? ''));
@@ -151,8 +148,39 @@ final class PasswordResetService
         ];
     }
 
+    // ── File-based rate limit engine ──
+    private function checkFileRateLimit(string $rateKey, string $prefix, bool $increment): array
+    {
+        $maxAttempts = 5;
+        $windowSecs = 300;
+        $lockSecs = 900;
+        $now = time();
+        $file = sys_get_temp_dir() . '/crm_' . $prefix . '_' . md5($rateKey) . '.counter';
+        $fp = @fopen($file, 'c+');
+        if (!$fp) return ['blocked' => false, 'retry_after' => 0];
+        if (!flock($fp, LOCK_EX)) { fclose($fp); return ['blocked' => false, 'retry_after' => 0]; }
+        $raw = stream_get_contents($fp);
+        $data = ($raw !== false && $raw !== '') ? @json_decode($raw, true) : null;
+        if (!is_array($data)) $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
+        $data['count'] = (int)($data['count'] ?? 0);
+        $data['window_start'] = (int)($data['window_start'] ?? 0);
+        $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
+        if ($data['blocked_until'] > $now) { flock($fp, LOCK_UN); fclose($fp); return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now]; }
+        if ($increment) {
+            if (($now - $data['window_start']) > $windowSecs) $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
+            else { $data['count']++; if ($data['count'] >= $maxAttempts) $data['blocked_until'] = $now + $lockSecs; }
+            ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
+        }
+        flock($fp, LOCK_UN); fclose($fp);
+        return $data['blocked_until'] > $now ? ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now] : ['blocked' => false, 'retry_after' => 0];
+    }
+
     private function appendMailLog(string $identifier, string $plainToken, string $userPublicId): void
     {
+        // F1-02: Only log plain tokens in non-production environments
+        $env = strtolower(trim((string)(defined('APP_ENV') ? APP_ENV : 'prod')));
+        if (in_array($env, ['prod', 'production'], true)) return;
+
         try {
             $logDir = dirname(__DIR__, 4) . '/storage/logs';
             if (!is_dir($logDir)) {
