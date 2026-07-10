@@ -358,14 +358,35 @@ window.CRM.ai = (function () {
       headers['X-Idempotency-Key'] = window.CRM.api.createIdempotencyKey('ai-request');
     }
 
-    return ensureAvailability.then(function () {
+    function executeWithAvailableSlot(attempt) {
       showAiActionNotice(inferredIntent);
       return request(route, {
         method: method,
         query: opts.query || {},
         headers: headers,
         body: body === undefined ? (opts.body || {}) : body
+      }).catch(function (error) {
+        var envelope = error && error.envelope ? error.envelope : {};
+        var code = String(envelope.code || '');
+        var retryAfter = Math.max(1, Math.min(15, Number((envelope.meta || {}).retry_after || 5)));
+        if (code !== 'AI_BUSY' || attempt >= 3) {
+          throw error;
+        }
+
+        // AI work already in progress keeps its PHP-FPM slot. Wait in the
+        // browser instead of holding another worker, then make a new safe
+        // idempotent request for the free slot.
+        headers['X-Idempotency-Key'] = window.CRM.api.createIdempotencyKey('ai-retry');
+        return new Promise(function (resolve) {
+          setTimeout(resolve, retryAfter * 1000);
+        }).then(function () {
+          return executeWithAvailableSlot(attempt + 1);
+        });
       });
+    }
+
+    return ensureAvailability.then(function () {
+      return executeWithAvailableSlot(0);
     });
   }
 
@@ -394,6 +415,10 @@ window.CRM.ai = (function () {
       message = t('js.ai.error_auth_failed', 'AI provider access error. Contact administrator.');
     } else if (code === 'AI_PROVIDER_UNAVAILABLE') {
       message = t('js.ai.error_provider_unavailable', 'AI provider temporarily unavailable. Try again later.');
+    } else if (code === 'AI_BUSY') {
+      message = retryAfter > 0
+        ? (t('js.ai.error_busy', 'AI is processing other requests. Retrying in ') + String(retryAfter) + t('js.ai.error_rate_limit_sec', ' sec.'))
+        : t('js.ai.error_busy_generic', 'AI is processing other requests. Please try again shortly.');
     } else if (code === 'AI_RATE_LIMITED') {
       message = retryAfter > 0
         ? (t('js.ai.error_rate_limit', 'AI request limit temporarily exhausted. Retry in ') + String(retryAfter) + t('js.ai.error_rate_limit_sec', ' sec.'))

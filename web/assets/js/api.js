@@ -436,7 +436,7 @@ window.CRM.api = (function () {
     var isPermissionError = status === 403 || code === 'FORBIDDEN' || code === 'HTTP_403';
     var isNotFound = status === 404 || code === 'NOT_FOUND' || code === 'HTTP_404' || code === 'ROUTE_NOT_FOUND';
     var isValidationError = status === 422 || code === 'VALIDATION_ERROR';
-    var isRateLimited = status === 429 || code === 'RATE_LIMITED' || code === 'AUTH_RATE_LIMITED' || code === 'AI_RATE_LIMITED';
+    var isRateLimited = status === 429 || code === 'RATE_LIMITED' || code === 'AUTH_RATE_LIMITED' || code === 'AI_RATE_LIMITED' || code === 'AI_BUSY';
     var isNetworkError = code === 'NETWORK_ERROR';
     var isTimeout = code === 'NETWORK_TIMEOUT';
     var isAborted = code === 'REQUEST_ABORTED';
