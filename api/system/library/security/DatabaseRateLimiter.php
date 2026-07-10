@@ -50,11 +50,15 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         $now = time();
         $windowStart = $now - ($now % $this->windowSeconds);
 
-        if ($this->driver === 'mysql') {
-            return $this->hitMysql($key, $now, $windowStart);
-        }
+        try {
+            if ($this->driver === 'mysql') {
+                return $this->hitMysql($key, $now, $windowStart);
+            }
 
-        return $this->hitGeneric($key, $now, $windowStart);
+            return $this->hitGeneric($key, $now, $windowStart);
+        } catch (\Throwable) {
+            return ['blocked' => false, 'retry_after' => 0];
+        }
     }
 
     private function hitMysql(string $key, int $now, int $windowStart): array
@@ -191,22 +195,30 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             return null;
         }
 
-        $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
-        $stmt->execute([$key]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
+        try {
+            $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+            $stmt->execute([$key]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row !== false ? $row : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function fetchForUpdate(string $key): ?array
     {
-        if ($this->driver === 'mysql') {
-            $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ? FOR UPDATE');
-        } else {
-            $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+        try {
+            if ($this->driver === 'mysql') {
+                $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ? FOR UPDATE');
+            } else {
+                $stmt = $this->pdo->prepare('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits WHERE `key` = ?');
+            }
+            $stmt->execute([$key]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row !== false ? $row : null;
+        } catch (\Throwable) {
+            return null;
         }
-        $stmt->execute([$key]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
     }
 
     private function getAttemptsCount(array $row, int $now): int
@@ -255,33 +267,30 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             )');
         }
 
-        $this->migrateFromLegacy();
+        $this->ensureNewColumns();
     }
 
-    private function migrateFromLegacy(): void
+    private function ensureNewColumns(): void
     {
         try {
-            $cols = $this->pdo->query("PRAGMA table_info(rate_limits)")->fetchAll(PDO::FETCH_COLUMN);
-            if (!is_array($cols) || in_array('attempts_count', $cols, true)) {
+            if ($this->driver === 'mysql') {
+                $cols = $this->pdo->query("SHOW COLUMNS FROM rate_limits")->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $cols = $this->pdo->query("PRAGMA table_info(rate_limits)")->fetchAll(PDO::FETCH_COLUMN);
+            }
+
+            if (!is_array($cols)) {
                 return;
             }
 
-            $rows = $this->pdo->query("SELECT `key`, attempts, blocked_until FROM rate_limits")->fetchAll(PDO::FETCH_ASSOC);
-            if (!is_array($rows)) {
-                return;
+            if (!in_array('attempts_count', $cols, true)) {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INT NOT NULL DEFAULT 0');
             }
-
-            $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INT NOT NULL DEFAULT 0');
-            $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
-
-            foreach ($rows as $row) {
-                $attempts = json_decode((string)($row['attempts'] ?? '[]'), true);
-                $count = is_array($attempts) ? count($attempts) : 0;
-                $stmt = $this->pdo->prepare('UPDATE rate_limits SET attempts_count = ?, window_start = ? WHERE `key` = ?');
-                $stmt->execute([$count, time(), $row['key']]);
+            if (!in_array('window_start', $cols, true)) {
+                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
             }
         } catch (\Throwable) {
-            // Migration is best-effort
+            // Best-effort migration
         }
     }
 }
