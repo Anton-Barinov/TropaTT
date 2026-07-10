@@ -36,6 +36,7 @@ final class AuthRepository
             ])
             ->where('us.token_hash', '=', $hash)
             ->whereNull('us.revoked_at')
+            ->where('us.expires_at', '>', gmdate('Y-m-d H:i:s'))
             ->first();
     }
 
