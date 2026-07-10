@@ -24,6 +24,11 @@ final class EnvLoader
             return;
         }
 
+        if (str_ends_with($file, '.php')) {
+            self::loadPhpFile($file);
+            return;
+        }
+
         $lines = file($file, FILE_IGNORE_NEW_LINES);
         if ($lines === false) {
             return;
@@ -100,5 +105,35 @@ final class EnvLoader
         }
 
         return trim((string)preg_replace('/\s+#.*$/', '', $value));
+    }
+
+    private static function loadPhpFile(string $file): void
+    {
+        if (!defined('CRM_ACCESS')) {
+            define('CRM_ACCESS', true);
+        }
+
+        /** @var array<string,string> $envData */
+        $envData = require $file;
+        if (!is_array($envData)) {
+            return;
+        }
+
+        foreach ($envData as $key => $value) {
+            if (!is_string($key) || $value === null) {
+                continue;
+            }
+
+            $alreadyExternal = getenv($key) !== false
+                && !isset(self::$loadedKeys[$key]);
+            if ($alreadyExternal) {
+                continue;
+            }
+
+            self::$loadedKeys[$key] = true;
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
+        }
     }
 }
