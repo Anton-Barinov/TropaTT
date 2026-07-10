@@ -11,7 +11,7 @@
   <div class="col-lg-8">
     <div class="crm-card mb-3 crm-task-hero">
       <div class="crm-task-hero-top">
-        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue" data-i18n="task_detail.status_overdue"><?= htmlspecialchars($t('task_detail.status_overdue', 'Просрочено'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-chip" id="taskPriorityChip">normal</span></div>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue" data-i18n="task_detail.status_overdue"><?= htmlspecialchars($t('task_detail.status_overdue', 'Просрочено'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-chip" id="taskPriorityChip" data-i18n="task_detail.priority_normal"><?= htmlspecialchars($t('task_detail.priority_normal', 'Обычный'), ENT_QUOTES, 'UTF-8') ?></span></div>
       </div>
       <div class="crm-task-hero-progress-wrap">
         <div class="crm-task-hero-progress-head">
