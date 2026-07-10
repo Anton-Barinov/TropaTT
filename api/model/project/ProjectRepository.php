@@ -134,7 +134,7 @@ final class ProjectRepository
             ->first();
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null): bool
     {
         if ($set === []) {
             return false;
@@ -142,10 +142,15 @@ final class ProjectRepository
 
         $set['row_version'] = new Expression('row_version + 1');
 
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($expectedRowVersion !== null) {
+            $qb->where('row_version', '=', $expectedRowVersion);
+        }
+
+        return $qb->update($set) > 0;
     }
 
     public function archiveByPublicId(string $publicId, string $archivedAt): bool

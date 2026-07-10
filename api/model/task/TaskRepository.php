@@ -269,6 +269,27 @@ final class TaskRepository
             ->delete() > 0;
     }
 
+    public function hasCycleAncestor(int $childTaskId, int $candidateParentId): bool
+    {
+        $sql = 'WITH RECURSIVE ancestors AS ('
+            . 'SELECT parent_task_id FROM task_relations WHERE child_task_id = :child_id AND relation_type = :rel_type '
+            . 'UNION ALL '
+            . 'SELECT tr.parent_task_id FROM task_relations tr '
+            . 'INNER JOIN ancestors a ON tr.child_task_id = a.parent_task_id '
+            . 'WHERE tr.relation_type = :rel_type2 '
+            . ') SELECT 1 FROM ancestors WHERE parent_task_id = :target_id LIMIT 1';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':child_id' => $candidateParentId,
+            ':rel_type' => 'subtask',
+            ':rel_type2' => 'subtask',
+            ':target_id' => $childTaskId,
+        ]);
+
+        return $stmt->fetch() !== false;
+    }
+
     public function nextSortOrderForParentTaskId(int $parentTaskId): int
     {
         $row = (new QueryBuilder($this->pdo))
@@ -281,7 +302,7 @@ final class TaskRepository
         return max(0, (int)($row['max_sort_order'] ?? 0)) + 10;
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, ?int $expectedRowVersion = null): bool
     {
         if ($set === []) {
             return false;
@@ -289,10 +310,15 @@ final class TaskRepository
 
         $set['row_version'] = new Expression('row_version + 1');
 
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('tasks')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        if ($expectedRowVersion !== null) {
+            $qb->where('row_version', '=', $expectedRowVersion);
+        }
+
+        return $qb->update($set) > 0;
     }
 
     public function projectIdByPublicId(string $projectPublicId): ?int

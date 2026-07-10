@@ -28,7 +28,12 @@ final class UserController extends BaseController
             $result = $service->list($input);
         }
 
-        return $this->success('USER_LIST', $this->t('user/messages.list'), ['items' => $result['items']], meta: $result['meta']);
+        $items = $result['items'];
+        if (!$this->isCurrentUserRoot()) {
+            $items = array_map(fn(array $u) => $this->stripFinancialRates($u), $items);
+        }
+
+        return $this->success('USER_LIST', $this->t('user/messages.list'), ['items' => $items], meta: $result['meta']);
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
@@ -38,6 +43,10 @@ final class UserController extends BaseController
         $user = $service->get((string)$params['public_id']);
         if (!$user) {
             return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404, ['user' => [$this->t('user/messages.not_found')]]);
+        }
+
+        if (!$this->isCurrentUserRoot() && !$this->isViewingSelf((string)$params['public_id'])) {
+            $user = $this->stripFinancialRates($user);
         }
 
         return $this->success('USER_DETAIL', $this->t('user/messages.detail'), ['user' => $user]);
@@ -171,6 +180,24 @@ final class UserController extends BaseController
         }
 
         return $this->success('USER_TOKEN_REVOKED', $this->t('user/messages.token_revoked'));
+    }
+
+    private function isCurrentUserRoot(): bool
+    {
+        $auth = $this->user();
+        return (bool)($auth['user']['is_root'] ?? false);
+    }
+
+    private function isViewingSelf(string $publicId): bool
+    {
+        $auth = $this->user();
+        return (string)($auth['user']['public_id'] ?? '') === $publicId;
+    }
+
+    private function stripFinancialRates(array $user): array
+    {
+        unset($user['cost_rate'], $user['bill_rate']);
+        return $user;
     }
 
     public function activity(array $params): \Api\System\Library\Http\JsonResponse

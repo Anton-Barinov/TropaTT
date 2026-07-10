@@ -9,6 +9,7 @@ use Api\Model\Tag\TagRepository;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Service\FileService;
 use Api\System\Library\Service\AiSemanticIndexService;
+use Api\System\Library\Validation\Validator;
 use Throwable;
 
 final class KnowledgeController extends BaseController
@@ -305,6 +306,14 @@ final class KnowledgeController extends BaseController
             ]);
         }
 
+        $v = new Validator();
+        $v->maxLen($input, 'title', 255, 'Title is too long')
+            ->maxLen($input, 'content_html', 2000000, 'Content is too long')
+            ->maxLen($input, 'content_json', 2000000, 'Content is too long');
+        if ($v->fails()) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422, $v->errors());
+        }
+
         return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
             try {
                 $page = $this->repo()->createPage($input, $this->actorUserId() ?: null, $this->actor());
@@ -340,8 +349,18 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
+
+        $input = $this->request()->allInput();
+        $v = new Validator();
+        $v->maxLen($input, 'title', 255, 'Title is too long')
+            ->maxLen($input, 'content_html', 2000000, 'Content is too long')
+            ->maxLen($input, 'content_json', 2000000, 'Content is too long');
+        if ($v->fails()) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422, $v->errors());
+        }
+
         $auth = $this->user();
-        $result = $this->repo()->updatePage((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId() ?: null, $this->actor());
+        $result = $this->repo()->updatePage((string)$params['public_id'], $input, $this->actorUserId() ?: null, $this->actor());
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The record was changed by another user'), 409);
         }

@@ -64,7 +64,8 @@ final class ProjectController extends BaseController
 
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
-            ->maxLen($input, 'title', 255, $this->t('project/messages.max_255'));
+            ->maxLen($input, 'title', 255, $this->t('project/messages.max_255'))
+            ->maxLen($input, 'description', 65000, 'Description is too long');
 
         // Validate task_key_prefix
         if ($v->fails() || !empty($input['task_key_prefix'])) {
@@ -126,7 +127,8 @@ final class ProjectController extends BaseController
 
         $input = $this->request()->allInput();
         $v = new Validator();
-        $v->maxLen($input, 'title', 255, $this->t('project/messages.max_255'));
+        $v->maxLen($input, 'title', 255, $this->t('project/messages.max_255'))
+            ->maxLen($input, 'description', 65000, 'Description is too long');
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }

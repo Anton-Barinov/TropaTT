@@ -224,11 +224,15 @@ final class TaskService
             return null;
         }
 
+        $expectedRowVersion = null;
         if (array_key_exists('row_version', $input)) {
             $expected = (int)$input['row_version'];
             $current = (int)($task['row_version'] ?? 0);
             if ($expected > 0 && $expected !== $current) {
                 return 'ROW_VERSION_CONFLICT';
+            }
+            if ($expected > 0) {
+                $expectedRowVersion = $expected;
             }
         }
 
@@ -289,6 +293,9 @@ final class TaskService
                 if ($parentTaskPublicId === $publicId) {
                     return 'INVALID_PARENT_TASK';
                 }
+                if ($this->tasks->hasCycleAncestor((int)($task['id'] ?? 0), (int)($parentTask['id'] ?? 0))) {
+                    return 'CYCLIC_DEPENDENCY_DETECTED';
+                }
                 $parentTask = $this->get($parentTaskPublicId, $actor);
                 if (!$parentTask) {
                     return 'PARENT_TASK_NOT_FOUND';
@@ -304,7 +311,10 @@ final class TaskService
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
         $oldStatus = (string)$task['status_code'];
-        $updated = $this->tasks->updateByPublicId($publicId, $set);
+        $updated = $this->tasks->updateByPublicId($publicId, $set, $expectedRowVersion);
+        if (!$updated && $expectedRowVersion !== null) {
+            return 'ROW_VERSION_CONFLICT';
+        }
         if (!$updated) {
             return $task;
         }

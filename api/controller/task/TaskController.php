@@ -91,6 +91,7 @@ final class TaskController extends BaseController
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
+            ->maxLen($input, 'description', 65000, 'Description is too long')
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
 
@@ -166,7 +167,9 @@ final class TaskController extends BaseController
 
         $input = $this->request()->allInput();
         $v = new Validator();
-        $v->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
+        $v->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
+            ->maxLen($input, 'description', 65000, 'Description is too long')
+            ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
 
         $errors = $v->errors();
