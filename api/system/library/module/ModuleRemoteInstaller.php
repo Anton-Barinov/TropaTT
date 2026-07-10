@@ -73,6 +73,11 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException("Module name not specified in manifest");
             }
 
+            // Sanitize module name: allow only alphanumeric, underscore, hyphen
+            if (!preg_match('/^[a-z0-9](?:[a-z0-9_-]{0,62})$/', $moduleName)) {
+                throw new RuntimeException("Invalid module name: {$moduleName}");
+            }
+
             $targetDir = $this->projectRoot . '/modules/' . $moduleName;
             if (is_dir($targetDir)) {
                 throw new RuntimeException("Module already exists: {$moduleName}");
@@ -173,19 +178,76 @@ final class ModuleRemoteInstaller
 
     private function extract(string $archive, string $destDir): void
     {
+        $realDestDir = realpath($destDir);
+        if ($realDestDir === false || !str_starts_with($realDestDir, sys_get_temp_dir())) {
+            throw new RuntimeException('Invalid extraction directory');
+        }
+
         if (str_ends_with($archive, '.zip')) {
             $zip = new \ZipArchive();
             if ($zip->open($archive) !== true) {
                 throw new RuntimeException("Cannot open ZIP archive: {$archive}");
             }
+
+            // Validate each entry before extraction (zip-slip protection)
+            for ($i = 0; $i < $zip->numEntries; $i++) {
+                $name = $zip->getNameIndex($i);
+                if ($name === false) continue;
+                $normalizedName = str_replace('\\', '/', $name);
+                // Block path traversal, absolute paths, and symlinks
+                if (
+                    str_contains($normalizedName, '..')
+                    || str_starts_with($normalizedName, '/')
+                    || preg_match('/^[a-zA-Z]:\\//', $normalizedName)
+                ) {
+                    $zip->close();
+                    throw new RuntimeException("Archive entry contains path traversal: {$name}");
+                }
+            }
+
             $zip->extractTo($destDir);
             $zip->close();
+
+            // Verify no files escaped the target directory
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($destDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ($iterator as $file) {
+                $realPath = $file->getRealPath();
+                if ($realPath === false || !str_starts_with($realPath, $realDestDir)) {
+                    throw new RuntimeException('Archive extraction escaped target directory');
+                }
+            }
+
             return;
         }
 
         if (str_ends_with($archive, '.tar.gz') || str_ends_with($archive, '.tgz')) {
             $phar = new \PharData($archive);
+
+            // Validate tar entries before extraction
+            foreach (new \RecursiveIteratorIterator($phar) as $entry) {
+                $entryPath = str_replace('\\', '/', $entry->getPathname());
+                if (str_contains($entryPath, '..') || str_starts_with($entryPath, '/')) {
+                    throw new RuntimeException("Archive entry contains path traversal: {$entryPath}");
+                }
+            }
+
             $phar->extractTo($destDir);
+
+            // Verify no files escaped
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($destDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ($iterator as $file) {
+                $realPath = $file->getRealPath();
+                if ($realPath === false || !str_starts_with($realPath, $realDestDir)) {
+                    throw new RuntimeException('Archive extraction escaped target directory');
+                }
+            }
+
             return;
         }
 

@@ -137,6 +137,12 @@ final class McpController extends BaseController
 
         $isBatch = array_is_list($payload);
         $messages = $isBatch ? $payload : [$payload];
+        
+        // Limit batch size to prevent amplification attacks
+        if ($isBatch && count($messages) > 20) {
+            return $this->response($this->errorPayload(null, -32600, 'Batch size exceeds maximum of 20'), 400);
+        }
+        
         $responses = [];
 
         foreach ($messages as $message) {
@@ -181,7 +187,8 @@ final class McpController extends BaseController
                 default => $this->methodNotFound($method),
             };
         } catch (Throwable $e) {
-            return $this->errorPayload($id, -32603, $e->getMessage());
+            $this->logMcpError($method, $e);
+            return $this->errorPayload($id, -32603, 'Internal error');
         }
 
         if ($isNotification || $result === null) {

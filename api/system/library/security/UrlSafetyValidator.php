@@ -38,10 +38,22 @@ final class UrlSafetyValidator
             return ['ok' => true, 'code' => 'OK'];
         }
 
-        if ($this->isLocalHostname($host)) {
+        // Normalize IPv6: remove brackets for proper validation
+        $normalizedHost = trim($host, '[]');
+
+        if ($this->isLocalHostname($host) || $this->isLocalHostname($normalizedHost)) {
             return ['ok' => false, 'code' => 'AI_PROVIDER_URL_LOCALHOST_FORBIDDEN'];
         }
 
+        // IPv6 check (brackets stripped)
+        if (filter_var($normalizedHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+            if ($this->isPrivateOrReservedIpV6($normalizedHost)) {
+                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+            }
+            return ['ok' => true, 'code' => 'OK'];
+        }
+
+        // IPv4 check (with brackets still on, filter_var handles both)
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
             if ($this->isPrivateOrReservedIp($host)) {
                 return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
@@ -51,7 +63,12 @@ final class UrlSafetyValidator
 
         $ips = $this->resolveHostIps($host);
         foreach ($ips as $ip) {
-            if ($this->isPrivateOrReservedIp($ip)) {
+            $checkIp = trim($ip, '[]');
+            if (filter_var($checkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+                if ($this->isPrivateOrReservedIpV6($checkIp)) {
+                    return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+                }
+            } elseif ($this->isPrivateOrReservedIp($checkIp)) {
                 return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
             }
         }
@@ -61,7 +78,7 @@ final class UrlSafetyValidator
 
     private function isLocalHostname(string $host): bool
     {
-        if ($host === 'localhost') {
+        if ($host === 'localhost' || $host === '[::1]' || $host === '0:0:0:0:0:0:0:1' || $host === '0:0:0:0:0:0:127.0.0.1') {
             return true;
         }
 
@@ -73,6 +90,36 @@ final class UrlSafetyValidator
     private function isPrivateOrReservedIp(string $ip): bool
     {
         return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    }
+
+    private function isPrivateOrReservedIpV6(string $ip): bool
+    {
+        $normalized = strtolower(trim($ip, '[]'));
+        if ($normalized === '::1' || $normalized === '0:0:0:0:0:0:0:1') {
+            return true; // loopback
+        }
+        if ($normalized === '::' || $normalized === '0:0:0:0:0:0:0:0') {
+            return true; // unspecified
+        }
+        if (str_starts_with($normalized, 'fc') || str_starts_with($normalized, 'fd')) {
+            return true; // ULA fc00::/7
+        }
+        if (str_starts_with($normalized, 'fe8') || str_starts_with($normalized, 'fe9') || str_starts_with($normalized, 'fea') || str_starts_with($normalized, 'feb')) {
+            return true; // link-local fe80::/10
+        }
+        // IPv4-mapped IPv6: check embedded IPv4
+        if (str_starts_with($normalized, '::ffff:')) {
+            $embeddedIpv4 = substr($normalized, 7);
+            if ($this->isPrivateOrReservedIp($embeddedIpv4)) {
+                return true;
+            }
+        }
+        if (str_contains($normalized, '::ffff:') && preg_match('/::ffff:(\d+\.\d+\.\d+\.\d+)$/', $normalized, $m)) {
+            if ($this->isPrivateOrReservedIp($m[1])) {
+                return true;
+            }
+        }
+        return $this->isPrivateOrReservedIp($normalized);
     }
 
     /** @return list<string> */

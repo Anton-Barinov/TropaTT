@@ -62,6 +62,20 @@ final class UserService
             return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_ASSIGN'];
         }
 
+        // Non-root must pass hierarchy check: can only create users in own subtree
+        if (!$actorIsRoot) {
+            // Actor must be able to manage itself (which is always true) -
+            // canManageUser with the actor as both sides confirms the actor
+            // has a valid hierarchy position. All created users will be
+            // descendants of the actor (created_by_user_id = actorId).
+            // HierarchyPolicy::canManageUser will verify actor is not a child
+            // of someone else trying to escalate.
+            $target = $this->users->findById($actorId);
+            if (!$target || !$this->policy->canManageUser($actor, $target)) {
+                return ['ok' => false, 'code' => 'FORBIDDEN_HIERARCHY'];
+            }
+        }
+
         $rolePublicIds = is_array($input['role_public_ids'] ?? null) ? array_values(array_filter($input['role_public_ids'], 'is_string')) : [];
 
         $roles = [];

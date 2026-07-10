@@ -34,8 +34,8 @@ final class HierarchyPolicy
             return true;
         }
 
-        // Descendant cannot modify ancestor.
-        return !$this->isAncestor($targetId, $actorId);
+        // Non-root can manage only their own subtree (actor must be ancestor of target)
+        return $this->isAncestor($actorId, $targetId);
     }
 
     public function isAncestor(int $candidateAncestorId, int $userId): bool
