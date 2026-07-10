@@ -7,6 +7,7 @@ use Api\System\Library\Module\PluginManager;
 use Api\System\Library\Module\ModuleConfig;
 use Api\System\Library\Module\ModuleMigrationRunner;
 use Api\System\Library\Module\ModuleCodeValidator;
+use Api\System\Library\Security\UrlSafetyValidator;
 use RuntimeException;
 
 final class ModuleRemoteInstaller
@@ -137,15 +138,34 @@ final class ModuleRemoteInstaller
 
     private function download(string $url, string $dest): void
     {
-        $content = file_get_contents($url, false, stream_context_create([
-            'http' => [
-                'timeout' => 300,
-                'user_agent' => 'CRM-Module-Installer/1.0',
-            ],
-        ]));
+        $validator = new UrlSafetyValidator();
+        $result = $validator->validateProviderUrl($url, true, ['http', 'https']);
+        if (!$result['ok']) {
+            throw new RuntimeException("Invalid or unsafe URL for module download: {$result['code']}");
+        }
 
-        if ($content === false) {
-            throw new RuntimeException("Failed to download from: {$url}");
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_TIMEOUT => 300,
+            CURLOPT_USERAGENT => 'CRM-Module-Installer/1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($content === false || $error !== '') {
+            throw new RuntimeException("Failed to download module: {$error}");
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            throw new RuntimeException("Module download failed with HTTP {$httpCode}");
         }
 
         file_put_contents($dest, $content);

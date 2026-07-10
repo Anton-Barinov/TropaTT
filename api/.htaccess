@@ -1,0 +1,9 @@
+# Block direct access to hidden files (.env, .env.*, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Also deny .env.php explicitly for extra safety
+<FilesMatch "^\.env\.php$">
+    Require all denied
+</FilesMatch>
