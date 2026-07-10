@@ -207,6 +207,11 @@ final class TaskController extends BaseController
                 'parent_task_public_id' => [$this->t('common/messages.validation_error')],
             ]);
         }
+        if ($item === 'CYCLIC_DEPENDENCY_DETECTED') {
+            return $this->error('CYCLIC_DEPENDENCY_DETECTED', 'Circular dependency detected in task hierarchy', 422, [
+                'parent_task_public_id' => ['Circular dependency detected'],
+            ]);
+        }
         if ($item === 'TASK_KEY_FIELD_NOT_EDITABLE') {
             return $this->error('TASK_KEY_FIELD_NOT_EDITABLE', $this->t('task/messages.not_editable', 'Task key fields are not editable'), 422, [
                 'task_key' => [$this->t('task/messages.not_editable', 'Task key fields are not editable')],

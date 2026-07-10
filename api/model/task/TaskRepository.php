@@ -271,23 +271,38 @@ final class TaskRepository
 
     public function hasCycleAncestor(int $childTaskId, int $candidateParentId): bool
     {
-        $sql = 'WITH RECURSIVE ancestors AS ('
-            . 'SELECT parent_task_id FROM task_relations WHERE child_task_id = :child_id AND relation_type = :rel_type '
-            . 'UNION ALL '
-            . 'SELECT tr.parent_task_id FROM task_relations tr '
-            . 'INNER JOIN ancestors a ON tr.child_task_id = a.parent_task_id '
-            . 'WHERE tr.relation_type = :rel_type2 '
-            . ') SELECT 1 FROM ancestors WHERE parent_task_id = :target_id LIMIT 1';
+        $visited = [$candidateParentId];
+        $currentId = $candidateParentId;
+        $depth = 0;
+        $maxDepth = 50;
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            ':child_id' => $candidateParentId,
-            ':rel_type' => 'subtask',
-            ':rel_type2' => 'subtask',
-            ':target_id' => $childTaskId,
-        ]);
+        while ($depth < $maxDepth) {
+            $row = (new QueryBuilder($this->pdo))
+                ->from('task_relations')
+                ->select(['parent_task_id'])
+                ->where('child_task_id', '=', $currentId)
+                ->where('relation_type', '=', 'subtask')
+                ->first();
 
-        return $stmt->fetch() !== false;
+            if ($row === null) {
+                return false;
+            }
+
+            $parentId = (int)$row['parent_task_id'];
+            if ($parentId === $childTaskId) {
+                return true;
+            }
+
+            if (in_array($parentId, $visited, true)) {
+                return false;
+            }
+
+            $visited[] = $parentId;
+            $currentId = $parentId;
+            $depth++;
+        }
+
+        return false;
     }
 
     public function nextSortOrderForParentTaskId(int $parentTaskId): int
