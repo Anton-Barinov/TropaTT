@@ -35,11 +35,13 @@ final class AiPromptBuilderService
 
         $systemPrompt = $this->buildSystemPrompt($intentCode, $systemTemplate);
         $userPromptText = $this->buildUserPrompt($userInput);
-        $mergedPrompt = "[SYSTEM]\n" . $systemPrompt . "\n[/SYSTEM]\n\n[USER]\n" . $userPromptText . "\n[/USER]";
-
         return [
             'intent_code' => $intentCode,
-            'user_prompt' => $mergedPrompt,
+            // Keep the trusted policy in the provider's system role.  Folding it
+            // into user content weakens instruction precedence and makes the
+            // prompt-injection boundary purely cosmetic.
+            'system_prompt' => $systemPrompt,
+            'user_prompt' => $userPromptText,
             'context' => $limitedContext['context'],
             'meta' => [
                 'context_budget_tokens' => (int)($limitedContext['meta']['budget_tokens'] ?? $budget),
