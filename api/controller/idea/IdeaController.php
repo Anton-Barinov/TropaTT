@@ -1050,7 +1050,11 @@ final class IdeaController extends BaseController
             'questions_count' => $qCount, 'questions' => $qArr,
             'analyses_count' => $aCount, 'analyses' => $aArr,
             'provider' => $provider ? $provider['provider_code'] . ' / ' . $provider['default_model'] : 'none',
-            'safe_mode' => (int)$service->getSettingValue('ideas_ai_safe_mode'),
+            'safe_mode' => (int)(function () use ($pdo) {
+                $ss = $pdo->prepare("SELECT value FROM settings WHERE scope = 'features' AND name = 'ideas_ai_safe_mode' ORDER BY created_at DESC LIMIT 1");
+                $ss->execute();
+                return $ss->fetchColumn() ?: 0;
+            })(),
             'snapshot_at' => date('Y-m-d H:i:s'),
         ]);
     }
