@@ -18,6 +18,8 @@ window.CRM.notificationsRealtime = (function () {
   var CHANNEL_MATRIX_KEY = 'crm_notifications_channel_matrix';
   var DEFAULT_CATEGORIES = ['tasks', 'projects', 'comments', 'mentions', 'approvals', 'reminders', 'sla', 'security', 'system'];
   var CRITICAL_CATEGORIES = ['security'];
+  var POLL_INTERVAL_VISIBLE_MS = 45000;
+  var POLL_INTERVAL_HIDDEN_MS = 120000;
 
   function isProtectedPage() {
     var body = document.body;
@@ -417,13 +419,29 @@ window.CRM.notificationsRealtime = (function () {
     }
   }
 
-  function ensurePollingFallback() {
+  function isSseEnabled() {
+    var config = window.CRM && window.CRM.config ? window.CRM.config : {};
+    return String(config.realtimeTransport || 'poll').toLowerCase() === 'sse';
+  }
+
+  function pollIntervalMs() {
+    return document.visibilityState === 'visible'
+      ? POLL_INTERVAL_VISIBLE_MS
+      : POLL_INTERVAL_HIDDEN_MS;
+  }
+
+  function ensurePollingFallback(immediate) {
     if (pollTimer) return;
     if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
-    pollTimer = window.setInterval(function () {
+    if (immediate) {
+      scheduleUiRefresh();
+    }
+    var poll = function () {
       if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
       scheduleUiRefresh();
-    }, 120000);
+      pollTimer = window.setTimeout(poll, pollIntervalMs());
+    };
+    pollTimer = window.setTimeout(poll, pollIntervalMs());
   }
 
   function closeSource() {
@@ -454,11 +472,11 @@ window.CRM.notificationsRealtime = (function () {
   function connect() {
     if (!started || !isProtectedPage()) return;
     if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) {
-      ensurePollingFallback();
+      ensurePollingFallback(true);
       return;
     }
-    if (!window.EventSource) {
-      ensurePollingFallback();
+    if (!isSseEnabled() || !window.EventSource) {
+      ensurePollingFallback(true);
       return;
     }
 
@@ -467,7 +485,7 @@ window.CRM.notificationsRealtime = (function () {
     try {
       source = new EventSource(streamUrl(), { withCredentials: true });
     } catch (e) {
-      ensurePollingFallback();
+      ensurePollingFallback(true);
       scheduleReconnect();
       return;
     }
@@ -505,7 +523,7 @@ window.CRM.notificationsRealtime = (function () {
     source.onerror = function () {
       closeSource();
       if (window.CRM && window.CRM.tabLeader && !window.CRM.tabLeader.isLeader()) return;
-      ensurePollingFallback();
+      ensurePollingFallback(true);
       scheduleReconnect();
     };
   }
@@ -570,8 +588,9 @@ window.CRM.notificationsRealtime = (function () {
       stop();
     });
     document.addEventListener('visibilitychange', function () {
-      // SSE stays alive across tab switches to avoid reconnect storms.
-      // Pagehide / beforeunload handles cleanup.
+      if (!started || isSseEnabled()) return;
+      stopPolling();
+      ensurePollingFallback(true);
     });
   }
 

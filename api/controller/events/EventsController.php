@@ -4,9 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Events;
 
 use Api\Controller\Common\BaseController;
-use Api\System\Library\Service\NotificationPushService;
 use Api\System\Library\Service\NotificationService;
-use Api\System\Library\Service\ReminderService;
 
 final class EventsController extends BaseController
 {
@@ -58,11 +56,7 @@ final class EventsController extends BaseController
                 $maxDuration = 15;
                 $heartbeatInterval = 5;
                 $nextHeartbeatAt = time() + $heartbeatInterval;
-                $nextDomainScanAt = time();
                 $lastStateHash = $notifications->stateHashByUser($userId);
-
-                /** @var ReminderService $reminders */
-                $reminders = $this->container->get('service.reminder');
 
                 echo 'event: stream.ready' . "\n";
                 echo 'data: ' . json_encode([
@@ -84,19 +78,6 @@ final class EventsController extends BaseController
                         @ob_flush();
                         @flush();
                         break;
-                    }
-
-                    if (time() >= $nextDomainScanAt) {
-                        $nextDomainScanAt = time() + 15;
-                        $reminders->dispatchDueNotificationsForUser($actor, gmdate('Y-m-d H:i:s'));
-                        $notifications->dispatchOverdueSignalsForUser($userId, $actor);
-                        $notifications->dispatchUpcomingCalendarReminders($userId, $actor);
-
-                        if ($this->container->has('service.notification_push')) {
-                            /** @var NotificationPushService $push */
-                            $push = $this->container->get('service.notification_push');
-                            $push->runQueued(5);
-                        }
                     }
 
                     $newItems = $notifications->streamItemsAfterId($userId, $lastId, 100);
