@@ -15,11 +15,9 @@ final class CabinetController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $clientPublicId = trim((string)$this->request()->input('client_public_id', ''));
-        if ($clientPublicId === '') {
-            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'client_public_id' => [$this->t('common/messages.field_required')],
-            ]);
+        $clientPublicId = $this->resolveClientPublicId();
+        if ($clientPublicId === null) {
+            return $this->error('FORBIDDEN', $this->t('client/messages.cabinet_forbidden_scope'), 403);
         }
 
         /** @var ClientCabinetService $service */
@@ -38,11 +36,9 @@ final class CabinetController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $clientPublicId = trim((string)$this->request()->input('client_public_id', ''));
-        if ($clientPublicId === '') {
-            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'client_public_id' => [$this->t('common/messages.field_required')],
-            ]);
+        $clientPublicId = $this->resolveClientPublicId();
+        if ($clientPublicId === null) {
+            return $this->error('FORBIDDEN', $this->t('client/messages.cabinet_forbidden_scope'), 403);
         }
 
         /** @var ClientCabinetService $service */
@@ -71,11 +67,9 @@ final class CabinetController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $clientPublicId = trim((string)$this->request()->input('client_public_id', ''));
-        if ($clientPublicId === '') {
-            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'client_public_id' => [$this->t('common/messages.field_required')],
-            ]);
+        $clientPublicId = $this->resolveClientPublicId();
+        if ($clientPublicId === null) {
+            return $this->error('FORBIDDEN', $this->t('client/messages.cabinet_forbidden_scope'), 403);
         }
 
         /** @var ClientCabinetService $service */
@@ -98,4 +92,27 @@ final class CabinetController extends BaseController
             'items' => $result['items'],
         ], meta: $result['meta']);
     }
+
+    private function resolveClientPublicId(): ?string
+    {
+        $user = $this->user()['user'] ?? [];
+        $isRoot = (bool)($user['is_root'] ?? false);
+        $inputClientId = trim((string)$this->request()->input('client_public_id', ''));
+
+        if ($isRoot && $inputClientId !== '') {
+            return $inputClientId;
+        }
+
+        $userEmail = trim((string)($user['email'] ?? ''));
+        if ($userEmail === '') {
+            return null;
+        }
+        $stmt = $this->container->get('db.pdo')->prepare(
+            'SELECT public_id FROM clients WHERE LOWER(email) = LOWER(:email) LIMIT 1'
+        );
+        $stmt->execute(['email' => $userEmail]);
+        $cid = $stmt->fetchColumn();
+        return $cid ?: null;
+    }
+
 }
