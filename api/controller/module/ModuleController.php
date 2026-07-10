@@ -5,6 +5,7 @@ namespace Api\Controller\Module;
 
 use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Http\Request;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Module\PluginManager;
 use Api\System\Library\Module\ModuleConfig;
@@ -19,6 +20,11 @@ final class ModuleController
     public function __construct(
         private readonly Container $container,
     ) {}
+
+    private function request(): Request
+    {
+        return $this->container->get('request');
+    }
 
     private function lang(): LanguageManager
     {
@@ -275,7 +281,8 @@ final class ModuleController
 
     public function installFromUrl(array $params = []): JsonResponse
     {
-        $url = trim((string)($params['url'] ?? ''));
+        $input = $this->request()->allInput();
+        $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
         if ($url === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.url_required'), 400);
         }
@@ -296,8 +303,9 @@ final class ModuleController
 
     public function installFromFile(array $params = []): JsonResponse
     {
-        $fileData = trim((string)($params['file_data'] ?? ''));
-        $fileName = trim((string)($params['file_name'] ?? 'module.zip'));
+        $input = $this->request()->allInput();
+        $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
+        $fileName = trim((string)($input['file_name'] ?? $params['file_name'] ?? 'module.zip'));
         if ($fileData === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_data_required'), 400);
         }
