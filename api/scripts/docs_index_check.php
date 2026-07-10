@@ -1,7 +1,8 @@
 <?php
 
-if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 declare(strict_types=1);
+if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
+
 
 $projectRoot = dirname(__DIR__, 2);
 $indexFile = $projectRoot . '/tz/crm-docs-index-and-baseline-2026-05-05.md';
