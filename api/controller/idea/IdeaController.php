@@ -1205,7 +1205,8 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $result = $aiSvc->execute('idea_analyze', [
-                '__usr' => "[SYSTEM]\n" . $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $prompt . "\n[/USER]",
+                '__sys' => $this->t('idea/messages.prompt_analyst_system') . $this->localeInstruction(),
+                '__usr' => $prompt,
             ], $this->user()['user'] ?? []);
 
             $rawText = $result['result']['preview']['summary'] ?? '';
@@ -1347,7 +1348,8 @@ PROMPT;
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
-                    '__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]",
+                    '__sys' => $systemPrompt . $this->localeInstruction(),
+                    '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                 ], $this->user()['user'] ?? []);
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
@@ -1528,7 +1530,8 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
             $result = $aiSvc->execute('idea_analyze', [
-                '__usr' => "[SYSTEM]\nAnalyze understanding card. Find gaps. Generate clarifying questions." . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $prompt . "\n[/USER]",
+                '__sys' => 'Analyze understanding card. Find gaps. Generate clarifying questions.' . $this->localeInstruction(),
+                '__usr' => $prompt,
             ], $this->user()['user'] ?? []);
 
             $rawText = $result['result']['preview']['summary'] ?? '';
@@ -1662,7 +1665,8 @@ PROMPT;
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
                 $result = $aiSvc->execute('idea_analyze', [
-                    '__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]",
+                    '__sys' => $systemPrompt . $this->localeInstruction(),
+                    '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
                 ], $this->user()['user'] ?? []);
 
                 $rawText = $result['result']['preview']['summary'] ?? '';
@@ -1815,7 +1819,7 @@ PROMPT;
             $rawText = '';
             $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $systemPrompt . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['potential'])) break;
@@ -1918,7 +1922,7 @@ PROMPT;
             $aiSvc = $this->container->get('service.ai_action');
             $maxRetries = 2; $rawText = '';
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['risk_report'])) break;
@@ -2005,7 +2009,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['pitfalls'])) break;
@@ -2093,7 +2097,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['implementation_plan'])) break;
@@ -2209,7 +2213,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false, 'data' => null, 'error' => 'not_started'];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && !empty($parsed['data']['final_recommendation'])) break;
@@ -2311,7 +2315,7 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action'); $maxRetries = 2; $rawText = ''; $parsed = ['ok' => false];
             for ($retry = 0; $retry <= $maxRetries; $retry++) {
-                $result = $aiSvc->execute('idea_analyze', ['__usr' => "[SYSTEM]\n" . $sp . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n[/USER]"], $this->user()['user'] ?? []);
+                $result = $aiSvc->execute('idea_analyze', ['__sys' => $sp . $this->localeInstruction(), '__usr' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)], $this->user()['user'] ?? []);
                 $rawText = $result['result']['preview']['summary'] ?? '';
                 $parsed = $this->extractAiJson($rawText);
                 if ($parsed['ok'] && (!empty($parsed['data']['projects']) || !empty($parsed['data']['tasks']))) break;
@@ -2577,12 +2581,10 @@ PROMPT;
         try {
             $aiSvc = $this->container->get('service.ai_action');
 
-            // Merge system + user prompts into single user_prompt (no separate __sys)
-            $combinedPrompt = "[SYSTEM]\n" . $systemPrompt . $this->localeInstruction() . "\n[/SYSTEM]\n\n[USER]\n" . $userPrompt . "\n[/USER]";
-
             @set_time_limit(0);
             $result = $aiSvc->execute('idea_analyze', [
-                '__usr' => $combinedPrompt . $this->localeInstruction(),
+                '__sys' => $systemPrompt . $this->localeInstruction(),
+                '__usr' => $userPrompt,
                 'max_tokens' => 128000,
                 'timeout_ms' => 240000,
             ], $this->user()['user'] ?? []);
