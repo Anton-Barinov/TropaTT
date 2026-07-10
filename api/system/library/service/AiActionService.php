@@ -112,7 +112,40 @@ final class AiActionService
             $promptPayload['max_tokens'] = $maxTokens;
         }
 
-        $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
+        $jobPublicId = $this->runtime->claimInteractiveSlot([
+            'job_type' => 'interactive',
+            'action_type' => $actionType,
+            'intent_code' => $actionType,
+            'status' => 'running',
+            'requested_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
+            'scope_type' => trim((string)($input['scope_type'] ?? '')),
+            'scope_public_id' => trim((string)($input['scope_public_id'] ?? '')),
+            'idempotency_key_hash' => null,
+            'payload_json' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'result_json' => null,
+            'error_code' => null,
+            'error_message' => null,
+            'created_at' => $now,
+            'started_at' => $now,
+            'finished_at' => null,
+            'updated_at' => $now,
+        ], $this->rateLimit->interactiveConcurrencyLimit());
+        if ($jobPublicId === null) {
+            return ['ok' => false, 'code' => 'AI_BUSY', 'retry_after' => 5];
+        }
+
+        try {
+            $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
+        } catch (\Throwable $e) {
+            $this->runtime->updateJobByPublicId($jobPublicId, [
+                'status' => 'failed',
+                'error_code' => 'AI_PROVIDER_UNAVAILABLE',
+                'error_message' => $e->getMessage(),
+                'finished_at' => gmdate('Y-m-d H:i:s'),
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+            return ['ok' => false, 'code' => 'AI_PROVIDER_UNAVAILABLE'];
+        }
         $completionOk = (bool)($completion['ok'] ?? false) && trim((string)($completion['text'] ?? '')) !== '';
         $rawText = $completionOk ? trim((string)$completion['text']) : '';
         ai_diag_log("[AI_COMPLETION][{$actionType}] ok=".($completion["ok"]?"1":"0")." text_len=".strlen($rawText)." code=".($completion["code"]??"null")." provider=".($provider["provider_code"]??"?"));
@@ -120,16 +153,8 @@ final class AiActionService
         $errorCode = $completionOk ? null : (string)($completion['code'] ?? 'AI_PROVIDER_UNAVAILABLE');
         $summary = $rawText !== '' ? $rawText : $this->t('ai/messages.fallback_error');
 
-        $jobPublicId = $this->runtime->createJob([
-            'job_type' => 'interactive',
-            'action_type' => $actionType,
-            'intent_code' => $actionType,
+        $this->runtime->updateJobByPublicId($jobPublicId, [
             'status' => 'completed',
-            'requested_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
-            'scope_type' => trim((string)($input['scope_type'] ?? '')),
-            'scope_public_id' => trim((string)($input['scope_public_id'] ?? '')),
-            'idempotency_key_hash' => null,
-            'payload_json' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'result_json' => json_encode([
                 'mode' => $mode,
                 'error_code' => $errorCode,
@@ -141,10 +166,8 @@ final class AiActionService
                 ],
                 'provider_public_id' => (string)($provider['public_id'] ?? ''),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'error_code' => null,
+            'error_code' => $errorCode,
             'error_message' => null,
-            'created_at' => $now,
-            'started_at' => $now,
             'finished_at' => $now,
             'updated_at' => $now,
         ]);

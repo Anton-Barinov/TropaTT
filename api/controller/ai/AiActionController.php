@@ -45,6 +45,7 @@ final class AiActionController extends BaseController
                     'AI_ACTION_TYPE_NOT_ALLOWED' => 422,
                     'AI_PROVIDER_NOT_CONFIGURED' => 409,
                     'AI_RATE_LIMITED' => 429,
+                    'AI_BUSY' => 429,
                     'AI_COST_LIMIT_EXCEEDED' => 409,
                     'FORBIDDEN' => 403,
                     'AI_PROVIDER_TIMEOUT' => 504,
@@ -66,7 +67,7 @@ final class AiActionController extends BaseController
     private function aiErrorMeta(array $result, string $code): array
     {
         $meta = [];
-        if ($code === 'AI_RATE_LIMITED') {
+        if (in_array($code, ['AI_RATE_LIMITED', 'AI_BUSY'], true)) {
             $retryAfter = (int)($result['retry_after'] ?? 0);
             if ($retryAfter > 0) {
                 $meta['retry_after'] = $retryAfter;
