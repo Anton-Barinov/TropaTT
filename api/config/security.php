@@ -4,19 +4,24 @@ declare(strict_types=1);
 $env = strtolower(trim((string)(getenv('APP_ENV') ?: 'prod')));
 $isProduction = in_array($env, ['prod', 'production'], true);
 $appKey = trim((string)(getenv('APP_KEY') ?: ''));
-$localSecret = trim((string)(getenv('CRM_LOCAL_SECRET') ?: $appKey));
 $csrfSecret = trim((string)(getenv('CSRF_SECRET_KEY') ?: ''));
 $webhookSecret = trim((string)(getenv('WEBHOOK_SECRET_KEY') ?: ''));
 $aiEncryptionKey = trim((string)(getenv('AI_ENCRYPTION_KEY') ?: ''));
 
-if ($csrfSecret === '') {
-    $csrfSecret = $appKey;
-}
-if ($webhookSecret === '') {
-    $webhookSecret = $appKey;
-}
-
-if (!$isProduction) {
+// Production: each secret MUST be explicitly set; fail-fast if missing.
+// Non-production: fall back to APP_KEY or local secret.
+if ($isProduction) {
+    if ($csrfSecret === '') {
+        throw new \RuntimeException('CSRF_SECRET_KEY must be set in production');
+    }
+    if ($webhookSecret === '') {
+        throw new \RuntimeException('WEBHOOK_SECRET_KEY must be set in production');
+    }
+    if ($aiEncryptionKey === '') {
+        throw new \RuntimeException('AI_ENCRYPTION_KEY must be set in production');
+    }
+} else {
+    $localSecret = trim((string)(getenv('CRM_LOCAL_SECRET') ?: $appKey));
     if ($csrfSecret === '') {
         $csrfSecret = $localSecret;
     }
@@ -25,18 +30,6 @@ if (!$isProduction) {
     }
     if ($aiEncryptionKey === '') {
         $aiEncryptionKey = $localSecret;
-    }
-}
-if ($webhookSecret === '') {
-    $webhookSecret = $appKey;
-}
-
-if (!$isProduction) {
-    if ($csrfSecret === '') {
-        $csrfSecret = $localSecret;
-    }
-    if ($webhookSecret === '') {
-        $webhookSecret = $localSecret;
     }
 }
 

@@ -374,8 +374,11 @@ final class FileService
     private function ensureDir(string $dir): void
     {
         if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
+            @mkdir($dir, 0770, true);
         }
+        // Restrict permissions: quarantine gets 700, uploads gets 750
+        $quarantined = $this->quarantineDir !== '' && str_starts_with($dir, rtrim($this->quarantineDir, '/'));
+        @chmod($dir, $quarantined ? 0700 : 0750);
     }
 
     private function sanitizeFileName(string $name): string
