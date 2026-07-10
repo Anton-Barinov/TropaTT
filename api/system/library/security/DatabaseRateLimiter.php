@@ -23,11 +23,6 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     {
         $row = $this->fetch($key);
         $now = time();
-        if ($row === null) {
-            error_log('[RL_DEBUG] check: key=' . substr($key, 0, 16) . '... row=NULL max=' . $this->maxAttempts);
-        } else {
-            error_log('[RL_DEBUG] check: key=' . substr($key, 0, 16) . '... count=' . ($row['attempts_count'] ?? '?') . ' blocked_until=' . ($row['blocked_until'] ?? '?') . ' window_start=' . ($row['window_start'] ?? '?') . ' max=' . $this->maxAttempts . ' now=' . $now);
-        }
 
         if ($row === null) {
             return ['blocked' => false, 'retry_after' => 0];
@@ -262,10 +257,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->migrateSchema();
             $this->schemaReady = true;
-            error_log('[RL_DEBUG] Schema ready: OK max=' . $this->maxAttempts . ' window=' . $this->windowSeconds . ' lock=' . $this->lockSeconds);
             return true;
-        } catch (\Throwable $e) {
-            error_log('[RL_DEBUG] Schema FAILED: ' . $e->getMessage() . ' file=' . $e->getFile() . ':' . $e->getLine());
+        } catch (\Throwable) {
             return false;
         }
     }
@@ -298,41 +291,14 @@ final class DatabaseRateLimiter implements RateLimiterInterface
     private function ensureNewColumns(): void
     {
         try {
-            if ($this->driver === 'mysql') {
-                $cols = $this->pdo->query("SHOW COLUMNS FROM rate_limits")->fetchAll(PDO::FETCH_COLUMN);
-            } else {
-                // SQLite PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
-                // PDO::FETCH_COLUMN returns the FIRST column (cid=0,1,2...), not names.
-                // Use second argument (column index 1 = 'name') to get actual column names.
-                $cols = $this->pdo->query("PRAGMA table_info(rate_limits)")->fetchAll(PDO::FETCH_COLUMN, 1);
-            }
-
-            if (!is_array($cols)) {
-                return;
-            }
-
-            // Detect legacy schema: if 'attempts' TEXT column exists without
-            // 'attempts_count' INT, the table was created by the old migration.
-            // Drop it so it can be recreated with the correct columns.
-            if (in_array('attempts', $cols, true) && !in_array('attempts_count', $cols, true)) {
-                $this->pdo->exec('DROP TABLE rate_limits');
-                // Throw to prevent schemaReady=true; table will be recreated on next attempt
-                throw new \RuntimeException('Legacy rate_limits schema detected, table dropped for recreation');
-            }
-
-            if (!in_array('attempts_count', $cols, true)) {
-                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INT NOT NULL DEFAULT 0');
-            }
-            if (!in_array('window_start', $cols, true)) {
-                $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
-            }
-        } catch (\Throwable $e) {
-            // If the exception is from our legacy schema detection (table already dropped),
-            // just rethrow. Otherwise, drop the table so it can be recreated cleanly.
-            if (!($e instanceof \RuntimeException)) {
-                $this->pdo->exec('DROP TABLE IF EXISTS rate_limits');
-            }
-            throw $e;
+            // Verify schema by selecting expected columns.
+            // Works regardless of ALTER TABLE permissions or SHOW COLUMNS format.
+            $this->pdo->query('SELECT attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
+            // Table has correct schema - nothing to do
+        } catch (\Throwable) {
+            // Schema mismatch or table missing - drop so migrateSchema() recreates it cleanly
+            $this->pdo->exec('DROP TABLE IF EXISTS rate_limits');
+            throw new \RuntimeException('Rate limits schema mismatch, table dropped for recreation');
         }
     }
 
