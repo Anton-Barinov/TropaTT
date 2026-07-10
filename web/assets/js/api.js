@@ -716,7 +716,9 @@ window.CRM.api = (function () {
     var isIdempotent = method === 'GET' || method === 'HEAD' || opts.idempotent === true;
     var maxRetries = Math.max(0, Math.floor(toNumber(opts.maxRetries, 1)));
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
-    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, route.indexOf('api/v1/ai/') === 0 ? 120000 : 15000)));
+    // AI generation can legitimately take several minutes. Keep regular API calls
+    // responsive, but never abort a long-running assistant request prematurely.
+    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, route.indexOf('api/v1/ai/') === 0 ? 300000 : 15000)));
     var attempts = 0;
 
     while (true) {

@@ -75,7 +75,7 @@ final class AiSettingsService
             'default_model' => '',
             'runtime_mode' => 'staged',
             'max_input_chars' => 4000,
-            'request_timeout_ms' => 30000,
+            'request_timeout_ms' => 300000,
             'strict_json_mode' => true,
             'audit_redaction_enabled' => true,
             'allow_personal_recommendations_opt_out' => true,
@@ -87,7 +87,7 @@ final class AiSettingsService
     {
         return match ($key) {
             'max_input_chars' => max(100, min(200000, (int)$value)),
-            'request_timeout_ms' => max(1000, min(120000, (int)$value)),
+            'request_timeout_ms' => max(1000, min(300000, (int)$value)),
             'strict_json_mode', 'audit_redaction_enabled', 'allow_personal_recommendations_opt_out' => (bool)$value,
             'runtime_mode' => $this->normalizeRuntimeMode($value),
             default => trim((string)$value),
