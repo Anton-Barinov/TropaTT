@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+// Block direct web access — this file is only meant to be require'd
+if (PHP_SAPI !== 'cli' && ($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    http_response_code(404);
+    exit;
+}
+
 $env = strtolower(trim((string)(getenv('APP_ENV') ?: 'prod')));
 $isProduction = in_array($env, ['prod', 'production'], true);
 $appKey = trim((string)(getenv('APP_KEY') ?: ''));
