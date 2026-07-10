@@ -293,7 +293,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             // Verify schema by selecting expected columns.
             // Works regardless of ALTER TABLE permissions or SHOW COLUMNS format.
-            $this->pdo->query('SELECT attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
+            $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
             // Table has correct schema - nothing to do
         } catch (\Throwable) {
             // Schema mismatch or table missing - drop so migrateSchema() recreates it cleanly
