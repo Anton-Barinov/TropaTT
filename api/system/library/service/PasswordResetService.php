@@ -48,8 +48,12 @@ final class PasswordResetService
         }
 
         $user = null;
-        if ($identifier !== '' && !str_contains($identifier, '@')) {
-            $user = $this->users->findByLogin($identifier);
+        if ($identifier !== '') {
+            if (str_contains($identifier, '@')) {
+                $user = $this->users->findByEmail($identifier);
+            } else {
+                $user = $this->users->findByLogin($identifier);
+            }
         }
 
         if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
@@ -93,8 +97,18 @@ final class PasswordResetService
         ];
     }
 
-    public function confirm(array $input): array
+    public function confirm(array $input, string $ip = ''): array
     {
+        // Rate limit by IP to prevent token brute-force flooding (Task 1.6)
+        if ($ip !== '') {
+            $rateKey = hash('sha256', 'password-confirm-ip:' . $ip);
+            $check = $this->rateLimiter->check($rateKey);
+            if ($check['blocked'] === true) {
+                return ['ok' => false, 'code' => 'PASSWORD_RESET_RATE_LIMITED', 'retry_after' => $check['retry_after']];
+            }
+            $this->rateLimiter->hit($rateKey);
+        }
+
         $resetToken = trim((string)($input['reset_token'] ?? ''));
         $tokenRow = $this->tokensRepository->findActiveByTokenHash($this->tokens->hash($resetToken));
         if (!$tokenRow) {

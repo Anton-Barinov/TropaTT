@@ -106,7 +106,7 @@ final class InvitationController extends BaseController
 
         /** @var InvitationService $service */
         $service = $this->container->get('service.invitation');
-        $result = $service->accept($input);
+        $result = $service->accept($input, $this->request()->ip());
         if (!(bool)($result['ok'] ?? false)) {
             $code = (string)($result['code'] ?? '');
             $status = match ($code) {

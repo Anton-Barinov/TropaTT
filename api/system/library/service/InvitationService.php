@@ -9,6 +9,7 @@ use Api\Model\Security\InvitationRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\PasswordHasher;
+use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
 
@@ -21,7 +22,8 @@ final class InvitationService
         private readonly RoleRepository $roles,
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        private readonly RateLimiterInterface $rateLimiter
     ) {
     }
 
@@ -94,8 +96,18 @@ final class InvitationService
         return $this->normalizeInvitation($item);
     }
 
-    public function accept(array $input): array
+    public function accept(array $input, string $ip = ''): array
     {
+        // Rate limit by IP to prevent token brute-force flooding (Task 1.6)
+        if ($ip !== '') {
+            $rateKey = hash('sha256', 'invitation-accept-ip:' . $ip);
+            $check = $this->rateLimiter->check($rateKey);
+            if ($check['blocked'] === true) {
+                return ['ok' => false, 'code' => 'INVITATION_RATE_LIMITED', 'retry_after' => $check['retry_after']];
+            }
+            $this->rateLimiter->hit($rateKey);
+        }
+
         $token = trim((string)($input['invitation_token'] ?? ''));
         $invitation = $this->invitations->findActiveByTokenHash($this->tokens->hash($token));
         if (!$invitation) {
