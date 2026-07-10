@@ -160,7 +160,7 @@ final class PasswordResetService
             }
             $logFile = $logDir . '/mail.log';
             $entry = sprintf(
-                "[%s] PASSWORD_RESET identifier=%s user=%s token=%s\n",
+                "[%s] PASSWORD_RESET identifier=%s user=%s token=%s" . PHP_EOL,
                 gmdate('Y-m-d H:i:s'),
                 $identifier,
                 $userPublicId,
