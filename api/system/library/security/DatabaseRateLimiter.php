@@ -294,11 +294,23 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             if ($this->driver === 'mysql') {
                 $cols = $this->pdo->query("SHOW COLUMNS FROM rate_limits")->fetchAll(PDO::FETCH_COLUMN);
             } else {
-                $cols = $this->pdo->query("PRAGMA table_info(rate_limits)")->fetchAll(PDO::FETCH_COLUMN);
+                // SQLite PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+                // PDO::FETCH_COLUMN returns the FIRST column (cid=0,1,2...), not names.
+                // Use second argument (column index 1 = 'name') to get actual column names.
+                $cols = $this->pdo->query("PRAGMA table_info(rate_limits)")->fetchAll(PDO::FETCH_COLUMN, 1);
             }
 
             if (!is_array($cols)) {
                 return;
+            }
+
+            // Detect legacy schema: if 'attempts' TEXT column exists without
+            // 'attempts_count' INT, the table was created by the old migration.
+            // Drop it so it can be recreated with the correct columns.
+            if (in_array('attempts', $cols, true) && !in_array('attempts_count', $cols, true)) {
+                $this->pdo->exec('DROP TABLE rate_limits');
+                // Throw to prevent schemaReady=true; table will be recreated on next attempt
+                throw new \RuntimeException('Legacy rate_limits schema detected, table dropped for recreation');
             }
 
             if (!in_array('attempts_count', $cols, true)) {
@@ -307,8 +319,13 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             if (!in_array('window_start', $cols, true)) {
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INT NOT NULL DEFAULT 0');
             }
-        } catch (\Throwable) {
-            // Best-effort migration
+        } catch (\Throwable $e) {
+            // If the exception is from our legacy schema detection (table already dropped),
+            // just rethrow. Otherwise, drop the table so it can be recreated cleanly.
+            if (!($e instanceof \RuntimeException)) {
+                $this->pdo->exec('DROP TABLE IF EXISTS rate_limits');
+            }
+            throw $e;
         }
     }
 
