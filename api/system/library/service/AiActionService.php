@@ -98,12 +98,12 @@ final class AiActionService
         $systemPrompt = $payload['input']['__sys'] ?? $payload['input']['system_prompt'] ?? 'You are CRM AI assistant. Return short actionable suggestion in Russian.';
         $userPromptRaw = $payload['input']['__usr'] ?? $payload['input']['user_prompt'] ?? ('Action type: ' . $actionType . '. Input: ' . json_encode($payload['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-        // Merge system + user into single user_prompt; do not send separate system prompt
-        $mergedPrompt = "[SYSTEM]\n" . $systemPrompt . "\n[/SYSTEM]\n\n[USER]\n" . $userPromptRaw . "\n[/USER]";
-
         $promptPayload = [
             'intent_code' => $actionType,
-            'user_prompt' => $mergedPrompt,
+            // Keep trusted application instructions in the provider's system
+            // role; user content must remain a lower-priority message.
+            'system_prompt' => (string)$systemPrompt,
+            'user_prompt' => (string)$userPromptRaw,
             'context' => ['scope_type' => trim((string)($input['scope_type'] ?? '')), 'scope_public_id' => trim((string)($input['scope_public_id'] ?? ''))],
             'model' => $resolvedModel,
         ];
