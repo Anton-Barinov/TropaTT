@@ -683,7 +683,7 @@ function renderInterviewHistory(questions){
       }
       b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:180000}).then(function(env2){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
         var data=env2.data||{};
         if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-solid fa-comments me-1"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
         var generatedQuestions=data.questions||[];
@@ -716,7 +716,7 @@ function renderInterviewHistory(questions){
     }).catch(function(){
       b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_thinking', 'AI думает...'), ENT_QUOTES, 'UTF-8') ?>';
       document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_generating_questions', 'Генерирую вопросы...'), ENT_QUOTES, 'UTF-8') ?>';
-      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:180000}).then(function(env2){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/interview',{method:'POST',timeoutMs:300000}).then(function(env2){
         var data=env2.data||{};
         if(data.complete){document.getElementById('interviewStatus').textContent='<?= htmlspecialchars($t('ideas.state_limit_reached', 'Достигнут лимит вопросов (25).'), ENT_QUOTES, 'UTF-8') ?>';b.disabled=false;b.innerHTML='<i class="fa-solid fa-comments me-1"></i> <?= htmlspecialchars($t('ideas.btn_ask_ai', 'Задать вопросы AI'), ENT_QUOTES, 'UTF-8') ?>';loadInterview();return;}
         var generatedQuestions=data.questions||[];
@@ -879,7 +879,7 @@ loadInterview();
   document.getElementById('clarifyBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_analyzing', 'AI анализирует...'), ENT_QUOTES, 'UTF-8') ?>';
     document.getElementById('clarificationsStatus').textContent='<?= htmlspecialchars($t('ideas.state_analyzing_idea', 'Анализирую идею...'), ENT_QUOTES, 'UTF-8') ?>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/additional-questions',{method:'POST',timeoutMs:120000}).then(function(env){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/additional-questions',{method:'POST',timeoutMs:300000}).then(function(env){
       window._renderClarifications(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-brain me-1"></i> <?= htmlspecialchars($t('ideas.btn_clarify', 'Уточнить'), ENT_QUOTES, 'UTF-8') ?>';
     }).catch(function(err){
@@ -992,7 +992,7 @@ window._renderClarifications=function(data){
   document.getElementById('buildCardBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building', 'Собираю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_analyzing_card', 'AI анализирует идею...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/understanding-card',{method:'POST',timeoutMs:120000}).then(function(env){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/understanding-card',{method:'POST',timeoutMs:300000}).then(function(env){
       renderCard(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
     }).catch(function(err){
@@ -1030,7 +1030,7 @@ window._renderClarifications=function(data){
   document.getElementById('gapBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_ai_analyzing', 'AI анализирует...'), ENT_QUOTES, 'UTF-8') ?>';
     if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_analyzing_gaps', 'Анализирую пробелы...'), ENT_QUOTES, 'UTF-8') ?>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/gap-questions',{method:'POST',timeoutMs:120000}).then(function(env){
+      window.CRM.api.request('api/v1/ideas/'+pid+'/gap-questions',{method:'POST',timeoutMs:300000}).then(function(env){
       window._renderGaps(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-brain me-1"></i> <?= htmlspecialchars($t('ideas.btn_clarify', 'Уточнить'), ENT_QUOTES, 'UTF-8') ?>';
     }).catch(function(err){
@@ -1150,7 +1150,7 @@ window._renderGaps=function(data){
   document.getElementById('buildRefinedBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_refining', 'Уточняю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_refining', 'AI пересобирает карточку с учётом ответов...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/refined-card',{method:'POST',timeoutMs:120000}).then(function(env){
+    window.CRM.api.request('api/v1/ideas/'+pid+'/refined-card',{method:'POST',timeoutMs:300000}).then(function(env){
       renderRefined(env.data||{});
       b.disabled=false;b.innerHTML='<i class="fa-solid fa-wand-magic-sparkles me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';
     }).catch(function(){
@@ -1214,7 +1214,7 @@ window._renderGaps=function(data){
   document.getElementById('calcPotentialBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating', 'Считаю...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_calculating_potential', 'AI рассчитывает потенциал...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'POST',timeoutMs:120000}).then(function(env){renderPotential(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_potential_error', 'Ошибка расчета потенциала.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/potential',{method:'POST',timeoutMs:300000}).then(function(env){renderPotential(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-calculator me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Пересчитать'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_potential_error', 'Ошибка расчета потенциала.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearPotentialBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_potential', 'Удалить расчет потенциала?'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1268,7 +1268,7 @@ window._renderGaps=function(data){
   document.getElementById('calcRiskBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_calculating_risks', 'Считаю риски...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_analyzing_risks', 'AI анализирует риски...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'POST',timeoutMs:120000}).then(function(env){renderRisk(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_risk_error', 'Ошибка расчета рисков.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/risk-report',{method:'POST',timeoutMs:300000}).then(function(env){renderRisk(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-shield-halved me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_risk_error', 'Ошибка расчета рисков.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearRiskBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_risk', 'Удалить риск-отчет? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1311,7 +1311,7 @@ window._renderGaps=function(data){
   document.getElementById('calcPitfallsBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_searching_pitfalls', 'Ищу камни...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_searching_pitfalls', 'AI ищет подводные камни...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'POST',timeoutMs:120000}).then(function(env){renderPitfalls(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_pitfalls_error', 'Ошибка поиска подводных камней.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/pitfalls',{method:'POST',timeoutMs:300000}).then(function(env){renderPitfalls(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-magnifying-glass-chart me-1"></i> <?= htmlspecialchars($t('ideas.btn_recalculate', 'Рассчитать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_pitfalls_error', 'Ошибка поиска подводных камней.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearPitfallsBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_pitfalls', 'Удалить подводные камни? Идея и вопросы не будут удалены.'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1358,7 +1358,7 @@ window._renderGaps=function(data){
   document.getElementById('buildPlanBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_plan', 'Собираю план...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_plan', 'AI составляет план...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'POST',timeoutMs:120000}).then(function(env){renderPlan(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_plan_error', 'Ошибка сборки плана.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/implementation-plan',{method:'POST',timeoutMs:300000}).then(function(env){renderPlan(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-play me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Собрать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_plan_error', 'Ошибка сборки плана.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearPlanBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_plan', 'Удалить план реализации?'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1406,7 +1406,7 @@ window._renderGaps=function(data){
   document.getElementById('buildFinalBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_final', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_final', 'AI формирует итоговую рекомендацию...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/final-recommendation',{method:'POST',timeoutMs:120000}).then(function(env){renderFinal(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_final_error', 'Ошибка формирования рекомендации.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/final-recommendation',{method:'POST',timeoutMs:300000}).then(function(env){renderFinal(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-gavel me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild_final', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_final_error', 'Ошибка формирования рекомендации.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearFinalBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_final', 'Удалить итоговую рекомендацию?'), ENT_QUOTES, 'UTF-8') ?>'))return;
@@ -1489,7 +1489,7 @@ window._renderGaps=function(data){
   document.getElementById('buildTasksBtn').addEventListener('click',function(){
     var b=this;b.disabled=true;b.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> <?= htmlspecialchars($t('ideas.state_building_tasks', 'Формирую...'), ENT_QUOTES, 'UTF-8') ?>';
     body.innerHTML='<p class="text-muted"><?= htmlspecialchars($t('ideas.state_ai_building_tasks', 'AI формирует дерево задач...'), ENT_QUOTES, 'UTF-8') ?></p>';
-    window.CRM.api.request('api/v1/ideas/'+pid+'/suggested-tasks',{method:'POST',timeoutMs:120000}).then(function(env){renderTasks(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_tasks_error', 'Ошибка формирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>';});
+    window.CRM.api.request('api/v1/ideas/'+pid+'/suggested-tasks',{method:'POST',timeoutMs:300000}).then(function(env){renderTasks(env.data||{});b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';}).catch(function(){b.disabled=false;b.innerHTML='<i class="fa-solid fa-list-tree me-1"></i> <?= htmlspecialchars($t('ideas.btn_rebuild', 'Сформировать заново'), ENT_QUOTES, 'UTF-8') ?>';body.innerHTML='<p class="text-danger"><?= htmlspecialchars($t('ideas.state_tasks_error', 'Ошибка формирования задач.'), ENT_QUOTES, 'UTF-8') ?></p>';});
   });
   document.getElementById('clearTasksBtn').addEventListener('click',function(){
     if(!confirm('<?= htmlspecialchars($t('ideas.confirm_clear_tasks', 'Удалить предлагаемые задачи?'), ENT_QUOTES, 'UTF-8') ?>'))return;
