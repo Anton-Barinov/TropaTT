@@ -272,7 +272,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 window_start INT NOT NULL DEFAULT 0,
                 blocked_until INT NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`key`)
+                PRIMARY KEY (`key`),
+                INDEX idx_updated_at (updated_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } else {
             $this->pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
@@ -283,6 +284,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`key`)
             )');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_updated_at ON rate_limits (updated_at)');
         }
 
         $this->ensureNewColumns();

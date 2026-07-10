@@ -26,7 +26,8 @@ final class RateLimitsMigration implements MigrationInterface
                 window_start INT NOT NULL DEFAULT 0,
                 blocked_until INT NOT NULL DEFAULT 0,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`key`)
+                PRIMARY KEY (`key`),
+                INDEX idx_updated_at (updated_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } else {
             $pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
