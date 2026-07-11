@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Role\RoleRepository;
+use Api\Model\Security\SessionRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Service\LogsService;
 use Api\System\Library\Logger\JsonLogger;
@@ -19,7 +20,8 @@ final class UserService
         private readonly PasswordHasher $hasher,
         private readonly HierarchyPolicy $policy,
         private readonly JsonLogger $logger,
-        private readonly LogsService $logs
+        private readonly LogsService $logs,
+        private readonly SessionRepository $sessions
     ) {
     }
 
@@ -222,6 +224,9 @@ final class UserService
         $ok = $this->users->softDelete($publicId, gmdate('Y-m-d H:i:s'));
 
         if ($ok) {
+            // SEC-005: Revoke all active sessions on user deletion
+            $this->sessions->revokeAllByUserId((int)$target['id'], gmdate('Y-m-d H:i:s'));
+
             $this->logger->audit([
                 'action' => 'user_delete',
                 'actor_public_id' => $actor['public_id'],

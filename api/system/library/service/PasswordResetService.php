@@ -88,10 +88,8 @@ final class PasswordResetService
             'ip' => $ip,
         ]);
 
-        // Log plain token to mail log (for dev/demo; production uses real email transport)
-        $this->appendMailLog($identifier, $plainToken, (string)($user['public_id'] ?? ''));
-
-        // Intentionally do not return reset token: delivery must happen out-of-band.
+        // Reset token is NOT logged: delivery must happen out-of-band via email/SMS.
+        // Plaintext tokens in logs are a security risk (SEC-002).
         return [
             'ok' => true,
             'accepted' => true,
@@ -184,29 +182,6 @@ final class PasswordResetService
         return $data['blocked_until'] > $now ? ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now] : ['blocked' => false, 'retry_after' => 0];
     }
 
-    private function appendMailLog(string $identifier, string $plainToken, string $userPublicId): void
-    {
-        // F1-02: Only log plain tokens in non-production environments
-        $env = strtolower(trim((string)(defined('APP_ENV') ? APP_ENV : 'prod')));
-        if (in_array($env, ['prod', 'production'], true)) return;
 
-        try {
-            $logDir = dirname(__DIR__, 4) . '/storage/logs';
-            if (!is_dir($logDir)) {
-                @mkdir($logDir, 0755, true);
-            }
-            $logFile = $logDir . '/mail.log';
-            $entry = sprintf(
-                "[%s] PASSWORD_RESET identifier=%s user=%s token=%s" . PHP_EOL,
-                gmdate('Y-m-d H:i:s'),
-                $identifier,
-                $userPublicId,
-                $plainToken
-            );
-            @file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
-        } catch (\Throwable) {
-            // Best-effort logging
-        }
-    }
 
 }
