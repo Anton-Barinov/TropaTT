@@ -48,6 +48,12 @@ function getEnvConfigPath(): string
 // ============================================================================
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Set session storage to project-controlled directory (shared hosting security)
+    $sessionDir = dirname(__DIR__) . '/storage_api/sessions';
+    if (!is_dir($sessionDir)) {
+        @mkdir($sessionDir, 0700, true);
+    }
+    ini_set('session.save_path', $sessionDir);
     ini_set('session.cookie_httponly', '1');
     ini_set('session.cookie_samesite', 'Lax');
     ini_set('session.use_strict_mode', '1');
