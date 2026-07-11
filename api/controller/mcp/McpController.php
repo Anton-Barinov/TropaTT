@@ -718,13 +718,13 @@ MD;
                 'public_id' => ['type' => 'string'],
                 'row_version' => ['type' => 'integer'],
             ], ['public_id']);
-            $tools[] = $this->tool('crm_create_webhook', 'Create a webhook subscription.', [
+            $tools[] = $this->tool('crm_create_webhook', 'Create a webhook subscription. Only HTTPS URLs are allowed. Private IP addresses and localhost are blocked.', [
                 'url' => ['type' => 'string'],
                 'events' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'secret' => ['type' => 'string'],
                 'is_active' => ['type' => 'integer', 'enum' => [0, 1]],
             ], ['url', 'events']);
-            $tools[] = $this->tool('crm_update_webhook', 'Update a webhook subscription.', [
+            $tools[] = $this->tool('crm_update_webhook', 'Update a webhook subscription. Only HTTPS URLs are allowed. Private IP addresses and localhost are blocked.', [
                 'public_id' => ['type' => 'string'],
                 'url' => ['type' => 'string'],
                 'events' => ['type' => 'array', 'items' => ['type' => 'string']],
