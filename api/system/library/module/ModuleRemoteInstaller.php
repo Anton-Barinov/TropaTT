@@ -68,6 +68,11 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException("Invalid manifest.json");
             }
 
+            // SEC-012: Verify module package signature if requested
+            if ($verifySignature) {
+                $this->verifyPackageSignature($manifestData);
+            }
+
             $moduleName = $manifestData['name'] ?? '';
             if ($moduleName === '') {
                 throw new RuntimeException("Module name not specified in manifest");
@@ -139,6 +144,37 @@ final class ModuleRemoteInstaller
         $this->createArchive($sourceDir, $outputPath);
 
         return $outputPath;
+    }
+
+    /**
+     * Verify module package integrity using HMAC-SHA256 signature.
+     * Verifies the manifest content (excluding signature field) with MODULE_SIGNING_KEY.
+     * If no signing key is configured, verification is silently skipped.
+     */
+    private function verifyPackageSignature(array $manifestData): void
+    {
+        $signingKey = trim((string)(getenv('MODULE_SIGNING_KEY') ?: ''));
+        if ($signingKey === '') {
+            return; // No signing key configured — skip verification
+        }
+
+        $signature = (string)($manifestData['signature'] ?? '');
+        if ($signature === '') {
+            throw new RuntimeException("Module package signature is missing and verification is required");
+        }
+
+        // Verify against manifest content excluding the signature field itself
+        $verifyData = $manifestData;
+        unset($verifyData['signature']);
+        $payload = json_encode($verifyData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!is_string($payload)) {
+            throw new RuntimeException("Cannot encode manifest for signature verification");
+        }
+
+        $expected = hash_hmac('sha256', $payload, $signingKey);
+        if (!hash_equals($expected, $signature)) {
+            throw new RuntimeException("Module package signature verification failed");
+        }
     }
 
     private function download(string $url, string $dest): void
