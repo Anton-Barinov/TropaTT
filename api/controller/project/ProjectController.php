@@ -62,6 +62,14 @@ final class ProjectController extends BaseController
         $service = $this->container->get('service.project');
         $input = $this->request()->allInput();
 
+        // SEC-003: Sanitize HTML from user input to prevent stored XSS
+        if (isset($input['title']) && is_string($input['title'])) {
+            $input['title'] = strip_tags((string)$input['title']);
+        }
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+        }
+
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('project/messages.max_255'))
@@ -126,6 +134,15 @@ final class ProjectController extends BaseController
         }
 
         $input = $this->request()->allInput();
+
+        // SEC-003: Sanitize HTML from user input to prevent stored XSS
+        if (isset($input['title']) && is_string($input['title'])) {
+            $input['title'] = strip_tags((string)$input['title']);
+        }
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+        }
+
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('project/messages.max_255'))
             ->maxLen($input, 'description', 65000, 'Description is too long');

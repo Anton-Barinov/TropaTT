@@ -95,6 +95,14 @@ final class TaskController extends BaseController
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
 
+        // SEC-003: Sanitize HTML from user input to prevent stored XSS
+        if (isset($input['title']) && is_string($input['title'])) {
+            $input['title'] = strip_tags((string)$input['title']);
+        }
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+        }
+
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
@@ -171,6 +179,14 @@ final class TaskController extends BaseController
             ->maxLen($input, 'description', 65000, 'Description is too long')
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
+
+        // SEC-003: Sanitize HTML from user input to prevent stored XSS
+        if (isset($input['title']) && is_string($input['title'])) {
+            $input['title'] = strip_tags((string)$input['title']);
+        }
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+        }
 
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
