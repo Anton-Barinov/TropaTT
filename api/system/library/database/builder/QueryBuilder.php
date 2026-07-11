@@ -113,6 +113,10 @@ final class QueryBuilder
 
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
+        // SEC-013: Validate column name to prevent SQL injection
+        if (!preg_match('/^[a-zA-Z0-9_.`]+$/', $column)) {
+            throw new \InvalidArgumentException('Invalid column name in ORDER BY: ' . $column);
+        }
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
         $this->orders[] = $column . ' ' . $dir;
         return $this;
