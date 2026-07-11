@@ -181,12 +181,13 @@ final class AuthController extends BaseController
     private function cookieSameSite(): string
     {
         $config = $this->config();
-        $raw = strtolower(trim((string)$config->get('security.auth.cookie.same_site', 'lax')));
+        $raw = strtolower(trim((string)$config->get('security.auth.cookie.same_site', 'strict')));
 
         return match ($raw) {
             'strict' => 'Strict',
             'none' => 'None',
-            default => 'Lax',
+            'lax' => 'Lax',
+            default => 'Strict',
         };
     }
 
