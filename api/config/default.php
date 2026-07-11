@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// SEC-002: Block direct web access
+if (PHP_SAPI !== 'cli' && ($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    http_response_code(404);
+    exit;
+}
+
+
 $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/../storage_api');
 
 return [

@@ -1,0 +1,105 @@
+# =============================================================================
+# nginx Security Configuration for TropaTT CRM
+# =============================================================================
+#
+# This file is intended for deployments where the CRM is served behind nginx
+# (instead of Apache + .htaccess). Place these rules inside the `server` block
+# of your nginx configuration.
+#
+# For shared hosting with Apache, the .htaccess files in api/ and web/ provide
+# equivalent protection.
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. Block access to sensitive API directories
+# -----------------------------------------------------------------------------
+# These directories contain PHP source code that should never be accessible
+# directly via HTTP. Only the front controller (api/index.php) should handle
+# API requests.
+location ~ ^/api/(config|system|model|controller|scripts|tests|vendor)/ {
+    deny all;
+    return 403;
+}
+
+# -----------------------------------------------------------------------------
+# 2. Block access to composer files
+# -----------------------------------------------------------------------------
+location ~ ^/api/composer\.(json|lock)$ {
+    deny all;
+    return 403;
+}
+
+# -----------------------------------------------------------------------------
+# 3. Block access to environment files
+# -----------------------------------------------------------------------------
+location ~ ^/api/\.env {
+    deny all;
+    return 403;
+}
+location ~ /\.env {
+    deny all;
+    return 403;
+}
+
+# -----------------------------------------------------------------------------
+# 4. Block access to storage directories
+# -----------------------------------------------------------------------------
+location ~ ^/storage_api/(secrets|cache|logs|temp|quarantine|ai)/ {
+    deny all;
+    return 403;
+}
+
+# -----------------------------------------------------------------------------
+# 5. Prevent execution of PHP files in uploads
+# -----------------------------------------------------------------------------
+# If an attacker uploads a .php file, this rule ensures it is never executed.
+location ~ ^/storage_api/uploads/ {
+    # For PHP-FPM: disable execution in this location
+    location ~ \.php$ {
+        deny all;
+        return 403;
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 6. Block installer after deployment (defence-in-depth with PHP guard)
+# -----------------------------------------------------------------------------
+# The PHP guard in web/install.php already returns 410 when install.lock exists.
+# This nginx rule adds an extra layer for installations that don't have the
+# lock file check.
+# Uncomment and adjust the path if needed:
+# location = /web/install.php {
+#     if (-f $document_root/../storage_api/install.lock) {
+#         return 410;
+#     }
+# }
+
+# -----------------------------------------------------------------------------
+# 7. Security headers
+# -----------------------------------------------------------------------------
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'" always;
+
+# -----------------------------------------------------------------------------
+# 8. Hide server information
+# -----------------------------------------------------------------------------
+server_tokens off;
+# Remove X-Powered-By set by PHP (requires headers_more module or PHP config)
+# more_clear_headers 'X-Powered-By';
+
+# -----------------------------------------------------------------------------
+# 9. Limit request size (defence against large payload attacks)
+# -----------------------------------------------------------------------------
+client_max_body_size 25M;
+
+# -----------------------------------------------------------------------------
+# 10. Rate limiting (global)
+# -----------------------------------------------------------------------------
+# Uncomment and tune as needed:
+# limit_req_zone $binary_remote_addr zone=crm_login:10m rate=15r/m;
+# location ~ ^/api/index\.php {
+#     limit_req zone=crm_login burst=5 nodelay;
+# }

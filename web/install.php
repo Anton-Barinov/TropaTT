@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// SEC-001: Block access after installation — return 410 Gone immediately
+$lockFiles = [
+    __DIR__ . '/../api/.install.lock',
+    __DIR__ . '/../storage_api/install.lock',
+];
+foreach ($lockFiles as $lockFile) {
+    $resolved = realpath($lockFile);
+    if ($resolved !== false && is_file($resolved)) {
+        http_response_code(410);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Installation already completed.';
+        exit;
+    }
+}
+
 // ============================================================================
 // Part 1: Constants
 // ============================================================================
