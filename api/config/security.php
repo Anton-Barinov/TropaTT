@@ -54,7 +54,7 @@ return [
         'cookie' => [
             'name' => 'crm_api_session',
             'path' => '/',
-            'same_site' => 'Lax',
+            'same_site' => 'Strict',
             'secure_only' => $isProduction,
         ],
         'csrf' => [

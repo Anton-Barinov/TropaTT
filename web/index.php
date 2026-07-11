@@ -106,10 +106,99 @@ if ($route === '') {
 
 // Handle API routes
 if (str_starts_with($route, 'api/')) {
+    // Rate-limit auth-sensitive endpoints before proxying to the API.
+    // This ensures brute-force protection even when the request enters
+    // through the web entry point (shared-hosting / nginx scenarios).
+    $rateLimitedApiRoutes = [
+        'api/v1/auth/login',
+        'api/v1/security/password-reset',
+        'api/v1/security/password-reset/request',
+        'api/v1/security/password-reset/confirm',
+        'api/v1/security/invitations/accept',
+    ];
+    $rateLimitCheck = in_array($route, $rateLimitedApiRoutes, true)
+        ? webRateLimitCheck($route)
+        : null;
+    if ($rateLimitCheck !== null && $rateLimitCheck['blocked'] === true) {
+        http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Retry-After: ' . $rateLimitCheck['retry_after']);
+        echo json_encode([
+            'success' => false,
+            'code' => 'RATE_LIMITED',
+            'message' => 'Too many requests. Please try again later.',
+            'retry_after' => $rateLimitCheck['retry_after'],
+        ], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     $_SERVER['REQUEST_URI'] = '/' . $route;
     $_GET['route'] = $route;
     include dirname(__DIR__) . '/api/index.php';
     exit;
+}
+
+/**
+ * Simple file-based rate limiter for the web entry point.
+ * Uses the same storage directory as AuthService's rate limiter.
+ */
+function webRateLimitCheck(string $route): ?array
+{
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $dir = dirname(__DIR__) . '/storage_api/cache/rate_limits';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+    }
+    $fileName = $dir . '/crm_web_' . md5($route . ':' . $ip) . '.counter';
+
+    $now = time();
+    $maxAttempts = 5;
+    $windowSeconds = 300;
+    $lockSeconds = 900;
+
+    $fp = @fopen($fileName, 'c+');
+    if (!$fp) {
+        return null;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return null;
+    }
+
+    $raw = stream_get_contents($fp);
+    $data = ($raw !== false && $raw !== '') ? @json_decode($raw, true) : null;
+    if (!is_array($data)) {
+        $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
+    }
+    $data['count'] = (int)($data['count'] ?? 0);
+    $data['window_start'] = (int)($data['window_start'] ?? 0);
+    $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
+
+    if ($data['blocked_until'] > $now) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
+    }
+
+    if (($now - $data['window_start']) > $windowSeconds) {
+        $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
+    } else {
+        $data['count']++;
+        if ($data['count'] >= $maxAttempts) {
+            $data['blocked_until'] = $now + $lockSeconds;
+        }
+    }
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
+
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    if ($data['blocked_until'] > $now) {
+        return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
+    }
+    return ['blocked' => false, 'retry_after' => 0];
 }
 
 function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir): bool

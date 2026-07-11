@@ -12,6 +12,28 @@ use Api\System\Library\Support\EnvLoader;
 
 header('X-Powered-By: Tropa-CRM-API');
 
+// Block direct access to sensitive files that nginx may serve before PHP processing.
+// .htaccess handles this for Apache; this is the defence-in-depth layer.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+$blockedPatterns = [
+    '#/composer\.(json|lock)$#',
+    '#/\.env#' ,
+    '#/config/#' ,
+    '#/scripts/#' ,
+    '#/system/#' ,
+    '#/tests/#' ,
+    '#/vendor/#' ,
+    '#/storage_test_runtime/#' ,
+];
+foreach ($blockedPatterns as $pattern) {
+    if (preg_match($pattern, $requestPath)) {
+        http_response_code(404);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Not Found'], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+}
+
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
     http_response_code(503);
