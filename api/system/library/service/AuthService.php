@@ -302,7 +302,7 @@ final class AuthService
     {
         return $this->fileRateLimit(
             $this->rateLimitDir() . '/crm_ip_login_' . md5($ip) . '.counter',
-            30, 60, 300, true
+            10, 60, 300, true
         );
     }
 

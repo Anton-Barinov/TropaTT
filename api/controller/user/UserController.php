@@ -13,6 +13,12 @@ final class UserController extends BaseController
     {
         $input = $this->request()->allInput();
 
+        // SEC-004: Non-root users should only see their own team members
+        $auth = $this->user();
+        if ($auth && !(bool)($auth['user']['is_root'] ?? false)) {
+            $input['created_by_user_id'] = (int)($auth['user']['id'] ?? 0);
+        }
+
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
