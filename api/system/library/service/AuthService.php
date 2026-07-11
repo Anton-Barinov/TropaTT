@@ -237,6 +237,15 @@ final class AuthService
         ];
     }
 
+    private function rateLimitDir(): string
+    {
+        $dir = dirname(__DIR__, 3) . '/../storage_api/cache/rate_limits';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0700, true);
+        }
+        return realpath($dir) ?: $dir;
+    }
+
     // ── Shared file-based rate limit engine ──
     private function fileRateLimit(string $fileName, int $maxAttempts, int $windowSeconds, int $lockSeconds, bool $increment): array
     {
@@ -292,7 +301,7 @@ final class AuthService
     private function checkIpRateLimit(string $ip): array
     {
         return $this->fileRateLimit(
-            sys_get_temp_dir() . '/crm_ip_login_' . md5($ip) . '.counter',
+            $this->rateLimitDir() . '/crm_ip_login_' . md5($ip) . '.counter',
             30, 60, 300, true
         );
     }
@@ -300,7 +309,7 @@ final class AuthService
     private function checkLoginRateLimit(string $rateKey): array
     {
         return $this->fileRateLimit(
-            sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter',
+            $this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter',
             5, 300, 900, false
         );
     }
@@ -308,14 +317,14 @@ final class AuthService
     private function hitLoginRateLimit(string $rateKey): array
     {
         return $this->fileRateLimit(
-            sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter',
+            $this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter',
             5, 300, 900, true
         );
     }
 
     private function clearLoginRateLimit(string $rateKey): void
     {
-        @unlink(sys_get_temp_dir() . '/crm_login_' . md5($rateKey) . '.counter');
+        @unlink($this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter');
     }
 
     private function rateLimitKey(string $login, string $ip): string

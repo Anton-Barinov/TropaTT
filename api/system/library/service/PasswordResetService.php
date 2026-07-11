@@ -148,6 +148,15 @@ final class PasswordResetService
         ];
     }
 
+    private function rateLimitStorageDir(): string
+    {
+        $dir = dirname(__DIR__, 3) . '/../storage_api/cache/rate_limits';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0700, true);
+        }
+        return realpath($dir) ?: $dir;
+    }
+
     // ── File-based rate limit engine ──
     private function checkFileRateLimit(string $rateKey, string $prefix, bool $increment): array
     {
@@ -155,7 +164,7 @@ final class PasswordResetService
         $windowSecs = 300;
         $lockSecs = 900;
         $now = time();
-        $file = sys_get_temp_dir() . '/crm_' . $prefix . '_' . md5($rateKey) . '.counter';
+        $file = $this->rateLimitStorageDir() . '/crm_' . $prefix . '_' . md5($rateKey) . '.counter';
         $fp = @fopen($file, 'c+');
         if (!$fp) return ['blocked' => false, 'retry_after' => 0];
         if (!flock($fp, LOCK_EX)) { fclose($fp); return ['blocked' => false, 'retry_after' => 0]; }

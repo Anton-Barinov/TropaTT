@@ -861,29 +861,11 @@ final class AiProviderService
             ?: getenv('AI_ENCRYPTION_KEY')
             ?: ''
         ));
-        if ($configured !== '') {
-            return hash('sha256', $configured, true);
+        if ($configured === '') {
+            throw new \RuntimeException('AI secret key is not configured. Set AI_ENCRYPTION_KEY in .env');
         }
 
-        $secretsDir = rtrim((string)$this->config->get('default.storage.secrets', ''), '/\\');
-        if ($secretsDir === '') {
-            $secretsDir = rtrim((string)$this->config->get('default.storage.base', dirname(__DIR__, 3) . '/../storage_api'), '/\\') . '/secrets';
-        }
-        if (!is_dir($secretsDir)) {
-            @mkdir($secretsDir, 0700, true);
-        }
-
-        $path = $secretsDir . '/ai.key';
-        if (!is_file($path)) {
-            throw new \RuntimeException('AI secret key is not configured');
-        }
-
-        $value = trim((string)@file_get_contents($path));
-        if ($value === '') {
-            throw new \RuntimeException('AI secret key is not configured');
-        }
-
-        return hash('sha256', $value, true);
+        return hash('sha256', $configured, true);
     }
 
     private function secretKeyHint(): string
