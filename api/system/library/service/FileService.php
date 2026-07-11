@@ -415,6 +415,21 @@ final class FileService
             return [true, 'extension:' . $ext];
         }
 
+        // SEC-004: Check for double extensions like file.php.jpg or file.phtml.svg
+        $cleanName = str_replace('\\', '/', $fileName);
+        $cleanName = basename($cleanName);
+        $parts = explode('.', $cleanName);
+        if (count($parts) >= 3) {
+            // Remove the last part (final extension), check all intermediate extensions
+            array_pop($parts);
+            foreach ($parts as $part) {
+                $part = strtolower(trim($part));
+                if ($part !== '' && in_array($part, $this->quarantineExtensions, true)) {
+                    return [true, 'double_extension:' . $part];
+                }
+            }
+        }
+
         $mime = strtolower(trim($mimeType));
         $detectedMime = strtolower(trim($detectedMimeType));
         if ($detectedMime !== '' && $detectedMime !== $mime) {
