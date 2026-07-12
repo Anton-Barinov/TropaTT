@@ -2381,6 +2381,12 @@ function createAdminUser(PDO $pdo, array $data): array
     $email = $data['admin_email'] ?? 'admin@example.com';
     $login = $data['admin_login'] ?? $data['admin_email'] ?? 'admin';
 
+    // Server-side password strength validation (minimum 8 characters)
+    $password = (string)($data['admin_password'] ?? 'password');
+    if (mb_strlen($password) < 8) {
+        throw new RuntimeException(t('password_min_length'));
+    }
+
     $checkUser = $pdo->prepare('SELECT id, public_id FROM users WHERE email = :email OR login = :login');
     $checkUser->execute(['email' => $email, 'login' => $login]);
     $existing = $checkUser->fetch();
@@ -2391,7 +2397,7 @@ function createAdminUser(PDO $pdo, array $data): array
 
         $pdo->prepare('UPDATE users SET password_hash = :hash, is_active = 1, is_root = 1, updated_at = :now WHERE id = :id')
             ->execute([
-                'hash' => password_hash($data['admin_password'] ?? 'password', defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT),
+                'hash' => password_hash($password, defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT),
                 'now' => $now,
                 'id' => $userId,
             ]);
@@ -2404,7 +2410,7 @@ function createAdminUser(PDO $pdo, array $data): array
             'public_id' => $publicId,
             'login' => $login,
             'email' => $email,
-            'password_hash' => password_hash($data['admin_password'] ?? 'password', defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT),
+            'password_hash' => password_hash($password, defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT),
             'full_name' => $data['admin_name'] ?? 'Administrator',
             'locale' => $data['lang'] ?? 'ru',
             'created_at' => $now,
