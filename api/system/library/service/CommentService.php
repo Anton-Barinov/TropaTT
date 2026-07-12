@@ -39,7 +39,7 @@ final class CommentService
         ];
     }
 
-    public function createByTask(string $taskPublicId, array $input, int $authorUserId): bool
+    public function createByTask(string $taskPublicId, array $input, int $authorUserId): ?array
     {
         $commentPublicId = Ulid::generate('cmt');
         $existingParticipants = $this->comments->participantUserIdsByTaskPublicId($taskPublicId);
@@ -54,7 +54,7 @@ final class CommentService
         ]);
 
         if (!$created) {
-            return false;
+            return null;
         }
 
         $task = $this->tasks->findByPublicId($taskPublicId);
@@ -73,7 +73,7 @@ final class CommentService
             ], ['source_type' => 'web']);
         }
 
-        return true;
+        return $comment;
     }
 
     /** @return array<string,mixed>|null */

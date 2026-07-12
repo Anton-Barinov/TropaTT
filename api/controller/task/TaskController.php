@@ -360,15 +360,15 @@ final class TaskController extends BaseController
 
         /** @var CommentService $service */
         $service = $this->container->get('service.comment');
-        $ok = $service->createByTask((string)$params['public_id'], $input, (int)$authUser['user']['id']);
+        $comment = $service->createByTask((string)$params['public_id'], $input, (int)$authUser['user']['id']);
 
-        if (!$ok) {
+        if (!$comment) {
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task' => [$this->t('common/messages.task_not_found')],
             ]);
         }
 
-        return $this->success('COMMENT_CREATED', $this->t('task/messages.comment_created'), [], 201);
+        return $this->success('COMMENT_CREATED', $this->t('task/messages.comment_created'), $comment, 201);
     }
 
     public function bulkUpdate(): \Api\System\Library\Http\JsonResponse
