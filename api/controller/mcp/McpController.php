@@ -5602,6 +5602,9 @@ MD;
         }
 
         $input = ['endpoint' => $url];
+        if (!empty($arguments['title'])) {
+            $input['title'] = $arguments['title'];
+        }
         if (!empty($arguments['events'])) {
             $input['events'] = $arguments['events'];
         }
@@ -5627,7 +5630,7 @@ MD;
         }
 
         $input = [];
-        foreach (['endpoint', 'events', 'is_active'] as $field) {
+        foreach (['endpoint', 'title', 'events', 'is_active'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
                 $input[$field] = $arguments[$field];
             }
