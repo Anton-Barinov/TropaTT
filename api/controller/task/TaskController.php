@@ -382,6 +382,14 @@ final class TaskController extends BaseController
         $taskPublicIds = (array)($input['task_public_ids'] ?? []);
         $changes = (array)($input['changes'] ?? []);
 
+        // SEC-013: Limit bulk operations to prevent resource exhaustion
+        $maxItems = 100;
+        if (count($taskPublicIds) > $maxItems) {
+            return $this->error('TOO_MANY_ITEMS', $this->t('task/messages.too_many_tasks', 'Too many tasks. Maximum ' . $maxItems . ' allowed per bulk operation.'), 422, [
+                'task_public_ids' => ['Up to ' . $maxItems . ' task IDs allowed per request'],
+            ]);
+        }
+
         $errors = [];
         if ($taskPublicIds === []) {
             $errors['task_public_ids'][] = $this->t('task/messages.task_ids_required');

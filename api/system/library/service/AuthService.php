@@ -166,7 +166,7 @@ final class AuthService
         ];
     }
 
-    public function me(string $accessToken): ?array
+    public function me(string $accessToken, ?string $userAgent = null): ?array
     {
         $hash = $this->tokens->hash($accessToken);
         $session = $this->auth->findSessionByTokenHash($hash);
@@ -188,6 +188,28 @@ final class AuthService
 
         if ((int)($session['is_active'] ?? 0) !== 1) {
             return null;
+        }
+
+        // SEC-007: device fingerprint verification
+        // If a user agent is provided, derive a fingerprint and compare it against
+        // the one stored when the session was created. A mismatch indicates potential
+        // token theft (different browser/device than the original login).
+        if ($userAgent !== null && $userAgent !== '') {
+            $storedFingerprint = (string)($session['device_fingerprint'] ?? '');
+            if ($storedFingerprint !== '') {
+                $currentFingerprint = $this->buildDeviceFingerprint($userAgent);
+                if ($currentFingerprint !== $storedFingerprint) {
+                    $this->logger->security([
+                        'event_type' => 'device_fingerprint_mismatch',
+                        'session_public_id' => (string)$session['public_id'],
+                        'user_public_id' => (string)($session['user_public_id'] ?? ''),
+                        'stored_fingerprint' => $storedFingerprint,
+                        'current_fingerprint' => $currentFingerprint,
+                    ]);
+                    $this->auth->revokeByTokenHash($hash, gmdate('Y-m-d H:i:s'));
+                    return null;
+                }
+            }
         }
 
         $newExpiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);

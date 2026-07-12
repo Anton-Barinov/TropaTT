@@ -2577,17 +2577,27 @@ function finalizeInstall(PDO $pdo): void
     $dirs = [$storageBase, $storageBase . '/temp'];
     foreach ($dirs as $dir) {
         if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-            throw new RuntimeException("Cannot create directory: {$dir}. The PHP process needs write permission to create this directory. Check your hosting's file permissions.");
+            error_log('[Installer] Cannot create directory: ' . $dir);
+            throw new RuntimeException('Storage directory is not writable.');
         }
     }
 
     $storageLock = $storageBase . '/install.lock';
-    if (file_put_contents($storageLock, $now) === false) {
-        throw new RuntimeException("Cannot write lock file: {$storageLock}. Check that the PHP process has write permission to the storage_api directory. On shared hosting, set directory permissions to 755 or 775 depending on your hosting configuration.");
+    $lockHandle = @fopen($storageLock, 'x');
+    if ($lockHandle === false) {
+        error_log('[Installer] Cannot write lock file: ' . $storageLock);
+        throw new RuntimeException('Cannot write installation lock file. Check file permissions.');
     }
-    if (file_put_contents(LOCK_FILE_PATH, $now) === false) {
-        throw new RuntimeException("Cannot write lock file: " . LOCK_FILE_PATH);
+    fwrite($lockHandle, $now);
+    fclose($lockHandle);
+
+    $lockHandle2 = @fopen(LOCK_FILE_PATH, 'x');
+    if ($lockHandle2 === false) {
+        error_log('[Installer] Cannot write lock file: ' . LOCK_FILE_PATH);
+        throw new RuntimeException('Cannot write installation lock file. Check file permissions.');
     }
+    fwrite($lockHandle2, $now);
+    fclose($lockHandle2);
 
     $storageGitignore = $storageBase . '/.gitignore';
     if (!is_file($storageGitignore)) {
