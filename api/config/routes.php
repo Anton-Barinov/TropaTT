@@ -637,6 +637,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/security/2fa/status', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'status', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/enable', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'enable', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/disable', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'disable', 'auth' => true],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/verify', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'verify', 'auth' => false],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/impersonation/start', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'start', 'auth' => true, 'required_permissions' => ['user.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/security/impersonation/status', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'status', 'auth' => true],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/impersonation/stop', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'stop', 'auth' => true],

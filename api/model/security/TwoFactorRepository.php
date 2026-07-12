@@ -40,4 +40,15 @@ final class TwoFactorRepository
             ->where('user_id', '=', $userId)
             ->delete() > 0;
     }
+
+    public function updateBackupCodes(int $userId, string $backupCodesJson, string $updatedAt): void
+    {
+        (new QueryBuilder($this->pdo))
+            ->from('two_factor_secrets')
+            ->where('user_id', '=', $userId)
+            ->update([
+                'backup_codes' => $backupCodesJson,
+                'updated_at' => $updatedAt,
+            ]);
+    }
 }
