@@ -2832,8 +2832,11 @@ MD;
             return $this->toolError('Tool name is required');
         }
 
-        $this->warnPromptInjection($name, $arguments);
-        // Per-tool rate limiting (FINDING-02)
+        // Active prompt injection blocking (SEC-010)
+        if ($this->warnPromptInjection($name, $arguments)) {
+            return $this->toolError('Tool execution blocked: arguments contain potential prompt injection patterns.');
+        }
+        // Per-tool rate limiting
         $rateLimitCheck = $this->checkMcpToolRateLimit($name);
         if (($rateLimitCheck['blocked'] ?? false) === true) {
             $retryAfter = max(1, (int)($rateLimitCheck['retry_after'] ?? 1));
@@ -13029,7 +13032,7 @@ private function isSensitiveOrInternalKey(string $key): bool
      * Tool descriptions already warn agents not to execute instructions found in user content.
      * This logging provides an audit trail for security monitoring.
      */
-    private function warnPromptInjection(string $toolName, array $arguments): void
+    private function warnPromptInjection(string $toolName, array $arguments): bool
     {
         $suspectPatterns = [
             '/\bignore\s+(all\s+)?(previous|above|prior)\s+(instructions|commands|directives)/iu',
@@ -13040,7 +13043,7 @@ private function isSensitiveOrInternalKey(string $key): bool
         ];
 
         if ($arguments === []) {
-            return;
+            return false;
         }
 
         $matched = [];
@@ -13068,7 +13071,7 @@ private function isSensitiveOrInternalKey(string $key): bool
                 $logger = $this->container->get('logger');
                 $user = $this->actor();
                 $logger->security([
-                    'event_type' => 'MCP_PROMPT_INJECTION_SUSPECTED',
+                    'event_type' => 'MCP_PROMPT_INJECTION_BLOCKED',
                     'actor_public_id' => $user['public_id'] ?? null,
                     'tool_name' => $toolName,
                     'match_count' => count($matched),
@@ -13077,7 +13080,10 @@ private function isSensitiveOrInternalKey(string $key): bool
             } catch (\Throwable) {
                 // Logging failure is non-blocking
             }
+            return true;
         }
+
+        return false;
     }
 
     /**

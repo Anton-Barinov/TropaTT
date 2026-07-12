@@ -480,7 +480,7 @@ final class App
                 'user_id' => $auth['user']['id'] ?? null,
                 'user_public_id' => $auth['user']['public_id'] ?? null,
                 'login' => $auth['user']['login'] ?? null,
-                'ip' => $request->ip(),
+                'ip' => $this->maskIpForLog($request->ip(), $auth),
                 'user_agent' => $request->userAgent(),
                 'route' => $routePath,
                 'method' => $request->method,
@@ -750,6 +750,7 @@ final class App
         header('X-Correlation-Id: ' . $request->correlationId);
         header('X-Frame-Options: DENY');
         header('X-Content-Type-Options: nosniff');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         // SEC-006: Use relative URI for CSP report-uri to avoid host-dependency
         header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri /api/index.php?route=api/v1/telemetry/csp-report');
@@ -1979,6 +1980,35 @@ final class App
     }
 
     /** @return array<string,mixed> */
+    /**
+     * Mask IP address for non-root users to protect PII (SEC-013).
+     */
+    private function maskIpForLog(string $ip, ?array $auth): string
+    {
+        $isRoot = (bool)(($auth['user']['is_root'] ?? false));
+        if ($isRoot) {
+            return $ip;
+        }
+        $parts = explode('.', $ip);
+        if (count($parts) === 4) {
+            $parts[3] = 'xxx';
+            return implode('.', $parts);
+        }
+        // IPv6 — mask via binary manipulation to handle :: compression correctly
+        $binary = @inet_pton($ip);
+        if ($binary !== false && strlen($binary) === 16) {
+            // Zero out last 4 bytes (64 bits of the interface identifier)
+            for ($i = 12; $i < 16; $i++) {
+                $binary[$i] = "\x00";
+            }
+            $masked = inet_ntop($binary);
+            if ($masked !== false) {
+                return $masked;
+            }
+        }
+        return $ip;
+    }
+
     private function buildSafeRequestPayload(Request $request): array
     {
         $input = $request->allInput();
