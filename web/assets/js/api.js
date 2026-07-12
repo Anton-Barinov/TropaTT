@@ -899,10 +899,26 @@ window.CRM.api = (function () {
     var csrfToken = envelope.data && envelope.data.csrf_token ? envelope.data.csrf_token : '';
     var accessToken = envelope.data && envelope.data.access_token ? envelope.data.access_token : '';
 
-    setToken(accessToken);
-    setCsrfToken(csrfToken);
-    setUser(user);
+    if (!envelope.data || !envelope.data.requires_two_factor) {
+      setToken(accessToken);
+      setCsrfToken(csrfToken);
+      setUser(user);
+    }
 
+    return envelope;
+  }
+
+  async function verifyTwoFactor(loginToken, code, isBackup, localeValue) {
+    var locale = String(localeValue || '').trim().toLowerCase();
+    var envelope = await request('api/v1/security/2fa/verify', {
+      method: 'POST', auth: false,
+      headers: locale ? { 'X-Locale': locale } : {},
+      body: { login_token: loginToken, code: code, is_backup: !!isBackup }
+    });
+    var data = envelope.data || {};
+    setToken(String(data.access_token || ''));
+    setCsrfToken(String(data.csrf_token || ''));
+    setUser(data.user || null);
     return envelope;
   }
 
@@ -966,6 +982,7 @@ window.CRM.api = (function () {
     activateImpersonationSession: activateImpersonationSession,
     restoreOriginalSessionAfterImpersonation: restoreOriginalSessionAfterImpersonation,
     login: login,
+    verifyTwoFactor: verifyTwoFactor,
     logout: logout,
     me: me
   };

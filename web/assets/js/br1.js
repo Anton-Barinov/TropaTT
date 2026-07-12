@@ -1067,7 +1067,10 @@ window.CRM.br1 = (function () {
       var login = loginInput ? loginInput.value.trim() : '';
       var password = passInput ? passInput.value.trim() : '';
       var locale = localeSelect ? String(localeSelect.value || '').trim().toLowerCase() : '';
-      if (!login || !password) {
+      var pendingTwoFactorToken = String(loginForm.dataset.twoFactorToken || '');
+      var twoFactorInput = loginForm.querySelector('[name="two_factor_code"]');
+      var backupInput = loginForm.querySelector('[name="two_factor_backup"]');
+      if (!pendingTwoFactorToken && (!login || !password)) {
         plog('login or password empty');
         showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol', 'Введите логин и пароль.'));
         return;
@@ -1198,13 +1201,36 @@ window.CRM.br1 = (function () {
       var login = loginInput ? loginInput.value.trim() : '';
       var password = passInput ? passInput.value.trim() : '';
       var locale = localeSelect ? String(localeSelect.value || '').trim().toLowerCase() : '';
+      var pendingTwoFactorToken = String(loginForm.dataset.twoFactorToken || '');
+      var twoFactorInput = loginForm.querySelector('[name="two_factor_code"]');
+      var backupInput = loginForm.querySelector('[name="two_factor_backup"]');
 
-      if (!login || !password) {
+      if (!pendingTwoFactorToken && (!login || !password)) {
         showLoginError(window.CRM.i18n.t('js.br1.vvedite_login_i_parol_2', 'Введите логин и пароль.'));
         return;
       }
       try {
-        await window.CRM.api.login(login, password, locale);
+        var loginEnvelope;
+        if (pendingTwoFactorToken) {
+          var twoFactorCode = twoFactorInput ? String(twoFactorInput.value || '').trim() : '';
+          if (!twoFactorCode) {
+            showLoginError('Введите код подтверждения.');
+            return;
+          }
+          loginEnvelope = await window.CRM.api.verifyTwoFactor(pendingTwoFactorToken, twoFactorCode, !!(backupInput && backupInput.checked), locale);
+        } else {
+          loginEnvelope = await window.CRM.api.login(login, password, locale);
+          if (loginEnvelope.data && loginEnvelope.data.requires_two_factor) {
+            loginForm.dataset.twoFactorToken = String(loginEnvelope.data.login_token || '');
+            var twoFactorField = document.getElementById('twoFactorLoginField');
+            if (twoFactorField) twoFactorField.classList.remove('d-none');
+            if (loginInput) loginInput.disabled = true;
+            if (passInput) passInput.disabled = true;
+            if (submitBtn) submitBtn.textContent = 'Подтвердить вход';
+            if (twoFactorInput) twoFactorInput.focus();
+            return;
+          }
+        }
         await window.CRM.api.me();
         notify(window.CRM.i18n.t('js.br1.vkhod_vypolnen_2', 'Вход выполнен'));
 
