@@ -2831,6 +2831,8 @@ MD;
             return $this->toolError('Tool name is required');
         }
 
+        $this->warnPromptInjection($name, $arguments);
+
         if (isset($this->ideaWorkflowTools()[$name])) {
             if (!$this->can('idea.manage') && !$this->can('task.manage')) {
                 return $this->toolError('Insufficient permission. Required: idea.manage or task.manage.');
@@ -12989,6 +12991,82 @@ private function isSensitiveOrInternalKey(string $key): bool
             'code' => -32601,
             'message' => 'Method not found: ' . $method,
         ];
+    }
+
+    /**
+     * Scan tool arguments for common prompt injection patterns and log suspicious requests.
+     * Tool descriptions already warn agents not to execute instructions found in user content.
+     * This logging provides an audit trail for security monitoring.
+     */
+    private function warnPromptInjection(string $toolName, array $arguments): void
+    {
+        $suspectPatterns = [
+            '/\bignore\s+(all\s+)?(previous|above|prior)\s+(instructions|commands|directives)/iu',
+            '/\b(forget|override|disregard|disobey)\s+(all\s+)?(previous|above|system|prior)/iu',
+            '/\byou\s+(are|must|should|will)\s+(now|act|behave|pretend)/iu',
+            '/\bnew\s+(system|role|persona|identity)\s*:/iu',
+            '/\bDAN\b|\bdo\s+anything\s+now\b/iu',
+        ];
+
+        if ($arguments === []) {
+            return;
+        }
+
+        $matched = [];
+        $flattened = $this->flattenArguments($arguments);
+
+        foreach ($flattened as $key => $value) {
+            if (!is_string($value)) {
+                continue;
+            }
+
+            foreach ($suspectPatterns as $pattern) {
+                if (preg_match($pattern, $value) === 1) {
+                    $matched[] = [
+                        'field' => $key,
+                        'pattern' => $pattern,
+                        'snippet' => mb_substr($value, 0, 200),
+                    ];
+                    break;
+                }
+            }
+        }
+
+        if ($matched !== []) {
+            try {
+                $logger = $this->container->get('logger');
+                $user = $this->actor();
+                $logger->security([
+                    'event_type' => 'MCP_PROMPT_INJECTION_SUSPECTED',
+                    'actor_public_id' => $user['public_id'] ?? null,
+                    'tool_name' => $toolName,
+                    'match_count' => count($matched),
+                    'matches' => $matched,
+                ]);
+            } catch (\Throwable) {
+                // Logging failure is non-blocking
+            }
+        }
+    }
+
+    /**
+     * Recursively flatten a nested array into key-value pairs for scanning.
+     * @return array<string,string>
+     */
+    private function flattenArguments(array $data, string $prefix = ''): array
+    {
+        $result = [];
+        foreach ($data as $key => $value) {
+            $fullKey = $prefix !== '' ? $prefix . '.' . $key : (string)$key;
+            if (is_array($value)) {
+                foreach ($this->flattenArguments($value, $fullKey) as $fk => $fv) {
+                    $result[$fk] = $fv;
+                }
+            } elseif (is_string($value) || is_int($value) || is_float($value)) {
+                $result[$fullKey] = (string)$value;
+            }
+        }
+        return $result;
     }
 
     private function errorPayload(mixed $id, int $code, string $message, array $data = []): array
