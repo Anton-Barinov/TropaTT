@@ -1,4 +1,7 @@
 # Security Audit — Fixes Specification
 
-> Файл очищен. Готов к новому аудиту.
+> Дата аудита: TBD
+> Версия проекта: TBD
+> Аудитор: AI Security Audit
 
+(Ready for fresh audit)
