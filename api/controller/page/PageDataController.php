@@ -25,7 +25,7 @@ final class PageDataController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . md5(json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $cacheKey = 'myDay:' . $this->cacheUserId() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $payload = $cache->remember('page', $cacheKey, 45, function () use ($actor, $date, $yesterday) {
                 return $this->buildMyDayPayload($actor, $date, $yesterday);
             });
@@ -53,7 +53,7 @@ final class PageDataController extends BaseController
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . md5(json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $cacheKey = 'myWeek:' . $this->cacheUserId() . ':' . hash('sha256', json_encode(['date' => $date], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $payload = $cache->remember('page', $cacheKey, 45, function () use ($actor, $date, $weekStart, $weekEnd, $yesterday) {
                 return $this->buildMyWeekPayload($actor, $date, $weekStart, $weekEnd, $yesterday);
             });

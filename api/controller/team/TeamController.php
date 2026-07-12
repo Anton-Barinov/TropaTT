@@ -21,7 +21,7 @@ final class TeamController extends BaseController
             $input = $this->request()->allInput();
             ksort($input);
             $userId = (string)($auth['user']['id'] ?? 0);
-            $cacheKey = 'list:' . $userId . ':' . md5(json_encode($input));
+            $cacheKey = 'list:' . $userId . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('team', $cacheKey, 60, function () use ($input, $auth) {
                 /** @var TeamService $service */
                 $service = $this->container->get('service.team');
