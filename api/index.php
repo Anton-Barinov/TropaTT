@@ -22,6 +22,8 @@ $blockedPatterns = [
     '#/tests/#' ,
     '#/vendor/#' ,
     '#/storage_test_runtime/#' ,
+    '#/storage_api/secrets/#' ,
+    '#\.json\.dist$#' ,
 ];
 foreach ($blockedPatterns as $pattern) {
     if (preg_match($pattern, $requestPath)) {
