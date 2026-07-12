@@ -711,6 +711,21 @@ final class App
     {
         $request = Request::capture((string)$this->config->get('default.locale.default', 'en-gb'));
 
+        // SEC-019: Explicit session cookie flags for shared hosting
+        // (php.ini may not be configurable on shared hosting)
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.cookie_samesite', 'Lax');
+        ini_set('session.use_strict_mode', 1);
+        ini_set('session.use_only_cookies', 1);
+        $https = strtolower((string)($request->server['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off' && $https !== '0') {
+            ini_set('session.cookie_secure', 1);
+        }
+        $forwardedProto = strtolower((string)$request->header('X-Forwarded-Proto', ''));
+        if ($forwardedProto === 'https') {
+            ini_set('session.cookie_secure', 1);
+        }
+
         $db = new ConnectionManager($this->config);
         $schema = new SchemaManager();
         $migrations = new MigrationManager($schema);
@@ -752,6 +767,7 @@ final class App
         header('X-Content-Type-Options: nosniff');
 header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         header('Referrer-Policy: strict-origin-when-cross-origin');
+header("Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), midi=(), sync-xhr=(), accelerometer=(), gyroscope=(), magnetometer=()");
         // SEC-006: Use relative URI for CSP report-uri to avoid host-dependency
         header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri /api/index.php?route=api/v1/telemetry/csp-report');
         // SEC-006: Neutral X-Powered-By to reduce information disclosure
