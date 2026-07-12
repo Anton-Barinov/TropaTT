@@ -21,7 +21,8 @@ final class InvitationService
         private readonly RoleRepository $roles,
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
-        private readonly JsonLogger $logger
+        private readonly JsonLogger $logger,
+        private readonly RateLimitService $rateLimiter
     ) {
     }
 
@@ -192,39 +193,10 @@ final class InvitationService
         return (int)($invitation['invited_by_user_id'] ?? 0) === (int)($actor['id'] ?? 0);
     }
 
-    private function rateLimitStorageDir(): string
-    {
-        $dir = dirname(__DIR__, 3) . '/../storage_api/cache/rate_limits';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0700, true);
-        }
-        return realpath($dir) ?: $dir;
-    }
-
     // ── File-based rate limit engine ──
     private function checkFileRateLimit(string $rateKey, string $prefix, bool $increment): array
     {
-        $maxAttempts = 20;
-        $windowSecs = 60;
-        $lockSecs = 300;
-        $now = time();
-        $file = $this->rateLimitStorageDir() . '/crm_' . $prefix . '_' . hash('sha256', $rateKey) . '.counter';
-        $fp = @fopen($file, 'c+');
-        if (!$fp) return ['blocked' => false, 'retry_after' => 0];
-        if (!flock($fp, LOCK_EX)) { fclose($fp); return ['blocked' => false, 'retry_after' => 0]; }
-        $raw = stream_get_contents($fp);
-        $data = ($raw !== false && $raw !== '') ? @json_decode($raw, true) : null;
-        if (!is_array($data)) $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
-        $data['count'] = (int)($data['count'] ?? 0);
-        $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
-        if ($data['blocked_until'] > $now) { flock($fp, LOCK_UN); fclose($fp); return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now]; }
-        if ($increment) {
-            if (($now - (int)($data['window_start'] ?? 0)) > $windowSecs) $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
-            else { $data['count']++; if ($data['count'] >= $maxAttempts) $data['blocked_until'] = $now + $lockSecs; }
-            ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
-        }
-        flock($fp, LOCK_UN); fclose($fp);
-        return $data['blocked_until'] > $now ? ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now] : ['blocked' => false, 'retry_after' => 0];
+        return $this->rateLimiter->check($prefix, $rateKey, 20, 60, 300, $increment);
     }
 
     /** @param array<string,mixed> $invitation */
