@@ -123,8 +123,13 @@ final class PasswordResetService
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
 
+        $newPassword = (string)($input['new_password'] ?? '');
+        if (mb_strlen($newPassword) < 8) {
+            return ['ok' => false, 'code' => 'PASSWORD_RESET_WEAK_PASSWORD'];
+        }
+
         $this->userManagement->updateByPublicId((string)$user['public_id'], [
-            'password_hash' => $this->hasher->hash((string)$input['new_password']),
+            'password_hash' => $this->hasher->hash($newPassword),
             'updated_at' => gmdate('Y-m-d H:i:s'),
         ]);
         $this->tokensRepository->markUsed((string)$tokenRow['public_id'], gmdate('Y-m-d H:i:s'));
