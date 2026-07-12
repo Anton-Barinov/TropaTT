@@ -60,9 +60,18 @@ final class TwoFactorService
             return ['ok' => false, 'code' => 'TWO_FACTOR_ALREADY_ENABLED'];
         }
 
+        // A second factor must never be persisted in plaintext. Shared hosting
+        // still supports this through APP_KEY; if it is absent, fail safely.
+        if ($this->getEncryptionKey() === '' || !function_exists('openssl_encrypt')) {
+            return ['ok' => false, 'code' => 'TWO_FACTOR_ENCRYPTION_UNAVAILABLE'];
+        }
+
         // Generate a TOTP-compatible secret (160-bit random, base32 encoded)
         $secret = $this->generateTotpSecret();
         $encryptedSecret = $this->encryptSecret($secret);
+        if ($encryptedSecret === '') {
+            return ['ok' => false, 'code' => 'TWO_FACTOR_ENCRYPTION_UNAVAILABLE'];
+        }
         $backupCodesPlain = $this->generateBackupCodes(8);
         $backupCodesHashed = array_map([$this->hasher, 'hash'], $backupCodesPlain);
         $now = gmdate('Y-m-d H:i:s');
@@ -293,11 +302,6 @@ final class TwoFactorService
     private function encryptSecret(string $plaintext): string
     {
         $key = $this->getEncryptionKey();
-        if ($key === '') {
-            // Fallback: store as-is (dev mode with no APP_KEY)
-            return 'nocrypt:' . $plaintext;
-        }
-
         $iv = random_bytes(12); // 96-bit IV for GCM
         $tag = '';
 
@@ -313,7 +317,7 @@ final class TwoFactorService
         );
 
         if ($ciphertext === false) {
-            return 'nocrypt:' . $plaintext;
+            return '';
         }
 
         // Store as: base64(iv + tag + ciphertext)
@@ -328,11 +332,6 @@ final class TwoFactorService
         // Handle legacy SHA256-hashed secrets (cannot decrypt)
         if (strlen($encrypted) === 64 && ctype_xdigit($encrypted)) {
             return '';
-        }
-
-        // Handle fallback plaintext storage
-        if (str_starts_with($encrypted, 'nocrypt:')) {
-            return substr($encrypted, 8);
         }
 
         $key = $this->getEncryptionKey();

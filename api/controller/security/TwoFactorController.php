@@ -6,6 +6,7 @@ namespace Api\Controller\Security;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Config;
 use Api\System\Library\Service\AuthService;
+use Api\System\Library\Service\RateLimitService;
 use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Validation\Validator;
 use RuntimeException;
@@ -52,6 +53,7 @@ final class TwoFactorController extends BaseController
                 'INVALID_CURRENT_PASSWORD' => 422,
                 'USER_NOT_FOUND' => 404,
                 'TWO_FACTOR_ALREADY_ENABLED' => 409,
+                'TWO_FACTOR_ENCRYPTION_UNAVAILABLE' => 503,
                 default => 400,
             };
 
@@ -126,6 +128,18 @@ final class TwoFactorController extends BaseController
             ]);
         }
 
+        /** @var RateLimitService $rateLimiter */
+        $rateLimiter = $this->container->get('service.rate_limit');
+        $rateKey = hash('sha256', $loginToken);
+        $rateState = $rateLimiter->check('two_factor_verify', $rateKey, 5, 300, 300);
+        if ($rateState['blocked'] === true) {
+            return $this->error('TWO_FACTOR_RATE_LIMITED', $this->t('auth/messages.rate_limited'), 429, [
+                'two_factor' => [$this->t('auth/messages.rate_limited')],
+            ], [
+                'retry_after' => max(1, (int)($rateState['retry_after'] ?? 1)),
+            ]);
+        }
+
         /** @var TwoFactorService $service */
         $service = $this->container->get('service.two_factor');
 
@@ -141,6 +155,8 @@ final class TwoFactorController extends BaseController
                 'two_factor' => [$errorCode],
             ]);
         }
+
+        $rateLimiter->clear('two_factor_verify', $rateKey);
 
         // Complete the login — issue session and CSRF tokens
         $issuedToken = $authService->completeTwoFactorLogin($loginToken, $this->request()->ip(), $this->request()->userAgent());
