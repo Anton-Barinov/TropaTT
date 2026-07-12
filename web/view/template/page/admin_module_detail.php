@@ -38,7 +38,7 @@
 
 <script>
 (function () {
-    var name = '<?= $moduleName ?>';
+    var name = '<?= e($moduleName) ?>';
     if (!name) { document.getElementById('moduleTitle').textContent = window.CRM.i18n.t('admin_module_detail.module_not_specified', 'Модуль не указан'); return; }
 
     function load() {

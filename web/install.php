@@ -634,9 +634,15 @@ function t(string $key): string
     return $L[$lang][$key] ?? $L['en'][$key] ?? $key;
 }
 
-function e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+// SEC-011: Guard e() with function_exists so it coexists with the global
+// web/helpers.php version (which is loaded only outside the installer flow,
+// but a defensive guard is cheap and prevents a future refactor from
+// introducing a "Cannot redeclare e()" fatal).
+if (!function_exists('e')) {
+    function e(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
 }
 
 function csrfField(): string

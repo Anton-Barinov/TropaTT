@@ -60,6 +60,12 @@ if ($scriptFile !== 'install.php' && !$hasConfig) {
     exit;
 }
 
+// SEC-011: Load global template helpers (e() html-escape) before any controller
+// or template runs, so plain <?php open tags in templates can call e($x) without
+// pulling in the class autoloader. The function_exists() guard inside the
+// helpers file is idempotent.
+require_once $baseDir . '/system/Core/helpers.php';
+
 spl_autoload_register(static function (string $class) use ($baseDir): void {
     $prefixes = [
         'Web\\System\\' => $baseDir . '/system/',
