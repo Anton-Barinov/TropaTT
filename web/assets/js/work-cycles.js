@@ -27,6 +27,21 @@
     return a.request(path, opts || {});
   }
 
+  function showCycleFeedback(message, type) {
+    var toast = document.getElementById('toastSuccess');
+    if (!toast || !window.bootstrap) {
+      return;
+    }
+
+    toast.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning');
+    toast.classList.add(type === 'error' ? 'text-bg-danger' : type === 'warning' ? 'text-bg-warning' : 'text-bg-success');
+    var body = toast.querySelector('.toast-body');
+    if (body) {
+      body.textContent = String(message || '');
+    }
+    window.bootstrap.Toast.getOrCreateInstance(toast).show();
+  }
+
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (ch) {
       var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -411,21 +426,21 @@
     if (!confirm(t('cycles.confirm_start', 'Запустить этот цикл?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/start', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert(t('cycles.error_start', 'Ошибка запуска цикла.')); });
+      .catch(function () { showCycleFeedback(t('cycles.error_start', 'Ошибка запуска цикла.'), 'error'); });
   };
 
   window.reopenCycle = function (publicId) {
     if (!confirm(t('cycles.confirm_reopen', 'Открыть этот цикл заново?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/reopen', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert(t('cycles.error_reopen', 'Ошибка открытия цикла.')); });
+      .catch(function () { showCycleFeedback(t('cycles.error_reopen', 'Ошибка открытия цикла.'), 'error'); });
   };
 
   window.archiveCycle = function (publicId) {
     if (!confirm(t('cycles.confirm_archive', 'Архивировать этот цикл? Задачи не будут удалены.'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/archive', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
-      .catch(function () { alert(t('cycles.error_archive', 'Ошибка архивирования.')); });
+      .catch(function () { showCycleFeedback(t('cycles.error_archive', 'Ошибка архивирования.'), 'error'); });
   };
 
   // ====== Complete Cycle ======
@@ -467,7 +482,7 @@
     if (action === 'move') {
       data.target_cycle_public_id = document.getElementById('completeTargetCycle').value;
       if (!data.target_cycle_public_id) {
-        alert(t('cycles.select_target_cycle', 'Выберите целевой цикл.'));
+        showCycleFeedback(t('cycles.select_target_cycle', 'Выберите целевой цикл.'), 'warning');
         return;
       }
     }
@@ -481,7 +496,7 @@
       })
       .catch(function () {
         document.getElementById('completeCycleConfirmBtn').disabled = false;
-        alert(t('cycles.error_complete', 'Ошибка завершения цикла.'));
+        showCycleFeedback(t('cycles.error_complete', 'Ошибка завершения цикла.'), 'error');
       });
   };
 
@@ -727,7 +742,7 @@
 
   window.confirmAddTasks = function () {
     var ids = Object.keys(selectedTasks);
-    if (!ids.length) { alert(t('cycles.select_tasks', 'Выберите задачи.')); return; }
+    if (!ids.length) { showCycleFeedback(t('cycles.select_tasks', 'Выберите задачи.'), 'warning'); return; }
 
     document.getElementById('addTasksConfirmBtn').disabled = true;
     document.getElementById('addTasksConfirmBtn').textContent = t('cycles.adding_tasks', 'Добавляем...');
@@ -745,7 +760,7 @@
       .catch(function (err) {
         document.getElementById('addTasksConfirmBtn').disabled = false;
         document.getElementById('addTasksConfirmBtn').textContent = t('cycles.btn_add_selected', 'Добавить выбранные') + ' (' + ids.length + ')';
-        alert(t('cycles.error_add_tasks', 'Ошибка добавления:') + ' ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')));
+        showCycleFeedback(t('cycles.error_add_tasks', 'Ошибка добавления:') + ' ' + (err && err.message || t('cycles.unknown_error', 'неизвестная ошибка')), 'error');
       });
   };
 
@@ -753,7 +768,7 @@
     if (!confirm(t('cycles.confirm_remove_task', 'Удалить задачу из цикла?'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(cyclePublicId) + '/tasks/' + encodeURIComponent(taskPublicId), { method: 'DELETE' })
       .then(function () { loadCycleTasks(cyclePublicId); })
-      .catch(function () { alert(t('cycles.error_remove_task', 'Ошибка удаления задачи из цикла.')); });
+      .catch(function () { showCycleFeedback(t('cycles.error_remove_task', 'Ошибка удаления задачи из цикла.'), 'error'); });
   };
 
   // ====== Select Loaders ======
