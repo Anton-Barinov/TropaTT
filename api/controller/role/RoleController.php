@@ -71,9 +71,11 @@ final class RoleController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        $input = $this->validatedInput(['title', 'code']);
+
         /** @var RoleService $service */
         $service = $this->container->get('service.role');
-        $result = $service->update((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        $result = $service->update((string)$params['public_id'], $input, $auth['user']);
 
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['ROLE_NOT_FOUND'], true) ? 404 : 403;
