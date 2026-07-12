@@ -2,17 +2,24 @@
 
 > Ready for new analysis. Clear for next audit cycle.
 
-## nginx Advisory
+---
 
-Both remaining findings (SEC-001, SEC-002) require nginx config changes on the demo server:
+## Неисправленные находки (требуют nginx config)
+
+| SEC | Severity | Проблема | Причина |
+|-----|----------|----------|---------|
+| SEC-001 | Low | composer.json HTTP 200 | ⚠️ Не исправлено — требует nginx config (deny all) на сервере |
+| SEC-002 | Low | Demo API HTTP 302 | ⚠️ Не исправлено — требует nginx config (API routing через api/index.php) |
+
+### nginx config для применения на сервере:
 
 ```nginx
-# Block composer.json/composer.lock
+# Блокировка composer.json/composer.lock
 location ~* ^/(api/)?(composer\.(json|lock)|\.\..*)$ {
     deny all;
 }
 
-# Route API through PHP
+# Маршрутизация API через PHP
 location /api/ {
     try_files $uri /api/index.php?$query_string;
 }
