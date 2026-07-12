@@ -2799,6 +2799,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
     if (!csrfCheck()) {
         $errors[] = 'CSRF validation failed. Please refresh the page and try again.';
     } else {
+        session_regenerate_id(true);
         $step = (int)($_POST['step'] ?? 1);
 
         if ($step === 1) {

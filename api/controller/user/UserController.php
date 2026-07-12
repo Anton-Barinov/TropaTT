@@ -65,7 +65,7 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->request()->allInput();
+        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids']);
         $v = new Validator();
         $v->require($input, 'login', $this->t('common/messages.field_required'))
             ->require($input, 'password', $this->t('common/messages.field_required'))
@@ -93,9 +93,11 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids']);
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $result = $service->update((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        $result = $service->update((string)$params['public_id'], $input, $auth['user']);
 
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;

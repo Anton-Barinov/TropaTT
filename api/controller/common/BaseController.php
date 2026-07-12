@@ -171,7 +171,11 @@ abstract class BaseController
     {
         $ip = $this->request()->ip();
         $now = time();
-        $file = sys_get_temp_dir() . '/crm_rl_' . $prefix . '_' . hash('sha256', $ip) . '.counter';
+        $dir = dirname(__DIR__, 3) . '/storage_api/cache/rate_limits';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $file = $dir . '/crm_rl_' . $prefix . '_' . hash('sha256', $ip) . '.counter';
 
         $fp = @fopen($file, 'c+');
         if (!$fp) {
