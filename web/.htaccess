@@ -3,6 +3,11 @@
     Require all denied
 </FilesMatch>
 
+# SEC-032: Block direct access to composer.json and composer.lock
+<FilesMatch "composer\.(json|lock)$">
+    Require all denied
+</FilesMatch>
+
 RewriteEngine On
 
 <IfModule mod_expires.c>
