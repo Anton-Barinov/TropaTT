@@ -1,0 +1,76 @@
+{
+    "schema_version": 1,
+    "product": "tropatt-core",
+    "channel": "stable",
+    "core_version": "0.1.0",
+    "from_build": "c6f936cf5ff461a74e46dc93f5d4850584f6b895",
+    "to_build": "20260618.003",
+    "from_sha": "c6f936cf5ff461a74e46dc93f5d4850584f6b895",
+    "to_sha": "130f73621035ba3009c2db5cddd130665e45be23",
+    "short_sha": "130f736",
+    "created_at": "2026-06-18T09:52:14+00:00",
+    "requirements": {
+        "php": ">=8.1",
+        "mysql": ">=5.7",
+        "updater": ">=1.0.0",
+        "min_core_build": null
+    },
+    "package": {
+        "type": "delta",
+        "url": "https://update.crm.ru/packages/delta/tropatt-core-c6f936cf5ff461a74e46dc93f5d4850584f6b895--20260618.003.zip",
+        "size_bytes": 245708,
+        "sha256": "cce67f53790eed321d53edcf52e2b7db88cedb98fa0b20cb234bcb7ba52111b5",
+        "signature": "jyKMTb7bMPnYh0WuFTX1sIfydoXOcEnTY3y6LJgadCdUKG7jwfTwR4gva9YAo0Q8J0t2kVpx0I+0X0khBAWaPeannTgNffiQhRexX4VvGX0AyGrQufJdGYWyipeBqW4wlETqmPToI1vWiIDELl4GgzYnrWLMe28mO5rf4moAkKduO0KkjEgcfqjdSgB/Z/nVmO+Jvka4sW2CoonsOC5e1+n+a+5K6clQ/lEH/ll6PZ6pMJAHQgi0qhFGDitIxrVdl8cb0rXr292be6k96UwIAcu5Gx64tu78paH2QiNoYIL6jAt7fVNZ2PvxmHpBxaIe4+G21pLAXi3VUjC7B1MIjA=="
+    },
+    "files": {
+        "add": [],
+        "modify": [
+            "web/assets/js/page-api-bindings.js"
+        ],
+        "delete": [],
+        "rename": []
+    },
+    "file_hashes": {
+        "web/assets/js/page-api-bindings.js": {
+            "sha256": "88237c022951f087ff4cc8178153164e58797d3f02bc873bedf94279c1f2d81f",
+            "size": 1387238
+        }
+    },
+    "excluded_files": [],
+    "protected_paths": [
+        "modules/**",
+        "storage/**",
+        "storage_api/**",
+        ".env",
+        ".env.local",
+        "api/.env",
+        "api/.env.local",
+        "api/config/*.local.php",
+        "web/config/*.local.php",
+        "updater/**"
+    ],
+    "migrations": [],
+    "summary": {
+        "commits": 0,
+        "files_added": 0,
+        "files_modified": 1,
+        "files_deleted": 0,
+        "files_renamed": 0,
+        "has_migrations": false,
+        "risk_level": "low",
+        "module_files_touched_in_repo": 0,
+        "module_files_included_in_package": 0
+    },
+    "changes": {
+        "added": [],
+        "changed": [],
+        "fixed": [],
+        "security": [],
+        "database": [],
+        "docs": [],
+        "breaking": [],
+        "internal": []
+    },
+    "commits": [],
+    "manifest_signature": "ofTxxfKAj1NZzrKZe6TyJemu+hl/FvSjRkXeUEzTyoC07UILq4gbWVODJPU8VjRBkAPyWMgEhzZbQ8YnLBbiOxXklgm7IiOnAIorFCHXUsoug6O9A27HBfFsT+GpvPWsMXxGHPPesNxtFrLSXvJybqM8YhnbudHi8ZTNek7OASadV3JcyVDJwIY1IW47+M/M6giLpQ/Q7jByt/6o6pgbBYWMdQchm9dap1qkIRC6JCV35UvoLCteJ2YQq/enmLyQGtmXJcoYvUvcBENwASgg1HRSEJTkFLft2+Qs/8fGPKfctrqFVffOKGufecnd1xRk7EVp/XMvUclAG45wFuWS5A=="
+}

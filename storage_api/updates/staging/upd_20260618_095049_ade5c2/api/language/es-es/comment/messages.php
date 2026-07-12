@@ -1,0 +1,20 @@
+<?php
+return [
+    'updated' => 'Comentario actualizado',
+    'deleted' => 'Comentario eliminado',
+    'not_found' => 'Comentario no encontrado',
+    'invalid_visibility' => 'Modo de visibilidad inválido',
+    'max_8000' => 'Máximo 8000 caracteres',
+    'mention_list' => 'Lista de menciones',
+    'mention_added' => 'Mención agregada',
+    'mention_deleted' => 'Mención eliminada',
+    'mention_not_found' => 'Mención no encontrada',
+    'mentioned_user_required' => 'Especifique el usuario a mencionar',
+    'mentioned_user_not_found' => 'Usuario no encontrado',
+    'mention_entity_required' => 'El public_id de la entidad es obligatorio',
+    'mention_entity_type_invalid' => 'Tipo de entidad inválido',
+    'draft_detail' => 'Borrador de comentario',
+    'draft_saved' => 'Borrador de comentario guardado',
+    'draft_deleted' => 'Borrador de comentario eliminado',
+    'draft_body_required' => 'El cuerpo del borrador es obligatorio',
+];

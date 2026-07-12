@@ -1,0 +1,22 @@
+<?php
+return [
+    'not_found' => 'Модуль не найден',
+    'validation_failed' => 'Ошибка валидации модуля',
+    'already_installed' => 'Модуль уже установлен',
+    'migration_failed' => 'Ошибка миграции',
+    'not_installed' => 'Модуль не установлен',
+    'manifest_not_found' => 'Манифест модуля не найден',
+    'core_incompatible' => 'Модуль требует версию ядра',
+    'installed' => 'Модуль успешно установлен',
+    'activated' => 'Модуль успешно активирован',
+    'deactivated' => 'Модуль успешно деактивирован',
+    'removed' => 'Модуль успешно удалён',
+    'installed_from_url' => 'Модуль установлен из URL',
+    'installed_from_file' => 'Модуль установлен из файла',
+    'config_updated' => 'Конфигурация обновлена',
+    'errors_cleared' => 'Ошибки очищены',
+    'url_required' => 'Необходим URL',
+    'file_data_required' => 'Необходимы данные файла',
+    'invalid_base64' => 'Некорректные данные base64',
+    'name_required' => 'Необходимо имя модуля',
+];

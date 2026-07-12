@@ -1,0 +1,20 @@
+<?php
+return [
+    'updated' => 'Комментарий обновлен',
+    'deleted' => 'Комментарий удален',
+    'not_found' => 'Комментарий не найден',
+    'invalid_visibility' => 'Недопустимый режим видимости',
+    'max_8000' => 'Максимум 8000 символов',
+    'mention_list' => 'Список упоминаний',
+    'mention_added' => 'Упоминание добавлено',
+    'mention_deleted' => 'Упоминание удалено',
+    'mention_not_found' => 'Упоминание не найдено',
+    'mentioned_user_required' => 'Укажите пользователя для упоминания',
+    'mentioned_user_not_found' => 'Пользователь не найден',
+    'mention_entity_required' => 'public_id сущности обязателен',
+    'mention_entity_type_invalid' => 'Недопустимый тип сущности',
+    'draft_detail' => 'Черновик комментария',
+    'draft_saved' => 'Черновик сохранен',
+    'draft_deleted' => 'Черновик удален',
+    'draft_body_required' => 'Текст черновика обязателен',
+];

@@ -1,0 +1,13 @@
+{
+    "backup_id": "backup_upd_20260618_095906_728eda_20260618_100209",
+    "job_id": "upd_20260618_095906_728eda",
+    "created_at": "2026-06-18T10:02:09+00:00",
+    "items": [
+        {
+            "path": "web/assets/js/page-api-bindings.js",
+            "existed": true,
+            "sha256": "88237c022951f087ff4cc8178153164e58797d3f02bc873bedf94279c1f2d81f",
+            "size_bytes": 1387238
+        }
+    ]
+}

@@ -1,0 +1,35 @@
+{
+  "product": "tropatt-core",
+  "channel": "stable",
+  "update_center_url": "https://update.crm.ru",
+  "public_key": "/updater/keys/update_public.pem",
+  "core_paths": [
+    "api",
+    "web",
+    "index.php",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "protected_paths": [
+    "modules",
+    "storage",
+    "storage_api",
+    "uploads",
+    "backups",
+    "logs",
+    "cache",
+    "updater",
+    ".env",
+    ".env.local",
+    "api/.env",
+    "api/.env.local",
+    "api/config/*.local.php",
+    "web/config/*.local.php"
+  ],
+  "archive_policy": {
+    "generated_by": "update.crm.ru cron/build job",
+    "generated_on_request": false,
+    "crm_downloads_prebuilt_archive": true
+  }
+}

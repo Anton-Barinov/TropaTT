@@ -1,0 +1,30 @@
+{
+  "name": "crm-ru/api",
+  "description": "CRM API script-runner tooling manifest",
+  "type": "project",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Api\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test:fast": "php scripts/test_runner.php fast",
+    "test:modules": "php scripts/test_runner.php all",
+    "test:sticky": "php scripts/test_runner.php sticky",
+    "test:project-modules": "php scripts/test_runner.php modules",
+    "test:unit": "php scripts/test_runner.php unit",
+    "test:integration": "php scripts/test_runner.php integration",
+    "test:contract": "php scripts/test_runner.php contract",
+    "test:openapi": "php scripts/test_runner.php openapi",
+    "test:e2e-web": "php scripts/test_runner.php e2e-web",
+    "test:live": "php scripts/test_runner.php live",
+    "test:full": "php scripts/test_runner.php full",
+    "check:coverage": "php scripts/api_coverage_check.php",
+    "check:web-xss": "php scripts/web_xss_static_check.php"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

@@ -1,0 +1,20 @@
+{
+    "ok": true,
+    "checks": {
+        "api_index_syntax": {
+            "ok": true,
+            "exit_code": 0,
+            "output": "No syntax errors detected in /Users/bps/sites/crm.ru/api/index.php"
+        },
+        "web_index_syntax": {
+            "ok": true,
+            "exit_code": 0,
+            "output": "No syntax errors detected in /Users/bps/sites/crm.ru/web/index.php"
+        },
+        "root_index_syntax": {
+            "ok": true,
+            "exit_code": 0,
+            "output": "No syntax errors detected in /Users/bps/sites/crm.ru/index.php"
+        }
+    }
+}

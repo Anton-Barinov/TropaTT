@@ -1,0 +1,46 @@
+{
+    "ok": true,
+    "dry_run": true,
+    "current_build": "0",
+    "target_build": "20260618.003",
+    "package": {
+        "type": "full",
+        "url": "https://update.crm.ru/packages/full/tropatt-core-20260618.003.zip",
+        "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/full/20260618.003",
+        "size_bytes": 2961033,
+        "sha256": "47b5e106f02fd557afac22739600b92e76254db81bf1089b1fdc001e45a2abf7",
+        "signature": "H4v7h4VESnuLMueapbob0c9hxRrb/ZY1zKdtKCMWrCXUpzIwrZysNZd9Zfp0JLCdpsjaCMdKYBULrVCVBMfJtatRMxZdPWq3W60/Edj3ij/5PJWExoxw4o2yxrnBUw//vE0Sp3DJmV0S9xbmFaCnFLagqvqnL6p2W2qxEEI3ydJGbmfdjBMWBtfoPTUNlZYQioOLlUCjQr7XeL6cjk4WvCbn5TVWcAjbOoGvu1FpBffjptoMdCigKAFZnt6mRrpvjEIxEYwxypQX8F351ecweaTuAZyoIB+v7HgXUMcgXeP8Y9ljkYxqdCOpFzoQlIPQhvEO8C3aD7aBWt/NDjaxaw=="
+    },
+    "checks": {
+        "update_center": true,
+        "manifest_signature": true,
+        "package_signature": true,
+        "package_url_accessible": true,
+        "package_content_length": true,
+        "package_size_limit": true,
+        "zip_extension": true,
+        "openssl_extension": true,
+        "storage_writable": true,
+        "api_writable": true,
+        "web_writable": true,
+        "no_forbidden_paths": true,
+        "free_space": true,
+        "no_active_lock": true
+    },
+    "package_head": {
+        "status": 200,
+        "content_length": 2961033,
+        "content_type": "application/zip"
+    },
+    "manifest_report": {
+        "schema_version": true,
+        "product": true,
+        "manifest_signature": true,
+        "package_sha": true,
+        "package_signature": true,
+        "no_forbidden_paths": true,
+        "forbidden_paths": [],
+        "file_count": 1609
+    },
+    "modules_note": "modules/** are excluded from core updates and will not be changed."
+}

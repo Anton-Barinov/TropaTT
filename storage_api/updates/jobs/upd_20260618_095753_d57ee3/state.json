@@ -1,0 +1,48 @@
+{
+    "state": "preflight_passed",
+    "can_resume": true,
+    "can_rollback": false,
+    "job_id": "upd_20260618_095753_d57ee3",
+    "updated_at": "2026-06-18T09:57:53+00:00",
+    "started_at": "2026-06-18T09:57:53+00:00",
+    "plan": {
+        "update_available": true,
+        "product": "tropatt-core",
+        "channel": "stable",
+        "current_build": "0",
+        "target_build": "20260618.003",
+        "current_sha": null,
+        "target_sha": "130f73621035ba3009c2db5cddd130665e45be23",
+        "recommended_package": {
+            "type": "full",
+            "url": "https://update.crm.ru/packages/full/tropatt-core-20260618.003.zip",
+            "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/full/20260618.003",
+            "size_bytes": 2961033,
+            "sha256": "47b5e106f02fd557afac22739600b92e76254db81bf1089b1fdc001e45a2abf7",
+            "signature": "H4v7h4VESnuLMueapbob0c9hxRrb/ZY1zKdtKCMWrCXUpzIwrZysNZd9Zfp0JLCdpsjaCMdKYBULrVCVBMfJtatRMxZdPWq3W60/Edj3ij/5PJWExoxw4o2yxrnBUw//vE0Sp3DJmV0S9xbmFaCnFLagqvqnL6p2W2qxEEI3ydJGbmfdjBMWBtfoPTUNlZYQioOLlUCjQr7XeL6cjk4WvCbn5TVWcAjbOoGvu1FpBffjptoMdCigKAFZnt6mRrpvjEIxEYwxypQX8F351ecweaTuAZyoIB+v7HgXUMcgXeP8Y9ljkYxqdCOpFzoQlIPQhvEO8C3aD7aBWt/NDjaxaw=="
+        },
+        "fallback_package": {
+            "type": "full",
+            "url": "https://update.crm.ru/packages/full/tropatt-core-20260618.003.zip",
+            "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/full/20260618.003",
+            "size_bytes": 2961033,
+            "sha256": "47b5e106f02fd557afac22739600b92e76254db81bf1089b1fdc001e45a2abf7",
+            "signature": "H4v7h4VESnuLMueapbob0c9hxRrb/ZY1zKdtKCMWrCXUpzIwrZysNZd9Zfp0JLCdpsjaCMdKYBULrVCVBMfJtatRMxZdPWq3W60/Edj3ij/5PJWExoxw4o2yxrnBUw//vE0Sp3DJmV0S9xbmFaCnFLagqvqnL6p2W2qxEEI3ydJGbmfdjBMWBtfoPTUNlZYQioOLlUCjQr7XeL6cjk4WvCbn5TVWcAjbOoGvu1FpBffjptoMdCigKAFZnt6mRrpvjEIxEYwxypQX8F351ecweaTuAZyoIB+v7HgXUMcgXeP8Y9ljkYxqdCOpFzoQlIPQhvEO8C3aD7aBWt/NDjaxaw=="
+        },
+        "summary": {
+            "commits": 1,
+            "api_files": 0,
+            "web_files": 1,
+            "root_files": 0,
+            "migration_files": 0,
+            "module_files_touched_in_repo": 0,
+            "module_files_included_in_package": 0,
+            "risk_level": "low"
+        },
+        "requires": {
+            "backup": true,
+            "maintenance": true,
+            "db_migration": false
+        }
+    }
+}

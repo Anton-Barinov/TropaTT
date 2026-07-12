@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+
+return [
+    'board' => '任务看板',
+    'invalid_cursor' => '游标格式无效',
+    'list' => '任务列表',
+    'max_255' => '最多 255 个字符',
+    'max_8000' => '最多 8000 个字符',
+    'invalid_status' => '状态无效',
+    'invalid_priority' => '优先级无效',
+    'created' => '任务创建成功',
+    'detail' => '任务详情',
+    'row_version_conflict' => '行版本冲突',
+    'updated' => '任务已更新',
+    'identity_edit_forbidden' => '执行者无法修改任务名称和描述',
+    'deleted' => '任务已删除',
+    'comment_list' => '任务评论',
+    'comment_created' => '评论已添加',
+    'task_ids_required' => 'task_public_ids 列表为必填项',
+    'changes_required' => '请至少提供一项更改',
+    'assignee_not_found' => '执行者未找到或已停用',
+    'bulk_updated' => '批量更新任务完成',
+    'to_status_required' => '请提供 to_status 或 to_status_public_id',
+    'moved' => '任务卡片已移动',
+    'status_new' => '新建',
+    'status_in_progress' => '进行中',
+    'status_blocked' => '已阻塞',
+    'status_done' => '已完成',
+    'unassigned' => '未分配',
+    'no_project' => '无项目',
+    'all_tasks' => '所有任务',
+];

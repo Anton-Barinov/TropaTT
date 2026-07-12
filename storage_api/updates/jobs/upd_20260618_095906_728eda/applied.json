@@ -1,0 +1,10 @@
+{
+    "count": 1,
+    "files": [
+        {
+            "path": "web/assets/js/page-api-bindings.js",
+            "action": "write",
+            "sha256": "88237c022951f087ff4cc8178153164e58797d3f02bc873bedf94279c1f2d81f"
+        }
+    ]
+}

@@ -1,0 +1,46 @@
+{
+    "ok": true,
+    "dry_run": true,
+    "current_build": "20260618.002",
+    "target_build": "20260618.003",
+    "package": {
+        "type": "delta",
+        "url": "https://update.crm.ru/packages/delta/tropatt-core-c6f936cf5ff461a74e46dc93f5d4850584f6b895--20260618.003.zip",
+        "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/c6f936cf5ff461a74e46dc93f5d4850584f6b895/20260618.003",
+        "size_bytes": 245708,
+        "sha256": "cce67f53790eed321d53edcf52e2b7db88cedb98fa0b20cb234bcb7ba52111b5",
+        "signature": "jyKMTb7bMPnYh0WuFTX1sIfydoXOcEnTY3y6LJgadCdUKG7jwfTwR4gva9YAo0Q8J0t2kVpx0I+0X0khBAWaPeannTgNffiQhRexX4VvGX0AyGrQufJdGYWyipeBqW4wlETqmPToI1vWiIDELl4GgzYnrWLMe28mO5rf4moAkKduO0KkjEgcfqjdSgB/Z/nVmO+Jvka4sW2CoonsOC5e1+n+a+5K6clQ/lEH/ll6PZ6pMJAHQgi0qhFGDitIxrVdl8cb0rXr292be6k96UwIAcu5Gx64tu78paH2QiNoYIL6jAt7fVNZ2PvxmHpBxaIe4+G21pLAXi3VUjC7B1MIjA=="
+    },
+    "checks": {
+        "update_center": true,
+        "manifest_signature": true,
+        "package_signature": true,
+        "package_url_accessible": true,
+        "package_content_length": true,
+        "package_size_limit": true,
+        "zip_extension": true,
+        "openssl_extension": true,
+        "storage_writable": true,
+        "api_writable": true,
+        "web_writable": true,
+        "no_forbidden_paths": true,
+        "free_space": true,
+        "no_active_lock": true
+    },
+    "package_head": {
+        "status": 200,
+        "content_length": 245708,
+        "content_type": "application/zip"
+    },
+    "manifest_report": {
+        "schema_version": true,
+        "product": true,
+        "manifest_signature": true,
+        "package_sha": true,
+        "package_signature": true,
+        "no_forbidden_paths": true,
+        "forbidden_paths": [],
+        "file_count": 1
+    },
+    "modules_note": "modules/** are excluded from core updates and will not be changed."
+}

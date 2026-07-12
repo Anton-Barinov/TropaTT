@@ -1,0 +1,10 @@
+{
+    "state": "installed",
+    "product": "tropatt-core",
+    "core_version": "0.1.0",
+    "core_build": "20260618.003",
+    "source_sha": "130f73621035ba3009c2db5cddd130665e45be23",
+    "short_sha": "130f736",
+    "last_job_id": "upd_20260618_095906_728eda",
+    "updated_at": "2026-06-18T10:03:37+00:00"
+}

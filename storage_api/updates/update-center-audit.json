@@ -1,0 +1,30 @@
+{
+    "checked_at": "2026-06-18T09:53:01+00:00",
+    "update_center_url": "https://update.crm.ru",
+    "health_ok": true,
+    "product_ok": true,
+    "stable_channel_ok": true,
+    "update_plan_ok": true,
+    "manifest_ok": true,
+    "package_ok": true,
+    "cron_checked": true,
+    "detected_endpoints": {
+        "health": "/api/v1/health",
+        "product": "/api/v1/products/{product}",
+        "stable_channel": "/api/v1/products/{product}/channels/{channel}",
+        "update_plan": "/api/v1/products/{product}/update-plan",
+        "changes": "/api/v1/products/{product}/changes",
+        "manifest_delta": "/api/v1/manifests/{product}/{from}/{to}",
+        "manifest_full": "/api/v1/manifests/{product}/full/{to}",
+        "public_key": "/api/v1/products/{product}/public-key",
+        "package_full": "/packages/full/{file}",
+        "package_delta": "/packages/delta/{file}"
+    },
+    "latest_plan": {
+        "target_build": "20260618.003",
+        "recommended_package_type": "full",
+        "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/full/20260618.003",
+        "package_url": "https://update.crm.ru/packages/full/tropatt-core-20260618.003.zip"
+    },
+    "notes": []
+}

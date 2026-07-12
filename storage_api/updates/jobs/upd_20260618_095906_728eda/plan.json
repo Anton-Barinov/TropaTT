@@ -1,0 +1,40 @@
+{
+    "update_available": true,
+    "product": "tropatt-core",
+    "channel": "stable",
+    "current_build": "20260618.002",
+    "target_build": "20260618.003",
+    "current_sha": "c6f936cf5ff461a74e46dc93f5d4850584f6b895",
+    "target_sha": "130f73621035ba3009c2db5cddd130665e45be23",
+    "recommended_package": {
+        "type": "delta",
+        "url": "https://update.crm.ru/packages/delta/tropatt-core-c6f936cf5ff461a74e46dc93f5d4850584f6b895--20260618.003.zip",
+        "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/c6f936cf5ff461a74e46dc93f5d4850584f6b895/20260618.003",
+        "size_bytes": 245708,
+        "sha256": "cce67f53790eed321d53edcf52e2b7db88cedb98fa0b20cb234bcb7ba52111b5",
+        "signature": "jyKMTb7bMPnYh0WuFTX1sIfydoXOcEnTY3y6LJgadCdUKG7jwfTwR4gva9YAo0Q8J0t2kVpx0I+0X0khBAWaPeannTgNffiQhRexX4VvGX0AyGrQufJdGYWyipeBqW4wlETqmPToI1vWiIDELl4GgzYnrWLMe28mO5rf4moAkKduO0KkjEgcfqjdSgB/Z/nVmO+Jvka4sW2CoonsOC5e1+n+a+5K6clQ/lEH/ll6PZ6pMJAHQgi0qhFGDitIxrVdl8cb0rXr292be6k96UwIAcu5Gx64tu78paH2QiNoYIL6jAt7fVNZ2PvxmHpBxaIe4+G21pLAXi3VUjC7B1MIjA=="
+    },
+    "fallback_package": {
+        "type": "full",
+        "url": "https://update.crm.ru/packages/full/tropatt-core-20260618.003.zip",
+        "manifest_url": "https://update.crm.ru/api/v1/manifests/tropatt-core/full/20260618.003",
+        "size_bytes": 2961033,
+        "sha256": "47b5e106f02fd557afac22739600b92e76254db81bf1089b1fdc001e45a2abf7",
+        "signature": "H4v7h4VESnuLMueapbob0c9hxRrb/ZY1zKdtKCMWrCXUpzIwrZysNZd9Zfp0JLCdpsjaCMdKYBULrVCVBMfJtatRMxZdPWq3W60/Edj3ij/5PJWExoxw4o2yxrnBUw//vE0Sp3DJmV0S9xbmFaCnFLagqvqnL6p2W2qxEEI3ydJGbmfdjBMWBtfoPTUNlZYQioOLlUCjQr7XeL6cjk4WvCbn5TVWcAjbOoGvu1FpBffjptoMdCigKAFZnt6mRrpvjEIxEYwxypQX8F351ecweaTuAZyoIB+v7HgXUMcgXeP8Y9ljkYxqdCOpFzoQlIPQhvEO8C3aD7aBWt/NDjaxaw=="
+    },
+    "summary": {
+        "commits": 1,
+        "api_files": 0,
+        "web_files": 1,
+        "root_files": 0,
+        "migration_files": 0,
+        "module_files_touched_in_repo": 0,
+        "module_files_included_in_package": 0,
+        "risk_level": "low"
+    },
+    "requires": {
+        "backup": true,
+        "maintenance": true,
+        "db_migration": false
+    }
+}

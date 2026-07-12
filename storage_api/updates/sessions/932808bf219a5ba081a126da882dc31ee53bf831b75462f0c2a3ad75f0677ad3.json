@@ -1,0 +1,14 @@
+{
+    "token_hash": "932808bf219a5ba081a126da882dc31ee53bf831b75462f0c2a3ad75f0677ad3",
+    "user_id": 2,
+    "created_at": "2026-06-18T10:01:02+00:00",
+    "expires_at": "2026-06-18T10:11:02+00:00",
+    "allowed_actions": [
+        "preflight",
+        "download",
+        "apply",
+        "resume",
+        "rollback"
+    ],
+    "used": false
+}

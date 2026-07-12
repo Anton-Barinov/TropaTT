@@ -1,0 +1,22 @@
+<?php
+return [
+    'not_found' => 'Módulo no encontrado',
+    'validation_failed' => 'Validación del módulo fallida',
+    'already_installed' => 'El módulo ya está instalado',
+    'migration_failed' => 'Migración fallida',
+    'not_installed' => 'Módulo no instalado',
+    'manifest_not_found' => 'Manifiesto del módulo no encontrado',
+    'core_incompatible' => 'El módulo requiere el núcleo',
+    'installed' => 'Módulo instalado exitosamente',
+    'activated' => 'Módulo activado exitosamente',
+    'deactivated' => 'Módulo desactivado exitosamente',
+    'removed' => 'Módulo eliminado exitosamente',
+    'installed_from_url' => 'Módulo instalado desde URL',
+    'installed_from_file' => 'Módulo instalado desde archivo',
+    'config_updated' => 'Configuración actualizada',
+    'errors_cleared' => 'Errores eliminados',
+    'url_required' => 'La URL es obligatoria',
+    'file_data_required' => 'Los datos del archivo son obligatorios',
+    'invalid_base64' => 'Datos base64 inválidos',
+    'name_required' => 'El nombre del módulo es obligatorio',
+];
