@@ -239,6 +239,8 @@ final class AiActionService
             'prompt_public_id',
             'schema_public_id',
             'intent_code',
+            '__sys',
+            '__usr',
         ];
 
         $safe = [];
