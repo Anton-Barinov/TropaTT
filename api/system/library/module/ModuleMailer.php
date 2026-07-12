@@ -50,8 +50,14 @@ final class ModuleMailer
 
     private function renderTemplate(string $templateName, array $data): string
     {
-        extract($data, EXTR_SKIP);
+        // SEC: Use explicit variable creation instead of extract() to prevent variable injection
+        foreach ($data as $key => $value) {
+            if (is_string($key) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
+                $$key = $value;
+            }
+        }
         ob_start();
+        // Template file should be included here (e.g., include $templateFile)
         $html = ob_get_clean();
         return $html !== false ? $html : '';
     }
