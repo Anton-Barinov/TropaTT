@@ -121,7 +121,7 @@ final class TwoFactorController extends BaseController
         // IP-based rate limiting — applied before token resolution to prevent
         // distributed brute-force across multiple login tokens.
         /** @var RateLimitService $rateLimiter */
-        $rateLimiter = $this->container->get('service.rate_limit');
+        $rateLimiter = $this->container->get('service.rate_limiter');
         $ipKey = 'tfa_ip:' . hash('sha256', $this->request()->ip());
         $ipState = $rateLimiter->check('two_factor_verify', $ipKey, 10, 300, 600);
         if ($ipState['blocked'] === true) {
