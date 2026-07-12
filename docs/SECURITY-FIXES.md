@@ -1,37 +1,59 @@
-# Security Audit — Cycle 3 Complete
+# Security Audit — Fixes Specification
 
-> Дата аудита: 2026-07-12 (Cycle 3)
-> Статус: ✅ Все находки обработаны
+> Дата аудита: (next cycle)
+> Версия проекта: (from VERSION)
+> Аудитор: AI Security Audit (Cycle N)
 
-## Сводка исправлений
+## Сводка
 
-| Находка | Severity | Статус | Изменение |
-|---------|----------|--------|-----------|
-| SEC-017: PII в security-логах имперсонации | Medium | ✅ Исправлено | maskIp() + user_agent скрыт в security-логах |
-| SEC-018: Permissions-Policy header | Low | ✅ Исправлено | Добавлен заголовок, блокирующий браузерные API |
-| SEC-019: Session cookie flags | Low | ✅ Исправлено | ini_set() для httponly, samesite, secure |
-| SEC-020: .gitleaks.toml | Low | ✅ Создан | Конфиг для исключения ложных срабатываний |
-| SEC-016: Staging cleanup | Medium | ⚠️ Не исправлено | Требует глубокого рефакторинга update pipeline |
+| Severity (CVSS) | Количество |
+|-----------------|------------|
+| Critical (9.0–10.0) |          |
+| High (7.0–8.9)     |          |
+| Medium (4.0–6.9)   |          |
+| Low (0.1–3.9)      |          |
+| **Итого**          |          |
 
-## Файлы изменены
+## Risk Heatmap (по категориям OWASP Top 10)
 
-- `api/system/library/service/ImpersonationService.php` — SEC-017
-- `api/system/library/app.php` — SEC-018, SEC-019
-- `.gitleaks.toml` — SEC-020
-
-## Регрессия (10/10 тестов пройдены)
-
-Login, wrong password, no token, create task, HSTS, Permissions-Policy (NEW!), MCP tools/list, prompt injection blocking, version endpoint, 2FA verify.
-
-## Прогресс за 3 цикла
-
-| Метрика | Cycle 1 | Cycle 2 | Cycle 3 | Итого |
-|---------|---------|---------|---------|-------|
-| Critical | 0 | 0 | 0 | 0 ✅ |
-| High | 1 | 1 | 0 | 2 ✅ |
-| Medium | 4 | 3 | 2 | 9 ✅ |
-| Low | 4 | 2 | 3 | 9 ✅ |
+| OWASP Category | Critical | High | Medium | Low |
+|----------------|----------|------|--------|-----|
+| A01: Broken Access Control |  |  |  |  |
+| A02: Cryptographic Failures |  |  |  |  |
+| A03: Injection |  |  |  |  |
+| A04: Insecure Design |  |  |  |  |
+| A05: Security Misconfiguration |  |  |  |  |
+| A06: Vulnerable Components |  |  |  |  |
+| A07: Auth Failures |  |  |  |  |
+| A08: Integrity Failures |  |  |  |  |
+| A09: Logging & Monitoring |  |  |  |  |
+| A10: SSRF |  |  |  |  |
+| **Итого** |  |  |  |  |
 
 ---
 
-*Файл очищен для следующего цикла аудита.*
+## SEC-001 — (next cycle)
+
+(Empty template — to be filled in by next audit cycle.)
+
+---
+
+## Общие рекомендации по архитектуре безопасности
+
+(To be filled in.)
+
+## Порядок исправления (Roadmap)
+
+| Приоритет | SEC-коды | Описание | Ожидаемое время |
+|-----------|----------|----------|-----------------|
+|  |  |  |  |
+
+## Методология аудита
+
+(To be filled in.)
+
+## Security Metrics & KPIs
+
+| Метрика | Цель | Как измерять |
+|---------|------|--------------|
+|  |  |  |

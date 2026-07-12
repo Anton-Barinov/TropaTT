@@ -83,7 +83,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
     {id:'tasks',           actionEl:'#buildTasksBtn',       statusEl:'#tasksUpdated',         okCheck:function(){return hasAnalysisResult('#tasksCardBody',['<?= htmlspecialchars($t('ideas.analysis_summary', 'Резюме'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?>','<?= htmlspecialchars($t('ideas.analysis_stage', 'Этап'), ENT_QUOTES, 'UTF-8') ?>']);}, cardId:'tasksCard', desc:'<?= htmlspecialchars($t('ideas.pipeline_tasks', 'Предлагаемые задачи'), ENT_QUOTES, 'UTF-8') ?>',          type:'analysis'},
   ];
 
-  var storageKey = 'ai_pipeline_<?=$publicId?>';
+  var storageKey = 'ai_pipeline_<?=e($publicId)?>';
   var state = {};
   var running = false;
   var pipelineRunToken = 0;
@@ -267,7 +267,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	  async function resetQuestionsForRestart(){
 	    if(!window.CRM||!window.CRM.api)return;
 	    document.getElementById('pipelineStatus').textContent='<?= htmlspecialchars($t('ideas.state_clearing_qa', 'Очищаю вопросы и ответы...'), ENT_QUOTES, 'UTF-8') ?>';
-	    var ideaId='<?=$publicId?>';
+	    var ideaId='<?=e($publicId)?>';
 	    var endpoints=[
 	      'api/v1/ideas/'+ideaId+'/interview',
 	      'api/v1/ideas/'+ideaId+'/additional-questions',
@@ -462,7 +462,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 	      btn.disabled=true;if(start)start.disabled=true;
 	      var status=document.getElementById('pipelineStatus');if(status)status.textContent='<?= htmlspecialchars($t('ideas.state_resetting', 'Сбрасываю AI-анализ...'), ENT_QUOTES, 'UTF-8') ?>';
 	      if(window.CRM&&window.CRM.api){
-	        await window.CRM.api.request('api/v1/ideas/<?=$publicId?>/reset-analysis',{method:'POST',timeoutMs:30000});
+	        await window.CRM.api.request('api/v1/ideas/<?=e($publicId)?>/reset-analysis',{method:'POST',timeoutMs:30000});
 	      }
 	      resetPipelineUi();
 	    }catch(err){
@@ -475,7 +475,7 @@ window.CRM.ideaLocale = window.CRM.ideaLocale || function () {
 
   loadState();renderSteps();
 })();
-try{(function(){var pid='<?=$publicId?>';var idea=null;var currentUserId=null;
+try{(function(){var pid='<?=e($publicId)?>';var idea=null;var currentUserId=null;
 function deferHiddenAnalysisLoad(loader){
   if(typeof loader!=='function')return;
   window.setTimeout(function(){

@@ -36,6 +36,11 @@ final class KeyGuard
 
     /**
      * Check and generate missing keys. Returns true if all keys are present.
+     *
+     * SEC-002: In production (APP_ENV prod/production, defaulting to prod when unset)
+     * refuse to silently auto-generate secrets to align with security.php's
+     * fail-fast policy. Missing required keys surface as RuntimeException
+     * so the operator is forced to set them explicitly.
      */
     public function ensureKeys(?string $envFilePath = null): bool
     {
@@ -43,12 +48,28 @@ final class KeyGuard
             $envFilePath = $this->resolveEnvPath();
         }
 
+        // Mirror security.php fail-fast semantics for web requests, but treat
+        // CLI invocations as non-production by default so first-boot CLI tools
+        // (migrations, seeders, generators) don't crash when APP_ENV is unset.
+        $appEnv = strtolower(trim((string) getenv('APP_ENV')));
+        $isCli = (PHP_SAPI === 'cli') || str_starts_with((string)PHP_SAPI, 'cli-');
+        if ($appEnv === '' && !$isCli) {
+            $appEnv = 'prod';
+        }
+        $isProduction = in_array($appEnv, ['prod', 'production'], true) && !$isCli;
+
         if ($envFilePath === '' || !is_file($envFilePath)) {
+            if ($isProduction) {
+                throw new \RuntimeException('Required .env file is missing in production');
+            }
             return false;
         }
 
         $envContent = file_get_contents($envFilePath);
         if ($envContent === false) {
+            if ($isProduction) {
+                throw new \RuntimeException('Cannot read .env file in production');
+            }
             return false;
         }
 
@@ -60,6 +81,14 @@ final class KeyGuard
             $value = $env[$config['env_name']] ?? '';
             if ($value !== '' && $value !== 'change-me-' . $key && !str_starts_with($value, 'change-me')) {
                 continue;
+            }
+
+            if ($isProduction) {
+                throw new \RuntimeException(
+                    'Required secret ' . $config['env_name']
+                    . ' is missing or has a placeholder value in production; '
+                    . 'refusing to auto-generate.'
+                );
             }
 
             $this->missing[] = $config['env_name'];
@@ -78,29 +107,35 @@ final class KeyGuard
         $vapidPriv = $env['NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY'] ?? '';
 
         if ($vapidPub === '' || $vapidPriv === '') {
-            $this->missing[] = 'NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY';
-            $this->missing[] = 'NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY';
+            if (!$isProduction) {
+                $this->missing[] = 'NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY';
+                $this->missing[] = 'NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY';
 
-            $vapidKeys = $this->generateVapidKeyPair();
-            if ($vapidKeys !== null) {
-                if ($vapidPub === '') {
-                    $env['NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY'] = $vapidKeys['public_key'];
-                    $this->generated[] = 'NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY';
+                $vapidKeys = $this->generateVapidKeyPair();
+                if ($vapidKeys !== null) {
+                    if ($vapidPub === '') {
+                        $env['NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY'] = $vapidKeys['public_key'];
+                        $this->generated[] = 'NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY';
+                    }
+                    if ($vapidPriv === '') {
+                        $env['NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY'] = $vapidKeys['private_key'];
+                        $this->generated[] = 'NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY';
+                    }
+                    if (($env[self::VAPID_SUBJECT_KEY] ?? '') === '') {
+                        $env[self::VAPID_SUBJECT_KEY] = self::VAPID_SUBJECT_DEFAULT;
+                    }
+                    $modified = true;
+                } else {
+                    $this->failed[] = 'NOTIFICATIONS_PUSH_VAPID_* (Web Push VAPID keys)';
                 }
-                if ($vapidPriv === '') {
-                    $env['NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY'] = $vapidKeys['private_key'];
-                    $this->generated[] = 'NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY';
-                }
-                if (($env[self::VAPID_SUBJECT_KEY] ?? '') === '') {
-                    $env[self::VAPID_SUBJECT_KEY] = self::VAPID_SUBJECT_DEFAULT;
-                }
-                $modified = true;
             } else {
-                $this->failed[] = 'NOTIFICATIONS_PUSH_VAPID_* (Web Push VAPID keys)';
+                // In production, VAPID missing is a misconfiguration but not fatal
+                // (push notifications can be disabled). Record for visibility.
+                $this->missing[] = 'NOTIFICATIONS_PUSH_VAPID_*';
             }
         }
 
-        if ($modified) {
+        if ($modified && !$isProduction) {
             $this->writeEnv($envFilePath, $env);
         }
 
@@ -242,49 +277,81 @@ final class KeyGuard
 
     /**
      * Write parsed env back to file, preserving comments and structure.
+     *
+     * SEC-002: Two safety layers:
+     * 1. flock(LOCK_EX) around the read/parse so concurrent PHP-FPM workers
+     *    cannot race on first-boot secret generation (TOCTOU between
+     *    detect-missing-key and write-generated-key).
+     * 2. Atomic replace via temp-file + rename — if the process crashes
+     *    mid-write, the original .env is preserved (rename is atomic on POSIX).
      */
     private function writeEnv(string $path, array $env): void
     {
-        $content = file_get_contents($path);
-        if ($content === false) {
+        $fp = @fopen($path, 'c+');
+        if ($fp === false) {
             return;
         }
-
-        $lines = explode("\n", $content);
-        $processed = [];
-        $writtenKeys = [];
-
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-
-            // Skip empty lines and comments — keep them as-is
-            if ($trimmed === '' || $trimmed[0] === '#') {
-                $processed[] = $line;
-                continue;
-            }
-
-            $eqPos = strpos($line, '=');
-            if ($eqPos === false) {
-                $processed[] = $line;
-                continue;
-            }
-
-            $key = trim(substr($line, 0, $eqPos));
-            if (array_key_exists($key, $env)) {
-                $processed[] = $key . '=' . $env[$key];
-                $writtenKeys[$key] = true;
-            } else {
-                $processed[] = $line;
-            }
+        if (!@flock($fp, LOCK_EX)) {
+            @fclose($fp);
+            return;
         }
-
-        // Append any new keys that weren't in the original file
-        foreach ($env as $key => $value) {
-            if (!isset($writtenKeys[$key])) {
-                $processed[] = $key . '=' . $value;
+        try {
+            $content = stream_get_contents($fp);
+            if ($content === false) {
+                return;
             }
-        }
 
-        @file_put_contents($path, implode("\n", $processed));
+            $lines = explode("\n", $content);
+            $processed = [];
+            $writtenKeys = [];
+
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+
+                // Skip empty lines and comments — keep them as-is
+                if ($trimmed === '' || $trimmed[0] === '#') {
+                    $processed[] = $line;
+                    continue;
+                }
+
+                $eqPos = strpos($line, '=');
+                if ($eqPos === false) {
+                    $processed[] = $line;
+                    continue;
+                }
+
+                $key = trim(substr($line, 0, $eqPos));
+                if (array_key_exists($key, $env)) {
+                    $processed[] = $key . '=' . $env[$key];
+                    $writtenKeys[$key] = true;
+                } else {
+                    $processed[] = $line;
+                }
+            }
+
+            // Append any new keys that weren't in the original file
+            foreach ($env as $key => $value) {
+                if (!isset($writtenKeys[$key])) {
+                    $processed[] = $key . '=' . $value;
+                }
+            }
+
+            // Atomic replace: write to a temp file, then rename over the target.
+            // rename() on POSIX is atomic — a crashing writer leaves the
+            // previous .env intact instead of truncating it.
+            $tmpPath = $path . '.tmp.' . bin2hex(random_bytes(4));
+            $bytes = @file_put_contents($tmpPath, implode("\n", $processed));
+            if ($bytes === false) {
+                @unlink($tmpPath);
+                return;
+            }
+            if (!@rename($tmpPath, $path)) {
+                @unlink($tmpPath);
+                return;
+            }
+        } finally {
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
+        }
     }
 }

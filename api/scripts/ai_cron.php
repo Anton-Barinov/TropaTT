@@ -313,7 +313,14 @@ function apiRequest(string $method, string $uri, array $payload = [], array $hea
 
     if (str_contains($uri, '?')) {
         [, $query] = explode('?', $uri, 2);
-        parse_str($query, $_GET);
+        // SEC: Validate keys before populating $_GET to prevent variable injection
+        $parsed = [];
+        parse_str($query, $parsed);
+        foreach ($parsed as $key => $value) {
+            if (is_string($key) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
+                $_GET[$key] = $value;
+            }
+        }
     }
 
     $_SERVER = [

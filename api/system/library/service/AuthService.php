@@ -438,12 +438,30 @@ final class AuthService
 
     /**
      * Get the key used for signing pending 2FA tokens.
+     *
+     * SEC-003: 2FA pending token signing MUST use a stable cross-worker key.
+     * PHP-FPM workers have independent memory, so a process-local random
+     * fallback would cause signing (Worker A) and verification (Worker B)
+     * to use different keys, silently invalidating every pending 2FA token
+     * routed through a different worker. We therefore require APP_KEY to
+     * be present in the environment — there is no safe per-WORKER fallback.
+     * If APP_KEY is missing in production, security.php will already have
+     * failed-fast on the related CSRF/WEBHOOK/AI secrets, so this throw
+     * surfaces the misconfiguration at the earliest possible point.
      */
     private function getPendingTokenKey(): string
     {
-        // Derive a deterministic signing key from the app environment
-        // Using a hash to ensure consistent length and entropy
-        $seed = __CLASS__ . '::pending_2fa::' . ($_SERVER['APP_KEY'] ?? $_ENV['APP_KEY'] ?? '');
+        $appKey = trim((string) getenv('APP_KEY'));
+        if ($appKey === '') {
+            // Log before throw so operator sees root cause even though 2FA
+            // controllers will surface a generic failure to the user.
+            error_log('SECURITY CRITICAL: APP_KEY is not set; 2FA pending token signing refused. Set APP_KEY in .env.');
+            throw new \RuntimeException(
+                'APP_KEY is required for stable 2FA pending-token signing; '
+                . 'set APP_KEY in .env or the process environment.'
+            );
+        }
+        $seed = __CLASS__ . '::pending_2fa::' . $appKey;
         return hash('sha256', $seed, true);
     }
 
