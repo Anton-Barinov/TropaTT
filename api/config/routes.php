@@ -92,6 +92,7 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/ops/jobs/run', 'controller' => Api\Controller\Admin\OpsController::class, 'action' => 'runJobs', 'auth' => true, 'required_permissions' => ['logs.view']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['webhook.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/deliveries', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'deliveries', 'auth' => true, 'required_permissions' => ['webhook.manage']],

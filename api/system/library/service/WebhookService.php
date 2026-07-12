@@ -75,6 +75,12 @@ final class WebhookService
         return ['ok' => true, 'webhook' => $item];
     }
 
+    public function findSubscription(string $publicId): ?array
+    {
+        $item = $this->repository->findSubscriptionByPublicId($publicId);
+        return $item ? $this->normalizeSubscription($item) : null;
+    }
+
     public function updateSubscription(string $publicId, array $input, array $actor): array
     {
         if (!(bool)($actor['is_root'] ?? false)) {

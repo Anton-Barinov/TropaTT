@@ -18,6 +18,18 @@ final class WebhookController extends BaseController
         return $this->success('WEBHOOK_LIST', $this->t('webhook/messages.list'), ['items' => $result['items']], meta: $result['meta']);
     }
 
+    public function get(array $params): \Api\System\Library\Http\JsonResponse
+    {
+        /** @var WebhookService $service */
+        $service = $this->container->get('service.webhook');
+        $item = $service->findSubscription((string)$params['public_id']);
+        if (!$item) {
+            return $this->error('WEBHOOK_NOT_FOUND', $this->t('webhook/messages.not_found'), 404);
+        }
+
+        return $this->success('WEBHOOK_DETAIL', $this->t('webhook/messages.detail'), ['webhook' => $item]);
+    }
+
     public function create(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
