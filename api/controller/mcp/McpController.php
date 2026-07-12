@@ -103,6 +103,7 @@ use Api\System\Library\Service\UserProfileService;
 use Api\System\Library\Service\WebhookService;
 use Api\System\Library\Service\WorkCycleService;
 use Api\System\Library\Service\WorklogService;
+use Api\System\Library\Security\DatabaseRateLimiter;
 use Api\System\Library\Service\WorkflowService;
 use Api\System\Library\Update\CoreUpdateClient;
 use Api\System\Library\Update\CoreUpdateConfig;
@@ -2832,6 +2833,13 @@ MD;
         }
 
         $this->warnPromptInjection($name, $arguments);
+        // Per-tool rate limiting (FINDING-02)
+        $rateLimitCheck = $this->checkMcpToolRateLimit($name);
+        if (($rateLimitCheck['blocked'] ?? false) === true) {
+            $retryAfter = max(1, (int)($rateLimitCheck['retry_after'] ?? 1));
+            return $this->toolError('Rate limited. Tool "' . $name . '" exceeded quota. Retry after ' . $retryAfter . 's.');
+        }
+
 
         if (isset($this->ideaWorkflowTools()[$name])) {
             if (!$this->can('idea.manage') && !$this->can('task.manage')) {
@@ -12964,6 +12972,29 @@ private function isSensitiveOrInternalKey(string $key): bool
     private function pdo(): PDO
     {
         return $this->container->get('db.pdo');
+    }
+
+        private function checkMcpToolRateLimit(string $toolName): array
+    {
+        try {
+            /** @var \Api\System\Library\Security\DatabaseRateLimiter $limiter */
+            $limiter = $this->container->get('security.mcp_tool_rate_limiter');
+            $user = $this->actor();
+            $userId = (int)($user['id'] ?? 0);
+            $key = 'mcp_tool:' . $userId . ':' . $toolName;
+
+            $state = $limiter->check($key);
+            if (($state['blocked'] ?? false) === true) {
+                return $state;
+            }
+
+            $limiter->hit($key);
+
+            return ['blocked' => false];
+        } catch (\Throwable $e) {
+            // Fail open if rate limiter is unavailable
+            return ['blocked' => false];
+        }
     }
 
     private function validateOrigin(): ?string
