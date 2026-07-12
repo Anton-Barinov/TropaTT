@@ -36,7 +36,12 @@ final class AiActionController extends BaseController
         return $this->withIdempotency(function () use ($actionType, $auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiActionService $service */
             $service = $this->container->get('service.ai_action');
-            $result = $service->execute($actionType, $this->request()->allInput(), $auth['user']);
+            $input = $this->request()->allInput();
+            // System-role instructions are trusted server-side policy. Public
+            // HTTP clients may provide user input only; internal workflows call
+            // the service directly when they need a trusted prompt template.
+            unset($input['__sys'], $input['system_prompt']);
+            $result = $service->execute($actionType, $input, $auth['user']);
             if (!(bool)($result['ok'] ?? false)) {
                 $code = $this->normalizeAiCode((string)($result['code'] ?? 'AI_ACTION_FAILED'));
                 $status = match ($code) {

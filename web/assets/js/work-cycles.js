@@ -129,7 +129,7 @@
     if (!container) return;
     if (!cycleFocusLoaded) {
       container.classList.remove('d-none');
-      // Using DOM methods rather than innerHTML to avoid XSS risk with concatenated strings
+      // Build the empty state with DOM nodes so concatenated data is never parsed as markup.
       container.textContent = '';
       var wrapper = document.createElement('div');
       wrapper.className = 'crm-cycle-command-text';
