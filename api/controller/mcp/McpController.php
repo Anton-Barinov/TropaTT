@@ -5601,7 +5601,7 @@ MD;
             return ['error' => 'url is required.'];
         }
 
-        $input = ['url' => $url];
+        $input = ['endpoint' => $url];
         if (!empty($arguments['events'])) {
             $input['events'] = $arguments['events'];
         }
@@ -5627,7 +5627,7 @@ MD;
         }
 
         $input = [];
-        foreach (['url', 'events', 'is_active'] as $field) {
+        foreach (['endpoint', 'events', 'is_active'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
                 $input[$field] = $arguments[$field];
             }
