@@ -3631,6 +3631,8 @@ window.CRM.br1 = (function () {
         query: {
           entity_type: 'task',
           entity_public_id: taskId,
+          channel: 'audit',
+          include_total: 0,
           limit: 20
         }
       });
