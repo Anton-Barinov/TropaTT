@@ -15,7 +15,7 @@ $webhookSecret = trim((string)(getenv('WEBHOOK_SECRET_KEY') ?: ''));
 $aiEncryptionKey = trim((string)(getenv('AI_ENCRYPTION_KEY') ?: ''));
 
 // Production: each secret MUST be explicitly set; fail-fast if missing.
-// Non-production: fall back to APP_KEY or local secret.
+// Non-production: generate independent random keys with a warning (no fallback chain).
 if ($isProduction) {
     if ($csrfSecret === '') {
         throw new \RuntimeException('CSRF_SECRET_KEY must be set in production');
@@ -27,15 +27,22 @@ if ($isProduction) {
         throw new \RuntimeException('AI_ENCRYPTION_KEY must be set in production');
     }
 } else {
-    $localSecret = trim((string)(getenv('CRM_LOCAL_SECRET') ?: $appKey));
+    $fallbackSeed = hash('sha256', ($appKey ?: 'dev-default') . ':' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ':' . __FILE__);
+    $missingKeys = [];
     if ($csrfSecret === '') {
-        $csrfSecret = $localSecret;
+        $csrfSecret = hash('sha256', 'csrf:' . $fallbackSeed);
+        $missingKeys[] = 'CSRF_SECRET_KEY';
     }
     if ($webhookSecret === '') {
-        $webhookSecret = $localSecret;
+        $webhookSecret = hash('sha256', 'webhook:' . $fallbackSeed);
+        $missingKeys[] = 'WEBHOOK_SECRET_KEY';
     }
     if ($aiEncryptionKey === '') {
-        $aiEncryptionKey = $localSecret;
+        $aiEncryptionKey = hash('sha256', 'ai:' . $fallbackSeed);
+        $missingKeys[] = 'AI_ENCRYPTION_KEY';
+    }
+    if ($missingKeys !== []) {
+        error_log('SECURITY WARNING: Auto-generated deterministic secrets for non-production: ' . implode(', ', $missingKeys) . '. Set explicit keys in .env for production.');
     }
 }
 
@@ -93,13 +100,13 @@ return [
         'encryption_key' => $aiEncryptionKey,
     ],
     'cors' => [
-        'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1,https://crm.ru,http://crm.ru'),
+        'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: ($isProduction ? 'https://localhost,https://127.0.0.1' : 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1')),
         'allow_methods' => 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
         'allow_headers' => 'Content-Type, Authorization, X-CSRF-Token, X-Request-Id, X-Correlation-Id, X-Idempotency-Key, X-Locale',
     ],
     'uploads' => [
         'max_size_bytes' => 20 * 1024 * 1024,
-        'quarantine_extensions' => ['php', 'phtml', 'phar', 'exe', 'sh', 'bat', 'cmd', 'com', 'msi', 'dll', 'html', 'htm', 'svg', 'xhtml'],
+        'quarantine_extensions' => ['php', 'phtml', 'phar', 'pht', 'php5', 'php7', 'php8', 'exe', 'sh', 'bat', 'cmd', 'com', 'msi', 'dll', 'html', 'htm', 'shtml', 'svg', 'xhtml', 'cgi', 'pl', 'py', 'asp', 'aspx', 'jsp'],
         'quarantine_mime_prefixes' => ['application/x-php', 'application/x-sh', 'application/x-msdownload'],
     ],
 ];

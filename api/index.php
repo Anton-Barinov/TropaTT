@@ -10,8 +10,6 @@ use Api\System\Library\App;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Support\EnvLoader;
 
-header('X-Powered-By: Tropa-CRM-API');
-
 // Block direct access to sensitive files that nginx may serve before PHP processing.
 // .htaccess handles this for Apache; this is the defence-in-depth layer.
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
