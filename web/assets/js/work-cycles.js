@@ -42,6 +42,18 @@
     window.bootstrap.Toast.getOrCreateInstance(toast).show();
   }
 
+  function confirmCycleAction(message, actionText, actionClass) {
+    if (window.CRM && typeof window.CRM.confirm === 'function') {
+      return window.CRM.confirm({
+        title: t('cycles.confirm_title', 'Подтвердите действие'),
+        body: message,
+        actionText: actionText || t('cycles.confirm_action', 'Подтвердить'),
+        actionClass: actionClass || 'crm-btn-danger-soft'
+      });
+    }
+    return Promise.resolve(window.confirm(message));
+  }
+
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (ch) {
       var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -422,22 +434,22 @@
   };
 
   // ====== Actions ======
-  window.startCycle = function (publicId) {
-    if (!confirm(t('cycles.confirm_start', 'Запустить этот цикл?'))) return;
+  window.startCycle = async function (publicId) {
+    if (!await confirmCycleAction(t('cycles.confirm_start', 'Запустить этот цикл?'), t('cycles.start', 'Запустить'), 'crm-btn-primary')) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/start', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
       .catch(function () { showCycleFeedback(t('cycles.error_start', 'Ошибка запуска цикла.'), 'error'); });
   };
 
-  window.reopenCycle = function (publicId) {
-    if (!confirm(t('cycles.confirm_reopen', 'Открыть этот цикл заново?'))) return;
+  window.reopenCycle = async function (publicId) {
+    if (!await confirmCycleAction(t('cycles.confirm_reopen', 'Открыть этот цикл заново?'), t('cycles.reopen', 'Открыть'), 'crm-btn-primary')) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/reopen', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
       .catch(function () { showCycleFeedback(t('cycles.error_reopen', 'Ошибка открытия цикла.'), 'error'); });
   };
 
-  window.archiveCycle = function (publicId) {
-    if (!confirm(t('cycles.confirm_archive', 'Архивировать этот цикл? Задачи не будут удалены.'))) return;
+  window.archiveCycle = async function (publicId) {
+    if (!await confirmCycleAction(t('cycles.confirm_archive', 'Архивировать этот цикл? Задачи не будут удалены.'), t('cycles.archive', 'Архивировать'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(publicId) + '/archive', { method: 'POST' })
       .then(function () { window.loadWorkCycles(currentPage); })
       .catch(function () { showCycleFeedback(t('cycles.error_archive', 'Ошибка архивирования.'), 'error'); });
@@ -764,8 +776,8 @@
       });
   };
 
-  window.removeTaskFromCycle = function (cyclePublicId, taskPublicId) {
-    if (!confirm(t('cycles.confirm_remove_task', 'Удалить задачу из цикла?'))) return;
+  window.removeTaskFromCycle = async function (cyclePublicId, taskPublicId) {
+    if (!await confirmCycleAction(t('cycles.confirm_remove_task', 'Удалить задачу из цикла?'), t('cycles.remove_task', 'Удалить задачу'))) return;
     apiRequest('api/v1/cycles/' + encodeURIComponent(cyclePublicId) + '/tasks/' + encodeURIComponent(taskPublicId), { method: 'DELETE' })
       .then(function () { loadCycleTasks(cyclePublicId); })
       .catch(function () { showCycleFeedback(t('cycles.error_remove_task', 'Ошибка удаления задачи из цикла.'), 'error'); });
