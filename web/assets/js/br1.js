@@ -1091,7 +1091,10 @@ window.CRM.br1 = (function () {
           ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: normalized.isServerError })
           : normalized.message;
         var authErrors = normalized.fieldErrors && Array.isArray(normalized.fieldErrors.auth) ? normalized.fieldErrors.auth : [];
-        var details = authErrors.length ? ' (' + authErrors.join(', ') + ')' : '';
+        var uniqueAuthErrors = authErrors.filter(function (item) {
+          return String(item || '').trim() !== String(message || '').trim();
+        });
+        var details = uniqueAuthErrors.length ? ' (' + uniqueAuthErrors.join(', ') + ')' : '';
         showLoginError(message + details);
       }
     }
@@ -1216,7 +1219,10 @@ window.CRM.br1 = (function () {
           ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: normalized.isServerError })
           : normalized.message;
         var authErrors = normalized.fieldErrors && Array.isArray(normalized.fieldErrors.auth) ? normalized.fieldErrors.auth : [];
-        var details = authErrors.length ? ' (' + authErrors.join(', ') + ')' : '';
+        var uniqueAuthErrors = authErrors.filter(function (item) {
+          return String(item || '').trim() !== String(message || '').trim();
+        });
+        var details = uniqueAuthErrors.length ? ' (' + uniqueAuthErrors.join(', ') + ')' : '';
         showLoginError(message + details);
       }
     }
