@@ -1,6 +1,0 @@
-<?php
-return [
-    'request_list' => 'Логи запросов',
-    'security_list' => 'Логи безопасности',
-    'audit_list' => 'Логи аудита',
-];
