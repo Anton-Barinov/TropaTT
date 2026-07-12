@@ -67,7 +67,7 @@ try {
     $isDev = defined('APP_ENV') && APP_ENV === 'dev';
     $exceptionMessage = $e->getMessage();
     $isConfigError = str_starts_with($exceptionMessage, 'CONFIG_');
-    $responseCode = $isConfigError ? $exceptionMessage : 'INTERNAL_ERROR';
+    $responseCode = $isConfigError ? 'CONFIGURATION_ERROR' : 'INTERNAL_ERROR';
     $responseMessage = $isConfigError ? 'Configuration error' : 'Internal server error';
     error_log(sprintf(
         'Tropa API bootstrap error [%s]: %s in %s:%d',
