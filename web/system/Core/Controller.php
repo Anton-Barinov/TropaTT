@@ -104,6 +104,12 @@ abstract class Controller
         $data['module_css_files'] = self::$moduleCssFiles ?? [];
         $data['module_js_files'] = self::$moduleJsFiles ?? [];
         $data['module_js_routes'] = self::$moduleJsRoutes ?? [];
+        // SEC-004: Expose the per-request CSP nonce (set by web/index.php) so
+        // templates can attach it to inline <script nonce="..."> and
+        // <style nonce="..."> tags. Empty string when no nonce is in scope
+        // (e.g., when Controller is rendered outside the web bootstrap, such
+        // as a CLI test or cron context).
+        $data['csp_nonce'] = (string)($GLOBALS['crm_csp_nonce'] ?? '');
 
         if (self::$webHookManager !== null) {
             $moduleNames = [];

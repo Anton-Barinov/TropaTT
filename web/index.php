@@ -22,6 +22,24 @@ if (!headers_sent()) {
     header('Cross-Origin-Opener-Policy: same-origin-allow-popups');
     header('Cross-Origin-Resource-Policy: same-origin');
 
+    // SEC-004: Per-request CSP nonce. The nonce is generated and exposed to
+    // templates via $GLOBALS['crm_csp_nonce'] (Controller::render() copies it
+    // to $data['csp_nonce']) so future template authors can opt in to
+    // nonce-tagged inline handlers.
+    //
+    // Note: per CSP Level 2/3 spec, including a nonce-source in a directive
+    // makes the parallel 'unsafe-inline' keyword be ignored — only nonced
+    // inline executes. Existing templates emit many inline scripts/styles
+    // without nonces (e.g., the sidebar-collapse cookie reader on the login
+    // page, JSON-encoded i18n payloads). Activating the nonce would break
+    // those without a coordinated template migration. So we ship the
+    // infrastructure now and keep 'unsafe-inline' in the active policy. To
+    // activate: remove 'unsafe-inline' from the directive, add
+    // 'nonce-{$cspNonce}' in its place, then progressively attach
+    // nonce="$csp_nonce" to inline <script>/<style> tags in templates.
+    $cspNonce = base64_encode(random_bytes(16));
+    $GLOBALS['crm_csp_nonce'] = $cspNonce;
+
     $csp = implode('; ', [
         "default-src 'self'",
         "base-uri 'self'",
