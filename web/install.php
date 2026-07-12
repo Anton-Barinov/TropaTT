@@ -2805,7 +2805,22 @@ if (isAlreadyInstalled()) {
 // Check for partial install — .env exists but .install.lock doesn't
 if (hasEnvConfig() && !is_file(LOCK_FILE_PATH) && canConnectFromEnv()) {
     if (hasInstallStateFromEnv()) {
-        @file_put_contents(LOCK_FILE_PATH, gmdate('Y-m-d H:i:s'));
+        // SEC-007: Use fopen('x') for an atomic on POSIX: opens the file for
+        // write, fails if it already exists. This eliminates the race between
+        // the is_file() check on line ~6 and a possible concurrent writer.
+        // file_put_contents() is not atomic and would silently overwrite an
+        // existing lock created by a parallel install.
+        $lockHandle = @fopen(LOCK_FILE_PATH, 'x');
+        if ($lockHandle !== false) {
+            fwrite($lockHandle, gmdate('Y-m-d H:i:s'));
+            fclose($lockHandle);
+        } else {
+            // Either the lock was created concurrently (system is installed) or
+            // the directory is unwritable. Either way we redirect to the dashboard
+            // — but log so an operator can distinguish the two cases.
+            error_log('[Installer] Could not acquire lock at ' . LOCK_FILE_PATH
+                . ' (existing=' . (is_file(LOCK_FILE_PATH) ? 'yes' : 'no') . ')');
+        }
         redirectToDashboard();
     }
 }
