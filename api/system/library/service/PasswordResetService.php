@@ -125,7 +125,8 @@ final class PasswordResetService
         }
 
         $newPassword = (string)($input['new_password'] ?? '');
-        if (mb_strlen($newPassword) < 8) {
+        // SEC-004: Match controller validation — minimum 12 chars, complexity required
+        if (strlen($newPassword) < 12 || !preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
             return ['ok' => false, 'code' => 'PASSWORD_RESET_WEAK_PASSWORD'];
         }
 

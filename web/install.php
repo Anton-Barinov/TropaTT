@@ -942,7 +942,9 @@ function testDatabaseConnection(string $driver, string $host, int $port, string 
         $pdo->query('SELECT 1');
         return ['success' => true, 'message' => t('connection_ok')];
     } catch (Throwable $e) {
-        return ['success' => false, 'message' => t('connection_fail') . ': ' . $e->getMessage()];
+        // SEC-001: Log full error details server-side, never expose to client
+        error_log('[Installer] DB connection failed: ' . $e->getMessage());
+        return ['success' => false, 'message' => t('connection_fail')];
     }
 }
 
@@ -1119,8 +1121,8 @@ function writeEnvFile(array $data): bool
     $envContent .= "# CORS allowlist\n";
     $envContent .= "CORS_ALLOW_ORIGIN=" . $siteUrl . "\n\n";
 
-    $envContent .= "# Optional install bootstrap secret\n";
-    $envContent .= "INSTALL_BOOTSTRAP_SECRET=\n\n";
+    $envContent .= "# Install bootstrap secret\n";
+    $envContent .= "INSTALL_BOOTSTRAP_SECRET=" . bin2hex(random_bytes(16)) . "\n\n";
 
     $envContent .= "# Optional push gateway\n";
     $envContent .= "NOTIFICATIONS_PUSH_GATEWAY_URL=\n";
