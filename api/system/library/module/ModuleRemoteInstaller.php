@@ -210,6 +210,41 @@ final class ModuleRemoteInstaller
         }
 
         file_put_contents($dest, $content);
+
+        // SEC-008: Verify the body is actually an archive before extraction.
+        // Catches SSRF targets returning HTML/JSON/plaintext, and prevents
+        // a malicious mirror from delivering a PHP payload masquerading as a
+        // module. Magic-byte signatures: ZIP "PK\x03/05/07 \x04/06/08", or
+        // gzip "\x1f\x8b\x08" (which is also the entry header for .tar.gz).
+        $this->validateArchiveMagic($dest);
+    }
+
+    /**
+     * Reject downloaded archives whose first bytes do not match a known
+     * archive signature. Removes the file on failure so a partial download
+     * does not linger in the temp directory.
+     */
+    private function validateArchiveMagic(string $path): void
+    {
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            throw new RuntimeException("Cannot open downloaded archive for magic-byte validation: {$path}");
+        }
+        $header = fread($handle, 4);
+        fclose($handle);
+        if ($header === false || strlen($header) < 4) {
+            @unlink($path);
+            throw new RuntimeException("Downloaded archive is too small for magic-byte validation");
+        }
+
+        $isZip = ($header[0] === 'P' && $header[1] === 'K'
+            && in_array($header[2] . $header[3], ["\x03\x04", "\x05\x06", "\x07\x08"], true));
+        $isGzip = ($header[0] === "\x1f" && $header[1] === "\x8b" && $header[2] === "\x08");
+
+        if (!$isZip && !$isGzip) {
+            @unlink($path);
+            throw new RuntimeException("Downloaded file is not a recognized archive format (magic-byte check failed)");
+        }
     }
 
     private function extract(string $archive, string $destDir): void
