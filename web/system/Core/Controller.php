@@ -126,7 +126,23 @@ abstract class Controller
         $data['lang_messages'] = $this->clientMessages($i18n->all());
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 
-        extract($data, EXTR_SKIP);
+        // SEC: Replace extract() with explicit variable creation to prevent variable injection.
+        // Preserve EXTR_SKIP semantics: do not overwrite existing locals or superglobals.
+        $reservedSkip = ['_GET', '_POST', '_REQUEST', '_SERVER', '_SESSION', '_COOKIE', '_FILES', '_ENV', 'GLOBALS',
+            'data', 'template', 'viewFile', 'i18n', 't', 'routeKey', 'routeTitle', 'statusCode', 'baseDir',
+            'hookContext', 'this'];
+        foreach ($data as $key => $value) {
+            if (!is_string($key) || in_array($key, $reservedSkip, true)) {
+                continue;
+            }
+            if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
+                continue;
+            }
+            if (isset(${$key})) {
+                continue; // EXTR_SKIP behavior — keep existing local
+            }
+            ${$key} = $value;
+        }
 
         if (self::$webHookManager !== null) {
             $hookContext = ['template' => $template, 'data' => &$data];
