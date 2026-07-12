@@ -108,6 +108,7 @@ final class ModuleConfig
         $bool = $driver === 'sqlsrv' ? 'BIT' : 'INTEGER';
         $nowDefault = $driver === 'sqlite' ? "DEFAULT (datetime('now'))" : 'DEFAULT CURRENT_TIMESTAMP';
         $keyType = $driver === 'mysql' ? 'VARCHAR(190)' : 'TEXT';
+        $configType = $driver === 'mysql' ? 'LONGTEXT' : 'TEXT';
 
         $sql = "CREATE TABLE IF NOT EXISTS module_registry (
             module_name {$keyType} NOT NULL,
@@ -116,14 +117,61 @@ final class ModuleConfig
             is_active {$bool} NOT NULL DEFAULT 0,
             installed_at {$dt} NOT NULL {$nowDefault},
             activated_at {$dt},
-            config {$keyType} NOT NULL,
+            config {$configType} NOT NULL,
             PRIMARY KEY (module_name)
         )";
         $this->pdo->exec($sql);
 
+        // Older installations created config as VARCHAR(190). Module manifests
+        // legitimately contain nested mappings and cannot be safely truncated.
+        // This self-healing schema check runs during module setup, so shared
+        // hosting does not need a manual database migration.
+        $this->ensureConfigColumnCapacity($driver);
+
         try {
             $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_registry_name ON module_registry(module_name)");
         } catch (\Throwable) {
+        }
+    }
+
+    private function ensureConfigColumnCapacity(string $driver): void
+    {
+        try {
+            if ($driver === 'mysql') {
+                $stmt = $this->pdo->query("SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+                    FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'module_registry' AND COLUMN_NAME = 'config'");
+                $column = $stmt?->fetch(PDO::FETCH_ASSOC) ?: [];
+                $type = strtolower((string)($column['DATA_TYPE'] ?? ''));
+                $length = (int)($column['CHARACTER_MAXIMUM_LENGTH'] ?? 0);
+                if (!in_array($type, ['text', 'mediumtext', 'longtext'], true) && $length < 65535) {
+                    $this->pdo->exec('ALTER TABLE module_registry MODIFY config LONGTEXT NOT NULL');
+                }
+                return;
+            }
+
+            if ($driver === 'pgsql') {
+                $stmt = $this->pdo->query("SELECT data_type FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND table_name = 'module_registry' AND column_name = 'config'");
+                $type = strtolower((string)($stmt?->fetchColumn() ?: ''));
+                if ($type !== '' && $type !== 'text') {
+                    $this->pdo->exec('ALTER TABLE module_registry ALTER COLUMN config TYPE TEXT');
+                }
+                return;
+            }
+
+            if ($driver === 'sqlsrv') {
+                $stmt = $this->pdo->query("SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'module_registry' AND COLUMN_NAME = 'config'");
+                $length = (int)($stmt?->fetchColumn() ?: 0);
+                if ($length !== -1 && $length < 65535) {
+                    $this->pdo->exec('ALTER TABLE module_registry ALTER COLUMN config NVARCHAR(MAX) NOT NULL');
+                }
+            }
+            // SQLite does not enforce VARCHAR lengths, so no conversion is needed.
+        } catch (\Throwable) {
+            // A read-only database must not prevent modules that already fit.
+            // saveConfig will still surface a real write failure to the caller.
         }
     }
 
