@@ -899,6 +899,16 @@ final class App
                 max(1, (int)($cfg['lock_seconds'] ?? 60))
             );
         });
+        $this->container->factory('security.mcp_tool_rate_limiter', function (Container $c): DatabaseRateLimiter {
+            $cfg = (array)$this->config->get('security.rate_limit.mcp_tool', []);
+
+            return new DatabaseRateLimiter(
+                $c->get('db.pdo'),
+                max(1, (int)($cfg['window_sec'] ?? 60)),
+                max(1, (int)($cfg['max'] ?? 30)),
+                max(1, (int)($cfg['lock_seconds'] ?? 60))
+            );
+        });
         $this->container->factory('policy.hierarchy', fn(Container $c) => new \Api\System\Library\Policy\HierarchyPolicy($c->get('repository.user_management')));
 
         $this->container->factory('service.install', fn(Container $c) => new InstallService(
