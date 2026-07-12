@@ -34,7 +34,7 @@ final class ProjectController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('project', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var ProjectService $service */
                 $service = $this->container->get('service.project');
@@ -213,7 +213,7 @@ final class ProjectController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'timeline:' . $this->cacheUserId() . ':' . (string)$params['public_id'] . ':' . md5(json_encode($input));
+            $cacheKey = 'timeline:' . $this->cacheUserId() . ':' . (string)$params['public_id'] . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('project', $cacheKey, 60, function () use ($params, $input, $authUser) {
                 /** @var GanttService $service */
                 $service = $this->container->get('service.gantt');

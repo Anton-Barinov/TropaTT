@@ -29,7 +29,7 @@ final class MilestoneRepository
                 'p.title AS project_title',
             ])
             ->where('p.public_id', '=', $projectPublicId)
-            ->orderBy('m.due_at IS NULL', 'ASC')
+            ->orderByRaw('m.due_at IS NULL ASC')
             ->orderBy('m.due_at', 'ASC')
             ->orderBy('m.created_at', 'ASC')
             ->get();
@@ -51,7 +51,7 @@ final class MilestoneRepository
                 'p.title AS project_title',
             ])
             ->whereIn('p.public_id', $projectPublicIds)
-            ->orderBy('m.due_at IS NULL', 'ASC')
+            ->orderByRaw('m.due_at IS NULL ASC')
             ->orderBy('m.due_at', 'ASC')
             ->orderBy('m.created_at', 'ASC')
             ->get();

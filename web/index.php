@@ -149,7 +149,7 @@ function webRateLimitCheck(string $route): ?array
     if (!is_dir($dir)) {
         @mkdir($dir, 0700, true);
     }
-    $fileName = $dir . '/crm_web_' . md5($route . ':' . $ip) . '.counter';
+    $fileName = $dir . '/crm_web_' . hash('sha256', $route . ':' . $ip) . '.counter';
 
     $now = time();
     $maxAttempts = 5;

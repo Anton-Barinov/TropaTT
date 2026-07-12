@@ -24,7 +24,7 @@ final class TaskController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'board:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'board:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var TaskBoardService $service */
                 $service = $this->container->get('service.task_board');
@@ -63,7 +63,7 @@ final class TaskController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('task', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var TaskService $service */
                 $service = $this->container->get('service.task');

@@ -10,9 +10,9 @@ final class RetentionService
     /** @var array<string,mixed> */
     private array $defaults = [
         'enabled' => true,
-        'request_logs_days' => 180,
-        'security_logs_days' => 365,
-        'audit_logs_days' => 3650,
+        'request_logs_days' => 90,
+        'security_logs_days' => 180,
+        'audit_logs_days' => 365,
         'recycle_bin_days' => 30,
         'orphan_files_days' => 14,
         'backup_metadata_days' => 365,

@@ -23,7 +23,7 @@ final class CustomFieldController extends BaseController
         if ($cache !== null) {
             ksort($input);
             $cachePayload = json_encode($input, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $cacheKey = 'list:' . md5($cachePayload !== false ? $cachePayload : serialize($input));
+            $cacheKey = 'list:' . hash('sha256', $cachePayload !== false ? $cachePayload : serialize($input));
             $result = $cache->remember('custom_field', $cacheKey, 60, function () use ($input) {
                 /** @var CustomFieldService $service */
                 $service = $this->container->get('service.custom_field');
@@ -90,7 +90,7 @@ final class CustomFieldController extends BaseController
         $publicId = (string)$params['public_id'];
         $cache = $this->cacheApi();
         if ($cache !== null) {
-            $item = $cache->remember('custom_field', 'get:' . md5($publicId), 60, function () use ($publicId) {
+            $item = $cache->remember('custom_field', 'get:' . hash('sha256', $publicId), 60, function () use ($publicId) {
                 /** @var CustomFieldService $service */
                 $service = $this->container->get('service.custom_field');
                 return $service->get($publicId);

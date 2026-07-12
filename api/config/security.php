@@ -27,22 +27,21 @@ if ($isProduction) {
         throw new \RuntimeException('AI_ENCRYPTION_KEY must be set in production');
     }
 } else {
-    $fallbackSeed = hash('sha256', ($appKey ?: 'dev-default') . ':' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ':' . __FILE__);
     $missingKeys = [];
     if ($csrfSecret === '') {
-        $csrfSecret = hash('sha256', 'csrf:' . $fallbackSeed);
+        $csrfSecret = bin2hex(random_bytes(32));
         $missingKeys[] = 'CSRF_SECRET_KEY';
     }
     if ($webhookSecret === '') {
-        $webhookSecret = hash('sha256', 'webhook:' . $fallbackSeed);
+        $webhookSecret = bin2hex(random_bytes(32));
         $missingKeys[] = 'WEBHOOK_SECRET_KEY';
     }
     if ($aiEncryptionKey === '') {
-        $aiEncryptionKey = hash('sha256', 'ai:' . $fallbackSeed);
+        $aiEncryptionKey = bin2hex(random_bytes(32));
         $missingKeys[] = 'AI_ENCRYPTION_KEY';
     }
     if ($missingKeys !== []) {
-        error_log('SECURITY WARNING: Auto-generated deterministic secrets for non-production: ' . implode(', ', $missingKeys) . '. Set explicit keys in .env for production.');
+        error_log('SECURITY WARNING: Auto-generated random secrets for non-production: ' . implode(', ', $missingKeys) . '. Set explicit keys in .env for production.');
     }
 }
 

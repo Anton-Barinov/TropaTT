@@ -30,7 +30,7 @@ final class MilestoneController extends BaseController
 
             $cache = $this->cacheApi();
             if ($cache !== null) {
-                $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($projectPublicIds));
+                $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($projectPublicIds));
                 $byProject = $cache->remember('milestone', $cacheKey, 60, function () use ($projectPublicIds, $auth) {
                     /** @var MilestoneService $service */
                     $service = $this->container->get('service.milestone');
