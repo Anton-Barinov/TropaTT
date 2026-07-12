@@ -105,6 +105,10 @@ return [
     ],
     'uploads' => [
         'max_size_bytes' => 20 * 1024 * 1024,
+        'rate_limit' => [
+            'max' => 50,
+            'window_sec' => 3600,
+        ],
         'quarantine_extensions' => ['php', 'phtml', 'phar', 'pht', 'php5', 'php7', 'php8', 'exe', 'sh', 'bat', 'cmd', 'com', 'msi', 'dll', 'html', 'htm', 'shtml', 'svg', 'xhtml', 'cgi', 'pl', 'py', 'asp', 'aspx', 'jsp'],
         'quarantine_mime_prefixes' => ['application/x-php', 'application/x-sh', 'application/x-msdownload'],
     ],

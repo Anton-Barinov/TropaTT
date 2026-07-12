@@ -29,5 +29,6 @@
     RewriteRule ^tests/ - [F,L]
     RewriteRule ^vendor/ - [F,L]
     RewriteRule ^storage_test_runtime/ - [F,L]
-    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    # SEC-016: composer.json moved to project root; .dist reference is harmless
+    RewriteRule ^composer\.json\.dist$ - [F,L]
 </IfModule>
