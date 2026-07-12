@@ -122,12 +122,6 @@ final class ModuleConfig
         )";
         $this->pdo->exec($sql);
 
-        // Older installations created config as VARCHAR(190). Module manifests
-        // legitimately contain nested mappings and cannot be safely truncated.
-        // This self-healing schema check runs during module setup, so shared
-        // hosting does not need a manual database migration.
-        $this->ensureConfigColumnCapacity($driver);
-
         try {
             $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_registry_name ON module_registry(module_name)");
         } catch (\Throwable) {
@@ -294,7 +288,30 @@ final class ModuleConfig
             throw new RuntimeException('Failed to encode config to JSON');
         }
 
+        $params = ['config' => $json, 'name' => $moduleName];
         $stmt = $this->pdo->prepare("UPDATE {$this->tableName} SET config = :config WHERE module_name = :name");
-        $stmt->execute(['config' => $json, 'name' => $moduleName]);
+
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            if (!$this->isConfigColumnTooSmall($e)) {
+                throw $e;
+            }
+
+            // Upgrade legacy VARCHAR(190) installations only if a real module
+            // configuration needs more space. This keeps the normal request path
+            // free of INFORMATION_SCHEMA reads on shared hosting.
+            $this->ensureConfigColumnCapacity((string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME));
+            $retry = $this->pdo->prepare("UPDATE {$this->tableName} SET config = :config WHERE module_name = :name");
+            $retry->execute($params);
+        }
+    }
+
+    private function isConfigColumnTooSmall(\PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        return (string)$exception->getCode() === '22001'
+            || str_contains($message, 'data too long')
+            || str_contains($message, 'string data, right truncated');
     }
 }
