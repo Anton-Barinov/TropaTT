@@ -21,6 +21,11 @@
 
 !/.gitignore
 
+# Allow storage_api/secrets/.htaccess for defense-in-depth access control
+!/storage_api/
+!/storage_api/secrets/
+!/storage_api/secrets/.htaccess
+
 # Local one-click update runtime. Keep this deployable with the core,
 # but do not ever allow private updater keys to be committed.
 
