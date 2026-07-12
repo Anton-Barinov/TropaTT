@@ -1,4 +1,37 @@
 window.CRM = window.CRM || {};
+window.CRM.confirm = function (options) {
+  var modal = document.getElementById('crmConfirmModal');
+  var title = document.getElementById('crmConfirmTitle');
+  var body = document.getElementById('crmConfirmBody');
+  var currentAction = document.getElementById('crmConfirmActionBtn');
+  if (!modal || !currentAction || !window.bootstrap || !window.bootstrap.Modal) {
+    return Promise.resolve(window.confirm(String(options && options.body || '')));
+  }
+
+  var action = currentAction.cloneNode(true);
+  currentAction.parentNode.replaceChild(action, currentAction);
+  if (title) title.textContent = String(options && options.title || window.CRM.i18n.t('common.confirm_title', 'Confirm action'));
+  if (body) body.textContent = String(options && options.body || window.CRM.i18n.t('common.confirm_body', 'Are you sure?'));
+  action.textContent = String(options && options.actionText || window.CRM.i18n.t('common.confirm_btn', 'Confirm'));
+  action.className = 'btn ' + String(options && options.actionClass || 'crm-btn-danger-soft');
+
+  var instance = window.bootstrap.Modal.getOrCreateInstance(modal);
+  return new Promise(function (resolve) {
+    var resolved = false;
+    function cleanup(result) {
+      if (resolved) return;
+      resolved = true;
+      action.removeEventListener('click', onConfirm);
+      modal.removeEventListener('hidden.bs.modal', onCancel);
+      resolve(result);
+    }
+    function onConfirm() { cleanup(true); instance.hide(); }
+    function onCancel() { cleanup(false); }
+    action.addEventListener('click', onConfirm, { once: true });
+    modal.addEventListener('hidden.bs.modal', onCancel, { once: true });
+    instance.show();
+  });
+};
 window.CRM.modals = (function () {
   function ensureProjectQuickPreviewDrawer() {
     if (document.getElementById('projectQuickPreviewDrawer')) return;
