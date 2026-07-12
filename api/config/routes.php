@@ -385,29 +385,29 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/unlock', 'controller' => Api\Controller\Knowledge\KnowledgePageVersionController::class, 'action' => 'unlock', 'auth' => true, 'required_permissions' => ['knowledge.publish']],
 
     // estimate sets
-    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listSets', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'createSet', 'auth' => true],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'getSet', 'auth' => true],
-    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'updateSet', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets/{public_id}/archive', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'archiveSet', 'auth' => true],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'deleteSet', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listSets', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'createSet', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'getSet', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'updateSet', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets/{public_id}/archive', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'archiveSet', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/estimate-sets/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'deleteSet', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // estimate options
-    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets/{public_id}/options', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listOptions', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets/{public_id}/options', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'createOption', 'auth' => true],
-    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/estimate-options/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'updateOption', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-options/{public_id}/archive', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'archiveOption', 'auth' => true],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/estimate-options/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'deleteOption', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/estimate-sets/{public_id}/options', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listOptions', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-sets/{public_id}/options', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'createOption', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/estimate-options/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'updateOption', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/estimate-options/{public_id}/archive', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'archiveOption', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/estimate-options/{public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'deleteOption', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // task estimates
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/estimates', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listTaskEstimates', 'auth' => true],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/estimates', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'assignEstimate', 'auth' => true],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}/estimates/{set_public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'removeEstimate', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/estimates', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'listTaskEstimates', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/estimates', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'assignEstimate', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}/estimates/{set_public_id}', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'removeEstimate', 'auth' => true, 'required_permissions' => ['task.manage']],
 
     // estimate summaries
-    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'projectSummary', 'auth' => true],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'cycleSummary', 'auth' => true],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'moduleSummary', 'auth' => true],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'projectSummary', 'auth' => true, 'required_permissions' => ['project.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/cycles/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'cycleSummary', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/project-modules/{public_id}/estimate-summary', 'controller' => Api\Controller\Estimate\EstimateController::class, 'action' => 'moduleSummary', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // sticky notes
     ['methods' => ['GET'], 'pattern' => '/api/v1/sticky-notes', 'controller' => Api\Controller\Sticky\StickyNoteController::class, 'action' => 'list', 'auth' => true],

@@ -1843,7 +1843,8 @@ final class App
 
         /** @var AuthService $auth */
         $auth = $this->container->get('service.auth');
-        $me = $auth->me($token);
+        $userAgent = $request->userAgent();
+        $me = $auth->me($token, $userAgent);
         if (!$me) {
             return null;
         }

@@ -1,3 +1,8 @@
+# SEC-012: Block direct access to .env and hidden files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
 RewriteEngine On
 
 <IfModule mod_expires.c>
