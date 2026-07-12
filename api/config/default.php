@@ -9,12 +9,13 @@ if (PHP_SAPI !== 'cli' && ($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
 
 
 $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/../storage_api');
+$appEnv = strtolower(trim((string)(getenv('APP_ENV') ?: 'prod')));
 
 return [
     'app' => [
         'name' => 'TropaTT API',
         'env' => getenv('APP_ENV') ?: 'prod',
-        'debug' => (getenv('APP_DEBUG') ?: '0') === '1',
+        'debug' => in_array($appEnv, ['production', 'prod'], true) ? false : ((getenv('APP_DEBUG') ?: '0') === '1'),
         'timezone' => getenv('APP_TIMEZONE') ?: 'Europe/Moscow',
         'version' => 'v1',
     ],

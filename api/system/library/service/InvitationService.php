@@ -131,13 +131,18 @@ final class InvitationService
             $authFactor = $this->tokens->generate(16);
         }
 
+        $password = (string)($input['password'] ?? '');
+        if (mb_strlen($password) < 8) {
+            return ['ok' => false, 'code' => 'INVITATION_WEAK_PASSWORD'];
+        }
+
         $userPublicId = Ulid::generate('usr');
         $now = gmdate('Y-m-d H:i:s');
         $userId = $this->userManagement->create([
             'public_id' => $userPublicId,
             'login' => $login,
             'email' => $email,
-            'password_hash' => $this->hasher->hash((string)$input['password']),
+            'password_hash' => $this->hasher->hash($password),
             'auth_token_hash' => $this->tokens->hash($authFactor),
             'full_name' => trim((string)($input['full_name'] ?? '')),
             'locale' => (string)($input['locale'] ?? 'en-gb'),
