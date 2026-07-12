@@ -116,6 +116,7 @@ use Api\System\Library\Service\MentionService;
 use Api\System\Library\Service\OpsService;
 use Api\System\Library\Service\ReactionService;
 use Api\System\Library\Service\RetentionService;
+use Api\System\Library\Service\RateLimitService;
 use Api\System\Library\Service\SearchService;
 use Api\System\Library\Service\SecurityAiContextBuilder;
 use Api\System\Library\Service\RoleService;
@@ -915,6 +916,7 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
+            $c->get('service.rate_limiter'),
             (int)$this->config->get('security.auth.access_token_ttl', 43200),
             (int)$this->config->get('security.auth.max_session_lifetime', 2592000)
         ));
@@ -1129,7 +1131,8 @@ final class App
             $c->get('repository.role'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('service.rate_limiter')
         ));
         $this->container->factory('service.password_reset', fn(Container $c) => new PasswordResetService(
             $c->get('repository.password_reset'),
@@ -1138,7 +1141,8 @@ final class App
             $c->get('repository.user_management'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger')
+            $c->get('logger'),
+            $c->get('service.rate_limiter')
         ));
         $this->container->factory('service.two_factor', fn(Container $c) => new TwoFactorService(
             $c->get('repository.two_factor'),
@@ -1538,6 +1542,8 @@ final class App
             $c->get('config'),
             $c->get('logger')
         ));
+        $this->container->factory('service.rate_limiter', fn() => new RateLimitService());
+
         $this->container->factory('service.idempotency', fn(Container $c) => new \Api\System\Library\Service\IdempotencyService(
             $c->get('repository.idempotency')
         ));

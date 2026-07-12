@@ -159,8 +159,8 @@ abstract class BaseController
     }
 
     /**
-     * File-based IP rate limit check-and-increment (SEC-04).
-     * Uses flock() for atomicity. Fail-open: returns ['blocked' => false] on any error.
+     * File-based IP rate limit check-and-increment.
+     * Delegates to the shared RateLimitService for consistency.
      *
      * @param string $prefix Unique prefix for the rate limit bucket (e.g. 'inv_accept', 'pw_reset_confirm')
      * @param int $maxAttempts Max attempts within the window
@@ -169,60 +169,12 @@ abstract class BaseController
      */
     protected function checkIpRateLimit(string $prefix, int $maxAttempts = 20, int $windowSeconds = 60, int $lockSeconds = 300): array
     {
-        $ip = $this->request()->ip();
-        $now = time();
-        $dir = dirname(__DIR__, 3) . '/storage_api/cache/rate_limits';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
-        }
-        $file = $dir . '/crm_rl_' . $prefix . '_' . hash('sha256', $ip) . '.counter';
-
-        $fp = @fopen($file, 'c+');
-        if (!$fp) {
+        if (!$this->container->has('service.rate_limiter')) {
             return ['blocked' => false, 'retry_after' => 0];
         }
-
-        if (!flock($fp, LOCK_EX)) {
-            fclose($fp);
-            return ['blocked' => false, 'retry_after' => 0];
-        }
-
-        $raw = stream_get_contents($fp);
-        $data = ($raw !== false && $raw !== '') ? @json_decode($raw, true) : null;
-        if (!is_array($data)) {
-            $data = ['count' => 0, 'window_start' => 0, 'blocked_until' => 0];
-        }
-
-        $data['count'] = (int)($data['count'] ?? 0);
-        $data['window_start'] = (int)($data['window_start'] ?? 0);
-        $data['blocked_until'] = (int)($data['blocked_until'] ?? 0);
-
-        if ($data['blocked_until'] > $now) {
-            flock($fp, LOCK_UN);
-            fclose($fp);
-            return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
-        }
-
-        if (($now - $data['window_start']) > $windowSeconds) {
-            $data = ['count' => 1, 'window_start' => $now, 'blocked_until' => 0];
-        } else {
-            $data['count']++;
-            if ($data['count'] >= $maxAttempts) {
-                $data['blocked_until'] = $now + $lockSeconds;
-            }
-        }
-
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($data, JSON_UNESCAPED_SLASHES));
-        flock($fp, LOCK_UN);
-        fclose($fp);
-
-        if ($data['blocked_until'] > $now) {
-            return ['blocked' => true, 'retry_after' => $data['blocked_until'] - $now];
-        }
-
-        return ['blocked' => false, 'retry_after' => 0];
+        /** @var \Api\System\Library\Service\RateLimitService $rateLimiter */
+        $rateLimiter = $this->container->get('service.rate_limiter');
+        return $rateLimiter->check($prefix, $this->request()->ip(), $maxAttempts, $windowSeconds, $lockSeconds, true);
     }
 
     /** @param array<string,mixed>|array<int,mixed> $payload */
