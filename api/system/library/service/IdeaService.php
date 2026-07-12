@@ -238,7 +238,7 @@ final class IdeaService
 
     public function saveAnalysis(int $ideaId, string $type, mixed $result): void
     {
-        $inputHash = md5(json_encode($result));
+        $inputHash = hash('sha256', json_encode($result));
         $promptV = '1.0.0';
         $schemaV = '1.0.0';
 

@@ -167,7 +167,7 @@ final class PasswordResetService
         $windowSecs = 300;
         $lockSecs = 900;
         $now = time();
-        $file = $this->rateLimitStorageDir() . '/crm_' . $prefix . '_' . md5($rateKey) . '.counter';
+        $file = $this->rateLimitStorageDir() . '/crm_' . $prefix . '_' . hash('sha256', $rateKey) . '.counter';
         $fp = @fopen($file, 'c+');
         if (!$fp) return ['blocked' => false, 'retry_after' => 0];
         if (!flock($fp, LOCK_EX)) { fclose($fp); return ['blocked' => false, 'retry_after' => 0]; }

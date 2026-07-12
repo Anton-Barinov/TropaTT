@@ -1200,7 +1200,6 @@ MD;
             ], ['public_id']);
         }
 
-        $tools[] = $this->tool('crm_get_profile', 'Get the current user profile and preferences without secrets.', []);
         $tools[] = $this->tool('crm_list_security_sessions', 'List active and historical sessions for the current CRM user.', [
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],

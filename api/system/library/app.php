@@ -1112,7 +1112,8 @@ final class App
             $c->get('security.hasher'),
             $c->get('policy.hierarchy'),
             $c->get('logger'),
-            $c->get('service.logs')
+            $c->get('service.logs'),
+            $c->get('repository.session')
         ));
         $this->container->factory('service.user_profile', fn(Container $c) => new UserProfileService(
             $c->get('repository.user_management'),

@@ -16,7 +16,7 @@ final class ImpersonationController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->request()->allInput();
+        $input = $this->validatedInput(['target_user_public_id', 'reason']);
         $validator = new Validator();
         $validator->require($input, 'target_user_public_id', $this->t('common/messages.field_required'))
             ->maxLen($input, 'target_user_public_id', 64, $this->t('security/messages.max_64'))
