@@ -118,6 +118,20 @@ final class TwoFactorController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $validator->errors());
         }
 
+        // IP-based rate limiting — applied before token resolution to prevent
+        // distributed brute-force across multiple login tokens.
+        /** @var RateLimitService $rateLimiter */
+        $rateLimiter = $this->container->get('service.rate_limit');
+        $ipKey = 'tfa_ip:' . hash('sha256', $this->request()->ip());
+        $ipState = $rateLimiter->check('two_factor_verify', $ipKey, 10, 300, 600);
+        if ($ipState['blocked'] === true) {
+            return $this->error('TWO_FACTOR_RATE_LIMITED', $this->t('auth/messages.rate_limited'), 429, [
+                'two_factor' => [$this->t('auth/messages.rate_limited')],
+            ], [
+                'retry_after' => max(1, (int)($ipState['retry_after'] ?? 1)),
+            ]);
+        }
+
         // Resolve the user from the temporary login token
         /** @var AuthService $authService */
         $authService = $this->container->get('service.auth');
@@ -128,15 +142,26 @@ final class TwoFactorController extends BaseController
             ]);
         }
 
-        /** @var RateLimitService $rateLimiter */
-        $rateLimiter = $this->container->get('service.rate_limit');
-        $rateKey = hash('sha256', $loginToken);
-        $rateState = $rateLimiter->check('two_factor_verify', $rateKey, 5, 300, 300);
-        if ($rateState['blocked'] === true) {
+        // Per-login-token rate limiting — original defense against single-token brute-force
+        $loginKey = hash('sha256', $loginToken);
+        $loginState = $rateLimiter->check('two_factor_token', $loginKey, 5, 300, 300);
+        if ($loginState['blocked'] === true) {
             return $this->error('TWO_FACTOR_RATE_LIMITED', $this->t('auth/messages.rate_limited'), 429, [
                 'two_factor' => [$this->t('auth/messages.rate_limited')],
             ], [
-                'retry_after' => max(1, (int)($rateState['retry_after'] ?? 1)),
+                'retry_after' => max(1, (int)($loginState['retry_after'] ?? 1)),
+            ]);
+        }
+
+        // User-based rate limiting — prevents distributed brute-force across multiple tokens
+        $userId = (int)($user['id'] ?? 0);
+        $userKey = 'tfa_user:' . $userId;
+        $userState = $rateLimiter->check('two_factor_user', $userKey, 5, 300, 300);
+        if ($userState['blocked'] === true) {
+            return $this->error('TWO_FACTOR_RATE_LIMITED', $this->t('auth/messages.rate_limited'), 429, [
+                'two_factor' => [$this->t('auth/messages.rate_limited')],
+            ], [
+                'retry_after' => max(1, (int)($userState['retry_after'] ?? 1)),
             ]);
         }
 
@@ -156,7 +181,10 @@ final class TwoFactorController extends BaseController
             ]);
         }
 
-        $rateLimiter->clear('two_factor_verify', $rateKey);
+        // Clear all rate limit counters on success
+        $rateLimiter->clear('two_factor_verify', $ipKey);
+        $rateLimiter->clear('two_factor_token', $loginKey);
+        $rateLimiter->clear('two_factor_user', $userKey);
 
         // Complete the login — issue session and CSRF tokens
         $issuedToken = $authService->completeTwoFactorLogin($loginToken, $this->request()->ip(), $this->request()->userAgent());

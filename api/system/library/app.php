@@ -751,7 +751,10 @@ final class App
         header('X-Frame-Options: DENY');
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
-        header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'');
+        $cspReportUri = ($forwardedProto === 'https' ? 'https' : 'http') . '://'
+            . trim((string)($request->server['HTTP_HOST'] ?? $request->server['SERVER_NAME'] ?? 'localhost'))
+            . '/api/index.php?route=api/v1/telemetry/csp-report';
+        header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri ' . $cspReportUri);
         // SEC-006: Neutral X-Powered-By to reduce information disclosure
         header('X-Powered-By: CRM');
 
@@ -2027,6 +2030,30 @@ final class App
             }
 
             $omitted++;
+        }
+
+        // Mask sensitive data in query string (SEC-008)
+        $queryString = (string)($request->server['QUERY_STRING'] ?? '');
+        if ($queryString !== '') {
+            $maskedQuery = [];
+            parse_str($queryString, $queryParams);
+            if (is_array($queryParams)) {
+                foreach ($queryParams as $qKey => $qValue) {
+                    $normalizedQ = strtolower((string)$qKey);
+                    if (
+                        str_contains($normalizedQ, 'token')
+                        || str_contains($normalizedQ, 'key')
+                        || str_contains($normalizedQ, 'secret')
+                        || str_contains($normalizedQ, 'password')
+                        || str_contains($normalizedQ, 'code')
+                    ) {
+                        $maskedQuery[$qKey] = '***';
+                    } else {
+                        $maskedQuery[$qKey] = $qValue;
+                    }
+                }
+                $safe['_masked_query_string'] = http_build_query($maskedQuery);
+            }
         }
 
         if ($omitted > 0) {
