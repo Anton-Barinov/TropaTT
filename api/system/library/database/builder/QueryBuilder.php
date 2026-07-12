@@ -122,6 +122,12 @@ final class QueryBuilder
         return $this;
     }
 
+    public function orderByRaw(string $expression): self
+    {
+        $this->orders[] = $expression;
+        return $this;
+    }
+
     /**
      * @param string|array<int,string> $columns
      */
