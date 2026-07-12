@@ -8,10 +8,13 @@ use Api\Model\Common\UserRepository;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Security\TokenManager;
+use Api\System\Library\Service\TwoFactorService;
 use Api\System\Library\Support\Ulid;
 
 final class AuthService
 {
+    private const PENDING_2FA_TTL = 300; // 5 minutes
+
     public function __construct(
         private readonly UserRepository $users,
         private readonly AuthRepository $auth,
@@ -20,7 +23,8 @@ final class AuthService
         private readonly JsonLogger $logger,
         private readonly RateLimitService $rateLimiter,
         private readonly int $tokenTtlSeconds,
-        private readonly int $maxSessionLifetimeSeconds
+        private readonly int $maxSessionLifetimeSeconds,
+        private readonly ?TwoFactorService $twoFactorService = null
     ) {
     }
 
@@ -130,6 +134,27 @@ final class AuthService
         }
 
         $this->clearLoginRateLimit($rateKey);
+
+        // Check if 2FA is enabled for this user
+        if ($this->twoFactorService !== null && $this->twoFactorService->requiresTwoFactor((int)$user['id'])) {
+            $pendingToken = $this->createPendingTwoFactorToken($user);
+
+            $this->logger->security([
+                'event_type' => 'auth_two_factor_required',
+                'user_public_id' => (string)$user['public_id'],
+                'ip' => $ip,
+                'user_agent' => $userAgent,
+            ]);
+
+            return [
+                'ok' => true,
+                'requires_two_factor' => true,
+                'login_token' => $pendingToken,
+                'expires_in' => self::PENDING_2FA_TTL,
+                'user' => $this->normalizeUser($user),
+            ];
+        }
+
         $plainAccess = $this->tokens->generate();
         $sessionPublicId = Ulid::generate('ses');
         $expiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
@@ -301,6 +326,125 @@ final class AuthService
         }
 
         return substr(hash('sha256', $normalized), 0, 64);
+    }
+
+    /**
+     * Create a signed pending 2FA token for a user who passed password verification.
+     */
+    private function createPendingTwoFactorToken(array $user): string
+    {
+        $payload = json_encode([
+            'uid' => (int)($user['id'] ?? 0),
+            'pub' => (string)($user['public_id'] ?? ''),
+            'exp' => time() + self::PENDING_2FA_TTL,
+            'nonce' => bin2hex(random_bytes(16)),
+        ]);
+
+        $signature = hash_hmac('sha256', $payload, $this->getPendingTokenKey());
+
+        return base64_encode($signature . ':' . $payload);
+    }
+
+    /**
+     * Resolve a pending 2FA token and return the user array if valid.
+     * Returns null if token is invalid, expired, or tampered with.
+     */
+    public function resolveTwoFactorToken(string $token): ?array
+    {
+        $decoded = base64_decode($token, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $separatorPos = strpos($decoded, ':');
+        if ($separatorPos === false) {
+            return null;
+        }
+
+        $signature = substr($decoded, 0, $separatorPos);
+        $payload = substr($decoded, $separatorPos + 1);
+
+        if ($signature === false || $payload === false || $signature === '' || $payload === '') {
+            return null;
+        }
+
+        $expected = hash_hmac('sha256', $payload, $this->getPendingTokenKey());
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        $data = json_decode($payload, true);
+        if (!is_array($data) || !isset($data['exp']) || !isset($data['uid']) || !isset($data['pub'])) {
+            return null;
+        }
+
+        if ((int)$data['exp'] < time()) {
+            return null;
+        }
+
+        $user = $this->users->findById((int)$data['uid']);
+        if (!$user || (string)($user['public_id'] ?? '') !== (string)$data['pub']) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    /**
+     * Complete a 2FA login by issuing session tokens for the resolved user.
+     */
+    public function completeTwoFactorLogin(string $loginToken, string $ip, string $userAgent): ?array
+    {
+        $user = $this->resolveTwoFactorToken($loginToken);
+        if (!$user) {
+            return null;
+        }
+
+        $plainAccess = $this->tokens->generate();
+        $sessionPublicId = Ulid::generate('ses');
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
+        $deviceFingerprint = $this->buildDeviceFingerprint($userAgent);
+        $deviceName = $this->buildDeviceName($userAgent);
+
+        $this->auth->createSession([
+            'public_id' => $sessionPublicId,
+            'user_id' => (int)$user['id'],
+            'token_hash' => $this->tokens->hash($plainAccess),
+            'ip' => $ip,
+            'user_agent' => $userAgent,
+            'device_fingerprint' => $deviceFingerprint,
+            'device_name' => $deviceName,
+            'expires_at' => $expiresAt,
+            'created_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+
+        $this->logger->security([
+            'event_type' => 'auth_two_factor_completed',
+            'user_public_id' => (string)$user['public_id'],
+            'session_public_id' => $sessionPublicId,
+            'ip' => $ip,
+            'user_agent' => $userAgent,
+        ]);
+
+        return [
+            'ok' => true,
+            'access_token' => $plainAccess,
+            'token_type' => 'Bearer',
+            'expires_in' => $this->tokenTtlSeconds,
+            'session_public_id' => $sessionPublicId,
+            'user' => $this->normalizeUser($user),
+        ];
+    }
+
+    /**
+     * Get the key used for signing pending 2FA tokens.
+     */
+    private function getPendingTokenKey(): string
+    {
+        // Derive a deterministic signing key from the app environment
+        // Using a hash to ensure consistent length and entropy
+        $seed = __CLASS__ . '::pending_2fa::' . ($_SERVER['APP_KEY'] ?? $_ENV['APP_KEY'] ?? '');
+        return hash('sha256', $seed, true);
     }
 
     private function buildDeviceName(string $userAgent): string

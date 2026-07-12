@@ -41,6 +41,21 @@ final class AuthController extends BaseController
             ]);
         }
 
+        // If 2FA is required, return pending login token instead of session
+        if (!empty($result['requires_two_factor'])) {
+            $locale = trim((string)$this->request()->locale);
+            if ($locale !== '') {
+                $this->lang()->setLocale($locale);
+            }
+
+            return $this->success('TWO_FACTOR_REQUIRED', $this->t('security/messages.two_factor_required'), [
+                'requires_two_factor' => true,
+                'login_token' => (string)($result['login_token'] ?? ''),
+                'expires_in' => (int)($result['expires_in'] ?? 300),
+                'user' => $result['user'] ?? [],
+            ]);
+        }
+
         $locale = trim((string)$this->request()->locale);
         if ($locale !== '') {
             $this->lang()->setLocale($locale);

@@ -918,7 +918,8 @@ final class App
             $c->get('logger'),
             $c->get('service.rate_limiter'),
             (int)$this->config->get('security.auth.access_token_ttl', 43200),
-            (int)$this->config->get('security.auth.max_session_lifetime', 2592000)
+            (int)$this->config->get('security.auth.max_session_lifetime', 2592000),
+            $c->get('service.two_factor')
         ));
 
         $this->container->factory('service.project', fn(Container $c) => new ProjectService(
@@ -1149,7 +1150,8 @@ final class App
             $c->get('repository.user'),
             $c->get('security.hasher'),
             $c->get('security.token'),
-            $c->get('logger')
+            $c->get('logger'),
+            trim((string)$this->config->get('security.ai.encryption_key', '')) ?: trim((string)($_SERVER['APP_KEY'] ?? $_ENV['APP_KEY'] ?? ''))
         ));
         $this->container->factory('service.impersonation', fn(Container $c) => new ImpersonationService(
             $c->get('repository.impersonation'),
