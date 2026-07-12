@@ -111,8 +111,8 @@ final class ImpersonationService
             'target_user_public_id' => (string)($target['public_id'] ?? ''),
             'impersonation_public_id' => $auditPublicId,
             'session_public_id' => $sessionPublicId,
-            'ip' => $ip,
-            'user_agent' => $userAgent,
+            'ip' => $this->maskIp($ip, $actor),
+            'user_agent' => '***',
         ]);
 
         return [
@@ -217,8 +217,8 @@ final class ImpersonationService
             'actor_public_id' => (string)($actor['public_id'] ?? ''),
             'impersonation_public_id' => $auditId,
             'revoked_sessions' => $revokedCount,
-            'ip' => $ip,
-            'user_agent' => $userAgent,
+            'ip' => $this->maskIp($ip, $actor),
+            'user_agent' => '***',
         ]);
 
         return [
@@ -250,6 +250,30 @@ final class ImpersonationService
         }
 
         return null;
+    }
+
+    private function maskIp(string $ip, array $actor): string
+    {
+        $isRoot = (bool)(($actor['is_root'] ?? false));
+        if ($isRoot) {
+            return $ip;
+        }
+        $parts = explode('.', $ip);
+        if (count($parts) === 4) {
+            $parts[3] = 'xxx';
+            return implode('.', $parts);
+        }
+        $binary = @inet_pton($ip);
+        if ($binary !== false && strlen($binary) === 16) {
+            for ($i = 12; $i < 16; $i++) {
+                $binary[$i] = "\x00";
+            }
+            $masked = inet_ntop($binary);
+            if ($masked !== false) {
+                return $masked;
+            }
+        }
+        return $ip;
     }
 
     private function normalizeAudit(array $row): array
