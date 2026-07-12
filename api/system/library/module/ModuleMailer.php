@@ -53,7 +53,7 @@ final class ModuleMailer
         // SEC: Use explicit variable creation instead of extract() to prevent variable injection
         // Preserve EXTR_SKIP behavior: don't overwrite existing variables or superglobals
         $skip = ['templateName', 'data', 'key', 'value', 'skip',
-            '_GET', '_POST', '_REQUEST', '_SERVER', '_SESSION', '_COOKIE', '_FILES', '_ENV'];
+            '_GET', '_POST', '_REQUEST', '_SERVER', '_SESSION', '_COOKIE', '_FILES', '_ENV', 'GLOBALS'];
         foreach ($data as $key => $value) {
             if (is_string($key) && !in_array($key, $skip, true) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
                 $$key = $value;
