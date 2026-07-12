@@ -92,6 +92,13 @@ final class ProjectController extends BaseController
             return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
             $item = $service->create($input, $authUser['user']);
 
+            if ($item === 'PROJECT_TASK_PREFIX_ALREADY_EXISTS') {
+                $message = $this->t('project/messages.prefix_already_exists', 'This prefix is already used by another project');
+                return $this->error('PROJECT_TASK_PREFIX_ALREADY_EXISTS', $message, 409, [
+                    'task_key_prefix' => [$message],
+                ]);
+            }
+
             $this->invalidateCache('project');
 
             return $this->success('PROJECT_CREATED', $this->t('project/messages.created'), [

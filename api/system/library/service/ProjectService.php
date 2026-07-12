@@ -8,6 +8,7 @@ use Api\Model\Project\ProjectRepository;
 use Api\Model\Team\TeamRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\System\Library\Support\Ulid;
+use PDOException;
 
 final class ProjectService
 {
@@ -73,7 +74,8 @@ final class ProjectService
         ];
     }
 
-    public function create(array $input, array $actor): array
+    /** @return array<string,mixed>|'PROJECT_TASK_PREFIX_ALREADY_EXISTS' */
+    public function create(array $input, array $actor): array|string
     {
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('prj');
@@ -93,7 +95,9 @@ final class ProjectService
             $managerUserId = (int)$input['manager_user_id'];
         }
 
-        // Resolve task_key_prefix
+        // Resolve task_key_prefix. The database remains the final authority: two
+        // simultaneous requests can both observe a free prefix before either insert.
+        $prefixWasGenerated = empty($input['task_key_prefix']);
         $taskKeyPrefix = null;
         if (!empty($input['task_key_prefix'])) {
             $taskKeyPrefix = $this->resolveTaskKeyPrefix((string)$input['task_key_prefix'], null);
@@ -102,21 +106,36 @@ final class ProjectService
             $taskKeyPrefix = $this->taskKeys?->ensureUniqueProjectPrefix($taskKeyPrefix ?? 'PRJ', null) ?? 'PRJ';
         }
 
-        $this->projects->create([
-            'public_id' => $publicId,
-            'title' => trim((string)$input['title']),
-            'description' => trim((string)($input['description'] ?? '')),
-            'status_code' => (string)($input['status'] ?? 'active'),
-            'priority_code' => (string)($input['priority'] ?? 'normal'),
-            'client_public_id' => (string)($input['client_public_id'] ?? ''),
-            'task_key_prefix' => $taskKeyPrefix,
-            'manager_user_id' => $managerUserId,
-            'team_public_id' => $teamPublicId,
-            'created_by_user_id' => $creatorUserId,
-            'created_at' => $now,
-            'updated_at' => $now,
-            'row_version' => 1,
-        ]);
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                $this->projects->create([
+                    'public_id' => $publicId,
+                    'title' => trim((string)$input['title']),
+                    'description' => trim((string)($input['description'] ?? '')),
+                    'status_code' => (string)($input['status'] ?? 'active'),
+                    'priority_code' => (string)($input['priority'] ?? 'normal'),
+                    'client_public_id' => (string)($input['client_public_id'] ?? ''),
+                    'task_key_prefix' => $taskKeyPrefix,
+                    'manager_user_id' => $managerUserId,
+                    'team_public_id' => $teamPublicId,
+                    'created_by_user_id' => $creatorUserId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                    'row_version' => 1,
+                ]);
+                break;
+            } catch (PDOException $e) {
+                if (!$this->isTaskKeyPrefixDuplicate($e)) {
+                    throw $e;
+                }
+
+                if (!$prefixWasGenerated || $attempt === 2) {
+                    return 'PROJECT_TASK_PREFIX_ALREADY_EXISTS';
+                }
+
+                $taskKeyPrefix = $this->taskKeys?->ensureUniqueProjectPrefix($taskKeyPrefix ?? 'PRJ', null) ?? 'PRJ';
+            }
+        }
 
         $project = $this->projects->findByPublicId($publicId);
 
@@ -139,6 +158,13 @@ final class ProjectService
         }
 
         return $project ?: ['public_id' => $publicId];
+    }
+
+    private function isTaskKeyPrefixDuplicate(PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        return (string)$exception->getCode() === '23000'
+            && (str_contains($message, 'task_key_prefix') || str_contains($message, 'uq_projects_task_key_prefix'));
     }
 
     public function get(string $publicId, array $actor): ?array
