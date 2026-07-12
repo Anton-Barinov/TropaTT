@@ -26,19 +26,16 @@ if (!headers_sent()) {
         "default-src 'self'",
         "base-uri 'self'",
         "object-src 'none'",
-        "frame-ancestors 'self'",
+        "frame-ancestors 'none'",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https:",
         "style-src 'self' 'unsafe-inline' https:",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+        "script-src 'self' 'unsafe-inline' https:",
         "connect-src 'self' https: wss:",
         "worker-src 'self' blob:",
         "report-uri /api/index.php?route=api/v1/telemetry/csp-report",
     ]);
-    $cspHeader = trim((string)getenv('CRM_WEB_CSP_REPORT_ONLY')) === '1'
-        ? 'Content-Security-Policy-Report-Only'
-        : 'Content-Security-Policy';
-    header($cspHeader . ': ' . $csp);
+    header('Content-Security-Policy: ' . $csp);
 }
 
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
