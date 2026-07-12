@@ -17,13 +17,14 @@ final class ActivityRepository
     }
 
     /**
-     * @return array{0:array<int,array<string,mixed>>,1:int,2:int,3:int}
+     * @return array{0:array<int,array<string,mixed>>,1:int|null,2:int,3:int,4:bool}
      */
     public function feed(array $filters, string $actorPublicId, bool $actorIsRoot): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(200, max(1, (int)($filters['limit'] ?? 50)));
         $offset = ($page - 1) * $limit;
+        $includeTotal = !in_array(strtolower((string)($filters['include_total'] ?? '1')), ['0', 'false', 'no'], true);
 
         $channels = $this->normalizeChannels((string)($filters['channel'] ?? 'all'));
 
@@ -49,18 +50,22 @@ final class ActivityRepository
         }
 
         if ($parts === []) {
-            return [[], 0, $page, $limit];
+            return [[], $includeTotal ? 0 : null, $page, $limit, false];
         }
 
         $union = implode("\nUNION ALL\n", $parts);
 
-        $countSql = 'SELECT COUNT(*) FROM (' . $union . ') x';
-        $total = (int)$this->sqlExecutor->fetchValue($countSql, $params);
+        // Dashboard and entity cards only render the first small page. Counting every
+        // row in three append-only logs is needlessly expensive on shared hosting.
+        $total = $includeTotal
+            ? (int)$this->sqlExecutor->fetchValue('SELECT COUNT(*) FROM (' . $union . ') x', $params)
+            : null;
 
         // A global feed only needs rows that can occur on the requested page.
         // Sorting full request/audit/security logs makes the dashboard slower as
         // logs grow. Limit each independent channel first, then merge its window.
-        $windowSize = max(1, $offset + $limit);
+        $resultLimit = $includeTotal ? $limit : $limit + 1;
+        $windowSize = max(1, $offset + $resultLimit);
         $windowParts = [];
         $windowParams = [];
         foreach ($parts as $index => $part) {
@@ -74,11 +79,16 @@ final class ActivityRepository
         $sql = 'SELECT * FROM (' . implode("\nUNION ALL\n", $windowParts) . ') x'
             . ' ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
         $items = $this->sqlExecutor->fetchAll($sql, $params + $windowParams + [
-            ':limit' => $limit,
+            ':limit' => $resultLimit,
             ':offset' => $offset,
         ]);
 
-        return [$items, $total, $page, $limit];
+        $hasMore = !$includeTotal && count($items) > $limit;
+        if ($hasMore) {
+            array_pop($items);
+        }
+
+        return [$items, $total, $page, $limit, $hasMore];
     }
 
     private function normalizeChannels(string $channel): array

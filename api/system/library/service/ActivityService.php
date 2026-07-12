@@ -13,7 +13,7 @@ final class ActivityService
 
     public function feed(array $filters, array $actor): array
     {
-        [$items, $total, $page, $limit] = $this->activity->feed(
+        [$items, $total, $page, $limit, $hasMore] = $this->activity->feed(
             $filters,
             (string)($actor['public_id'] ?? ''),
             (bool)($actor['is_root'] ?? false)
@@ -38,7 +38,8 @@ final class ActivityService
                     'page' => $page,
                     'limit' => $limit,
                     'total' => $total,
-                    'pages' => (int)ceil($total / max(1, $limit)),
+                    'pages' => $total === null ? null : (int)ceil($total / max(1, $limit)),
+                    'has_more' => $hasMore,
                 ],
             ],
         ];

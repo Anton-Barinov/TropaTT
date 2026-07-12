@@ -2549,6 +2549,8 @@ window.CRM.pageApiBindings = (function () {
           query: {
             entity_type: 'project',
             entity_public_id: projectId,
+            channel: 'audit',
+            include_total: 0,
             limit: 20
           }
         });
@@ -3861,7 +3863,7 @@ window.CRM.pageApiBindings = (function () {
       canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 } }) : Promise.resolve(null),
       tryRequest('api/v1/notifications/counters'),
-      canViewActivity ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8 }, silent: true }), 900) : Promise.resolve(null),
+      canViewActivity ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8, include_total: 0 }, silent: true }), 900) : Promise.resolve(null),
       softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/calendar/my-day', { silent: true }) : Promise.resolve(null),
