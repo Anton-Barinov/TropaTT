@@ -5,6 +5,7 @@ return [
     'invalid_cursor' => 'Invalid cursor format',
     'list' => 'Projects list',
     'max_255' => 'Maximum 255 characters',
+    'prefix_already_exists' => 'This prefix is already used by another project',
     'created' => 'Project created successfully',
     'detail' => 'Project details',
     'row_version_conflict' => 'Row version conflict',
