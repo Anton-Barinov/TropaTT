@@ -146,6 +146,19 @@ abstract class BaseController
     }
 
     /**
+     * Return only the allowed input keys from the request body.
+     * Prevents mass assignment by discarding unexpected fields.
+     *
+     * @param array<int,string> $allowedKeys List of allowed parameter names
+     * @return array<string,mixed>
+     */
+    protected function validatedInput(array $allowedKeys): array
+    {
+        $input = $this->request()->allInput();
+        return array_intersect_key($input, array_flip($allowedKeys));
+    }
+
+    /**
      * File-based IP rate limit check-and-increment (SEC-04).
      * Uses flock() for atomicity. Fail-open: returns ['blocked' => false] on any error.
      *
@@ -158,7 +171,7 @@ abstract class BaseController
     {
         $ip = $this->request()->ip();
         $now = time();
-        $file = sys_get_temp_dir() . '/crm_rl_' . $prefix . '_' . md5($ip) . '.counter';
+        $file = sys_get_temp_dir() . '/crm_rl_' . $prefix . '_' . hash('sha256', $ip) . '.counter';
 
         $fp = @fopen($file, 'c+');
         if (!$fp) {

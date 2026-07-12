@@ -20,7 +20,7 @@ final class PriorityController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('priority', $cacheKey, 60, function () use ($input) {
                 /** @var PriorityService $service */
                 $service = $this->container->get('service.priority');

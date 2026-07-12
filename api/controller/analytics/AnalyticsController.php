@@ -45,7 +45,7 @@ final class AnalyticsController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'projects:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'projects:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $items = $cache->remember('analytics', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var AnalyticsService $service */
                 $service = $this->container->get('service.analytics');
@@ -73,7 +73,7 @@ final class AnalyticsController extends BaseController
         if ($cache !== null) {
             $input = $this->request()->allInput();
             ksort($input);
-            $cacheKey = 'users:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'users:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $items = $cache->remember('analytics', $cacheKey, 60, function () use ($input, $authUser) {
                 /** @var AnalyticsService $service */
                 $service = $this->container->get('service.analytics');

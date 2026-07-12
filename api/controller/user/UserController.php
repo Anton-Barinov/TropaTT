@@ -22,7 +22,7 @@ final class UserController extends BaseController
         $cache = $this->cacheApi();
         if ($cache !== null) {
             ksort($input);
-            $cacheKey = 'list:' . $this->cacheUserId() . ':' . md5(json_encode($input));
+            $cacheKey = 'list:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
             $result = $cache->remember('user', $cacheKey, 60, function () use ($input) {
                 /** @var UserService $service */
                 $service = $this->container->get('service.user');

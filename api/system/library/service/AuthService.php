@@ -301,7 +301,7 @@ final class AuthService
     private function checkIpRateLimit(string $ip): array
     {
         return $this->fileRateLimit(
-            $this->rateLimitDir() . '/crm_ip_login_' . md5($ip) . '.counter',
+            $this->rateLimitDir() . '/crm_ip_login_' . hash('sha256', $ip) . '.counter',
             10, 60, 300, true
         );
     }
@@ -309,7 +309,7 @@ final class AuthService
     private function checkLoginRateLimit(string $rateKey): array
     {
         return $this->fileRateLimit(
-            $this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter',
+            $this->rateLimitDir() . '/crm_login_' . hash('sha256', $rateKey) . '.counter',
             5, 300, 900, false
         );
     }
@@ -317,14 +317,14 @@ final class AuthService
     private function hitLoginRateLimit(string $rateKey): array
     {
         return $this->fileRateLimit(
-            $this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter',
+            $this->rateLimitDir() . '/crm_login_' . hash('sha256', $rateKey) . '.counter',
             5, 300, 900, true
         );
     }
 
     private function clearLoginRateLimit(string $rateKey): void
     {
-        @unlink($this->rateLimitDir() . '/crm_login_' . md5($rateKey) . '.counter');
+        @unlink($this->rateLimitDir() . '/crm_login_' . hash('sha256', $rateKey) . '.counter');
     }
 
     private function rateLimitKey(string $login, string $ip): string
