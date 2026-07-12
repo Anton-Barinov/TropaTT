@@ -129,7 +129,17 @@
     if (!container) return;
     if (!cycleFocusLoaded) {
       container.classList.remove('d-none');
-      container.innerHTML = '<div class="crm-cycle-command-text"><strong>' + t('cycles.command_title', 'Фокус по циклам') + '</strong><span>' + t('cycles.loading', 'Загрузка...') + '</span></div>';
+      // Using DOM methods rather than innerHTML to avoid XSS risk with concatenated strings
+      container.textContent = '';
+      var wrapper = document.createElement('div');
+      wrapper.className = 'crm-cycle-command-text';
+      var strong = document.createElement('strong');
+      strong.textContent = t('cycles.command_title', 'Фокус по циклам');
+      wrapper.appendChild(strong);
+      var span = document.createElement('span');
+      span.textContent = t('cycles.loading', 'Загрузка...');
+      wrapper.appendChild(span);
+      container.appendChild(wrapper);
     }
 
     var query = { page: 1, limit: 100 };
