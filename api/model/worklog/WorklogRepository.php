@@ -12,14 +12,14 @@ final class WorklogRepository
     {
     }
 
-    public function list(array $filters, int $actorUserId, bool $actorIsRoot): array
+    public function list(array $filters, array $visibleUserIds, bool $actorIsRoot): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)->count();
-        $items = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+        $total = $this->buildListQuery($filters, $visibleUserIds, $actorIsRoot)->count();
+        $items = $this->buildListQuery($filters, $visibleUserIds, $actorIsRoot)
             ->select([
                 'w.public_id',
                 'w.minutes_spent',
@@ -40,15 +40,15 @@ final class WorklogRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListQuery(array $filters, int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildListQuery(array $filters, array $visibleUserIds, bool $actorIsRoot): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
             ->leftJoin('users u', 'u.id', '=', 'w.user_id')
             ->leftJoin('tasks t', 't.id', '=', 'w.task_id');
 
-        if (!$actorIsRoot) {
-            $query->where('w.user_id', '=', $actorUserId);
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $query->whereIn('w.user_id', $visibleUserIds);
         }
 
         if (!empty($filters['user_public_id'])) {
@@ -142,7 +142,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, day: string}>
      */
-    public function summaryByDay(array $filters, int $actorUserId, bool $actorIsRoot, ?string $teamPublicId = null): array
+    public function summaryByDay(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -158,8 +158,8 @@ final class WorklogRepository
             ->orderBy('day', 'DESC')
             ->orderBy('u.full_name', 'ASC');
 
-        if (!$actorIsRoot) {
-            $qb->where('w.user_id', '=', $actorUserId);
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
         }
 
         if (!empty($filters['from'])) {
@@ -218,7 +218,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float, cost_amount: float, bill_amount: float, day: string}>
      */
-    public function earningsByDay(array $filters, int $actorUserId, bool $actorIsRoot, ?string $teamPublicId = null): array
+    public function earningsByDay(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -238,8 +238,8 @@ final class WorklogRepository
             ->orderBy('day', 'DESC')
             ->orderBy('u.full_name', 'ASC');
 
-        if (!$actorIsRoot) {
-            $qb->where('w.user_id', '=', $actorUserId);
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
         }
 
         if (!empty($filters['from'])) {
@@ -331,7 +331,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{day: string, user_public_id: string, total_minutes: int}>
      */
-    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, ?array $teamUserPublicIds, int $actorUserId, bool $actorIsRoot): array
+    public function matrixForPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, ?array $teamUserPublicIds, array $visibleUserIds, bool $actorIsRoot): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -348,8 +348,8 @@ final class WorklogRepository
             ->orderBy('day', 'ASC')
             ->orderBy('u.full_name', 'ASC');
 
-        if (!$actorIsRoot) {
-            $qb->where('w.user_id', '=', $actorUserId);
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
         }
         if (!empty($userPublicId)) {
             $qb->where('u.public_id', '=', $userPublicId);
@@ -374,7 +374,7 @@ final class WorklogRepository
     /**
      * @return array<int, array{task_public_id: string, task_title: string, minutes_spent: int, note: ?string}>
      */
-    public function detailByDayUser(string $day, string $userPublicId, ?string $projectPublicId, int $actorUserId, bool $actorIsRoot): array
+    public function detailByDayUser(string $day, string $userPublicId, ?string $projectPublicId, array $visibleUserIds, bool $actorIsRoot): array
     {
         $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
@@ -392,8 +392,8 @@ final class WorklogRepository
             ->orderBy('t.title', 'ASC')
             ->orderBy('w.logged_at', 'ASC');
 
-        if (!$actorIsRoot) {
-            $qb->where('w.user_id', '=', $actorUserId);
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
         }
         if (!empty($projectPublicId)) {
             $project = (new QueryBuilder($this->pdo))

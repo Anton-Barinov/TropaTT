@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Task\TaskRepository;
+use Api\Model\User\UserManagementRepository;
 use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Logger\JsonLogger;
@@ -14,16 +15,36 @@ final class WorklogService
     public function __construct(
         private readonly WorklogRepository $worklogs,
         private readonly TaskRepository $tasks,
+        private readonly UserManagementRepository $userManagement,
         private readonly JsonLogger $logger
     ) {
     }
 
+    /**
+     * Get the list of user IDs that the actor can see worklogs for.
+     * Includes the actor and all users created by them (recursively).
+     * Root users get an empty array — no user-level filter is applied.
+     */
+    private function getVisibleUserIds(array $actor): array
+    {
+        $actorId = (int)($actor['id'] ?? 0);
+        $isRoot = (bool)($actor['is_root'] ?? false);
+
+        if ($isRoot || $actorId <= 0) {
+            return [];
+        }
+
+        return $this->userManagement->descendantIds($actorId);
+    }
+
     public function list(array $filters, array $actor): array
     {
+        $visibleUserIds = $this->getVisibleUserIds($actor);
+        $isRoot = (bool)($actor['is_root'] ?? false);
         [$items, $total, $page, $limit] = $this->worklogs->list(
             $filters,
-            (int)$actor['id'],
-            (bool)($actor['is_root'] ?? false)
+            $visibleUserIds,
+            $isRoot
         );
 
         return [
@@ -215,10 +236,10 @@ final class WorklogService
 
     public function summary(array $filters, array $actor): array
     {
-        $actorId = (int)$actor['id'];
+        $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
-        $rows = $this->worklogs->summaryByDay($filters, $actorId, $actorIsRoot, $teamPublicId ?: null);
+        $rows = $this->worklogs->summaryByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
         return ['items' => $rows];
     }
 
@@ -227,7 +248,7 @@ final class WorklogService
         $actorId = (int)$actor['id'];
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
-        $rows = $this->worklogs->earningsByDay($filters, $actorId, $actorIsRoot, $teamPublicId ?: null);
+        $rows = $this->worklogs->earningsByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
         return ['items' => $rows];
     }
 
@@ -246,7 +267,7 @@ final class WorklogService
     public function matrix(array $filters, array $actor): array
     {
         $actorId = (int)$actor['id'];
-        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $visibleUserIds = $this->getVisibleUserIds($actor);
         $from = (string)($filters['from'] ?? '');
         $to = (string)($filters['to'] ?? '');
         $userPublicId = (string)($filters['user_public_id'] ?? '');
@@ -290,7 +311,7 @@ final class WorklogService
             }
         }
 
-        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $projectPublicId ?: null, $teamUserPublicIds, $actorId, $actorIsRoot);
+        $rows = $this->worklogs->matrixForPeriod($from, $to, $userPublicId ?: null, $projectPublicId ?: null, $teamUserPublicIds, $visibleUserIds, $actorIsRoot);
 
         // Build matrix: [day][user_public_id] = total_minutes
         $matrix = [];
@@ -458,8 +479,8 @@ final class WorklogService
     public function detail(string $day, string $userPublicId, ?string $projectPublicId, array $actor): array
     {
         $actorId = (int)$actor['id'];
+        $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
-        $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $actorId, $actorIsRoot);
 
         $totalMinutes = 0;
         foreach ($rows as $row) {
