@@ -15,7 +15,7 @@ final class EnvLoader
      * variables, REMOTE_* and SSL_* protocol info. Anything else in this
      * prefix family is also rejected.
      */
-    private const RESERVED_SERVER_KEY_PATTERN = '/^(HTTP_|REQUEST_|SERVER_|REMOTE_|REDIRECT_|CONTENT_|SSL_|PATH_|SCRIPT_|PHP_|DOCUMENT_|AUTH_|ORIG_|CONTEXT_|FCGI_|X_)/i';
+    private const RESERVED_SERVER_KEY_PATTERN = '/^(HTTP_|REQUEST_|SERVER_|REMOTE_|REDIRECT_|CONTENT_|SSL_|PATH_|SCRIPT_|PHP_|DOCUMENT_|AUTH_|ORIG_|CONTEXT_|FCGI_)/i';
 
     /**
      * @param array<int,string> $files
