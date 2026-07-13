@@ -27,7 +27,7 @@ final class ModuleMailer
         ];
 
         if ($attachments !== []) {
-            $boundary = md5(uniqid((string)time()));
+            $boundary = bin2hex(random_bytes(16));
             $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
             $body = $this->buildMultipartBody($body, $attachments, $boundary);
         }
