@@ -31,7 +31,7 @@ final class JiraMigrationRepository
 
     public function getConnection(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_connections WHERE public_id = :public_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, name, site_url, auth_type, email, token_encrypted, cloud_id, status, last_checked_at, last_error, created_by_user_id, created_at, updated_at FROM module_jira_connections WHERE public_id = :public_id LIMIT 1');
         $stmt->execute(['public_id' => $publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -96,7 +96,7 @@ final class JiraMigrationRepository
 
     public function getConnectionById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_connections WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, name, site_url, auth_type, email, token_encrypted, cloud_id, status, last_checked_at, last_error, created_by_user_id, created_at, updated_at FROM module_jira_connections WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -107,17 +107,17 @@ final class JiraMigrationRepository
     public function listJobs(?string $actorPublicId = null): array
     {
         if ($actorPublicId !== null) {
-            $stmt = $this->pdo->prepare('SELECT j.*, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id WHERE j.created_by_user_id = (SELECT id FROM users WHERE public_id = :pub) ORDER BY j.created_at DESC');
+            $stmt = $this->pdo->prepare('SELECT j.id, j.public_id, j.connection_id, j.status, j.mode, j.source_scope_json, j.target_options_json, j.current_step, j.progress_percent, j.progress_json, j.created_by_user_id, j.started_at, j.finished_at, j.created_at, j.updated_at, j.summary_json, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id WHERE j.created_by_user_id = (SELECT id FROM users WHERE public_id = :pub) ORDER BY j.created_at DESC');
             $stmt->execute(['pub' => $actorPublicId]);
         } else {
-            $stmt = $this->pdo->query('SELECT j.*, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id ORDER BY j.created_at DESC');
+            $stmt = $this->pdo->query('SELECT j.id, j.public_id, j.connection_id, j.status, j.mode, j.source_scope_json, j.target_options_json, j.current_step, j.progress_percent, j.progress_json, j.created_by_user_id, j.started_at, j.finished_at, j.created_at, j.updated_at, j.summary_json, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id ORDER BY j.created_at DESC');
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function getJob(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT j.*, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id WHERE j.public_id = :public_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT j.id, j.public_id, j.connection_id, j.status, j.mode, j.source_scope_json, j.target_options_json, j.current_step, j.progress_percent, j.progress_json, j.created_by_user_id, j.started_at, j.finished_at, j.created_at, j.updated_at, j.summary_json, c.name AS connection_name FROM module_jira_jobs j LEFT JOIN module_jira_connections c ON c.id = j.connection_id WHERE j.public_id = :public_id LIMIT 1');
         $stmt->execute(['public_id' => $publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($row)) {
@@ -210,7 +210,7 @@ final class JiraMigrationRepository
             $params['status'] = $status;
         }
         $offset = max(0, ($page - 1) * $limit);
-        $stmt = $this->pdo->prepare('SELECT i.* FROM module_jira_job_items i WHERE ' . implode(' AND ', $where) . ' ORDER BY i.id ASC LIMIT ' . $limit . ' OFFSET ' . $offset);
+        $stmt = $this->pdo->prepare('SELECT i.id, i.job_id, i.source_type, i.source_id, i.source_key, i.source_parent_id, i.target_type, i.target_public_id, i.status, i.checksum, i.source_updated_at, i.error_code, i.error_message, i.attempts, i.payload_json, i.created_at, i.updated_at FROM module_jira_job_items i WHERE ' . implode(' AND ', $where) . ' ORDER BY i.id ASC LIMIT ' . $limit . ' OFFSET ' . $offset);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -254,7 +254,7 @@ final class JiraMigrationRepository
 
     public function findJobItem(int $jobId, string $sourceType, string $sourceId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_job_items WHERE job_id = :job_id AND source_type = :source_type AND source_id = :source_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, job_id, source_type, source_id, source_key, source_parent_id, target_type, target_public_id, status, checksum, source_updated_at, error_code, error_message, attempts, payload_json, created_at, updated_at FROM module_jira_job_items WHERE job_id = :job_id AND source_type = :source_type AND source_id = :source_id LIMIT 1');
         $stmt->execute(['job_id' => $jobId, 'source_type' => $sourceType, 'source_id' => $sourceId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -262,7 +262,7 @@ final class JiraMigrationRepository
 
     public function findJobItemsByStatus(int $jobId, string $status, int $limit = 500): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_job_items WHERE job_id = :job_id AND status = :status ORDER BY id ASC LIMIT ' . $limit);
+        $stmt = $this->pdo->prepare('SELECT id, job_id, source_type, source_id, source_key, source_parent_id, target_type, target_public_id, status, checksum, source_updated_at, error_code, error_message, attempts, payload_json, created_at, updated_at FROM module_jira_job_items WHERE job_id = :job_id AND status = :status ORDER BY id ASC LIMIT ' . $limit);
         $stmt->execute(['job_id' => $jobId, 'status' => $status]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -315,7 +315,7 @@ final class JiraMigrationRepository
             $params['step'] = $step;
         }
         $offset = max(0, ($page - 1) * $limit);
-        $stmt = $this->pdo->prepare('SELECT l.* FROM module_jira_job_logs l WHERE ' . implode(' AND ', $where) . ' ORDER BY l.created_at DESC LIMIT ' . $limit . ' OFFSET ' . $offset);
+        $stmt = $this->pdo->prepare('SELECT l.id, l.job_id, l.level, l.step, l.message, l.context_json, l.created_at FROM module_jira_job_logs l WHERE ' . implode(' AND ', $where) . ' ORDER BY l.created_at DESC LIMIT ' . $limit . ' OFFSET ' . $offset);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -324,7 +324,7 @@ final class JiraMigrationRepository
 
     public function getJobReport(string $jobPublicId): array
     {
-        $stmt = $this->pdo->prepare('SELECT j.* FROM module_jira_jobs j WHERE j.public_id = :pub LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT j.id, j.public_id, j.connection_id, j.status, j.mode, j.source_scope_json, j.target_options_json, j.current_step, j.progress_percent, j.progress_json, j.created_by_user_id, j.started_at, j.finished_at, j.created_at, j.updated_at, j.summary_json FROM module_jira_jobs j WHERE j.public_id = :pub LIMIT 1');
         $stmt->execute(['pub' => $jobPublicId]);
         $job = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$job) {
@@ -361,7 +361,7 @@ final class JiraMigrationRepository
 
     public function listMappings(int $connectionId): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_identity_mappings WHERE connection_id = :conn_id ORDER BY jira_subject_name ASC');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, connection_id, jira_subject_type, jira_subject_id, jira_subject_name, status, crm_subject_type, crm_subject_public_id, created_at, updated_at FROM module_jira_identity_mappings WHERE connection_id = :conn_id ORDER BY jira_subject_name ASC');
         $stmt->execute(['conn_id' => $connectionId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -416,7 +416,7 @@ final class JiraMigrationRepository
         if ($jobPublicId === '') {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_unresolved_entities WHERE job_id = (SELECT id FROM module_jira_jobs WHERE public_id = :pub) ORDER BY created_at DESC');
+        $stmt = $this->pdo->prepare('SELECT id, job_id, source_type, source_id, reason_code, reason_text, payload_json, created_at FROM module_jira_unresolved_entities WHERE job_id = (SELECT id FROM module_jira_jobs WHERE public_id = :pub) ORDER BY created_at DESC');
         $stmt->execute(['pub' => $jobPublicId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -443,7 +443,7 @@ final class JiraMigrationRepository
 
     public function getRateLimit(int $connectionId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_rate_limits WHERE connection_id = :conn_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, connection_id, requests_made, window_started_at, retry_after_until, updated_at FROM module_jira_rate_limits WHERE connection_id = :conn_id LIMIT 1');
         $stmt->execute(['conn_id' => $connectionId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -512,7 +512,7 @@ final class JiraMigrationRepository
 
     public function getRateLimitState(int $connectionId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_jira_rate_limits WHERE connection_id = :conn_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, connection_id, requests_made, window_started_at, retry_after_until, updated_at FROM module_jira_rate_limits WHERE connection_id = :conn_id LIMIT 1');
         $stmt->execute(['conn_id' => $connectionId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
