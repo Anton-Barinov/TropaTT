@@ -5174,17 +5174,20 @@ font-size: 0.72rem;
   font-size: 0.76rem;
 }
 
-.crm-task-detail-page .crm-task-status-dropdown .crm-badge {
+.crm-task-detail-page .crm-task-status-dropdown .crm-badge,
+.crm-task-detail-page .crm-subtask-status-dropdown .crm-badge {
   border: 0;
   cursor: pointer;
 }
 
-.crm-task-detail-page .crm-task-status-dropdown .crm-badge::after {
+.crm-task-detail-page .crm-task-status-dropdown .crm-badge::after,
+.crm-task-detail-page .crm-subtask-status-dropdown .crm-badge::after {
   margin-left: 0.48rem;
   vertical-align: 0.08em;
 }
 
-.crm-task-detail-page .crm-task-status-dropdown .crm-badge:disabled {
+.crm-task-detail-page .crm-task-status-dropdown .crm-badge:disabled,
+.crm-task-detail-page .crm-subtask-status-dropdown .crm-badge:disabled {
   cursor: default;
   opacity: 1;
 }
@@ -6125,8 +6128,16 @@ font-size: 0.72rem;
   vertical-align: middle;
 }
 
-.crm-task-detail-page .crm-subtasks-table .form-select-sm {
+.crm-task-detail-page .crm-subtask-status-cell {
   min-width: 168px;
+}
+
+.crm-task-detail-page .crm-subtask-status-dropdown .crm-badge {
+  min-width: 132px;
+  justify-content: space-between;
+  padding: 0.32rem 0.62rem;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .crm-task-detail-page .crm-subtask-link {

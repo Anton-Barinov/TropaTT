@@ -3165,6 +3165,24 @@ window.CRM.br1 = (function () {
     }).join('');
   }
 
+  function subtaskStatusControl(item, canChangeStatus) {
+    var currentCode = String((item && item.status_code) || 'new');
+    var color = statusColor(currentCode);
+    var colorStyle = color
+      ? ' style="background-color:' + escapeHtml(color) + ';border-color:' + escapeHtml(color) + ';color:' + escapeHtml(statusTextColor(color)) + '"'
+      : '';
+    var options = orderedTaskStatuses(currentCode).map(function (status) {
+      var code = String(status.code || '');
+      var selected = code === currentCode;
+      return '<li><button class="dropdown-item' + (selected ? ' active' : '') + '" type="button" data-subtask-status-option="' + escapeHtml(code) + '"' + (selected ? ' disabled aria-current="true"' : '') + '>' + escapeHtml(status.title || code) + '</button></li>';
+    }).join('');
+
+    return '<div class="dropdown crm-subtask-status-dropdown">'
+      + '<button class="crm-badge dropdown-toggle ' + statusBadgeClass(currentCode) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Статус подзадачи"' + colorStyle + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentCode)) + '</button>'
+      + '<ul class="dropdown-menu crm-task-status-menu">' + options + '</ul>'
+      + '</div>';
+  }
+
   function subtaskPriorityOptions(selectedPriority) {
     var priorities = [
       { code: 'low', title: window.CRM.i18n.t('js.br1.nizkiy_2', 'Низкий') },
@@ -3331,10 +3349,8 @@ window.CRM.br1 = (function () {
           + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mt_1_avtor', '<div class="small text-muted mt-1">Автор: ') + escapeHtml(authorLabel) + '</div>'
           + '</td>'
           + '<td>' + escapeHtml(dueLabel) + '</td>'
-          + '<td style="min-width:190px">'
-          + '<select class="form-select form-select-sm" data-subtask-status="' + escapeHtml(subtaskId) + '"' + (canWorkTask ? '' : ' disabled') + '>'
-          + subtaskStatusOptions(item.status_code || 'new')
-          + '</select>'
+          + '<td class="crm-subtask-status-cell">'
+          + subtaskStatusControl(item, canWorkTask)
           + '</td>'
           + '<td><span class="crm-chip">' + escapeHtml(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
           + '<td class="text-end">'
@@ -4365,21 +4381,22 @@ window.CRM.br1 = (function () {
     }
 
     if (list.dataset.bound === '1') return;
-    list.addEventListener('change', async function (e) {
-      var statusSelect = e.target.closest('[data-subtask-status]');
-      if (!statusSelect) return;
+    list.addEventListener('click', async function (e) {
+      var statusOption = e.target.closest('[data-subtask-status-option]');
+      if (!statusOption || statusOption.disabled) return;
 
       if (!canWorkTask) {
         return;
       }
 
-      var subtaskPublicId = String(statusSelect.getAttribute('data-subtask-status') || '').trim();
+      var subtaskRow = statusOption.closest('[data-subtask-id]');
+      var subtaskPublicId = String((subtaskRow && subtaskRow.getAttribute('data-subtask-id')) || '').trim();
       if (!subtaskPublicId) return;
       try {
         await window.CRM.api.request('api/v1/subtasks/' + subtaskPublicId, {
           method: 'PATCH',
           body: {
-            status: String(statusSelect.value || 'new')
+            status: String(statusOption.getAttribute('data-subtask-status-option') || 'new')
           }
         });
         await loadSubtasks(taskId, canWorkTask, canCreateTask);
