@@ -9,6 +9,15 @@ final class EnvLoader
     private static array $loadedKeys = [];
 
     /**
+     * Pattern matching $_SERVER/PHP-supplied keys that must never be
+     * overwritten by .env values. Covers HTTP_* headers (Host Header
+     * Injection, Authorization spoofing), REQUEST_* and SERVER_* transport
+     * variables, REMOTE_* and SSL_* protocol info. Anything else in this
+     * prefix family is also rejected.
+     */
+    private const RESERVED_SERVER_KEY_PATTERN = '/^(HTTP_|REQUEST_|SERVER_|REMOTE_|REDIRECT_|CONTENT_|SSL_|PATH_|SCRIPT_|PHP_|DOCUMENT_|AUTH_|ORIG_|CONTEXT_|FCGI_|X_)/i';
+
+    /**
      * @param array<int,string> $files
      */
     public static function loadFiles(array $files): void
@@ -44,6 +53,21 @@ final class EnvLoader
             $alreadyExternal = getenv($key) !== false
                 && !isset(self::$loadedKeys[$key]);
             if ($alreadyExternal) {
+                continue;
+            }
+
+            // Skip keys that would shadow $_SERVER-supplied values (HTTP_*,
+            // REQUEST_*, SERVER_*, etc.) to prevent Host Header Injection,
+            // Authorization spoofing, and other protocol-level attacks from
+            // a writable .env. Covers many more prefixes than an enumerative
+            // denylist could keep up with (HTTP_X_REAL_IP, HTTP_CLIENT_IP,
+            // HTTP_ACCEPT_*, etc.).
+            if (preg_match(self::RESERVED_SERVER_KEY_PATTERN, $key) === 1) {
+                error_log(sprintf(
+                    'EnvLoader: refused to overwrite reserved server key "%s" from .env',
+                    $key
+                ));
+                self::$loadedKeys[$key] = true;
                 continue;
             }
 
@@ -127,6 +151,18 @@ final class EnvLoader
             $alreadyExternal = getenv($key) !== false
                 && !isset(self::$loadedKeys[$key]);
             if ($alreadyExternal) {
+                continue;
+            }
+
+            // Skip keys that would shadow $_SERVER-supplied values (HTTP_*,
+            // REQUEST_*, etc.) — prevents Host Header Injection and other
+            // protocol-level attacks from a writable local .php config file.
+            if (preg_match(self::RESERVED_SERVER_KEY_PATTERN, $key) === 1) {
+                error_log(sprintf(
+                    'EnvLoader: refused to overwrite reserved server key "%s" from local .php config',
+                    $key
+                ));
+                self::$loadedKeys[$key] = true;
                 continue;
             }
 
