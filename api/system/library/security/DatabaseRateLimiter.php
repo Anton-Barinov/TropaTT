@@ -55,8 +55,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
 
         // Lazy garbage collection: on ~1% of writes, delete rows that haven't
         // been updated in over an hour (safely beyond any lock period).
-        // Uses mt_rand because hit count resets per-request.
-        if (mt_rand(1, 100) === 1) {
+        if (random_int(1, 100) === 1) {
             $this->collectGarbage();
         }
 
