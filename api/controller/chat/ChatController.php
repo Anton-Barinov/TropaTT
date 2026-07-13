@@ -222,7 +222,7 @@ final class ChatController extends BaseController
         }
 
         if ($type === 'team' && $teamId > 0) {
-            $stmt = $pdo->prepare("SELECT * FROM teams WHERE id = :id");
+            $stmt = $pdo->prepare("SELECT id, public_id, title, manager_user_id, created_by_user_id, member_user_ids, created_at, updated_at FROM teams WHERE id = :id");
             $stmt->execute(['id' => $teamId]);
             $team = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!is_array($team)) return $this->error('TEAM_NOT_FOUND', $this->t('chat/messages.team_not_found'), 404);
@@ -665,7 +665,7 @@ final class ChatController extends BaseController
     private function resolveReplyMessage(int $chatId, string $publicId): ?array
     {
         if ($chatId <= 0 || trim($publicId) === '') return null;
-        $stmt = $this->container->get('db.pdo')->prepare("SELECT * FROM chat_messages WHERE chat_id = :cid AND public_id = :pid AND deleted_at IS NULL LIMIT 1");
+        $stmt = $this->container->get('db.pdo')->prepare("SELECT id, public_id, chat_id, sender_user_id, reply_to_message_id, message_type, text, created_at, deleted_at FROM chat_messages WHERE chat_id = :cid AND public_id = :pid AND deleted_at IS NULL LIMIT 1");
         $stmt->execute(['cid' => $chatId, 'pid' => trim($publicId)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
