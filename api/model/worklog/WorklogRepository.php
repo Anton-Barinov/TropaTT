@@ -108,12 +108,12 @@ final class WorklogRepository
             ->first();
     }
 
-    /** @return array<int, array{public_id: string, login: string, full_name: string}> */
+    /** @return array<int, array{id: int, public_id: string, login: string, full_name: string}> */
     public function activeUsers(): array
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
-            ->select(['public_id', 'login', 'full_name'])
+            ->select(['id', 'public_id', 'login', 'full_name'])
             ->where('is_active', '=', 1)
             ->orderBy('full_name', 'ASC')
             ->get();

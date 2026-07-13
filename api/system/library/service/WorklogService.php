@@ -376,6 +376,7 @@ final class WorklogService
             $user = $this->worklogs->findUserByPublicId($userPublicId);
             if ($user) {
                 $users[] = [
+                    'id' => (int)($user['id'] ?? 0),
                     'public_id' => $user['public_id'],
                     'login' => $user['login'],
                     'full_name' => $user['full_name'],
@@ -396,6 +397,7 @@ final class WorklogService
                     continue;
                 }
                 $users[] = [
+                    'id' => (int)$u['id'],
                     'public_id' => $pid,
                     'login' => $u['login'],
                     'full_name' => $u['full_name'],
@@ -406,7 +408,7 @@ final class WorklogService
         // Visibility: non-root users should only see users from their visible set
         if (!$actorIsRoot && $visibleUserIds !== []) {
             $users = array_values(array_filter($users, static fn(array $u): bool =>
-                in_array($u['public_id'], $userSetKeys, true)
+                in_array($u['id'], $visibleUserIds, true)
             ));
         }
 
