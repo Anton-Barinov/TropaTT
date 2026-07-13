@@ -28,9 +28,25 @@ final class WorklogService
      * and all members of teams where the actor is the manager.
      * Root users get an empty array — no user-level filter is applied.
      */
+    /** Resolve the internal numeric user ID from the actor array. */
+    private function resolveActorId(array $actor): int
+    {
+        if (!empty($actor['id'])) {
+            return (int)$actor['id'];
+        }
+        $publicId = (string)($actor['public_id'] ?? '');
+        if ($publicId !== '') {
+            $user = $this->worklogs->findUserByPublicId($publicId);
+            if ($user && isset($user['id'])) {
+                return (int)$user['id'];
+            }
+        }
+        return 0;
+    }
+
     private function getVisibleUserIds(array $actor): array
     {
-        $actorId = (int)($actor['id'] ?? 0);
+        $actorId = $this->resolveActorId($actor);
         $isRoot = (bool)($actor['is_root'] ?? false);
 
         if ($isRoot || $actorId <= 0) {
@@ -86,7 +102,7 @@ final class WorklogService
 
         $publicId = Ulid::generate('wlg');
         $now = gmdate('Y-m-d H:i:s');
-        $userId = (int)$actor['id'];
+        $userId = $this->resolveActorId($actor);
         if (!empty($input['user_public_id']) && (bool)($actor['is_root'] ?? false)) {
             $targetUser = $this->worklogs->findUserByPublicId((string)$input['user_public_id']);
             if ($targetUser) {
@@ -217,7 +233,7 @@ final class WorklogService
             return true;
         }
 
-        $actorId = (int)($actor['id'] ?? 0);
+        $actorId = $this->resolveActorId($actor);
         if ($actorId <= 0) {
             return false;
         }
