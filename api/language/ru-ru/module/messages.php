@@ -16,6 +16,7 @@ return [
     'config_updated' => 'Конфигурация обновлена',
     'errors_cleared' => 'Ошибки очищены',
     'url_required' => 'Необходим URL',
+    'url_not_allowed' => 'URL не разрешён',
     'file_data_required' => 'Необходимы данные файла',
     'invalid_base64' => 'Некорректные данные base64',
     'name_required' => 'Необходимо имя модуля',

@@ -66,6 +66,12 @@ final class UserController extends BaseController
         }
 
         $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids']);
+
+        // SEC-002: Only root users may assign root status or roles.
+        if (!$this->isCurrentUserRoot()) {
+            unset($input['is_root'], $input['role_public_ids']);
+        }
+
         $v = new Validator();
         $v->require($input, 'login', $this->t('common/messages.field_required'))
             ->require($input, 'password', $this->t('common/messages.field_required'))

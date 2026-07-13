@@ -16,6 +16,7 @@ return [
     'config_updated' => 'Configuracao atualizada',
     'errors_cleared' => 'Erros limpos',
     'url_required' => 'URL e obrigatoria',
+    'url_not_allowed' => 'URL nao permitida',
     'file_data_required' => 'Dados do arquivo sao obrigatorios',
     'invalid_base64' => 'Dados base64 invalidos',
     'name_required' => 'Nome do modulo e obrigatorio',

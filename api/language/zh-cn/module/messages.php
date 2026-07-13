@@ -16,6 +16,7 @@ return [
     'config_updated' => '配置已更新',
     'errors_cleared' => '错误已清除',
     'url_required' => '需要URL',
+    'url_not_allowed' => 'URL不允许',
     'file_data_required' => '需要文件数据',
     'invalid_base64' => '无效的base64数据',
     'name_required' => '需要模块名称',

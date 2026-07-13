@@ -16,6 +16,7 @@ return [
     'config_updated' => 'Configuration updated',
     'errors_cleared' => 'Errors cleared',
     'url_required' => 'URL is required',
+    'url_not_allowed' => 'URL is not allowed',
     'file_data_required' => 'File data is required',
     'invalid_base64' => 'Invalid base64 data',
     'name_required' => 'Module name is required',

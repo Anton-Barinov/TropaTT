@@ -16,6 +16,7 @@ return [
     'config_updated' => 'Configuration mise à jour',
     'errors_cleared' => 'Erreurs effacées',
     'url_required' => 'L\'URL est requise',
+    'url_not_allowed' => 'L\'URL n\'est pas autorisée',
     'file_data_required' => 'Les données du fichier sont requises',
     'invalid_base64' => 'Données base64 invalides',
     'name_required' => 'Le nom du module est requis',
