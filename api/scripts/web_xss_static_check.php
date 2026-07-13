@@ -49,6 +49,13 @@ foreach ($baselineLines as $line) {
 $currentNormalized = [];
 foreach ($currentLines as $line) {
     $normalized = normalizeSinkLine((string)$line);
+    $source = str_contains($normalized, '::') ? substr($normalized, strpos($normalized, '::') + 2) : $normalized;
+    // `rg` deliberately keeps this check dependency-free, but it also finds
+    // documentation examples. They are not executable sinks and must not
+    // cause a false green/red result when comments are edited.
+    if (preg_match('/^\s*(?:\/\/|\/\*|\*|\*\/)/', $source) === 1) {
+        continue;
+    }
     if ($normalized !== '') {
         $currentNormalized[] = $normalized;
     }

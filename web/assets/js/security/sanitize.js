@@ -20,7 +20,7 @@
 
     var FORBIDDEN_ELEMENTS = [
         'script', 'iframe', 'object', 'embed',
-        'link', 'meta', 'style', 'form', 'input', 'button',
+        'link', 'meta', 'style', 'form', 'input', 'button', 'svg', 'math',
         'base', 'frame', 'frameset', 'applet'
     ];
     var FORBIDDEN_ATTR_PREFIXES = ['on'];
@@ -81,7 +81,7 @@
                         node.removeAttribute(name);
                         continue;
                     }
-                    if (name === 'href' || name === 'src' || name === 'action' || name === 'formaction') {
+                    if (name === 'href' || name === 'src' || name === 'action' || name === 'formaction' || name === 'xlink:href') {
                         var trimmed = value.trim().toLowerCase();
                         for (var j = 0; j < FORBIDDEN_ATTR_VALUE_PREFIXES.length; j++) {
                             if (trimmed.indexOf(FORBIDDEN_ATTR_VALUE_PREFIXES[j]) === 0) {
