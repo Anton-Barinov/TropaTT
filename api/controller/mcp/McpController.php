@@ -4964,6 +4964,28 @@ MD;
         return $item ? ['setting' => $this->redactSettingItem($this->publicData($item))] : ['error' => 'Setting not found.'];
     }
 
+    private function redactSettings(array $data): array
+    {
+        $items = $data['items'] ?? [];
+        $data['items'] = array_map(fn(array $item): array => $this->redactSettingItem($item), $items);
+
+        return $data;
+    }
+
+    private function redactSettingItem(array $item): array
+    {
+        $name = strtolower((string)($item['name'] ?? ''));
+        $secretPatterns = ['secret', 'token', 'password', 'key', 'credential', 'api_key', 'apikey', 'private'];
+        foreach ($secretPatterns as $pattern) {
+            if (str_contains($name, $pattern)) {
+                $item['value'] = '***REDACTED***';
+                break;
+            }
+        }
+
+        return $item;
+    }
+
     private function crmListFeatureFlags(array $arguments): array
     {
         /** @var FeatureFlagService $service */

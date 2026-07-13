@@ -36,7 +36,7 @@ final class EventsController extends BaseController
         }
 
         return [
-            'stream' => function () use ($notifications, $userId, $streamAfterId, $request, $actor): void {
+            'stream' => function () use ($notifications, $userId, $streamAfterId, $request): void {
                 while (ob_get_level() > 0) {
                     @ob_end_clean();
                 }

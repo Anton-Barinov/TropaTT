@@ -2622,7 +2622,7 @@ PROMPT;
                 $debugRes['ai_failed'] = true;
             }
             $pdo->prepare("INSERT INTO idea_ai_iterations (public_id, idea_id, iteration, type, request_payload, response_payload, created_at) VALUES (:pid, :iid, :iter, 'interview', :req, :res, NOW())")
-                ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['user_prompt' => $combinedPrompt], JSON_UNESCAPED_UNICODE), 'res' => json_encode($debugRes, JSON_UNESCAPED_UNICODE)]);
+                ->execute(['pid' => 'iai_'.bin2hex(random_bytes(6)), 'iid' => $ideaId, 'iter' => $iter, 'req' => json_encode(['user_prompt' => $userPrompt], JSON_UNESCAPED_UNICODE), 'res' => json_encode($debugRes, JSON_UNESCAPED_UNICODE)]);
             if (!empty($rawText)) {
                 $clean = $rawText;
                 $clean = preg_replace('/^```(?:json)?\s*\n?/i', '', $clean);
@@ -2662,10 +2662,10 @@ PROMPT;
             // Update iteration with actual questions count after parsing
             $pdo->prepare("UPDATE idea_ai_iterations SET response_payload = :res WHERE id = (SELECT MAX(id) FROM (SELECT id FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY id DESC LIMIT 1) t)")
                 ->execute(['res' => json_encode(array_merge($debugRes, ['questions_count' => count($genQuestions)]), JSON_UNESCAPED_UNICODE), 'iid' => $ideaId]);
-            if (count($genQuestions) === 0 && !$aiFailed && trim($rawText ?? '') !== '') {
-                $lastChar = mb_substr(trim($rawText ?? ''), -1);
+            if (count($genQuestions) === 0 && !$aiFailed && trim($rawText) !== '') {
+                $lastChar = mb_substr(trim($rawText), -1);
                 $truncated = !in_array($lastChar, ['}', ']'], true) ? '1' : '0';
-                ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." json_error=".json_last_error_msg()." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." truncated={$truncated} last_char={$lastChar} text_len=".strlen($rawText??'')." text_preview=".substr(trim($rawText??''),0,200));
+                ai_diag_log("[AI_INTERVIEW_PARSE] idea_id={$ideaId} ai_ok but 0 questions parsed. json_valid=".(is_array($data??null)?'1':'0')." json_error=".json_last_error_msg()." has_questions_key=".(!empty(($data??[])['questions']??[])?'1':'0')." truncated={$truncated} last_char={$lastChar} text_len=".strlen($rawText)." text_preview=".substr(trim($rawText),0,200));
             }
             if (!$aiFailed && count($genQuestions) >= 5) {
                 break;

@@ -122,7 +122,7 @@ final class KnowledgeController extends BaseController
             ]);
         }
 
-        return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
+        return $this->withIdempotency(function () use ($input): JsonResponse {
             $space = $this->repo()->createSpace($input, $this->actorUserId() ?: null);
             $this->invalidateCache('knowledge');
             $this->auditLog('knowledge_space', $space['public_id'] ?? '', 'space_created', [
@@ -314,7 +314,7 @@ final class KnowledgeController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422, $v->errors());
         }
 
-        return $this->withIdempotency(function () use ($input, $auth): JsonResponse {
+        return $this->withIdempotency(function () use ($input): JsonResponse {
             try {
                 $page = $this->repo()->createPage($input, $this->actorUserId() ?: null, $this->actor());
             } catch (\RuntimeException $e) {
