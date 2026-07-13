@@ -270,6 +270,14 @@ final class AuthService
         $userId = (int)($user['id'] ?? 0);
         $isRoot = (bool)($user['is_root'] ?? false);
         $roleCodes = $this->auth->roleCodesByUserId($userId);
+
+        // Treat users with the super_admin role as root even when the DB
+        // is_root flag is stale or missing (self-hosted installations may
+        // lose the flag after migrations or manual edits).
+        if (!$isRoot && in_array('super_admin', $roleCodes, true)) {
+            $isRoot = true;
+        }
+
         $permissionCodes = $isRoot ? ['*'] : $this->auth->permissionCodesByUserId($userId);
 
         return [
