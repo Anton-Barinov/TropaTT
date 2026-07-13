@@ -751,7 +751,13 @@ final class App
         header('X-Frame-Options: DENY');
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
-        $cspReportUri = ($forwardedProto === 'https' ? 'https' : 'http') . '://'
+        $https = strtolower((string)($request->server['HTTPS'] ?? ''));
+        $cspScheme = ($https !== '' && $https !== 'off' && $https !== '0') ? 'https' : 'http';
+        $forwardedProto = strtolower((string)$request->header('X-Forwarded-Proto', ''));
+        if (in_array($forwardedProto, ['http', 'https'], true)) {
+            $cspScheme = $forwardedProto;
+        }
+        $cspReportUri = $cspScheme . '://'
             . trim((string)($request->server['HTTP_HOST'] ?? $request->server['SERVER_NAME'] ?? 'localhost'))
             . '/api/index.php?route=api/v1/telemetry/csp-report';
         header('Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'self\'; frame-ancestors \'none\'; form-action \'self\'; report-uri ' . $cspReportUri);
