@@ -2240,8 +2240,7 @@ window.CRM.br1 = (function () {
 
     var descToggle = document.querySelector('[data-task-inline-toggle="description"]');
     if (descToggle) {
-      var descPanel = descToggle.closest('.d-flex');
-      if (descPanel) descPanel.classList.toggle('d-none', !permissions.canEditIdentity);
+      descToggle.classList.toggle('d-none', !permissions.canEditIdentity);
     }
   }
 
@@ -2674,7 +2673,7 @@ window.CRM.br1 = (function () {
     }
 
     var summaryCard = document.getElementById('taskSummaryCard');
-    var descSection = document.getElementById('detailDesc');
+    var descSection = document.querySelector('.crm-task-description-summary');
     [summaryCard, descSection].forEach(function (container) {
       if (!container || container.dataset.inlineBound === '1') return;
       container.addEventListener('click', function (e) {
