@@ -189,9 +189,19 @@
           </div>
 
           <div class="mt-3 pt-3 border-top" id="teamKnowledgeSection">
-            <h6 class="mb-2"><?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?></h6>
-            <div id="teamKnowledgeList"><div class="text-muted small">—</div></div>
-            <div class="mt-2"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge"><?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a></div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h6 class="mb-0 d-flex align-items-center gap-2">
+                <span class="crm-icon text-muted" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                <?= htmlspecialchars($t('teams.section_knowledge', 'Материалы команды'), ENT_QUOTES, 'UTF-8') ?>
+              </h6>
+              <a class="btn btn-sm crm-btn-subtle" href="index.php?route=knowledge" id="teamKnowledgeLink" data-i18n="teams.btn_knowledge">
+                <span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+                <?= htmlspecialchars($t('teams.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?>
+              </a>
+            </div>
+            <div class="crm-section-card p-3" id="teamKnowledgeList">
+              <div class="text-muted small">—</div>
+            </div>
           </div>
 
         </div>
@@ -229,7 +239,7 @@
     if (!teamId) { knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>'; return; }
     var link = document.getElementById('teamKnowledgeLink');
     if (link) link.href = 'index.php?route=knowledge&entity_type=team&entity_public_id=' + encodeURIComponent(teamId);
-    knowledgeList.innerHTML = '<div class=\"text-muted small\"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
+    knowledgeList.innerHTML = '<div class=\"d-flex align-items-center gap-2 text-muted small\"><span class=\"spinner-border spinner-border-sm\" role=\"status\"></span><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>';
     (async function () {
       try {
         var api = window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
@@ -237,11 +247,11 @@
         var envelope = await api.request('api/v1/knowledge/entities/team/' + encodeURIComponent(teamId) + '/pages', { method: 'GET' });
         var items = envelope.data && envelope.data.items || [];
         if (!items.length) {
-          knowledgeList.innerHTML = '<div class=\"text-muted small\"><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></div>';
+          knowledgeList.innerHTML = '<div class=\"text-center py-3\"><div class=\"crm-icon mb-2\" style=\"font-size:1.5rem;opacity:0.35\" aria-hidden=\"true\"><i class=\"fa-solid fa-book-open\"></i></div><p class=\"text-muted small mb-0\"><?= htmlspecialchars($t('teams.knowledge_empty', 'Нет материалов команды'), ENT_QUOTES, 'UTF-8') ?></p><p class=\"text-muted small mb-0\"><?= htmlspecialchars($t('teams.knowledge_empty_hint', 'Добавьте страницы в базе знаний и привяжите их к команде.'), ENT_QUOTES, 'UTF-8') ?></p></div>';
         } else {
-          knowledgeList.innerHTML = '<ul class=\"list-unstyled mb-0 small\">' + items.map(function (p) {
-            return '<li class=\"mb-1\"><a href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\"']/g, function(ch) { var m = {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}; m["'"]='&#039;'; return m[ch] || ch; }); })(p.title || '') + '</a></li>';
-          }).join('') + '</ul>';
+          knowledgeList.innerHTML = items.map(function (p) {
+            return '<div class=\"team-section-card d-flex align-items-center justify-content-between\" style=\"padding:10px 14px;margin-bottom:6px\"><div class=\"d-flex align-items-center gap-2\" style=\"min-width:0\"><span class=\"crm-icon\" style=\"color:var(--crm-primary);flex-shrink:0;font-size:0.9rem\" aria-hidden=\"true\"><i class=\"fa-solid fa-file-lines\"></i></span><span class=\"text-truncate\" style=\"font-size:13px\">' + (function esc(v) { return String(v == null ? '' : v).replace(/[&<>\\\"']/g, function(ch) { var m = {'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;'}; m["'"]='&#039;'; return m[ch] || ch; }); })(p.title || '') + '</span></div><a class=\"btn btn-sm crm-btn-subtle\" href=\"index.php?route=knowledge-page&amp;id=' + encodeURIComponent(p.public_id) + '\" style=\"flex-shrink:0;padding:4px 8px\"><span class=\"crm-icon\" aria-hidden=\"true\"><i class=\"fa-solid fa-arrow-right\"></i></span></a></div>';
+          }).join('');
         }
       } catch (e) {
         knowledgeList.innerHTML = '<div class=\"text-muted small\">—</div>';
