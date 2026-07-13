@@ -329,7 +329,7 @@ final class WorklogRepository
 
         return [
             'total_minutes' => $total,
-            'user_breakdown' => $breakdown,
+            'user_breakdown' => $rows,
         ];
     }
 
