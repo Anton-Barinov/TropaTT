@@ -7,6 +7,21 @@ use PDO;
 
 final class ModuleDataExporter
 {
+    /** Column names that must never be exported (password hashes, tokens, secrets). */
+    private const SENSITIVE_COLUMNS = [
+        'password_hash',
+        'token',
+        'token_hash',
+        'secret',
+        'backup_codes',
+        'totp_secret',
+        'api_key',
+        'api_secret',
+        'access_token',
+        'refresh_token',
+        'private_key',
+    ];
+
     private PDO $pdo;
 
     public function __construct(PDO $pdo)
@@ -80,6 +95,22 @@ final class ModuleDataExporter
     }
 
     /**
+     * Strip known sensitive columns from a result row.
+     *
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function stripSensitive(array $row): array
+    {
+        foreach (self::SENSITIVE_COLUMNS as $col) {
+            if (array_key_exists($col, $row)) {
+                unset($row[$col]);
+            }
+        }
+        return $row;
+    }
+
+    /**
      * @return array<string, array<int, array<string, mixed>>>
      */
     private function collectModuleData(string $moduleName): array
@@ -87,15 +118,29 @@ final class ModuleDataExporter
         $data = [];
         $tablePrefix = str_replace('.', '_', $moduleName) . '_';
 
-        $stmt = $this->pdo->prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE :prefix");
-        $stmt->execute(['prefix' => $tablePrefix . '%']);
-        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $tables = [];
+
+        if ($driver === 'mysql') {
+            $stmt = $this->pdo->prepare(
+                "SELECT TABLE_NAME FROM information_schema.TABLES " .
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE :prefix"
+            );
+            $stmt->execute(['prefix' => $tablePrefix . '%']);
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } else {
+            // SQLite and others
+            $stmt = $this->pdo->prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE :prefix");
+            $stmt->execute(['prefix' => $tablePrefix . '%']);
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }
 
         foreach ($tables as $table) {
             try {
                 $rows = $this->pdo->query("SELECT * FROM {$table}");
                 $tableData = $rows !== false ? $rows->fetchAll(PDO::FETCH_ASSOC) : [];
-                $data[$table] = $tableData;
+                // Strip sensitive columns from every exported row
+                $data[$table] = array_map([$this, 'stripSensitive'], $tableData);
             } catch (\Throwable) {
             }
         }
