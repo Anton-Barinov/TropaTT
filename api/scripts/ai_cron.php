@@ -306,47 +306,75 @@ function resolveAuthToken(array $options): string
  */
 function apiRequest(string $method, string $uri, array $payload = [], array $headers = []): array
 {
-    $_GET = [];
-    $_POST = $payload;
-    $_FILES = [];
-    $_COOKIE = [];
+    // Backup superglobals to restore after the simulated request
+    $savedGet = $_GET;
+    $savedPost = $_POST;
+    $savedFiles = $_FILES;
+    $savedCookie = $_COOKIE;
+    $savedServer = $_SERVER;
 
-    if (str_contains($uri, '?')) {
-        [, $query] = explode('?', $uri, 2);
-        // SEC: Validate keys before populating $_GET to prevent variable injection
-        $parsed = [];
-        parse_str($query, $parsed);
-        foreach ($parsed as $key => $value) {
+    try {
+        $_GET = [];
+        $_FILES = [];
+        $_COOKIE = [];
+
+        // Validate payload keys: only allow safe identifiers to prevent variable injection
+        $_POST = [];
+        foreach ($payload as $key => $value) {
             if (is_string($key) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
-                $_GET[$key] = $value;
+                $_POST[$key] = $value;
             }
         }
+
+        if (str_contains($uri, '?')) {
+            [, $query] = explode('?', $uri, 2);
+            $parsed = [];
+            parse_str($query, $parsed);
+            foreach ($parsed as $key => $value) {
+                if (is_string($key) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $key)) {
+                    $_GET[$key] = $value;
+                }
+            }
+        }
+
+        $_SERVER = [
+            'REQUEST_METHOD' => strtoupper($method),
+            'REQUEST_URI' => $uri,
+            'REMOTE_ADDR' => '127.0.0.1',
+            'HTTP_USER_AGENT' => 'crm-ai-cron-cli/1.0',
+        ];
+
+        foreach ($headers as $name => $value) {
+            // SEC: Only allow safe HTTP header names — strip non-alphanumeric chars
+            // to prevent CRLF injection into $_SERVER keys
+            $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$name);
+            if ($safeName === '') {
+                continue;
+            }
+            $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $safeName));
+            $_SERVER[$serverKey] = (string)$value;
+        }
+
+        $app = new App(dirname(__DIR__));
+        $response = $app->run();
+
+        $payloadOut = $response->payload();
+        if (!is_array($payloadOut)) {
+            $payloadOut = ['success' => false, 'code' => 'INTERNAL_ERROR', 'message' => 'Invalid API response'];
+        }
+
+        return [
+            'status' => $response->status(),
+            'payload' => $payloadOut,
+        ];
+    } finally {
+        // Restore original superglobals to prevent side effects on caller
+        $_GET = $savedGet;
+        $_POST = $savedPost;
+        $_FILES = $savedFiles;
+        $_COOKIE = $savedCookie;
+        $_SERVER = $savedServer;
     }
-
-    $_SERVER = [
-        'REQUEST_METHOD' => strtoupper($method),
-        'REQUEST_URI' => $uri,
-        'REMOTE_ADDR' => '127.0.0.1',
-        'HTTP_USER_AGENT' => 'crm-ai-cron-cli/1.0',
-    ];
-
-    foreach ($headers as $name => $value) {
-        $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-        $_SERVER[$serverKey] = $value;
-    }
-
-    $app = new App(dirname(__DIR__));
-    $response = $app->run();
-
-    $payloadOut = $response->payload();
-    if (!is_array($payloadOut)) {
-        $payloadOut = ['success' => false, 'code' => 'INTERNAL_ERROR', 'message' => 'Invalid API response'];
-    }
-
-    return [
-        'status' => $response->status(),
-        'payload' => $payloadOut,
-    ];
 }
 
 /**
