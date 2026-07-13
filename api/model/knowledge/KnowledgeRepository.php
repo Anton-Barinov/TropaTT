@@ -678,7 +678,7 @@ final class KnowledgeRepository
         if (!$page) {
             return null;
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_drafts WHERE page_id = :page_id AND user_id = :user_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, user_id, title, content_html, content_text, content_json, base_row_version, autosaved_at, created_at, updated_at FROM knowledge_drafts WHERE page_id = :page_id AND user_id = :user_id LIMIT 1');
         $stmt->execute(['page_id' => (int)$page['id'], 'user_id' => $userId]);
         $draft = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($draft) ? $draft : null;
@@ -713,7 +713,7 @@ final class KnowledgeRepository
         if (!$page) {
             return null;
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['page_id' => (int)$page['id'], 'version_number' => $versionNumber]);
         $version = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($version)) {
@@ -775,7 +775,7 @@ final class KnowledgeRepository
             $where .= ' AND page_type = :page_type';
             $params['page_type'] = (string)$filters['page_type'];
         }
-        $stmt = $this->pdo->prepare("SELECT * FROM knowledge_templates WHERE {$where} ORDER BY is_system DESC, title ASC");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, title, page_type, description, content_html, content_json, is_system, is_active, created_by_user_id, created_at, updated_at FROM knowledge_templates WHERE {$where} ORDER BY is_system DESC, title ASC");
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -801,7 +801,7 @@ final class KnowledgeRepository
 
     public function template(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_templates WHERE public_id = :public_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, title, page_type, description, content_html, content_json, is_system, is_active, created_by_user_id, created_at, updated_at FROM knowledge_templates WHERE public_id = :public_id LIMIT 1');
         $stmt->execute(['public_id' => $publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -833,7 +833,7 @@ final class KnowledgeRepository
         if (!$page) {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_entity_links WHERE page_id = :page_id ORDER BY id DESC');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, entity_type, entity_public_id, relation_type, created_by_user_id, created_at FROM knowledge_entity_links WHERE page_id = :page_id ORDER BY id DESC');
         $stmt->execute(['page_id' => (int)$page['id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -1710,7 +1710,7 @@ final class KnowledgeRepository
         if (!$page) {
             return [];
         }
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_properties WHERE page_id = :page_id ORDER BY sort_order ASC, property_key ASC');
+        $stmt = $this->pdo->prepare('SELECT id, page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at FROM knowledge_page_properties WHERE page_id = :page_id ORDER BY sort_order ASC, property_key ASC');
         $stmt->execute(['page_id' => (int)$page['id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -1738,7 +1738,7 @@ final class KnowledgeRepository
             'sid2' => $sourceId,
             'now2' => $now,
         ]);
-        $stmt = $this->pdo->prepare('SELECT * FROM knowledge_page_properties WHERE page_id = :page_id AND property_key = :pkey LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, page_id, property_key, property_value, property_type, source_type, source_id, sort_order, created_at, updated_at FROM knowledge_page_properties WHERE page_id = :page_id AND property_key = :pkey LIMIT 1');
         $stmt->execute(['page_id' => (int)$page['id'], 'pkey' => $key]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
