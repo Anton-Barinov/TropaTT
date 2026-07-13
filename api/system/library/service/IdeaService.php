@@ -38,7 +38,7 @@ final class IdeaService
 
     public function getById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM ideas WHERE id = :id");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -229,7 +229,7 @@ final class IdeaService
             $item['options_json'] = json_decode($item['options_json'] ?? '[]', true);
             if (!is_array($item['options_json'])) $item['options_json'] = [];
             $item['options'] = $item['options_json'];
-            $ansStmt = $this->pdo->prepare("SELECT * FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
+            $ansStmt = $this->pdo->prepare("SELECT id, idea_id, question_id, answer_text, selected_option_key, selected_option_label, selected_options_json, is_custom, is_unknown, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
             $ansStmt->execute(['qid' => $item['id']]);
             $item['last_answer'] = $ansStmt->fetch(PDO::FETCH_ASSOC) ?: null;
         }
@@ -257,7 +257,7 @@ final class IdeaService
     /** @return array<int,array<string,mixed>> */
     public function getAnalyses(int $ideaId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM idea_analyses WHERE idea_id = :iid ORDER BY created_at DESC");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, idea_id, analysis_type, status, result_json, input_hash, prompt_version, schema_version, completed_at, created_at FROM idea_analyses WHERE idea_id = :iid ORDER BY created_at DESC");
         $stmt->execute(['iid' => $ideaId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -265,7 +265,7 @@ final class IdeaService
     /** @return array<int,array<string,mixed>> */
     public function getTaskDrafts(int $ideaId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM idea_task_drafts WHERE idea_id = :iid ORDER BY sort_order ASC");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, idea_id, parent_id, title, description, type, stage, priority, acceptance_criteria_json, estimated_duration, sort_order, created_at FROM idea_task_drafts WHERE idea_id = :iid ORDER BY sort_order ASC");
         $stmt->execute(['iid' => $ideaId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
