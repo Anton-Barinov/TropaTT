@@ -1099,15 +1099,33 @@ final class IdeaController extends BaseController
             if (!empty($gq['public_id'])) $gapPids[$gq['public_id']] = true;
         }
 
+        // Batch-load last answers for all questions (eliminates N+1 queries)
+        $questionIds = array_filter(array_map('intval', array_column($items, 'id')));
+        $answerMap = [];
+        if ($questionIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($questionIds), '?'));
+            $ansStmt = $pdo->prepare(
+                'SELECT a.id, a.question_id, a.cycle_id, a.selected_option_key, a.selected_options, a.answer_text, a.is_custom, a.is_unknown, a.selected_option_label, a.created_at'
+                . ' FROM idea_answers a'
+                . ' INNER JOIN ('
+                . '   SELECT question_id, MAX(id) AS max_id FROM idea_answers'
+                . "   WHERE question_id IN ({$placeholders})"
+                . '   GROUP BY question_id'
+                . ' ) latest ON latest.question_id = a.question_id AND latest.max_id = a.id'
+            );
+            $ansStmt->execute(array_values($questionIds));
+            foreach ($ansStmt->fetchAll(PDO::FETCH_ASSOC) as $answer) {
+                $answerMap[(int)$answer['question_id']] = $answer;
+            }
+        }
+
         foreach ($items as &$item) {
             $item['options_json'] = json_decode($item['options_json'] ?? '[]', true);
             if (!is_array($item['options_json'])) $item['options_json'] = [];
             $item['options'] = $item['options_json'];
             $item['is_clarification'] = isset($clarPids[$item['public_id']]);
             $item['is_gap'] = isset($gapPids[$item['public_id']]);
-            $ansStmt = $pdo->prepare("SELECT id, question_id, cycle_id, selected_option_key, selected_options, answer_text, is_custom, is_unknown, selected_option_label, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
-            $ansStmt->execute(['qid' => $item['id']]);
-            $item['last_answer'] = $ansStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            $item['last_answer'] = $answerMap[(int)$item['id']] ?? null;
         }
 
         return $this->success('QUESTIONS_LIST', $this->t('common/messages.ok'), ['items' => $items]);
