@@ -6153,7 +6153,15 @@ MD;
         }
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
-        return $service->earnings($filters, $this->actor());
+        $result = $service->earnings($filters, $this->actor());
+        // Strip financial rates for non-root users
+        if (!((bool)($this->actor()['is_root'] ?? false))) {
+            $result['items'] = array_map(static function(array $item): array {
+                unset($item['cost_rate'], $item['bill_rate'], $item['cost_amount'], $item['bill_amount']);
+                return $item;
+            }, $result['items']);
+        }
+        return $result;
     }
 
     private function crmGetWorklogMatrix(array $arguments): array
@@ -6188,7 +6196,17 @@ MD;
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
         $result = $service->taskSummaryByUser($taskPublicId, $this->actor());
-        return is_array($result) ? $result : ['error' => 'Task not found.'];
+        if (is_array($result)) {
+            // Strip financial rates for non-root users
+            if (!((bool)($this->actor()['is_root'] ?? false))) {
+                $result['user_breakdown'] = array_map(static function(array $item): array {
+                    unset($item['cost_rate'], $item['bill_rate']);
+                    return $item;
+                }, $result['user_breakdown']);
+            }
+            return $result;
+        }
+        return ['error' => 'Task not found.'];
     }
 
     private function crmGetCalendarMyMonth(array $arguments): array

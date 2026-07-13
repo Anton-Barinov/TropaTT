@@ -142,7 +142,8 @@ abstract class BaseController
     protected function cacheUserId(): string
     {
         $auth = $this->user();
-        return (string)($auth['user']['id'] ?? 0);
+        // Prefer public_id (always present) over id (may be missing from auth user object)
+        return (string)($auth['user']['public_id'] ?? $auth['user']['id'] ?? '0');
     }
 
     /**

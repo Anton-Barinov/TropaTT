@@ -49,8 +49,14 @@ final class WorklogService
         $actorId = $this->resolveActorId($actor);
         $isRoot = (bool)($actor['is_root'] ?? false);
 
-        if ($isRoot || $actorId <= 0) {
+        if ($isRoot) {
             return [];
+        }
+
+        // Sentinel: unresolvable non-root actor must not bypass the visibility filter.
+        // Returning [-1] ensures whereIn() is applied but matches nothing.
+        if ($actorId <= 0) {
+            return [-1];
         }
 
         // Hierarchy: actor + all descendants (users created by them recursively)
