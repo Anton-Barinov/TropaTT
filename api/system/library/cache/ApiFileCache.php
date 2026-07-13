@@ -224,7 +224,7 @@ final class ApiFileCache
 
     private function hashKey(string $namespace, string $key, string $version): string
     {
-        return self::CACHE_KEY_PREFIX . $namespace . '_' . sha1($namespace . '|' . $key . '|' . $version);
+        return self::CACHE_KEY_PREFIX . $namespace . '_' . hash('sha256', $namespace . '|' . $key . '|' . $version);
     }
 
     private function filePath(string $cacheKey): string
