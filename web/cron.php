@@ -31,15 +31,52 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
 
 $secretKey = trim((string)(getenv('CRON_SECRET_KEY') ?: ''));
 if ($secretKey === '') {
+    http_response_code(503);
     echo json_encode(['ok' => false, 'error' => 'CRON_SECRET_KEY not configured'], JSON_UNESCAPED_SLASHES);
+    exit(0);
+}
+
+// Rate limit: max 10 attempts per IP per 60 seconds to prevent key brute-force
+$rateLimitFile = sys_get_temp_dir() . '/cron_rate_limit_' . hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'unknown') . '.tmp';
+$rateLimitWindow = 60;
+$rateLimitMax = 10;
+
+$now = time();
+$attempts = [];
+if (is_file($rateLimitFile)) {
+    $raw = @file_get_contents($rateLimitFile);
+    if ($raw !== false) {
+        $attempts = json_decode($raw, true);
+        if (!is_array($attempts)) {
+            $attempts = [];
+        }
+    }
+}
+// Remove expired entries
+$attempts = array_values(array_filter($attempts, static fn(int $ts): bool => ($now - $ts) < $rateLimitWindow));
+
+if (count($attempts) >= $rateLimitMax) {
+    http_response_code(429);
+    error_log('[Cron] Rate limit exceeded for IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    echo json_encode(['ok' => false, 'error' => 'rate limit exceeded'], JSON_UNESCAPED_SLASHES);
     exit(0);
 }
 
 $providedKey = trim((string)($_GET['key'] ?? $_SERVER['HTTP_X_CRON_KEY'] ?? ''));
 if (!hash_equals($secretKey, $providedKey)) {
+    // Record failed attempt for rate limiting
+    $attempts[] = $now;
+    @file_put_contents($rateLimitFile, json_encode($attempts), LOCK_EX);
+
+    error_log('[Cron] Invalid key attempt from IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'invalid key'], JSON_UNESCAPED_SLASHES);
     exit(0);
+}
+
+// Clear rate limit on success
+if (is_file($rateLimitFile)) {
+    @unlink($rateLimitFile);
 }
 
 $autoloader = new Api\System\Library\Support\Autoloader($apiRoot);
