@@ -27,6 +27,14 @@ final class LanguageManager
         $this->locale = $normalized;
     }
 
+    /**
+     * Return the validated locale that is currently in effect.
+     */
+    public function locale(): string
+    {
+        return $this->locale;
+    }
+
     private function normalizeLocaleCode(string $locale): string
     {
         $value = str_replace('_', '-', strtolower(trim($locale)));

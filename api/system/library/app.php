@@ -310,9 +310,12 @@ final class App
                 /** @var LanguageManager $lang */
                 $lang = $this->container->get('lang');
                 $authLocale = (string)($auth['user']['locale'] ?? '');
-                if ($authLocale !== '') {
-                    $lang->setLocale($authLocale);
-                    header('X-Response-Locale: ' . $authLocale);
+                $requestLocale = (string)($request->headers['X-Locale'] ?? $request->headers['x-locale'] ?? '');
+                // The profile language is a default. An explicit client language must
+                // win so API errors match the language selected in the web UI.
+                if ($requestLocale !== '' || $authLocale !== '') {
+                    $lang->setLocale($requestLocale !== '' ? $requestLocale : $authLocale);
+                    header('X-Response-Locale: ' . $lang->locale());
                 }
             }
 
