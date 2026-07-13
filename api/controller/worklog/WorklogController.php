@@ -42,6 +42,13 @@ final class WorklogController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
+        $rl = $this->checkIpRateLimit('wl_create', 30, 60, 300);
+        if ($rl['blocked'] === true) {
+            return $this->error('RATE_LIMITED', $this->t('common/messages.rate_limited'), 429, [], [
+                'retry_after' => $rl['retry_after'],
+            ]);
+        }
+
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->require($input, 'minutes_spent', $this->t('common/messages.field_required'))

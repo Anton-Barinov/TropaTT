@@ -134,7 +134,7 @@ final class ApiClientRepository
         $row = (new QueryBuilder($this->pdo))
             ->from('api_keys k')
             ->join('api_clients c', 'c.id', '=', 'k.client_id')
-            ->select(['k.*', 'c.public_id AS client_public_id', 'c.title AS client_title'])
+            ->select(['k.id', 'k.public_id', 'k.client_id', 'k.scopes', 'k.expires_at', 'k.revoked_at', 'k.created_at', 'c.public_id AS client_public_id', 'c.title AS client_title'])
             ->where('k.public_id', '=', $publicId)
             ->first();
         if (!$row) {
