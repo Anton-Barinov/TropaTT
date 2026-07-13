@@ -26778,6 +26778,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function loadEarningsSummary(from, to, teamId, projectId, userPublicId) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var tbody = document.getElementById('timeAnalyticsEarningsBody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
@@ -26870,6 +26871,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function loadMatrixSummary() {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var from = document.getElementById('timeAnalyticsMatrixFrom').value;
     var to = document.getElementById('timeAnalyticsMatrixTo').value;
     var teamFilter = document.getElementById('timeAnalyticsMatrixTeamFilter').value;
