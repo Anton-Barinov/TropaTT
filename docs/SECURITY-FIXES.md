@@ -32,25 +32,21 @@
 
 ---
 
-## SEC-001 — (next cycle)
+## [SEC-XXX] template
 
-(Empty template — to be filled in by next audit cycle.)
-
----
+(Each finding gets a dedicated section with: Мета, Описание проблемы, Воспроизведение, Влияние, Рекомендация по исправлению.)
 
 ## Общие рекомендации по архитектуре безопасности
 
-(To be filled in.)
+(Empty template.)
 
 ## Порядок исправления (Roadmap)
 
-| Приоритет | SEC-коды | Описание | Ожидаемое время |
-|-----------|----------|----------|-----------------|
-|  |  |  |  |
+(Empty template.)
 
 ## Методология аудита
 
-(To be filled in.)
+(Empty template.)
 
 ## Security Metrics & KPIs
 
