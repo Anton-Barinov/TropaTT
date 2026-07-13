@@ -138,9 +138,9 @@ final class FullDemoSeeder
     {
         $now = gmdate('Y-m-d H:i:s');
 
-        $rootUser = $this->one('SELECT * FROM users WHERE is_root = 1 ORDER BY id ASC LIMIT 1');
-        $pmUser = $this->one("SELECT * FROM users WHERE login = 'irina.morozova" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
-        $devUser = $this->one("SELECT * FROM users WHERE login = 'alexey.popov" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
+        $rootUser = $this->one('SELECT id, public_id FROM users WHERE is_root = 1 ORDER BY id ASC LIMIT 1');
+        $pmUser = $this->one("SELECT id, public_id FROM users WHERE login = 'irina.morozova" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
+        $devUser = $this->one("SELECT id, public_id FROM users WHERE login = 'alexey.popov" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
 
         $project = $this->one('SELECT * FROM projects ORDER BY id ASC LIMIT 1');
         $task = $this->one('SELECT * FROM tasks ORDER BY id ASC LIMIT 1');
