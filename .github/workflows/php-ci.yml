@@ -30,7 +30,7 @@ jobs:
   phpstan:
     name: PHPStan static analysis
     runs-on: ubuntu-latest
-    continue-on-error: true  # TODO: remove once baseline is generated and committed
+    continue-on-error: true  # TODO: remove once baseline is generated & committed
 
     steps:
       - name: Checkout repository
@@ -45,11 +45,6 @@ jobs:
         run: |
           curl -sL https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar -o phpstan.phar
           chmod +x phpstan.phar
-
-      - name: PHPStan regenerate baseline
-        continue-on-error: true
-        run: |
-          php phpstan.phar analyse --level=1 --no-progress --memory-limit=1G --generate-baseline phpstan-baseline.neon
 
       - name: PHPStan analysis with baseline
         run: |
