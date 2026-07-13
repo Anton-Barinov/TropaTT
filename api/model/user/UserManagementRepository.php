@@ -34,6 +34,7 @@ final class UserManagementRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId)
             ->first();
     }
@@ -42,6 +43,7 @@ final class UserManagementRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
+            ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'cost_rate', 'bill_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('id', '=', $id)
             ->first();
     }
