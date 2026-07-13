@@ -2511,6 +2511,7 @@ return array (
     'cancel_btn' => 'Cancel',
     'delete' => 'Delete',
     'edit' => 'Edit',
+    'more' => 'More',
     'save' => 'Save',
     'saving' => 'Saving...',
   ),

@@ -1476,6 +1476,7 @@ return array (
     'confirm_body' => 'Tem certeza?',
     'confirm_action' => 'Confirmar',
     'close_aria' => 'Fechar',
+    'more' => 'Mais',
   ),
   'companies' => 
   array (

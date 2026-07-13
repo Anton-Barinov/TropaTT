@@ -1480,6 +1480,7 @@ return array (
     'confirm_body' => 'Êtes-vous sûr ?',
     'confirm_action' => 'Confirmer',
     'close_aria' => 'Fermer',
+    'more' => 'Plus',
   ),
   'companies' => 
   array (

@@ -2407,6 +2407,7 @@ return array (
     'confirm_body' => '确定吗？',
     'confirm_action' => '确认',
     'close_aria' => '关闭',
+    'more' => '更多',
   ),
   'richtext' => 
   array (

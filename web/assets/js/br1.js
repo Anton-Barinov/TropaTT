@@ -2755,7 +2755,10 @@ window.CRM.br1 = (function () {
     }).join('');
 
     chips.innerHTML = ''
-      + '<span id="taskStatusBadge" class="crm-badge ' + statusBadgeClass(currentTask.status_code) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</span>'
+      + '<div class="dropdown crm-task-status-dropdown">'
+      + '<button id="taskStatusBadge" class="crm-badge dropdown-toggle ' + statusBadgeClass(currentTask.status_code) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + escapeHtml(window.CRM.i18n.t('task_detail.status_select_label', 'Статус задачи')) + '">' + escapeHtml(statusLabel(currentTask.status_code)) + '</button>'
+      + '<ul class="dropdown-menu crm-task-status-menu" id="taskStatusMenu" aria-labelledby="taskStatusBadge"></ul>'
+      + '</div>'
       + '<span class="crm-chip" id="taskPriorityChip">' + escapeHtml(priorityLabel(currentTask.priority_code)) + '</span>'
       + tagsHtml;
   }
@@ -3629,21 +3632,20 @@ window.CRM.br1 = (function () {
   }
 
   function bindTaskStatusButtons(taskId) {
-    function renderStatusSelect() {
-      var select = document.getElementById('taskStatusSelect');
-      var applyBtn = document.getElementById('taskStatusApplyBtn');
-      if (!select) return;
+    function renderStatusMenu() {
+      var menu = document.getElementById('taskStatusMenu');
+      var statusBadge = document.getElementById('taskStatusBadge');
+      if (!menu || !statusBadge) return;
       var options = orderedTaskStatuses(currentTask && currentTask.status_code ? currentTask.status_code : '');
-      select.innerHTML = options.map(function (item) {
+      var currentCode = String(currentTask && currentTask.status_code || '');
+      menu.innerHTML = options.map(function (item) {
         var code = String(item.code || '');
-        var selected = currentTask && String(currentTask.status_code || '') === code ? ' selected' : '';
-        return '<option value="' + escapeHtml(code) + '"' + selected + '>' + escapeHtml(item.title || code) + '</option>';
+        var selected = currentCode === code;
+        return '<li><button class="dropdown-item' + (selected ? ' active' : '') + '" type="button" data-task-status-option="' + escapeHtml(code) + '"' + (selected ? ' disabled aria-current="true"' : '') + '>' + escapeHtml(item.title || code) + '</button></li>';
       }).join('');
       var canChangeStatus = Boolean(currentTaskPermissions.canWorkItems);
-      select.disabled = !canChangeStatus;
-      if (applyBtn) {
-        applyBtn.disabled = true;
-      }
+      statusBadge.disabled = !canChangeStatus;
+      statusBadge.setAttribute('aria-disabled', canChangeStatus ? 'false' : 'true');
     }
 
     async function updateTaskStatus(nextStatus, reasonText) {
@@ -3683,7 +3685,7 @@ window.CRM.br1 = (function () {
         renderTaskMetaChips();
         renderTaskProgressByStatus(currentTask.status_code || targetStatus);
         renderTaskRiskBanner();
-        renderStatusSelect();
+        renderStatusMenu();
         try {
           await window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', {
             method: 'POST',
@@ -3702,9 +3704,8 @@ window.CRM.br1 = (function () {
       }
     }
 
-    renderStatusSelect();
-    var select = document.getElementById('taskStatusSelect');
-    var applyBtn = document.getElementById('taskStatusApplyBtn');
+    renderStatusMenu();
+    var statusChips = document.getElementById('taskMetaChips');
     var reasonForm = document.getElementById('taskStatusReasonForm');
     var reasonInput = document.getElementById('taskStatusReasonInput');
     var reasonTarget = document.getElementById('taskStatusReasonTarget');
@@ -3715,53 +3716,25 @@ window.CRM.br1 = (function () {
       if (reasonForm) reasonForm.classList.add('d-none');
       if (reasonInput) reasonInput.value = '';
       pendingStatus = '';
-      if (resetSelection && select && currentTask) {
-        select.value = String(currentTask.status_code || '');
-      }
-      if (applyBtn && currentTask) {
-        applyBtn.disabled = true;
-      }
     }
 
-    if (select && select.dataset.bound !== '1') {
-      select.addEventListener('change', function () {
-        var value = String(select.value || '').trim();
-        if (!value || (currentTask && String(currentTask.status_code || '') === value)) {
-          closeReasonForm(false);
-          return;
-        }
+    if (statusChips && statusChips.dataset.statusMenuBound !== '1') {
+      statusChips.addEventListener('click', function (event) {
+        var option = event.target.closest('[data-task-status-option]');
+        if (!option || option.disabled) return;
         if (!currentTaskPermissions.canWorkItems) {
           notify(window.CRM.i18n.t('js.br1.izmenenie_statusa_dostupno_avtoru_ili_ispolnitelyu_zada_2', 'Изменение статуса доступно автору или исполнителю задачи'), 'warning');
-          select.value = currentTask ? String(currentTask.status_code || '') : '';
           return;
         }
-        pendingStatus = value;
+        pendingStatus = String(option.getAttribute('data-task-status-option') || '').trim();
+        if (!pendingStatus || (currentTask && String(currentTask.status_code || '') === pendingStatus)) return;
         if (reasonTarget) {
-          reasonTarget.textContent = '"' + statusLabel(currentTask ? currentTask.status_code : '') + '" → "' + statusLabel(value) + '"';
-        }
-        if (applyBtn) {
-          applyBtn.disabled = false;
-        }
-      });
-      select.dataset.bound = '1';
-    }
-
-    if (applyBtn && applyBtn.dataset.bound !== '1') {
-      applyBtn.addEventListener('click', function () {
-        if (!select || !currentTask) return;
-        var value = String(select.value || '').trim();
-        if (!value || String(currentTask.status_code || '') === value) {
-          notify(window.CRM.i18n.t('js.br1.vyberite_novyy_status', 'Выберите новый статус'), 'warning');
-          return;
-        }
-        pendingStatus = value;
-        if (reasonTarget) {
-          reasonTarget.textContent = '"' + statusLabel(currentTask.status_code || '') + '" → "' + statusLabel(value) + '"';
+          reasonTarget.textContent = '"' + statusLabel(currentTask ? currentTask.status_code : '') + '" → "' + statusLabel(pendingStatus) + '"';
         }
         if (reasonForm) reasonForm.classList.remove('d-none');
         if (reasonInput) reasonInput.focus();
       });
-      applyBtn.dataset.bound = '1';
+      statusChips.dataset.statusMenuBound = '1';
     }
 
     if (reasonForm && reasonForm.dataset.bound !== '1') {
@@ -6947,6 +6920,8 @@ window.CRM.br1 = (function () {
       loadForTab(event.target && event.target.getAttribute('data-bs-target'));
     });
     tabsNav.dataset.deferredLoadsBound = '1';
+    var initialTab = tabsNav.querySelector('.nav-link.active[data-bs-target]');
+    loadForTab(initialTab && initialTab.getAttribute('data-bs-target'));
   }
 
   async function initTaskDetailFlow() {
