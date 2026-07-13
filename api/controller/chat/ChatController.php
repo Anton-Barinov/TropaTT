@@ -495,6 +495,8 @@ final class ChatController extends BaseController
             $count = (int)$stmt->fetchColumn();
             return $this->success('UNREAD_COUNT', $this->t('common/messages.ok'), ['count' => $count]);
         } catch (\Throwable $e) {
+            $reqId = bin2hex(random_bytes(6));
+            error_log("[ChatController::unreadCount][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
