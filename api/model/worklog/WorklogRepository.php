@@ -298,9 +298,9 @@ final class WorklogRepository
     /**
      * @return array{total_minutes: int, user_breakdown: array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, cost_rate: ?float, bill_rate: ?float}>}
      */
-    public function taskSummary(string $taskPublicId): array
+    public function taskSummary(string $taskPublicId, array $visibleUserIds, bool $actorIsRoot): array
     {
-        $breakdown = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
             ->join('users u', 'u.id', '=', 'w.user_id')
             ->join('tasks t', 't.id', '=', 'w.task_id')
@@ -314,11 +314,16 @@ final class WorklogRepository
             ])
             ->where('t.public_id', '=', $taskPublicId)
             ->groupBy(['u.id'])
-            ->orderBy('total_minutes', 'DESC')
-            ->get();
+            ->orderBy('total_minutes', 'DESC');
+
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
+        }
+
+        $rows = $qb->get();
 
         $total = 0;
-        foreach ($breakdown as $row) {
+        foreach ($rows as $row) {
             $total += (int)$row['total_minutes'];
         }
 

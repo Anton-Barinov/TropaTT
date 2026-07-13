@@ -207,7 +207,8 @@ final class WorklogService
             return true;
         }
 
-        return (int)($worklog['user_id'] ?? 0) === (int)($actor['id'] ?? 0);
+        $visibleUserIds = $this->getVisibleUserIds($actor);
+        return in_array((int)($worklog['user_id'] ?? 0), $visibleUserIds, true);
     }
 
     private function canAccessTask(array $task, array $actor): bool
@@ -271,7 +272,9 @@ final class WorklogService
         if (!$this->canAccessTask($task, $actor)) {
             return null;
         }
-        return $this->worklogs->taskSummary($taskPublicId);
+        $visibleUserIds = $this->getVisibleUserIds($actor);
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        return $this->worklogs->taskSummary($taskPublicId, $visibleUserIds, $actorIsRoot);
     }
 
     public function matrix(array $filters, array $actor): array
