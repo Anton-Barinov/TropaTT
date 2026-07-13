@@ -25,9 +25,10 @@
           <input id="passwordInput" class="form-control" type="password" name="password" placeholder="<?= htmlspecialchars($t('login.placeholder_password', '••••••••'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="login.placeholder_password" autocomplete="current-password" value="">
         </div>
         <div id="twoFactorLoginField" class="crm-login-field d-none">
-          <label class="form-label" for="twoFactorCodeInput">Код подтверждения</label>
-          <input id="twoFactorCodeInput" class="form-control" type="text" name="two_factor_code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="6-значный код" value="">
-          <div class="form-check mt-2"><input id="twoFactorBackupInput" class="form-check-input" type="checkbox" name="two_factor_backup"><label class="form-check-label" for="twoFactorBackupInput">Использовать резервный код</label></div>
+          <label class="form-label" for="twoFactorCodeInput" data-i18n="login.two_factor_code_label"><?= htmlspecialchars($t('login.two_factor_code_label', 'Код подтверждения'), ENT_QUOTES, 'UTF-8') ?></label>
+          <input id="twoFactorCodeInput" class="form-control" type="text" name="two_factor_code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="<?= htmlspecialchars($t('login.two_factor_code_placeholder', '6-значный код'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="login.two_factor_code_placeholder" value="">
+          <div class="form-check mt-2"><input id="twoFactorBackupInput" class="form-check-input" type="checkbox" name="two_factor_backup"><label class="form-check-label" for="twoFactorBackupInput" data-i18n="login.two_factor_backup_label"><?= htmlspecialchars($t('login.two_factor_backup_label', 'Использовать резервный код'), ENT_QUOTES, 'UTF-8') ?></label></div>
+          <button id="twoFactorBackBtn" class="btn btn-link p-0 mt-2" type="button" data-i18n="login.two_factor_back"><?= htmlspecialchars($t('login.two_factor_back', 'Вернуться к входу'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
         <div class="crm-login-field">
           <label class="form-label" for="loginLocaleSelect" data-i18n="login.label_locale"><?= htmlspecialchars($t('login.label_locale', 'Язык авторизации'), ENT_QUOTES, 'UTF-8') ?></label>
