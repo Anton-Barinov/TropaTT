@@ -85,6 +85,8 @@ If a change touches auth, permissions, files, chat, webhooks, AI, installer, or 
 
 - **Explicit column selection for users table**: NEVER use `SELECT *` or omit `->select()` when querying the `users` table. The `users` table contains sensitive columns (`password_hash`, `token`, `token_hash`, `secret`, `backup_codes`). QueryBuilder defaults to `['*']` when `->select()` is not called. Always add an explicit `->select([...])` with only the columns needed by callers. Minimum safe set for most lookups: `['id', 'public_id', 'login', 'full_name']`.
 
+- **Worklog cache invalidation on hierarchy changes**: When modifying teams or users (create, update, delete), always invalidate the `'worklog'` cache namespace via `$this->invalidateCache('worklog')`. Changes to team membership (`manager_user_id`, `member_user_ids`) and user hierarchy (`created_by_user_id`) affect worklog visibility (`getVisibleUserIds()` uses `descendantIds()` + `findMemberIdsByManager()`). Without invalidation, stale worklog reports persist for the cache TTL (60s by default). Both `TeamController` and `UserController` must call `$this->invalidateCache('worklog')` after successful mutations.
+
 ## API and OpenAPI Rules
 
 - Keep `api/config/routes.php` and API controllers consistent.
