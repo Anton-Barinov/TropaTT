@@ -45,6 +45,7 @@ function extractResultSummary(string $output): array
 {
     $passed = 0;
     $failed = 0;
+    $reportedFailures = 0;
 
     if (preg_match('/=== Results:\s*(\d+)\s+passed,\s*(\d+)\s+failed\s*===/i', $output, $m)) {
         $passed = (int)$m[1];
@@ -59,7 +60,23 @@ function extractResultSummary(string $output): array
         $passed = preg_match_all('/\bPASS:/', $output);
     }
 
-    return ['passed' => $passed, 'failed' => $failed];
+    // A few legacy integration scripts only print failed assertions and still
+    // exit with code 0. Do not let those scripts make the whole suite green.
+    // The negative lookahead deliberately ignores summary lines such as
+    // "FAIL: 0" from test formats that report a numeric counter.
+    $reportedFailures = preg_match_all(
+        '/(?:^|\R)\s*(?:\p{So}\s*)?FAIL(?:URE)?\s*:(?![\t ]*0(?:[\t ]*(?:\R|$)))[\t ]*/iu',
+        $output
+    );
+    if ($reportedFailures === false) {
+        $reportedFailures = 0;
+    }
+
+    return [
+        'passed' => $passed,
+        'failed' => max($failed, $reportedFailures),
+        'reported_failures' => $reportedFailures,
+    ];
 }
 
 $projectRoot = dirname(__DIR__, 2); // project root (two levels up from scripts/)
@@ -153,7 +170,7 @@ foreach ($existingFiles as $file) {
     $totalPassed += $summary['passed'];
     $totalFailed += $summary['failed'];
 
-    $status = $result['code'] === 0 ? 'OK' : 'FAIL';
+    $status = $result['code'] === 0 && $summary['failed'] === 0 ? 'OK' : 'FAIL';
     echo "[{$status}] Exit code: {$result['code']}";
     if ($summary['passed'] > 0 || $summary['failed'] > 0) {
         echo " | {$summary['passed']} passed, {$summary['failed']} failed";
