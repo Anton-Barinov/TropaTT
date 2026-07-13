@@ -6284,7 +6284,7 @@ window.CRM.br1 = (function () {
           + '<div class="crm-worklog-view-head">'
           + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(formatMinutes(item.minutes_spent || 0)) + '</strong>'
           + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span></div>'
-          + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '">Редактировать</button>')
+          + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
           + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn btn-light crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
           + '</div>'
           + noteHtml
