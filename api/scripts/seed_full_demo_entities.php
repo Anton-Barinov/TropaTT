@@ -142,11 +142,11 @@ final class FullDemoSeeder
         $pmUser = $this->one("SELECT id, public_id FROM users WHERE login = 'irina.morozova" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
         $devUser = $this->one("SELECT id, public_id FROM users WHERE login = 'alexey.popov" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
 
-        $project = $this->one('SELECT * FROM projects ORDER BY id ASC LIMIT 1');
-        $task = $this->one('SELECT * FROM tasks ORDER BY id ASC LIMIT 1');
-        $task2 = $this->one('SELECT * FROM tasks ORDER BY id DESC LIMIT 1') ?? $task;
-        $company = $this->one('SELECT * FROM companies ORDER BY id ASC LIMIT 1');
-        $client = $this->one('SELECT * FROM clients ORDER BY id ASC LIMIT 1');
+        $project = $this->one('SELECT id, public_id FROM projects ORDER BY id ASC LIMIT 1');
+        $task = $this->one('SELECT id, public_id, title FROM tasks ORDER BY id ASC LIMIT 1');
+        $task2 = $this->one('SELECT id, public_id, title FROM tasks ORDER BY id DESC LIMIT 1') ?? $task;
+        $company = $this->one('SELECT id FROM companies ORDER BY id ASC LIMIT 1');
+        $client = $this->one('SELECT id FROM clients ORDER BY id ASC LIMIT 1');
 
         if (!$rootUser || !$project || !$task || !$company || !$client) {
             throw new RuntimeException('Недостаточно базовых данных для расширенного сидирования');
@@ -159,7 +159,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $org = $this->one('SELECT * FROM organizations ORDER BY id ASC LIMIT 1');
+        $org = $this->one('SELECT id FROM organizations ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('organization_memberships', [
             'public_id' => $this->pid('orgm'),
@@ -197,7 +197,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $calendar = $this->one('SELECT * FROM business_calendars ORDER BY id ASC LIMIT 1');
+        $calendar = $this->one('SELECT id FROM business_calendars ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('holidays', [
             'public_id' => $this->pid('hol'),
@@ -330,7 +330,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $field = $this->one('SELECT * FROM custom_fields ORDER BY id ASC LIMIT 1');
+        $field = $this->one('SELECT id FROM custom_fields ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('custom_field_values', [
             'public_id' => $this->pid('cfv'),
@@ -360,7 +360,7 @@ final class FullDemoSeeder
             'created_at' => $now,
         ]);
 
-        $comment = $this->one('SELECT * FROM comments ORDER BY id ASC LIMIT 1');
+        $comment = $this->one('SELECT id, public_id FROM comments ORDER BY id ASC LIMIT 1');
         if ($comment) {
             $this->insertIfEmpty('mentions', [
                 'public_id' => $this->pid('men'),
@@ -416,7 +416,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $approvalReq = $this->one('SELECT * FROM approval_requests ORDER BY id ASC LIMIT 1');
+        $approvalReq = $this->one('SELECT id FROM approval_requests ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('approval_steps', [
             'public_id' => $this->pid('aps'),
@@ -439,7 +439,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $rule = $this->one('SELECT * FROM automation_rules ORDER BY id ASC LIMIT 1');
+        $rule = $this->one('SELECT id FROM automation_rules ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('automation_runs', [
             'public_id' => $this->pid('arr'),
@@ -458,7 +458,7 @@ final class FullDemoSeeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        $rr = $this->one('SELECT * FROM recurring_rules ORDER BY id ASC LIMIT 1');
+        $rr = $this->one('SELECT id FROM recurring_rules ORDER BY id ASC LIMIT 1');
 
         $this->insertIfEmpty('recurring_instances', [
             'public_id' => $this->pid('ri'),
@@ -492,7 +492,7 @@ final class FullDemoSeeder
 
         $this->insertIfEmpty('webhook_deliveries', [
             'public_id' => $this->pid('whd'),
-            'webhook_id' => (int)$this->one('SELECT * FROM webhook_subscriptions ORDER BY id ASC LIMIT 1')['id'],
+            'webhook_id' => (int)$this->one('SELECT id FROM webhook_subscriptions ORDER BY id ASC LIMIT 1')['id'],
             'event_code' => 'task.updated',
             'status' => 'sent',
             'response_code' => 200,
