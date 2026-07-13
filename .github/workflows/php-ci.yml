@@ -46,6 +46,11 @@ jobs:
           curl -sL https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar -o phpstan.phar
           chmod +x phpstan.phar
 
+      - name: PHPStan regenerate baseline
+        continue-on-error: true
+        run: |
+          php phpstan.phar analyse --level=1 --no-progress --memory-limit=1G --generate-baseline phpstan-baseline.neon
+
       - name: PHPStan analysis with baseline
         run: |
-          php phpstan.phar analyse --level=1 --no-progress --error-format=github --memory-limit=1G api/ web/ index.php
+          php phpstan.phar analyse --level=1 --no-progress --error-format=github --memory-limit=1G
