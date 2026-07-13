@@ -218,7 +218,7 @@ final class ChatService
             return [];
         }
 
-        $chat = $this->pdo->prepare("SELECT * FROM chats WHERE id = :id AND archived_at IS NULL AND created_by_user_id = :uid");
+        $chat = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE id = :id AND archived_at IS NULL AND created_by_user_id = :uid");
         $chat->execute(['id' => $chatId, 'uid' => $actorUserId]);
         $chat = $chat->fetch(PDO::FETCH_ASSOC);
         if (!is_array($chat)) {
@@ -243,7 +243,7 @@ final class ChatService
 
         $this->pdo->prepare("DELETE FROM chat_participants WHERE chat_id = :cid")->execute(['cid' => $chatId]);
 
-        $refetch = $this->pdo->prepare("SELECT * FROM chats WHERE id = :id");
+        $refetch = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE id = :id");
         $refetch->execute(['id' => $chatId]);
         $row = $refetch->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : [];
@@ -260,7 +260,7 @@ final class ChatService
             return [];
         }
 
-        $chat = $this->pdo->prepare("SELECT * FROM chats WHERE id = :id AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
+        $chat = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE id = :id AND archived_by_user_id = :uid AND archived_at IS NOT NULL");
         $chat->execute(['id' => $chatId, 'uid' => $actorUserId]);
         $chat = $chat->fetch(PDO::FETCH_ASSOC);
         if (!is_array($chat)) {
@@ -372,7 +372,7 @@ final class ChatService
     private function findSystemChat(string $type, int $entityId): ?array
     {
         $column = $type === 'project' ? 'project_id' : 'team_id';
-        $stmt = $this->pdo->prepare("SELECT * FROM chats WHERE type = :type AND {$column} = :id ORDER BY id ASC LIMIT 1");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE type = :type AND {$column} = :id ORDER BY id ASC LIMIT 1");
         $stmt->execute(['type' => $type, 'id' => $entityId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -393,7 +393,7 @@ final class ChatService
             'created_by' => $createdByUserId,
         ]);
 
-        $stmt = $this->pdo->prepare("SELECT * FROM chats WHERE id = :id");
+        $stmt = $this->pdo->prepare("SELECT id, public_id, title, type, project_id, team_id, created_by_user_id, created_at, updated_at, last_message_at, archived_at, archived_by_user_id FROM chats WHERE id = :id");
         $stmt->execute(['id' => (int)$this->pdo->lastInsertId()]);
         $chat = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($chat) ? $chat : ['public_id' => $publicId];
