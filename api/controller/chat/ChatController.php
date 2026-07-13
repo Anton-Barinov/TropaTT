@@ -531,6 +531,8 @@ final class ChatController extends BaseController
             if ($result === []) return $this->error('ARCHIVE_FAILED', $this->t('chat/messages.archive_failed'), 500);
             return $this->success('CHAT_ARCHIVED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
+            $reqId = bin2hex(random_bytes(6));
+            error_log("[ChatController::archive][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
