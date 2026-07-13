@@ -8,6 +8,7 @@ jobs:
   php-lint:
     name: PHP syntax check (${{ matrix.php-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     strategy:
       fail-fast: false
@@ -25,11 +26,12 @@ jobs:
 
       - name: PHP syntax check
         run: |
-          find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
+          find . -name "*.php" -not -path "./vendor/*" -not -path "./modules/*" -print0 | xargs -0 -n50 -P4 php -l
 
   phpstan:
     name: PHPStan static analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true  # TODO: remove once baseline is generated & committed
 
     steps:

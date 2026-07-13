@@ -563,6 +563,8 @@ final class ChatController extends BaseController
             if ($result === []) return $this->error('RESTORE_FAILED', $this->t('chat/messages.restore_failed'), 500);
             return $this->success('CHAT_RESTORED', $this->t('common/messages.ok'), ['chat' => $result]);
         } catch (\Throwable $e) {
+            $reqId = bin2hex(random_bytes(6));
+            error_log("[ChatController::restore][{$reqId}] " . $e->getMessage());
             return $this->error('ERROR', $this->t('common/messages.internal_error'), 500);
         }
     }
