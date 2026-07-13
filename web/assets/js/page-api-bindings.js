@@ -26733,6 +26733,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   async function loadTimeSummary(from, to, teamId, projectId, userPublicId) {
+    var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var tbody = document.getElementById('timeAnalyticsTimeBody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
