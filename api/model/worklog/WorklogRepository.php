@@ -154,7 +154,7 @@ final class WorklogRepository
                 'DATE(w.logged_at) AS day',
                 'SUM(w.minutes_spent) AS total_minutes',
             ])
-            ->groupBy(['u.id', 'DATE(w.logged_at)'])
+            ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'DATE(w.logged_at)'])
             ->orderBy('day', 'DESC')
             ->orderBy('u.full_name', 'ASC');
 
@@ -234,7 +234,7 @@ final class WorklogRepository
                 'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.cost_rate, 0), 2) AS cost_amount',
                 'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.bill_rate, 0), 2) AS bill_amount',
             ])
-            ->groupBy(['u.id', 'DATE(w.logged_at)'])
+            ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.cost_rate', 'u.bill_rate', 'DATE(w.logged_at)'])
             ->orderBy('day', 'DESC')
             ->orderBy('u.full_name', 'ASC');
 
@@ -344,7 +344,7 @@ final class WorklogRepository
             ])
             ->where('w.logged_at', '>=', $dateFrom)
             ->where('w.logged_at', '<', date('Y-m-d', strtotime($dateTo . ' +1 day')))
-            ->groupBy(['DATE(w.logged_at)', 'u.id'])
+            ->groupBy(['DATE(w.logged_at)', 'u.id', 'u.public_id'])
             ->orderBy('day', 'ASC')
             ->orderBy('u.full_name', 'ASC');
 
