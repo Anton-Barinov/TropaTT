@@ -89,6 +89,8 @@ final class UserController extends BaseController
             return $this->error((string)$result['code'], $this->t('user/messages.create_failed'), 403, ['user' => [(string)$result['code']]]);
         }
 
+        $this->invalidateCache('worklog');
+
         return $this->success('USER_CREATED', $this->t('user/messages.created'), ['user' => $result['user']], 201);
     }
 
@@ -115,6 +117,8 @@ final class UserController extends BaseController
             return $this->error((string)$result['code'], $this->t('user/messages.update_failed'), $status, ['user' => [(string)$result['code']]]);
         }
 
+        $this->invalidateCache('worklog');
+
         return $this->success('USER_UPDATED', $this->t('user/messages.updated'), ['user' => $result['user']]);
     }
 
@@ -133,6 +137,8 @@ final class UserController extends BaseController
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.delete_failed'), $status, ['user' => [(string)$result['code']]]);
         }
+
+        $this->invalidateCache('worklog');
 
         return $this->success('USER_DELETED', $this->t('user/messages.deleted'));
     }

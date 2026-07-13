@@ -59,6 +59,7 @@ final class TeamController extends BaseController
         $team = $service->create($input, $auth['user']);
 
         $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
 
         return $this->success('TEAM_CREATED', $this->t('team/messages.created'), ['team' => $team], 201);
     }
@@ -101,6 +102,7 @@ final class TeamController extends BaseController
         }
 
         $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
 
         return $this->success('TEAM_UPDATED', $this->t('team/messages.updated'), ['team' => $team]);
     }
@@ -123,6 +125,7 @@ final class TeamController extends BaseController
         }
 
         $this->invalidateCache('team');
+        $this->invalidateCache('worklog');
 
         return $this->success('TEAM_DELETED', $this->t('team/messages.deleted'));
     }
