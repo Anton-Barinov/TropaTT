@@ -32,28 +32,47 @@
 
 ---
 
-## SEC-001 — (next cycle)
+## SEC-XXX — Краткий заголовок (template)
 
-(Empty template — to be filled in by next audit cycle.)
+### Мета
+- **Severity**: Critical | High | Medium | Low
+- **CVSS Vector**: AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+- **CWE-ID**: CWE-XX
+- **Категория**:
+- **Затронутые файлы**: `путь/к/файлу.php:строка`
+- **Endpoint/tool**: `METHOD /api/v1/...`
+
+### Описание проблемы
+(Description)
+
+### Воспроизведение
+(Reproduction steps)
+
+### Влияние
+(Impact assessment)
+
+### Рекомендация по исправлению
+(Recommendation with code/config)
+
+### Приоритет
+Must-Fix | Should-Fix | Nice-to-Have
 
 ---
 
-## Общие рекомендации по архитектуре безопасности
+(Empty template — fill in per finding below.)
 
-(To be filled in.)
+## Общие рекомендации по архитектуре безопасности
 
 ## Порядок исправления (Roadmap)
 
 | Приоритет | SEC-коды | Описание | Ожидаемое время |
 |-----------|----------|----------|-----------------|
-|  |  |  |  |
+|           |          |          |                 |
 
 ## Методология аудита
-
-(To be filled in.)
 
 ## Security Metrics & KPIs
 
 | Метрика | Цель | Как измерять |
 |---------|------|--------------|
-|  |  |  |
+|         |      |              |
