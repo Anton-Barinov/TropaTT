@@ -18,6 +18,8 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
  * Idempotent: checks task count before inserting.
  */
 
+const SEED_EMAIL_DOMAIN = '@aurora-digital.ru';
+
 $dsn = (string)(getenv('CRM_SEED_DB_DSN') ?: getenv('DB_DSN') ?: 'mysql:host=localhost;port=3306;dbname=local;charset=utf8mb4');
 $user = (string)(getenv('CRM_SEED_DB_USER') ?: getenv('DB_USER') ?: 'local');
 $pass = getenv('CRM_SEED_DB_PASSWORD') ?: getenv('DB_PASSWORD') ?: trigger_error('CRM_SEED_DB_PASSWORD or DB_PASSWORD environment variable must be set', E_USER_ERROR);
@@ -54,12 +56,12 @@ if ($project) {
 
 // ── Find or create users ──
 $neededUsers = [
-    ['login' => 'crm.lead@aurora-digital.ru', 'full_name' => 'Алексей Соболев'],
-    ['login' => 'crm.analyst@aurora-digital.ru', 'full_name' => 'Елена Крылова'],
-    ['login' => 'crm.dev@aurora-digital.ru', 'full_name' => 'Дмитрий Орлов'],
-    ['login' => 'crm.integrator@aurora-digital.ru', 'full_name' => 'Павел Сомов'],
-    ['login' => 'crm.trainer@aurora-digital.ru', 'full_name' => 'Анна Белова'],
-    ['login' => 'crm.support@aurora-digital.ru', 'full_name' => 'Иван Громов'],
+    ['login' => 'crm.lead' . SEED_EMAIL_DOMAIN, 'full_name' => 'Алексей Соболев'],
+    ['login' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'full_name' => 'Елена Крылова'],
+    ['login' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'full_name' => 'Дмитрий Орлов'],
+    ['login' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'full_name' => 'Павел Сомов'],
+    ['login' => 'crm.trainer' . SEED_EMAIL_DOMAIN, 'full_name' => 'Анна Белова'],
+    ['login' => 'crm.support' . SEED_EMAIL_DOMAIN, 'full_name' => 'Иван Громов'],
 ];
 
 $userIds = []; // login => id
@@ -101,86 +103,86 @@ $taskDefs = [
     // Phase 1: Discovery & Planning
     ['title' => 'Провести discovery-сессию с заказчиком',
      'desc' => 'Собрать ключевых стейкхолдеров, зафиксировать текущие бизнес-процессы, выявить боли и узкие места. Результат: протокол встречи, карта процессов As-Is.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.lead@aurora-digital.ru', 'offset' => '-14 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.lead' . SEED_EMAIL_DOMAIN, 'offset' => '-14 days'],
     ['title' => 'Согласовать и утвердить бизнес-требования (BRD)',
      'desc' => 'Документ с описанием функциональных и нефункциональных требований к CRM. Модули: клиентская база, сделки, задачи, отчёты, интеграции.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst@aurora-digital.ru', 'offset' => '-11 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'offset' => '-11 days'],
     ['title' => 'Составить техническое задание на доработки',
      'desc' => 'На основе BRD сформировать ТЗ: кастомные поля, бизнес-логика воронок, автоматические действия, отчёты и дашборды.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.lead@aurora-digital.ru', 'offset' => '-9 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.lead' . SEED_EMAIL_DOMAIN, 'offset' => '-9 days'],
     ['title' => 'Утвердить план внедрения и календарный график',
      'desc' => 'Вехи проекта: завершение настройки, миграция данных, UAT, обучение, go-live. Зафиксировать даты и ответственных.',
-     'status' => 'done', 'priority' => 'normal', 'assignee' => 'crm.lead@aurora-digital.ru', 'offset' => '-8 days'],
+     'status' => 'done', 'priority' => 'normal', 'assignee' => 'crm.lead' . SEED_EMAIL_DOMAIN, 'offset' => '-8 days'],
 
     // Phase 2: System Configuration
     ['title' => 'Настроить структуру справочников системы',
      'desc' => 'Типы сделок, статусы и этапы воронок, категории задач, источники лидов, типы контрагентов. Привести к единой классификации заказчика.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.dev@aurora-digital.ru', 'offset' => '-5 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'offset' => '-5 days'],
     ['title' => 'Настроить ролевую модель и права доступа',
      'desc' => 'Роли: администратор CRM, руководитель отдела, менеджер по продажам, аналитик. Настроить права для каждой роли.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.dev@aurora-digital.ru', 'offset' => '-4 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'offset' => '-4 days'],
     ['title' => 'Настроить пользовательские поля и макеты страниц',
      'desc' => 'Кастомные поля для сделок (источник, тип тура, бюджет), контактов (предпочтения, история), компаний (сегмент).',
-     'status' => 'done', 'priority' => 'normal', 'assignee' => 'crm.dev@aurora-digital.ru', 'offset' => '-3 days'],
+     'status' => 'done', 'priority' => 'normal', 'assignee' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'offset' => '-3 days'],
     ['title' => 'Настроить воронки продаж и этапы сделок',
      'desc' => 'Воронки: B2C-продажи, B2B-продажи, партнёрские заявки. Для каждой определить этапы, вероятности и триггеры перехода.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst@aurora-digital.ru', 'offset' => '-2 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'offset' => '-2 days'],
 
     // Phase 3: Data Migration
     ['title' => 'Выгрузить и очистить данные из legacy-системы',
      'desc' => 'Выгрузка контактов, компаний, сделок и истории взаимодействий из старой CRM. Очистка дублей, нормализация телефонов и email.',
-     'status' => 'done', 'priority' => 'urgent', 'assignee' => 'crm.analyst@aurora-digital.ru', 'offset' => '-3 days'],
+     'status' => 'done', 'priority' => 'urgent', 'assignee' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'offset' => '-3 days'],
     ['title' => 'Разработать карту маппинга полей',
      'desc' => 'Сопоставить поля старой и новой CRM. Учесть различия в форматах дат, типах справочников, структуре составных полей.',
-     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst@aurora-digital.ru', 'offset' => '-2 days'],
+     'status' => 'done', 'priority' => 'high', 'assignee' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'offset' => '-2 days'],
     ['title' => 'Выполнить миграцию контактов и компаний',
      'desc' => 'Перенос ~12 000 контактов и ~800 компаний через API. Проверить корректность связей, сохранить историю взаимодействий.',
-     'status' => 'done', 'priority' => 'urgent', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '-1 days'],
+     'status' => 'done', 'priority' => 'urgent', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '-1 days'],
     ['title' => 'Выполнить миграцию сделок и проектов',
      'desc' => 'Перенос ~3 500 сделок с историей смены статусов и ~150 проектов. Проверить корректность сумм и валют.',
-     'status' => 'in_progress', 'priority' => 'urgent', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '0 days'],
+     'status' => 'in_progress', 'priority' => 'urgent', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '0 days'],
     ['title' => 'Верифицировать полноту и целостность перенесённых данных',
      'desc' => 'Выборочная сверка 5% контактов, 10% сделок и всех проектов. Сверить суммы с отчётом из legacy-системы.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.analyst@aurora-digital.ru', 'offset' => '+1 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.analyst' . SEED_EMAIL_DOMAIN, 'offset' => '+1 days'],
 
     // Phase 4: Integrations
     ['title' => 'Настроить интеграцию с сайтом (веб-формы + API)',
      'desc' => 'Веб-формы захвата лидов, автоматическое создание контактов и сделок по заявкам. Внедрить UTM-метки.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '+2 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '+2 days'],
     ['title' => 'Настроить интеграцию с email-маркетингом (UniSender)',
      'desc' => 'Двусторонняя синхронизация статусов подписки, сегментов и истории рассылок. Автоматическая загрузка контактов из CRM.',
-     'status' => 'new', 'priority' => 'normal', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '+3 days'],
+     'status' => 'new', 'priority' => 'normal', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '+3 days'],
     ['title' => 'Настроить интеграцию с телефонией (Манго Телеком)',
      'desc' => 'Журнал звонков, автоматическая карточка звонка в CRM, подтягивание информации о клиенте при входящем звонке.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '+4 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '+4 days'],
 
     // Phase 5: Testing
     ['title' => 'Провести UAT (приёмочное тестирование)',
      'desc' => 'Привлечь 5 ключевых пользователей для тестирования типовых сценариев: создание сделки, проведение по этапам, отчёты.',
-     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.trainer@aurora-digital.ru', 'offset' => '+5 days'],
+     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.trainer' . SEED_EMAIL_DOMAIN, 'offset' => '+5 days'],
     ['title' => 'Исправить критические ошибки по результатам UAT',
      'desc' => 'Обработать замечания: приоритет 1 — до go-live, приоритет 2 — бэклог следующих итераций.',
-     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.dev@aurora-digital.ru', 'offset' => '+7 days'],
+     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'offset' => '+7 days'],
     ['title' => 'Настроить резервное копирование и процедуру DR',
      'desc' => 'Ежедневный бэкап БД, еженедельный бэкап файлов. Автоматическое уведомление о статусе. Документирование процедуры.',
-     'status' => 'new', 'priority' => 'normal', 'assignee' => 'crm.dev@aurora-digital.ru', 'offset' => '+6 days'],
+     'status' => 'new', 'priority' => 'normal', 'assignee' => 'crm.dev' . SEED_EMAIL_DOMAIN, 'offset' => '+6 days'],
     ['title' => 'Провести нагрузочное тестирование системы',
      'desc' => 'Симуляция: 50 одновременных пользователей, 200 сделок/час, 5 отчётов. Замерить время отклика.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator@aurora-digital.ru', 'offset' => '+8 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.integrator' . SEED_EMAIL_DOMAIN, 'offset' => '+8 days'],
 
     // Phase 6: Training & Go-Live
     ['title' => 'Провести обучение администраторов системы',
      'desc' => 'Двухдневный воркшоп для 3 администраторов: управление пользователями, настройка прав и полей, воронки, отчёты.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.trainer@aurora-digital.ru', 'offset' => '+9 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.trainer' . SEED_EMAIL_DOMAIN, 'offset' => '+9 days'],
     ['title' => 'Провести обучение менеджеров по продажам',
      'desc' => 'Однодневный воркшоп для 20 менеджеров: клиентская база, сделки, задачи, отчёты. Подготовить памятку пользователя.',
-     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.trainer@aurora-digital.ru', 'offset' => '+10 days'],
+     'status' => 'new', 'priority' => 'high', 'assignee' => 'crm.trainer' . SEED_EMAIL_DOMAIN, 'offset' => '+10 days'],
     ['title' => 'Запустить систему в промышленную эксплуатацию',
      'desc' => 'Go-Live: отключение legacy-системы, включение интеграций, мониторинг 48 часов. Чек-лист: миграция, интеграции, права, бэкапы.',
-     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.lead@aurora-digital.ru', 'offset' => '+12 days'],
+     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.lead' . SEED_EMAIL_DOMAIN, 'offset' => '+12 days'],
     ['title' => 'Пост-релизная поддержка первой недели',
      'desc' => 'Ежедневный мониторинг, помощь пользователям, оперативное исправление инцидентов. Отчёт о первой неделе эксплуатации.',
-     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.support@aurora-digital.ru', 'offset' => '+13 days'],
+     'status' => 'new', 'priority' => 'urgent', 'assignee' => 'crm.support' . SEED_EMAIL_DOMAIN, 'offset' => '+13 days'],
 ];
 
 // ── Insert tasks ──

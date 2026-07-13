@@ -6,6 +6,7 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 final class Seeder
 {
+    private const string EMAIL_DOMAIN = '@aurora-digital.ru';
     private string $baseUrl = 'https://localhost/api/index.php?route=';
     private string $token = '';
 
@@ -139,18 +140,18 @@ final class Seeder
     private function seedUsers(): void
     {
         $users = [
-            ['key' => 'ceo', 'login' => 'olga.kuznetsova@aurora-digital.ru', 'full_name' => 'Ольга Кузнецова', 'role' => 'admin_ops'],
-            ['key' => 'account_anna', 'login' => 'anna.smirnova@aurora-digital.ru', 'full_name' => 'Анна Смирнова', 'role' => 'account_manager'],
-            ['key' => 'account_pavel', 'login' => 'pavel.lebedev@aurora-digital.ru', 'full_name' => 'Павел Лебедев', 'role' => 'account_manager'],
-            ['key' => 'pm_irina', 'login' => 'irina.morozova@aurora-digital.ru', 'full_name' => 'Ирина Морозова', 'role' => 'project_manager'],
-            ['key' => 'pm_dmitry', 'login' => 'dmitry.belov@aurora-digital.ru', 'full_name' => 'Дмитрий Белов', 'role' => 'project_manager'],
-            ['key' => 'lead_nikita', 'login' => 'nikita.frolov@aurora-digital.ru', 'full_name' => 'Никита Фролов', 'role' => 'teamlead_dev'],
-            ['key' => 'dev_alexey', 'login' => 'alexey.popov@aurora-digital.ru', 'full_name' => 'Алексей Попов', 'role' => 'developer'],
-            ['key' => 'dev_maria', 'login' => 'maria.kiseleva@aurora-digital.ru', 'full_name' => 'Мария Киселева', 'role' => 'developer'],
-            ['key' => 'dev_roman', 'login' => 'roman.egorov@aurora-digital.ru', 'full_name' => 'Роман Егоров', 'role' => 'developer'],
-            ['key' => 'qa_evgenia', 'login' => 'evgenia.sokolova@aurora-digital.ru', 'full_name' => 'Евгения Соколова', 'role' => 'qa_engineer'],
-            ['key' => 'designer_ilia', 'login' => 'ilia.zhdanov@aurora-digital.ru', 'full_name' => 'Илья Жданов', 'role' => 'designer'],
-            ['key' => 'support_ksenia', 'login' => 'ksenia.volkova@aurora-digital.ru', 'full_name' => 'Ксения Волкова', 'role' => 'support_engineer'],
+            ['key' => 'ceo', 'login' => 'olga.kuznetsova' . self::EMAIL_DOMAIN, 'full_name' => 'Ольга Кузнецова', 'role' => 'admin_ops'],
+            ['key' => 'account_anna', 'login' => 'anna.smirnova' . self::EMAIL_DOMAIN, 'full_name' => 'Анна Смирнова', 'role' => 'account_manager'],
+            ['key' => 'account_pavel', 'login' => 'pavel.lebedev' . self::EMAIL_DOMAIN, 'full_name' => 'Павел Лебедев', 'role' => 'account_manager'],
+            ['key' => 'pm_irina', 'login' => 'irina.morozova' . self::EMAIL_DOMAIN, 'full_name' => 'Ирина Морозова', 'role' => 'project_manager'],
+            ['key' => 'pm_dmitry', 'login' => 'dmitry.belov' . self::EMAIL_DOMAIN, 'full_name' => 'Дмитрий Белов', 'role' => 'project_manager'],
+            ['key' => 'lead_nikita', 'login' => 'nikita.frolov' . self::EMAIL_DOMAIN, 'full_name' => 'Никита Фролов', 'role' => 'teamlead_dev'],
+            ['key' => 'dev_alexey', 'login' => 'alexey.popov' . self::EMAIL_DOMAIN, 'full_name' => 'Алексей Попов', 'role' => 'developer'],
+            ['key' => 'dev_maria', 'login' => 'maria.kiseleva' . self::EMAIL_DOMAIN, 'full_name' => 'Мария Киселева', 'role' => 'developer'],
+            ['key' => 'dev_roman', 'login' => 'roman.egorov' . self::EMAIL_DOMAIN, 'full_name' => 'Роман Егоров', 'role' => 'developer'],
+            ['key' => 'qa_evgenia', 'login' => 'evgenia.sokolova' . self::EMAIL_DOMAIN, 'full_name' => 'Евгения Соколова', 'role' => 'qa_engineer'],
+            ['key' => 'designer_ilia', 'login' => 'ilia.zhdanov' . self::EMAIL_DOMAIN, 'full_name' => 'Илья Жданов', 'role' => 'designer'],
+            ['key' => 'support_ksenia', 'login' => 'ksenia.volkova' . self::EMAIL_DOMAIN, 'full_name' => 'Ксения Волкова', 'role' => 'support_engineer'],
         ];
 
         foreach ($users as $user) {

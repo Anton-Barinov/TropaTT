@@ -7,6 +7,7 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 final class FullDemoSeeder
 {
+    private const string EMAIL_DOMAIN = '@aurora-digital.ru';
     private string $baseUrl = 'https://localhost/api/index.php?route=';
     private string $token = '';
     private PDO $pdo;
@@ -95,12 +96,12 @@ final class FullDemoSeeder
         }
 
         $usersToCreate = [
-            ['login' => 'elena.seo@aurora-digital.ru', 'full_name' => 'Елена Орлова', 'role' => 'seo_specialist'],
-            ['login' => 'andrey.ppc@aurora-digital.ru', 'full_name' => 'Андрей Захаров', 'role' => 'ppc_specialist'],
-            ['login' => 'polina.content@aurora-digital.ru', 'full_name' => 'Полина Громова', 'role' => 'content_manager'],
-            ['login' => 'sergey.devops@aurora-digital.ru', 'full_name' => 'Сергей Нестеров', 'role' => 'devops_engineer'],
-            ['login' => 'viktor.sales@aurora-digital.ru', 'full_name' => 'Виктор Данилов', 'role' => 'sales_manager'],
-            ['login' => 'natalia.finance@aurora-digital.ru', 'full_name' => 'Наталия Ефимова', 'role' => 'finance_manager'],
+            ['login' => 'elena.seo' . self::EMAIL_DOMAIN, 'full_name' => 'Елена Орлова', 'role' => 'seo_specialist'],
+            ['login' => 'andrey.ppc' . self::EMAIL_DOMAIN, 'full_name' => 'Андрей Захаров', 'role' => 'ppc_specialist'],
+            ['login' => 'polina.content' . self::EMAIL_DOMAIN, 'full_name' => 'Полина Громова', 'role' => 'content_manager'],
+            ['login' => 'sergey.devops' . self::EMAIL_DOMAIN, 'full_name' => 'Сергей Нестеров', 'role' => 'devops_engineer'],
+            ['login' => 'viktor.sales' . self::EMAIL_DOMAIN, 'full_name' => 'Виктор Данилов', 'role' => 'sales_manager'],
+            ['login' => 'natalia.finance' . self::EMAIL_DOMAIN, 'full_name' => 'Наталия Ефимова', 'role' => 'finance_manager'],
         ];
 
         $existingUsers = $this->request('GET', 'api/v1/users');
@@ -138,8 +139,8 @@ final class FullDemoSeeder
         $now = gmdate('Y-m-d H:i:s');
 
         $rootUser = $this->one('SELECT * FROM users WHERE is_root = 1 ORDER BY id ASC LIMIT 1');
-        $pmUser = $this->one("SELECT * FROM users WHERE login = 'irina.morozova@aurora-digital.ru' LIMIT 1") ?? $rootUser;
-        $devUser = $this->one("SELECT * FROM users WHERE login = 'alexey.popov@aurora-digital.ru' LIMIT 1") ?? $rootUser;
+        $pmUser = $this->one("SELECT * FROM users WHERE login = 'irina.morozova" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
+        $devUser = $this->one("SELECT * FROM users WHERE login = 'alexey.popov" . self::EMAIL_DOMAIN . "' LIMIT 1") ?? $rootUser;
 
         $project = $this->one('SELECT * FROM projects ORDER BY id ASC LIMIT 1');
         $task = $this->one('SELECT * FROM tasks ORDER BY id ASC LIMIT 1');
@@ -530,7 +531,7 @@ final class FullDemoSeeder
 
         $this->insertIfEmpty('invitations', [
             'public_id' => $this->pid('inv'),
-            'email' => 'candidate.pm@aurora-digital.ru',
+            'email' => 'candidate.pm' . self::EMAIL_DOMAIN,
             'invited_by_user_id' => (int)$rootUser['id'],
             'token_hash' => hash('sha256', 'invite-demo-token'),
             'expires_at' => '2026-05-01 00:00:00',
