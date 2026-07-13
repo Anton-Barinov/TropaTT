@@ -123,7 +123,7 @@ final class KnowledgePageVersionRepository
 
     public function findByPublicId(string $versionPublicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at FROM knowledge_page_versions WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, summary, visibility, status, tags_json, links_json, meta_json, change_type, change_note, created_by_user_id, created_by_display_name, content_hash, created_at FROM knowledge_page_versions WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['public_id' => $versionPublicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -131,7 +131,7 @@ final class KnowledgePageVersionRepository
 
     public function findByPageAndNumber(int $pageId, int $versionNumber): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, summary, visibility, status, tags_json, links_json, meta_json, change_type, change_note, created_by_user_id, created_by_display_name, content_hash, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND version_number = :version_number AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['page_id' => $pageId, 'version_number' => $versionNumber]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -139,7 +139,7 @@ final class KnowledgePageVersionRepository
 
     public function latestByPageId(int $pageId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, change_type, change_note, created_by_user_id, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND deleted_at IS NULL ORDER BY version_number DESC LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, page_id, page_public_id, version_number, title, content, content_text, summary, visibility, status, tags_json, links_json, meta_json, change_type, change_note, created_by_user_id, created_by_display_name, content_hash, created_at FROM knowledge_page_versions WHERE page_id = :page_id AND deleted_at IS NULL ORDER BY version_number DESC LIMIT 1');
         $stmt->execute(['page_id' => $pageId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
@@ -191,7 +191,7 @@ final class KnowledgePageVersionRepository
 
     public function getPage(string $pagePublicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, source_type, source_id, source_url, source_payload_json, created_at, updated_at FROM knowledge_pages WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, public_id, space_id, parent_id, title, slug, page_type, status, content_html, content_text, content_json, excerpt, owner_user_id, last_editor_user_id, sort_order, path, depth, source_type, source_id, source_url, source_payload_json, locked_at, locked_by_user_id, lock_reason, row_version, last_version_number, created_at, updated_at FROM knowledge_pages WHERE public_id = :public_id AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['public_id' => $pagePublicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;

@@ -62,8 +62,8 @@ final class KnowledgePageVersionService
                 'change_type' => $item['change_type'],
                 'change_note' => $item['change_note'],
                 'created_by_user_public_id' => $uid > 0 ? ($userNames[$uid] ?? null) : null,
-                'created_by_display_name' => $item['created_by_display_name'] ?: ($userNames[$uid] ?? null),
-                'content_hash' => $item['content_hash'],
+                'created_by_display_name' => ($item['created_by_display_name'] ?? '') ?: ($userNames[$uid] ?? null),
+                'content_hash' => $item['content_hash'] ?? null,
                 'created_at' => $item['created_at'],
             ];
         }
@@ -103,8 +103,9 @@ final class KnowledgePageVersionService
 
         // Enrich with user info
         $uid = (int)($version['created_by_user_id'] ?? 0);
-        $version['created_by_display_name'] = $version['created_by_display_name']
-            ?: ($uid > 0 ? ($this->versions->userById($uid)['full_name'] ?? null) : null);
+        $creator = $uid > 0 ? $this->versions->userById($uid) : null;
+        $version['created_by_display_name'] = ($version['created_by_display_name'] ?? '')
+            ?: (is_array($creator) ? ((string)($creator['full_name'] ?? '') ?: ($creator['login'] ?? null)) : null);
 
         return $version;
     }
@@ -137,7 +138,7 @@ final class KnowledgePageVersionService
         $changeNote = $context['change_note'] ?? null;
 
         $actorId = (int)($actor['id'] ?? 0);
-        $actorDisplayName = (string)($actor['full_name'] ?: $actor['login'] ?: $actor['public_id'] ?? '');
+        $actorDisplayName = (string)(($actor['full_name'] ?? '') ?: ($actor['login'] ?? '') ?: ($actor['public_id'] ?? ''));
 
         $payload = [
             'page_id' => $pageId,
@@ -219,7 +220,7 @@ final class KnowledgePageVersionService
 
         // Create a new version marking the restore
         if ($updatedPage) {
-            $actorDisplayName = (string)($actor['full_name'] ?: $actor['login'] ?: $actor['public_id'] ?? '');
+            $actorDisplayName = (string)(($actor['full_name'] ?? '') ?: ($actor['login'] ?? '') ?: ($actor['public_id'] ?? ''));
             $snapshot = $this->buildSnapshot($updatedPage);
             $contentHash = $this->computeContentHash($snapshot);
             $nextVersion = $this->versions->nextVersionNumberForPageId((int)$updatedPage['id']);
