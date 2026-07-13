@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Task\TaskRepository;
+use Api\Model\Team\TeamRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Database\Builder\QueryBuilder;
@@ -16,13 +17,15 @@ final class WorklogService
         private readonly WorklogRepository $worklogs,
         private readonly TaskRepository $tasks,
         private readonly UserManagementRepository $userManagement,
+        private readonly TeamRepository $teamRepo,
         private readonly JsonLogger $logger
     ) {
     }
 
     /**
      * Get the list of user IDs that the actor can see worklogs for.
-     * Includes the actor and all users created by them (recursively).
+     * Includes the actor, all users created by them (recursively),
+     * and all members of teams where the actor is the manager.
      * Root users get an empty array — no user-level filter is applied.
      */
     private function getVisibleUserIds(array $actor): array
@@ -34,7 +37,14 @@ final class WorklogService
             return [];
         }
 
-        return $this->userManagement->descendantIds($actorId);
+        // Hierarchy: actor + all descendants (users created by them recursively)
+        $hierarchyIds = $this->userManagement->descendantIds($actorId);
+
+        // Teams: members of teams where the actor is the manager
+        $teamMemberIds = $this->teamRepo->findMemberIdsByManager($actorId);
+
+        // Merge, deduplicate, return
+        return array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
     }
 
     public function list(array $filters, array $actor): array

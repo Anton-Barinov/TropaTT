@@ -127,6 +127,33 @@ final class TeamRepository
             ->delete() > 0;
     }
 
+    /**
+     * Get all member user IDs from teams where the given user is the manager.
+     * Returns unique, deduplicated array of user IDs (integers).
+     */
+    public function findMemberIdsByManager(int $managerUserId): array
+    {
+        if ($managerUserId <= 0) {
+            return [];
+        }
+
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('teams')
+            ->select(['member_user_ids'])
+            ->where('manager_user_id', '=', $managerUserId)
+            ->all();
+
+        $allMemberIds = [];
+        foreach ($rows as $row) {
+            $memberIds = $this->decodeMemberIds($row['member_user_ids'] ?? null);
+            foreach ($memberIds as $id) {
+                $allMemberIds[] = $id;
+            }
+        }
+
+        return array_values(array_unique($allMemberIds));
+    }
+
     /** @return string[] */
     public function listAccessiblePublicIdsForUser(int $actorUserId): array
     {

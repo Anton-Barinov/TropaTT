@@ -1303,6 +1303,7 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
             $c->get('repository.worklog'),
             $c->get('repository.task'),
             $c->get('repository.user_management'),
+            $c->get('repository.team'),
             $c->get('logger')
         ));
         $this->container->factory('service.dashboard', fn(Container $c) => new DashboardService(
