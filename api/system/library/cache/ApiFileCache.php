@@ -134,6 +134,37 @@ final class ApiFileCache
 
         $this->log('cache_miss', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
 
+        // File cache is used on shared hosting, where several PHP-FPM workers
+        // can miss the same entry at once. Serialise only the first rebuild for
+        // this key; the waiting workers read the completed value below instead
+        // of issuing duplicate expensive database queries.
+        $lock = @fopen($this->lockPath($cacheKey), 'c');
+        if ($lock !== false && @flock($lock, LOCK_EX)) {
+            try {
+                $cached = $this->read($cacheKey, $ttl);
+                if ($cached !== null) {
+                    $this->log('cache_hit_after_wait', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
+                    return $cached;
+                }
+
+                $data = $callback();
+                $this->write($cacheKey, $data);
+                $this->log('cache_set', ['namespace' => $namespace, 'key' => $key, 'version' => $version]);
+
+                return $data;
+            } catch (\Throwable $e) {
+                $this->log('callback_error', ['namespace' => $namespace, 'key' => $key, 'error' => $e->getMessage()]);
+                throw $e;
+            } finally {
+                @flock($lock, LOCK_UN);
+                @fclose($lock);
+            }
+        }
+
+        if ($lock !== false) {
+            @fclose($lock);
+        }
+
         try {
             $data = $callback();
         } catch (\Throwable $e) {
@@ -230,6 +261,11 @@ final class ApiFileCache
     private function filePath(string $cacheKey): string
     {
         return $this->basePath . '/' . $cacheKey . '.json';
+    }
+
+    private function lockPath(string $cacheKey): string
+    {
+        return $this->basePath . '/' . $cacheKey . '.lock';
     }
 
     private function versionFilePath(string $namespace): string
