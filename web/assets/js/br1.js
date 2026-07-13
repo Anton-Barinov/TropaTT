@@ -6235,19 +6235,19 @@ window.CRM.br1 = (function () {
           + '<span class="crm-worklog-user-pct">(' + pct + '%)</span></div>';
       });
       var userBreakdownBlock = sortedUsers.length > 1
-        ? window.CRM.i18n.t('js.br1.article_class_crm_worklog_summary_card_crm_worklog_summ', '<article class="crm-worklog-summary-card crm-worklog-summary-users"><div class="crm-worklog-summary-label">По пользователям</div>') + userBreakdownHtml + '</article>'
+        ? window.CRM.i18n.t('js.br1.div_class_crm_worklog_summary_users_div_class_crm_worklog_summary_label_po_polzovatelyam_div', '<div class="crm-worklog-summary-users"><div class="crm-worklog-summary-label">По пользователям</div>') + userBreakdownHtml + '</div>'
         : '';
 
-      summary.innerHTML = '<article class="crm-worklog-summary-card">'
+      summary.innerHTML = '<div class="crm-worklog-summary-stat">'
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>'
-        + '<div class="crm-worklog-summary-value">' + escapeHtml(formatMinutes(totalMinutes)) + '</div>'
-        + window.CRM.i18n.t('js.br1.div_class_crm_worklog_summary_label_vsego_vremeni_div', '<div class="crm-worklog-summary-label">Всего времени</div>')
-        + '</article>'
-        + '<article class="crm-worklog-summary-card">'
+        + '<strong class="crm-worklog-summary-value">' + escapeHtml(formatMinutes(totalMinutes)) + '</strong>'
+        + window.CRM.i18n.t('js.br1.span_class_crm_worklog_summary_label_vsego_vremeni_span', '<span class="crm-worklog-summary-label">Всего времени</span>')
+        + '</div>'
+        + '<div class="crm-worklog-summary-stat">'
         + '<span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>'
-        + '<div class="crm-worklog-summary-value">' + escapeHtml(formatWorklogEntriesLabel(items.length)) + '</div>'
-        + window.CRM.i18n.t('js.br1.div_class_crm_worklog_summary_label_v_zhurnale_div', '<div class="crm-worklog-summary-label">В журнале</div>')
-        + '</article>'
+        + '<strong class="crm-worklog-summary-value">' + escapeHtml(formatWorklogEntriesLabel(items.length)) + '</strong>'
+        + window.CRM.i18n.t('js.br1.span_class_crm_worklog_summary_label_v_zhurnale_span', '<span class="crm-worklog-summary-label">В журнале</span>')
+        + '</div>'
         + userBreakdownBlock;
     }
 

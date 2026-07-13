@@ -114,22 +114,24 @@
       </section>
 
       <section id="detailWorklogs" class="tab-pane fade crm-card crm-task-section">
-        <div class="crm-worklog-head mb-3">
+        <div class="crm-worklog-head mb-2">
           <div>
             <h2 class="h6 mb-1" data-i18n="task_detail.worklogs_title"><?= htmlspecialchars($t('task_detail.worklogs_title', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></h2>
             <small class="text-muted" data-i18n="task_detail.worklogs_hint"><?= htmlspecialchars($t('task_detail.worklogs_hint', 'Фиксация фактически затраченного времени'), ENT_QUOTES, 'UTF-8') ?></small>
           </div>
           <button class="btn crm-btn-primary crm-btn-compact" type="button" id="worklogAddToggleBtn" data-i18n="task_detail.worklogs_add_btn"><?= htmlspecialchars($t('task_detail.worklogs_add_btn', '+ Добавить запись'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
-        <div id="taskWorklogSummary" class="crm-worklog-summary mb-3">
-          <article class="crm-worklog-summary-card">
-            <div class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_minutes', 'мин'), ENT_QUOTES, 'UTF-8') ?></div>
-            <div class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_total_label"><?= htmlspecialchars($t('task_detail.worklogs_total_label', 'Всего времени'), ENT_QUOTES, 'UTF-8') ?></div>
-          </article>
-          <article class="crm-worklog-summary-card">
-            <div class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_entries', 'записей'), ENT_QUOTES, 'UTF-8') ?></div>
-            <div class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_entries_label"><?= htmlspecialchars($t('task_detail.worklogs_entries_label', 'В журнале'), ENT_QUOTES, 'UTF-8') ?></div>
-          </article>
+        <div id="taskWorklogSummary" class="crm-worklog-summary mb-2">
+          <div class="crm-worklog-summary-stat">
+            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span>
+            <strong class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_minutes', 'мин'), ENT_QUOTES, 'UTF-8') ?></strong>
+            <span class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_total_label"><?= htmlspecialchars($t('task_detail.worklogs_total_label', 'Всего времени'), ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <div class="crm-worklog-summary-stat">
+            <span class="crm-worklog-summary-icon" aria-hidden="true"><i class="fa-regular fa-rectangle-list"></i></span>
+            <strong class="crm-worklog-summary-value">0 <?= htmlspecialchars($t('task_detail.worklogs_entries', 'записей'), ENT_QUOTES, 'UTF-8') ?></strong>
+            <span class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_entries_label"><?= htmlspecialchars($t('task_detail.worklogs_entries_label', 'В журнале'), ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
         </div>
         <form id="worklogCreateForm" class="row g-3 mb-3 crm-task-create-form crm-worklog-create-form d-none">
           <div class="col-lg-3">

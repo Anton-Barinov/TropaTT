@@ -5495,29 +5495,28 @@ font-size: 0.72rem;
 .crm-task-detail-page .crm-worklog-summary {
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0;
-  padding: 0.1rem 0;
+  align-items: center;
+  gap: 0.25rem 0;
+  min-height: 2rem;
 }
 
-.crm-task-detail-page .crm-worklog-summary-card {
-  position: relative;
-  min-width: 9.75rem;
-  padding: 0.28rem 1.15rem 0.28rem 2.45rem;
-  background: transparent;
+.crm-task-detail-page .crm-worklog-summary-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 0;
+  padding: 0.05rem 0.9rem 0.05rem 0;
 }
 
-.crm-task-detail-page .crm-worklog-summary-card + .crm-worklog-summary-card {
+.crm-task-detail-page .crm-worklog-summary-stat + .crm-worklog-summary-stat {
   border-left: 1px solid #dee6f4;
+  padding-left: 0.9rem;
 }
 
 .crm-task-detail-page .crm-worklog-summary-icon {
-  position: absolute;
-  left: 0.65rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1.45rem;
-  height: 1.45rem;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 999px;
   background: #ECFDF5;
   color: #059669;
@@ -5527,27 +5526,28 @@ font-size: 0.72rem;
 }
 
 .crm-task-detail-page .crm-worklog-summary-icon i {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   line-height: 1;
 }
 
 .crm-task-detail-page .crm-worklog-summary-value {
-  font-size: 1.18rem;
+  font-size: 1rem;
   line-height: 1.2;
-  font-weight: 720;
+  font-weight: 700;
   color: #1E293B;
 }
 
 .crm-task-detail-page .crm-worklog-summary-label {
-  margin-top: 0.05rem;
   color: #6b7d9b;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .crm-task-detail-page .crm-worklog-summary-users {
-  min-width: 13rem;
-  max-width: min(100%, 23rem);
-  padding-left: 1.15rem;
+  flex: 1 1 100%;
+  max-width: 28rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid #eef3fa;
 }
 
 .crm-task-detail-page .crm-worklog-user-row {
@@ -5772,22 +5772,10 @@ font-size: 0.72rem;
 
 @media (max-width: 991.98px) {
   .crm-task-detail-page .crm-worklog-summary {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.35rem 0;
-  }
-
-  .crm-task-detail-page .crm-worklog-summary-card {
-    min-width: 0;
-    padding-right: 0.6rem;
-  }
-
-  .crm-task-detail-page .crm-worklog-summary-card:nth-child(odd) {
-    border-left: 0;
+    display: flex;
   }
 
   .crm-task-detail-page .crm-worklog-summary-users {
-    grid-column: 1 / -1;
     max-width: none;
   }
 
