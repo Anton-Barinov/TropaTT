@@ -10040,7 +10040,7 @@ MD;
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
@@ -10089,7 +10089,7 @@ MD;
         }
 
         $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) {
@@ -10318,7 +10318,7 @@ MD;
             if ($teamId <= 0) {
                 return ['error' => 'team_id is required.'];
             }
-            $stmt = $pdo->prepare('SELECT * FROM teams WHERE id = :id');
+            $stmt = $pdo->prepare('SELECT id, public_id, title, manager_user_id, created_by_user_id, member_user_ids, created_at, updated_at FROM teams WHERE id = :id');
             $stmt->execute(['id' => $teamId]);
             $team = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!is_array($team)) {
