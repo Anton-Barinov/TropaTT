@@ -81,6 +81,8 @@ Always check:
 
 If a change touches auth, permissions, files, chat, webhooks, AI, installer, or admin areas, mention the security checks performed in the pull request.
 
+- **Financial data stripping**: API responses that include financial fields (`cost_rate`, `bill_rate`, `cost_amount`, `bill_amount`) MUST strip them for non-root users. Always add `unset($item['cost_rate'], $item['bill_rate'], $item['cost_amount'], $item['bill_amount'])` before returning earnings/task-summary data to non-root actors. This applies to both REST controllers (`WorklogController`) and MCP tool wrappers (`McpController`). When adding new financial fields to any API response, verify that non-root stripping is in place.
+
 ## API and OpenAPI Rules
 
 - Keep `api/config/routes.php` and API controllers consistent.
