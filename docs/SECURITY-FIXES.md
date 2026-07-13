@@ -32,24 +32,46 @@
 
 ---
 
-## [SEC-XXX] template
+## SEC-XXX — Краткий заголовок (template)
 
-(Each finding gets a dedicated section with: Мета, Описание проблемы, Воспроизведение, Влияние, Рекомендация по исправлению.)
+### Мета
+- **Severity**: Critical | High | Medium | Low
+- **CVSS Vector**: AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+- **CWE-ID**: CWE-XX
+- **Категория**:
+- **Затронутые файлы**: `путь/к/файлу.php:строка`
+- **Endpoint/tool**: `METHOD /api/v1/...`
+
+### Описание проблемы
+(Description)
+
+### Воспроизведение
+(Reproduction steps)
+
+### Влияние
+(Impact assessment)
+
+### Рекомендация по исправлению
+(Recommendation with code/config)
+
+### Приоритет
+Must-Fix | Should-Fix | Nice-to-Have
+
+---
+
+(Empty template — fill in per finding below.)
 
 ## Общие рекомендации по архитектуре безопасности
 
-(Empty template.)
-
 ## Порядок исправления (Roadmap)
 
-(Empty template.)
+| Приоритет | SEC-коды | Описание | Ожидаемое время |
+|-----------|----------|----------|-----------------|
+|           |          |          |                 |
 
 ## Методология аудита
-
-(Empty template.)
-
 ## Security Metrics & KPIs
 
 | Метрика | Цель | Как измерять |
 |---------|------|--------------|
-|  |  |  |
+|         |      |              |

@@ -131,24 +131,22 @@
             <div class="crm-worklog-summary-label" data-i18n="task_detail.worklogs_entries_label"><?= htmlspecialchars($t('task_detail.worklogs_entries_label', 'В журнале'), ENT_QUOTES, 'UTF-8') ?></div>
           </article>
         </div>
-        <form id="worklogCreateForm" class="row g-2 mb-3 crm-task-create-form d-none">
-          <div class="col-md-3">
+        <form id="worklogCreateForm" class="row g-3 mb-3 crm-task-create-form crm-worklog-create-form d-none">
+          <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_minutes_label"><?= htmlspecialchars($t('task_detail.worklog_minutes_label', 'Минуты'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="minutes_spent" type="number" min="1" step="1" placeholder="60" required>
           </div>
-          <div class="col-md-3">
+          <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_date_label"><?= htmlspecialchars($t('task_detail.worklog_date_label', 'Дата/время'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="logged_at" type="datetime-local" min="<?= date('Y-m-d\TH:i') ?>">
           </div>
-          <div class="col-md-4">
+          <div class="col-lg-6">
             <label class="form-label" data-i18n="task_detail.worklog_comment_label"><?= htmlspecialchars($t('task_detail.worklog_comment_label', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
             <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.worklog_comment_placeholder', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.worklog_comment_placeholder">
           </div>
-          <div class="col-md-2 d-flex align-items-end crm-task-create-action">
-            <button class="btn crm-btn-primary crm-btn-compact w-100" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-          </div>
-          <div class="col-md-2 d-flex align-items-end crm-task-create-action">
-            <button class="btn crm-btn-secondary crm-btn-compact w-100" type="button" id="worklogCreateCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <div class="col-12 crm-worklog-create-actions">
+            <button class="btn crm-btn-secondary crm-btn-compact" type="button" id="worklogCreateCancelBtn" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+            <button class="btn crm-btn-primary crm-btn-compact" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
           </div>
         </form>
         <div class="crm-worklog-list-head mb-2"><h3 class="h6 mb-0" data-i18n="task_detail.worklog_list_title"><?= htmlspecialchars($t('task_detail.worklog_list_title', 'Журнал времени'), ENT_QUOTES, 'UTF-8') ?></h3></div>

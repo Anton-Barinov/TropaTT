@@ -5488,32 +5488,36 @@ font-size: 0.72rem;
 .crm-task-detail-page .crm-worklog-head {
   display: flex;
   justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
+  gap: 0.65rem;
+  align-items: center;
 }
 
 .crm-task-detail-page .crm-worklog-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.1rem 0;
 }
 
 .crm-task-detail-page .crm-worklog-summary-card {
   position: relative;
-  border: 1px solid #dbe5f5;
-  border-radius: 14px;
-  padding: 0.95rem 1rem 0.95rem 3.9rem;
-  background: #fff;
-  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.05);
+  min-width: 9.75rem;
+  padding: 0.28rem 1.15rem 0.28rem 2.45rem;
+  background: transparent;
+}
+
+.crm-task-detail-page .crm-worklog-summary-card + .crm-worklog-summary-card {
+  border-left: 1px solid #dee6f4;
 }
 
 .crm-task-detail-page .crm-worklog-summary-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.65rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 2.15rem;
-  height: 2.15rem;
+  width: 1.45rem;
+  height: 1.45rem;
   border-radius: 999px;
   background: #ECFDF5;
   color: #059669;
@@ -5523,20 +5527,72 @@ font-size: 0.72rem;
 }
 
 .crm-task-detail-page .crm-worklog-summary-icon i {
-  font-size: 1rem;
+  font-size: 0.78rem;
   line-height: 1;
 }
 
 .crm-task-detail-page .crm-worklog-summary-value {
-  font-size: 1.55rem;
-  line-height: 1.1;
-  font-weight: 760;
+  font-size: 1.18rem;
+  line-height: 1.2;
+  font-weight: 720;
   color: #1E293B;
 }
 
 .crm-task-detail-page .crm-worklog-summary-label {
-  margin-top: 0.2rem;
+  margin-top: 0.05rem;
   color: #6b7d9b;
+  font-size: 0.84rem;
+}
+
+.crm-task-detail-page .crm-worklog-summary-users {
+  min-width: 13rem;
+  max-width: min(100%, 23rem);
+  padding-left: 1.15rem;
+}
+
+.crm-task-detail-page .crm-worklog-user-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding-top: 0.22rem;
+  font-size: 0.88rem;
+  color: #4a5c7b;
+}
+
+.crm-task-detail-page .crm-worklog-user-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-task-detail-page .crm-worklog-user-minutes {
+  margin-left: auto;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.crm-task-detail-page .crm-worklog-user-pct {
+  color: #6b7d9b;
+  font-size: 0.9em;
+}
+
+.crm-task-detail-page .crm-worklog-create-form {
+  margin-inline: 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid #dee6f4;
+  border-radius: 0;
+  background: transparent;
+}
+
+.crm-task-detail-page .crm-worklog-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.crm-task-detail-page .crm-worklog-create-actions .btn {
+  min-width: 6.5rem;
 }
 
 .crm-task-detail-page .crm-worklog-list-head {
@@ -5549,6 +5605,29 @@ font-size: 0.72rem;
   flex: 1 1 auto;
   margin-left: 0.8rem;
   border-top: 1px solid #dee6f4;
+}
+
+.crm-task-detail-page .crm-worklog-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.crm-task-detail-page .crm-worklog-empty-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  color: #5f7da8;
+  background: #edf5ff;
 }
 
 .crm-task-detail-page .crm-worklog-card {
@@ -5693,7 +5772,23 @@ font-size: 0.72rem;
 
 @media (max-width: 991.98px) {
   .crm-task-detail-page .crm-worklog-summary {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0;
+  }
+
+  .crm-task-detail-page .crm-worklog-summary-card {
+    min-width: 0;
+    padding-right: 0.6rem;
+  }
+
+  .crm-task-detail-page .crm-worklog-summary-card:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .crm-task-detail-page .crm-worklog-summary-users {
+    grid-column: 1 / -1;
+    max-width: none;
   }
 
   .crm-task-detail-page .crm-worklog-view-head {
@@ -5702,6 +5797,14 @@ font-size: 0.72rem;
 
   .crm-task-detail-page .crm-worklog-view-actions {
     width: 100%;
+  }
+
+  .crm-task-detail-page .crm-worklog-create-actions {
+    justify-content: stretch;
+  }
+
+  .crm-task-detail-page .crm-worklog-create-actions .btn {
+    flex: 1 1 0;
   }
 }
 
