@@ -5713,7 +5713,8 @@ font-size: 0.72rem;
   gap: 0.25rem;
 }
 
-.crm-task-detail-page .crm-worklog-view-actions .btn {
+.crm-task-detail-page .crm-worklog-view-actions > .btn,
+.crm-task-detail-page .crm-worklog-view-actions > .crm-worklog-more > summary.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
