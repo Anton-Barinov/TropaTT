@@ -6335,7 +6335,7 @@ window.CRM.br1 = (function () {
     if (addToggleBtn) addToggleBtn.classList.toggle('d-none', worklogAddOpen);
 
     if (!items.length) {
-      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_text_muted_zapisey_vremeni_poka_net_div', '<div class="text-muted">Записей времени пока нет.</div>');
+      list.innerHTML = window.CRM.i18n.t('js.br1.div_class_crm_worklog_empty_zapisey_vremeni_poka_net_div', '<div class="crm-worklog-empty"><span class="crm-worklog-empty-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><div class="text-muted">Записей времени пока нет.</div></div>');
       return;
     }
 
