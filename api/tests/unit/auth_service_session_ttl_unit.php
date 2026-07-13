@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../system/library/database/builder/QueryBuilder.php'
 require_once __DIR__ . '/../../system/library/logger/JsonLogger.php';
 require_once __DIR__ . '/../../system/library/security/TokenManager.php';
 require_once __DIR__ . '/../../system/library/security/PasswordHasher.php';
+require_once __DIR__ . '/../../system/library/service/RateLimitService.php';
+require_once __DIR__ . '/../../system/library/support/Ulid.php';
 require_once __DIR__ . '/../../system/library/service/AuthService.php';
 
 use Api\Model\Auth\AuthRepository;
@@ -15,6 +17,7 @@ use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Security\PasswordHasher;
 use Api\System\Library\Service\AuthService;
+use Api\System\Library\Service\RateLimitService;
 
 function unitAssert(bool $condition, string $message): void
 {
@@ -71,6 +74,7 @@ try {
     $authRepo = new AuthRepository($pdo);
     $userRepo = new UserRepository($pdo);
     $logger = new JsonLogger([]);
+    $rateLimiter = new RateLimitService();
 
     $tokenTtl = 259200;          // 3 days sliding window
     $maxSessionLifetime = 2592000; // 30 days absolute limit
@@ -81,6 +85,7 @@ try {
         $passwordHasher,
         $tokenManager,
         $logger,
+        $rateLimiter,
         $tokenTtl,
         $maxSessionLifetime
     );
@@ -174,6 +179,21 @@ try {
     // ── Test 6: Bogus token → returns null ──
     $result6 = $service->me('totally_nonexistent_token_xyz');
     unitAssert($result6 === null, 'Non-existent token must return null');
+
+    // ── Test 7: successful logins from one shared IP do not consume its abuse quota ──
+    $loginPassword = 'SharedIpLogin123!';
+    $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = 1')
+        ->execute([$passwordHasher->hash($loginPassword)]);
+    $sharedIp = 'unit-shared-ip-' . bin2hex(random_bytes(8));
+
+    for ($attempt = 0; $attempt < 12; $attempt++) {
+        $loginResult = $service->login([
+            'login' => 'testuser',
+            'password' => $loginPassword,
+        ], $sharedIp, 'Unit test browser');
+        unitAssert(($loginResult['ok'] ?? false) === true, 'Successful shared-IP login must not be rate limited');
+    }
+    $rateLimiter->clear('ip_login', $sharedIp);
 
     echo "[OK] auth_service_session_ttl_unit\n";
 } catch (Throwable $e) {

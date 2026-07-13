@@ -76,7 +76,7 @@ final class AuthService
             // so that non-existent users take the same time as existent ones.
             // Uses a pre-generated Argon2id hash to match the system's actual hash algorithm.
             $this->hasher->verify('dummy_plain_text', '$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHR2YWx1ZXMxMjM0NQ$wLdTJFplKxH5XKRhXQz7vA+VL0VvN8gD4v7TyzHGlc0');
-            $state = $this->hitLoginRateLimit($rateKey);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'user_not_found_or_inactive',
@@ -95,7 +95,7 @@ final class AuthService
         }
 
         if (!$this->hasher->verify($password, (string)$user['password_hash'])) {
-            $state = $this->hitLoginRateLimit($rateKey);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_password',
@@ -115,7 +115,7 @@ final class AuthService
 
         $tokenHash = (string)($user['auth_token_hash'] ?? '');
         if ($tokenHash !== '' && ($token === '' || !hash_equals($tokenHash, hash('sha256', $token)))) {
-            $state = $this->hitLoginRateLimit($rateKey);
+            $state = $this->recordFailedLoginAttempt($rateKey, $ip);
             $this->logger->security([
                 'event_type' => 'auth_failed',
                 'reason' => 'invalid_token_factor',
@@ -287,6 +287,13 @@ final class AuthService
 
     private function checkIpRateLimit(string $ip): array
     {
+        // A successful login must not consume a shared IP quota: office and
+        // mobile networks commonly put many legitimate users behind one NAT.
+        return $this->rateLimiter->check('ip_login', $ip, 10, 60, 300, false);
+    }
+
+    private function hitIpRateLimit(string $ip): array
+    {
         return $this->rateLimiter->check('ip_login', $ip, 10, 60, 300, true);
     }
 
@@ -298,6 +305,17 @@ final class AuthService
     private function hitLoginRateLimit(string $rateKey): array
     {
         return $this->rateLimiter->check('login', $rateKey, 5, 300, 900, true);
+    }
+
+    private function recordFailedLoginAttempt(string $rateKey, string $ip): array
+    {
+        $ipState = $this->hitIpRateLimit($ip);
+        $loginState = $this->hitLoginRateLimit($rateKey);
+
+        return [
+            'blocked' => ($ipState['blocked'] ?? false) === true || ($loginState['blocked'] ?? false) === true,
+            'retry_after' => max((int)($ipState['retry_after'] ?? 0), (int)($loginState['retry_after'] ?? 0)),
+        ];
     }
 
     private function clearLoginRateLimit(string $rateKey): void
