@@ -113,8 +113,9 @@ final class QueryBuilder
 
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
-        // SEC-013: Validate column name to prevent SQL injection
-        if (!preg_match('/^[a-zA-Z0-9_.`]+$/', $column)) {
+        // SEC-013: Validate column name to prevent SQL injection.
+        // Allow function calls (e.g. DATE(w.logged_at)) for consistency with groupBy.
+        if (!preg_match('/^[a-zA-Z0-9_.`()\s,]+$/', $column)) {
             throw new \InvalidArgumentException('Invalid column name in ORDER BY: ' . $column);
         }
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
