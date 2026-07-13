@@ -1,0 +1,14 @@
+parameters:
+    level: 1
+    paths:
+        - api/
+        - web/
+        - index.php
+    excludePaths:
+        - api/storage_test_runtime/*
+        - modules/*
+    # Ignore errors that are already present — baseline
+    baseline: phpstan-baseline.neon
+    # Project uses custom PSR-4 autoloader (no Composer)
+    autoload_files:
+        - api/system/library/support/Autoloader.php

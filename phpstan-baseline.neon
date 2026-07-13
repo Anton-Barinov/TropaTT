@@ -1,0 +1,4 @@
+# PHPStan baseline — generated automatically
+# Run: php phpstan.phar analyse --generate-baseline
+parameters:
+    ignoreErrors:
