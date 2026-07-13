@@ -2804,6 +2804,7 @@ return array (
     'tab_comments' => 'Comments',
     'tab_activity' => 'Activity',
     'tab_history' => 'History',
+    'tab_more' => 'More',
     'desc_title' => 'Context and acceptance criteria',
     'desc_edit_aria' => 'Edit description',
     'desc_loading' => 'Loading task details...',

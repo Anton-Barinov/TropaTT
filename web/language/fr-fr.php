@@ -4604,6 +4604,7 @@ return array (
     'tab_comments' => 'Commentaires',
     'tab_activity' => 'Activité',
     'tab_history' => 'Historique',
+    'tab_more' => 'Plus',
     'desc_title' => 'Contexte et critères d\'acceptation',
     'desc_edit_aria' => 'Modifier la description',
     'desc_loading' => 'Chargement des détails de la tâche...',

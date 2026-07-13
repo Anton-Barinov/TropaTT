@@ -5229,11 +5229,9 @@ font-size: 0.72rem;
 }
 
 .crm-task-detail-page .crm-task-tabs-nav {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    gap: 0.3rem;
-    border-bottom: none;
-    margin-bottom: 0px !important;
+  gap: 0.3rem;
+  border-bottom: none;
+  margin-bottom: 0 !important;
 }
 
 .crm-task-detail-page .crm-task-tabs-nav .nav-link {
@@ -5256,6 +5254,34 @@ font-size: 0.72rem;
   color: #047857;
   border-color: #d7e3f7 #d7e3f7 #ffffff;
   box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.6), 0 10px 20px rgba(5, 150, 105, 0.05);
+}
+
+.crm-task-detail-page .crm-task-tabs-overflow .dropdown-menu {
+  min-width: 14rem;
+  margin-top: -1px;
+  padding: 0.35rem;
+  border-color: #d7e3f7;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.crm-task-detail-page .crm-task-tabs-overflow .dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 8px;
+  padding: 0.58rem 0.7rem;
+  color: var(--crm-text);
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.crm-task-detail-page .crm-task-tabs-overflow .dropdown-item:hover,
+.crm-task-detail-page .crm-task-tabs-overflow .dropdown-item:focus-visible,
+.crm-task-detail-page .crm-task-tabs-overflow .dropdown-item.active {
+  color: #047857;
+  background: #ecfdf5;
 }
 
 .crm-task-detail-page .crm-tab-counter {

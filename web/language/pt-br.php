@@ -4599,6 +4599,7 @@ return array (
     'tab_comments' => 'Comentários',
     'tab_activity' => 'Atividade',
     'tab_history' => 'Histórico',
+    'tab_more' => 'Mais',
     'desc_title' => 'Contexto e critérios de aceitação',
     'desc_edit_aria' => 'Editar descrição',
     'desc_loading' => 'Carregando detalhes da tarefa...',

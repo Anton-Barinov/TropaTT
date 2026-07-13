@@ -4603,6 +4603,7 @@ return array (
     'tab_comments' => 'Kommentare',
     'tab_activity' => 'Aktivität',
     'tab_history' => 'Verlauf',
+    'tab_more' => 'Mehr',
     'desc_title' => 'Kontext und Annahmekriterien',
     'desc_edit_aria' => 'Beschreibung bearbeiten',
     'desc_loading' => 'Aufgabendetails werden geladen...',

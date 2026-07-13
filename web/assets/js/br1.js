@@ -6870,6 +6870,8 @@ window.CRM.br1 = (function () {
     var statusBadge = document.getElementById('taskStatusBadge');
     if (!statusBadge) return;
 
+    bindTaskTabOverflowNavigation();
+
     var taskId = await resolveTaskForDetail();
     if (!taskId) {
       notify(window.CRM.i18n.t('js.br1.ne_udalos_opredelit_zadachu_dlya_kartochki', 'Не удалось определить задачу для карточки'), 'warning');
@@ -6986,6 +6988,21 @@ window.CRM.br1 = (function () {
     if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.bindTaskDependencies === 'function') {
       window.CRM.pageApiBindings.bindTaskDependencies(taskId);
     }
+  }
+
+  function bindTaskTabOverflowNavigation() {
+    var tabsNav = document.querySelector('.crm-task-tabs-nav');
+    var moreButton = document.getElementById('taskTabsMore');
+    if (!tabsNav || !moreButton || tabsNav.dataset.overflowBound === '1') return;
+
+    tabsNav.addEventListener('shown.bs.tab', function (event) {
+      var selected = event.target;
+      var isOverflowTab = selected && selected.matches('[data-task-overflow-tab]');
+      moreButton.classList.toggle('active', Boolean(isOverflowTab));
+      moreButton.setAttribute('aria-current', isOverflowTab ? 'page' : 'false');
+    });
+
+    tabsNav.dataset.overflowBound = '1';
   }
 
   function init() {

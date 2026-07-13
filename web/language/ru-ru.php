@@ -2877,6 +2877,7 @@ return array (
     'tab_comments' => 'Комментарии',
     'tab_activity' => 'Активность',
     'tab_history' => 'История',
+    'tab_more' => 'Ещё',
     'desc_title' => 'Контекст и критерии приёмки',
     'desc_edit_aria' => 'Редактировать описание',
     'desc_loading' => 'Загрузка деталей задачи...',

@@ -2694,6 +2694,7 @@ return array (
     'tab_comments' => '评论',
     'tab_activity' => '活动',
     'tab_history' => '历史',
+    'tab_more' => '更多',
     'desc_title' => '背景和验收标准',
     'desc_edit_aria' => '编辑描述',
     'desc_loading' => '加载任务详情中...',
