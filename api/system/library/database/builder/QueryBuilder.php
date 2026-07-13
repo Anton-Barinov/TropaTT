@@ -137,6 +137,9 @@ final class QueryBuilder
         foreach ($items as $column) {
             $trimmed = trim($column);
             if ($trimmed !== '') {
+                if (!preg_match('/^[a-zA-Z0-9_.`]+$/', $trimmed)) {
+                    throw new \InvalidArgumentException('Invalid column name in GROUP BY: ' . $trimmed);
+                }
                 $this->groups[] = $trimmed;
             }
         }

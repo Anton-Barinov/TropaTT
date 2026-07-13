@@ -95,6 +95,11 @@ final class UserController extends BaseController
 
         $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids']);
 
+        // SEC-002: Only root users may change root status or role assignments.
+        if (!$this->isCurrentUserRoot()) {
+            unset($input['is_root'], $input['role_public_ids']);
+        }
+
         /** @var UserService $service */
         $service = $this->container->get('service.user');
         $result = $service->update((string)$params['public_id'], $input, $auth['user']);

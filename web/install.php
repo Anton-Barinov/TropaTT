@@ -1097,6 +1097,11 @@ function getPdoConnection(array $env): PDO
     throw new RuntimeException('Unsupported driver: ' . $driver);
 }
 
+function sanitizeEnvValue(string $value): string
+{
+    return trim(str_replace(["\r", "\n"], '', $value));
+}
+
 function writeEnvFile(array $data): bool
 {
     $envContent = "# TropaTT — Environment Configuration\n";
@@ -1105,29 +1110,29 @@ function writeEnvFile(array $data): bool
     $envContent .= "# Runtime mode\n";
     $envContent .= "APP_ENV=production\n";
     $envContent .= "APP_DEBUG=0\n";
-    $envContent .= "APP_TIMEZONE=" . ($data['timezone'] ?? 'Europe/Moscow') . "\n\n";
+    $envContent .= "APP_TIMEZONE=" . sanitizeEnvValue((string)($data['timezone'] ?? 'Europe/Moscow')) . "\n\n";
 
     $envContent .= "# Storage\n";
     $envContent .= "CRM_STORAGE_BASE=" . STORAGE_BASE_DEFAULT . "\n\n";
 
     $envContent .= "# Database\n";
     $envContent .= "DB_CONNECTION=mysql\n";
-    $envContent .= "DB_HOST=" . ($data['db_host'] ?? '127.0.0.1') . "\n";
-    $envContent .= "DB_PORT=" . ($data['db_port'] ?? '3306') . "\n";
-    $envContent .= "DB_DATABASE=" . ($data['db_database'] ?? '') . "\n";
-    $envContent .= "DB_USERNAME=" . ($data['db_username'] ?? '') . "\n";
-    $envContent .= "DB_PASSWORD=" . ($data['db_password'] ?? '') . "\n";
+    $envContent .= "DB_HOST=" . sanitizeEnvValue((string)($data['db_host'] ?? '127.0.0.1')) . "\n";
+    $envContent .= "DB_PORT=" . sanitizeEnvValue((string)($data['db_port'] ?? '3306')) . "\n";
+    $envContent .= "DB_DATABASE=" . sanitizeEnvValue((string)($data['db_database'] ?? '')) . "\n";
+    $envContent .= "DB_USERNAME=" . sanitizeEnvValue((string)($data['db_username'] ?? '')) . "\n";
+    $envContent .= "DB_PASSWORD=" . sanitizeEnvValue((string)($data['db_password'] ?? '')) . "\n";
     $envContent .= "DB_CHARSET=utf8mb4\n";
 
     $envContent .= "\n# Security secrets\n";
-    $envContent .= "APP_KEY=" . ($data['app_key'] ?? '') . "\n";
-    $envContent .= "CSRF_SECRET_KEY=" . ($data['csrf_key'] ?? '') . "\n";
-    $envContent .= "WEBHOOK_SECRET_KEY=" . ($data['webhook_key'] ?? '') . "\n";
-    $envContent .= "AI_ENCRYPTION_KEY=" . ($data['ai_key'] ?? '') . "\n";
-    $envContent .= "CRM_LOCAL_SECRET=" . ($data['local_secret'] ?? '') . "\n";
-    $envContent .= "CRON_SECRET_KEY=" . ($data['cron_secret'] ?? '') . "\n\n";
+    $envContent .= "APP_KEY=" . sanitizeEnvValue((string)($data['app_key'] ?? '')) . "\n";
+    $envContent .= "CSRF_SECRET_KEY=" . sanitizeEnvValue((string)($data['csrf_key'] ?? '')) . "\n";
+    $envContent .= "WEBHOOK_SECRET_KEY=" . sanitizeEnvValue((string)($data['webhook_key'] ?? '')) . "\n";
+    $envContent .= "AI_ENCRYPTION_KEY=" . sanitizeEnvValue((string)($data['ai_key'] ?? '')) . "\n";
+    $envContent .= "CRM_LOCAL_SECRET=" . sanitizeEnvValue((string)($data['local_secret'] ?? '')) . "\n";
+    $envContent .= "CRON_SECRET_KEY=" . sanitizeEnvValue((string)($data['cron_secret'] ?? '')) . "\n\n";
 
-    $siteUrl = rtrim($data['site_url'] ?? 'http://localhost', '/');
+    $siteUrl = rtrim(sanitizeEnvValue((string)($data['site_url'] ?? 'http://localhost')), '/');
     $envContent .= "# CORS allowlist\n";
     $envContent .= "CORS_ALLOW_ORIGIN=" . $siteUrl . "\n\n";
 
@@ -1138,9 +1143,9 @@ function writeEnvFile(array $data): bool
     $envContent .= "NOTIFICATIONS_PUSH_GATEWAY_URL=\n";
 
     $vapidKeys = generateVapidKeys();
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY=" . $vapidKeys['public_key'] . "\n";
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY=" . $vapidKeys['private_key'] . "\n";
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_SUBJECT=mailto:" . ($data['admin_email'] ?? 'admin@example.com') . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY=" . sanitizeEnvValue((string)$vapidKeys['public_key']) . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY=" . sanitizeEnvValue((string)$vapidKeys['private_key']) . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_SUBJECT=mailto:" . sanitizeEnvValue((string)($data['admin_email'] ?? 'admin@example.com')) . "\n";
 
     $envContent .= "NOTIFICATIONS_PUSH_TIMEOUT_SEC=5\n";
     $envContent .= "NOTIFICATIONS_PUSH_MAX_SUBSCRIPTIONS_PER_DISPATCH=100\n";

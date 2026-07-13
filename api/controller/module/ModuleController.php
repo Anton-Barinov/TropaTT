@@ -14,6 +14,7 @@ use Api\System\Library\Module\ModuleErrorHandler;
 use Api\System\Library\Module\ModuleRemoteInstaller;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Module\ModuleWebhookDispatcher;
+use Api\System\Library\Security\UrlSafetyValidator;
 
 final class ModuleController
 {
@@ -285,6 +286,12 @@ final class ModuleController
         $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
         if ($url === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.url_required'), 400);
+        }
+
+        $validator = new UrlSafetyValidator();
+        $validation = $validator->validateProviderUrl($url, true);
+        if (!$validation['ok']) {
+            return JsonResponse::error('INVALID_URL', $this->t('module/messages.url_not_allowed'), 422);
         }
 
         $projectRoot = dirname(__DIR__, 3);
