@@ -6866,6 +6866,26 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function renderTaskDetailOverview() {
+    if (!currentTask) return;
+
+    var titleEl = document.querySelector('.crm-page-title');
+    if (titleEl) titleEl.textContent = currentTask.title || titleEl.textContent;
+
+    var subtitle = document.querySelector('.crm-subtitle');
+    if (subtitle) {
+      subtitle.textContent = window.CRM.i18n.t('js.br1.proekt_5', 'Проект: ') + (currentTask.project_title || '—')
+        + window.CRM.i18n.t('js.br1.dedlayn_6', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_4', 'не задан'));
+    }
+
+    renderTaskMetaChips();
+    renderTaskDescription(currentTask.description);
+    renderTaskProgressByStatus(currentTask.status_code);
+    renderTaskRiskBanner();
+    window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
+    renderTaskSidebarSummary();
+  }
+
   async function initTaskDetailFlow() {
     var statusBadge = document.getElementById('taskStatusBadge');
     if (!statusBadge) return;
@@ -6881,6 +6901,7 @@ window.CRM.br1 = (function () {
     try {
       var taskEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId);
       currentTask = mergeTaskState(extractTaskPayload(taskEnvelope));
+      renderTaskDetailOverview();
     } catch (error) {
       var envelopeError = error && error.envelope ? error.envelope : null;
       notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_zagruzit_kartochku_zadachi', 'Не удалось загрузить карточку задачи'), 'error');
@@ -6906,26 +6927,12 @@ window.CRM.br1 = (function () {
         }
       }
 
-      var titleEl = document.querySelector('.crm-page-title');
-      if (titleEl) titleEl.textContent = currentTask.title || titleEl.textContent;
-
-      var subtitle = document.querySelector('.crm-subtitle');
-      if (subtitle) {
-        subtitle.textContent = window.CRM.i18n.t('js.br1.proekt_5', 'Проект: ') + (currentTask.project_title || '—')
-          + window.CRM.i18n.t('js.br1.dedlayn_6', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_4', 'не задан'));
-      }
-
       if (currentProject && currentProject.manager_user_public_id) {
         currentTask.project_manager_user_public_id = currentProject.manager_user_public_id;
         currentTask.project_manager_name = currentProject.manager_user_name || currentTask.project_manager_name;
       }
 
-      renderTaskMetaChips();
-      renderTaskDescription(currentTask.description);
-      renderTaskProgressByStatus(currentTask.status_code);
-      renderTaskRiskBanner();
-      window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
-      renderTaskSidebarSummary();
+      renderTaskDetailOverview();
       var userObj = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
       var isRoot = !!(userObj && userObj.is_root);
       var isAuthor = currentUserPublicId !== ''
