@@ -255,7 +255,7 @@ final class WorklogService
 
     public function earnings(array $filters, array $actor): array
     {
-        $actorId = (int)$actor['id'];
+        $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $rows = $this->worklogs->earningsByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
@@ -276,8 +276,8 @@ final class WorklogService
 
     public function matrix(array $filters, array $actor): array
     {
-        $actorId = (int)$actor['id'];
         $visibleUserIds = $this->getVisibleUserIds($actor);
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $from = (string)($filters['from'] ?? '');
         $to = (string)($filters['to'] ?? '');
         $userPublicId = (string)($filters['user_public_id'] ?? '');
@@ -488,9 +488,9 @@ final class WorklogService
 
     public function detail(string $day, string $userPublicId, ?string $projectPublicId, array $actor): array
     {
-        $actorId = (int)$actor['id'];
         $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $visibleUserIds, $actorIsRoot);
 
         $totalMinutes = 0;
         foreach ($rows as $row) {
