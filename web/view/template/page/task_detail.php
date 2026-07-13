@@ -57,8 +57,7 @@
         <ul class="dropdown-menu" aria-labelledby="taskTabsMore">
           <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_dependencies"><?= htmlspecialchars($t('task_detail.tab_dependencies', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?> <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
           <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></button></li>
-          <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_activity"><?= htmlspecialchars($t('task_detail.tab_activity', 'Активность'), ENT_QUOTES, 'UTF-8') ?></button></li>
-          <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailHistory" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li>
+          <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li>
           <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button></li>
         </ul>
       </li>
@@ -189,14 +188,9 @@
       </section>
 
       <section id="detailActivity" class="tab-pane fade crm-card crm-task-section">
-        <h2 class="h6" data-i18n="task_detail.activity_title"><?= htmlspecialchars($t('task_detail.activity_title', 'История изменений'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <h2 class="h6 mb-1" data-i18n="task_detail.history_title"><?= htmlspecialchars($t('task_detail.history_title', 'История изменений'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p class="text-muted small mb-3" data-i18n="task_detail.history_subtitle"><?= htmlspecialchars($t('task_detail.history_subtitle', 'Все события и изменения по задаче в одной хронологии.'), ENT_QUOTES, 'UTF-8') ?></p>
         <div class="crm-timeline" id="taskActivityList"><div class="crm-timeline-item" data-i18n="task_detail.activity_loading"><?= htmlspecialchars($t('task_detail.activity_loading', 'История изменений загружается...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-      </section>
-
-      <section id="detailHistory" class="tab-pane fade crm-card crm-task-section">
-        <h2 class="h6" data-i18n="task_detail.history_title"><?= htmlspecialchars($t('task_detail.history_title', 'История изменений полей'), ENT_QUOTES, 'UTF-8') ?></h2>
-        <p class="text-muted small mb-3" data-i18n="task_detail.history_subtitle"><?= htmlspecialchars($t('task_detail.history_subtitle', 'Хронология изменений атрибутов задачи.'), ENT_QUOTES, 'UTF-8') ?></p>
-        <table class="table table-sm crm-table mb-0"><thead><tr><th data-i18n="task_detail.history_th_date"><?= htmlspecialchars($t('task_detail.history_th_date', 'Дата'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_field"><?= htmlspecialchars($t('task_detail.history_th_field', 'Поле'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_was"><?= htmlspecialchars($t('task_detail.history_th_was', 'Было'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_became"><?= htmlspecialchars($t('task_detail.history_th_became', 'Стало'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="task_detail.history_th_by"><?= htmlspecialchars($t('task_detail.history_th_by', 'Кем изменено'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="taskHistoryList"><tr><td colspan="5" class="text-muted" data-i18n="task_detail.history_loading"><?= htmlspecialchars($t('task_detail.history_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
       </section>
       <section id="detailKnowledge" class="tab-pane fade crm-card crm-task-section">
         <h2 class="h6" data-i18n="task_detail.knowledge_title"><?= htmlspecialchars($t('task_detail.knowledge_title', 'Связанные страницы'), ENT_QUOTES, 'UTF-8') ?></h2>

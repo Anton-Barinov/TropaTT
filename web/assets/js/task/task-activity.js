@@ -131,6 +131,7 @@
     var msgText = item.message_text || item.event_type || '';
     var createdAt = item.created_at || '';
     var formattedDate = formatActivityDate(createdAt);
+    var reason = item.payload && typeof item.payload === 'object' ? String(item.payload.reason || '').trim() : '';
 
     el.innerHTML =
       '<div class="crm-timeline-icon flex-shrink-0 pt-1" style="width:24px;text-align:center;">' +
@@ -138,7 +139,8 @@
       '</div>' +
       '<div class="crm-timeline-content flex-grow-1">' +
         '<div class="small">' + escapeActivityText(msgText) + '</div>' +
-        '<div class="small text-muted">' + formattedDate + '</div>' +
+        (reason ? '<div class="small mt-1"><span class="text-muted">' + escapeActivityText(t('task_activity.status_reason', 'Причина:')) + '</span> ' + escapeActivityText(reason) + '</div>' : '') +
+        '<div class="small text-muted">' + actorName + ' · ' + formattedDate + '</div>' +
       '</div>';
 
     return el;

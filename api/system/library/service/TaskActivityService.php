@@ -76,6 +76,17 @@ final class TaskActivityService
         $newLabel = $this->valueToLabel($field, $newValue);
 
         $messageText = $this->buildFieldChangedMessage($eventType, $actor, $oldLabel, $newLabel, $field, $newValue);
+        $payload = [
+            'field' => $field,
+            'old_value' => $oldStr,
+            'new_value' => $newStr,
+            'old_label' => $oldLabel,
+            'new_label' => $newLabel,
+            'source' => $context['source_type'] ?? 'web',
+        ];
+        if ($field === 'status_code' && !empty($context['status_reason'])) {
+            $payload['reason'] = (string)$context['status_reason'];
+        }
 
         $this->createEvent([
             'event_type' => $eventType,
@@ -89,14 +100,7 @@ final class TaskActivityService
             'new_label' => $newLabel,
             'message_text' => $messageText,
             'message_key' => 'task.activity.' . str_replace('.', '_', $eventType),
-            'payload_json' => [
-                'field' => $field,
-                'old_value' => $oldStr,
-                'new_value' => $newStr,
-                'old_label' => $oldLabel,
-                'new_label' => $newLabel,
-                'source' => $context['source_type'] ?? 'web',
-            ],
+            'payload_json' => $payload,
         ]);
     }
 

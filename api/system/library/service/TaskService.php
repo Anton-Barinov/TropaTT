@@ -385,7 +385,14 @@ final class TaskService
         if ($this->activity !== null) {
             $changes = $this->activity->detectChanges($task, $updatedTask);
             if ($changes !== []) {
-                $this->activity->recordManyFieldChanges($updatedTask, $changes, $actor, ['source_type' => $input['source_type'] ?? 'web']);
+                $activityContext = ['source_type' => $input['source_type'] ?? 'web'];
+                if (array_key_exists('status_code', $set) && (string)$set['status_code'] !== $oldStatus) {
+                    $reason = trim((string)($input['status_reason'] ?? ''));
+                    if ($reason !== '') {
+                        $activityContext['status_reason'] = $reason;
+                    }
+                }
+                $this->activity->recordManyFieldChanges($updatedTask, $changes, $actor, $activityContext);
             }
         }
 

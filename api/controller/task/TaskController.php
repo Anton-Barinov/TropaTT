@@ -102,7 +102,6 @@ final class TaskController extends BaseController
         if (isset($input['description']) && is_string($input['description'])) {
             $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
         }
-
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
@@ -110,7 +109,6 @@ final class TaskController extends BaseController
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
-
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
@@ -187,6 +185,9 @@ final class TaskController extends BaseController
         if (isset($input['description']) && is_string($input['description'])) {
             $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
         }
+        if (isset($input['status_reason']) && is_string($input['status_reason'])) {
+            $input['status_reason'] = trim(strip_tags($input['status_reason']));
+        }
 
         $errors = $v->errors();
         if (array_key_exists('status', $input)) {
@@ -194,6 +195,9 @@ final class TaskController extends BaseController
             if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
+        }
+        if (isset($input['status_reason']) && mb_strlen((string)$input['status_reason']) > 1000) {
+            $errors['status_reason'][] = $this->t('common/messages.validation_error');
         }
 
         if ($errors !== []) {
