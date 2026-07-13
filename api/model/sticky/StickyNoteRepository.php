@@ -96,7 +96,7 @@ final class StickyNoteRepository
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
 
-        $stmt = $this->pdo->prepare('SELECT sn.*, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE ' . implode(' AND ', $where) . ' ORDER BY ' . $orderBy . ' LIMIT ' . $limit . ' OFFSET ' . $offset);
+        $stmt = $this->pdo->prepare('SELECT sn.id, sn.public_id, sn.owner_user_id, sn.context_type, sn.context_public_id, sn.title, sn.body, sn.color, sn.background_color, sn.visibility, sn.is_pinned, sn.sort_order, sn.converted_to_entity_type, sn.converted_to_entity_public_id, sn.converted_at, sn.converted_by_user_id, sn.meta_json, sn.row_version, sn.archived_at, sn.deleted_at, sn.created_at, sn.updated_at, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE ' . implode(' AND ', $where) . ' ORDER BY ' . $orderBy . ' LIMIT ' . $limit . ' OFFSET ' . $offset);
         $stmt->execute($params);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -111,7 +111,7 @@ final class StickyNoteRepository
 
     public function findByPublicId(string $publicId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT sn.*, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE sn.public_id = :public_id AND sn.deleted_at IS NULL LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT sn.id, sn.public_id, sn.owner_user_id, sn.context_type, sn.context_public_id, sn.title, sn.body, sn.color, sn.background_color, sn.visibility, sn.is_pinned, sn.sort_order, sn.converted_to_entity_type, sn.converted_to_entity_public_id, sn.converted_at, sn.converted_by_user_id, sn.meta_json, sn.row_version, sn.archived_at, sn.deleted_at, sn.created_at, sn.updated_at, u.public_id AS owner_public_id, COALESCE(u.full_name, u.login, u.public_id) AS owner_name FROM sticky_notes sn LEFT JOIN users u ON u.id = sn.owner_user_id WHERE sn.public_id = :public_id AND sn.deleted_at IS NULL LIMIT 1');
         $stmt->execute(['public_id' => $publicId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return is_array($row) ? $row : null;
