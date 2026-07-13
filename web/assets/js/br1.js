@@ -2178,13 +2178,13 @@ window.CRM.br1 = (function () {
     }
 
     if (statusCode === 'done' || statusCode === 'completed') {
-      alert.className = 'alert alert-success mb-2';
-      alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_zadacha_zavershena', '<strong>Статус:</strong> задача завершена.');
+      alert.className = 'alert alert-success mb-2 d-none';
+      alert.textContent = '';
       return;
     }
 
-    alert.className = 'alert alert-info mb-2';
-    alert.innerHTML = window.CRM.i18n.t('js.br1.strong_status_strong_kritichnykh_riskov_po_zadache_ne_v', '<strong>Статус:</strong> критичных рисков по задаче не выявлено.');
+    alert.className = 'alert alert-info mb-2 d-none';
+    alert.textContent = '';
   }
 
   function setTaskEditAvailability(canEdit) {
