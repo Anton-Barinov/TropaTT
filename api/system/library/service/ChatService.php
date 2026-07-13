@@ -520,7 +520,8 @@ final class ChatService
     private function loadProjectRows(): array
     {
         $rows = $this->pdo->query("
-            SELECT p.*, t.manager_user_id AS team_manager_user_id, t.member_user_ids AS team_member_user_ids
+            SELECT p.id, p.public_id, p.title, p.created_by_user_id, p.manager_user_id, p.team_public_id,
+                   t.manager_user_id AS team_manager_user_id, t.member_user_ids AS team_member_user_ids
             FROM projects p
             LEFT JOIN teams t ON t.public_id = p.team_public_id
             WHERE p.archived_at IS NULL
@@ -531,7 +532,7 @@ final class ChatService
     /** @return array<int,array<string,mixed>> */
     private function loadTeamRows(): array
     {
-        $rows = $this->pdo->query("SELECT * FROM teams");
+        $rows = $this->pdo->query("SELECT id, title, created_by_user_id, manager_user_id, member_user_ids FROM teams");
         return $rows ? ($rows->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
     }
 
