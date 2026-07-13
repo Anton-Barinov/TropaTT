@@ -71,6 +71,11 @@ final class ConnectionManager
             // PHP 8.5+ deprecates PDO::MYSQL_ATTR_INIT_COMMAND in favor of Pdo\Mysql::ATTR_INIT_COMMAND.
             // The constant value is 1002; we resolve it via the appropriate class to keep PHP 8.1+ compatibility
             // without triggering deprecation notices on 8.5+.
+            // Defensive guard: define the old constant if missing (edge case for custom PHP builds
+            // where pdo_mysql may not define it despite the driver being configured for mysql).
+            if (!defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+                define('PDO::MYSQL_ATTR_INIT_COMMAND', 1002);
+            }
             $initCommandAttr = PHP_VERSION_ID >= 80500
                 ? \Pdo\Mysql::ATTR_INIT_COMMAND
                 : PDO::MYSQL_ATTR_INIT_COMMAND;
