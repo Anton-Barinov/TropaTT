@@ -8,9 +8,9 @@ if (PHP_SAPI !== 'cli' && ($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
 }
 
 
-$default = trim((string)(getenv('DB_CONNECTION') ?: getenv('CRM_DB_DRIVER') ?: 'sqlite'));
+$default = trim((string)(getenv('DB_CONNECTION') ?: getenv('CRM_DB_DRIVER') ?: 'mysql'));
 if ($default === '') {
-    $default = 'sqlite';
+    $default = 'mysql';
 }
 
 $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 2) . '/../storage_api');
