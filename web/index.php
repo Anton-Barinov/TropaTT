@@ -222,17 +222,17 @@ function webRateLimitCheck(string $route): ?array
     return ['blocked' => false, 'retry_after' => 0];
 }
 
-function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir): bool
+/**
+ * Create a PDO connection for the web entry point using the API database config.
+ * Extracted to eliminate ~40 lines of duplicated connection logic between
+ * crmWebApiSessionCookieIsValid and crmWebApiCheckPermission.
+ */
+function crmWebApiDbConnect(string $webBaseDir): ?PDO
 {
-    $sessionToken = trim($sessionToken);
-    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
-        return false;
-    }
-
     $apiBaseDir = dirname($webBaseDir) . '/api';
     $apiAutoloader = $apiBaseDir . '/system/library/support/Autoloader.php';
     if (!is_file($apiAutoloader)) {
-        return false;
+        return null;
     }
 
     require_once $apiAutoloader;
@@ -255,12 +255,12 @@ function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir)
 
     $databaseConfigPath = $apiBaseDir . '/config/database.php';
     if (!is_file($databaseConfigPath)) {
-        return false;
+        return null;
     }
 
     $databaseConfig = require $databaseConfigPath;
     if (!is_array($databaseConfig)) {
-        return false;
+        return null;
     }
 
     $localDbConfigPath = $apiBaseDir . '/config/database.local.php';
@@ -285,7 +285,7 @@ function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir)
                 $databaseFile = rtrim($storageBase, '/\\') . '/temp/crm.sqlite';
             }
             if (!is_file($databaseFile)) {
-                return false;
+                return null;
             }
             $pdo = new PDO('sqlite:' . $databaseFile);
         } elseif ($driver === 'mysql') {
@@ -312,34 +312,49 @@ function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir)
                 (string)($connection['password'] ?? '')
             );
         } else {
-            return false;
+            return null;
         }
 
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $tokenHash = hash('sha256', $sessionToken);
-        $stmt = $pdo->prepare(
-            'SELECT us.id
-              FROM user_sessions us
-              INNER JOIN users u ON u.id = us.user_id
-              WHERE us.token_hash = :token_hash
-                AND us.revoked_at IS NULL
-                AND us.expires_at > :now
-                AND u.is_active = 1
-                AND u.deleted_at IS NULL
-              LIMIT 1'
-        );
-        if ($stmt === false) {
-            return false;
-        }
-        $stmt->execute([
-            'token_hash' => $tokenHash,
-            'now' => gmdate('Y-m-d H:i:s'),
-        ]);
-
-        return (bool)$stmt->fetchColumn();
+        return $pdo;
     } catch (Throwable) {
+        return null;
+    }
+}
+
+function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir): bool
+{
+    $sessionToken = trim($sessionToken);
+    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
         return false;
     }
+
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo === null) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $sessionToken);
+    $stmt = $pdo->prepare(
+        'SELECT us.id
+          FROM user_sessions us
+          INNER JOIN users u ON u.id = us.user_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+          LIMIT 1'
+    );
+    if ($stmt === false) {
+        return false;
+    }
+    $stmt->execute([
+        'token_hash' => $tokenHash,
+        'now' => gmdate('Y-m-d H:i:s'),
+    ]);
+
+    return (bool)$stmt->fetchColumn();
 }
 
 function crmWebApiCheckPermission(string $sessionToken, string $permission, string $webBaseDir): bool
@@ -349,147 +364,64 @@ function crmWebApiCheckPermission(string $sessionToken, string $permission, stri
         return false;
     }
 
-    $apiBaseDir = dirname($webBaseDir) . '/api';
-    $apiAutoloader = $apiBaseDir . '/system/library/support/Autoloader.php';
-    if (!is_file($apiAutoloader)) {
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo === null) {
         return false;
     }
 
-    require_once $apiAutoloader;
+    $tokenHash = hash('sha256', $sessionToken);
 
-    static $apiAutoloaderRegistered2 = false;
-    if (!$apiAutoloaderRegistered2) {
-        $loader = new Api\System\Library\Support\Autoloader($apiBaseDir);
-        $loader->register();
-        $apiAutoloaderRegistered2 = true;
-    }
-
-    if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
-        Api\System\Library\Support\EnvLoader::loadFiles([
-            dirname($apiBaseDir) . '/.env',
-            $apiBaseDir . '/.env',
-            dirname($apiBaseDir) . '/.env.local',
-            $apiBaseDir . '/.env.local',
-        ]);
-    }
-
-    $databaseConfigPath = $apiBaseDir . '/config/database.php';
-    if (!is_file($databaseConfigPath)) {
+    // Root check: root user bypasses all permission checks
+    $sessionStmt = $pdo->prepare(
+        'SELECT u.is_root
+          FROM user_sessions us
+          INNER JOIN users u ON u.id = us.user_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+          LIMIT 1'
+    );
+    if ($sessionStmt === false) {
         return false;
     }
+    $sessionStmt->execute([
+        'token_hash' => $tokenHash,
+        'now' => gmdate('Y-m-d H:i:s'),
+    ]);
 
-    $databaseConfig = require $databaseConfigPath;
-    if (!is_array($databaseConfig)) {
+    if ((bool)$sessionStmt->fetchColumn()) {
+        return true;
+    }
+
+    // Permission check
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) > 0
+          FROM user_sessions us
+          INNER JOIN users u ON u.id = us.user_id
+          INNER JOIN user_roles ur ON ur.user_id = u.id
+          INNER JOIN roles r ON r.id = ur.role_id
+          INNER JOIN role_permissions rp ON rp.role_id = r.id
+          INNER JOIN permissions p ON p.id = rp.permission_id
+          WHERE us.token_hash = :token_hash
+            AND us.revoked_at IS NULL
+            AND us.expires_at > :now
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+            AND p.code = :permission
+          LIMIT 1'
+    );
+    if ($stmt === false) {
         return false;
     }
+    $stmt->execute([
+        'token_hash' => $tokenHash,
+        'permission' => $permission,
+        'now' => gmdate('Y-m-d H:i:s'),
+    ]);
 
-    $localDbConfigPath = $apiBaseDir . '/config/database.local.php';
-    if (is_file($localDbConfigPath)) {
-        $localOverride = require $localDbConfigPath;
-        if (is_array($localOverride)) {
-            $databaseConfig = array_replace_recursive($databaseConfig, $localOverride);
-        }
-    }
-
-    $default = (string)($databaseConfig['default'] ?? 'sqlite');
-    $connections = is_array($databaseConfig['connections'] ?? null) ? $databaseConfig['connections'] : [];
-    $connection = is_array($connections[$default] ?? null) ? $connections[$default] : [];
-
-    $driver = strtolower((string)($connection['driver'] ?? 'sqlite'));
-
-    try {
-        if ($driver === 'sqlite') {
-            $databaseFile = (string)($connection['database'] ?? '');
-            if ($databaseFile === '') {
-                $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname($apiBaseDir) . '/../storage_api');
-                $databaseFile = rtrim($storageBase, '/\\') . '/temp/crm.sqlite';
-            }
-            if (!is_file($databaseFile)) {
-                return false;
-            }
-            $pdo = new PDO('sqlite:' . $databaseFile);
-        } elseif ($driver === 'mysql') {
-            $pdo = new PDO(
-                sprintf(
-                    'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                    (string)($connection['host'] ?? '127.0.0.1'),
-                    (int)($connection['port'] ?? 3306),
-                    (string)($connection['database'] ?? ''),
-                    (string)($connection['charset'] ?? 'utf8mb4')
-                ),
-                (string)($connection['username'] ?? ''),
-                (string)($connection['password'] ?? '')
-            );
-        } elseif ($driver === 'pgsql') {
-            $pdo = new PDO(
-                sprintf(
-                    'pgsql:host=%s;port=%d;dbname=%s',
-                    (string)($connection['host'] ?? '127.0.0.1'),
-                    (int)($connection['port'] ?? 5432),
-                    (string)($connection['database'] ?? '')
-                ),
-                (string)($connection['username'] ?? ''),
-                (string)($connection['password'] ?? '')
-            );
-        } else {
-            return false;
-        }
-
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $tokenHash = hash('sha256', $sessionToken);
-
-        $sessionStmt = $pdo->prepare(
-            'SELECT u.is_root
-              FROM user_sessions us
-              INNER JOIN users u ON u.id = us.user_id
-              WHERE us.token_hash = :token_hash
-                AND us.revoked_at IS NULL
-                AND us.expires_at > :now
-                AND u.is_active = 1
-                AND u.deleted_at IS NULL
-              LIMIT 1'
-        );
-        if ($sessionStmt === false) {
-            return false;
-        }
-        $sessionStmt->execute([
-            'token_hash' => $tokenHash,
-            'now' => gmdate('Y-m-d H:i:s'),
-        ]);
-
-        if ((bool)$sessionStmt->fetchColumn()) {
-            return true;
-        }
-
-        $stmt = $pdo->prepare(
-            'SELECT COUNT(*) > 0
-              FROM user_sessions us
-              INNER JOIN users u ON u.id = us.user_id
-              INNER JOIN user_roles ur ON ur.user_id = u.id
-              INNER JOIN roles r ON r.id = ur.role_id
-              INNER JOIN role_permissions rp ON rp.role_id = r.id
-              INNER JOIN permissions p ON p.id = rp.permission_id
-              WHERE us.token_hash = :token_hash
-                AND us.revoked_at IS NULL
-                AND us.expires_at > :now
-                AND u.is_active = 1
-                AND u.deleted_at IS NULL
-                AND p.code = :permission
-              LIMIT 1'
-        );
-        if ($stmt === false) {
-            return false;
-        }
-        $stmt->execute([
-            'token_hash' => $tokenHash,
-            'permission' => $permission,
-            'now' => gmdate('Y-m-d H:i:s'),
-        ]);
-
-        return (bool)$stmt->fetchColumn();
-    } catch (Throwable) {
-        return false;
-    }
+    return (bool)$stmt->fetchColumn();
 }
 
 function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $router): void
