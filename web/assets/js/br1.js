@@ -6999,7 +6999,11 @@ window.CRM.br1 = (function () {
       var selected = event.target;
       var isOverflowTab = selected && selected.matches('[data-task-overflow-tab]');
       moreButton.classList.toggle('active', Boolean(isOverflowTab));
-      moreButton.setAttribute('aria-current', isOverflowTab ? 'page' : 'false');
+      if (isOverflowTab) {
+        moreButton.setAttribute('aria-current', 'page');
+      } else {
+        moreButton.removeAttribute('aria-current');
+      }
     });
 
     tabsNav.dataset.overflowBound = '1';
