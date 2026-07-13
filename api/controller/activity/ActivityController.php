@@ -5,6 +5,8 @@ namespace Api\Controller\Activity;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\ActivityService;
+use Api\System\Library\Service\TaskActivityService;
+use Api\System\Library\Service\TaskService;
 
 final class ActivityController extends BaseController
 {
@@ -40,9 +42,25 @@ final class ActivityController extends BaseController
             ]);
         }
 
-        /** @var ActivityService $service */
-        $service = $this->container->get('service.activity');
-        $result = $service->entityHistory($entityType, $publicId, $this->request()->allInput(), $auth['user']);
+        if ($entityType === 'task') {
+            /** @var TaskService $taskService */
+            $taskService = $this->container->get('service.task');
+            if ($taskService->get($publicId, $auth['user']) === null) {
+                return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
+                    'task' => [$this->t('common/messages.task_not_found')],
+                ]);
+            }
+
+            /** @var TaskActivityService $taskActivity */
+            $taskActivity = $this->container->get('service.task_activity');
+            $filters = $this->request()->allInput();
+            $filters['fields_only'] = true;
+            $result = $taskActivity->list($publicId, $filters, $auth['user']);
+        } else {
+            /** @var ActivityService $service */
+            $service = $this->container->get('service.activity');
+            $result = $service->entityHistory($entityType, $publicId, $this->request()->allInput(), $auth['user']);
+        }
 
         return $this->success('ENTITY_HISTORY', $this->t('activity/messages.history'), [
             'entity_type' => $entityType,

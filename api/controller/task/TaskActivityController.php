@@ -5,6 +5,7 @@ namespace Api\Controller\Task;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Service\TaskActivityService;
+use Api\System\Library\Service\TaskService;
 
 final class TaskActivityController extends BaseController
 {
@@ -19,6 +20,14 @@ final class TaskActivityController extends BaseController
         if ($taskPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'public_id' => [$this->t('common/messages.field_required')],
+            ]);
+        }
+
+        /** @var TaskService $taskService */
+        $taskService = $this->container->get('service.task');
+        if ($taskService->get($taskPublicId, $authUser['user']) === null) {
+            return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
+                'task' => [$this->t('common/messages.task_not_found')],
             ]);
         }
 

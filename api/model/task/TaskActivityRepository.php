@@ -85,6 +85,9 @@ final class TaskActivityRepository
         if (!empty($filters['related_entity_type'])) {
             $qb->where('e.related_entity_type', '=', (string)$filters['related_entity_type']);
         }
+        if (!empty($filters['fields_only'])) {
+            $qb->where('e.field_name', '!=', '');
+        }
 
         // Sort whitelist
         $sortWhitelist = ['created_at', 'event_type', 'actor_type'];
@@ -114,6 +117,9 @@ final class TaskActivityRepository
         }
         if (!empty($filters['visibility'])) {
             $countQb->where('visibility', '=', (string)$filters['visibility']);
+        }
+        if (!empty($filters['fields_only'])) {
+            $countQb->where('field_name', '!=', '');
         }
 
         $total = $countQb->count();

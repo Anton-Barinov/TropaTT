@@ -3599,20 +3599,26 @@ window.CRM.br1 = (function () {
       title: window.CRM.i18n.t('js.br1.nazvanie', 'Название'),
       description: window.CRM.i18n.t('js.br1.opisanie', 'Описание'),
       status_code: window.CRM.i18n.t('js.br1.status', 'Статус'),
+      start_at: window.CRM.i18n.t('js.br1.data_nachala', 'Дата начала'),
       assignee_user_public_id: window.CRM.i18n.t('js.br1.ispolnitel', 'Исполнитель'),
+      assignee_user_id: window.CRM.i18n.t('js.br1.ispolnitel', 'Исполнитель'),
       priority_code: window.CRM.i18n.t('js.br1.prioritet', 'Приоритет'),
       due_at: window.CRM.i18n.t('js.br1.dedlayn_4', 'Дедлайн'),
+      end_at: window.CRM.i18n.t('js.br1.data_zaversheniya', 'Дата завершения'),
+      archived_at: window.CRM.i18n.t('js.br1.arhivirovanie', 'Архивирование'),
       project_public_id: window.CRM.i18n.t('js.br1.proekt_3', 'Проект'),
+      project_id: window.CRM.i18n.t('js.br1.proekt_3', 'Проект'),
+      parent_task_public_id: window.CRM.i18n.t('js.br1.roditelskaya_zadacha', 'Родительская задача'),
       estimated_hours: window.CRM.i18n.t('js.br1.otsenka_chasy', 'Оценка (часы)'),
       actual_hours: window.CRM.i18n.t('js.br1.fakt_chasy', 'Факт (часы)')
     };
     list.innerHTML = items.map(function (item) {
       var fieldName = String(item.field_name || item.field || '—');
       var label = fieldLabels[fieldName] || fieldName;
-      var oldValue = item.old_value !== null && item.old_value !== undefined ? String(item.old_value) : '—';
-      var newValue = item.new_value !== null && item.new_value !== undefined ? String(item.new_value) : '—';
+      var oldValue = item.old_label || (item.old_value !== null && item.old_value !== undefined ? String(item.old_value) : '—');
+      var newValue = item.new_label || (item.new_value !== null && item.new_value !== undefined ? String(item.new_value) : '—');
       var changedAt = formatDate(item.created_at || item.changed_at || '');
-      var changedBy = String(item.changed_by_name || item.actor_name || item.user_name || '—');
+      var changedBy = String(item.actor_display_name || item.changed_by_name || item.actor_name || item.user_name || '—');
       return '<tr><td>' + escapeHtml(changedAt) + '</td><td>' + escapeHtml(label) + '</td><td class="small">' + escapeHtml(oldValue) + '</td><td class="small">' + escapeHtml(newValue) + '</td><td>' + escapeHtml(changedBy) + '</td></tr>';
     }).join('');
   }
