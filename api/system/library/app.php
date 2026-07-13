@@ -618,6 +618,13 @@ final class App
         if ($corsOrigin === '*') {
             throw new RuntimeException('CONFIG_SECURITY_CORS_WILDCARD_PRODUCTION');
         }
+        if ($corsOrigin === '') {
+            // Loud-but-non-fatal: an unset CORS_ALLOW_ORIGIN in production
+            // means all cross-origin browser requests will be rejected. This
+            // alert helps operators notice the misconfiguration in logs
+            // rather than from end-user complaints.
+            error_log('SECURITY WARNING: CORS_ALLOW_ORIGIN is empty in production; cross-origin browser requests will be rejected. Set CORS_ALLOW_ORIGIN=.env to your site URL (e.g. https://crm.example.com).');
+        }
 
         $csrfSecret = trim((string)$this->config->get('security.auth.csrf.secret_key', ''));
         if ($csrfSecret === '') {

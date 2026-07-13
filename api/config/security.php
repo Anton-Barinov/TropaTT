@@ -99,7 +99,7 @@ return [
         'encryption_key' => $aiEncryptionKey,
     ],
     'cors' => [
-        'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: ($isProduction ? 'https://localhost,https://127.0.0.1' : 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1')),
+        'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: ($isProduction ? '' : 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1')),
         'allow_methods' => 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
         'allow_headers' => 'Content-Type, Authorization, X-CSRF-Token, X-Request-Id, X-Correlation-Id, X-Idempotency-Key, X-Locale',
     ],
