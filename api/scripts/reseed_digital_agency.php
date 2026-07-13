@@ -6,7 +6,7 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 final class Seeder
 {
-    private const string EMAIL_DOMAIN = '@aurora-digital.ru';
+    private const EMAIL_DOMAIN = '@aurora-digital.ru';
     private string $baseUrl = 'https://localhost/api/index.php?route=';
     private string $token = '';
 

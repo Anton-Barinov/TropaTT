@@ -92,7 +92,11 @@ final class EstimateSetRepository
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
 
-        $selectSql = "SELECT es.*, p.public_id AS project_public_id, p.title AS project_title
+        $selectSql =            "SELECT es.id, es.public_id, es.scope_type, es.project_id, es.name, es.code, es.estimate_type,
+                es.unit_label, es.currency_code, es.description,
+                es.is_default, es.is_active, es.is_locked, es.active_key, es.sort_order,
+                es.created_by_user_id, es.row_version, es.created_at, es.updated_at,
+                es.deleted_at, es.archived_at, es.updated_by_user_id, p.public_id AS project_public_id, p.title AS project_title
             {$fromClause}
             WHERE {$whereClause}
             ORDER BY {$sortCol} {$sortDir}
@@ -131,7 +135,11 @@ final class EstimateSetRepository
     public function findByPublicId(string $publicId): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT es.*, p.public_id AS project_public_id, p.title AS project_title
+            "SELECT es.id, es.public_id, es.scope_type, es.project_id, es.name, es.code, es.estimate_type,
+                es.unit_label, es.currency_code, es.description,
+                es.is_default, es.is_active, es.is_locked, es.active_key, es.sort_order,
+                es.created_by_user_id, es.row_version, es.created_at, es.updated_at,
+                es.deleted_at, es.archived_at, es.updated_by_user_id, p.public_id AS project_public_id, p.title AS project_title
             FROM estimate_sets es
             LEFT JOIN projects p ON p.id = es.project_id
             WHERE es.public_id = :public_id"
@@ -155,7 +163,7 @@ final class EstimateSetRepository
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM estimate_sets WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, public_id, scope_type, name, code, estimate_type, unit_label, is_default, is_active, active_key, sort_order, created_by_user_id, created_at, updated_at FROM estimate_sets WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -271,7 +279,12 @@ final class EstimateSetRepository
     public function findDefaultForProject(int $projectId): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT * FROM estimate_sets
+            "SELECT id, public_id, scope_type, project_id, name, code, estimate_type,
+                unit_label, currency_code, description,
+                is_default, is_active, is_locked, active_key, sort_order,
+                created_by_user_id, row_version, created_at, updated_at,
+                deleted_at, archived_at, updated_by_user_id
+            FROM estimate_sets
             WHERE deleted_at IS NULL AND archived_at IS NULL AND is_active = 1
             AND (scope_type = 'global' OR (scope_type = 'project' AND project_id = :project_id))
             ORDER BY is_default DESC, sort_order ASC LIMIT 1"
