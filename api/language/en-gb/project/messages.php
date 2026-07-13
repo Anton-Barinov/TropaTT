@@ -4,6 +4,7 @@ declare(strict_types=1);
 return [
     'invalid_cursor' => 'Invalid cursor format',
     'list' => 'Projects list',
+    'not_found' => 'Project not found',
     'max_255' => 'Maximum 255 characters',
     'prefix_already_exists' => 'This prefix is already used by another project',
     'created' => 'Project created successfully',

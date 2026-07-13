@@ -5,6 +5,7 @@ return [
     'board' => 'Task board',
     'invalid_cursor' => 'Invalid cursor format',
     'list' => 'Tasks list',
+    'not_found' => 'Aufgabe nicht gefunden',
     'max_255' => 'Maximum 255 characters',
     'max_8000' => 'Maximum 8000 characters',
     'invalid_status' => 'Invalid status',

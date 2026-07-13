@@ -1,6 +1,7 @@
 <?php
 return [
     'list' => 'Liste des projets',
+    'not_found' => 'Projet introuvable',
     'invalid_cursor' => 'Format de curseur invalide',
     'max_255' => 'Maximum 255 caractères',
     'created' => 'Projet créé avec succès',

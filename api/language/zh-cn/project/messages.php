@@ -4,6 +4,7 @@ declare(strict_types=1);
 return [
     'invalid_cursor' => '游标格式无效',
     'list' => '项目列表',
+    'not_found' => '未找到项目',
     'max_255' => '最多 255 个字符',
     'created' => '项目创建成功',
     'detail' => '项目详情',

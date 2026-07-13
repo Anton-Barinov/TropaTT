@@ -5,6 +5,7 @@ return [
     'board' => 'Tableau des tâches',
     'invalid_cursor' => 'Format de curseur invalide',
     'list' => 'Liste des tâches',
+    'not_found' => 'Tâche introuvable',
     'max_255' => 'Maximum 255 caractères',
     'max_8000' => 'Maximum 8000 caractères',
     'invalid_status' => 'Statut invalide',

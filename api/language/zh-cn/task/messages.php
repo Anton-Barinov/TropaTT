@@ -5,6 +5,7 @@ return [
     'board' => '任务看板',
     'invalid_cursor' => '游标格式无效',
     'list' => '任务列表',
+    'not_found' => '未找到任务',
     'max_255' => '最多 255 个字符',
     'max_8000' => '最多 8000 个字符',
     'invalid_status' => '状态无效',

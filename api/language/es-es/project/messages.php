@@ -4,6 +4,7 @@ declare(strict_types=1);
 return [
     'invalid_cursor' => 'Formato de cursor inválido',
     'list' => 'Lista de proyectos',
+    'not_found' => 'Proyecto no encontrado',
     'max_255' => 'Máximo 255 caracteres',
     'created' => 'Proyecto creado exitosamente',
     'detail' => 'Detalles del proyecto',

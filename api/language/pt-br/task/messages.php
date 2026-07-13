@@ -5,6 +5,7 @@ return [
     'board' => 'Quadro de tarefas',
     'invalid_cursor' => 'Formato de cursor inválido',
     'list' => 'Lista de tarefas',
+    'not_found' => 'Tarefa não encontrada',
     'max_255' => 'Máximo de 255 caracteres',
     'max_8000' => 'Máximo de 8000 caracteres',
     'invalid_status' => 'Status inválido',
