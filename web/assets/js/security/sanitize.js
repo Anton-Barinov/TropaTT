@@ -24,7 +24,13 @@
         'base', 'frame', 'frameset', 'applet'
     ];
     var FORBIDDEN_ATTR_PREFIXES = ['on'];
-    var FORBIDDEN_ATTR_VALUE_PREFIXES = ['javascript:', 'vbscript:'];
+    // Cycle-7 close-out: restored 'data:' blanket strip. Earlier "narrow
+    // allowlist" iteration had a bug that left `data:` URIs unfiltered,
+    // making `<a href="data:text/html,<script>...</script>">` reachable.
+    // Per code-reviewer verdict (a) and protocol "reject over sanitize":
+    // blanket strip here is the conservative safer default; cosmetic
+    // inline-image breakage is acceptable trade-off vs the XSS bypass.
+    var FORBIDDEN_ATTR_VALUE_PREFIXES = ['javascript:', 'data:', 'vbscript:'];
 
     function sanitizeHtml(dirty) {
         if (dirty == null) return '';
