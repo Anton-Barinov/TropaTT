@@ -24,6 +24,7 @@
 # Allow storage_api .htaccess files for defense-in-depth access control.
 # We ONLY permit these specific files — all other storage_api/ runtime files
 # (SQLite DB, cache, dev-backups, update logs, uploads, etc.) must never be committed.
+# The /* rule at top blocks everything in root, then we selectively whitelist.
 !/storage_api/
 /storage_api/**
 !/storage_api/.htaccess
@@ -114,16 +115,3 @@ web/DEPLOY_HASH
 
 # Test runtime storage — local-only, never commit
 api/storage_test_runtime/
-
-# Root-level runtime artifacts — never commit
-.mcp.json
-.gitleaks.toml
-.htaccess
-VERSION
-DEPLOY_HASH
-storage/
-storage_api/temp/
-storage_api/cache/
-storage_api/dev-backups/
-storage_api/updates/
-storage_api/install.lock

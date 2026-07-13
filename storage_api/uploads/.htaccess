@@ -1,0 +1,5 @@
+# SEC-017: Protect uploads directory — disable PHP execution, directory listing
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phar|pl|py|cgi|shtml|htaccess)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes
