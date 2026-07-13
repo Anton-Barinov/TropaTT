@@ -6886,6 +6886,68 @@ window.CRM.br1 = (function () {
     renderTaskSidebarSummary();
   }
 
+  async function loadTaskCommentDraft(taskId) {
+    try {
+      var draftEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft');
+      var draftBody = draftEnvelope && draftEnvelope.data && draftEnvelope.data.draft ? draftEnvelope.data.draft.body : '';
+      var textArea = document.querySelector('#commentForm [name="comment_text"]');
+      if (textArea && draftBody) {
+        textArea.value = draftBody;
+        refreshVisualEditors(document.getElementById('commentForm'), true);
+      }
+    } catch (draftError) {
+      // Отсутствие черновика не является ошибкой.
+    }
+  }
+
+  function bindTaskDetailDeferredLoads(taskId, canWorkTask, canEditTask) {
+    var tabsNav = document.querySelector('.crm-task-tabs-nav');
+    if (!tabsNav || tabsNav.dataset.deferredLoadsBound === '1') return;
+
+    var loads = {};
+    function loadForTab(target) {
+      if (!target || loads[target]) return loads[target];
+
+      var loader = null;
+      if (target === '#detailSubtasks') {
+        loader = function () { return loadSubtasks(taskId, canWorkTask, canEditTask); };
+      } else if (target === '#detailChecklists') {
+        loader = function () { return loadChecklists(taskId, canWorkTask); };
+      } else if (target === '#detailComments') {
+        loader = function () {
+          return Promise.all([
+            loadTaskCommentDraft(taskId),
+            loadTaskComments(taskId).catch(function () { renderTaskComments([]); })
+          ]);
+        };
+      } else if (target === '#detailWorklogs') {
+        loader = function () { return loadTaskWorklogs(taskId); };
+      } else if (target === '#detailFiles') {
+        loader = function () { return loadTaskFiles(taskId); };
+      } else if (target === '#detailActivity') {
+        loader = function () { return loadTaskActivity(taskId); };
+      } else if (target === '#detailHistory') {
+        loader = function () { return loadTaskHistory(taskId); };
+      } else if (target === '#detailDependencies') {
+        loader = function () {
+          if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.bindTaskDependencies === 'function') {
+            window.CRM.pageApiBindings.bindTaskDependencies(taskId);
+          }
+          return Promise.resolve();
+        };
+      }
+
+      if (!loader) return null;
+      loads[target] = Promise.resolve().then(loader);
+      return loads[target];
+    }
+
+    tabsNav.addEventListener('shown.bs.tab', function (event) {
+      loadForTab(event.target && event.target.getAttribute('data-bs-target'));
+    });
+    tabsNav.dataset.deferredLoadsBound = '1';
+  }
+
   async function initTaskDetailFlow() {
     var statusBadge = document.getElementById('taskStatusBadge');
     if (!statusBadge) return;
@@ -6957,29 +7019,7 @@ window.CRM.br1 = (function () {
 
     }
 
-    try {
-      var draftEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft');
-      var draftBody = draftEnvelope && draftEnvelope.data && draftEnvelope.data.draft ? draftEnvelope.data.draft.body : '';
-      var textArea = document.querySelector('#commentForm [name="comment_text"]');
-      if (textArea && draftBody) {
-        textArea.value = draftBody;
-        refreshVisualEditors(document.getElementById('commentForm'), true);
-      }
-    } catch (draftError) {
-      // no draft is normal
-    }
-
-    await loadTaskFiles(taskId);
-    try {
-      await loadTaskComments(taskId);
-    } catch (e) {
-      renderTaskComments([]);
-    }
     await loadTaskCollaborationState(taskId);
-    await loadTaskActivity(taskId);
-    await loadSubtasks(taskId, canWorkTask, canEditTask);
-    await loadChecklists(taskId, canWorkTask);
-    await loadTaskWorklogs(taskId);
 
     bindTaskStatusButtons(taskId);
     bindTaskCommentFlow(taskId);
@@ -6990,11 +7030,7 @@ window.CRM.br1 = (function () {
     bindTaskWorklogFlow(taskId);
     bindTaskTimerFlow(taskId);
     bindTaskAiSummaryFlow(taskId);
-
-    // Bind dependencies UI
-    if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.bindTaskDependencies === 'function') {
-      window.CRM.pageApiBindings.bindTaskDependencies(taskId);
-    }
+    bindTaskDetailDeferredLoads(taskId, canWorkTask, canEditTask);
   }
 
   function bindTaskTabOverflowNavigation() {
