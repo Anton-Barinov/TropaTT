@@ -241,7 +241,7 @@ final class IntakeItemRepository
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM intake_items WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, public_id, project_id, client_id, contact_id, title, description, status, priority_code, source_type, source_ref, source_email, external_source, external_id, extra_json, due_at, snoozed_until, assignee_user_id, creator_user_id, row_version, created_at, updated_at FROM intake_items WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
