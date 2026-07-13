@@ -403,6 +403,13 @@ final class WorklogService
             }
         }
 
+        // Visibility: non-root users should only see users from their visible set
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $users = array_values(array_filter($users, static fn(array $u): bool =>
+                in_array($u['public_id'], $userSetKeys, true)
+            ));
+        }
+
         $userTotals = [];
         foreach ($users as $u) {
             $userTotals[$u['public_id']] = 0;
