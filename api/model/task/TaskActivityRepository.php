@@ -48,7 +48,7 @@ final class TaskActivityRepository
             ]);
 
         // Return the created event
-        $row = $this->pdo->query("SELECT * FROM task_activity_events WHERE public_id = " . $this->pdo->quote($publicId))->fetch(PDO::FETCH_ASSOC);
+        $row = $this->pdo->query("SELECT id, public_id, task_id, task_public_id, actor_user_id, actor_type, actor_public_id, actor_display_name, event_type, field_name, old_value, new_value, old_label, new_label, related_entity_type, related_entity_id, related_entity_public_id, related_entity_label, message_key, message_text, payload_json, visibility, request_id, source_type, source_ref, created_at, deleted_at FROM task_activity_events WHERE public_id = " . $this->pdo->quote($publicId))->fetch(PDO::FETCH_ASSOC);
         return $row ?: $payload;
     }
 
