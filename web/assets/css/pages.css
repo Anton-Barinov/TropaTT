@@ -5095,10 +5095,13 @@ font-size: 0.72rem;
   font-size: 0.88rem;
 }
 
-.crm-task-detail-page .crm-task-delete-head {
-  min-width: 118px;
+.crm-task-detail-page .crm-task-actions-menu {
+  width: 38px;
+  min-width: 38px;
+  padding-inline: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  box-shadow: none;
 }
 
 .crm-task-detail-page .crm-task-hero {

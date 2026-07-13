@@ -833,6 +833,7 @@ window.CRM.br1 = (function () {
           '[data-open-modal="assignUserModal"]',
           '[data-open-modal="calendarEventModal"]',
           '[data-confirm-delete]',
+          '[data-task-actions-menu]',
           '#taskEditBtn',
           '#projectCreateTaskBtn',
           '#bulkActionsBar',
