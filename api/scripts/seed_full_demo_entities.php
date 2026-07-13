@@ -18,10 +18,12 @@ final class FullDemoSeeder
             $this->baseUrl = rtrim($baseUrl, '?&') . (str_contains($baseUrl, '?route=') ? '' : '?route=');
         }
 
+        $dbPassword = getenv('CRM_SEED_DB_PASSWORD') ?: getenv('DB_PASSWORD') ?: trigger_error('CRM_SEED_DB_PASSWORD or DB_PASSWORD environment variable must be set', E_USER_ERROR);
+
         $this->pdo = new PDO(
             (string)(getenv('CRM_SEED_DB_DSN') ?: getenv('DB_DSN') ?: 'mysql:host=localhost;port=3306;dbname=local;charset=utf8mb4'),
             (string)(getenv('CRM_SEED_DB_USER') ?: getenv('DB_USER') ?: 'local'),
-            (string)(getenv('CRM_SEED_DB_PASSWORD') ?: getenv('DB_PASSWORD') ?: ''),
+            $dbPassword,
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
         );
     }

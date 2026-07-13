@@ -31,7 +31,7 @@ $host = trim((string)(getenv('DB_HOST') ?: '127.0.0.1'));
 $port = (int)(getenv('DB_PORT') ?: 3306);
 $database = trim((string)(getenv('DB_DATABASE') ?: 'crm_api'));
 $username = trim((string)(getenv('DB_USERNAME') ?: 'root'));
-$password = getenv('DB_PASSWORD') ?: '';
+$password = getenv('DB_PASSWORD') ?: trigger_error('DB_PASSWORD environment variable must be set in .env or environment', E_USER_ERROR);
 
 $dsn = "{$driver}:host={$host};port={$port};dbname={$database};charset=utf8mb4";
 $pdo = new PDO($dsn, $username, $password, [

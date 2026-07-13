@@ -20,7 +20,7 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 $dsn = (string)(getenv('CRM_SEED_DB_DSN') ?: getenv('DB_DSN') ?: 'mysql:host=localhost;port=3306;dbname=local;charset=utf8mb4');
 $user = (string)(getenv('CRM_SEED_DB_USER') ?: getenv('DB_USER') ?: 'local');
-$pass = (string)(getenv('CRM_SEED_DB_PASSWORD') ?: getenv('DB_PASSWORD') ?: '');
+$pass = getenv('CRM_SEED_DB_PASSWORD') ?: getenv('DB_PASSWORD') ?: trigger_error('CRM_SEED_DB_PASSWORD or DB_PASSWORD environment variable must be set', E_USER_ERROR);
 
 $pdo = new PDO($dsn, $user, $pass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
