@@ -167,7 +167,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -199,7 +199,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -632,7 +632,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT * FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -1011,7 +1011,7 @@ final class IdeaController extends BaseController
             return $this->success('DEBUG_CLEARED', $this->t('idea/messages.debug_logs_cleared'));
         }
 
-        $iterStmt = $pdo->prepare("SELECT * FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY created_at ASC");
+        $iterStmt = $pdo->prepare("SELECT id, public_id, idea_id, iteration, type, request_payload, response_payload, created_at FROM idea_ai_iterations WHERE idea_id = :iid ORDER BY created_at ASC");
         $iterStmt->execute(['iid' => $ideaId]);
         $iterations = $iterStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $questions = $service->getQuestions($ideaId);
@@ -1105,7 +1105,7 @@ final class IdeaController extends BaseController
             $item['options'] = $item['options_json'];
             $item['is_clarification'] = isset($clarPids[$item['public_id']]);
             $item['is_gap'] = isset($gapPids[$item['public_id']]);
-            $ansStmt = $pdo->prepare("SELECT * FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
+            $ansStmt = $pdo->prepare("SELECT id, question_id, cycle_id, selected_option_key, selected_options, answer_text, is_custom, is_unknown, selected_option_label, created_at FROM idea_answers WHERE question_id = :qid ORDER BY created_at DESC LIMIT 1");
             $ansStmt->execute(['qid' => $item['id']]);
             $item['last_answer'] = $ansStmt->fetch(PDO::FETCH_ASSOC) ?: null;
         }
@@ -1285,7 +1285,7 @@ PROMPT;
 
         // GET: return existing card
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             $card = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
             return $this->success('CARD_LOADED', 'OK', $card ?: ['empty' => true]);
@@ -1409,7 +1409,7 @@ PROMPT;
             }
 
             // Re-read to get timestamps
-            $fresh = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
+            $fresh = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
             $fresh->execute(['iid' => $ideaId]);
             $row = $fresh->fetch(\PDO::FETCH_ASSOC) ?: [];
             return $this->success('CARD_BUILT', 'OK', $row ?: $card);
@@ -1465,7 +1465,7 @@ PROMPT;
         set_time_limit(120);
 
         // Read understanding card
-        $cardStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
+        $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
         $cardStmt->execute(['iid' => $ideaId]);
         $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         if (!$card) {
@@ -1595,7 +1595,7 @@ PROMPT;
         $this->ensureIdeaWorkflowTables($pdo);
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_refined_cards WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_refined_cards WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             $card = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
             return $this->success('REFINED_CARD_LOADED', 'OK', $card ?: ['empty' => true]);
@@ -1610,7 +1610,7 @@ PROMPT;
         set_time_limit(0);
 
         // Read original card
-        $origStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
+        $origStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
         $origStmt->execute(['iid' => $ideaId]);
         $origCard = $origStmt->fetch(\PDO::FETCH_ASSOC);
         if (!$origCard) return $this->error('NO_CARD', $this->t('idea/messages.card_first_required'), 400);
@@ -1738,7 +1738,7 @@ PROMPT;
                 $pdo->prepare("INSERT INTO idea_refined_cards (idea_id,profile_json,summary,idea_type,specificity_level,completeness_score,confidence_score,next_action,ai_request_json,ai_response_json) VALUES (:idea_id,:profile_json,:summary,:idea_type,:specificity_level,:completeness_score,:confidence_score,:next_action,:ai_request_json,:ai_response_json)")->execute($card);
             }
 
-            $fresh = $pdo->prepare("SELECT * FROM idea_refined_cards WHERE idea_id = :iid");
+            $fresh = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_refined_cards WHERE idea_id = :iid");
             $fresh->execute(['iid' => $ideaId]);
             return $this->success('REFINED_CARD_BUILT', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $card);
         } catch (\Throwable $e) {
@@ -1762,7 +1762,7 @@ PROMPT;
         $this->ensureIdeaWorkflowTables($pdo);
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_potential_scores WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, potential_json, potential_score, potential_level, confidence_score, completeness_score, calculation_type, verdict, ai_request_json, ai_response_json, created_at, updated_at FROM idea_potential_scores WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('POTENTIAL_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -1786,7 +1786,7 @@ PROMPT;
         $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
 
         // Read understanding card if exists
-        $cardStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid");
+        $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid");
         $cardStmt->execute(['iid' => $ideaId]);
         $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         $ucData = $card ? ['exists' => true, 'summary' => $card['summary'] ?? '', 'idea_type' => $card['idea_type'] ?? '', 'completeness' => $card['completeness_score'] ?? 0, 'confidence' => $card['confidence_score'] ?? 0, 'next_action' => $card['next_action'] ?? ''] : ['exists' => false];
@@ -1870,7 +1870,7 @@ PROMPT;
                 $pdo->prepare("INSERT INTO idea_potential_scores (idea_id,potential_json,potential_score,potential_level,confidence_score,completeness_score,calculation_type,verdict,ai_request_json,ai_response_json) VALUES (:idea_id,:potential_json,:potential_score,:potential_level,:confidence_score,:completeness_score,:calculation_type,:verdict,:ai_request_json,:ai_response_json)")->execute($row);
             }
 
-            $fresh = $pdo->prepare("SELECT * FROM idea_potential_scores WHERE idea_id = :iid");
+            $fresh = $pdo->prepare("SELECT id, idea_id, potential_json, potential_score, potential_level, confidence_score, completeness_score, calculation_type, verdict, ai_request_json, ai_response_json, created_at, updated_at FROM idea_potential_scores WHERE idea_id = :iid");
             $fresh->execute(['iid' => $ideaId]);
             return $this->success('POTENTIAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) {
@@ -1894,7 +1894,7 @@ PROMPT;
         $this->ensureIdeaWorkflowTables($pdo);
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, risk_report_json, overall_risk_score, overall_risk_level, critical_risks_count, high_risks_count, medium_risks_count, low_risks_count, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_risk_reports WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('RISK_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -1908,10 +1908,10 @@ PROMPT;
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
         $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
-        $cardStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
+        $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         $uc = $card ? ['exists' => true, 'summary' => $card['summary'] ?? '', 'idea_type' => $card['idea_type'] ?? '', 'completeness' => $card['completeness_score'] ?? 0] : ['exists' => false];
         // Also include refined card if available
-        $refinedStmt = $pdo->prepare("SELECT * FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
+        $refinedStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
         $ruc = $refinedCard ? ['exists' => true, 'summary' => $refinedCard['summary'] ?? '', 'idea_type' => $refinedCard['idea_type'] ?? '', 'completeness' => $refinedCard['completeness_score'] ?? 0] : ['exists' => false];
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
@@ -1939,7 +1939,7 @@ PROMPT;
                 // Save fallback record instead of returning error
                 $row = ['risk_report_json' => json_encode(['risk_report' => ['summary' => $this->t('idea/messages.ai_risk_fallback_summary'), 'risks' => [], 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'confidence_score' => 0]], JSON_UNESCAPED_UNICODE), 'overall_risk_score' => 1, 'overall_risk_level' => 'unknown', 'critical_risks_count' => 0, 'high_risks_count' => 0, 'medium_risks_count' => 0, 'low_risks_count' => 0, 'confidence_score' => 0, 'ai_request_json' => json_encode(['note' => 'AI analysis failed', 'system_prompt' => $sp, 'payload' => $payload], JSON_UNESCAPED_UNICODE), 'ai_response_json' => json_encode(['raw_text' => $rawText], JSON_UNESCAPED_UNICODE), 'idea_id' => $ideaId];
                 $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row);
-                $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+                $fresh = $pdo->prepare("SELECT id, idea_id, risk_report_json, overall_risk_score, overall_risk_level, critical_risks_count, high_risks_count, medium_risks_count, low_risks_count, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
                 return $this->success('RISK_FALLBACK', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
             }
             $data = $parsed['data'];
@@ -1963,7 +1963,7 @@ PROMPT;
             $exists = $pdo->prepare("SELECT id FROM idea_risk_reports WHERE idea_id = :iid"); $exists->execute(['iid' => $ideaId]);
             if ($exists->fetch()) { $pdo->prepare("UPDATE idea_risk_reports SET risk_report_json=:risk_report_json,overall_risk_score=:overall_risk_score,overall_risk_level=:overall_risk_level,critical_risks_count=:critical_risks_count,high_risks_count=:high_risks_count,medium_risks_count=:medium_risks_count,low_risks_count=:low_risks_count,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
             else { $pdo->prepare("INSERT INTO idea_risk_reports (idea_id,risk_report_json,overall_risk_score,overall_risk_level,critical_risks_count,high_risks_count,medium_risks_count,low_risks_count,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:risk_report_json,:overall_risk_score,:overall_risk_level,:critical_risks_count,:high_risks_count,:medium_risks_count,:low_risks_count,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
-            $fresh = $pdo->prepare("SELECT * FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+            $fresh = $pdo->prepare("SELECT id, idea_id, risk_report_json, overall_risk_score, overall_risk_level, critical_risks_count, high_risks_count, medium_risks_count, low_risks_count, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_risk_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('RISK_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) { ai_diag_log("[RISK_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_risks_failed'), 503); }
     }
@@ -1983,7 +1983,7 @@ PROMPT;
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_pitfalls_reports WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, overall_hidden_complexity, overall_summary, pitfalls_json, data_confidence, ai_request_json, ai_response_json, created_at, updated_at FROM idea_pitfalls_reports WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('PITFALLS_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -1997,9 +1997,9 @@ PROMPT;
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
         $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
-        $cardStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
+        $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         $uc = $card ? ['exists' => true, 'summary' => $card['summary'] ?? '', 'idea_type' => $card['idea_type'] ?? '', 'completeness' => $card['completeness_score'] ?? 0] : ['exists' => false];
-        $refinedStmt = $pdo->prepare("SELECT * FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
+        $refinedStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
         $ruc = $refinedCard ? ['exists' => true, 'summary' => $refinedCard['summary'] ?? '', 'idea_type' => $refinedCard['idea_type'] ?? '', 'completeness' => $refinedCard['completeness_score'] ?? 0] : ['exists' => false];
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
@@ -2051,7 +2051,7 @@ PROMPT;
             $exists = $pdo->prepare("SELECT id FROM idea_pitfalls_reports WHERE idea_id = :iid"); $exists->execute(['iid' => $ideaId]);
             if ($exists->fetch()) { $pdo->prepare("UPDATE idea_pitfalls_reports SET overall_hidden_complexity=:overall_hidden_complexity,overall_summary=:overall_summary,pitfalls_json=:pitfalls_json,data_confidence=:data_confidence,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
             else { $pdo->prepare("INSERT INTO idea_pitfalls_reports (idea_id,overall_hidden_complexity,overall_summary,pitfalls_json,data_confidence,ai_request_json,ai_response_json) VALUES (:idea_id,:overall_hidden_complexity,:overall_summary,:pitfalls_json,:data_confidence,:ai_request_json,:ai_response_json)")->execute($row); }
-            $fresh = $pdo->prepare("SELECT * FROM idea_pitfalls_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+            $fresh = $pdo->prepare("SELECT id, idea_id, overall_hidden_complexity, overall_summary, pitfalls_json, data_confidence, ai_request_json, ai_response_json, created_at, updated_at FROM idea_pitfalls_reports WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PITFALLS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) { ai_diag_log("[PITFALLS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_pitfalls_failed'), 503); }
     }
@@ -2070,7 +2070,7 @@ PROMPT;
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_implementation_plans WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, plan_json, summary, planning_horizon, plan_type, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_implementation_plans WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('PLAN_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -2085,9 +2085,9 @@ PROMPT;
         $qaList = []; foreach ($questions as $q) { $ans = $q['last_answer'] ?? null; if (!$ans) continue; $qaList[] = ['question' => $q['question_text'] ?? '', 'dimension' => $q['dimension'] ?? '', 'answer' => $ans['selected_option_label'] ?? $ans['selected_option_key'] ?? $ans['answer_text'] ?? '']; }
         $desc = $idea['description'] ?? ''; $plainDesc = trim(strip_tags(str_replace(['<br>','<br/>','<br />'],"\n",$desc)));
         $coverage = json_decode($idea['coverage_json'] ?? '{}', true) ?: [];
-        $cardStmt = $pdo->prepare("SELECT * FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
+        $cardStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_understanding_cards WHERE idea_id = :iid"); $cardStmt->execute(['iid' => $ideaId]); $card = $cardStmt->fetch(\PDO::FETCH_ASSOC);
         $uc = $card ? ['exists' => true, 'summary' => $card['summary'] ?? '', 'idea_type' => $card['idea_type'] ?? '', 'completeness' => $card['completeness_score'] ?? 0] : ['exists' => false];
-        $refinedStmt = $pdo->prepare("SELECT * FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
+        $refinedStmt = $pdo->prepare("SELECT idea_id, profile_json, summary, idea_type, specificity_level, completeness_score, confidence_score, next_action, ai_request_json, ai_response_json, created_at, updated_at FROM idea_refined_cards WHERE idea_id = :iid"); $refinedStmt->execute(['iid' => $ideaId]); $refinedCard = $refinedStmt->fetch(\PDO::FETCH_ASSOC);
         $ruc = $refinedCard ? ['exists' => true, 'summary' => $refinedCard['summary'] ?? '', 'idea_type' => $refinedCard['idea_type'] ?? '', 'completeness' => $refinedCard['completeness_score'] ?? 0] : ['exists' => false];
 
         $payload = ['idea' => ['title' => $idea['title'] ?? '', 'short_description' => mb_substr($plainDesc, 0, 200), 'description_plain_text' => $plainDesc, 'category' => $idea['category'] ?? '', 'product' => $idea['product'] ?? '', 'region' => $idea['region'] ?? '', 'target_date' => $idea['target_date'] ?? null, 'current_date' => date('Y-m-d')], 'understanding_card' => $uc, 'refined_card' => $ruc, 'questions_and_answers' => $qaList, 'already_covered_topics' => $coverage['already_covered_topics'] ?? [], 'do_not_ask_again_topics' => $coverage['do_not_ask_again_topics'] ?? []];
@@ -2131,7 +2131,7 @@ PROMPT;
             $exists = $pdo->prepare("SELECT id FROM idea_implementation_plans WHERE idea_id = :iid"); $exists->execute(['iid' => $ideaId]);
             if ($exists->fetch()) { $pdo->prepare("UPDATE idea_implementation_plans SET plan_json=:plan_json,summary=:summary,planning_horizon=:planning_horizon,plan_type=:plan_type,confidence_score=:confidence_score,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
             else { $pdo->prepare("INSERT INTO idea_implementation_plans (idea_id,plan_json,summary,planning_horizon,plan_type,confidence_score,ai_request_json,ai_response_json) VALUES (:idea_id,:plan_json,:summary,:planning_horizon,:plan_type,:confidence_score,:ai_request_json,:ai_response_json)")->execute($row); }
-            $fresh = $pdo->prepare("SELECT * FROM idea_implementation_plans WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+            $fresh = $pdo->prepare("SELECT id, idea_id, plan_json, summary, planning_horizon, plan_type, confidence_score, ai_request_json, ai_response_json, created_at, updated_at FROM idea_implementation_plans WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('PLAN_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) { ai_diag_log("[PLAN_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_plan_failed'), 503); }
     }
@@ -2150,7 +2150,7 @@ PROMPT;
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_final_recommendations WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, status, status_label, recommendation_score, ai_recommendation_score, calculated_recommendation_score, potential_score, feasibility_score, risk_score, data_completeness_score, plan_quality_score, blocker_score, confidence_score, recommendation_json, ai_request_json, ai_response_json, created_at, updated_at FROM idea_final_recommendations WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('FINAL_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -2252,7 +2252,7 @@ PROMPT;
             $exists = $pdo->prepare("SELECT id FROM idea_final_recommendations WHERE idea_id = :iid"); $exists->execute(['iid' => $ideaId]);
             if ($exists->fetch()) { $pdo->prepare("UPDATE idea_final_recommendations SET status=:status,status_label=:status_label,recommendation_score=:recommendation_score,ai_recommendation_score=:ai_recommendation_score,calculated_recommendation_score=:calculated_recommendation_score,potential_score=:potential_score,feasibility_score=:feasibility_score,risk_score=:risk_score,data_completeness_score=:data_completeness_score,plan_quality_score=:plan_quality_score,blocker_score=:blocker_score,confidence_score=:confidence_score,recommendation_json=:recommendation_json,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
             else { $pdo->prepare("INSERT INTO idea_final_recommendations (idea_id,status,status_label,recommendation_score,ai_recommendation_score,calculated_recommendation_score,potential_score,feasibility_score,risk_score,data_completeness_score,plan_quality_score,blocker_score,confidence_score,recommendation_json,ai_request_json,ai_response_json) VALUES (:idea_id,:status,:status_label,:recommendation_score,:ai_recommendation_score,:calculated_recommendation_score,:potential_score,:feasibility_score,:risk_score,:data_completeness_score,:plan_quality_score,:blocker_score,:confidence_score,:recommendation_json,:ai_request_json,:ai_response_json)")->execute($row); }
-            $fresh = $pdo->prepare("SELECT * FROM idea_final_recommendations WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+            $fresh = $pdo->prepare("SELECT id, idea_id, status, status_label, recommendation_score, ai_recommendation_score, calculated_recommendation_score, potential_score, feasibility_score, risk_score, data_completeness_score, plan_quality_score, blocker_score, confidence_score, recommendation_json, ai_request_json, ai_response_json, created_at, updated_at FROM idea_final_recommendations WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('FINAL_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) { ai_diag_log("[FINAL_RECOMMENDATION_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_recommendation_failed'), 503); }
     }
@@ -2271,7 +2271,7 @@ PROMPT;
         $ideaId = (int)$idea['id'];
 
         if (($this->request()->method ?? 'GET') === 'GET') {
-            $stmt = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid");
+            $stmt = $pdo->prepare("SELECT id, idea_id, tasks_json, summary, created_at, updated_at FROM idea_suggested_tasks WHERE idea_id = :iid");
             $stmt->execute(['iid' => $ideaId]);
             return $this->success('TASKS_LOADED', 'OK', $stmt->fetch(\PDO::FETCH_ASSOC) ?: ['empty' => true]);
         }
@@ -2345,7 +2345,7 @@ PROMPT;
             $exists = $pdo->prepare("SELECT id FROM idea_suggested_tasks WHERE idea_id = :iid"); $exists->execute(['iid' => $ideaId]);
             if ($exists->fetch()) { $pdo->prepare("UPDATE idea_suggested_tasks SET tasks_json=:tasks_json,summary=:summary,ai_request_json=:ai_request_json,ai_response_json=:ai_response_json,updated_at=NOW() WHERE idea_id=:idea_id")->execute($row); }
             else { $pdo->prepare("INSERT INTO idea_suggested_tasks (idea_id,tasks_json,summary,ai_request_json,ai_response_json) VALUES (:idea_id,:tasks_json,:summary,:ai_request_json,:ai_response_json)")->execute($row); }
-            $fresh = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
+            $fresh = $pdo->prepare("SELECT id, idea_id, tasks_json, summary, created_at, updated_at FROM idea_suggested_tasks WHERE idea_id = :iid"); $fresh->execute(['iid' => $ideaId]);
             return $this->success('TASKS_CALCULATED', 'OK', $fresh->fetch(\PDO::FETCH_ASSOC) ?: $row);
         } catch (\Throwable $e) { ai_diag_log("[SUGGESTED_TASKS_ERROR] " . $e->getMessage()); return $this->error('AI_UNAVAILABLE', $this->t('idea/messages.ai_tasks_failed'), 503); }
     }
@@ -2364,7 +2364,7 @@ PROMPT;
         $userId = (int)($this->user()['user']['id'] ?? 0);
 
         // Read suggested tasks
-        $stmt = $pdo->prepare("SELECT * FROM idea_suggested_tasks WHERE idea_id = :iid");
+        $stmt = $pdo->prepare("SELECT id, idea_id, tasks_json, summary, created_at, updated_at FROM idea_suggested_tasks WHERE idea_id = :iid");
         $stmt->execute(['iid' => $ideaId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$row || empty($row['tasks_json'])) return $this->error('NO_TASKS', $this->t('idea/messages.generate_tasks_first'), 400);
