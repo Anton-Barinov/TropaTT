@@ -104,6 +104,7 @@ final class WorklogRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('users')
+            ->select(['id', 'public_id', 'login', 'full_name'])
             ->where('public_id', '=', $publicId)
             ->first();
     }
