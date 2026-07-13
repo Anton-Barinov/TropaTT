@@ -165,13 +165,36 @@ function tableExists(PDO $pdo, string $table): bool
 
 function orphanCount(PDO $pdo, string $child, string $parent, string $join, string $where): int
 {
-    $sql = sprintf(
-        'SELECT COUNT(*) AS c FROM %s c LEFT JOIN %s p ON %s WHERE %s AND p.id IS NULL',
-        $child,
-        $parent,
-        $join,
-        $where
-    );
+    // NOT EXISTS позволяет MySQL прервать сканирование при первом совпадении,
+    // что быстрее LEFT JOIN ... WHERE p.id IS NULL на больших таблицах.
+    // Из join вида "c.project_id = p.id" извлекаем FK и PK имена.
+    $pk = 'id';
+    $fk = '';
+    if (preg_match('/^c\.(\w+)\s*=\s*p\.(\w+)$/', $join, $m)) {
+        $fk = $m[1];
+        $pk = $m[2];
+    }
+
+    // Если FK не распознан, используем безопасный LEFT JOIN (fallback)
+    if ($fk === '') {
+        $sql = sprintf(
+            'SELECT COUNT(*) AS c FROM %s c LEFT JOIN %s p ON %s WHERE %s AND p.id IS NULL',
+            $child,
+            $parent,
+            $join,
+            $where
+        );
+    } else {
+        $sql = sprintf(
+            'SELECT COUNT(*) AS c FROM %s c WHERE %s AND NOT EXISTS (SELECT 1 FROM %s p WHERE p.%s = c.%s)',
+            $child,
+            $where,
+            $parent,
+            $pk,
+            $fk
+        );
+    }
+
     $stmt = $pdo->query($sql);
     if ($stmt === false) {
         return 0;
