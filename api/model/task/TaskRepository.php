@@ -29,7 +29,6 @@ final class TaskRepository
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
             ->leftJoin('users tm', 'tm.id', '=', 'pt.manager_user_id')
             ->select([
-                't.id AS _task_id',
                 't.public_id',
                 't.task_key',
                 't.task_key_prefix',
@@ -58,6 +57,49 @@ final class TaskRepository
                 'tm.public_id AS project_team_manager_user_public_id',
                 'tm.full_name AS project_team_manager_name',
                 'tm.login AS project_team_manager_login',
+                "(SELECT parent_task.public_id
+                    FROM task_relations trp
+                    INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id
+                    WHERE trp.child_task_id = t.id
+                      AND trp.relation_type = 'subtask'
+                    LIMIT 1) AS parent_task_public_id",
+                "(SELECT parent_task.title
+                    FROM task_relations trp
+                    INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id
+                    WHERE trp.child_task_id = t.id
+                      AND trp.relation_type = 'subtask'
+                    LIMIT 1) AS parent_task_title",
+                "(SELECT trp.sort_order
+                    FROM task_relations trp
+                    WHERE trp.child_task_id = t.id
+                      AND trp.relation_type = 'subtask'
+                    LIMIT 1) AS parent_relation_sort_order",
+                "EXISTS(
+                    SELECT 1
+                    FROM task_relations trc
+                    WHERE trc.parent_task_id = t.id
+                      AND trc.relation_type = 'subtask'
+                ) AS has_subtasks",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', tg.public_id, 'code', tg.code, 'title', tg.title, 'color', tg.color))
+                  FROM entity_tags et
+                  INNER JOIN tags tg ON tg.id = et.tag_id
+                  WHERE et.entity_type = 'task' AND et.entity_public_id = t.public_id
+                ) AS tags",
+                "(SELECT COUNT(*) FROM knowledge_entity_links kel WHERE kel.entity_type = 'task' AND kel.entity_public_id COLLATE utf8mb4_unicode_ci = t.public_id) AS knowledge_links_count",
+                "(SELECT COUNT(*) FROM task_dependencies td
+                    INNER JOIN tasks blocker ON blocker.id = td.depends_on_task_id
+                    WHERE td.task_id = t.id
+                      AND blocker.deleted_at IS NULL
+                      AND blocker.status_code NOT IN ('done','cancelled')
+                ) AS blocked_by_count",
+                "(SELECT wc.public_id FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_public_id",
+                "(SELECT wc.title FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_title",
+                "(SELECT wc.status FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN ('planned','active') LIMIT 1) AS cycle_status",
+                "(SELECT JSON_ARRAYAGG(JSON_OBJECT('public_id', pm.public_id, 'title', pm.title, 'status', pm.status))
+                  FROM project_module_tasks pmt
+                  INNER JOIN project_modules pm ON pm.id = pmt.module_id
+                  WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
+                ) AS modules",
             ])
             ->orderBy('t.' . $sort, $order)
             ->orderBy('t.public_id', $order);
@@ -71,7 +113,6 @@ final class TaskRepository
             if ($hasMore) {
                 array_pop($items);
             }
-            $items = $this->hydrateListItems($items);
 
             $nextCursor = null;
             if ($hasMore && $items !== []) {
@@ -103,7 +144,6 @@ final class TaskRepository
             ->limit($limit)
             ->offset($offset)
             ->get();
-        $items = $this->hydrateListItems($items);
 
         $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)->count();
 
@@ -116,120 +156,6 @@ final class TaskRepository
             'has_more' => false,
             'next_cursor' => null,
         ];
-    }
-
-    /**
-     * Adds list-only metadata in bounded batch queries instead of running a
-     * correlated subquery for every field of every task.  This keeps the API
-     * response shape intact while making concurrent task-list requests cheap
-     * enough for ordinary shared hosting.
-     *
-     * @param list<array<string, mixed>> $items
-     * @return list<array<string, mixed>>
-     */
-    private function hydrateListItems(array $items): array
-    {
-        if ($items === []) {
-            return $items;
-        }
-
-        $taskIds = array_values(array_unique(array_map(static fn(array $item): int => (int)$item['_task_id'], $items)));
-        $taskPublicIds = array_values(array_unique(array_map(static fn(array $item): string => (string)$item['public_id'], $items)));
-        $idPlaceholders = implode(', ', array_fill(0, count($taskIds), '?'));
-        $publicIdPlaceholders = implode(', ', array_fill(0, count($taskPublicIds), '?'));
-
-        $defaults = [
-            'parent_task_public_id' => null, 'parent_task_title' => null, 'parent_relation_sort_order' => null,
-            'has_subtasks' => 0, 'tags' => null, 'knowledge_links_count' => 0, 'blocked_by_count' => 0,
-            'cycle_public_id' => null, 'cycle_title' => null, 'cycle_status' => null, 'modules' => null,
-        ];
-        $byId = [];
-        foreach ($items as $item) {
-            $byId[(int)$item['_task_id']] = $defaults;
-        }
-
-        $parentRelations = $this->pdo->prepare("SELECT tr.child_task_id, tr.sort_order, parent.public_id, parent.title
-            FROM task_relations tr INNER JOIN tasks parent ON parent.id = tr.parent_task_id
-            WHERE tr.relation_type = 'subtask' AND tr.child_task_id IN ({$idPlaceholders})");
-        $parentRelations->execute($taskIds);
-        foreach ($parentRelations->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $id = (int)$row['child_task_id'];
-            if ($byId[$id]['parent_task_public_id'] === null) {
-                $byId[$id]['parent_task_public_id'] = $row['public_id'];
-                $byId[$id]['parent_task_title'] = $row['title'];
-                $byId[$id]['parent_relation_sort_order'] = $row['sort_order'];
-            }
-        }
-
-        $children = $this->pdo->prepare("SELECT DISTINCT parent_task_id FROM task_relations WHERE relation_type = 'subtask' AND parent_task_id IN ({$idPlaceholders})");
-        $children->execute($taskIds);
-        foreach ($children->fetchAll(PDO::FETCH_COLUMN) as $id) {
-            $byId[(int)$id]['has_subtasks'] = 1;
-        }
-
-        $tags = $this->pdo->prepare("SELECT et.entity_public_id, tg.public_id, tg.code, tg.title, tg.color
-            FROM entity_tags et INNER JOIN tags tg ON tg.id = et.tag_id
-            WHERE et.entity_type = 'task' AND et.entity_public_id IN ({$publicIdPlaceholders})");
-        $tags->execute($taskPublicIds);
-        $tagsByPublicId = [];
-        foreach ($tags->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $tagsByPublicId[$row['entity_public_id']][] = [
-                'public_id' => $row['public_id'], 'code' => $row['code'], 'title' => $row['title'], 'color' => $row['color'],
-            ];
-        }
-
-        $knowledge = $this->pdo->prepare("SELECT entity_public_id, COUNT(*) AS count FROM knowledge_entity_links
-            WHERE entity_type = 'task' AND entity_public_id IN ({$publicIdPlaceholders}) GROUP BY entity_public_id");
-        $knowledge->execute($taskPublicIds);
-        $knowledgeByPublicId = $knowledge->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        $blocked = $this->pdo->prepare("SELECT td.task_id, COUNT(*) AS count FROM task_dependencies td
-            INNER JOIN tasks blocker ON blocker.id = td.depends_on_task_id
-            WHERE td.task_id IN ({$idPlaceholders}) AND blocker.deleted_at IS NULL
-              AND blocker.status_code NOT IN ('done', 'cancelled') GROUP BY td.task_id");
-        $blocked->execute($taskIds);
-        foreach ($blocked->fetchAll(PDO::FETCH_KEY_PAIR) as $id => $count) {
-            $byId[(int)$id]['blocked_by_count'] = (int)$count;
-        }
-
-        $cycles = $this->pdo->prepare("SELECT ct.task_id, wc.public_id, wc.title, wc.status FROM cycle_tasks ct
-            INNER JOIN work_cycles wc ON wc.id = ct.cycle_id
-            WHERE ct.task_id IN ({$idPlaceholders}) AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL
-              AND wc.status IN ('planned', 'active')");
-        $cycles->execute($taskIds);
-        foreach ($cycles->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $id = (int)$row['task_id'];
-            if ($byId[$id]['cycle_public_id'] === null) {
-                $byId[$id]['cycle_public_id'] = $row['public_id'];
-                $byId[$id]['cycle_title'] = $row['title'];
-                $byId[$id]['cycle_status'] = $row['status'];
-            }
-        }
-
-        $modules = $this->pdo->prepare("SELECT pmt.task_id, pm.public_id, pm.title, pm.status FROM project_module_tasks pmt
-            INNER JOIN project_modules pm ON pm.id = pmt.module_id
-            WHERE pmt.task_id IN ({$idPlaceholders}) AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL");
-        $modules->execute($taskIds);
-        foreach ($modules->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $id = (int)$row['task_id'];
-            $byId[$id]['_modules'][] = ['public_id' => $row['public_id'], 'title' => $row['title'], 'status' => $row['status']];
-        }
-
-        foreach ($items as &$item) {
-            $id = (int)$item['_task_id'];
-            $item += $byId[$id];
-            if (isset($tagsByPublicId[$item['public_id']])) {
-                $item['tags'] = json_encode($tagsByPublicId[$item['public_id']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            }
-            $item['knowledge_links_count'] = (int)($knowledgeByPublicId[$item['public_id']] ?? 0);
-            if (isset($byId[$id]['_modules'])) {
-                $item['modules'] = json_encode($byId[$id]['_modules'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            }
-            unset($item['_task_id']);
-        }
-        unset($item);
-
-        return $items;
     }
 
     public function findByPublicId(string $publicId): ?array
