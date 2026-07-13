@@ -194,7 +194,7 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT * FROM companies');
+        $stmt = $pdo->query('SELECT public_id, created_by_user_id, title, status, email, created_at, updated_at FROM companies');
         $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($companies)) {
@@ -241,7 +241,7 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT * FROM clients');
+        $stmt = $pdo->query('SELECT public_id, created_by_user_id, title, client_type, status, legal_name, person_last_name, person_first_name, person_middle_name, person_birth_date, tax_inn, tax_kpp, tax_ogrn, tax_ogrnip, bank_account, bank_name, bank_bik, bank_corr_account, website, messenger, address_legal, address_postal, notes, extra_attributes, email, phone, created_at, updated_at FROM clients');
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($clients)) {
@@ -387,7 +387,7 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT * FROM departments');
+        $stmt = $pdo->query('SELECT public_id, title, code, manager_user_id, created_by_user_id, created_at, updated_at FROM departments');
         $departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($departments)) {
