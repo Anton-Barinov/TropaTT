@@ -412,6 +412,51 @@ window.CRM.br1 = (function () {
     return 'archived';
   }
 
+  function normalizeStatusColor(value) {
+    var match = String(value || '').trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!match) return '';
+    var hex = match[1];
+    if (hex.length === 3) {
+      hex = hex.split('').map(function (part) { return part + part; }).join('');
+    }
+    return '#' + hex.toLowerCase();
+  }
+
+  function statusTextColor(backgroundColor) {
+    var hex = normalizeStatusColor(backgroundColor);
+    if (!hex) return '';
+
+    var red = parseInt(hex.slice(1, 3), 16) / 255;
+    var green = parseInt(hex.slice(3, 5), 16) / 255;
+    var blue = parseInt(hex.slice(5, 7), 16) / 255;
+    var linearize = function (channel) {
+      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+    };
+    var luminance = 0.2126 * linearize(red) + 0.7152 * linearize(green) + 0.0722 * linearize(blue);
+    return luminance > 0.179 ? '#0f172a' : '#ffffff';
+  }
+
+  function statusColor(code) {
+    var normalizedCode = String(code || '');
+    var status = availableTaskStatuses.find(function (item) {
+      return String(item.code || '') === normalizedCode;
+    });
+    return normalizeStatusColor(status && status.color);
+  }
+
+  function applyTaskStatusBadgeColor(statusBadge, code) {
+    if (!statusBadge) return;
+    var color = statusColor(code);
+    statusBadge.style.removeProperty('background-color');
+    statusBadge.style.removeProperty('border-color');
+    statusBadge.style.removeProperty('color');
+    if (!color) return;
+
+    statusBadge.style.backgroundColor = color;
+    statusBadge.style.borderColor = color;
+    statusBadge.style.color = statusTextColor(color);
+  }
+
   function statusLabel(code) {
     var codeKey = String(code || '');
     if (availableTaskStatuses.length) {
@@ -1361,7 +1406,8 @@ window.CRM.br1 = (function () {
         return {
           code: String(item.code || ''),
           title: String(item.title || item.code || ''),
-          sort_order: Number(item.sort_order || 0)
+          sort_order: Number(item.sort_order || 0),
+          color: normalizeStatusColor(item.color)
         };
       }).filter(function (item) {
         return item.code !== '';
@@ -2076,8 +2122,9 @@ window.CRM.br1 = (function () {
     var statusBadge = document.getElementById('taskStatusBadge');
     if (!statusBadge) return;
 
-    statusBadge.className = 'crm-badge ' + statusBadgeClass(code);
+    statusBadge.className = 'crm-badge' + (statusBadge.tagName === 'BUTTON' ? ' dropdown-toggle' : '') + ' ' + statusBadgeClass(code);
     statusBadge.textContent = statusLabel(code);
+    applyTaskStatusBadgeColor(statusBadge, code);
   }
 
   function orderedTaskStatuses(currentStatusCode) {
@@ -2760,6 +2807,8 @@ window.CRM.br1 = (function () {
       + '</div>'
       + '<span class="crm-chip" id="taskPriorityChip">' + escapeHtml(priorityLabel(currentTask.priority_code)) + '</span>'
       + tagsHtml;
+
+    applyTaskStatusBadgeColor(document.getElementById('taskStatusBadge'), currentTask.status_code);
   }
 
   async function loadTaskTags(taskId) {
