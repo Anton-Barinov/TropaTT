@@ -141,7 +141,7 @@ final class TeamRepository
             ->from('teams')
             ->select(['member_user_ids'])
             ->where('manager_user_id', '=', $managerUserId)
-            ->all();
+            ->get();
 
         $allMemberIds = [];
         foreach ($rows as $row) {
