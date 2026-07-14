@@ -1688,7 +1688,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $this->container->set('module.profiler', $profiler);
 
         $cronScheduler = new ModuleCronScheduler($pdo);
-        try { $cronScheduler->ensureTables($driver); } catch (\Throwable) {}
+        try { $cronScheduler->ensureTables($driver); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ensureTables failed for module.cron_scheduler: ' . $e->getMessage());
+        }
         $this->container->set('module.cron_scheduler', $cronScheduler);
 
         try {
