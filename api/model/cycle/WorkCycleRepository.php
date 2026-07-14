@@ -169,7 +169,7 @@ final class WorkCycleRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false ? $row : null;
+        return $row;
     }
 
     public function create(array $payload): array

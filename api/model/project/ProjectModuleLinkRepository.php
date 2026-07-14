@@ -60,6 +60,6 @@ final class ProjectModuleLinkRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false ? $row : null;
+        return $row;
     }
 }

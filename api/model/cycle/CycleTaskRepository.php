@@ -131,7 +131,7 @@ final class CycleTaskRepository
             ->whereIn('wc.status', ['planned', 'active'])
             ->first();
 
-        return $row !== false ? $row : null;
+        return $row;
     }
 
     public function taskIdByPublicId(string $taskPublicId): ?int

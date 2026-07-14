@@ -97,7 +97,7 @@ final class TaskRelationRepository
             ->where('r.public_id', '=', $publicId)
             ->first();
 
-        return $row !== false ? $row : null;
+        return $row;
     }
 
     /**
