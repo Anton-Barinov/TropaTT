@@ -428,7 +428,7 @@ The public repository currently includes a focused maintainer documentation set:
 |-------|-------|------|
 | Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
-| Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | Public usage, agent, security, and contribution guidance |
+| Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, agent, security, contribution, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
 
 ### Open-source project files
@@ -441,6 +441,9 @@ The public repository includes standard project files for maintainers, contribut
 - [CHANGELOG.md](CHANGELOG.md) — public preview changelog.
 - [ROADMAP.md](ROADMAP.md) — public preview roadmap without promised dates.
 - [SUPPORT.md](SUPPORT.md) — support expectations and issue guidance.
+- [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — common installation problems and fixes.
+- [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — step-by-step shared hosting installation guide.
+- [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — webhook authentication, verification, and best practices.
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — bug, feature, documentation, and installation templates.
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — PR checklist for tests, docs, security, API, and installer impact.
 
@@ -861,9 +864,7 @@ TropaTT/
 | Слой | Расположение | Содержание |
 |------|-------------|-----------|
 | Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
-| API tooling | `api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
-| Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | Публичные правила использования, работы агентов, безопасности и вклада |
-
+| API tooling | `api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI || Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, работы агентов, безопасности, вклада, troubleshooting установки, shared hosting гайд, webhook security |
 ---
 
 ### Файлы open-source проекта
@@ -876,6 +877,9 @@ TropaTT/
 - [CHANGELOG.md](CHANGELOG.md) — changelog публичного preview.
 - [ROADMAP.md](ROADMAP.md) — roadmap без обещания конкретных дат.
 - [SUPPORT.md](SUPPORT.md) — ожидания по поддержке и правила оформления issues.
+- [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) — решение типовых проблем установки.
+- [SHARED_HOSTING_GUIDE.md](SHARED_HOSTING_GUIDE.md) — пошаговая инструкция установки на shared hosting.
+- [WEBHOOK_SECURITY.md](WEBHOOK_SECURITY.md) — аутентификация, верификация и best practices для вебхуков.
 - [.github/ISSUE_TEMPLATE](.github/ISSUE_TEMPLATE) — шаблоны для багов, фич, документации и проблем установки.
 - [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — чеклист PR по тестам, документации, безопасности, API и установщику.
 
