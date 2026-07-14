@@ -459,16 +459,16 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($endpoint, false, $context);
         $statusCode = 0;
-        $responseHdrs = [];
+        $responseHeaders = [];
         if (function_exists('http_get_last_response_headers')) {
-            $responseHdrs[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
+            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
             foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHdrs[] = $n . ': ' . $v;
+                $responseHeaders[] = $n . ': ' . $v;
             }
         } else {
-            $responseHdrs = $http_response_header ?? [];
+            $responseHeaders = $http_response_header ?? [];
         }
-        foreach ($responseHdrs as $line) {
+        foreach ($responseHeaders as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
                 break;
@@ -727,16 +727,16 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($gatewayUrl, false, $context);
         $statusCode = 0;
-        $responseHdrs = [];
+        $responseHeaders = [];
         if (function_exists('http_get_last_response_headers')) {
-            $responseHdrs[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
+            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
             foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHdrs[] = $n . ': ' . $v;
+                $responseHeaders[] = $n . ': ' . $v;
             }
         } else {
-            $responseHdrs = $http_response_header ?? [];
+            $responseHeaders = $http_response_header ?? [];
         }
-        foreach ($responseHdrs as $line) {
+        foreach ($responseHeaders as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
                 break;

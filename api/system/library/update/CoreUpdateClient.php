@@ -88,16 +88,16 @@ final class CoreUpdateClient
             ];
         }
         $status = 200;
-        $responseHdrs = [];
+        $responseHeaders = [];
         if (function_exists('http_get_last_response_headers')) {
-            $responseHdrs[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
+            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
             foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHdrs[] = $n . ': ' . $v;
+                $responseHeaders[] = $n . ': ' . $v;
             }
         } else {
-            $responseHdrs = $http_response_header ?? [];
+            $responseHeaders = $http_response_header ?? [];
         }
-        foreach ($responseHdrs as $header) {
+        foreach ($responseHeaders as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
                 $status = (int)$m[1];
             }
