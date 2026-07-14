@@ -101,7 +101,7 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="intakeSource" data-i18n="intake.field_source"><?= htmlspecialchars($t('intake.field_source', 'Источник'), ENT_QUOTES, 'UTF-8') ?></label>
-              <select class="form-select" id="intakeSource">
+              <select class="form-select" id="intakeSource" name="source_type">
                 <option value="manual" data-i18n="intake.source_manual"><?= htmlspecialchars($t('intake.source_manual', 'Вручную'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="email" data-i18n="intake.source_email"><?= htmlspecialchars($t('intake.source_email', 'Email'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="api" data-i18n="intake.source_api"><?= htmlspecialchars($t('intake.source_api', 'API'), ENT_QUOTES, 'UTF-8') ?></option>
@@ -111,29 +111,29 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="intakeAssign" data-i18n="intake.field_assignee"><?= htmlspecialchars($t('intake.field_assignee', 'Ответственный'), ENT_QUOTES, 'UTF-8') ?></label>
-              <select class="form-select" id="intakeAssign">
+              <select class="form-select" id="intakeAssign" name="assignee_user_id">
                 <option value="" data-i18n="intake.option_no_assignee"><?= htmlspecialchars($t('intake.option_no_assignee', 'Не назначен'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="intakeProject" data-i18n="intake.field_project"><?= htmlspecialchars($t('intake.field_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?></label>
-              <select class="form-select" id="intakeProject">
+              <select class="form-select" id="intakeProject" name="project_public_id">
                 <option value="" data-i18n="intake.option_no_project"><?= htmlspecialchars($t('intake.option_no_project', 'Не выбран'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="intakeClient" data-i18n="intake.field_client"><?= htmlspecialchars($t('intake.field_client', 'Клиент'), ENT_QUOTES, 'UTF-8') ?></label>
-              <select class="form-select" id="intakeClient">
+              <select class="form-select" id="intakeClient" name="client_public_id">
                 <option value="" data-i18n="intake.option_no_client"><?= htmlspecialchars($t('intake.option_no_client', 'Не выбран'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="intakeDueAt" data-i18n="intake.field_due_date"><?= htmlspecialchars($t('intake.field_due_date', 'Срок'), ENT_QUOTES, 'UTF-8') ?></label>
-              <input class="form-control" id="intakeDueAt" type="date">
+              <input class="form-control" id="intakeDueAt" name="due_at" type="date">
             </div>
             <div class="col-md-6">
               <label class="form-label" for="intakeSourceRef" data-i18n="intake.field_source_ref"><?= htmlspecialchars($t('intake.field_source_ref', 'Ссылка источника'), ENT_QUOTES, 'UTF-8') ?></label>
-              <input class="form-control" id="intakeSourceRef" maxlength="500" data-i18n-placeholder="intake.field_source_ref_placeholder" placeholder="<?= htmlspecialchars($t('intake.field_source_ref_placeholder', 'Email или внешняя ссылка'), ENT_QUOTES, 'UTF-8') ?>">
+              <input class="form-control" id="intakeSourceRef" name="source_ref" maxlength="500" data-i18n-placeholder="intake.field_source_ref_placeholder" placeholder="<?= htmlspecialchars($t('intake.field_source_ref_placeholder', 'Email или внешняя ссылка'), ENT_QUOTES, 'UTF-8') ?>">
             </div>
           </div>
         </div>

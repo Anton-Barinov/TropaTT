@@ -104,7 +104,9 @@ final class ModuleJobDispatcher
             }
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
-                try { $this->pdo->rollBack(); } catch (\Throwable) {}
+                try { $this->pdo->rollBack(); } catch (\Throwable $e) {
+                    error_log('[ModuleJobDispatcher] rollBack failed: ' . $e->getMessage());
+                }
             }
             return null;
         }
