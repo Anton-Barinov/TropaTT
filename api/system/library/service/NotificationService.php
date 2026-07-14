@@ -1022,7 +1022,7 @@ final class NotificationService
                 $created += $this->notifyUsers([$userId], [
                     'category' => 'deadlines',
                     'title' => $this->t('notification/messages.overdue_tasks_digest'),
-                    'body' => $this->t('notification/messages.overdue_tasks_digest_body', '{count}', strval($overdueTotal)),
+                    'body' => str_replace('{count}', strval($overdueTotal), $this->t('notification/messages.overdue_tasks_digest_body', '{count}')),
                     'entity_type' => 'user',
                     'entity_public_id' => $digestEntityPublicId,
                     'action_code' => 'task_overdue_manager_digest',
