@@ -236,7 +236,9 @@ final class ModuleController
         try {
             $cs = $this->container->get('module.cron_scheduler');
             if ($cs instanceof ModuleCronScheduler) $cs->deleteAllForModule($name);
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::remove] cron_scheduler cleanup failed for ' . $name . ': ' . $e->getMessage());
+        }
 
         try {
             $wd = $this->container->get('module.webhook_dispatcher');
