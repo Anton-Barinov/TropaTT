@@ -269,6 +269,17 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         }
 
         try {
+            // This limiter is instantiated for every rate-limited request.
+            // `CREATE TABLE IF NOT EXISTS` takes metadata locks in MySQL even
+            // when the table already exists, which serialises otherwise
+            // independent requests during concurrent logins and page loads.
+            // Probe the lightweight schema first; run DDL only for a new or
+            // legacy installation that genuinely needs an upgrade.
+            if ($this->hasExpectedColumns()) {
+                $this->schemaReady = true;
+                return true;
+            }
+
             $this->migrateSchema();
             $this->schemaReady = true;
             return true;
