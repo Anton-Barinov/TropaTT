@@ -379,9 +379,18 @@ final class UserService
             return;
         }
 
+        // member_user_ids stores integer user IDs, not public IDs
         $memberIds = json_decode((string)($team['member_user_ids'] ?? '[]'), true) ?: [];
-        if (!in_array($userPublicId, $memberIds, true)) {
-            $memberIds[] = $userPublicId;
+
+        // Find the user's integer ID
+        $user = $this->users->findByPublicId($userPublicId);
+        if (!$user) {
+            return;
+        }
+        $userIdInt = (int)$user['id'];
+
+        if (!in_array($userIdInt, $memberIds, true)) {
+            $memberIds[] = $userIdInt;
             $this->teams->updateByPublicId($teamPublicId, [
                 'member_user_ids' => json_encode($memberIds),
                 'updated_at' => gmdate('Y-m-d H:i:s'),
