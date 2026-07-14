@@ -243,7 +243,9 @@ final class ModuleController
         try {
             $wd = $this->container->get('module.webhook_dispatcher');
             if ($wd instanceof ModuleWebhookDispatcher) $wd->deleteWebhooks($name);
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::remove] webhook_dispatcher cleanup failed for ' . $name . ': ' . $e->getMessage());
+        }
 
         return JsonResponse::success('MODULE_REMOVED', $this->t('module/messages.removed'), ['name' => $name]);
     }
