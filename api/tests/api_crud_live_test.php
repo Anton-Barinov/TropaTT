@@ -263,7 +263,8 @@ final class LiveCrudTest
         $res = $this->request('GET', 'api/v1/projects');
         $this->assert("$section: list", isset($res['data']['items']), 'Expected items');
 
-        $prefix = strtoupper(substr(bin2hex(random_bytes(3)), 0, 8));
+        $hex = strtoupper(bin2hex(random_bytes(4)));
+        $prefix = 'P' . substr($hex, 0, 7);
         $created = $this->request('POST', 'api/v1/projects', [
             'title' => 'Test ' . $prefix,
             'description' => 'Live test project',
