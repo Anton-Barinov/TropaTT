@@ -70,14 +70,14 @@
 </main></div></div>
 
 <!-- Create/Edit Intake Modal -->
-<div class="modal fade" id="intakeModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="intakeCreateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="intakeModalTitle" data-i18n="intake.modal_create_title"><?= htmlspecialchars($t('intake.modal_create_title', 'Создать заявку'), ENT_QUOTES, 'UTF-8') ?></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
-      <form id="intakeForm">
+      <form id="intakeCreateForm">
         <input type="hidden" id="intakePublicId" name="public_id" value="">
         <input type="hidden" id="intakeRowVersion" name="row_version" value="">
         <div class="modal-body">
@@ -139,7 +139,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-          <button type="submit" class="btn crm-btn-primary" id="intakeSaveBtn" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="submit" class="btn crm-btn-primary" id="intakeCreateSaveBtn" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
@@ -155,14 +155,14 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeAcceptForm">
-        <input type="hidden" id="intakeAcceptPublicId" value="">
-        <input type="hidden" id="intakeAcceptRowVersion" value="">
+        <input type="hidden" id="intakeAcceptPublicId" name="intake_public_id" value="">
+        <input type="hidden" id="intakeAcceptRowVersion" name="row_version" value="">
         <div class="modal-body">
           <p id="intakeAcceptItemTitle" class="mb-3 fw-bold"></p>
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="intakeAcceptProject" data-i18n="intake.accept_field_project"><?= htmlspecialchars($t('intake.accept_field_project', 'Проект'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-              <select class="form-select" id="intakeAcceptProject" required>
+              <select class="form-select" id="intakeAcceptProject" name="project_public_id" required>
                 <option value="" data-i18n="intake.option_no_project"><?= htmlspecialchars($t('intake.option_no_project', 'Не выбран'), ENT_QUOTES, 'UTF-8') ?></option>
               </select>
             </div>
@@ -186,14 +186,14 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeRejectForm">
-        <input type="hidden" id="intakeRejectPublicId" value="">
-        <input type="hidden" id="intakeRejectRowVersion" value="">
+        <input type="hidden" id="intakeRejectPublicId" name="intake_public_id" value="">
+        <input type="hidden" id="intakeRejectRowVersion" name="row_version" value="">
         <div class="modal-body">
           <p id="intakeRejectItemTitle" class="mb-3 fw-bold"></p>
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="intakeRejectReason" data-i18n="intake.reject_field_reason"><?= htmlspecialchars($t('intake.reject_field_reason', 'Причина отклонения'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-              <textarea class="form-control" id="intakeRejectReason" rows="3" required></textarea>
+              <textarea class="form-control" id="intakeRejectReason" name="reason" rows="3" required></textarea>
             </div>
           </div>
         </div>
@@ -215,14 +215,14 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeSnoozeForm">
-        <input type="hidden" id="intakeSnoozePublicId" value="">
-        <input type="hidden" id="intakeSnoozeRowVersion" value="">
+        <input type="hidden" id="intakeSnoozePublicId" name="intake_public_id" value="">
+        <input type="hidden" id="intakeSnoozeRowVersion" name="row_version" value="">
         <div class="modal-body">
           <p id="intakeSnoozeItemTitle" class="mb-3 fw-bold"></p>
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="intakeSnoozeUntil" data-i18n="intake.snooze_field_date"><?= htmlspecialchars($t('intake.snooze_field_date', 'Отложить до'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-              <input class="form-control" id="intakeSnoozeUntil" type="date" required>
+              <input class="form-control" id="intakeSnoozeUntil" name="snoozed_until" type="date" required>
             </div>
           </div>
         </div>
@@ -244,14 +244,14 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeDuplicateForm">
-        <input type="hidden" id="intakeDuplicatePublicId" value="">
-        <input type="hidden" id="intakeDuplicateRowVersion" value="">
+        <input type="hidden" id="intakeDuplicatePublicId" name="intake_public_id" value="">
+        <input type="hidden" id="intakeDuplicateRowVersion" name="row_version" value="">
         <div class="modal-body">
           <p id="intakeDuplicateItemTitle" class="mb-3 fw-bold"></p>
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="intakeDuplicateTarget" data-i18n="intake.duplicate_field_target"><?= htmlspecialchars($t('intake.duplicate_field_target', 'ID заявки-дубликата'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-              <input class="form-control" id="intakeDuplicateTarget" required data-i18n-placeholder="intake.duplicate_field_target_placeholder" placeholder="<?= htmlspecialchars($t('intake.duplicate_field_target_placeholder', 'Введите public_id заявки'), ENT_QUOTES, 'UTF-8') ?>">
+              <input class="form-control" id="intakeDuplicateTarget" name="duplicate_intake_item_public_id" required data-i18n-placeholder="intake.duplicate_field_target_placeholder" placeholder="<?= htmlspecialchars($t('intake.duplicate_field_target_placeholder', 'Введите public_id заявки'), ENT_QUOTES, 'UTF-8') ?>">
               <div class="form-text" data-i18n="intake.duplicate_field_target_hint"><?= htmlspecialchars($t('intake.duplicate_field_target_hint', 'Укажите public_id существующей заявки, дубликатом которой является текущая'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
           </div>
@@ -274,8 +274,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeReopenForm">
-        <input type="hidden" id="intakeReopenPublicId" value="">
-        <input type="hidden" id="intakeReopenRowVersion" value="">
+        <input type="hidden" id="intakeReopenPublicId" name="intake_public_id" value="">
+        <input type="hidden" id="intakeReopenRowVersion" name="row_version" value="">
         <div class="modal-body">
           <p id="intakeReopenItemTitle" class="mb-3 fw-bold"></p>
           <p data-i18n="intake.reopen_confirm"><?= htmlspecialchars($t('intake.reopen_confirm', 'Вернуть эту заявку в статус «Ожидает» для повторного рассмотрения?'), ENT_QUOTES, 'UTF-8') ?></p>

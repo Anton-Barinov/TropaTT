@@ -1640,7 +1640,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $storageBase = (string)($this->config->get('default.storage.base', dirname($this->basePath) . '/../storage_api'));
 
         $moduleConfig = new ModuleConfig($pdo);
-        try { $moduleConfig->ensureTable($driver); } catch (\Throwable) {}
+        try { $moduleConfig->ensureTable($driver); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ensureTable failed for module.config: ' . $e->getMessage());
+        }
         $this->container->set('module.config', $moduleConfig);
 
         $moduleMigrations = new ModuleMigrationRunner($pdo);
