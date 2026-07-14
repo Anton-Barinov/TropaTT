@@ -25,7 +25,7 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     ]);
 }
 
-$config = new Config($basePath . '/config');
+$config = new Config();
 $config->load($basePath . '/config/database.php', 'database');
 $connectionManager = new ConnectionManager($config);
 $pdo = $connectionManager->connect();
