@@ -174,7 +174,7 @@ final class ProjectRepository
             ->where('task_key_prefix', '=', $prefix)
             ->first();
 
-        return $row !== false ? $row : null;
+        return $row !== null ? $row : null;
     }
 
     public function taskKeyPrefixExists(string $prefix, ?string $exceptPublicId = null): bool

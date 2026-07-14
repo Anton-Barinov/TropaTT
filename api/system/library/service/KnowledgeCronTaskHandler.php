@@ -32,7 +32,7 @@ final class KnowledgeCronTaskHandler
     {
         if ($this->pdo === null) {
             $basePath = dirname(__DIR__, 3);
-            $config = new Config($basePath . '/config');
+            $config = new Config();
             $config->load($basePath . '/config/database.php', 'database');
             $connectionManager = new ConnectionManager($config);
             $this->pdo = $connectionManager->connect();

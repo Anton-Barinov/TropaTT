@@ -389,7 +389,7 @@ final class TaskRepository
             ->whereNull('deleted_at')
             ->first();
 
-        return $row !== false;
+        return $row !== null;
     }
 
     public function taskIdByTaskKey(string $taskKey): ?int
