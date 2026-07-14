@@ -9,4 +9,6 @@ parameters:
         - index.php
     excludePaths:
         - api/storage_test_runtime/*
-        - modules/*
+    scanDirectories:
+        - modules/crm.confluence-migration/api/
+        - modules/crm.jira-migration/api/
