@@ -260,7 +260,9 @@ final class IdeaController extends BaseController
                         'link' => 'index.php?route=idea-detail&id=' . $publicId,
                     ], $userId);
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable $e) {
+                error_log('[IdeaController::vote][' . $publicId . '] Notification failed: ' . $e->getMessage());
+            }
         }
 
         return $this->success('IDEA_VOTED', $this->t('idea/messages.' . $action), ['action' => $action]);
