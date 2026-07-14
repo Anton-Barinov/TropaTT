@@ -664,7 +664,9 @@ final class JiraMigrationController
                 $pName = (string)($pv['name'] ?? $pId);
                 $this->repo->upsertMapping($connId, 'priority', $pId, $pName);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[JiraMigrationController::discoverMappings] Priority mapping failed: ' . $e->getMessage());
+        }
 
         // Discover issue types via dedicated endpoint
         try {
