@@ -677,7 +677,9 @@ final class JiraMigrationController
                 $itName = (string)($it['name'] ?? $itId);
                 $this->repo->upsertMapping($connId, 'issuetype', $itId, $itName);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[JiraMigrationController::discoverMappings] Issue type mapping failed: ' . $e->getMessage());
+        }
 
         // Return all mappings for this connection
         $allMappings = $this->repo->listMappings($connId);

@@ -78,21 +78,21 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
       </div>
       <form id="intakeForm">
-        <input type="hidden" id="intakePublicId" value="">
-        <input type="hidden" id="intakeRowVersion" value="">
+        <input type="hidden" id="intakePublicId" name="public_id" value="">
+        <input type="hidden" id="intakeRowVersion" name="row_version" value="">
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label" for="intakeTitle" data-i18n="intake.field_title"><?= htmlspecialchars($t('intake.field_title', 'Название'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-              <input class="form-control" id="intakeTitle" required maxlength="255" data-i18n-placeholder="intake.field_title_placeholder" placeholder="<?= htmlspecialchars($t('intake.field_title_placeholder', 'Краткое описание заявки'), ENT_QUOTES, 'UTF-8') ?>">
+              <input class="form-control" id="intakeTitle" name="title" required maxlength="255" data-i18n-placeholder="intake.field_title_placeholder" placeholder="<?= htmlspecialchars($t('intake.field_title_placeholder', 'Краткое описание заявки'), ENT_QUOTES, 'UTF-8') ?>">
             </div>
             <div class="col-12">
               <label class="form-label" for="intakeDescription" data-i18n="intake.field_description"><?= htmlspecialchars($t('intake.field_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" id="intakeDescription" rows="4" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+              <textarea class="form-control" id="intakeDescription" name="description" rows="4" maxlength="65535" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="intakePriority" data-i18n="intake.field_priority"><?= htmlspecialchars($t('intake.field_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></label>
-              <select class="form-select" id="intakePriority">
+              <select class="form-select" id="intakePriority" name="priority_code">
                 <option value="low" data-i18n="intake.priority_low"><?= htmlspecialchars($t('intake.priority_low', 'Низкий'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="normal" selected data-i18n="intake.priority_normal"><?= htmlspecialchars($t('intake.priority_normal', 'Средний'), ENT_QUOTES, 'UTF-8') ?></option>
                 <option value="high" data-i18n="intake.priority_high"><?= htmlspecialchars($t('intake.priority_high', 'Высокий'), ENT_QUOTES, 'UTF-8') ?></option>
