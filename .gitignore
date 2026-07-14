@@ -20,6 +20,7 @@
 !/SUPPORT.md
 !/phpstan.neon
 !/phpstan-baseline.neon
+!/phpstan-baseline-level3.neon
 
 # Runtime / generated directories — never commit
 .github/
