@@ -459,7 +459,7 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($endpoint, false, $context);
         $statusCode = 0;
-        foreach (($http_response_header ?? []) as $line) {
+        foreach ($http_response_header as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
                 break;
@@ -718,7 +718,7 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($gatewayUrl, false, $context);
         $statusCode = 0;
-        foreach (($http_response_header ?? []) as $line) {
+        foreach ($http_response_header as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
                 break;

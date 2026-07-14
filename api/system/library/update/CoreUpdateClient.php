@@ -88,7 +88,7 @@ final class CoreUpdateClient
             ];
         }
         $status = 200;
-        foreach ($http_response_header ?? [] as $header) {
+        foreach ($http_response_header as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
                 $status = (int)$m[1];
             }
