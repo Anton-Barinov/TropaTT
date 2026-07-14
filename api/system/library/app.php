@@ -1664,7 +1664,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $this->container->set('module.audit_logger', $moduleAuditLogger);
 
         $moduleDeprecation = new ModuleDeprecation($pdo);
-        try { $moduleDeprecation->ensureTable($driver); } catch (\Throwable) {}
+        try { $moduleDeprecation->ensureTable($driver); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ensureTable failed for module.deprecation: ' . $e->getMessage());
+        }
         $this->container->set('module.deprecation', $moduleDeprecation);
 
         $moduleCache = new ModuleCache($storageBase);
