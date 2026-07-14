@@ -1758,7 +1758,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
                     $autoloader->registerModule($manifest->name, $manifest->vendor);
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] Module initialization/autoloader failed for "' . ($moduleName ?? 'unknown') . '": ' . $e->getMessage());
+        }
 
         try {
             $loadedModules = $pluginManager->getActive();
@@ -1774,14 +1776,20 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
                     }
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] Route loading failed for module "' . ($name ?? 'unknown') . '": ' . $e->getMessage());
+        }
 
         /** @var HookManager $hookManager */
         $hookManager = $this->container->get('hook.manager');
 
         $spRegistry = new ServiceProviderRegistry($this->container, $pluginManager, $hookManager);
-        try { $spRegistry->registerAll(); } catch (\Throwable) {}
-        try { $spRegistry->bootAll(); } catch (\Throwable) {}
+        try { $spRegistry->registerAll(); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ServiceProvider registerAll failed: ' . $e->getMessage());
+        }
+        try { $spRegistry->bootAll(); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ServiceProvider bootAll failed (registerAll may also have failed): ' . $e->getMessage());
+        }
         $this->container->set('module.service_provider_registry', $spRegistry);
 
         $modulePermissions = [];
