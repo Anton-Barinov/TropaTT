@@ -204,7 +204,7 @@ final class AiIntentSettingService
             'intent_code' => $intentCode,
             'locale' => 'ru-ru',
             'version' => 1,
-            'template_text' => $this->t('ai/messages.default_prompt_template', '{intent}', $intentCode),
+            'template_text' => str_replace('{intent}', $intentCode, $this->t('ai/messages.default_prompt_template', '{intent}')),
             'is_active' => 1,
             'created_by_user_id' => null,
             'updated_by_user_id' => null,

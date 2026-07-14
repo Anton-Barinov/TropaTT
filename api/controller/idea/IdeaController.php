@@ -167,7 +167,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -199,7 +199,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
@@ -632,7 +632,7 @@ final class IdeaController extends BaseController
         if ($publicId === '') return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
 
         $pdo = $this->container->get('db.pdo');
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at, product FROM ideas WHERE public_id = :pid");
+        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid");
         $stmt->execute(['pid' => $publicId]);
         $idea = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$idea) return $this->error('NOT_FOUND', $this->t('common/messages.not_found'), 404);
