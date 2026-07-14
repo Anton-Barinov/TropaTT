@@ -17,7 +17,6 @@ final class KeyGuard
         'csrf_key' => ['env_name' => 'CSRF_SECRET_KEY', 'generator' => 'hex32', 'description' => 'CSRF protection key'],
         'webhook_key' => ['env_name' => 'WEBHOOK_SECRET_KEY', 'generator' => 'hex32', 'description' => 'Webhook signature key'],
         'ai_key' => ['env_name' => 'AI_ENCRYPTION_KEY', 'generator' => 'hex32', 'description' => 'AI encryption key'],
-        'local_secret' => ['env_name' => 'CRM_LOCAL_SECRET', 'generator' => 'hex32', 'description' => 'Local secret key'],
         'cron_secret' => ['env_name' => 'CRON_SECRET_KEY', 'generator' => 'hex32', 'description' => 'Cron endpoint secret'],
     ];
 

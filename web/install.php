@@ -1129,7 +1129,6 @@ function writeEnvFile(array $data): bool
     $envContent .= "CSRF_SECRET_KEY=" . sanitizeEnvValue((string)($data['csrf_key'] ?? '')) . "\n";
     $envContent .= "WEBHOOK_SECRET_KEY=" . sanitizeEnvValue((string)($data['webhook_key'] ?? '')) . "\n";
     $envContent .= "AI_ENCRYPTION_KEY=" . sanitizeEnvValue((string)($data['ai_key'] ?? '')) . "\n";
-    $envContent .= "CRM_LOCAL_SECRET=" . sanitizeEnvValue((string)($data['local_secret'] ?? '')) . "\n";
     $envContent .= "CRON_SECRET_KEY=" . sanitizeEnvValue((string)($data['cron_secret'] ?? '')) . "\n\n";
 
     $siteUrl = rtrim(sanitizeEnvValue((string)($data['site_url'] ?? 'http://localhost')), '/');
