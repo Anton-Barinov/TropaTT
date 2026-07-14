@@ -65,7 +65,7 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids']);
+        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_root', 'token', 'role_public_ids', 'team_public_id']);
 
         // SEC-002: Only root users may assign root status or roles.
         if (!$this->isCurrentUserRoot()) {
@@ -101,7 +101,7 @@ final class UserController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids']);
+        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id']);
 
         // SEC-002: Only root users may change root status or role assignments.
         if (!$this->isCurrentUserRoot()) {

@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Role\RoleRepository;
 use Api\Model\Security\SessionRepository;
+use Api\Model\Team\TeamRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Service\LogsService;
 use Api\System\Library\Logger\JsonLogger;
@@ -21,7 +22,8 @@ final class UserService
         private readonly HierarchyPolicy $policy,
         private readonly JsonLogger $logger,
         private readonly LogsService $logs,
-        private readonly SessionRepository $sessions
+        private readonly SessionRepository $sessions,
+        private readonly TeamRepository $teams
     ) {
     }
 
@@ -114,6 +116,8 @@ final class UserService
             $this->users->replaceRoles($userId, $rolePublicIds);
         }
 
+        $this->assignToTeam($publicId, $input['team_public_id'] ?? null);
+
         $this->logger->audit([
             'action' => 'user_create',
             'actor_public_id' => $actor['public_id'],
@@ -192,6 +196,8 @@ final class UserService
 
             $this->users->replaceRoles((int)$target['id'], $rolePublicIds);
         }
+
+        $this->assignToTeam($publicId, $input['team_public_id'] ?? null);
 
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
         $this->users->updateByPublicId($publicId, $set);
@@ -360,5 +366,26 @@ final class UserService
         }
 
         return $this->policy->canManageUser($actor, $target);
+    }
+
+    private function assignToTeam(string $userPublicId, ?string $teamPublicId): void
+    {
+        if ($teamPublicId === null || $teamPublicId === '') {
+            return;
+        }
+
+        $team = $this->teams->findByPublicId($teamPublicId);
+        if (!$team) {
+            return;
+        }
+
+        $memberIds = json_decode((string)($team['member_user_ids'] ?? '[]'), true) ?: [];
+        if (!in_array($userPublicId, $memberIds, true)) {
+            $memberIds[] = $userPublicId;
+            $this->teams->updateByPublicId($teamPublicId, [
+                'member_user_ids' => json_encode($memberIds),
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+        }
     }
 }
