@@ -215,7 +215,6 @@ return [
     'enough_data' => 'Enough data',
     'enough_data_for_analysis' => 'Enough data for analysis.',
     'enough_data_can_analyze' => 'Enough data. Analysis can proceed.',
-    'no_answer' => 'no answer',
     'prompt_analyst_system' => 'You are an idea analyst. Analyze the data and find gaps.',
     'system_prompt_card' => 'You are building an "Idea Understanding Card" based on all available information.
 

@@ -215,7 +215,6 @@ return [
     'enough_data' => 'Dados suficientes',
     'enough_data_for_analysis' => 'Dados suficientes para análise.',
     'enough_data_can_analyze' => 'Dados suficientes. A análise pode prosseguir.',
-    'no_answer' => 'sem resposta',
     'prompt_analyst_system' => 'Você é um analista de ideias. Analise os dados e encontre lacunas.',
     'system_prompt_card' => 'Você está montando um "Cartão de Compreensão da Ideia" com base em todas as informações disponíveis.
 

@@ -215,7 +215,6 @@ return [
     'enough_data' => '数据充足',
     'enough_data_for_analysis' => '数据足够进行分析。',
     'enough_data_can_analyze' => '数据充足。可以进行分析。',
-    'no_answer' => '无答案',
     'prompt_analyst_system' => '你是一名创意分析师。请分析数据并找出不足之处。',
     'default_idea_title' => '创意',
     'system_prompt_card' => '您正在根据所有可用信息构建"创意理解卡"。您的任务不是做最终的创意分析，而是收集当前对创意的理解概况，以便后续进行综合分析。',
