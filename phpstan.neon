@@ -9,6 +9,11 @@ parameters:
         - index.php
     excludePaths:
         - api/storage_test_runtime/*
+        # CLI smoke scripts load their helpers dynamically from the integration
+        # bootstrap. They are exercised by the test runner, but analysing them
+        # as standalone application code produces false undefined-function
+        # errors in PHPStan.
+        - api/scripts/*
     scanDirectories:
         - modules/crm.confluence-migration/api/
         - modules/crm.jira-migration/api/
