@@ -192,7 +192,9 @@ final class McpController extends BaseController
             try {
                 $logger = $this->container->get('logger');
                 $logger->error(['mcp_error' => $e->getMessage(), 'method' => $method, 'trace' => $e->getTraceAsString()]);
-            } catch (\Throwable) {}
+            } catch (\Throwable $inner) {
+                error_log('[McpController::handle] Logger failed: ' . $inner->getMessage() . ' | Original error: ' . $e->getMessage());
+            }
             return $this->errorPayload($id, -32603, 'Internal error');
         }
 
