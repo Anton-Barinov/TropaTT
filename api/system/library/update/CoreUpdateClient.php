@@ -88,14 +88,9 @@ final class CoreUpdateClient
             ];
         }
         $status = 200;
-        // PHP 8.4+ offers a non-deprecated response-header API; retain the
-        // scoped-variable fallback for PHP 8.1–8.3 shared hosting.
-        if (function_exists('http_get_last_response_headers')) {
-            $getLastResponseHeaders = 'http_get_last_response_headers';
-            $responseHeaders = $getLastResponseHeaders();
-        } else {
-            $responseHeaders = ${'http_response_header'} ?? [];
-        }
+        // file_get_contents() exposes response headers in this scope on all
+        // PHP versions supported by the CRM, including shared-hosting PHP 8.1.
+        $responseHeaders = $http_response_header;
         foreach ($responseHeaders as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
                 $status = (int)$m[1];
