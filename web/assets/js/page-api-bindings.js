@@ -25591,7 +25591,7 @@ window.CRM.pageApiBindings = (function () {
               title: trimmedTitle,
               code: String(code || '').trim(),
               color: String(color || '').trim(),
-              sort_order: Number(sortOrder) || 0
+              weight: Number(sortOrder) || 0
             }
           });
           notify(_t('priority.created_notify', 'Приоритет создан'));

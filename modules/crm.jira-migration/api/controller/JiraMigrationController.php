@@ -651,7 +651,9 @@ final class JiraMigrationController
                 $statusName = (string)($js['name'] ?? $statusId);
                 $this->repo->upsertMapping($connId, 'status', $statusId, $statusName);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[JiraMigrationController::discoverMappings] Status mapping failed: ' . $e->getMessage());
+        }
 
         // Discover priorities via dedicated endpoint
         try {
