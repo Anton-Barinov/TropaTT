@@ -6,18 +6,34 @@ if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
 
 $projectRoot = dirname(__DIR__, 2);
 $apiRoutesFile = $projectRoot . '/api/config/routes.php';
-$coverageFile = $projectRoot . '/web/docs/api-coverage.md';
+$openApiFile = $projectRoot . '/api/docs/openapi/openapi.v1.json';
 
-$allowedStatuses = [
-    'Implemented',
-    'Partial',
-    'Missing',
-    'Internal/API only',
-    'Unknown',
-];
+/**
+ * These routes are deliberately absent from the public OpenAPI contract:
+ * installation and migration endpoints are available only during maintenance,
+ * while the last three are internal integration endpoints.
+ *
+ * Keep this allow-list short and explicit: every normal API route must have a
+ * matching OpenAPI operation.
+ *
+ * @var array<string,true>
+ */
+$openApiExclusions = array_fill_keys([
+    '/install/status|GET',
+    '/install/check|GET',
+    '/install/check|POST',
+    '/install/setup|POST',
+    '/internal/migration/status|GET',
+    '/internal/migration/up|POST',
+    '/internal/migration/dry-run|GET',
+    '/internal/migration/rollback-check|GET',
+    '/api/v1/webhooks/{public_id}|GET',
+    '/api/v1/security/2fa/verify|POST',
+    '/api/v1/visual-editor/upload-image|POST',
+], true);
 
-if (!is_file($apiRoutesFile) || !is_file($coverageFile)) {
-    fwrite(STDERR, "[FAIL] Missing routes.php or api-coverage.md\n");
+if (!is_file($apiRoutesFile) || !is_file($openApiFile)) {
+    fwrite(STDERR, "[FAIL] Missing routes.php or openapi.v1.json\n");
     exit(1);
 }
 
@@ -39,79 +55,44 @@ foreach ($routes as $route) {
     }
 }
 
-$lines = file($coverageFile, FILE_IGNORE_NEW_LINES);
-if (!is_array($lines)) {
-    fwrite(STDERR, "[FAIL] Cannot read coverage file\n");
+$openApiRaw = file_get_contents($openApiFile);
+$openApi = is_string($openApiRaw) ? json_decode($openApiRaw, true) : null;
+if (!is_array($openApi) || !is_array($openApi['paths'] ?? null)) {
+    fwrite(STDERR, "[FAIL] Cannot parse openapi.v1.json\n");
     exit(1);
 }
 
 $docKeys = [];
-$statusCount = [];
-$unknownStatuses = [];
-
-foreach ($lines as $line) {
-    $trim = trim($line);
-    if (!str_starts_with($trim, '| `/') || str_contains($trim, 'API endpoint')) {
+$httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+foreach ($openApi['paths'] as $endpoint => $operations) {
+    if (!is_array($operations)) {
         continue;
     }
-
-    $parts = array_map('trim', explode('|', $trim));
-    if (count($parts) < 8) {
-        continue;
-    }
-
-    $endpoint = trim((string)$parts[1], "` ");
-    $methodsRaw = trim((string)$parts[2], "` ");
-    $status = trim((string)$parts[6], "` ");
-
-    if ($endpoint === '' || $methodsRaw === '') {
-        continue;
-    }
-
-    if (!in_array($status, $allowedStatuses, true)) {
-        $unknownStatuses[] = $status;
-    }
-    $statusCount[$status] = (int)($statusCount[$status] ?? 0) + 1;
-
-    $methods = array_map('trim', explode(',', $methodsRaw));
-    foreach ($methods as $method) {
-        $method = strtoupper($method);
-        if ($method === '') {
-            continue;
+    foreach ($operations as $method => $_operation) {
+        $method = strtoupper((string)$method);
+        if (in_array($method, $httpMethods, true)) {
+            $docKeys[(string)$endpoint . '|' . $method] = true;
         }
-        $docKeys[$endpoint . '|' . $method] = $status;
     }
 }
 
 $missingInDoc = [];
 foreach (array_keys($routeKeys) as $key) {
-    if (!array_key_exists($key, $docKeys)) {
+    if (!isset($docKeys[$key]) && !isset($openApiExclusions[$key])) {
         $missingInDoc[] = $key;
     }
 }
 
 $extraInDoc = [];
 foreach (array_keys($docKeys) as $key) {
-    if (!array_key_exists($key, $routeKeys)) {
+    if (!isset($routeKeys[$key])) {
         $extraInDoc[] = $key;
     }
 }
 
-$unknownCount = (int)($statusCount['Unknown'] ?? 0);
-
 echo "API routes (method-level): " . count($routeKeys) . "\n";
-echo "Coverage rows (method-level): " . count($docKeys) . "\n";
-echo "Status Unknown: " . $unknownCount . "\n";
-
-if ($unknownStatuses !== []) {
-    fwrite(STDERR, "[FAIL] Unknown status labels: " . implode(', ', array_values(array_unique($unknownStatuses))) . "\n");
-    exit(1);
-}
-
-if ($unknownCount > 0) {
-    fwrite(STDERR, "[FAIL] Coverage still contains Unknown statuses\n");
-    exit(1);
-}
+echo "OpenAPI operations: " . count($docKeys) . "\n";
+echo "Explicit internal exclusions: " . count($openApiExclusions) . "\n";
 
 if ($missingInDoc !== []) {
     fwrite(STDERR, "[FAIL] Missing routes in coverage: " . count($missingInDoc) . "\n");
@@ -129,5 +110,5 @@ if ($extraInDoc !== []) {
     exit(1);
 }
 
-echo "[OK] API coverage classification is complete and consistent.\n";
+echo "[OK] API OpenAPI coverage is complete and consistent.\n";
 exit(0);
