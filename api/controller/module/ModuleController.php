@@ -229,7 +229,9 @@ final class ModuleController
         try {
             $eh = $this->container->get('module.error_handler');
             if ($eh instanceof ModuleErrorHandler) $eh->clearErrors($name);
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[ModuleController::remove] error_handler cleanup failed for ' . $name . ': ' . $e->getMessage());
+        }
 
         try {
             $cs = $this->container->get('module.cron_scheduler');
