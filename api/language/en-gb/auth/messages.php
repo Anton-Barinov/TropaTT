@@ -17,4 +17,7 @@ return [
     'role_menu_template_loaded' => 'Role menu template loaded',
     'role_menu_template_saved' => 'Role menu template saved',
     'array_expected' => 'Array expected',
+    'max_120' => 'Login must be 120 characters or less',
+    'max_4096' => 'Password must be 4096 characters or less',
 ];
+

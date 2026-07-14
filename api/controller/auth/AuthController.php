@@ -19,7 +19,9 @@ final class AuthController extends BaseController
 
         $v = new Validator();
         $v->require($input, 'login', $this->t('common/messages.field_required'))
-            ->require($input, 'password', $this->t('common/messages.field_required'));
+            ->maxLen($input, 'login', 120, $this->t('auth/messages.max_120'))
+            ->require($input, 'password', $this->t('common/messages.field_required'))
+            ->maxLen($input, 'password', 4096, $this->t('auth/messages.max_4096'));
 
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
