@@ -1733,7 +1733,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $this->container->set('module.job_dispatcher', $jobDispatcher);
 
         $webhookDispatcher = new ModuleWebhookDispatcher($pdo);
-        try { $webhookDispatcher->ensureTable($driver); } catch (\Throwable) {}
+        try { $webhookDispatcher->ensureTable($driver); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ensureTable failed for module.webhook_dispatcher: ' . $e->getMessage());
+        }
         $this->container->set('module.webhook_dispatcher', $webhookDispatcher);
 
         $notificationDispatcher = new ModuleNotificationDispatcher($pdo);
