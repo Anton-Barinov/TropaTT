@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 if (PHP_SAPI !== "cli") { http_response_code(404); exit; }
-
+$argv ??= $_SERVER['argv'] ?? [];
+$argc ??= count($argv);
 
 use Api\System\Library\Config;
 use Api\System\Library\Container;
