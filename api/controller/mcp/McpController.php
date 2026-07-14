@@ -21,6 +21,7 @@ use Api\Model\Tag\TagRepository;
 use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
 use Api\Model\Knowledge\KnowledgeRepository;
+use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\RawJsonResponse;
 use Api\System\Library\Http\Request;
 use Api\System\Library\Service\ApiClientService;
