@@ -1,3 +1,0 @@
-# SEC-018: Block all direct access to storage directory
-Require all denied
-Options -Indexes
