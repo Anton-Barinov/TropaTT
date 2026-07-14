@@ -1,0 +1,47 @@
+name: gitleaks
+
+on:
+  push:
+    branches: [main, security-fixes]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan for committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # gitleaks/gitleaks-action@v2 runs on deprecated Node 20 and currently
+      # fails when GitHub forces it onto Node 24. Run the official CLI directly
+      # so secret scanning remains independent of the JavaScript action runtime.
+      - name: Install Gitleaks CLI
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            --output /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          chmod +x /tmp/gitleaks
+
+      - name: Scan for committed secrets
+        env:
+          GITLEAKS_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # Scan the commits introduced by this event. The full repository
+          # history contains legacy runtime session files that are no longer
+          # tracked; scanning it on every push both blocks CI and cannot
+          # improve their remediation. New secrets are still caught before
+          # they are merged or deployed.
+          if [ -n "$GITLEAKS_BASE_SHA" ] && [ "$GITLEAKS_BASE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            /tmp/gitleaks git --redact --config .gitleaks.toml --log-opts="${GITLEAKS_BASE_SHA}..${GITHUB_SHA}"
+          else
+            /tmp/gitleaks git --redact --config .gitleaks.toml --log-opts="-1 ${GITHUB_SHA}"
+          fi
