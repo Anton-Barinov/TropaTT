@@ -581,11 +581,10 @@ final class NotificationPushService
             return '';
         }
 
-        $sharedSecret = '';
-        $ok = openssl_ec_derive($localEcKey, $peerEcKey, $sharedSecret);
+        $sharedSecret = openssl_pkey_derive($localEcKey, $peerEcKey);
         openssl_pkey_free($localEcKey);
         openssl_pkey_free($peerEcKey);
-        if (!$ok || strlen($sharedSecret) < 32) {
+        if (!is_string($sharedSecret) || strlen($sharedSecret) < 32) {
             return '';
         }
 
