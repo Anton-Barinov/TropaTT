@@ -80,9 +80,7 @@ if (is_file($rateLimitFile)) {
 }
 
 $autoloader = new Api\System\Library\Support\Autoloader($apiRoot);
-$autoloader->register();
-
-$config = new Api\System\Library\Config($apiRoot . '/config');
+$autoloader->register();	$config = new Api\System\Library\Config();
 $config->load($apiRoot . '/config/database.php', 'database');
 $config->load($apiRoot . '/config/notifications.php', 'notifications');
 
