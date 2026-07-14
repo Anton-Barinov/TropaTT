@@ -6,6 +6,7 @@ namespace Api\Controller\Idea;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleCronScheduler;
+use Api\System\Library\Service\IdeaService;
 use PDO;
 
 final class IdeaController extends BaseController
