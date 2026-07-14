@@ -26196,13 +26196,15 @@ window.CRM.pageApiBindings = (function () {
           events.push(cb.value);
         });
         var data = {
-          url: String(createForm.querySelector('[name="url"]').value || '').trim(),
+          title: String(createForm.querySelector('[name="title"]').value || '').trim(),
+          endpoint: String(createForm.querySelector('[name="endpoint"]').value || '').trim(),
           secret: String(createForm.querySelector('[name="secret"]').value || '').trim(),
           events: events,
           description: String(createForm.querySelector('[name="description"]').value || '').trim(),
           is_active: Boolean(createForm.querySelector('[name="is_active"]').checked)
         };
-        if (!data.url) { notify(_t('webhook.validate_url', 'Укажите URL'), 'warning'); return; }
+        if (!data.title) { notify(_t('webhook.validate_title', 'Укажите название'), 'warning'); return; }
+        if (!data.endpoint) { notify(_t('webhook.validate_url', 'Укажите URL'), 'warning'); return; }
         if (!data.events.length) { notify(_t('webhook.validate_events', 'Выберите хотя бы одно событие'), 'warning'); return; }
         createWebhook(data).then(function () {
           bootstrap.Modal.getInstance(document.getElementById('createWebhookModal')).hide();

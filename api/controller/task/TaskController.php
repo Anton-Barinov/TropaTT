@@ -524,7 +524,9 @@ final class TaskController extends BaseController
                 'task_tags' => $taskTagIds,
             ], $extra);
             $wf->fireTrigger($trigger, $context);
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[TaskController::fireWorkflowTrigger][' . ($task['public_id'] ?? '') . '] Workflow trigger failed: ' . $e->getMessage());
+        }
     }
 
     private function isAllowedTaskStatus(string $statusCode): bool
