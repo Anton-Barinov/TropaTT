@@ -11,7 +11,11 @@ final class ModuleWatchDog
     /** @var array<int, string> */
     private array $watchPatterns = [];
 
-    public function __construct(string $moduleName, string $moduleDir)
+    /**
+ * @param string $moduleDir Absolute path to the module directory.
+ * @deprecated since v0.x — Class is not instantiated anywhere. Kept for reference.
+ */
+public function __construct(string $moduleDir)
     {
         $this->watchPatterns = [
             $moduleDir . '/**/*.php',
