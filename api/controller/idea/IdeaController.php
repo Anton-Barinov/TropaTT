@@ -306,7 +306,9 @@ final class IdeaController extends BaseController
                     'link' => 'index.php?route=idea-detail&id=' . $publicId,
                 ]);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {
+            error_log('[IdeaController::updateStatus][' . $publicId . '] Notification failed: ' . $e->getMessage());
+        }
 
         $this->invalidateCache('idea');
 

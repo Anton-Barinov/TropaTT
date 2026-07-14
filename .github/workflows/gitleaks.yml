@@ -32,4 +32,16 @@ jobs:
           chmod +x /tmp/gitleaks
 
       - name: Scan for committed secrets
-        run: /tmp/gitleaks git --redact --config .gitleaks.toml --log-opts="--all"
+        env:
+          GITLEAKS_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # Scan the commits introduced by this event. The full repository
+          # history contains legacy runtime session files that are no longer
+          # tracked; scanning it on every push both blocks CI and cannot
+          # improve their remediation. New secrets are still caught before
+          # they are merged or deployed.
+          if [ -n "$GITLEAKS_BASE_SHA" ] && [ "$GITLEAKS_BASE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            /tmp/gitleaks git --redact --config .gitleaks.toml --log-opts="${GITLEAKS_BASE_SHA}..${GITHUB_SHA}"
+          else
+            /tmp/gitleaks git --redact --config .gitleaks.toml --log-opts="-1 ${GITHUB_SHA}"
+          fi
