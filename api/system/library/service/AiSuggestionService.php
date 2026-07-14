@@ -3388,7 +3388,7 @@ final class AiSuggestionService
 
         $checklist = $issues === []
             ? [$this->t('ai_suggestion/messages.periodically_update_contacts')]
-            : array_map(static fn(string $item): string => $this->t('ai_suggestion/messages.check_and_fix') . $item, array_slice($issues, 0, 6));
+            : array_map(fn(string $item): string => $this->t('ai_suggestion/messages.check_and_fix') . $item, array_slice($issues, 0, 6));
 
         return [
             'summary' => $summary,
