@@ -794,7 +794,9 @@ function cmd_sync(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
                 try {
                     $pdo->prepare("INSERT OR IGNORE INTO permissions (public_id, code, title, created_at) VALUES (?, ?, ?, ?)")
                         ->execute(['prm_' . strtoupper(bin2hex(random_bytes(8))), $code, str_replace('.', ' ', $code), date('Y-m-d H:i:s')]);
-                } catch (\Throwable) {}
+                } catch (\Throwable $e) {
+                    error_log('[module.php:sync] Permission registration failed for ' . $code . ': ' . $e->getMessage());
+                }
             }
             $autoloader = new \Api\System\Library\Module\ModuleAutoloader($projectRoot);
             $autoloader->registerModule($manifest->name, $manifest->vendor);
