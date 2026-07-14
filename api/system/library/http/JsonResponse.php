@@ -138,7 +138,7 @@ final class JsonResponse
     public function send(): void
     {
         if (headers_sent($file, $line)) {
-            error_log('JsonResponse::send skipped — headers already sent in ' . ($file ?? '?') . ':' . ($line ?? '?'));
+            error_log('JsonResponse::send skipped — headers already sent in ' . $file . ':' . $line);
             echo json_encode($this->payload(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return;
         }

@@ -26,7 +26,7 @@ final class RawJsonResponse
     public function send(): void
     {
         if (headers_sent($file, $line)) {
-            error_log('RawJsonResponse::send skipped headers in ' . ($file ?? '?') . ':' . ($line ?? '?'));
+            error_log('RawJsonResponse::send skipped headers in ' . $file . ':' . $line);
             echo json_encode($this->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return;
         }
