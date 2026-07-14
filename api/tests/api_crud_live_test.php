@@ -263,12 +263,14 @@ final class LiveCrudTest
         $res = $this->request('GET', 'api/v1/projects');
         $this->assert("$section: list", isset($res['data']['items']), 'Expected items');
 
+        $prefix = strtoupper(substr(bin2hex(random_bytes(3)), 0, 8));
         $created = $this->request('POST', 'api/v1/projects', [
-            'title' => 'Test Project ' . bin2hex(random_bytes(4)),
+            'title' => 'Test ' . $prefix,
             'description' => 'Live test project',
             'status' => 'active',
             'priority' => 'normal',
             'client_public_id' => $clientPid,
+            'task_key_prefix' => $prefix,
         ]);
         $pid = $this->extractPid($created, 'project');
         $this->assert("$section: create", $pid !== '', 'Expected public_id');
