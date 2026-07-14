@@ -28,6 +28,7 @@ final class AuthRepository
                 'us.*',
                 'u.public_id AS user_public_id',
                 'u.login',
+                'u.email',
                 'u.full_name',
                 'u.locale',
                 'u.is_active',

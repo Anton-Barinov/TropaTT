@@ -237,8 +237,24 @@ final class AuthService
             }
         }
 
-        $newExpiresAt = gmdate('Y-m-d H:i:s', time() + $this->tokenTtlSeconds);
-        $this->auth->extendSessionByTokenHash($hash, $newExpiresAt);
+        // A session is read on every authenticated API request. Rewriting its
+        // expiry every time creates unnecessary row locks and write pressure
+        // when several users work concurrently. Keep the sliding window, but
+        // refresh only after at least half of it has elapsed.
+        $now = time();
+        $sessionExpiresAt = strtotime(((string)$session['expires_at']) . ' UTC');
+        $refreshThreshold = max(60, intdiv($this->tokenTtlSeconds, 2));
+        $shouldRefreshSession = $sessionExpiresAt === false
+            || ($sessionExpiresAt - $now) <= $refreshThreshold;
+
+        if ($shouldRefreshSession) {
+            $newExpiresAt = gmdate('Y-m-d H:i:s', $now + $this->tokenTtlSeconds);
+            $this->auth->extendSessionByTokenHash($hash, $newExpiresAt);
+            $expiresIn = $this->tokenTtlSeconds;
+        } else {
+            $newExpiresAt = (string)$session['expires_at'];
+            $expiresIn = max(1, $sessionExpiresAt - $now);
+        }
 
         $user = $this->normalizeUser([
             'id' => (int)($session['user_id'] ?? 0),
@@ -254,7 +270,7 @@ final class AuthService
         return [
             'session_public_id' => (string)$session['public_id'],
             'expires_at' => $newExpiresAt,
-            'expires_in' => $this->tokenTtlSeconds,
+            'expires_in' => $expiresIn,
             'user' => $user,
         ];
     }
@@ -281,6 +297,7 @@ final class AuthService
         $permissionCodes = $isRoot ? ['*'] : $this->auth->permissionCodesByUserId($userId);
 
         return [
+            'id' => $userId,
             'public_id' => (string)$user['public_id'],
             'login' => (string)$user['login'],
             'email' => (string)($user['email'] ?? ''),

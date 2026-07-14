@@ -420,7 +420,7 @@ final class KnowledgeRepository
     {
         static $cache = [];
         $actorId = $this->actorUserId($actor);
-        $cacheKey = $spacePublicId . '|' . ($actorId ?? '0');
+        $cacheKey = $spacePublicId . '|' . $actorId;
         if (array_key_exists($cacheKey, $cache)) {
             return $cache[$cacheKey];
         }

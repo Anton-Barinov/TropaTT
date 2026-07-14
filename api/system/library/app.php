@@ -1891,14 +1891,22 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
             return null;
         }
 
-        /** @var \Api\Model\Common\UserRepository $users */
-        $users = $this->container->get('repository.user');
-        $user = $users->findByPublicId((string)$me['user']['public_id']);
-        if (!$user) {
-            return null;
+        // AuthService already reads the active user in the session lookup.
+        // Reuse that ID instead of issuing a second users query for every
+        // authenticated API request. Keep the fallback for legacy/custom
+        // AuthService responses that do not provide it yet.
+        $userId = (int)($me['user']['id'] ?? 0);
+        if ($userId <= 0) {
+            /** @var \Api\Model\Common\UserRepository $users */
+            $users = $this->container->get('repository.user');
+            $user = $users->findByPublicId((string)($me['user']['public_id'] ?? ''));
+            if (!$user) {
+                return null;
+            }
+            $userId = (int)$user['id'];
         }
 
-        $me['user']['id'] = (int)$user['id'];
+        $me['user']['id'] = $userId;
         $me['auth_transport'] = $transport;
         $me['auth_token'] = $token;
 

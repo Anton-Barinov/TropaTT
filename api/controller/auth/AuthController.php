@@ -113,7 +113,7 @@ final class AuthController extends BaseController
         $csrfToken = '';
         $sessionToken = (string)($authUser['auth_token'] ?? '');
         if ($sessionToken !== '') {
-            $ttlSeconds = (int)$this->config()->get('security.auth.access_token_ttl', 604800);
+            $ttlSeconds = max(60, (int)($authUser['expires_in'] ?? $this->config()->get('security.auth.access_token_ttl', 604800)));
             $this->issueSessionCookie($sessionToken, $ttlSeconds);
             $csrfToken = $this->csrfTokenForSession($sessionToken);
             $this->issueCsrfCookie($csrfToken, $ttlSeconds);
