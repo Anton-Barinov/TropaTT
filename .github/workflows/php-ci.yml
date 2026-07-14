@@ -32,8 +32,6 @@ jobs:
     name: PHPStan static analysis
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true  # TODO: remove once baseline is generated & committed
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
