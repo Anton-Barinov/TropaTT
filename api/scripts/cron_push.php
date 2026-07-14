@@ -34,7 +34,7 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
 $autoloader = new Api\System\Library\Support\Autoloader($basePath);
 $autoloader->register();
 
-$config = new Api\System\Library\Config($basePath . '/config');
+$config = new Api\System\Library\Config();
 $config->load($basePath . '/config/database.php', 'database');
 $config->load($basePath . '/config/notifications.php', 'notifications');
 
