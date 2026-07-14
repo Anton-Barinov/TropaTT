@@ -12,7 +12,8 @@ use Api\System\Library\Support\Ulid;
 
 final class RecurringProcessorService
 {
-    private const int DEFAULT_LIMIT = 50;
+    // Typed class constants require PHP 8.3; CRM supports PHP 8.1+ on shared hosting.
+    private const DEFAULT_LIMIT = 50;
 
     public function __construct(
         private readonly RecurringRepository $recurring,
