@@ -88,15 +88,9 @@ final class CoreUpdateClient
             ];
         }
         $status = 200;
-        $responseHeaders = [];
-        if (function_exists('http_get_last_response_headers')) {
-            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
-            foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHeaders[] = $n . ': ' . $v;
-            }
-        } else {
-            $responseHeaders = $http_response_header ?? [];
-        }
+        // file_get_contents() exposes response headers in this scope on all
+        // PHP versions supported by the CRM, including shared-hosting PHP 8.1.
+        $responseHeaders = $http_response_header;
         foreach ($responseHeaders as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
                 $status = (int)$m[1];

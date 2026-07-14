@@ -270,7 +270,7 @@ final class TaskController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $key = trim((string)($params['task_key'] ?? $this->request()->query('key', '')));
+        $key = trim((string)($params['task_key'] ?? $this->request()->input('key', '')));
         if ($key === '') {
             return $this->error('TASK_KEY_INVALID', $this->t('task/messages.invalid_task_key', 'Invalid task key'), 422);
         }
@@ -352,7 +352,6 @@ final class TaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
-        /** @var CommentService $service */
         /** @var TaskService $taskService */
         $taskService = $this->container->get('service.task');
         $task = $taskService->get((string)$params['public_id'], $authUser['user']);

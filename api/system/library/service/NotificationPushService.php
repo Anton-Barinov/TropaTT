@@ -459,15 +459,10 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($endpoint, false, $context);
         $statusCode = 0;
-        $responseHeaders = [];
-        if (function_exists('http_get_last_response_headers')) {
-            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
-            foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHeaders[] = $n . ': ' . $v;
-            }
-        } else {
-            $responseHeaders = $http_response_header ?? [];
-        }
+        // $http_response_header is populated by file_get_contents() in the
+        // current scope; unlike the PHP 8.4 helper functions, it is available
+        // on every PHP version supported by shared hosting.
+        $responseHeaders = $http_response_header;
         foreach ($responseHeaders as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
@@ -727,15 +722,8 @@ final class NotificationPushService
         ]);
         $response = @file_get_contents($gatewayUrl, false, $context);
         $statusCode = 0;
-        $responseHeaders = [];
-        if (function_exists('http_get_last_response_headers')) {
-            $responseHeaders[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
-            foreach (http_get_last_response_headers() ?? [] as $n => $v) {
-                $responseHeaders[] = $n . ': ' . $v;
-            }
-        } else {
-            $responseHeaders = $http_response_header ?? [];
-        }
+        // See sendWebPush(): this remains compatible with PHP 8.1–8.3.
+        $responseHeaders = $http_response_header;
         foreach ($responseHeaders as $line) {
             if (preg_match('/\s(\d{3})\s/', (string)$line, $m) === 1) {
                 $statusCode = (int)$m[1];
