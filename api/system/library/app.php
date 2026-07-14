@@ -1646,7 +1646,9 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $this->container->set('module.config', $moduleConfig);
 
         $moduleMigrations = new ModuleMigrationRunner($pdo);
-        try { $moduleMigrations->ensureTable($driver); } catch (\Throwable) {}
+        try { $moduleMigrations->ensureTable($driver); } catch (\Throwable $e) {
+            error_log('[App::initModuleSystem] ensureTable failed for module.migrations: ' . $e->getMessage());
+        }
         $this->container->set('module.migrations', $moduleMigrations);
 
         $moduleErrorHandler = new ModuleErrorHandler($pdo);
