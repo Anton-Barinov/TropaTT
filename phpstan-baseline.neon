@@ -141,12 +141,6 @@ parameters:
 		-
 			message: '#^Variable \$t might not be defined\.$#'
 			identifier: variable.undefined
-			count: 27
-			path: web/view/template/page/admin_webhooks.php
-
-		-
-			message: '#^Variable \$t might not be defined\.$#'
-			identifier: variable.undefined
 			count: 96
 			path: web/view/template/page/admin_workflow.php
 

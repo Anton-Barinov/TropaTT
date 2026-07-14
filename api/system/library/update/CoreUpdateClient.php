@@ -88,7 +88,16 @@ final class CoreUpdateClient
             ];
         }
         $status = 200;
-        foreach ($http_response_header as $header) {
+        $responseHdrs = [];
+        if (function_exists('http_get_last_response_headers')) {
+            $responseHdrs[] = 'HTTP/1.1 ' . (http_get_last_response_code() ?? '');
+            foreach (http_get_last_response_headers() ?? [] as $n => $v) {
+                $responseHdrs[] = $n . ': ' . $v;
+            }
+        } else {
+            $responseHdrs = $http_response_header ?? [];
+        }
+        foreach ($responseHdrs as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
                 $status = (int)$m[1];
             }
