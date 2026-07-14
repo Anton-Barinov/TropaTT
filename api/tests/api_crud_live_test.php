@@ -264,7 +264,7 @@ final class LiveCrudTest
         $this->assert("$section: list", isset($res['data']['items']), 'Expected items');
 
         $created = $this->request('POST', 'api/v1/projects', [
-            'title' => 'Test Project ' . time(),
+            'title' => 'Test Project ' . bin2hex(random_bytes(4)),
             'description' => 'Live test project',
             'status' => 'active',
             'priority' => 'normal',
@@ -506,7 +506,7 @@ final class LiveCrudTest
 
             // Must revoke keys before deleting client
             if ($keyPid) {
-                $this->request('DELETE', "api/v1/api-clients/$pid/keys/$keyPid");
+                $this->request('DELETE', "api/v1/api-keys/$keyPid/revoke");
             }
 
             $del = $this->request('DELETE', "api/v1/api-clients/$pid");
