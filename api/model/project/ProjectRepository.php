@@ -190,7 +190,7 @@ final class ProjectRepository
 
         $row = $qb->first();
 
-        return $row !== false;
+        return $row !== null;
     }
 
     public function projectIdByPublicId(string $projectPublicId): ?int

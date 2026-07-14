@@ -604,20 +604,18 @@ final class NotificationPushService
         $recordHeader = $header;
         $keyId = $header;
 
-        $ciphertext = '';
         $tag = '';
-        $encOk = openssl_encrypt(
+        $ciphertext = openssl_encrypt(
             $plaintext,
             'aes-128-gcm',
             $key,
             OPENSSL_RAW_DATA,
             $nonce,
-            $ciphertext,
             $tag,
             $recordHeader,
             16
         );
-        if ($encOk === false) {
+        if ($ciphertext === false) {
             return '';
         }
 
