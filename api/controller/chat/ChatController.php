@@ -117,7 +117,9 @@ final class ChatController extends BaseController
             }
             try {
                 $pdo->exec("ALTER TABLE chats ADD COLUMN {$col} {$type} NULL");
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                error_log('[ChatController::ensureChatArchiveColumns] ALTER TABLE ADD COLUMN failed for ' . $col . ': ' . $e->getMessage());
+            }
         }
     }
 
