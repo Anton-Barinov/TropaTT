@@ -118,11 +118,11 @@ final class TwoFactorController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $validator->errors());
         }
 
-        // IP-based rate limiting — applied before token resolution to prevent
-        // distributed brute-force across multiple login tokens.
+        // SEC-005: Composite key = IP + loginToken, so one user exhausting the
+        // limit does not block others behind the same proxy/CDN.
         /** @var RateLimitService $rateLimiter */
         $rateLimiter = $this->container->get('service.rate_limiter');
-        $ipKey = 'tfa_ip:' . hash('sha256', $this->request()->ip());
+        $ipKey = 'tfa_ip:' . hash('sha256', $this->request()->ip() . '|' . $loginToken);
         $ipState = $rateLimiter->check('two_factor_verify', $ipKey, 10, 300, 600);
         if ($ipState['blocked'] === true) {
             return $this->error('TWO_FACTOR_RATE_LIMITED', $this->t('auth/messages.rate_limited'), 429, [

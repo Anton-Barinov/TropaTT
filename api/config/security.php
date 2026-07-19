@@ -98,6 +98,14 @@ return [
     'ai' => [
         'encryption_key' => $aiEncryptionKey,
     ],
+    // SEC-005: Trusted proxies for client IP resolution.
+    // Comma-separated CIDR ranges from CRM_TRUSTED_PROXIES env var.
+    // Empty by default — no proxy processing, raw REMOTE_ADDR is used.
+    'trusted_proxies' => array_values(array_filter(array_map('trim',
+        explode(',', (string)(getenv('CRM_TRUSTED_PROXIES') ?: ''))
+    ))),
+    'trusted_proxy_header' => (string)(getenv('CRM_TRUSTED_PROXY_HEADER') ?: 'X-Forwarded-For'),
+
     'cors' => [
         'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: ($isProduction ? '' : 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1')),
         'allow_methods' => 'GET, POST, PATCH, PUT, DELETE, OPTIONS',

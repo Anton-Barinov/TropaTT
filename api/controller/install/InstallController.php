@@ -113,7 +113,9 @@ final class InstallController extends BaseController
 
     private function isLoopbackRequest(): bool
     {
-        $ip = trim((string)$this->request()->ip());
+        // SEC-005: MUST use remoteAddr() — clientIp() would trust forged
+        // X-Forwarded-For headers, letting an attacker bypass bootstrap token.
+        $ip = trim((string)$this->request()->remoteAddr());
         return in_array($ip, ['127.0.0.1', '::1'], true);
     }
 }

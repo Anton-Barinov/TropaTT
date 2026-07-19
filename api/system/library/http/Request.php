@@ -161,9 +161,160 @@ final class Request
         return array_replace($this->query, $this->post, $this->jsonBody);
     }
 
-    public function ip(): string
+    /**
+     * SEC-005: Trusted proxies configuration (resolved at runtime).
+     * Format: array of CIDR strings e.g. ['10.0.0.0/8', '192.168.0.0/16']
+     * Passed in from security config via constructor or setter.
+     */
+    private array $trustedProxies = [];
+    private string $trustedProxyHeader = 'X-Forwarded-For';
+
+    public function setTrustedProxies(array $cidrs, string $header = 'X-Forwarded-For'): void
+    {
+        $this->trustedProxies = $cidrs;
+        $this->trustedProxyHeader = $header;
+    }
+
+    /**
+     * Raw REMOTE_ADDR — the actual TCP connection peer.
+     * Always use this for security-sensitive checks (loopback, installer).
+     */
+    public function remoteAddr(): string
     {
         return (string)($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+    }
+
+    /**
+     * Client IP with optional trusted proxy support.
+     * If REMOTE_ADDR is a trusted proxy, parse the configured forward-header
+     * from right to left and return the first untrusted address.
+     * If no trusted proxies are configured, returns raw REMOTE_ADDR.
+     */
+    public function clientIp(): string
+    {
+        $remoteAddr = $this->remoteAddr();
+
+        if ($this->trustedProxies === []) {
+            return $remoteAddr;
+        }
+
+        if (!$this->ipInTrustedRanges($remoteAddr)) {
+            return $remoteAddr;
+        }
+
+        $headerValue = $this->header($this->trustedProxyHeader, '');
+        if ($headerValue === '') {
+            return $remoteAddr;
+        }
+
+        // Parse right-to-left: the rightmost address is the immediate upstream
+        $addresses = array_map('trim', explode(',', $headerValue));
+        $addresses = array_reverse($addresses);
+
+        foreach ($addresses as $addr) {
+            if ($addr !== '' && !$this->ipInTrustedRanges($addr)) {
+                if (filter_var($addr, FILTER_VALIDATE_IP)) {
+                    return $addr;
+                }
+            }
+        }
+
+        return $remoteAddr;
+    }
+
+    /**
+     * Alias for clientIp() — backward compatibility.
+     */
+    public function ip(): string
+    {
+        return $this->clientIp();
+    }
+
+    /**
+     * Check if the given IP string falls within any configured trusted CIDR range.
+     */
+    private function ipInTrustedRanges(string $ip): bool
+    {
+        $ip = trim($ip);
+        if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        $packed = inet_pton($ip);
+        if ($packed === false) {
+            return false;
+        }
+
+        foreach ($this->trustedProxies as $cidr) {
+            if ($this->cidrMatch($packed, $cidr)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Match a packed IP (from inet_pton) against a CIDR string.
+     * Supports IPv4 and IPv6, single addresses (/32 for v4, /128 for v6),
+     * full ranges (/0), and edge cases.
+     */
+    private function cidrMatch(string $packedIp, string $cidr): bool
+    {
+        $cidr = trim($cidr);
+        if ($cidr === '') {
+            return false;
+        }
+
+        // Parse prefix length
+        if (str_contains($cidr, '/')) {
+            $parts = explode('/', $cidr, 2);
+            $network = trim($parts[0]);
+            $prefix = (int)$parts[1];
+        } else {
+            $network = $cidr;
+            // Default prefix: /32 for IPv4, /128 for IPv6
+            $prefix = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 128 : 32;
+        }
+
+        $packedNetwork = @inet_pton($network);
+        if ($packedNetwork === false) {
+            return false;
+        }
+
+        // Length must match (both IPv4 or both IPv6)
+        if (strlen($packedIp) !== strlen($packedNetwork)) {
+            // Handle IPv4-mapped IPv6 (::ffff:x.x.x.x)
+            if (strlen($packedNetwork) === 4 && strlen($packedIp) === 16) {
+                // Extract the last 4 bytes of the packed IPv6 to compare as IPv4
+                $packedIp = substr($packedIp, -4);
+            } elseif (strlen($packedNetwork) === 16 && strlen($packedIp) === 4) {
+                $packedNetwork = substr($packedNetwork, -4);
+            } else {
+                return false;
+            }
+        }
+
+        $bitLen = strlen($packedIp) * 8;
+        $prefix = max(0, min($bitLen, $prefix));
+
+        if ($prefix === 0) {
+            return true; // /0 matches everything
+        }
+
+        if ($prefix === $bitLen) {
+            return $packedIp === $packedNetwork; // /32 or /128 — exact match
+        }
+
+        // Bitwise comparison: create mask and compare
+        $mask = str_repeat("\xff", (int)($prefix / 8));
+        $remainderBits = $prefix % 8;
+        if ($remainderBits > 0) {
+            $mask .= chr(0xff << (8 - $remainderBits) & 0xff);
+        }
+        $mask = str_pad($mask, strlen($packedIp), "\x00");
+
+        return ($packedIp & $mask) === ($packedNetwork & $mask);
     }
 
     public function userAgent(): string

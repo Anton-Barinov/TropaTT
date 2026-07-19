@@ -788,6 +788,12 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         $lang = new LanguageManager($this->basePath . '/language', (string)$this->config->get('default.locale.fallback', 'en-gb'));
         $lang->setLocale($request->locale);
 
+        // SEC-005: Configure trusted proxies for client IP resolution
+        $request->setTrustedProxies(
+            (array)$this->config->get('security.trusted_proxies', []),
+            (string)$this->config->get('security.trusted_proxy_header', 'X-Forwarded-For')
+        );
+
         $this->container->set('config', $this->config);
         $this->container->set('request', $request);
         $this->container->set('logger', $logger);
