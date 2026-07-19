@@ -2858,6 +2858,32 @@ MD;
             return $this->toolResult($this->callIdeaWorkflowTool($name, $arguments));
         }
 
+        // SEC-003: Fail-closed MCP permission registry
+        $mcpPermissions = require __DIR__ . '/../../config/mcp_permissions.php';
+        if (!isset($mcpPermissions[$name])) {
+            return $this->toolError('Unknown tool: ' . $name . '. Not in permission registry.');
+        }
+        $mcpEntry = $mcpPermissions[$name];
+        if ($mcpEntry['mode'] === 'all') {
+            if ($mcpEntry['permissions'] === []) {
+                return $this->toolError('Tool ' . $name . ' has empty permissions in registry');
+            }
+            foreach ($mcpEntry['permissions'] as $perm) {
+                if (!$this->can($perm)) {
+                    return $this->toolError('Insufficient permission: ' . $perm . ' (required for tool: ' . $name . ')');
+                }
+            }
+        } elseif ($mcpEntry['mode'] === 'any') {
+            if ($mcpEntry['permissions'] === []) {
+                return $this->toolError('Tool ' . $name . ' has empty permissions in registry');
+            }
+            if (!$this->canAny($mcpEntry['permissions'])) {
+                $perms = implode(', ', $mcpEntry['permissions']);
+                return $this->toolError('Insufficient permissions for tool: ' . $name . '. Required (any): ' . $perms);
+            }
+        }
+        // 'self' mode: ownership check is done in the tool method
+
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
             'crm_get_profile' => $this->toolResult($this->crmGetProfile()),
