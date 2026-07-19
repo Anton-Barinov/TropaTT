@@ -7,7 +7,7 @@
 
 <div class="row g-4"><div class="col-lg-8">
 
-<style id="pipelineStyleEl">
+<style id="pipelineStyleEl" nonce="<?= $csp_nonce ?>">
 .pipeline-block { display:none !important; }
 .pipeline-block.pipeline-visible { display:block !important; opacity:1; max-height:9999px; transition: opacity 0.4s ease; }
 #aiPipelineCard { display:block !important; }

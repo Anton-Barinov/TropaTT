@@ -241,7 +241,7 @@ if ($cyclesAssetsVersion === '') {
 }
 ?>
 <script src="assets/js/work-cycles.js?v=<?= urlencode($cyclesAssetsVersion) ?>"></script>
-<style>
+<style nonce="<?= $csp_nonce ?>">
 .crm-cycle-card {
   background: #fff;
   border: 1px solid #e0e0e0;

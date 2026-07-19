@@ -22,21 +22,19 @@ if (!headers_sent()) {
     header('Cross-Origin-Opener-Policy: same-origin-allow-popups');
     header('Cross-Origin-Resource-Policy: same-origin');
 
-    // SEC-004: Per-request CSP nonce. The nonce is generated and exposed to
-    // templates via $GLOBALS['crm_csp_nonce'] (Controller::render() copies it
-    // to $data['csp_nonce']) so future template authors can opt in to
-    // nonce-tagged inline handlers.
+    // SEC-007: Per-request CSP nonce and style-src without 'unsafe-inline'.
+    // The nonce is generated and exposed to templates via $GLOBALS['crm_csp_nonce']
+    // (Controller::render() copies it to $data['csp_nonce']).
     //
-    // Note: per CSP Level 2/3 spec, including a nonce-source in a directive
-    // makes the parallel 'unsafe-inline' keyword be ignored — only nonced
-    // inline executes. Existing templates emit many inline scripts/styles
-    // without nonces (e.g., the sidebar-collapse cookie reader on the login
-    // page, JSON-encoded i18n payloads). Activating the nonce would break
-    // those without a coordinated template migration. So we ship the
-    // infrastructure now and keep 'unsafe-inline' in the active policy. To
-    // activate: remove 'unsafe-inline' from the directive, add
-    // 'nonce-{$cspNonce}' in its place, then progressively attach
-    // nonce="$csp_nonce" to inline <script>/<style> tags in templates.
+    // style-src: 'unsafe-inline' is removed — <style> tags require nonce.
+    // style-src-attr: retains 'unsafe-inline' for style="" attributes (CSP Level 3).
+    // This preserves backward compatibility with inline style attributes used by
+    // Bootstrap components (progress bars, colors, widths) while hardening against
+    // injected <style> blocks. Older browsers without style-src-attr support fall
+    // back to style-src without 'unsafe-inline', blocking style="" attributes.
+    //
+    // To migrate fully: convert style="" attributes to CSS classes and remove
+    // style-src-attr 'unsafe-inline'.
     $cspNonce = base64_encode(random_bytes(16));
     $GLOBALS['crm_csp_nonce'] = $cspNonce;
 
@@ -47,7 +45,8 @@ if (!headers_sent()) {
         "frame-ancestors 'none'",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https:",
-        "style-src 'self' 'unsafe-inline' https:",
+        "style-src 'self' https: 'nonce-{$cspNonce}'",
+        "style-src-attr 'unsafe-inline'",
         "script-src 'self' 'unsafe-inline' https:",
         "connect-src 'self' https: wss:",
         "worker-src 'self' blob:",

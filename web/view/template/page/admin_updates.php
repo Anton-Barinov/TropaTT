@@ -134,7 +134,7 @@ $auJs = [
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-page crm-admin-updates-page">
-  <style>
+  <style nonce="<?= $csp_nonce ?>">
     .crm-admin-updates-page {
       --update-ok:#0f766e; --update-warn:#b45309; --update-danger:#b42318; --update-ink:#111827; --update-line:#e5e7eb;
     }
