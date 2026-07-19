@@ -53,7 +53,8 @@ final class ClientProfileExpansionMigration implements MigrationInterface
         ] as $sql) {
             try {
                 $pdo->exec($sql);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ClientProfileExpansionMigration::up] CREATE INDEX: ' . $e->getMessage());
                 // Ignore unsupported IF NOT EXISTS syntax or duplicate index races.
             }
         }
@@ -83,7 +84,8 @@ final class ClientProfileExpansionMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ClientProfileExpansionMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -46,7 +46,8 @@ final class RecurringRuleTitleMigration implements MigrationInterface
                     return true;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[RecurringRuleTitleMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 

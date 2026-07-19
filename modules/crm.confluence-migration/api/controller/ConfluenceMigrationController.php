@@ -316,7 +316,8 @@ final class ConfluenceMigrationController
                 );
                 $pagesCount = $pages['totalCount'] ?? 0;
                 $attachmentsEstimate = (int)($pagesCount * 1.5);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ConfluenceMigrationController::discoverSpaces] Failed to get pages for space ' . $space['id'] . ': ' . $e->getMessage());
             }
 
             $result[] = [

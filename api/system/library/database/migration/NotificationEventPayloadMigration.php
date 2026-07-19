@@ -74,7 +74,8 @@ final class NotificationEventPayloadMigration implements MigrationInterface
 
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[NotificationEventPayloadMigration::createIndexIfMissing] ' . $e->getMessage());
             // Ignore unsupported IF NOT EXISTS semantics and concurrent duplicate creation.
         }
     }
@@ -88,7 +89,8 @@ final class NotificationEventPayloadMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[NotificationEventPayloadMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -149,7 +151,8 @@ final class NotificationEventPayloadMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvIndexExists($pdo, $table, $name),
                 default => $this->sqliteIndexExists($pdo, $name),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[NotificationEventPayloadMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -167,9 +167,10 @@ final class JiraImportService
                 $this->migrationRepo->upsertJobItem($jobId, 'project', $projectId, [
                     'status' => 'failed',
                     'error_code' => 'PROJECT_IMPORT_ERROR',
-                    'error_message' => $e->getMessage(),
+                    'error_message' => 'Project import failed. Check server logs for details.'
                 ]);
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_projects', "Failed project {$projectKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importProjects] Project ' . $projectKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_projects', 'Failed project ' . $projectKey . '. Check server logs for details.');
             }
         }
     }
@@ -203,6 +204,7 @@ final class JiraImportService
 
             return $publicId;
         } catch (\Throwable $e) {
+            error_log('[JiraImportService::createCrmProject] ' . $e->getMessage());
             return null;
         }
     }
@@ -273,11 +275,13 @@ final class JiraImportService
                             ]);
                         }
                     } catch (\Throwable $e) {
-                        $this->migrationRepo->addJobLog($jobPublicId, 'error', 'create_tasks', "Failed to create task for {$issueKey}: " . $e->getMessage());
+                        error_log('[JiraImportService::createSkeletonTasks] Failed to create task for ' . $issueKey . ': ' . $e->getMessage());
+                    $this->migrationRepo->addJobLog($jobPublicId, 'error', 'create_tasks', 'Failed to create task for ' . $issueKey . '. Check server logs for details.');
                     }
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'create_tasks', "Failed to search issues for {$projectKey}: " . $e->getMessage());
+                error_log('[JiraImportService::createSkeletonTasks] Failed to search issues for ' . $projectKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'create_tasks', 'Failed to search issues for ' . $projectKey . '. Check server logs for details.');
             }
         }
     }
@@ -329,6 +333,7 @@ final class JiraImportService
 
             return $publicId;
         } catch (\Throwable $e) {
+            error_log('[JiraImportService::createCrmTask] ' . $e->getMessage());
             return null;
         }
     }
@@ -378,7 +383,8 @@ final class JiraImportService
                     $this->pdo->prepare("UPDATE tasks SET parent_task_id = :parent_id WHERE public_id = :child")
                         ->execute(['parent_id' => $parentIdVal, 'child' => $childPublicId]);
                 }
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[JiraImportService::resolveHierarchy] Parent task update failed: ' . $e->getMessage());
                 }
             }
         }
@@ -455,7 +461,8 @@ final class JiraImportService
                 }
 
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_fields', "Failed to import fields for {$issueKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importIssueFields] Issue ' . $issueKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_fields', 'Failed to import fields for ' . $issueKey . '. Check server logs for details.');
             }
         }
     }
@@ -525,7 +532,8 @@ final class JiraImportService
                     ]);
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_comments', "Failed comments for {$issueKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importComments] Issue ' . $issueKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_comments', 'Failed comments for ' . $issueKey . '. Check server logs for details.');
             }
         }
     }
@@ -626,7 +634,8 @@ final class JiraImportService
                     ]);
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_attachments', "Failed attachments for {$issueKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importAttachments] Issue ' . $issueKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_attachments', 'Failed attachments for ' . $issueKey . '. Check server logs for details.');
             }
         }
     }
@@ -692,7 +701,8 @@ final class JiraImportService
                     ]);
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_worklogs', "Failed worklogs for {$issueKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importWorklogs] Issue ' . $issueKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_worklogs', 'Failed worklogs for ' . $issueKey . '. Check server logs for details.');
             }
         }
     }
@@ -779,13 +789,15 @@ final class JiraImportService
                                 'target_public_id' => $relationPublicId,
                                 'status' => 'imported',
                             ]);
-                        } catch (\Throwable) {
+                        } catch (\Throwable $e) {
+                            error_log('[JiraImportService::importRelationsDependencies] Duplicate relation skipped: ' . $e->getMessage());
                             // Skip duplicate relations
                         }
                     }
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_relations', "Failed relations for {$issueKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importRelationsDependencies] Issue ' . $issueKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_relations', 'Failed relations for ' . $issueKey . '. Check server logs for details.');
             }
         }
     }
@@ -857,7 +869,8 @@ final class JiraImportService
                 }
             }
         } catch (\Throwable $e) {
-            $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_sprints', "Failed to import sprints: " . $e->getMessage());
+            error_log('[JiraImportService::importSprints] ' . $e->getMessage());
+            $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_sprints', 'Failed to import sprints. Check server logs for details.');
         }
     }
 
@@ -882,7 +895,8 @@ final class JiraImportService
                     $this->migrationRepo->addJobLog($jobPublicId, 'info', 'import_components', "Component {$component['name']} for {$projectKey} recorded");
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_versions', "Failed versions/components for {$projectKey}: " . $e->getMessage());
+                error_log('[JiraImportService::importVersionsComponents] Project ' . $projectKey . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_versions', 'Failed versions/components for ' . $projectKey . '. Check server logs for details.');
             }
         }
     }
@@ -977,7 +991,8 @@ final class JiraImportService
                 $this->pdo->prepare("INSERT IGNORE INTO entity_tags (entity_type, entity_public_id, tag_id) VALUES ('task', :entity_pub_id, :tag_id)")
                     ->execute(['entity_pub_id' => $taskPublicId, 'tag_id' => $tagId]);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraImportService::ensureTag] Tag "' . $labelName . '" for task ' . $taskPublicId . ': ' . $e->getMessage());
         }
     }
 }

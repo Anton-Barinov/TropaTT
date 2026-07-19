@@ -28,7 +28,8 @@ final class SessionDeviceModelMigration implements MigrationInterface
         ] as $sql) {
             try {
                 $pdo->exec($sql);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[SessionDeviceModelMigration::up] CREATE INDEX: ' . $e->getMessage());
                 // Ignore unsupported IF NOT EXISTS syntax or duplicate index races.
             }
         }
@@ -58,7 +59,8 @@ final class SessionDeviceModelMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[SessionDeviceModelMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

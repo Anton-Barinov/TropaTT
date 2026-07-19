@@ -24,8 +24,9 @@ final class MigrationController extends BaseController
         try {
             return $this->success('MIGRATION_STATUS', $this->t('install/messages.migration_status'), $service->status());
         } catch (Throwable $e) {
+            error_log('[MigrationController::status] ' . $e->getMessage());
             return $this->error('MIGRATION_STATUS_FAILED', $this->t('install/messages.migration_status_failed'), 422, [
-                'migration' => [$e->getMessage()],
+                'migration' => ['Migration status check failed. Check server logs for details.'],
             ]);
         }
     }
@@ -45,8 +46,9 @@ final class MigrationController extends BaseController
         try {
             return $this->success('MIGRATION_UP_DONE', $this->t('install/messages.migration_up_done'), $service->up());
         } catch (Throwable $e) {
+            error_log('[MigrationController::up] ' . $e->getMessage());
             return $this->error('MIGRATION_UP_FAILED', $this->t('install/messages.migration_up_failed'), 422, [
-                'migration' => [$e->getMessage()],
+                'migration' => ['Migration execution failed. Check server logs for details.'],
             ]);
         }
     }
@@ -66,8 +68,9 @@ final class MigrationController extends BaseController
         try {
             return $this->success('MIGRATION_DRY_RUN', $this->t('install/messages.migration_dry_run'), $service->dryRun());
         } catch (Throwable $e) {
+            error_log('[MigrationController::dryRun] ' . $e->getMessage());
             return $this->error('MIGRATION_DRY_RUN_FAILED', $this->t('install/messages.migration_dry_run_failed'), 422, [
-                'migration' => [$e->getMessage()],
+                'migration' => ['Migration dry run failed. Check server logs for details.'],
             ]);
         }
     }
@@ -87,8 +90,9 @@ final class MigrationController extends BaseController
         try {
             return $this->success('MIGRATION_ROLLBACK_CHECK', $this->t('install/messages.migration_rollback_check'), $service->rollbackCheck());
         } catch (Throwable $e) {
+            error_log('[MigrationController::rollbackCheck] ' . $e->getMessage());
             return $this->error('MIGRATION_ROLLBACK_CHECK_FAILED', $this->t('install/messages.migration_rollback_check_failed'), 422, [
-                'migration' => [$e->getMessage()],
+                'migration' => ['Migration rollback check failed. Check server logs for details.'],
             ]);
         }
     }

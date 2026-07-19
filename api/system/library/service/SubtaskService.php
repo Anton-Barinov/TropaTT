@@ -180,7 +180,8 @@ final class SubtaskService
         try {
             $date = new \DateTimeImmutable($value);
             return $date->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[SubtaskService::normalizeDueAt] ' . $e->getMessage());
             return $value;
         }
     }

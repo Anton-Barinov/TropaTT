@@ -392,7 +392,6 @@ window.CRM.intake = (function () {
         }
       })
       .catch(function (error) {
-        console.error('[intake] load failed', error);
         updateSummary(0, 0);
         setState('error');
       })

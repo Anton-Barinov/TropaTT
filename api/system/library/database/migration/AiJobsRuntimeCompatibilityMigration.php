@@ -55,7 +55,8 @@ final class AiJobsRuntimeCompatibilityMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvTableExists($pdo, $table),
                 default => $this->sqliteTableExists($pdo, $table),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiJobsRuntimeCompatibilityMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -69,7 +70,8 @@ final class AiJobsRuntimeCompatibilityMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiJobsRuntimeCompatibilityMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

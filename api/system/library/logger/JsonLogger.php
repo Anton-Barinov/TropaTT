@@ -104,7 +104,8 @@ final class JsonLogger
 
         try {
             ($this->dbWriter)($channel, $context);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JsonLogger::writeToDb] ' . $e->getMessage());
             // Keep logger safe: DB issues must not break request flow.
         }
     }

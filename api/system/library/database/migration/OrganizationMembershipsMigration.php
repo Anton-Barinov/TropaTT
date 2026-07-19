@@ -40,13 +40,15 @@ final class OrganizationMembershipsMigration implements MigrationInterface
 
         try {
             $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_org_membership_org_user ON organization_memberships(organization_id, user_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[OrganizationMembershipsMigration::up] CREATE UNIQUE: ' . $e->getMessage());
             // Some drivers do not support IF NOT EXISTS for index creation.
         }
 
         try {
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_org_membership_user ON organization_memberships(user_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[OrganizationMembershipsMigration::up] CREATE INDEX: ' . $e->getMessage());
             // Some drivers do not support IF NOT EXISTS for index creation.
         }
     }

@@ -25,19 +25,22 @@ final class CompanyClientContactOwnershipMigration implements MigrationInterface
 
         try {
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_companies_created_by ON companies(created_by_user_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_clients_created_by ON clients(created_by_user_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_contacts_created_by ON contacts(created_by_user_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
     }
@@ -66,7 +69,8 @@ final class CompanyClientContactOwnershipMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CompanyClientContactOwnershipMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

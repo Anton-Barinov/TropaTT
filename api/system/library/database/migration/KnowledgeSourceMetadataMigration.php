@@ -159,22 +159,26 @@ final class KnowledgeSourceMetadataMigration implements MigrationInterface
     {
         try {
             $pdo->exec('CREATE INDEX idx_knowledge_pages_source ON knowledge_pages(source_type, source_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
         }
 
         try {
             $pdo->exec('CREATE INDEX idx_knowledge_spaces_source ON knowledge_spaces(source_type, source_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
         }
 
         try {
             $pdo->exec('CREATE INDEX idx_files_source ON files(source_type, source_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
         }
 
         try {
             $pdo->exec('CREATE INDEX idx_knowledge_comments_source ON knowledge_comments(source_type, source_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
         }
     }
 
@@ -186,7 +190,8 @@ final class KnowledgeSourceMetadataMigration implements MigrationInterface
             $stmt->execute([$table]);
             $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
             return is_array($result) ? array_map('strval', $result) : [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeSourceMetadataMigration::existingColumns] ' . $e->getMessage());
             return [];
         }
     }

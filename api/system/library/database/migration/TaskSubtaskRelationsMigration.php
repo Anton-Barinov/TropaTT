@@ -144,7 +144,8 @@ final class TaskSubtaskRelationsMigration implements MigrationInterface
         try {
             $pdo->query('SELECT 1 FROM ' . $table . ' LIMIT 1');
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskSubtaskRelationsMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -165,7 +166,8 @@ final class TaskSubtaskRelationsMigration implements MigrationInterface
 
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskSubtaskRelationsMigration::createIndexIfMissing] ' . $e->getMessage());
             // idempotent path
         }
     }
@@ -203,7 +205,8 @@ final class TaskSubtaskRelationsMigration implements MigrationInterface
             ]);
 
             return (bool)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskSubtaskRelationsMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

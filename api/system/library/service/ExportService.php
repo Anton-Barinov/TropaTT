@@ -128,6 +128,7 @@ final class ExportService
                 'rows_total' => count($rows),
             ]);
         } catch (Throwable $e) {
+            error_log('[ExportService::create] ' . $e->getMessage());
             $this->exports->updateByPublicId($publicId, [
                 'status' => 'retry',
                 'result' => json_encode([
@@ -136,13 +137,13 @@ final class ExportService
                         'download_available' => false,
                     ],
                     'errors' => [
-                        ['message' => $e->getMessage()],
+                        ['message' => 'Export job failed. Check server logs for details.'],
                     ],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'attempts' => 1,
                 'next_run_at' => gmdate('Y-m-d H:i:s', time() + self::RETRY_BACKOFF_SEC),
                 'locked_at' => null,
-                'last_error' => $e->getMessage(),
+                'last_error' => 'Export job failed.',
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);
 
@@ -223,13 +224,14 @@ final class ExportService
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= self::RETRY_MAX_ATTEMPTS;
+                error_log('[ExportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
                 $this->exports->updateByPublicId($publicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',
                     'dead_letter' => $isDead ? 1 : 0,
                     'next_run_at' => $isDead ? null : gmdate('Y-m-d H:i:s', time() + self::RETRY_BACKOFF_SEC * $attempts),
                     'locked_at' => null,
-                    'last_error' => $e->getMessage(),
+                    'last_error' => 'Export job failed.',
                     'finished_at' => $isDead ? gmdate('Y-m-d H:i:s') : null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
                 ]);
@@ -239,7 +241,7 @@ final class ExportService
                     $retried++;
                 }
                 $failed++;
-                $errors[] = ['public_id' => $publicId, 'error' => $e->getMessage()];
+                $errors[] = ['public_id' => $publicId, 'error' => 'Export job failed. Check server logs for details.'];
             }
         }
 

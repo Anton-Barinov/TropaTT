@@ -39,10 +39,12 @@ final class ModuleGdprCompliance
                     if ($rows !== []) {
                         $data[$table] = $rows;
                     }
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleGdprCompliance::exportUserData] ' . $e->getMessage());
         }
 
         return $data;
@@ -61,10 +63,12 @@ final class ModuleGdprCompliance
                 try {
                     $stmt = $this->pdo->prepare("DELETE FROM {$table} WHERE user_id = :uid");
                     $stmt->execute(['uid' => $userId]);
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[ModuleGdprCompliance::cleanse] ' . $e->getMessage());
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleGdprCompliance::deleteUserData] ' . $e->getMessage());
             return false;
         }
 

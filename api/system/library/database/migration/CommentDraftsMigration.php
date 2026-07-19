@@ -42,7 +42,8 @@ final class CommentDraftsMigration implements MigrationInterface
 
         try {
             $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_comment_drafts_user_task ON comment_drafts(user_id, task_id)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CommentDraftsMigration::up] CREATE UNIQUE: ' . $e->getMessage());
             // ignore for drivers without IF NOT EXISTS on index
         }
     }

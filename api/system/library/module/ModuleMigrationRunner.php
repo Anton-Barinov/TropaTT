@@ -256,12 +256,14 @@ final class ModuleMigrationRunner
 
         try {
             $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_migrations_unique ON {$this->tableName}(module_name, migration_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleMigrationRunner::ensureTable] UNIQUE INDEX failed: ' . $e->getMessage());
         }
 
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_migrations_module ON {$this->tableName}(module_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleMigrationRunner::ensureTable] INDEX failed: ' . $e->getMessage());
         }
     }
 
@@ -274,7 +276,8 @@ final class ModuleMigrationRunner
             $stmt = $this->pdo->prepare("SELECT migration_name FROM {$this->tableName} WHERE module_name = :module ORDER BY id ASC");
             $stmt->execute(['module' => $moduleName]);
             return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleMigrationRunner::getAppliedMigrations] ' . $e->getMessage());
             return [];
         }
     }
@@ -315,7 +318,8 @@ final class ModuleMigrationRunner
             $stmt = $this->pdo->prepare("SELECT COALESCE(MAX(batch), 0) FROM {$this->tableName} WHERE module_name = :module");
             $stmt->execute(['module' => $moduleName]);
             return (int)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleMigrationRunner::getMaxBatch] ' . $e->getMessage());
             return 0;
         }
     }
@@ -362,7 +366,8 @@ final class ModuleMigrationRunner
             $stmt->execute(['module' => $moduleName, 'migration' => $migrationName]);
             $result = $stmt->fetchColumn();
             return $result ? (string)$result : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleMigrationRunner::findMigrationAppliedAt] ' . $e->getMessage());
             return null;
         }
     }

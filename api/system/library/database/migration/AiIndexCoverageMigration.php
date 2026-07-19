@@ -65,7 +65,8 @@ final class AiIndexCoverageMigration implements MigrationInterface
         $sql = sprintf('CREATE %s INDEX %s ON %s(%s)', $unique ? 'UNIQUE' : '', $name, $table, $columns);
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiIndexCoverageMigration::createIndexIfMissing] ' . $e->getMessage());
             // keep migration idempotent across driver/index variants
         }
     }
@@ -93,7 +94,8 @@ final class AiIndexCoverageMigration implements MigrationInterface
             );
             $stmt->execute(['table' => $table]);
             return (bool)$stmt->fetchColumn();
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiIndexCoverageMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -120,7 +122,8 @@ final class AiIndexCoverageMigration implements MigrationInterface
             );
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiIndexCoverageMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

@@ -44,7 +44,6 @@ window.CRM.stickyNotes = (function () {
       window.notify(text, type);
       return;
     }
-    console.log('[sticky-notes]', type, text);
   }
 
   function req(route, opts) {

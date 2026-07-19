@@ -124,7 +124,8 @@ final class ModuleWebhookDispatcher
 
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_webhooks_module ON {$this->tableName}(module_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleWebhookDispatcher::ensureTable] ensureTable failed: ' . $e->getMessage());
         }
     }
 }

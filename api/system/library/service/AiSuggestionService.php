@@ -4471,7 +4471,8 @@ final class AiSuggestionService
             }
             $dt = new \DateTimeImmutable($trimmed);
             return $dt->format('c');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionService::normalizeDateTimePayload] ' . $e->getMessage());
             return $value;
         }
     }
@@ -5545,7 +5546,8 @@ final class AiSuggestionService
     {
         try {
             $this->runtime->cleanupByRetention($this->retention->getPolicies());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionService::applyRetentionCleanup] ' . $e->getMessage());
             // Cleanup is best-effort and must not break suggestion flows.
         }
     }

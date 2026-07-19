@@ -212,7 +212,8 @@ final class RruleParser
             if ($targetDay > $currentDay) {
                 try {
                     return new \DateTimeImmutable("{$currentYear}-{$currentMonth}-{$targetDay} {$from->format('H:i:s')}");
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[RruleParser::computeNextMonthly] date parse failed (targetDay): ' . $e->getMessage());
                 }
             }
 
@@ -226,7 +227,8 @@ final class RruleParser
             $targetDay = min($targetDay, $maxDay);
             try {
                 return new \DateTimeImmutable("{$nextYear}-{$nextMonth}-{$targetDay} {$from->format('H:i:s')}");
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[RruleParser::computeNextMonthly] date parse failed (nextMonth): ' . $e->getMessage());
             }
         }
 

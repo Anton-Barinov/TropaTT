@@ -38,7 +38,8 @@ final class CacheController extends BaseController
                         $ttl = max(1, (int)$val);
                     }
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[CacheController::stats] ' . $e->getMessage());
             }
         }
 

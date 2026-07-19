@@ -112,6 +112,7 @@ final class ImportService
                 'summary' => $result['summary'] ?? [],
             ]);
         } catch (Throwable $e) {
+            error_log('[ImportService::create] ' . $e->getMessage());
             $errorResult = [
                 'summary' => [
                     'processed' => 0,
@@ -119,7 +120,7 @@ final class ImportService
                     'failed' => 1,
                 ],
                 'errors' => [
-                    ['line' => 0, 'message' => $e->getMessage()],
+                    ['line' => 0, 'message' => 'Import job failed. Check server logs for details.'],
                 ],
             ];
             $this->imports->updateByPublicId($publicId, [
@@ -128,7 +129,7 @@ final class ImportService
                 'attempts' => 1,
                 'next_run_at' => gmdate('Y-m-d H:i:s', time() + self::RETRY_BACKOFF_SEC),
                 'locked_at' => null,
-                'last_error' => $e->getMessage(),
+                'last_error' => 'Import job failed.',
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);
 
@@ -187,13 +188,14 @@ final class ImportService
             } catch (Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= self::RETRY_MAX_ATTEMPTS;
+                error_log('[ImportService::runQueued] job=' . $publicId . ' ' . $e->getMessage());
                 $this->imports->updateByPublicId($publicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',
                     'dead_letter' => $isDead ? 1 : 0,
                     'next_run_at' => $isDead ? null : gmdate('Y-m-d H:i:s', time() + self::RETRY_BACKOFF_SEC * $attempts),
                     'locked_at' => null,
-                    'last_error' => $e->getMessage(),
+                    'last_error' => 'Import job failed.',
                     'finished_at' => $isDead ? gmdate('Y-m-d H:i:s') : null,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
                 ]);
@@ -203,7 +205,7 @@ final class ImportService
                     $retried++;
                 }
                 $failed++;
-                $errors[] = ['public_id' => $publicId, 'error' => $e->getMessage()];
+                $errors[] = ['public_id' => $publicId, 'error' => 'Import job failed. Check server logs for details.'];
             }
         }
 

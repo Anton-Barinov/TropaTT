@@ -30,7 +30,8 @@ final class ModuleAuditTrail
                 'user' => $userId,
                 'now' => $now,
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleAuditTrail::record] ' . $e->getMessage());
         }
     }
 
@@ -52,7 +53,8 @@ final class ModuleAuditTrail
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleAuditTrail::getHistory] ' . $e->getMessage());
             return [];
         }
     }

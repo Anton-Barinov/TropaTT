@@ -296,14 +296,16 @@ final class JiraMigrationController
         $statuses = [];
         try {
             $statuses = $client->getStatuses($siteUrl, $email, $token);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraMigrationController::discover] Statuses discovery failed: ' . $e->getMessage());
         }
 
         // Get boards (try Jira Software API)
         $boards = [];
         try {
             $boards = $client->getBoards($siteUrl, $email, $token);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraMigrationController::discover] Boards discovery failed: ' . $e->getMessage());
         }
 
         return JsonResponse::success('JIRA_DISCOVERY_COMPLETED', 'Discovery completed', [

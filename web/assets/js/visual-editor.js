@@ -78,9 +78,6 @@ window.CRM.VisualEditor = (function () {
         return window.notify(text, type);
       }
     } catch (e) { /* ignore */ }
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn('[VisualEditor]', text);
-    }
   }
 
   function showErrorToast(editorInstance, message) {
@@ -2160,9 +2157,7 @@ window.CRM.VisualEditor = (function () {
       textarea.setAttribute('data-crm-ve-ready', '1');
       instances.push(editor);
     } catch (e) {
-      if (typeof console !== 'undefined') {
-        console.error('[CRM.VisualEditor] Failed to init:', e);
-      }
+      /* VisualEditor init failed */
     }
   }
 

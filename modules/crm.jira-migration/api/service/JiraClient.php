@@ -211,9 +211,10 @@ final class JiraClient
                 'projects_count' => (int)($projects['total'] ?? 0),
             ];
         } catch (\Throwable $e) {
+            error_log('[JiraClient::testConnection] ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Connection test failed. Check server logs for details.',
             ];
         }
     }
@@ -249,7 +250,8 @@ final class JiraClient
     {
         try {
             return $this->request($siteUrl, $email, $token, '/rest/api/3/field');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getFields] ' . $e->getMessage());
             return [];
         }
     }
@@ -269,7 +271,8 @@ final class JiraClient
                 ];
             }
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getStatuses] ' . $e->getMessage());
             return [];
         }
     }
@@ -287,7 +290,8 @@ final class JiraClient
                     'type' => (string)($board['type'] ?? ''),
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getBoards] ' . $e->getMessage());
         }
         return $boards;
     }
@@ -308,7 +312,8 @@ final class JiraClient
                     'goal' => (string)($sprint['goal'] ?? ''),
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getBoardSprints] Board ' . $boardId . ': ' . $e->getMessage());
         }
         return $sprints;
     }
@@ -333,7 +338,8 @@ final class JiraClient
             try {
                 $data = $this->request($siteUrl, $email, $token, '/rest/api/3/search', 'POST', null, $body);
             } catch (\Throwable $e) {
-                throw new RuntimeException('JIRA_SEARCH_FAILED: ' . $e->getMessage(), 500);
+                error_log('[JiraClient::searchIssues] ' . $e->getMessage());
+                throw new RuntimeException('JIRA_SEARCH_FAILED', 500);
             }
 
             foreach ($data['issues'] ?? [] as $issue) {
@@ -353,7 +359,8 @@ final class JiraClient
         try {
             return $this->request($siteUrl, $email, $token, '/rest/api/3/issue/' . $issueKey, 'GET', ['expand' => 'renderedFields,changelog']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('JIRA_ISSUE_FAILED: ' . $e->getMessage(), 500);
+            error_log('[JiraClient::getIssue] ' . $e->getMessage());
+            throw new RuntimeException('JIRA_ISSUE_FAILED', 500);
         }
     }
 
@@ -366,7 +373,8 @@ final class JiraClient
             foreach ($this->paginate($siteUrl, $email, $token, '/rest/api/3/issue/' . $issueKey . '/comment', ['maxResults' => 100], 100) as $comment) {
                 $comments[] = $comment;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getIssueComments] Issue ' . $issueKey . ': ' . $e->getMessage());
         }
         return $comments;
     }
@@ -380,7 +388,8 @@ final class JiraClient
             foreach ($this->paginate($siteUrl, $email, $token, '/rest/api/3/issue/' . $issueKey . '/worklog', ['maxResults' => 100], 100) as $wl) {
                 $worklogs[] = $wl;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getIssueWorklogs] Issue ' . $issueKey . ': ' . $e->getMessage());
         }
         return $worklogs;
     }
@@ -451,7 +460,8 @@ final class JiraClient
                     'release_date' => $version['releaseDate'] ?? null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getProjectVersions] Project ' . $projectKey . ': ' . $e->getMessage());
         }
         return $versions;
     }
@@ -462,7 +472,8 @@ final class JiraClient
     {
         try {
             return $this->request($siteUrl, $email, $token, '/rest/api/3/project/' . $projectKey . '/component');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getProjectComponents] ' . $e->getMessage());
             return [];
         }
     }
@@ -473,7 +484,8 @@ final class JiraClient
     {
         try {
             return $this->request($siteUrl, $email, $token, '/rest/api/3/users/search', 'GET', ['maxResults' => $maxResults, 'query' => $query]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::searchUsers] ' . $e->getMessage());
             return [];
         }
     }
@@ -486,7 +498,8 @@ final class JiraClient
             if (is_array($result)) {
                 return $result;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::searchAllUsers] ' . $e->getMessage());
         }
         return $all;
     }
@@ -505,7 +518,8 @@ final class JiraClient
                 ];
             }
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getPriorities] ' . $e->getMessage());
             return [];
         }
     }
@@ -524,7 +538,8 @@ final class JiraClient
                 ];
             }
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[JiraClient::getIssueTypes] ' . $e->getMessage());
             return [];
         }
     }

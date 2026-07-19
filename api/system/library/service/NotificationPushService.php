@@ -247,13 +247,14 @@ final class NotificationPushService
             } catch (\Throwable $e) {
                 $attempts = (int)($job['attempts'] ?? 0) + 1;
                 $isDead = $attempts >= $maxAttempts;
+                error_log('[NotificationPushService::runQueued] job=' . $jobPublicId . ' ' . $e->getMessage());
                 $this->queue->updateByPublicId($jobPublicId, [
                     'attempts' => $attempts,
                     'status' => $isDead ? 'dead_letter' : 'retry',
                     'dead_letter' => $isDead ? 1 : 0,
                     'next_run_at' => $isDead ? null : gmdate('Y-m-d H:i:s', time() + $backoffSec * $attempts),
                     'locked_at' => null,
-                    'last_error' => $e->getMessage(),
+                    'last_error' => 'Push notification dispatch failed.',
                     'updated_at' => gmdate('Y-m-d H:i:s'),
                 ]);
                 if ($isDead) {
@@ -262,7 +263,7 @@ final class NotificationPushService
                     $retried++;
                 }
                 $failed++;
-                $errors[] = ['public_id' => $jobPublicId, 'error' => $e->getMessage()];
+                $errors[] = ['public_id' => $jobPublicId, 'error' => 'Push notification dispatch failed. Check server logs for details.'];
             }
         }
 

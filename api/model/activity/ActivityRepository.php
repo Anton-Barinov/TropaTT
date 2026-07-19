@@ -71,7 +71,10 @@ final class ActivityRepository
         foreach ($parts as $index => $part) {
             $alias = 'activity_window_' . $index;
             $placeholder = ':activity_window_limit_' . $index;
-            $windowParts[] = 'SELECT public_id, created_at, actor_public_id, entity_type, entity_public_id, action, details_json, channel, event_type, request_route, request_id, method, result_code, status_code FROM (SELECT * FROM (' . $part . ') AS ' . $alias
+            $windowParts[] = 'SELECT public_id, created_at, actor_public_id, entity_type, entity_public_id, action, details_json, channel, event_type, request_route, request_id, method, result_code, status_code FROM (
+                -- NOTE: SELECT * is intentional — $part is a dynamic query fragment (not a table),
+                -- so explicit columns are not possible. Outer SELECT above restricts the final projection.
+                SELECT * FROM (' . $part . ') AS ' . $alias
                 . ' ORDER BY created_at DESC LIMIT ' . $placeholder . ') AS ' . $alias . '_limited';
             $windowParams[$placeholder] = $windowSize;
         }

@@ -116,7 +116,8 @@ final class KnowledgePageVersionsMigration implements MigrationInterface
             $stmt->execute([$table]);
             $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
             return is_array($result) ? array_map('strval', $result) : [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgePageVersionsMigration::existingColumns] ' . $e->getMessage());
             return [];
         }
     }

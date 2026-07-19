@@ -167,7 +167,8 @@ final class KnowledgeRepository
             $stmt = $this->pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
             $stmt->execute([$table, $column]);
             return $stmt->fetch() !== false;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeRepository::columnExists] DB prepare: ' . $e->getMessage());
             return false;
         }
     }

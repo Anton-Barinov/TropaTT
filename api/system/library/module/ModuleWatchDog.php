@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Module;
 
+/**
+ * @deprecated since v0.x — Class is not instantiated anywhere in the codebase.
+ * Full implementation kept for reference. No callers found (audited 2026-07-15).
+ * REMOVAL CANDIDATE: safe to delete in next major version cleanup.
+ */
 final class ModuleWatchDog
 {
     /** @var array<string, array<string, int>> */

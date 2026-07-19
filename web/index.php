@@ -317,7 +317,8 @@ function crmWebApiDbConnect(string $webBaseDir): ?PDO
 
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[index::crmWebApiDbConnect] ' . $e->getMessage());
         return null;
     }
 }

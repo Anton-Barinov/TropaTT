@@ -667,7 +667,8 @@ function generateRandomHex(int $bytes = 32): string
 {
     try {
         return bin2hex(random_bytes($bytes));
-    } catch (\Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::generateRandomHex] random_bytes failed: ' . $e->getMessage());
         // Fallback: use openssl if random_bytes fails
         try {
             $data = '';
@@ -677,7 +678,8 @@ function generateRandomHex(int $bytes = 32): string
             if ($data !== '' && $data !== false) {
                 return bin2hex($data);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[Install::generateRandomHex] ' . $e->getMessage());
             // Give up
         }
         // Last resort: deterministic fallback (not cryptographically secure, but prevents crash)
@@ -711,7 +713,8 @@ function generateVapidKeys(): array
         $privateKey = rtrim(strtr(base64_encode($ec['d']), '+/', '-_'), '=');
 
         return ['public_key' => $publicKey, 'private_key' => $privateKey];
-    } catch (\Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::generateVapidKeys] ' . $e->getMessage());
         return ['public_key' => '', 'private_key' => ''];
     }
 }
@@ -819,7 +822,8 @@ function installUpdateNotice(array $installData): ?string
 {
     try {
         $latest = checkLatestCoreVersion($installData);
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::installUpdateNotice] ' . $e->getMessage());
         return null;
     }
     if (!is_array($latest) || ($latest['update_available'] ?? false) !== true) {
@@ -1023,7 +1027,8 @@ function canConnectFromEnv(): bool
         }
         $pdo->query('SELECT 1');
         return true;
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::canConnectFromEnv] ' . $e->getMessage());
         return false;
     }
 }
@@ -1047,7 +1052,8 @@ function pdoFromEnvFile(): ?PDO
             'DB_PASSWORD' => $env['DB_PASSWORD'] ?? '',
             'DB_CHARSET' => $env['DB_CHARSET'] ?? 'utf8mb4',
         ]);
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::pdoFromEnvFile] ' . $e->getMessage());
         return null;
     }
 }
@@ -1064,7 +1070,8 @@ function hasInstallStateFromEnv(): bool
             return false;
         }
         return (int)$pdo->query('SELECT COUNT(*) FROM install_state')->fetchColumn() > 0;
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::hasInstallStateFromEnv] DB query failed: ' . $e->getMessage());
         return false;
     }
 }
@@ -2088,7 +2095,8 @@ function createDatabaseTables(PDO $pdo, string $driver): array
         try {
             $pdo->exec($sql);
         } catch (Throwable $e) {
-            $errors[] = "Table #{$index}: " . $e->getMessage();
+            error_log('[Install::createDatabaseTables] Table #' . $index . ': ' . $e->getMessage());
+            $errors[] = 'Table creation failed. Check server logs for details.';
         }
     }
 
@@ -2111,7 +2119,8 @@ function runDatabaseMigrations(PDO $pdo, string $driver): array
         $migrations = new Api\System\Library\Database\Migration\MigrationManager($schema);
         $migrations->migrateUp($pdo, $driver);
     } catch (Throwable $e) {
-        return [$e->getMessage()];
+        error_log('[Install::runDatabaseMigrations] ' . $e->getMessage());
+        return ['Database migration failed. Check server logs for details.'];
     }
 
     return [];
@@ -2148,7 +2157,8 @@ function registerApiAutoloader(): array
             (new Api\System\Library\Support\Autoloader($apiBasePath))->register();
         }
     } catch (Throwable $e) {
-        return [$e->getMessage()];
+        error_log('[Install::registerApiAutoloader] ' . $e->getMessage());
+        return ['API autoloader registration failed. Check server logs for details.'];
     }
 
     return [];
@@ -2191,7 +2201,8 @@ function markKnownMigrationsApplied(PDO $pdo, string $driver): array
             ]);
         }
     } catch (Throwable $e) {
-        return [$e->getMessage()];
+        error_log('[Install::markKnownMigrationsApplied] ' . $e->getMessage());
+        return ['Migration tracking failed. Check server logs for details.'];
     }
 
     return [];
@@ -2213,7 +2224,8 @@ function executeSqlFile(PDO $pdo, string $path): array
         try {
             $pdo->exec($statement);
         } catch (Throwable $e) {
-            $errors[] = 'Snapshot statement #' . ($index + 1) . ': ' . $e->getMessage();
+            error_log('[Install::executeSqlFile] Statement #' . ($index + 1) . ': ' . $e->getMessage());
+            $errors[] = 'Schema import failed. Check server logs for details.';
             if (count($errors) >= 5) {
                 break;
             }
@@ -2312,7 +2324,8 @@ function createIndexes(PDO $pdo): void
             $colStr = implode(', ', $columns);
             $type = $unique ? 'UNIQUE' : '';
             $pdo->exec("CREATE {$type} INDEX {$name} ON {$table}({$colStr})");
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[Install::createIndexes] DB query failed: ' . $e->getMessage());
             // Index already exists or unsupported — safe to skip
         }
     }
@@ -2324,7 +2337,8 @@ function indexExists(PDO $pdo, string $table, string $indexName): bool
         $stmt = $pdo->prepare("SHOW INDEX FROM `{$table}` WHERE Key_name = :name");
         $stmt->execute(['name' => $indexName]);
         return (bool)$stmt->fetch();
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::indexExists] ' . $e->getMessage());
         return false;
     }
 }
@@ -2574,7 +2588,8 @@ function finalizeInstall(PDO $pdo): void
     $count = 0;
     try {
         $count = (int)$pdo->query('SELECT COUNT(*) FROM install_state')->fetchColumn();
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[Install::finalizeInstall] DB query failed: ' . $e->getMessage());
         $count = 0;
     }
     if ($count === 0) {
@@ -2742,7 +2757,8 @@ if ($isAjax) {
             exit;
 
         } catch (Throwable $e) {
-            echo json_encode(['success' => false, 'substep' => $substep, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            error_log('[Install::install] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'substep' => $substep, 'message' => 'Installation failed. Check server logs for details.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -2973,7 +2989,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
                     ];
 
                 } catch (Throwable $e) {
-                    $errors[] = $e->getMessage();
+                    error_log('[Install::demoData] ' . $e->getMessage());
+                    $errors[] = 'Demo data creation failed. Check server logs for details.';
                     $step = 4;
                 }
             }

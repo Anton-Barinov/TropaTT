@@ -56,12 +56,13 @@ final class RecurringProcessorService
                     $errors++;
                 }
             } catch (\Throwable $e) {
+                error_log('[RecurringProcessorService::process] ' . $e->getMessage());
                 $results[] = [
                     'rule_id' => $rule['public_id'] ?? '',
                     'entity_type' => $rule['entity_type'] ?? '',
                     'status' => 'error',
                     'entity_public_id' => null,
-                    'error' => $e->getMessage(),
+                    'error' => 'Recurring rule processing failed. Check server logs for details.',
                 ];
                 $errors++;
             }

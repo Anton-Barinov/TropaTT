@@ -583,11 +583,13 @@ final class App
                         'entity_type' => 'system',
                         'link' => 'index.php?route=admin-settings',
                     ]);
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
                     // Notification itself failed — log but don't crash
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[app::notifyAdminsOfMissingKeys] ' . $e->getMessage());
             // DB not available yet — just log
             error_log('KeyGuard: could not notify admins about missing keys');
         }

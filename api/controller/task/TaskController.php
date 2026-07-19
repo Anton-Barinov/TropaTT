@@ -507,7 +507,8 @@ final class TaskController extends BaseController
                 if (is_array($tags)) {
                     $taskTagIds = array_map(static fn(array $t): string => (string)($t['public_id'] ?? ''), $tags);
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+            error_log('[TaskController::fireWorkflowTrigger] tag loading failed: ' . $e->getMessage());
                 $taskTagIds = [];
             }
             $wf = $this->container->get('service.workflow');

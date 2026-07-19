@@ -1,0 +1,409 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 7
+			path: web/view/template/common/footer.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 118
+			path: web/view/template/intake/index.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 65
+			path: web/view/template/page/admin.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 336
+			path: web/view/template/page/admin_ai.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 98
+			path: web/view/template/page/admin_api_clients.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 20
+			path: web/view/template/page/admin_calendar.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 14
+			path: web/view/template/page/admin_custom_fields.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 44
+			path: web/view/template/page/admin_estimates.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 32
+			path: web/view/template/page/admin_jobs.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 114
+			path: web/view/template/page/admin_knowledge.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 35
+			path: web/view/template/page/admin_logs.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 24
+			path: web/view/template/page/admin_module_detail.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 13
+			path: web/view/template/page/admin_modules.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 23
+			path: web/view/template/page/admin_modules_install.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 14
+			path: web/view/template/page/admin_priorities.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 39
+			path: web/view/template/page/admin_roles.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 37
+			path: web/view/template/page/admin_settings.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 23
+			path: web/view/template/page/admin_sla.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 48
+			path: web/view/template/page/admin_statuses.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 27
+			path: web/view/template/page/admin_tags.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 31
+			path: web/view/template/page/admin_templates.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: web/view/template/page/admin_updates.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 55
+			path: web/view/template/page/admin_users.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 96
+			path: web/view/template/page/admin_workflow.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 53
+			path: web/view/template/page/analytics.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 41
+			path: web/view/template/page/app.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 53
+			path: web/view/template/page/approvals.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 33
+			path: web/view/template/page/calendar.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 26
+			path: web/view/template/page/chat.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 118
+			path: web/view/template/page/client_cabinet.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 60
+			path: web/view/template/page/client_detail.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 114
+			path: web/view/template/page/clients.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 28
+			path: web/view/template/page/companies.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 66
+			path: web/view/template/page/contacts.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 127
+			path: web/view/template/page/counterparties.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 130
+			path: web/view/template/page/counterparty_detail.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 58
+			path: web/view/template/page/cycles.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 78
+			path: web/view/template/page/dashboard.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 21
+			path: web/view/template/page/departments.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 291
+			path: web/view/template/page/docs.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 29
+			path: web/view/template/page/gantt.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 6
+			path: web/view/template/page/global_search.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 563
+			path: web/view/template/page/ideas.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 95
+			path: web/view/template/page/intake/index.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 16
+			path: web/view/template/page/invitation_accept.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 25
+			path: web/view/template/page/kanban.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 76
+			path: web/view/template/page/knowledge.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 97
+			path: web/view/template/page/knowledge_page.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 37
+			path: web/view/template/page/login.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 12
+			path: web/view/template/page/mentions.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 42
+			path: web/view/template/page/my_day.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 40
+			path: web/view/template/page/my_week.php
+
+		-
+			message: '#^Variable \$route might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: web/view/template/page/not_found.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: web/view/template/page/not_found.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 56
+			path: web/view/template/page/notifications.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 13
+			path: web/view/template/page/organizations.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 12
+			path: web/view/template/page/password_reset_confirm.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 10
+			path: web/view/template/page/password_reset_request.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 67
+			path: web/view/template/page/profile.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 87
+			path: web/view/template/page/project_detail.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 41
+			path: web/view/template/page/project_modules.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 86
+			path: web/view/template/page/projects.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 63
+			path: web/view/template/page/recurring.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 13
+			path: web/view/template/page/recycle_bin.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 239
+			path: web/view/template/page/task_detail.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 93
+			path: web/view/template/page/tasks.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 64
+			path: web/view/template/page/teams.php
+
+		-
+			message: '#^Variable \$t might not be defined\.$#'
+			identifier: variable.undefined
+			count: 54
+			path: web/view/template/page/time_analytics.php

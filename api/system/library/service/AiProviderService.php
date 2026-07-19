@@ -239,7 +239,8 @@ final class AiProviderService
         try {
             $encryptedSecret = $this->encryptSecret($secret);
             $keyHint = $this->secretKeyHint();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiProviderService::upsertSecret] encrypt failed: ' . $e->getMessage());
             return ['ok' => false, 'code' => 'AI_SECRET_KEY_NOT_CONFIGURED'];
         }
 
@@ -841,7 +842,8 @@ final class AiProviderService
         $ciphertext = substr($blob, 28);
         try {
             $key = $this->secretKey();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiProviderService::decryptedSecretByProvider] secretKey failed: ' . $e->getMessage());
             return null;
         }
         $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);

@@ -147,7 +147,8 @@ final class ModuleJobDispatcher
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_jobs_status ON {$this->tableName}(status, created_at)");
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_jobs_module ON {$this->tableName}(module_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleJobDispatcher::dispatch] PDO rollBack failed: ' . $e->getMessage());
         }
     }
 }

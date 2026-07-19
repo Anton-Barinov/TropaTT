@@ -53,8 +53,9 @@ final class FileController extends BaseController
                 ]);
             }
 
+            error_log('[FileController::create] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error'), 422, [
-                'file' => [$e->getMessage()],
+                'file' => ['File upload failed. Check server logs for details.'],
             ]);
         }
     }

@@ -141,7 +141,8 @@ final class ModuleDataExporter
                 $tableData = $rows !== false ? $rows->fetchAll(PDO::FETCH_ASSOC) : [];
                 // Strip sensitive columns from every exported row
                 $data[$table] = array_map([$this, 'stripSensitive'], $tableData);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ModuleDataExporter::collectModuleData] ' . $e->getMessage());
             }
         }
 

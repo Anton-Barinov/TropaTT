@@ -61,12 +61,14 @@ final class AiSuggestionsCacheFreshnessMigration implements MigrationInterface
         try {
             $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS %s ON %s (%s)', $indexName, $table, $columns));
             return;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsCacheFreshnessMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
         }
 
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s (%s)', $indexName, $table, $columns));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsCacheFreshnessMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
         }
     }
 
@@ -79,7 +81,8 @@ final class AiSuggestionsCacheFreshnessMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvTableExists($pdo, $table),
                 default => $this->sqliteTableExists($pdo, $table),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsCacheFreshnessMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -93,7 +96,8 @@ final class AiSuggestionsCacheFreshnessMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsCacheFreshnessMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

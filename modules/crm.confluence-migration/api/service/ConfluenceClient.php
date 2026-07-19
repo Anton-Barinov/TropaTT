@@ -229,7 +229,8 @@ final class ConfluenceClient
                     'display_name' => $userData['displayName'] ?? null,
                     'email' => $userData['email'] ?? null,
                 ];
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ConfluenceClient::testConnection] Failed to get user info: ' . $e->getMessage());
             }
 
             return [
@@ -239,9 +240,10 @@ final class ConfluenceClient
                 'user' => $user,
             ];
         } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::testConnection] ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Connection test failed. Check server logs for details.',
             ];
         }
     }
@@ -334,6 +336,7 @@ final class ConfluenceClient
                 'authorId' => $data['version']['authorId'] ?? null,
             ];
         } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPage] V2 failed, falling back to V1: ' . $e->getMessage());
             // Fallback to v1
             $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$pageId}", 'GET', ['expand' => 'body.storage,version,history,ancestors,metadata.labels,metadata.properties']);
             $body = $data['body']['storage'] ?? [];
@@ -375,7 +378,8 @@ final class ConfluenceClient
                     'downloadLink' => $item['_links']['download'] ?? null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPageAttachments] V2 failed, falling back to V1: ' . $e->getMessage());
             // v1 fallback
             try {
                 $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$pageId}/child/attachment", 'GET', ['expand' => 'version', 'limit' => 100]);
@@ -391,7 +395,8 @@ final class ConfluenceClient
                         'downloadLink' => $item['_links']['download'] ?? null,
                     ];
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ConfluenceClient::getPageAttachments] V1 fallback also failed: ' . $e->getMessage());
             }
         }
         return $attachments;
@@ -520,7 +525,8 @@ final class ConfluenceClient
                 ];
             }
             return $posts;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getBlogPostsForSpace] V2 failed, falling back to V1: ' . $e->getMessage());
             if ($v2Only) return [];
         }
 
@@ -539,7 +545,8 @@ final class ConfluenceClient
                     'authorId' => $post['history']['createdBy']['accountId'] ?? $post['version']['by']['accountId'] ?? null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getBlogPostsForSpace] V1 fallback also failed: ' . $e->getMessage());
         }
 
         return $posts;
@@ -561,6 +568,7 @@ final class ConfluenceClient
                 'authorId' => $data['version']['authorId'] ?? null,
             ];
         } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getBlogPost] V2 failed, falling back to V1: ' . $e->getMessage());
             // Fallback to v1
             $data = $this->request($baseUrl, $email, $token, "/wiki/rest/api/content/{$postId}", 'GET', ['expand' => 'body.storage,version,history,metadata.labels,metadata.properties']);
             $body = $data['body']['storage'] ?? [];
@@ -594,7 +602,8 @@ final class ConfluenceClient
                     'prefix' => (string)($item['prefix'] ?? 'global'),
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPageLabels] ' . $e->getMessage());
         }
         return $labels;
     }
@@ -617,7 +626,8 @@ final class ConfluenceClient
                     'parentId' => !empty($item['ancestors']) ? (string)$item['ancestors'][count($item['ancestors']) - 1]['id'] : null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPageComments] ' . $e->getMessage());
         }
         return $comments;
     }
@@ -639,7 +649,8 @@ final class ConfluenceClient
                     'body' => $item['content']['body']['storage']['value'] ?? null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPageVersions] ' . $e->getMessage());
         }
         return $versions;
     }
@@ -670,7 +681,8 @@ final class ConfluenceClient
                 $restrictions[$operationKey] = ['users' => $users, 'groups' => $groups];
             }
             return $restrictions;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::getPageRestrictions] ' . $e->getMessage());
             return [];
         }
     }
@@ -691,7 +703,8 @@ final class ConfluenceClient
                     'status' => (string)($item['status'] ?? 'current'),
                 ];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceClient::searchByCql] ' . $e->getMessage());
         }
         return $results;
     }

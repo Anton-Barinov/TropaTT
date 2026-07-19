@@ -68,7 +68,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             }
 
             return $this->hitGeneric($key, $now, $windowStart);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::hit] ' . $e->getMessage());
             return ['blocked' => false, 'retry_after' => 0];
         }
     }
@@ -202,7 +203,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->insertFirstAttempt($key, $windowStart, 'NOW()');
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
             return false;
         }
     }
@@ -232,7 +234,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $stmt->execute([$key]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row !== false ? $row : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::fetch] SELECT failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -248,7 +251,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $stmt->execute([$key]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row !== false ? $row : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::fetchForUpdate] SELECT failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -283,7 +287,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             $this->migrateSchema();
             $this->schemaReady = true;
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::ensureSchema] ' . $e->getMessage());
             return false;
         }
     }
@@ -327,7 +332,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             } else {
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN attempts_count INTEGER NOT NULL DEFAULT 0');
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
             // The column may already have been added by a concurrent request.
         }
 
@@ -337,7 +343,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             } else {
                 $this->pdo->exec('ALTER TABLE rate_limits ADD COLUMN window_start INTEGER NOT NULL DEFAULT 0');
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::ensureNewColumns] schema check failed: ' . $e->getMessage());
             // The column may already have been added by a concurrent request.
         }
 
@@ -351,7 +358,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->pdo->query('SELECT `key`, attempts_count, window_start, blocked_until FROM rate_limits LIMIT 0');
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::hasExpectedColumns] schema check failed: ' . $e->getMessage());
             return false;
         }
     }
@@ -365,7 +373,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->pdo->query('SELECT attempts FROM rate_limits LIMIT 0');
             $this->hasLegacyAttemptsColumn = true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::hasLegacyAttemptsColumn] legacy column check failed: ' . $e->getMessage());
             $this->hasLegacyAttemptsColumn = false;
         }
 
@@ -381,7 +390,8 @@ final class DatabaseRateLimiter implements RateLimiterInterface
             } else {
                 $this->pdo->exec("DELETE FROM rate_limits WHERE updated_at < datetime('now', '-3600 seconds')");
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[DatabaseRateLimiter::collectGarbage] cleanup failed: ' . $e->getMessage());
             // Best-effort cleanup
         }
     }

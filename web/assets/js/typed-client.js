@@ -35,9 +35,7 @@ window.CRM = window.CRM || {};
   'use strict';
 
   var api = window.CRM.api;
-  if (!api || typeof api.request !== 'function') {
-    console.warn('[typed-client] CRM.api not available');
-    window.CRM.typedClient = null;
+  if (!api || typeof api.request !== 'function') {      window.CRM.typedClient = null;
     return;
   }
 

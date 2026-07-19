@@ -59,7 +59,8 @@ final class CalendarEventDescriptionMigration implements MigrationInterface
                     return true;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CalendarEventDescriptionMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 

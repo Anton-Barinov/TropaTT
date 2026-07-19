@@ -276,7 +276,8 @@ final class MenuController extends BaseController
             }
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::loadTeamTemplateByPublicId] ' . $e->getMessage());
             return [];
         }
     }
@@ -298,7 +299,8 @@ final class MenuController extends BaseController
             }
 
             return $this->mergeTeamTemplates($teamPublicIds);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::loadTeamTemplate] ' . $e->getMessage());
             return [];
         }
     }
@@ -403,7 +405,8 @@ final class MenuController extends BaseController
             }
 
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::findUserTeamPublicIds] ' . $e->getMessage());
             return [];
         }
     }
@@ -424,7 +427,8 @@ final class MenuController extends BaseController
             }
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::loadUserPreferences] ' . $e->getMessage());
             return [];
         }
     }
@@ -502,7 +506,8 @@ final class MenuController extends BaseController
             }
 
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::loadRoleTemplate] ' . $e->getMessage());
             return [];
         }
     }
@@ -529,7 +534,8 @@ final class MenuController extends BaseController
             if (!is_array($template)) {
                 $template = [];
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::getRoleTemplate] ' . $e->getMessage());
             $template = [];
         }
 
@@ -841,7 +847,8 @@ final class MenuController extends BaseController
                 }
             }
             return $result;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MenuController::resolveRolePublicIds] ' . $e->getMessage());
             return [];
         }
     }

@@ -280,7 +280,8 @@ final class WorkflowService
                 $results['rules_fired']++;
                 $results['runs'][] = ['rule' => $rule['public_id'], 'status' => $status];
             } catch (\Throwable $e) {
-                $results['runs'][] = ['rule' => $rule['public_id'] ?? 'unknown', 'status' => 'error', 'error' => $e->getMessage()];
+                error_log('[WorkflowService::fireTrigger] ' . $e->getMessage());
+                $results['runs'][] = ['rule' => $rule['public_id'] ?? 'unknown', 'status' => 'error', 'error' => 'Workflow rule execution failed. Check server logs for details.'];
             }
         }
 
@@ -418,7 +419,8 @@ final class WorkflowService
                     return ['success' => false, 'error' => $this->t('workflow/messages.unknown_action', 'Unknown action: ') . $actionCode];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            error_log('[WorkflowService::executeAction] ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Workflow action execution failed. Check server logs for details.'];
         }
     }
 
@@ -489,7 +491,8 @@ final class WorkflowService
 
         try {
             return (new \DateTimeImmutable($value))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WorkflowService::normalizeReminderTime] ' . $e->getMessage());
             return gmdate('Y-m-d H:i:s', time() + 3600);
         }
     }

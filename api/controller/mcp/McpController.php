@@ -7300,7 +7300,8 @@ MD;
         try {
             return ['counterparty' => $this->publicData($service->update($publicId, $this->counterpartyInput($arguments), $this->actor()))];
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'Counterparty was not updated.'];
+            error_log('[McpController::crmUpdateCounterparty] ' . $e->getMessage());
+            return ['error' => 'Counterparty operation failed. Check server logs for details.'];
         }
     }
 
@@ -7423,7 +7424,8 @@ MD;
         try {
             return ['contact' => $this->publicData($service->create($this->contactInput($arguments), $this->actor()))];
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'Contact was not created.'];
+            error_log('[McpController::crmCreateContact] ' . $e->getMessage());
+            return ['error' => 'Contact operation failed. Check server logs for details.'];
         }
     }
 
@@ -7440,7 +7442,8 @@ MD;
             $item = $service->update($publicId, $this->contactInput($arguments), $this->actor());
             return $item ? ['contact' => $this->publicData($item)] : ['error' => 'Contact not found.'];
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'Contact was not updated.'];
+            error_log('[McpController::crmUpdateContact] ' . $e->getMessage());
+            return ['error' => 'Contact operation failed. Check server logs for details.'];
         }
     }
 
@@ -7825,7 +7828,8 @@ MD;
                 'title', 'content_html', 'content_json',
             ]), (int)($this->actor()['id'] ?? 0));
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage()];
+            error_log('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
+            return ['error' => 'Operation failed. Check server logs for details.'];
         }
         return ['draft' => $this->publicData($draft)];
     }
@@ -8273,7 +8277,8 @@ MD;
                 (int)($this->actor()['id'] ?? 0)
             );
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'Knowledge link not created.'];
+            error_log('[McpController::crmLinkKnowledgePageEntity] ' . $e->getMessage());
+            return ['error' => 'Knowledge link operation failed. Check server logs for details.'];
         }
         $this->invalidateCache('knowledge');
         return ['link' => $this->publicData($link)];
@@ -8305,7 +8310,8 @@ MD;
             ], [], (int)($this->actor()['id'] ?? 0), $this->actor());
             return ['file' => $this->publicData($file)];
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'File upload failed.'];
+            error_log('[McpController::crmUploadKnowledgeFileBase64] ' . $e->getMessage());
+            return ['error' => 'File upload failed. Check server logs for details.'];
         }
     }
 
@@ -9673,7 +9679,8 @@ MD;
             ]), [], (int)($this->actor()['id'] ?? 0), $this->actor());
             return ['file' => $this->publicData($file)];
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'File upload failed.'];
+            error_log('[McpController::crmUploadFileBase64] ' . $e->getMessage());
+            return ['error' => 'File upload failed. Check server logs for details.'];
         }
     }
 
@@ -11037,7 +11044,8 @@ MD;
             }
             return $this->toolPayloadFromResponse($response);
         } catch (Throwable $e) {
-            return ['error' => $e->getMessage() ?: 'Controller invocation failed.'];
+            error_log('[McpController::invokeControllerTool] ' . $e->getMessage());
+            return ['error' => 'Controller invocation failed. Check server logs for details.'];
         } finally {
             $this->container->set('request', $originalRequest);
         }
@@ -13007,7 +13015,8 @@ private function isSensitiveOrInternalKey(string $key): bool
                 'before_text' => $before,
                 'after_text' => $after,
             ]);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            error_log('[McpController] audit log write failed: ' . $e->getMessage());
         }
     }
 
@@ -13017,7 +13026,8 @@ private function isSensitiveOrInternalKey(string $key): bool
             $stmt = $this->pdo()->prepare("SELECT 1 FROM {$table} WHERE {$column} IS NULL LIMIT 0");
             $stmt->execute();
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            error_log('[McpController::tableHasColumn] ' . $e->getMessage());
             return false;
         }
     }

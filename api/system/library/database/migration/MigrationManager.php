@@ -233,7 +233,8 @@ final class MigrationManager
         try {
             $pdo->query($sql);
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[MigrationManager::tableExists] DB query: ' . $e->getMessage());
             return false;
         }
     }

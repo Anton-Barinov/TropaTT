@@ -132,7 +132,8 @@ final class RecurringService
         try {
             $parser = new RruleParser($rrule);
             return in_array($parser->getFrequency(), ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], true);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[RecurringService::isValidRrule] ' . $e->getMessage());
             return false;
         }
     }
@@ -201,7 +202,8 @@ final class RecurringService
                 ?? new \DateTimeImmutable('now');
             $next = (new RruleParser($rrule))->getNextDueDate($from);
             return $next ? $next->format('Y-m-d H:i:s') : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[RecurringService::nextRunAt] ' . $e->getMessage());
             return null;
         }
     }

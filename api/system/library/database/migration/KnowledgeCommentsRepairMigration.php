@@ -42,7 +42,8 @@ final class KnowledgeCommentsRepairMigration implements MigrationInterface
 
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s(%s)', $name, $table, $columns));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeCommentsRepairMigration::createIndex] CREATE INDEX: ' . $e->getMessage());
             // Existing installations may have manually repaired indexes.
         }
     }
@@ -66,7 +67,8 @@ final class KnowledgeCommentsRepairMigration implements MigrationInterface
                     return true;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KnowledgeCommentsRepairMigration::indexExists] ' . $e->getMessage());
             return false;
         }
 

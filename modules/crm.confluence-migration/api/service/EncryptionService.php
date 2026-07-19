@@ -48,7 +48,8 @@ final class EncryptionService
         $ciphertext = substr($blob, 28);
         try {
             $key = self::secretKey();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ConfluenceEncryptionService::decrypt] Failed to get secret key: ' . $e->getMessage());
             return null;
         }
         $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);

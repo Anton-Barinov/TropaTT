@@ -559,7 +559,8 @@ final class TaskEstimateService
             $cycleId = (int)$row['id'];
             $sets = $this->taskEstimateRepository->summaryByCycleId($cycleId, $filters);
             return ['cycle_public_id' => $cyclePublicId, 'sets' => $sets];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskEstimateService::summaryByCycle] ' . $e->getMessage());
             return ['cycle_public_id' => $cyclePublicId, 'sets' => []];
         }
     }
@@ -576,7 +577,8 @@ final class TaskEstimateService
             $moduleId = (int)$row['id'];
             $sets = $this->taskEstimateRepository->summaryByModuleId($moduleId, $filters);
             return ['module_public_id' => $modulePublicId, 'sets' => $sets];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskEstimateService::summaryByModule] ' . $e->getMessage());
             return ['module_public_id' => $modulePublicId, 'sets' => []];
         }
     }

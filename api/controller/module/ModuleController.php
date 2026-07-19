@@ -310,7 +310,8 @@ final class ModuleController
             $name = $installer->installFromUrl($url, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
         } catch (\Throwable $e) {
-            return JsonResponse::error('INSTALL_FAILED', $e->getMessage(), 500);
+            error_log('[ModuleController::installFromUrl] ' . $e->getMessage());
+            return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
         }
     }
 
@@ -352,7 +353,8 @@ final class ModuleController
             $name = $installer->installFromFile($archivePath, true);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
         } catch (\Throwable $e) {
-            return JsonResponse::error('INSTALL_FAILED', $e->getMessage(), 500);
+            error_log('[ModuleController::unknown] ' . $e->getMessage());
+            return JsonResponse::error('INSTALL_FAILED', 'Module operation failed. Check server logs for details.', 500);
         } finally {
             foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
             foreach (glob($tmpDir . '/*') ?: [] as $d) { if (is_dir($d)) { $this->cleanDir($d); } }
@@ -386,7 +388,8 @@ final class ModuleController
             $mc->setMultiple($name, $config);
             return JsonResponse::success('CONFIG_UPDATED', $this->t('module/messages.config_updated'), ['name' => $name, 'config' => $mc->getAll($name)]);
         } catch (\Throwable $e) {
-            return JsonResponse::error('UPDATE_FAILED', $e->getMessage(), 500);
+            error_log('[ModuleController::updateConfig] ' . $e->getMessage());
+            return JsonResponse::error('UPDATE_FAILED', 'Module update failed. Check server logs for details.', 500);
         }
     }
 
@@ -442,7 +445,8 @@ final class ModuleController
             $eh->clearErrors($name);
             return JsonResponse::success('ERRORS_CLEARED', $this->t('module/messages.errors_cleared'));
         } catch (\Throwable $e) {
-            return JsonResponse::error('CLEAR_FAILED', $e->getMessage(), 500);
+            error_log('[ModuleController::clearErrors] ' . $e->getMessage());
+            return JsonResponse::error('CLEAR_FAILED', 'Module clear operation failed. Check server logs for details.', 500);
         }
     }
 }

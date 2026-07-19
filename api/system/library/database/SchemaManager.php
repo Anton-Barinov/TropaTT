@@ -266,7 +266,8 @@ final class SchemaManager
 
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[SchemaManager::createIndexIfMissing] DB exec: ' . $e->getMessage());
             // Ignore race/duplicate errors in concurrent setup paths.
         }
     }
@@ -301,7 +302,8 @@ final class SchemaManager
             );
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[SchemaManager::indexExists] ' . $e->getMessage());
             return false;
         }
     }

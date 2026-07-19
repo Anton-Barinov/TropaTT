@@ -39,7 +39,6 @@ window.CRM.taskEstimates = (function () {
       window.notify(text, type);
       return;
     }
-    console.log('[task-estimates]', type, text);
   }
 
   function req(route, opts) {

@@ -1380,8 +1380,8 @@ window.CRM.br1 = (function () {
       window.CRM.api.request = function (route, opts) {
         return originalRequest(route, opts).catch(function (err) {
           if (err && err.isAuthError) {
-            console.warn('BR1: request auth error, but keeping session alive');
-          }
+        /* auth error — keep session alive */
+      }
           throw err;
         });
       };

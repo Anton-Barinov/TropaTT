@@ -55,6 +55,7 @@ final class ConfluenceJobService
             $this->pdo->commit();
             return $job;
         } catch (\Throwable $e) {
+            error_log('[ConfluenceJobService::claimNextRunnable] ' . $e->getMessage());
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -95,10 +96,11 @@ final class ConfluenceJobService
 
                 $results['completed']++;
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'worker', 'Worker error: ' . $e->getMessage());
+                error_log('[ConfluenceJobService::runQueued] Job ' . $jobPublicId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'worker', 'Worker error. Check server logs for details.');
                 $this->migrationRepo->updateJobStatus($jobPublicId, 'failed');
                 $results['failed']++;
-                $results['errors'][] = $jobPublicId . ': ' . $e->getMessage();
+                $results['errors'][] = $jobPublicId . ': Worker error. Check server logs for details.';
             }
         }
 

@@ -335,7 +335,8 @@ final class ProjectController extends BaseController
         /** @var \Api\System\Library\Service\TaskKeyService $taskKeys */
         try {
             $taskKeys = $this->container->get('service.task_key');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ProjectController::validateTaskKeyPrefix] task_key service unavailable: ' . $e->getMessage());
             return null;
         }
 
@@ -359,8 +360,8 @@ final class ProjectController extends BaseController
             if ($projectRepo->taskKeyPrefixExists($normalized, $projectPublicId)) {
                 return ['code' => 'PROJECT_TASK_PREFIX_ALREADY_EXISTS', 'message' => $this->t('project/messages.prefix_already_exists', 'This prefix is already used by another project'), 'status' => 409];
             }
-        } catch (\Throwable) {
-            // If container lookup fails, skip server-side check (rare edge case)
+        } catch (\Throwable $e) {
+            error_log('[ProjectController::validateTaskKeyPrefix] duplicate prefix check failed: ' . $e->getMessage());
         }
 
         return null;

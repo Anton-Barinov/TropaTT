@@ -142,7 +142,8 @@ final class ModuleCronScheduler
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_next ON {$this->tasksTable}(next_run_at, enabled)");
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_module ON {$this->tasksTable}(module_name)");
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_task_executions_module ON {$this->executionsTable}(module_name, task_name, started_at)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
         }
     }
 
@@ -155,7 +156,8 @@ final class ModuleCronScheduler
             $stmt = $this->pdo->prepare("SELECT * FROM {$this->tasksTable} WHERE enabled = 1 AND next_run_at <= :now ORDER BY next_run_at ASC LIMIT 50");
             $stmt->execute(['now' => $now->format('Y-m-d H:i:s')]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::getDueTasks] ' . $e->getMessage());
             return [];
         }
     }
@@ -220,7 +222,8 @@ final class ModuleCronScheduler
                     'trace' => substr($e->getTraceAsString(), 0, 65535),
                     'id' => $executionId ?? 0,
                 ]);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::recordExecution] ' . $e->getMessage());
             }
 
             return ['status' => 'failed', 'module' => $moduleName, 'task' => $taskName, 'duration_ms' => $duration, 'error' => $e->getMessage()];
@@ -234,7 +237,8 @@ final class ModuleCronScheduler
             $now = date('Y-m-d H:i:s');
             $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET last_run_at = :now, next_run_at = :next WHERE id = :id");
             $stmt->execute(['now' => $now, 'next' => $nextRun->format('Y-m-d H:i:s'), 'id' => $taskId]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::updateNextRun] ' . $e->getMessage());
         }
     }
 
@@ -243,8 +247,10 @@ final class ModuleCronScheduler
         try {
             $stmt = $this->pdo->prepare("SELECT overlap_allowed FROM {$this->tasksTable} WHERE id = :id");
             $stmt->execute(['id' => $taskId]);
-            return (bool)($stmt->fetchColumn() ?? 0);
-        } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ModuleCronScheduler::isOverlapAllowed] ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::isOverlapAllowed] DB prepare: ' . $e->getMessage());
             return false;
         }
     }
@@ -253,9 +259,11 @@ final class ModuleCronScheduler
     {
         try {
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->executionsTable} WHERE module_name = :module AND task_name = :task AND status = 'running'");
-            $stmt->execute(['module' => $moduleName, 'task' => $taskName]);
+            } catch (\Throwable $e) {
+                error_log('[ModuleCronScheduler::isRunning] ' . $e->getMessage());
             return ((int)$stmt->fetchColumn()) > 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::hasRunningExecution] DB prepare: ' . $e->getMessage());
             return false;
         }
     }

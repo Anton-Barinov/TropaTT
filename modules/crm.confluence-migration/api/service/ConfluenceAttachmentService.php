@@ -104,13 +104,14 @@ final class ConfluenceAttachmentService
                 $this->pdo->prepare('UPDATE knowledge_pages SET attachments_count = attachments_count + 1 WHERE public_id = :pub')->execute(['pub' => $targetPagePublicId]);
             }
         } catch (\Throwable $e) {
+            error_log('[ConfluenceAttachmentService::importAttachment] ' . $filename . ': ' . $e->getMessage());
             $this->migrationRepo->upsertJobItem($jobId, 'attachment', $attachmentId, [
                 'source_key' => $filename,
                 'status' => 'failed',
                 'error_code' => 'IMPORT_ERROR',
-                'error_message' => $e->getMessage(),
+                'error_message' => 'Attachment import failed. Check server logs for details.',
             ]);
-            $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_attachments', 'Failed to import attachment ' . $filename . ': ' . $e->getMessage());
+            $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_attachments', 'Failed to import attachment ' . $filename . '. Check server logs for details.');
         } finally {
             if (file_exists($tmpPath)) {
                 @unlink($tmpPath);

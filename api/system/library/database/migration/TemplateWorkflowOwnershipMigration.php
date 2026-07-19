@@ -30,7 +30,8 @@ final class TemplateWorkflowOwnershipMigration implements MigrationInterface
         ] as $sql) {
             try {
                 $pdo->exec($sql);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[TemplateWorkflowOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
                 // ignore unsupported IF NOT EXISTS for index creation
             }
         }
@@ -60,7 +61,8 @@ final class TemplateWorkflowOwnershipMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TemplateWorkflowOwnershipMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

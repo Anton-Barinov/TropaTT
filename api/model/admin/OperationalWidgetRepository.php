@@ -195,7 +195,8 @@ final class OperationalWidgetRepository
                 ->from('users')
                 ->count();
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[OperationalWidgetRepository::dbPing] ' . $e->getMessage());
             return false;
         }
     }
@@ -215,7 +216,8 @@ final class OperationalWidgetRepository
                 ->from($table)
                 ->count();
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[OperationalWidgetRepository::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -237,7 +239,8 @@ final class OperationalWidgetRepository
                 if ($value !== false && $value !== null && $value !== '') {
                     return (string)$value;
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[OperationalWidgetRepository::lastMigrationKey] ' . $e->getMessage());
                 // Try next known variant.
             }
         }

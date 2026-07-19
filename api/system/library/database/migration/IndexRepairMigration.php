@@ -82,7 +82,8 @@ final class IndexRepairMigration implements MigrationInterface
 
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[IndexRepairMigration::createIndexIfMissing] ' . $e->getMessage());
             // Keep migration idempotent across drivers / concurrent calls.
         }
     }
@@ -117,7 +118,8 @@ final class IndexRepairMigration implements MigrationInterface
             );
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
-        } catch (Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[IndexRepairMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

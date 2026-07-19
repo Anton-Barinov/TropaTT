@@ -76,7 +76,8 @@ final class TenantModuleRegistry
 
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_tenant_modules_tenant ON {$this->tableName}(tenant_id)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TenantModuleRegistry::ensureTable] ' . $e->getMessage());
         }
     }
 }

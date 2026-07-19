@@ -37,7 +37,8 @@ final class ModuleFeatureFlags
                 $flagName = substr($row['code'], strlen($code) + 1);
                 $flags[$flagName] = (bool)($row['is_enabled'] ?? true);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleFeatureFlags::isEnabled] ' . $e->getMessage());
         }
 
         $this->cache[$moduleName] = $flags;
@@ -65,7 +66,8 @@ final class ModuleFeatureFlags
                 'now' => $now,
                 'now2' => $now,
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleFeatureFlags::setFlag] INSERT failed, trying REPLACE: ' . $e->getMessage());
             try {
                 $stmt = $this->pdo->prepare("REPLACE INTO {$this->tableName} (public_id, code, is_enabled, created_at, updated_at) VALUES (:pid, :code, :enabled, :now, :now)");
                 $stmt->execute([
@@ -74,7 +76,8 @@ final class ModuleFeatureFlags
                     'enabled' => $enabled ? 1 : 0,
                     'now' => $now,
                 ]);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[ModuleFeatureFlags::setEnabled] REPLACE failed: ' . $e->getMessage());
             }
         }
 

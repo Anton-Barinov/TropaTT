@@ -161,7 +161,8 @@ final class ExportJobRepository
 
             $this->pdo->commit();
             return $this->findByPublicId((string)$row['public_id']);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ExportJobRepository::claimNextRunnable] ' . $e->getMessage());
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

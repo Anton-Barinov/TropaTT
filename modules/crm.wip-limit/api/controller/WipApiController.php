@@ -27,6 +27,7 @@ final class WipApiController
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             return JsonResponse::success('WIP_LIMITS_LIST', 'OK', ['items' => $items]);
         } catch (\Throwable $e) {
+            error_log('[WipApiController::list] ' . $e->getMessage());
             return JsonResponse::success('WIP_LIMITS_LIST', 'OK', ['items' => []]);
         }
     }
@@ -71,7 +72,8 @@ final class WipApiController
         try {
             $stmt = $pdo->prepare("INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()");
             $stmt->execute(['uid' => $userId, 'max' => $maxTasks]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WipApiController::set] Upsert failed, falling back to delete+insert: ' . $e->getMessage());
             $pdo->prepare("DELETE FROM crm_wip_limits WHERE user_id = :uid")->execute(['uid' => $userId]);
             $pdo->prepare("INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max)")->execute(['uid' => $userId, 'max' => $maxTasks]);
         }
@@ -111,6 +113,7 @@ final class WipApiController
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             return JsonResponse::success('WIP_SUMMARY', 'OK', ['items' => $items]);
         } catch (\Throwable $e) {
+            error_log('[WipApiController::summary] ' . $e->getMessage());
             return JsonResponse::success('WIP_SUMMARY', 'OK', ['items' => []]);
         }
     }

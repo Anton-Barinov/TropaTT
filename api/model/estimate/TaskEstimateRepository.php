@@ -290,7 +290,8 @@ final class TaskEstimateRepository
             }
             unset($item);
             return $items;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskEstimateRepository::summaryByCycleId] ' . $e->getMessage());
             return [];
         }
     }
@@ -333,7 +334,8 @@ final class TaskEstimateRepository
             }
             unset($item);
             return $items;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TaskEstimateRepository::summaryByModuleId] ' . $e->getMessage());
             return [];
         }
     }

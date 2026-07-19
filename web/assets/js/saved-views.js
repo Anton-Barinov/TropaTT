@@ -47,7 +47,6 @@ window.CRM.savedViews = (function () {
     } else if (window.notify) {
       window.notify(msg, type);
     } else {
-      console.log('[' + type + '] ' + msg);
     }
   }
 
@@ -179,7 +178,6 @@ window.CRM.savedViews = (function () {
           }
         })
         .catch(function (err) {
-          console.error('Failed to load saved views', err);
           if (listEl) {
             listEl.innerHTML = '<div class="dropdown-item text-muted small" style="cursor:default">' + esc(t('saved_views.load_error', 'Ошибка загрузки')) + '</div>';
           }
@@ -428,7 +426,6 @@ window.CRM.savedViews = (function () {
           })
           .catch(function (err) {
             notify(esc(t('saved_views.update_error', 'Ошибка обновления представления')), 'error');
-            console.error(err);
           });
       } else {
         window.CRM.api.request('/api/v1/views', { method: 'POST', body: payload })
@@ -447,7 +444,6 @@ window.CRM.savedViews = (function () {
           })
           .catch(function (err) {
             notify(esc(t('saved_views.create_error', 'Ошибка создания представления')), 'error');
-            console.error(err);
           });
       }
     });

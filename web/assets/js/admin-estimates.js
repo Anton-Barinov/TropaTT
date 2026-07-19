@@ -45,7 +45,6 @@ window.CRM.adminEstimates = (function () {
       window.notify(text, type);
       return;
     }
-    console.log('[admin-estimates]', type, text);
   }
 
   function req(route, opts) {

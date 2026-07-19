@@ -67,8 +67,8 @@ final class ModuleErrorHandler
                 'request_id' => $requestId,
                 'now' => $now,
             ]);
-        } catch (\Throwable) {
-            error_log("[ModuleErrorHandler] Failed to persist error for {$moduleName}: {$errorMessage}");
+        } catch (\Throwable $e) {
+            error_log("[ModuleErrorHandler::persistError] DB persist failed for {$moduleName}: " . $e->getMessage() . " | Original error: {$errorMessage}");
         }
     }
 
@@ -97,7 +97,8 @@ final class ModuleErrorHandler
             $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE module_name = :module ORDER BY id DESC LIMIT :limit");
             $stmt->execute(['module' => $moduleName, 'limit' => $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleErrorHandler::getErrors] ' . $e->getMessage());
             return [];
         }
     }
@@ -110,7 +111,8 @@ final class ModuleErrorHandler
         try {
             $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE module_name = :module");
             $stmt->execute(['module' => $moduleName]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleErrorHandler::clearErrors] ' . $e->getMessage());
         }
     }
 
@@ -133,7 +135,8 @@ final class ModuleErrorHandler
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_errors_module ON {$this->tableName}(module_name)");
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_errors_created ON {$this->tableName}(created_at)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleErrorHandler::ensureTable] ' . $e->getMessage());
         }
     }
 }

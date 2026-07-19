@@ -210,7 +210,8 @@ final class PageDataController extends BaseController
             $selected = $this->selectBestMyDaySuggestion($items);
             $publicId = trim((string)($selected['public_id'] ?? ''));
             return $publicId !== '' ? $service->get($publicId, $actor) : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[PageDataController::latestMyDaySuggestion] ' . $e->getMessage());
             return null;
         }
     }
@@ -240,7 +241,8 @@ final class PageDataController extends BaseController
             $selected = $this->selectBestMyWeekSuggestion($items);
             $publicId = trim((string)($selected['public_id'] ?? ''));
             return $publicId !== '' ? $service->get($publicId, $actor) : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[PageDataController::latestMyWeekSuggestion] ' . $e->getMessage());
             return null;
         }
     }

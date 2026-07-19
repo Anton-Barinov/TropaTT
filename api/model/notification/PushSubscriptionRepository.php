@@ -209,7 +209,8 @@ final class PushSubscriptionRepository
             if (!$hasLastError) {
                 $this->pdo->exec('ALTER TABLE notification_push_subscriptions ADD COLUMN last_error TEXT NULL');
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[PushSubscriptionRepository::ensureSchema] DB exec: ' . $e->getMessage());
             // Keep fail-safe behavior for already managed schema or restricted DB modes.
         }
     }

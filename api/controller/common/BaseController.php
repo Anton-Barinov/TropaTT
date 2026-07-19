@@ -120,7 +120,8 @@ abstract class BaseController
                         $ttl = max(1, (int)$val);
                     }
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[BaseController::cacheApi] ' . $e->getMessage());
                 // Settings service unavailable — proceed with bootstrap config
             }
         }

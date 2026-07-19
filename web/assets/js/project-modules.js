@@ -74,7 +74,6 @@ window.CRM.projectModules = (function () {
       window.notify(text, type);
       return;
     }
-    console.log('[project-modules]', type, text);
   }
 
   function req(route, opts) {

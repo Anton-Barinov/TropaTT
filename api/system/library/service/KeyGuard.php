@@ -179,7 +179,8 @@ final class KeyGuard
     {
         try {
             return bin2hex(random_bytes($bytes));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KeyGuard::generateHex] random_bytes failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -215,7 +216,8 @@ final class KeyGuard
             $privateKey = rtrim(strtr(base64_encode($ec['d']), '+/', '-_'), '=');
 
             return ['public_key' => $publicKey, 'private_key' => $privateKey];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[KeyGuard::generateVapidKeyPair] ' . $e->getMessage());
             return null;
         }
     }

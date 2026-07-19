@@ -28,7 +28,8 @@ final class TeamCreatorsMigration implements MigrationInterface
     {
         try {
             $pdo->exec('UPDATE teams SET created_by_user_id = manager_user_id WHERE created_by_user_id IS NULL AND manager_user_id IS NOT NULL');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TeamCreatorsMigration::backfillCreators] UPDATE TEAMS SET CREATED_BY_USER_ID = MANAGER_USER: ' . $e->getMessage());
             // Ignore on engines with transient locking issues; column creation is the critical part.
         }
     }
@@ -64,7 +65,8 @@ final class TeamCreatorsMigration implements MigrationInterface
 
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TeamCreatorsMigration::createIndexIfMissing] ' . $e->getMessage());
             // Ignore duplicate/race conditions.
         }
     }
@@ -78,7 +80,8 @@ final class TeamCreatorsMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TeamCreatorsMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -139,7 +142,8 @@ final class TeamCreatorsMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvIndexExists($pdo, $table, $name),
                 default => $this->sqliteIndexExists($pdo, $name),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[TeamCreatorsMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

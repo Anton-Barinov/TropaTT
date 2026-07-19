@@ -47,7 +47,8 @@ final class NotificationPushQueueRuntimeMigration implements MigrationInterface
         try {
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_push_queue_runnable ON notification_push_queue(status, dead_letter, next_run_at, locked_at, created_at)');
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_push_queue_user_created ON notification_push_queue(user_id, created_at)');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[NotificationPushQueueRuntimeMigration::up] CREATE INDEX: ' . $e->getMessage());
             // noop
         }
     }

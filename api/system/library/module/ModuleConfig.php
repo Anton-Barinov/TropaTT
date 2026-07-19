@@ -124,7 +124,8 @@ final class ModuleConfig
 
         try {
             $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_registry_name ON module_registry(module_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleConfig::ensureTable] index creation failed: ' . $e->getMessage());
         }
     }
 
@@ -163,7 +164,8 @@ final class ModuleConfig
                 }
             }
             // SQLite does not enforce VARCHAR lengths, so no conversion is needed.
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleConfig::ensureTable] ALTER TABLE failed: ' . $e->getMessage());
             // A read-only database must not prevent modules that already fit.
             // saveConfig will still surface a real write failure to the caller.
         }
@@ -237,7 +239,8 @@ final class ModuleConfig
             $stmt->execute(['name' => $moduleName]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleConfig::getRegistry] DB prepare: ' . $e->getMessage());
             return null;
         }
     }
@@ -252,7 +255,8 @@ final class ModuleConfig
             $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE is_active = 1");
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleConfig::getActiveModules] ' . $e->getMessage());
             return [];
         }
     }
@@ -272,7 +276,8 @@ final class ModuleConfig
                     return $config;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleConfig::loadConfig] ' . $e->getMessage());
         }
 
         return [];

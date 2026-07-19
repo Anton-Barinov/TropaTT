@@ -68,7 +68,8 @@ final class JiraCrawler
                         $countResult = $this->client->searchIssues($siteUrl, $email, $token, $jql, ['id'], 1);
                         $totalIssues += $countResult[0]['total'] ?? count($countResult);
                     } catch (\Throwable $e) {
-                        $warnings[] = "Failed to count issues for {$projectKey}: " . $e->getMessage();
+                        error_log('[JiraCrawler::crawlProjects] Failed to count issues for ' . $projectKey . ': ' . $e->getMessage());
+                        $warnings[] = "Failed to count issues for {$projectKey}. Check server logs for details.";
                     }
                     continue;
                 }
@@ -135,12 +136,14 @@ final class JiraCrawler
                             'payload_json' => $version,
                         ]);
                     }
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[JiraCrawler::crawlProjects] Failed to get versions for ' . $projectKey . ': ' . $e->getMessage());
                 }
 
             } catch (\Throwable $e) {
-                $warnings[] = "Failed to crawl project {$projectKey}: " . $e->getMessage();
-                $this->repo->addJobLog($jobPublicId, 'warning', 'crawl', "Failed to crawl project {$projectKey}: " . $e->getMessage());
+                error_log('[JiraCrawler::crawlProjects] Failed to crawl project ' . $projectKey . ': ' . $e->getMessage());
+                $warnings[] = "Failed to crawl project {$projectKey}. Check server logs for details.";
+                $this->repo->addJobLog($jobPublicId, 'warning', 'crawl', 'Failed to crawl project ' . $projectKey . '. Check server logs for details.');
             }
         }
 

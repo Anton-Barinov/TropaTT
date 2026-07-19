@@ -30,7 +30,8 @@ final class ModuleAuditLogger
                 'user_id' => $userId,
                 'now' => $now,
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleAuditLogger::log] ' . $e->getMessage());
         }
     }
 
@@ -41,7 +42,8 @@ final class ModuleAuditLogger
             $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE module_name = :module ORDER BY id DESC LIMIT :limit");
             $stmt->execute(['module' => $moduleName, 'limit' => $limit]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleAuditLogger::getAuditLog] ' . $e->getMessage());
             return [];
         }
     }
@@ -65,7 +67,8 @@ final class ModuleAuditLogger
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_audit_module ON {$this->tableName}(module_name)");
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_audit_created ON {$this->tableName}(created_at)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleAuditLogger::ensureTable] ' . $e->getMessage());
         }
     }
 }

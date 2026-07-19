@@ -271,7 +271,8 @@ final class AiFoundationMigration implements MigrationInterface
         $sql = sprintf('CREATE %s INDEX %s ON %s(%s)', $unique ? 'UNIQUE' : '', $name, $table, $columns);
         try {
             $pdo->exec(trim(preg_replace('/\s+/', ' ', $sql) ?? $sql));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiFoundationMigration::createIndexIfMissing] ' . $e->getMessage());
             // Keep migration idempotent in concurrent execution paths.
         }
     }
@@ -306,7 +307,8 @@ final class AiFoundationMigration implements MigrationInterface
             );
             $stmt->execute(['table' => $table, 'name' => $name]);
             return (bool)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiFoundationMigration::indexExists] ' . $e->getMessage());
             return false;
         }
     }

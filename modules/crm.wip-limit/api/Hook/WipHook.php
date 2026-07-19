@@ -52,7 +52,8 @@ final class WipHook
             $stmt->execute(['uid' => $userId]);
             $result = $stmt->fetchColumn();
             return $result !== false ? (int)$result : $defaultLimit;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WipHook::getUserLimit] User ' . $userId . ': ' . $e->getMessage());
             return $defaultLimit;
         }
     }
@@ -64,7 +65,8 @@ final class WipHook
             $stmt->execute(['uid' => $userId]);
             $result = $stmt->fetchColumn();
             return $result !== false ? (int)$result : 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WipHook::getCurrentWipCount] User ' . $userId . ': ' . $e->getMessage());
             return 0;
         }
     }
@@ -74,7 +76,8 @@ final class WipHook
         try {
             $stmt = $pdo->prepare("INSERT INTO crm_wip_counts (user_id, current_count) VALUES (:uid, :cnt) ON DUPLICATE KEY UPDATE current_count = VALUES(current_count), updated_at = NOW()");
             $stmt->execute(['uid' => $userId, 'cnt' => $count]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WipHook::updateWipCount] Upsert failed for user ' . $userId . ', falling back: ' . $e->getMessage());
             $pdo->prepare("DELETE FROM crm_wip_counts WHERE user_id = :uid")->execute(['uid' => $userId]);
             $pdo->prepare("INSERT INTO crm_wip_counts (user_id, current_count) VALUES (:uid, :cnt)")->execute(['uid' => $userId, 'cnt' => $count]);
         }
@@ -92,7 +95,8 @@ final class WipHook
             $stmt->execute(['uid' => $userId]);
             $count = (int)$stmt->fetchColumn();
             static::updateWipCount($pdo, $userId, $count);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[WipHook::recalculateWipCount] User ' . $userId . ': ' . $e->getMessage());
         }
     }
 }

@@ -125,6 +125,7 @@ final class ProjectService
                 ]);
                 break;
             } catch (PDOException $e) {
+                error_log('[ProjectService::create] task_key_prefix conflict: ' . $e->getMessage());
                 if (!$this->isTaskKeyPrefixDuplicate($e)) {
                     throw $e;
                 }

@@ -37,6 +37,7 @@ final class InstallController extends BaseController
             $data = $service->checkConnection($this->request()->allInput());
             return $this->success('INSTALL_CHECK_OK', $this->t('install/messages.check_ok'), $data);
         } catch (Throwable $e) {
+            error_log('[InstallController::check] ' . $e->getMessage());
             return $this->error('INSTALL_CHECK_FAILED', $this->t('install/messages.check_failed'), 422, [
                 'database' => [$this->t('install/messages.check_failed')],
             ]);
@@ -66,6 +67,7 @@ final class InstallController extends BaseController
                 'installed' => true,
             ]);
         } catch (Throwable $e) {
+            error_log('[InstallController::setup] ' . $e->getMessage());
             return $this->error('INSTALL_FAILED', $this->t('install/messages.install_failed'), 422, [
                 'install' => [$this->t('install/messages.install_failed')],
             ]);

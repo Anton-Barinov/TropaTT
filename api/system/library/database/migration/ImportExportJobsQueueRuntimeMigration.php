@@ -70,7 +70,8 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
             $stmt = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_name = :name LIMIT 1');
             $stmt->execute(['name' => $table]);
             return (bool)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ImportExportJobsQueueRuntimeMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -103,7 +104,8 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
                 'column_name' => $column,
             ]);
             return (bool)$stmt->fetchColumn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ImportExportJobsQueueRuntimeMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -113,12 +115,14 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
         try {
             $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS %s ON %s(%s)', $index, $table, $columns));
             return;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ImportExportJobsQueueRuntimeMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
         }
 
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s(%s)', $index, $table, $columns));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ImportExportJobsQueueRuntimeMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
             // noop
         }
     }

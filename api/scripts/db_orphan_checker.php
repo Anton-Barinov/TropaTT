@@ -158,7 +158,8 @@ function tableExists(PDO $pdo, string $table): bool
     try {
         $stmt = $pdo->query('SELECT 1 FROM ' . $table . ' WHERE 1=0');
         return $stmt !== false;
-    } catch (Throwable) {
+    } catch (\Throwable $e) {
+        error_log('[db_orphan_checker::tableExists] DB query: ' . $e->getMessage());
         return false;
     }
 }

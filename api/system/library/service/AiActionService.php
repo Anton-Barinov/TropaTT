@@ -137,10 +137,11 @@ final class AiActionService
         try {
             $completion = $this->aiProviderService->completeText((string)($provider['public_id'] ?? ''), $promptPayload);
         } catch (\Throwable $e) {
+            error_log('[AiActionService::execute] ' . $e->getMessage());
             $this->runtime->updateJobByPublicId($jobPublicId, [
                 'status' => 'failed',
                 'error_code' => 'AI_PROVIDER_UNAVAILABLE',
-                'error_message' => $e->getMessage(),
+                'error_message' => 'AI provider request failed. Check server logs for details.',
                 'finished_at' => gmdate('Y-m-d H:i:s'),
                 'updated_at' => gmdate('Y-m-d H:i:s'),
             ]);

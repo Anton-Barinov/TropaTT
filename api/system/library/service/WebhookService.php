@@ -424,13 +424,14 @@ final class WebhookService
                 $retried++;
             } catch (\Throwable $e) {
                 $failed++;
-                $errors[] = ['public_id' => $deliveryPublicId, 'error' => $e->getMessage()];
+                error_log('[WebhookService::runQueued] delivery=' . $deliveryPublicId . ' ' . $e->getMessage());
+                $errors[] = ['public_id' => $deliveryPublicId, 'error' => 'Webhook delivery failed. Check server logs for details.'];
                 $this->repository->updateDeliveryByPublicId($deliveryPublicId, [
                     'status' => $attempt >= $maxAttempts ? 'error' : 'queued',
                     'attempts' => $attempt,
                     'next_run_at' => $attempt >= $maxAttempts ? null : gmdate('Y-m-d H:i:s', time() + max(1, (int)ceil($backoffMs / 1000)) * $attempt),
                     'locked_at' => null,
-                    'last_error' => $e->getMessage(),
+                    'last_error' => 'Webhook delivery failed.',
                     'dead_letter' => $attempt >= $maxAttempts ? 1 : 0,
                     'updated_at' => gmdate('Y-m-d H:i:s'),
                 ]);

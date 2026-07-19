@@ -74,7 +74,8 @@ final class RecurringProcessorMigration implements MigrationInterface
                     return true;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[RecurringProcessorMigration::columnExists] ' . $e->getMessage());
             return false;
         }
 

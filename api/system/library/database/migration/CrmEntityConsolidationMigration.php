@@ -443,7 +443,8 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
         foreach ($indexes as $sql) {
             try {
                 $pdo->exec($sql);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[CrmEntityConsolidationMigration::createIndexes] CREATE INDEX: ' . $e->getMessage());
                 // ignore unsupported IF NOT EXISTS on index creation
             }
         }
@@ -473,7 +474,8 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CrmEntityConsolidationMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -487,7 +489,8 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvTableExists($pdo, $table),
                 default => $this->sqliteTableExists($pdo, $table),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[CrmEntityConsolidationMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }

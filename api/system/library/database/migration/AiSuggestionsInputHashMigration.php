@@ -47,13 +47,15 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
         try {
             $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS %s ON %s (%s)', $indexName, $table, $columns));
             return;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsInputHashMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
             // Continue to fallback branch for engines without IF NOT EXISTS.
         }
 
         try {
             $pdo->exec(sprintf('CREATE INDEX %s ON %s (%s)', $indexName, $table, $columns));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsInputHashMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
             // Best effort migration: ignore duplicate/unsupported index creation syntax.
         }
     }
@@ -67,7 +69,8 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvTableExists($pdo, $table),
                 default => $this->sqliteTableExists($pdo, $table),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsInputHashMigration::tableExists] ' . $e->getMessage());
             return false;
         }
     }
@@ -81,7 +84,8 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiSuggestionsInputHashMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

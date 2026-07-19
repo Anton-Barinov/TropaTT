@@ -145,7 +145,8 @@ function buildApp(): ?object
         ];
         return $app;
     } catch (\Throwable $e) {
-        fwrite(STDERR, "Bootstrap error: " . $e->getMessage() . "\n");
+        error_log('[ConfluenceWorker::buildApp] Bootstrap error: ' . $e->getMessage());
+        fwrite(STDERR, "Bootstrap error. Check server logs for details.\n");
         return null;
     }
 }

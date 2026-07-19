@@ -1,0 +1,51 @@
+name: PHP CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  php-lint:
+    name: PHP syntax check (${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: PHP syntax check
+        run: |
+          find . -name "*.php" -not -path "./vendor/*" -not -path "./modules/*" -print0 | xargs -0 -n50 -P4 php -l
+
+  phpstan:
+    name: PHPStan static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Download PHPStan PHAR
+        run: |
+          curl -sL https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar -o phpstan.phar
+          chmod +x phpstan.phar
+
+      - name: PHPStan analysis with baseline
+        run: |
+          php phpstan.phar analyse --level=1 --no-progress --error-format=github --memory-limit=1G

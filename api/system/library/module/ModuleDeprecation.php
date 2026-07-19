@@ -38,7 +38,8 @@ final class ModuleDeprecation
                 'replacement' => $replacement,
                 'now' => $now,
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleDeprecation::logDeprecation] ' . $e->getMessage());
         }
     }
 
@@ -49,7 +50,8 @@ final class ModuleDeprecation
             $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE module_name = :module ORDER BY id DESC");
             $stmt->execute(['module' => $moduleName]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleDeprecation::getDeprecations] SELECT: ' . $e->getMessage());
             return [];
         }
     }
@@ -72,7 +74,8 @@ final class ModuleDeprecation
 
         try {
             $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_deprecations_module ON {$this->tableName}(module_name)");
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ModuleDeprecation::ensureTable] CREATE INDEX: ' . $e->getMessage());
         }
     }
 }

@@ -201,9 +201,10 @@ final class ConfluenceImportService
                 $this->migrationRepo->upsertJobItem($jobId, 'space', $space['id'], [
                     'status' => 'failed',
                     'error_code' => 'IMPORT_ERROR',
-                    'error_message' => $e->getMessage(),
+                    'error_message' => 'Space import failed. Check server logs for details.'
                 ]);
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_spaces', 'Failed to import space ' . $space['key'] . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::importSpaces] Space ' . $space['key'] . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_spaces', 'Failed to import space ' . $space['key'] . '. Check server logs for details.');
             }
         }
     }
@@ -297,10 +298,11 @@ final class ConfluenceImportService
                         'status' => 'imported',
                     ]);
                 } catch (\Throwable $e) {
+                    error_log('[ConfluenceImportService::importPageShells] Page ' . $item['source_id'] . ': ' . $e->getMessage());
                     $this->migrationRepo->upsertJobItem($jobId, 'page', $item['source_id'], [
                         'status' => 'failed',
                         'error_code' => 'SHELL_ERROR',
-                        'error_message' => $e->getMessage(),
+                        'error_message' => 'Page shell creation failed. Check server logs for details.'
                     ]);
                 }
             }
@@ -313,7 +315,8 @@ final class ConfluenceImportService
             if ($sourceParentId && $targetPublicId && isset($shellsCreated[$sourceParentId])) {
                 try {
                     $this->knowledgeRepo->updatePageParent($targetPublicId, $shellsCreated[$sourceParentId]);
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[ConfluenceImportService::importPageShells] Parent update failed for ' . $targetPublicId . ': ' . $e->getMessage());
                 }
             }
         }
@@ -386,7 +389,8 @@ final class ConfluenceImportService
                         if ($propKey !== '') {
                             try {
                                 $this->knowledgeRepo->setPageProperty($targetPublicId, 'confluence:' . $propKey, is_string($propValue) ? $propValue : json_encode($propValue, JSON_UNESCAPED_UNICODE), 'string', 'confluence', $pageId);
-                            } catch (\Throwable) {
+                            } catch (\Throwable $e) {
+                                error_log('[ConfluenceImportService::importPageContent] Set property failed for page ' . $pageId . ': ' . $e->getMessage());
                             }
                         }
                     }
@@ -396,12 +400,13 @@ final class ConfluenceImportService
                     'status' => 'completed',
                 ]);
             } catch (\Throwable $e) {
+                error_log('[ConfluenceImportService::importPageContent] Page ' . $pageId . ': ' . $e->getMessage());
                 $this->migrationRepo->upsertJobItem($jobId, $item['source_type'] ?? 'page', $pageId, [
                     'status' => 'failed',
                     'error_code' => 'CONTENT_ERROR',
-                    'error_message' => $e->getMessage(),
+                    'error_message' => 'Content import failed. Check server logs for details.',
                 ]);
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_content', 'Failed to import content for ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_content', 'Failed to import content for ' . $pageId . '. Check server logs for details.');
             }
         }
     }
@@ -425,7 +430,8 @@ final class ConfluenceImportService
                     $this->knowledgeRepo->legacyAddVersion($targetPublicId, $userId, '[Confluence v' . $version['number'] . '] ' . ($version['message'] ?: 'Imported from Confluence'));
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_versions', 'Failed to import versions for page ' . $pageId . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::importVersions] Page ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'import_versions', 'Failed to import versions for page ' . $pageId . '. Check server logs for details.');
             }
         }
     }
@@ -448,7 +454,8 @@ final class ConfluenceImportService
                     $this->attachmentService->importAttachment($job, $baseUrl, $email, $token, $attachment, $targetPagePublicId);
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_attachments', 'Failed to import attachments for page ' . $pageId . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::importAttachments] Page ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_attachments', 'Failed to import attachments for page ' . $pageId . '. Check server logs for details.');
             }
         }
     }
@@ -485,12 +492,14 @@ final class ConfluenceImportService
                     if ($tagPublicId !== '') {
                         try {
                             $this->tagRepo->attachToEntity('knowledge_page', $targetPagePublicId, (int)$tag['id']);
-                        } catch (\Throwable) {
+                        } catch (\Throwable $e) {
+                            error_log('[ConfluenceImportService::importLabels] Tag attach failed: ' . $e->getMessage());
                         }
                     }
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_labels', 'Failed to import labels for page ' . $pageId . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::importLabels] Page ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_labels', 'Failed to import labels for page ' . $pageId . '. Check server logs for details.');
             }
         }
     }
@@ -533,7 +542,8 @@ final class ConfluenceImportService
                     ], null);
                 }
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_comments', 'Failed to import comments for page ' . $pageId . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::importComments] Page ' . $pageId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'error', 'import_comments', 'Failed to import comments for page ' . $pageId . '. Check server logs for details.');
             }
         }
     }
@@ -552,7 +562,8 @@ final class ConfluenceImportService
             try {
                 $this->knowledgeRepo->batchPublish($targetPublicId, $userId, true);
             } catch (\Throwable $e) {
-                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'publish', 'Failed to publish page ' . $targetPublicId . ': ' . $e->getMessage());
+                error_log('[ConfluenceImportService::publishPages] Page ' . $targetPublicId . ': ' . $e->getMessage());
+                $this->migrationRepo->addJobLog($jobPublicId, 'warning', 'publish', 'Failed to publish page ' . $targetPublicId . '. Check server logs for details.');
             }
         }
     }
@@ -569,7 +580,8 @@ final class ConfluenceImportService
                     if ($page) {
                         $this->knowledgeRepo->reindexPage((int)$page['id']);
                     }
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[ConfluenceImportService::reindexJobPages] Page ' . $item['target_public_id'] . ': ' . $e->getMessage());
                 }
             }
         }

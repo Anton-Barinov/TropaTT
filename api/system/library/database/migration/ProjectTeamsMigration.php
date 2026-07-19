@@ -47,7 +47,8 @@ final class ProjectTeamsMigration implements MigrationInterface
                 'sqlsrv' => $this->sqlsrvColumnExists($pdo, $table, $column),
                 default => $this->sqliteColumnExists($pdo, $table, $column),
             };
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[ProjectTeamsMigration::columnExists] ' . $e->getMessage());
             return false;
         }
     }

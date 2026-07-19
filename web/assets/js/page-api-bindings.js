@@ -131,8 +131,8 @@ window.CRM.pageApiBindings = (function () {
     } catch (e) {
       // ignore
     }
-    // Fallback: console log
-    if (type === 'error') console.error('[notify]', text); else if (type === 'warning') console.warn('[notify]', text); else console.log('[notify]', text);
+
+
   }
 
   // Replace elements containing user public ids with human-readable labels
@@ -2991,8 +2991,7 @@ window.CRM.pageApiBindings = (function () {
               requestAiPriority().then(function () {
                 renderTasksPage();
                 }).catch(function (error) {
-                  console.log('Update status network error:', error);
-                  notify(window.CRM.i18n.t('js.pab.update_status_error', 'Update status error'), 'error');
+                              notify(window.CRM.i18n.t('js.pab.update_status_error', 'Update status error'), 'error');
                   // Revert
                   evt.from.appendChild(item);
                 });
@@ -3585,7 +3584,7 @@ window.CRM.pageApiBindings = (function () {
 
         if (results.errors.length > 0 && results.errors.length <= 5) {
           results.errors.forEach(function (e) {
-            console.warn('[bulk-delete] Failed: ' + e.id + ' - ' + e.message);
+            /* bulk-delete failed */
           });
         }
 
@@ -4633,9 +4632,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     ensureDashboardQuickActions(tasks, quickActionUsers).catch(function (error) {
-      if (window.console && typeof window.console.warn === 'function') {
-        window.console.warn('[CRM] Dashboard quick actions failed', error);
-      }
+      /* Dashboard quick actions failed */
     });
   }
 
@@ -14672,7 +14669,7 @@ window.CRM.pageApiBindings = (function () {
           });
         });
       } catch (renderErr) {
-        console.warn('Task rendering error (week):', renderErr);
+        /* Task rendering error (week) */
       }
 
       // Update events
@@ -15084,7 +15081,7 @@ window.CRM.pageApiBindings = (function () {
       crmGanttSetKpiFilter(current === next ? 'all' : next);
 
       renderGanttPage().catch(function (error) {
-        console.error('[GANTT] KPI filter render failed', error);
+        /* GANTT KPI filter render failed */
         if (typeof notify === 'function') notify(tp('gantt.filter_apply_fail', 'Failed to apply chart filter'), 'error');
       });
     });
@@ -15108,7 +15105,7 @@ window.CRM.pageApiBindings = (function () {
       var idx = ss.statusFilters.indexOf(status);
       if (idx === -1) { ss.statusFilters.push(status); } else { ss.statusFilters.splice(idx, 1); }
 
-      renderGanttPage().catch(function (err) { console.error('[GANTT] status filter rerender', err); });
+      renderGanttPage().catch(function (err) { /* GANTT status filter rerender failed */ });
     });
 
     legendEl.dataset.statusFilterBound = '1';
@@ -15195,7 +15192,7 @@ window.CRM.pageApiBindings = (function () {
         });
 
         renderGanttPage().catch(function (error) {
-          console.error('Gantt render failed', error);
+          /* Gantt render failed */
           if (typeof notify === 'function') notify(tp('gantt.render_fail', 'Failed to rebuild Gantt chart'), 'error');
         });
       });
@@ -15241,7 +15238,7 @@ window.CRM.pageApiBindings = (function () {
           var filter = kpiBtn.getAttribute('data-gantt-kpi-filter') || 'all';
           var ks = crmGanttEnsureState();
           ks.kpiFilter = ks.kpiFilter === filter ? 'all' : filter;
-          renderGanttPage().catch(function (err) { console.error('Gantt rerender', err); });
+          renderGanttPage().catch(function (err) { /* Gantt rerender failed */ });
           return;
         }
         var statusBtn = e.target.closest('[data-gantt-status-filter]');
@@ -15251,7 +15248,7 @@ window.CRM.pageApiBindings = (function () {
           ss.statusFilters = ss.statusFilters || [];
           var idx = ss.statusFilters.indexOf(status);
           if (idx === -1) { ss.statusFilters.push(status); } else { ss.statusFilters.splice(idx, 1); }
-          renderGanttPage().catch(function (err) { console.error('Gantt rerender', err); });
+          renderGanttPage().catch(function (err) { /* Gantt rerender failed */ });
         }
       }, true);
     }
@@ -16066,7 +16063,7 @@ window.CRM.pageApiBindings = (function () {
         });
         node.dataset.tooltipBound = '1';
       } catch (error) {
-        console.warn('Tooltip init failed', error);
+        /* Tooltip init failed */
       }
     });
   }
@@ -16135,7 +16132,7 @@ window.CRM.pageApiBindings = (function () {
       collapsed[projectId] = !collapsed[projectId];
 
       renderGanttPage().catch(function (error) {
-        console.error('[GANTT] project collapse render failed', error);
+        /* GANTT project collapse render failed */
       });
     });
 
@@ -16404,7 +16401,7 @@ window.CRM.pageApiBindings = (function () {
         }).filter(function (d) { return d.from_task_id && d.to_task_id; });
       }
     } catch (e) {
-      console.warn('[GANTT] Failed to load dependencies', e);
+      /* GANTT Failed to load dependencies */
     }
 
     try {
@@ -16441,7 +16438,7 @@ window.CRM.pageApiBindings = (function () {
         window.CRM.ganttMilestones = allMilestones;
       }
     } catch (e) {
-      console.warn('[GANTT] Failed to load milestones', e);
+      /* GANTT Failed to load milestones */
     }
   }
 
@@ -16464,7 +16461,7 @@ window.CRM.pageApiBindings = (function () {
       var state = crmGanttEnsureState();
       state.searchQuery = query;
       syncClearButton();
-      renderGanttPage().catch(function (err) { console.error('[GANTT] search rerender', err); });
+      renderGanttPage().catch(function (err) { /* GANTT search rerender failed */ });
     });
 
     if (clearBtn && clearBtn.dataset.searchClearBound !== '1') {
@@ -16474,7 +16471,7 @@ window.CRM.pageApiBindings = (function () {
         state.searchQuery = '';
         syncClearButton();
         input.focus();
-        renderGanttPage().catch(function (err) { console.error('[GANTT] clear search rerender', err); });
+        renderGanttPage().catch(function (err) { /* GANTT clear search rerender failed */ });
       });
       clearBtn.dataset.searchClearBound = '1';
     }
@@ -16509,7 +16506,7 @@ window.CRM.pageApiBindings = (function () {
       select.addEventListener('change', function () {
         var state = crmGanttEnsureState();
         state.projectFilter = select.value === 'all' ? null : select.value;
-        renderGanttPage().catch(function (err) { console.error('[GANTT] project filter rerender', err); });
+        renderGanttPage().catch(function (err) { /* GANTT project filter rerender failed */ });
       });
     }
   }
@@ -17154,7 +17151,7 @@ window.CRM.pageApiBindings = (function () {
           link.click();
           if (typeof notify === 'function') notify(tp('gantt.export_done', 'Chart exported'), 'success');
         }).catch(function (err) {
-          console.error('[GANTT] Export failed', err);
+          /* GANTT Export failed */
           if (typeof notify === 'function') notify(tp('gantt.export_error', 'Export error'), 'error');
         });
       } else {
@@ -17849,17 +17846,14 @@ window.CRM.pageApiBindings = (function () {
                       // Re-init sortable bindings for newly rendered columns
                       initKanbanSortable();
                     } else {
-                    console.log('Update status response errors:', response.errors);
-                    if (response.errors && response.errors.status && response.errors.status[0]) {
-                      console.log('Status error:', response.errors.status[0]);
-                    }
+                                    if (response.errors && response.errors.status && response.errors.status[0]) {
+                                    }
                     notify(kanbanT('kanban.notify.status_update_error', 'Ошибка обновления статуса'), 'error');
                     // Revert
                     evt.from.appendChild(item);
                   }
                 }).catch(function (error) {
-                  console.log('Update status network error:', error);
-                  notify(kanbanT('kanban.notify.status_update_error', 'Ошибка обновления статуса'), 'error');
+                              notify(kanbanT('kanban.notify.status_update_error', 'Ошибка обновления статуса'), 'error');
                   // Revert
                   evt.from.appendChild(item);
                 });
@@ -17881,7 +17875,6 @@ window.CRM.pageApiBindings = (function () {
     var allTasks = window.CRM.kanbanTasks || [];
     var tasks = kanbanFilteredTasks();
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
-    console.log('updateKanbanColumns, tasks length:', tasks.length);
     bindKanbanFilters();
     var summary = document.getElementById('kanbanResultSummary');
     if (summary) {
@@ -17898,7 +17891,6 @@ window.CRM.pageApiBindings = (function () {
       if (!byStatus[status]) byStatus[status] = [];
       byStatus[status].push(task);
     });
-    console.log('byStatus:', byStatus);
 
     var statusOrder = window.CRM.kanbanStatusOrder || ['new', 'todo', 'in_progress', 'done'];
     var statusMap = window.CRM.kanbanStatusMap || {};
@@ -26449,7 +26441,7 @@ window.CRM.pageApiBindings = (function () {
                 dropdown.style.display = 'block';
               })
               .catch(function (err) {
-                console.error('[DependencySearch] API error:', err);
+                /* DependencySearch API error */
                 dropdown.innerHTML = '<div class="crm-searchable-empty">' + _t('dependency.load_error', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438') + '</div>';
                 dropdown.style.display = 'block';
               });
@@ -26525,9 +26517,7 @@ window.CRM.pageApiBindings = (function () {
       return await renderer();
     }
 
-    if (window.console && typeof window.console.warn === 'function') {
-      window.console.warn('[CRM] Renderer is not defined: ' + functionName);
-    }
+    /* Renderer not defined: ' + functionName + ' */
 
     setErrorState(fallbackMessage || _t('page.page_not_connected', 'Страница пока не подключена'));
     return null;
@@ -27506,7 +27496,7 @@ window.CRM.pageApiBindings = (function () {
           crmGanttBindKpiFilters();
           crmGanttBindLegendStatusFilters();
         } catch (error) {
-          console.error('[CRM] Gantt render failed', error);
+          /* Gantt render failed */
           setErrorState(_t('page.gantt_load_error', 'Не удалось загрузить диаграмму Ганта'));
           return;
         }
@@ -27581,14 +27571,7 @@ window.CRM.pageApiBindings = (function () {
       ? window.CRM.api.formatErrorMessage(normalized, { withRequestId: true })
       : String(normalized.message || _t('page.api_load_error', 'Ошибка загрузки данных API'));
 
-    if (window.console && typeof window.console.error === 'function') {
-      window.console.error('[CRM] Error loading page via API', {
-        route: routeName(),
-        message: message,
-        error: error,
-        envelope: error && error.envelope ? error.envelope : null
-      });
-    }
+    /* Error loading page via API */
 
     setErrorState(message);
     notify(message || _t('page.api_partial_load_error', 'Часть данных не удалось загрузить'), 'warning');

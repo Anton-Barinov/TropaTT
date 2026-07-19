@@ -895,7 +895,8 @@ final class AiJobService
         try {
             new \DateTimeZone($value);
             return true;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiJobService::isValidTimezone] ' . $e->getMessage());
             return false;
         }
     }
@@ -976,7 +977,8 @@ final class AiJobService
                 $dt = new \DateTimeImmutable($date . ' ' . $base, new \DateTimeZone($timezone));
                 $dt = $dt->modify('-' . $minutesBefore . ' minutes');
                 return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[AiJobService::resolveScheduledUtc] workday_before_start parse failed: ' . $e->getMessage());
                 return gmdate('Y-m-d H:i:s');
             }
         }
@@ -987,7 +989,8 @@ final class AiJobService
                 $dt = new \DateTimeImmutable($date . ' ' . $base, new \DateTimeZone($timezone));
                 $dt = $dt->modify('+' . $minutesAfter . ' minutes');
                 return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[AiJobService::resolveScheduledUtc] workday_end parse failed: ' . $e->getMessage());
                 return gmdate('Y-m-d H:i:s');
             }
         }
@@ -1006,7 +1009,8 @@ final class AiJobService
         try {
             $dt = new \DateTimeImmutable($date . ' ' . $localTime . ':00', new \DateTimeZone($timezone));
             return $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiJobService::resolveScheduledUtc] date parse failed: ' . $e->getMessage());
             return gmdate('Y-m-d H:i:s');
         }
     }
@@ -1032,7 +1036,8 @@ final class AiJobService
 
         try {
             $this->runtime->cleanupByRetention($this->retention->getPolicies());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiJobService::logCronUsage] cleanup failed: ' . $e->getMessage());
             // Cleanup is best-effort and must not break cron diagnostics.
         }
     }

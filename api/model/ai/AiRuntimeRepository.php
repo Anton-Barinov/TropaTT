@@ -124,7 +124,8 @@ final class AiRuntimeRepository
             $publicId = $this->createJob($payload);
             $this->pdo->commit();
             return $publicId;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiRuntimeRepository::claimInteractiveSlot] ' . $e->getMessage());
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -134,7 +135,8 @@ final class AiRuntimeRepository
                 try {
                     $release = $this->pdo->prepare('SELECT RELEASE_LOCK(:name)');
                     $release->execute(['name' => 'crm_ai_interactive_slots']);
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    error_log('[AiRuntimeRepository::claimInteractiveSlot] SELECT: ' . $e->getMessage());
                     // The connection will release an advisory lock on close.
                 }
             }
@@ -397,7 +399,8 @@ final class AiRuntimeRepository
                     return;
                 }
                 return;
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                error_log('[AiRuntimeRepository::markSuggestionUsed] ' . $e->getMessage());
                 // fall through to plain update
             }
         }
@@ -509,7 +512,8 @@ final class AiRuntimeRepository
                 ->from('ai_usage_logs')
                 ->where('created_at', '<', $usageCutoff)
                 ->delete();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiRuntimeRepository::cleanupByRetention] DELETE: ' . $e->getMessage());
             return $deleted;
         }
 
@@ -687,7 +691,8 @@ final class AiRuntimeRepository
                     }
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiRuntimeRepository::aiJobsColumnMap] ' . $e->getMessage());
             $this->aiJobsColumns = [];
         }
 
@@ -745,7 +750,8 @@ final class AiRuntimeRepository
                     }
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('[AiRuntimeRepository::aiSuggestionsColumnMap] ' . $e->getMessage());
             $this->aiSuggestionsColumns = [];
         }
 

@@ -106,7 +106,7 @@
         script.onerror = reject;
         document.head.appendChild(script);
       }).catch(function (error) {
-        console.error('notificationsRealtime load failed', error);
+        // Script load failed — realtime notifications unavailable
       });
 
       return loadingPromise;
@@ -226,12 +226,12 @@
     try {
       if (window.CRM.tabLeader) window.CRM.tabLeader.init();
     } catch (error) {
-      console.error('tabLeader init failed', error);
+      /* tabLeader init failed */
     }
     try {
       if (window.CRM.i18n) window.CRM.i18n.init();
     } catch (error) {
-      console.error('i18n init failed', error);
+      /* i18n init failed */
     }
     try {
       if (window.CRM.ui) {
@@ -241,7 +241,7 @@
         window.CRM.ui.initStatusColorPickers();
       }
     } catch (error) {
-      console.error('ui init failed', error);
+      /* ui init failed */
     }
     try {
       if (window.CRM.modals) {
@@ -249,25 +249,25 @@
         window.CRM.modals.initEscapeForCustom();
       }
     } catch (error) {
-      console.error('modals init failed', error);
+      /* modals init failed */
     }
-    try { if (window.CRM.drawers) window.CRM.drawers.init(); } catch (error) { console.error('drawers init failed', error); }
-    try { if (window.CRM.tabs) window.CRM.tabs.init(); } catch (error) { console.error('tabs init failed', error); }
-    try { if (window.CRM.filters) window.CRM.filters.init(); } catch (error) { console.error('filters init failed', error); }
-    try { if (window.CRM.tables) window.CRM.tables.init(); } catch (error) { console.error('tables init failed', error); }
-    try { if (window.CRM.notifications) window.CRM.notifications.init(); } catch (error) { console.error('notifications init failed', error); }
-    try { if (window.CRM.richtext) window.CRM.richtext.init(); } catch (error) { console.error('richtext init failed', error); }
+    try { if (window.CRM.drawers) window.CRM.drawers.init(); } catch (error) { /* drawer init failed */ }
+    try { if (window.CRM.tabs) window.CRM.tabs.init(); } catch (error) { /* tab init failed */ }
+    try { if (window.CRM.filters) window.CRM.filters.init(); } catch (error) { /* filter init failed */ }
+    try { if (window.CRM.tables) window.CRM.tables.init(); } catch (error) { /* table init failed */ }
+    try { if (window.CRM.notifications) window.CRM.notifications.init(); } catch (error) { /* notification init failed */ }
+    try { if (window.CRM.richtext) window.CRM.richtext.init(); } catch (error) { /* richtext init failed */ }
 
-    try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { console.error('br1 init failed', error); }
-    try { if (window.CRM.navigation) await window.CRM.navigation.init(); } catch (error) { console.error('navigation init failed', error); }
+    try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { /* br1 init failed */ }
+    try { if (window.CRM.navigation) await window.CRM.navigation.init(); } catch (error) { /* navigation init failed */ }
     try {
       if (window.CRM.pageApiBindings) {
         hasPageApiBindings = true;
         window.CRM.pageApiBindings.init();
       }
-    } catch (error) { console.error('pageApiBindings init failed', error); }
-    try { startPushAfterPageData(); } catch (error) { console.error('notificationsPush bootstrap failed', error); }
-    try { startRealtimeAfterPageData(); } catch (error) { console.error('realtime bootstrap failed', error); }
+    } catch (error) { /* pageApiBindings init failed */ }
+    try { startPushAfterPageData(); } catch (error) { /* notificationsPush bootstrap failed */ }
+    try { startRealtimeAfterPageData(); } catch (error) { /* realtime bootstrap failed */ }
     if (!hasPageApiBindings) {
       window.setTimeout(function () {
         try {
@@ -279,9 +279,9 @@
         }
       }, 0);
     }
-    try { enhanceAccessibility(document); } catch (error) { console.error('a11y enhance failed', error); }
+    try { enhanceAccessibility(document); } catch (error) { /* a11y enhance failed */ }
     document.addEventListener('crm:page-data-ready', function () {
-      try { enhanceAccessibility(document); } catch (error) { console.error('a11y enhance failed', error); }
+      try { enhanceAccessibility(document); } catch (error) { /* a11y enhance failed */ }
     });
 
     bindLoginFallback();
