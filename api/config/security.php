@@ -106,6 +106,17 @@ return [
     ))),
     'trusted_proxy_header' => (string)(getenv('CRM_TRUSTED_PROXY_HEADER') ?: 'X-Forwarded-For'),
 
+    // SEC-006: HSTS configuration.
+    // include_subdomains is OFF by default — on shared hosting it can break
+    // other sites on the same domain. Only enable if you control ALL subdomains.
+    // preload is not implemented (practically irreversible for self-hosted).
+    'hsts' => [
+        'enabled' => (getenv('CRM_HSTS_ENABLED') ?: '1') === '1',
+        'max_age' => (int)(getenv('CRM_HSTS_MAX_AGE') ?: 31536000),
+        'include_subdomains' => (getenv('CRM_HSTS_INCLUDE_SUBDOMAINS') ?: '0') === '1',
+        'preload' => false,
+    ],
+
     'cors' => [
         'allow_origin' => (string)(getenv('CORS_ALLOW_ORIGIN') ?: ($isProduction ? '' : 'https://localhost,http://localhost,https://127.0.0.1,http://127.0.0.1')),
         'allow_methods' => 'GET, POST, PATCH, PUT, DELETE, OPTIONS',

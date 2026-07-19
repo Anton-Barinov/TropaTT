@@ -777,7 +777,19 @@ final class App
         header('X-Correlation-Id: ' . $request->correlationId);
         header('X-Frame-Options: DENY');
         header('X-Content-Type-Options: nosniff');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        // SEC-006: Conditional HSTS — only on HTTPS, configurable via .env
+        $hstsEnabled = (bool)$this->config->get('security.hsts.enabled', true);
+        if ($hstsEnabled) {
+            $capabilities = new \Api\System\Library\Security\EnvironmentCapabilities();
+            if ($capabilities->isHttps()) {
+                $hstsMaxAge = max(0, (int)$this->config->get('security.hsts.max_age', 31536000));
+                $hstsValue = 'max-age=' . $hstsMaxAge;
+                if ((bool)$this->config->get('security.hsts.include_subdomains', false)) {
+                    $hstsValue .= '; includeSubDomains';
+                }
+                header('Strict-Transport-Security: ' . $hstsValue);
+            }
+        }
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header("Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), midi=(), sync-xhr=(), accelerometer=(), gyroscope=(), magnetometer=()");
         // SEC-006: Use relative URI for CSP report-uri to avoid host-dependency
