@@ -5,6 +5,7 @@ namespace Api\Controller\Health;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Database\ConnectionManager;
+use Api\System\Library\Security\EnvironmentCapabilities;
 use Throwable;
 
 final class HealthController extends BaseController
@@ -76,6 +77,10 @@ final class HealthController extends BaseController
 
         $degraded = !($dbRead && $dbWrite && $storageRw && $queueReady);
 
+        // SEC-TASK-00: Environment capabilities check
+        $env = new EnvironmentCapabilities();
+        $environment = $env->toArray();
+
         return $this->success(
             $degraded ? 'HEALTH_DEEP_DEGRADED' : 'HEALTH_DEEP_OK',
             $degraded ? $this->t('health/messages.deep_degraded') : $this->t('health/messages.deep_ok'),
@@ -90,6 +95,7 @@ final class HealthController extends BaseController
                 ],
                 'degraded_mode' => $degraded,
                 'details' => $checks,
+                'environment' => $environment,
             ]
         );
     }
