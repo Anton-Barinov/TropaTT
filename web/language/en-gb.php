@@ -5686,6 +5686,7 @@ return array (
     'delete_image' => 'Delete image',
     'uploading' => 'Uploading...',
     'upload_error' => 'Could not upload image',
+    'type_forbidden' => 'This file type is forbidden for security reasons',
     'upload_no_url' => 'The server did not return an image URL',
     'invalid_file_type' => 'Only JPEG, PNG, WebP, or GIF images are allowed',
     'file_too_large' => 'File is too large. Maximum size is 10 MB',

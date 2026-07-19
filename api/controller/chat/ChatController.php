@@ -738,7 +738,12 @@ final class ChatController extends BaseController
         $size = (int)($raw['size'] ?? 0);
         $dir = dirname(__DIR__, 3) . '/storage_api/uploads/chat';
         if (!is_dir($dir)) @mkdir($dir, 0775, true);
-        $path = $dir . '/' . $publicId . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+        // SEC-001: Store as .bin — no user-controlled extension on disk
+        $path = $dir . '/' . $publicId . '.bin';
+        // Gate: put index.html to prevent directory listing
+        if (!is_file($dir . '/index.html')) {
+            @file_put_contents($dir . '/index.html', '');
+        }
         if (!move_uploaded_file($tmp, $path)) throw new \RuntimeException('UPLOAD_MOVE_FAILED');
 
         $this->container->get('db.pdo')->prepare("

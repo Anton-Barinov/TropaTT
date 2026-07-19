@@ -53,6 +53,13 @@ final class FileController extends BaseController
                 ]);
             }
 
+            // SEC-001: Forbidden file types rejected before disk write
+            if ($e->getMessage() === 'FILE_TYPE_FORBIDDEN') {
+                return $this->error('FILE_TYPE_FORBIDDEN', $this->t('file/messages.type_forbidden'), 422, [
+                    'file' => [$this->t('file/messages.type_forbidden')],
+                ]);
+            }
+
             error_log('[FileController::create] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error'), 422, [
                 'file' => ['File upload failed. Check server logs for details.'],

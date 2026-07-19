@@ -1139,6 +1139,7 @@ header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
             (string)$this->config->get('default.storage.uploads', $this->basePath . '/../storage_api/uploads'),
             (string)$this->config->get('default.storage.quarantine', $this->basePath . '/../storage_api/quarantine'),
             (int)$this->config->get('security.uploads.max_size_bytes', 20971520),
+            (array)$this->config->get('security.uploads.forbidden_extensions', []),
             (array)$this->config->get('security.uploads.quarantine_extensions', []),
             (array)$this->config->get('security.uploads.quarantine_mime_prefixes', []),
             $c->get('repository.task'),

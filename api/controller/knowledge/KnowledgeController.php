@@ -860,6 +860,12 @@ final class KnowledgeController extends BaseController
             if ($e->getMessage() === 'ENTITY_ACCESS_DENIED') {
                 return $this->error('FORBIDDEN', $this->t('knowledge/messages.entity_access_denied', 'Access denied'), 403);
             }
+            // SEC-001: Forbidden file types rejected before disk write
+            if ($e->getMessage() === 'FILE_TYPE_FORBIDDEN') {
+                return $this->error('FILE_TYPE_FORBIDDEN', $this->t('file/messages.type_forbidden', 'This file type is forbidden for security reasons'), 422, [
+                    'file' => [$this->t('file/messages.type_forbidden', 'This file type is forbidden for security reasons')],
+                ]);
+            }
             error_log('[KnowledgeController::uploadFile] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error', 'Upload error'), 422, [
                 'file' => ['File upload failed. Check server logs for details.'],

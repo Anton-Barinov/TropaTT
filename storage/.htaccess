@@ -1,4 +1,4 @@
-# SEC-001: Block all direct access to secrets directory
+# SEC-001: Block all direct access to storage directory
 # Apache 2.4+ compatibility
 <IfModule mod_authz_core.c>
     Require all denied

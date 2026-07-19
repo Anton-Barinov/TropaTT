@@ -18,6 +18,7 @@ final class FileService
         private readonly string $uploadsDir,
         private readonly string $quarantineDir,
         private readonly int $maxUploadSizeBytes,
+        private readonly array $forbiddenExtensions,
         private readonly array $quarantineExtensions,
         private readonly array $quarantineMimePrefixes,
         private readonly TaskRepository $tasks,
@@ -55,11 +56,16 @@ final class FileService
             $size = (int)($rawFiles['file']['size'] ?? 0);
             $this->assertUploadSize($size);
             $detectedMime = $this->detectMime($tmp);
+            // SEC-001: Check forbidden BEFORE any disk write
+            if ($this->isForbidden($name, $detectedMime)) {
+                throw new \RuntimeException('FILE_TYPE_FORBIDDEN');
+            }
             [$isQuarantined, $quarantineReason] = $this->quarantineDecision($name, $mime, $detectedMime);
             $mime = $detectedMime !== '' ? $detectedMime : $mime;
             $dir = rtrim($isQuarantined ? $this->quarantineDir : $this->uploadsDir, '/');
             $this->ensureDir($dir);
-            $storedPath = $dir . '/' . $publicId . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+            // SEC-001: Store as .bin — no user-controlled extension on disk
+            $storedPath = $dir . '/' . $publicId . '.bin';
 
             if (!move_uploaded_file($tmp, $storedPath)) {
                 throw new \RuntimeException('UPLOAD_MOVE_FAILED');
@@ -76,11 +82,16 @@ final class FileService
             $tmp = $this->writeTempProbe($bin);
             $detectedMime = $this->detectMime($tmp);
             @unlink($tmp);
+            // SEC-001: Check forbidden BEFORE any disk write
+            if ($this->isForbidden($name, $detectedMime)) {
+                throw new \RuntimeException('FILE_TYPE_FORBIDDEN');
+            }
             [$isQuarantined, $quarantineReason] = $this->quarantineDecision($name, $mime, $detectedMime);
             $mime = $detectedMime !== '' ? $detectedMime : $mime;
             $dir = rtrim($isQuarantined ? $this->quarantineDir : $this->uploadsDir, '/');
             $this->ensureDir($dir);
-            $storedPath = $dir . '/' . $publicId . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+            // SEC-001: Store as .bin — no user-controlled extension on disk
+            $storedPath = $dir . '/' . $publicId . '.bin';
             file_put_contents($storedPath, $bin);
         } else {
             throw new \RuntimeException('FILE_REQUIRED');
@@ -234,7 +245,12 @@ final class FileService
         }
         $path = (string)($file['storage_path'] ?? '');
         if ($path === '' || !is_file($path)) {
-            return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
+            // SEC-001: Backward compatibility — try .bin path as fallback
+            $fallbackPath = $this->resolveStoragePath((string)($file['public_id'] ?? ''), $path);
+            if ($fallbackPath === null || !is_file($fallbackPath)) {
+                return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
+            }
+            $path = $fallbackPath;
         }
         if ($this->isQuarantinedPath($path)) {
             $this->logger->security([
@@ -264,7 +280,7 @@ final class FileService
             'ok' => true,
             'path' => $path,
             'name' => (string)$file['original_name'],
-            'mime' => (string)$file['mime_type'],
+            'mime' => $this->quarantineMimeOverride($path, (string)$file['mime_type']),
             'size' => (int)$file['size_bytes'],
         ];
     }
@@ -379,6 +395,12 @@ final class FileService
         // Restrict permissions: quarantine gets 700, uploads gets 750
         $quarantined = $this->quarantineDir !== '' && str_starts_with($dir, rtrim($this->quarantineDir, '/'));
         @chmod($dir, $quarantined ? 0700 : 0750);
+
+        // SEC-001: Prevent directory listing where Options -Indexes is not set
+        $indexFile = $dir . '/index.html';
+        if (!is_file($indexFile)) {
+            @file_put_contents($indexFile, '');
+        }
     }
 
     private function sanitizeFileName(string $name): string
@@ -406,6 +428,95 @@ final class FileService
         if ($size > $this->maxUploadSizeBytes) {
             throw new \RuntimeException('FILE_TOO_LARGE');
         }
+    }
+
+    /**
+     * SEC-001: Check if file should be REJECTED entirely (not even saved to quarantine).
+     * Checks all segments of the name to catch double extensions.
+     */
+    private function isForbidden(string $fileName, string $detectedMimeType = ''): bool
+    {
+        // Check by extension — including all segments (double extensions)
+        $cleanName = str_replace('\\', '/', $fileName);
+        $cleanName = basename($cleanName);
+        $parts = explode('.', $cleanName);
+        foreach ($parts as $part) {
+            $part = strtolower(trim($part));
+            if ($part !== '' && in_array($part, $this->forbiddenExtensions, true)) {
+                return true;
+            }
+        }
+
+        // SEC-001: Check for compound extensions (e.g. user.ini, .htaccess.part)
+        if (count($parts) >= 2) {
+            for ($i = 0; $i < count($parts) - 1; $i++) {
+                if ($parts[$i] === '') {
+                    continue; // skip leading dot
+                }
+                $compound = strtolower(trim($parts[$i] . '.' . $parts[$i + 1]));
+                if (in_array($compound, $this->forbiddenExtensions, true)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check by detected MIME
+        $detectedMime = strtolower(trim($detectedMimeType));
+        if ($detectedMime !== '') {
+            foreach ($this->quarantineMimePrefixes as $prefix) {
+                $normalizedPrefix = strtolower(trim($prefix));
+                if ($normalizedPrefix !== '' && str_starts_with($detectedMime, $normalizedPrefix)) {
+                    return true;
+                }
+            }
+            if ($this->containsExecutableSignature($detectedMime)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * SEC-001: Resolve storage path with backward compatibility.
+     * 1. Try the path from DB (authoritative source)
+     * 2. Fallback to <dir>/<publicId>.bin (new naming scheme)
+     * Returns null if neither exists.
+     */
+    private function resolveStoragePath(string $publicId, string $dbPath): ?string
+    {
+        // If DB path exists, use it
+        if ($dbPath !== '' && is_file($dbPath)) {
+            return $dbPath;
+        }
+
+        // Try .bin path — compute from DB path's directory + publicId
+        $dir = dirname($dbPath);
+        $binPath = $dir . '/' . $publicId . '.bin';
+        if (is_file($binPath)) {
+            return $binPath;
+        }
+
+        return null;
+    }
+
+    /**
+     * SEC-001: For quarantined files, override MIME to neutral value.
+     * Forces safe download of SVG/HTML/etc. files.
+     */
+    private function quarantineMimeOverride(string $path, string $originalMime): string
+    {
+        if ($this->isQuarantinedPath($path)) {
+            return 'application/octet-stream';
+        }
+
+        // Also check if extension is in quarantine list even if path doesn't look quarantined
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if ($ext !== '' && in_array($ext, $this->quarantineExtensions, true)) {
+            return 'application/octet-stream';
+        }
+
+        return $originalMime;
     }
 
     private function quarantineDecision(string $fileName, string $mimeType, string $detectedMimeType = ''): array
