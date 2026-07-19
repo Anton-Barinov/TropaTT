@@ -519,10 +519,10 @@ final class AiProviderService
 
         $scheme = strtolower((string)(parse_url(trim($baseUrl), PHP_URL_SCHEME) ?? ''));
         if ($scheme === 'http' && !$this->allowInsecureLocalDevUrl($baseUrl, $strict)) {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED', 'resolved_ips' => []];
         }
 
-        return ['ok' => true, 'code' => 'OK'];
+        return ['ok' => true, 'code' => 'OK', 'resolved_ips' => (array)($validated['resolved_ips'] ?? [])];
     }
 
     private function validateCustomHeaders(mixed $headers): array

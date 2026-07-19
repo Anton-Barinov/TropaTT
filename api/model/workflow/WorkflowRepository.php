@@ -322,6 +322,7 @@ final class WorkflowRepository
             error_log('[WorkflowRepository] SSRF blocked: ' . ($validated['code'] ?? 'UNKNOWN') . ' url=' . $url);
             return;
         }
+        $resolvedIps = (array)($validated['resolved_ips'] ?? []);
 
         $payload = json_encode($context, JSON_UNESCAPED_UNICODE);
         $ch = curl_init($url);
@@ -338,6 +339,18 @@ final class WorkflowRepository
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => 0,
         ]);
+
+        // SEC-002: DNS pinning — force cURL to use validated IP
+        if (!empty($resolvedIps) && defined('CURLOPT_RESOLVE')) {
+            $host = (string)(parse_url($url, PHP_URL_HOST) ?: '');
+            $scheme = strtolower((string)(parse_url($url, PHP_URL_SCHEME) ?: 'https'));
+            $port = (int)(parse_url($url, PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80));
+            if ($host !== '') {
+                $resolveEntry = $host . ':' . $port . ':' . trim((string)$resolvedIps[0]);
+                curl_setopt($ch, CURLOPT_RESOLVE, [$resolveEntry]);
+            }
+        }
+
         curl_exec($ch);
         curl_close($ch);
     }

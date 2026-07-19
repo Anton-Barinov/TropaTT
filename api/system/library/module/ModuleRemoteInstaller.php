@@ -184,6 +184,7 @@ final class ModuleRemoteInstaller
         if (!$result['ok']) {
             throw new RuntimeException("Invalid or unsafe URL for module download: {$result['code']}");
         }
+        $resolvedIps = (array)($result['resolved_ips'] ?? []);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -195,6 +196,17 @@ final class ModuleRemoteInstaller
             CURLOPT_USERAGENT => 'CRM-Module-Installer/1.0',
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
+
+        // SEC-002: DNS pinning — force cURL to use validated IP
+        if (!empty($resolvedIps) && defined('CURLOPT_RESOLVE')) {
+            $host = (string)(parse_url($url, PHP_URL_HOST) ?: '');
+            $scheme = strtolower((string)(parse_url($url, PHP_URL_SCHEME) ?: 'https'));
+            $port = (int)(parse_url($url, PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80));
+            if ($host !== '') {
+                $resolveEntry = $host . ':' . $port . ':' . trim((string)$resolvedIps[0]);
+                curl_setopt($ch, CURLOPT_RESOLVE, [$resolveEntry]);
+            }
+        }
 
         $content = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

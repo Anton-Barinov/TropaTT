@@ -54,6 +54,7 @@ final class WebhookService
         }
 
         $this->repository->createSubscription([
+
             'public_id' => $publicId,
             'title' => trim((string)($input['title'] ?? '')),
             'endpoint' => $endpoint,
@@ -510,8 +511,9 @@ final class WebhookService
             if (!$endpointValidation['ok']) {
                 return ['error', 0, $attemptCount];
             }
+            $resolvedIps = (array)($endpointValidation['resolved_ips'] ?? []);
 
-            $code = $this->sendOnce($endpoint, $body, $headers);
+            $code = $this->sendOnce($endpoint, $body, $headers, $resolvedIps);
 
             if ($code >= 200 && $code < 300) {
                 $status = 'sent';
@@ -636,7 +638,7 @@ final class WebhookService
         return null;
     }
 
-    private function sendOnce(string $endpoint, string $body, array $headers): int
+    private function sendOnce(string $endpoint, string $body, array $headers, array $resolvedIps = []): int
     {
         $timeout = max(1, (int)$this->config->get('security.webhook.timeout_sec', 5));
 
@@ -658,9 +660,25 @@ final class WebhookService
                 if (defined('CURLOPT_REDIR_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
                     curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
                 }
+                // SEC-002: DNS pinning — force cURL to use validated IP
+                $resolveEntry = $this->buildCurlResolveEntry($endpoint, $resolvedIps);
+                if ($resolveEntry !== null) {
+                    if (defined('CURLOPT_RESOLVE')) {
+                        curl_setopt($ch, CURLOPT_RESOLVE, [$resolveEntry]);
+                    }
+                }
                 curl_exec($ch);
                 return (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             }
+        }
+
+        // SEC-002: Without cURL, DNS pinning is unavailable — log unpinned delivery
+        if (!empty($resolvedIps)) {
+            $this->logger->security([
+                'event_type' => 'webhook_delivery_unpinned',
+                'endpoint' => $endpoint,
+                'reason' => 'curl_unavailable',
+            ]);
         }
 
         $context = stream_context_create([
@@ -686,7 +704,7 @@ final class WebhookService
     }
 
     /**
-     * @return array{ok:bool,code:string}
+     * @return array{ok:bool,code:string,resolved_ips:list<string>}
      */
     private function validateEndpoint(string $endpoint): array
     {
@@ -696,15 +714,15 @@ final class WebhookService
         $allowedSchemes = (array)$this->config->get('security.webhook.allowed_schemes', ['https']);
         $validated = $this->urlSafety->validateProviderUrl($endpoint, $strict, $allowedSchemes);
         if (!(bool)($validated['ok'] ?? false)) {
-            return ['ok' => false, 'code' => $this->mapEndpointValidationCode((string)($validated['code'] ?? 'AI_PROVIDER_URL_INVALID'))];
+            return ['ok' => false, 'code' => $this->mapEndpointValidationCode((string)($validated['code'] ?? 'AI_PROVIDER_URL_INVALID')), 'resolved_ips' => []];
         }
 
         $scheme = strtolower((string)(parse_url($endpoint, PHP_URL_SCHEME) ?: ''));
         if ($scheme === 'http' && !$this->allowInsecureLocalDevEndpoint($endpoint, $strict)) {
-            return ['ok' => false, 'code' => 'WEBHOOK_ENDPOINT_SCHEME_NOT_ALLOWED'];
+            return ['ok' => false, 'code' => 'WEBHOOK_ENDPOINT_SCHEME_NOT_ALLOWED', 'resolved_ips' => []];
         }
 
-        return ['ok' => true, 'code' => 'OK'];
+        return ['ok' => true, 'code' => 'OK', 'resolved_ips' => (array)($validated['resolved_ips'] ?? [])];
     }
 
     private function allowInsecureLocalDevEndpoint(string $endpoint, bool $strict): bool
@@ -726,8 +744,37 @@ final class WebhookService
             'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED' => 'WEBHOOK_ENDPOINT_SCHEME_NOT_ALLOWED',
             'AI_PROVIDER_URL_LOCALHOST_FORBIDDEN' => 'WEBHOOK_ENDPOINT_LOCALHOST_FORBIDDEN',
             'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN' => 'WEBHOOK_ENDPOINT_PRIVATE_IP_FORBIDDEN',
+            'AI_PROVIDER_URL_DNS_UNAVAILABLE' => 'WEBHOOK_ENDPOINT_DNS_UNAVAILABLE',
+            'AI_PROVIDER_URL_UNRESOLVABLE' => 'WEBHOOK_ENDPOINT_INVALID',
             default => 'WEBHOOK_ENDPOINT_INVALID',
         };
+    }
+
+    /**
+     * Build a CURLOPT_RESOLVE entry from validated IPs for DNS pinning.
+     * Format: host:port:ip
+     */
+    private function buildCurlResolveEntry(string $endpoint, array $resolvedIps): ?string
+    {
+        if (empty($resolvedIps)) {
+            return null;
+        }
+
+        $host = (string)(parse_url($endpoint, PHP_URL_HOST) ?: '');
+        if ($host === '') {
+            return null;
+        }
+
+        $scheme = strtolower((string)(parse_url($endpoint, PHP_URL_SCHEME) ?: 'https'));
+        $port = (int)(parse_url($endpoint, PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80));
+
+        // Use the first validated IP
+        $ip = trim((string)$resolvedIps[0]);
+        if ($ip === '') {
+            return null;
+        }
+
+        return $host . ':' . $port . ':' . $ip;
     }
 
     private function webhookCryptoKey(): string

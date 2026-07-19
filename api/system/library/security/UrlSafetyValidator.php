@@ -6,74 +6,88 @@ namespace Api\System\Library\Security;
 final class UrlSafetyValidator
 {
     /**
-     * @return array{ok:bool,code:string}
+     * Validate and resolve a URL for SSRF safety.
+     *
+     * @return array{ok:bool,code:string,resolved_ips:list<string>}
      */
     public function validateProviderUrl(string $url, bool $strictNetworkPolicy, array $allowedSchemes = ['https', 'http']): array
     {
         $value = trim($url);
         if ($value === '') {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_REQUIRED'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_REQUIRED', 'resolved_ips' => []];
         }
 
         if (filter_var($value, FILTER_VALIDATE_URL) === false) {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID', 'resolved_ips' => []];
         }
 
         $parts = parse_url($value);
         if (!is_array($parts)) {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID', 'resolved_ips' => []];
         }
 
         $scheme = strtolower((string)($parts['scheme'] ?? ''));
         if ($scheme === '' || !in_array($scheme, $allowedSchemes, true)) {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_SCHEME_NOT_ALLOWED', 'resolved_ips' => []];
         }
 
         $host = strtolower(trim((string)($parts['host'] ?? '')));
         if ($host === '') {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_INVALID', 'resolved_ips' => []];
         }
 
         if (!$strictNetworkPolicy) {
-            return ['ok' => true, 'code' => 'OK'];
+            return ['ok' => true, 'code' => 'OK', 'resolved_ips' => []];
         }
 
         // Normalize IPv6: remove brackets for proper validation
         $normalizedHost = trim($host, '[]');
 
         if ($this->isLocalHostname($normalizedHost)) {
-            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_LOCALHOST_FORBIDDEN'];
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_LOCALHOST_FORBIDDEN', 'resolved_ips' => []];
         }
+
+        // SEC-002: fail-closed when DNS is unavailable (both dns_get_record and gethostbynamel disabled)
+        $dnsAvailable = function_exists('dns_get_record') || function_exists('gethostbynamel');
 
         // IPv6 check (brackets stripped)
         if (filter_var($normalizedHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
             if ($this->isPrivateOrReservedIpV6($normalizedHost)) {
-                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN', 'resolved_ips' => []];
             }
-            return ['ok' => true, 'code' => 'OK'];
+            return ['ok' => true, 'code' => 'OK', 'resolved_ips' => [$normalizedHost]];
         }
 
         // IPv4 check (with brackets still on, filter_var handles both)
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
             if ($this->isPrivateOrReservedIp($host)) {
-                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN', 'resolved_ips' => []];
             }
-            return ['ok' => true, 'code' => 'OK'];
+            return ['ok' => true, 'code' => 'OK', 'resolved_ips' => [$host]];
+        }
+
+        // Hostname — DNS required for SSRF check
+        if (!$dnsAvailable) {
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_DNS_UNAVAILABLE', 'resolved_ips' => []];
         }
 
         $ips = $this->resolveHostIps($host);
+        if (empty($ips)) {
+            return ['ok' => false, 'code' => 'AI_PROVIDER_URL_UNRESOLVABLE', 'resolved_ips' => []];
+        }
+
         foreach ($ips as $ip) {
             $checkIp = trim($ip, '[]');
             if (filter_var($checkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
                 if ($this->isPrivateOrReservedIpV6($checkIp)) {
-                    return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+                    return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN', 'resolved_ips' => []];
                 }
             } elseif ($this->isPrivateOrReservedIp($checkIp)) {
-                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN'];
+                return ['ok' => false, 'code' => 'AI_PROVIDER_URL_PRIVATE_IP_FORBIDDEN', 'resolved_ips' => []];
             }
         }
 
-        return ['ok' => true, 'code' => 'OK'];
+        return ['ok' => true, 'code' => 'OK', 'resolved_ips' => $ips];
     }
 
     private function isLocalHostname(string $host): bool
