@@ -125,6 +125,15 @@ if ($route === '') {
     $route = 'dashboard';
 }
 
+// SEC-008: Hide install API endpoints after setup.
+// Return 404 instead of leaking that the installer endpoint exists.
+// The browser installer (web/install.php) is unaffected — it is served
+// directly by the web server as a static file path.
+if (str_starts_with($route, 'install/')) {
+    http_response_code(404);
+    exit;
+}
+
 // Handle API routes
 if (str_starts_with($route, 'api/')) {
     // Rate-limit auth-sensitive endpoints before proxying to the API.
