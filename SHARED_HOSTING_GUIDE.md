@@ -153,6 +153,101 @@ chmod 755 api/
 - [ ] Set a strong password for your admin account.
 - [ ] Configure daily backups: your hosting panel likely has an "Automatic Backup" feature.
 
+### Storage protection
+
+TropaTT stores uploaded files in `storage_api/uploads/`. The system protects these files using:
+
+1. **File extension `.bin` on disk** — uploaded files are stored without their original extension (e.g., `<publicId>.bin`), so even if the directory is web-accessible, the files cannot be executed as scripts.
+2. **Dangerous file types are rejected** — `.php`, `.phtml`, `.phar`, `.asp`, `.jsp`, and similar files are blocked with a `FILE_TYPE_FORBIDDEN` error before they reach the disk.
+3. **Same-origin download** — files are served through PHP with proper authentication, not directly by the web server.
+
+**On Apache:** `.htaccess` files in `storage/` and `storage_api/` directories deny all direct HTTP access.
+
+**On nginx:** `.htaccess` is not supported. See the [nginx configuration guide](#nginx) below for securing storage.
+
+**Check protection status:** Visit `https://yourdomain.com/api/v1/health/deep` as root admin and look for the `environment.storage_protection_verified` field.
+
+### Trusted proxies
+
+If your site is behind a reverse proxy or CDN (e.g., Cloudflare, hosting load balancer), TropaTT needs to know which IPs are trusted to extract the real client IP for rate limiting and audit logging.
+
+#### How to check if you need this
+
+Compare the client IP in application logs (`/api/v1/logs/request`) with your own public IP. If all entries show the same IP (the proxy's), you need trusted proxy configuration.
+
+#### Configuration
+
+Add to your `api/.env` file:
+
+```bash
+# Comma-separated list of trusted proxy CIDR ranges
+CRM_TRUSTED_PROXIES=173.245.48.0/20,103.21.244.0/22,2a06:98c0::/29
+
+# Optional: custom header name (default: X-Forwarded-For)
+# CRM_TRUSTED_PROXY_HEADER=X-Forwarded-For
+```
+
+**Cloudflare IP ranges:** Cloudflare publishes their current ranges at https://www.cloudflare.com/ips-v4 and https://www.cloudflare.com/ips-v6. Check them periodically as they change.
+
+> **Warning:** Only add addresses you fully control. Adding an untrusted address allows anyone to spoof their IP by sending `X-Forwarded-For` headers.
+
+### HSTS (HTTP Strict Transport Security)
+
+TropaTT sends the `Strict-Transport-Security` header when accessed over HTTPS. This tells browsers to always use HTTPS for your domain.
+
+#### Default behavior
+
+- **Over HTTPS:** `Strict-Transport-Security: max-age=31536000` (valid for 1 year, no `includeSubDomains`)
+- **Over HTTP:** No header is sent
+
+#### Why `includeSubDomains` is off by default
+
+On shared hosting, your domain may share subdomains with other services (e.g., `blog.example.com`, `mail.example.com`). Enabling `includeSubDomains` would require ALL subdomains to support HTTPS, potentially making others inaccessible for up to a year.
+
+#### Configuration (optional)
+
+Add to your `api/.env` file to customize HSTS:
+
+```bash
+# Enable/disable HSTS (default: 1/enabled)
+CRM_HSTS_ENABLED=1
+
+# Set max age in seconds (default: 31536000 = 1 year)
+CRM_HSTS_MAX_AGE=31536000
+
+# Include subdomains (default: 0/disabled)
+# Only enable if you own ALL subdomains and ALL have HTTPS
+CRM_HSTS_INCLUDE_SUBDOMAINS=0
+```
+
+**Note:** HSTS is cached by browsers for the duration of `max-age`. If you enable `includeSubDomains` and later need to revert, you cannot "withdraw" the header — you must wait for the cache to expire or issue `max-age=0` and wait for each user to visit again.
+
+### nginx configuration
+
+If your hosting uses nginx (not Apache), add these rules to your nginx configuration to protect storage and API directories:
+
+```nginx
+# Block direct access to storage directories
+location ~ ^/(storage|storage_api)/ {
+    deny all;
+    return 404;
+}
+
+# Block access to sensitive files
+location ~ \.(env|yml|json|lock|md)$ {
+    deny all;
+    return 404;
+}
+
+# Block access to API configuration
+location ~ ^/api/config/ {
+    deny all;
+    return 404;
+}
+```
+
+If you cannot modify nginx configuration directly (common on shared hosting), the application-level protections (`.bin` extension, dangerous file rejection, PHP-based download) still protect uploaded files.
+
 ### Optional configuration
 
 - **PHP memory limit:** If the site feels slow, increase the memory limit:

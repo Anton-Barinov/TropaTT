@@ -81,6 +81,72 @@ final class HealthController extends BaseController
         $env = new EnvironmentCapabilities();
         $environment = $env->toArray();
 
+        // SEC-TASK-01.E: Self-check storage protection
+        $storageProtectionOk = null; // null = not checked
+        $storageProbeError = null;
+        try {
+            $config = $this->container->get('config');
+            $uploadsBase = rtrim((string)$config->get('default.storage_api.base', dirname(__DIR__, 3) . '/storage_api'), '/\\') . '/uploads';
+            if (is_dir($uploadsBase) && is_writable($uploadsBase)) {
+                $probeName = '.health_probe_' . bin2hex(random_bytes(6)) . '.txt';
+                $probeFile = $uploadsBase . '/' . $probeName;
+                $probeContent = bin2hex(random_bytes(8));
+                $written = @file_put_contents($probeFile, $probeContent);
+                if ($written !== false) {
+                    // Probe file written. Check if accessible via HTTP.
+                    // Only check if storage is inside DocumentRoot.
+                    $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+                    $resolvedDocRoot = $docRoot !== '' ? realpath($docRoot) : false;
+                    $resolvedUploads = realpath($uploadsBase);
+                    if ($resolvedDocRoot && $resolvedUploads && str_starts_with($resolvedUploads, $resolvedDocRoot)) {
+                        // Storage is inside DocumentRoot — try HTTP access
+                        $scheme = $env->isHttps() ? 'https' : 'http';
+                        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                        // Compute relative path from docroot to uploads
+                        $relPath = substr($resolvedUploads, strlen($resolvedDocRoot));
+                        $probeUrl = $scheme . '://' . $host . '/' . ltrim($relPath, '/\\') . '/' . $probeName;
+
+                        $ctx = stream_context_create(['http' => ['timeout' => 3, 'method' => 'GET']]);
+                        $fetched = @file_get_contents($probeUrl, false, $ctx);
+                        if ($fetched === $probeContent) {
+                            $storageProtectionOk = false; // File is publicly accessible! Warning.
+                            $storageProbeError = 'STORAGE_PUBLICLY_ACCESSIBLE';
+                        } else {
+                            $storageProtectionOk = true; // Blocked or not found — good
+                        }
+                    } else {
+                        $storageProtectionOk = true; // Outside docroot — no HTTP check needed
+                    }
+                    @unlink($probeFile);
+                }
+            } else {
+                $storageProtectionOk = true; // Uploads dir not available — no check
+            }
+        } catch (Throwable $e) {
+            // Clean up probe file if exception occurred after file creation
+            if (isset($probeFile) && is_file($probeFile)) {
+                @unlink($probeFile);
+            }
+            $storageProtectionOk = null;
+            $storageProbeError = $e->getMessage();
+        }
+
+        // Add storage protection result to environment
+        $environment['storage_protection_verified'] = $storageProtectionOk;
+        if ($storageProtectionOk === false) {
+            $environment['warnings'][] = [
+                'code' => 'ENV_STORAGE_PUBLICLY_ACCESSIBLE',
+                'severity' => 'critical',
+                'message_key' => 'health/messages.env_storage_public',
+            ];
+        } elseif ($storageProtectionOk === null && $storageProbeError !== null) {
+            $environment['warnings'][] = [
+                'code' => 'ENV_STORAGE_PROBE_FAILED',
+                'severity' => 'warning',
+                'message_key' => 'health/messages.env_storage_probe_failed',
+            ];
+        }
+
         return $this->success(
             $degraded ? 'HEALTH_DEEP_DEGRADED' : 'HEALTH_DEEP_OK',
             $degraded ? $this->t('health/messages.deep_degraded') : $this->t('health/messages.deep_ok'),
