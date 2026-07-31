@@ -41,10 +41,8 @@
 /storage_api/uploads/**
 !/storage_api/uploads/.htaccess
 
-# Local one-click update runtime. Keep this deployable with the core,
-# but do not ever allow private updater keys to be committed.
-
-
+# Updater private keys — never commit
+updater/keys/
 
 # Secrets, credentials, private keys — never upload
 
@@ -62,7 +60,6 @@
 *.csr
 *.jks
 *.keystore
-
 
 id_rsa
 id_rsa.*
@@ -103,15 +100,11 @@ api/docs/
 # Temporary / converted JS files
 web/assets/js/*.tmp*
 web/assets/js/*.broken
-web/assets/js/*.converted
+web/assets/js/*.converted*
 web/assets/js/*.pre_tiny
-web/assets/js/*.converted.js
-web/assets/js/page-api-bindings.converted.js
 web/assets/js/XX7FVWxB
 web/assets/js/_i18n_replace2.pl
 web/assets/js/i18n_convert.py
-
-
 
 # AtomCode local-scope configs (machine-specific)
 .atomcode/local/
@@ -121,3 +114,10 @@ web/DEPLOY_HASH
 
 # Test runtime storage — local-only, never commit
 api/storage_test_runtime/
+
+# Security audit reports with local machine paths — never commit
+web/docs/security/*.txt
+
+# SQLite databases — never commit
+*.sqlite
+*.sqlite3
