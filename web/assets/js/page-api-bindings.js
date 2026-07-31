@@ -11713,8 +11713,8 @@ window.CRM.pageApiBindings = (function () {
             if (saveSpinner) saveSpinner.hidden = true;
           }
         });
-        createForm.dataset.bound = '1';
-      }
+      createForm.dataset.bound = '1';
+    }
 
       if (createModalNode) {
         createModalNode.addEventListener('show.bs.modal', function () {
@@ -13297,6 +13297,98 @@ window.CRM.pageApiBindings = (function () {
       });
       createForm.dataset.bound = '1';
     }
+
+    // Bind invite-user form
+    var inviteForm = document.getElementById('invitationCreateForm');
+    if (inviteForm && inviteForm.dataset.bound !== '1') {
+      inviteForm.dataset.bound = '1';
+      var inviteModal = document.getElementById('invitationCreateModal');
+      var inviteFormPanel = document.getElementById('invitationCreateFormPanel');
+      var inviteResultPanel = document.getElementById('invitationCreateResult');
+      var inviteError = document.getElementById('invitationCreateError');
+
+      function resetInvitationModal() {
+        if (inviteError) inviteError.classList.add('d-none');
+        if (inviteFormPanel) inviteFormPanel.classList.remove('d-none');
+        if (inviteResultPanel) inviteResultPanel.classList.add('d-none');
+        inviteForm.reset();
+      }
+
+      if (inviteModal && inviteModal.dataset.resetBound !== '1') {
+        inviteModal.dataset.resetBound = '1';
+        inviteModal.addEventListener('hidden.bs.modal', resetInvitationModal);
+      }
+
+      inviteForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (inviteError) inviteError.classList.add('d-none');
+        var email = String((inviteForm.querySelector('[name="email"]') || {}).value || '').trim();
+        var expiresRaw = String((inviteForm.querySelector('[name="expires_in_days"]') || {}).value || '7').trim();
+        var expiresInDays = Math.min(30, Math.max(1, parseInt(expiresRaw, 10) || 7));
+        if (!email) {
+          if (inviteError) {
+            inviteError.textContent = tp('admin_users.invite_email_required', 'Укажите email приглашаемого.');
+            inviteError.classList.remove('d-none');
+          }
+          return;
+        }
+        var submitBtn = inviteForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          var result = await tryRequest('api/v1/security/invitations', {
+            method: 'POST',
+            body: { email: email, expires_in_days: expiresInDays }
+          });
+          if (!result || !result.success) {
+            if (inviteError) {
+              inviteError.textContent = String((result && result.message) || tp('admin_users.invite_create_failed', 'Не удалось создать приглашение.'));
+              inviteError.classList.remove('d-none');
+            }
+            return;
+          }
+          var data = (result && result.data) || {};
+          var token = String(data.accept_token || '');
+          var linkInput = document.getElementById('invitationLinkInput');
+          var tokenInput = document.getElementById('invitationTokenInput');
+          if (tokenInput) tokenInput.value = token;
+          if (linkInput) {
+            linkInput.value = window.CRM.api && typeof window.CRM.api.buildWebUrl === 'function'
+              ? window.CRM.api.buildWebUrl('invitation-accept', { token: token })
+              : 'index.php?route=invitation-accept&token=' + encodeURIComponent(token);
+          }
+          if (inviteFormPanel) inviteFormPanel.classList.add('d-none');
+          if (inviteResultPanel) inviteResultPanel.classList.remove('d-none');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // Copy buttons for invitation link/token
+    document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
+      if (btn.dataset.copyBound === '1') return;
+      btn.dataset.copyBound = '1';
+      btn.addEventListener('click', function () {
+        var target = document.getElementById(String(btn.getAttribute('data-copy-target') || ''));
+        if (!target || !target.value) return;
+        var copied = function () {
+          notify(tp('admin_users.invite_copied', 'Скопировано'), 'success');
+        };
+        var legacyCopy = function () {
+          try {
+            target.focus();
+            target.select();
+            document.execCommand('copy');
+            copied();
+          } catch (err) {}
+        };
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(String(target.value)).then(copied).catch(legacyCopy);
+          return;
+        }
+        legacyCopy();
+      });
+    });
 
     // Bind edit buttons
     document.querySelectorAll('[data-user-edit]').forEach(function (btn) {

@@ -22,7 +22,8 @@
       </div>
       <div class="mb-3">
         <label class="form-label" data-i18n="invitation_accept.label_password"><?= htmlspecialchars($t('invitation_accept.label_password', 'Пароль'), ENT_QUOTES, 'UTF-8') ?></label>
-        <input class="form-control" type="password" name="password" placeholder="<?= htmlspecialchars($t('invitation_accept.placeholder_password', 'Минимум 8 символов'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="invitation_accept.placeholder_password" value="">
+        <input class="form-control" type="password" name="password" placeholder="<?= htmlspecialchars($t('invitation_accept.placeholder_password', 'Минимум 12 символов: A-Z, a-z, 0-9'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="invitation_accept.placeholder_password" value="">
+        <div class="form-text" data-i18n="invitation_accept.password_hint"><?= htmlspecialchars($t('invitation_accept.password_hint', 'Пароль должен содержать не менее 12 символов, включая заглавные и строчные буквы и цифры.'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
       <div id="invitationAcceptError" class="alert alert-danger d-none py-2"></div>
       <div id="invitationAcceptSuccess" class="alert alert-success d-none py-2"></div>

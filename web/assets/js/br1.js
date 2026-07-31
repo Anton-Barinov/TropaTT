@@ -1296,8 +1296,8 @@ window.CRM.br1 = (function () {
         showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.zapolnite_vse_obyazatelnye_polya', 'Заполните все обязательные поля.'), 'error');
         return;
       }
-      if (body.password.length < 8) {
-        showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.parol_dolzhen_soderzhat_minimum_8_simvolov', 'Пароль должен содержать минимум 8 символов.'), 'error');
+      if (body.password.length < 12 || !/[A-Z]/.test(body.password) || !/[a-z]/.test(body.password) || !/[0-9]/.test(body.password)) {
+        showFormAlert('invitationAcceptError', window.CRM.i18n.t('js.br1.parol_dolzhen_soderzhat_minimum_12_simvolov', 'Пароль должен содержать минимум 12 символов, включая заглавные и строчные буквы и цифры.'), 'error');
         return;
       }
       try {

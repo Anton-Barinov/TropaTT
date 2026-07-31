@@ -880,6 +880,26 @@ function getPreflightChecks(): array
             'ok' => session_status() === PHP_SESSION_ACTIVE,
             'detail' => session_name(),
         ],
+        [
+            'label' => 'File info (finfo)',
+            'ok' => function_exists('finfo_open') || function_exists('mime_content_type'),
+            'detail' => function_exists('finfo_open') ? 'finfo' : (function_exists('mime_content_type') ? 'mime_content_type' : 'missing'),
+        ],
+        [
+            'label' => 'cURL',
+            'ok' => function_exists('curl_init'),
+            'detail' => function_exists('curl_init') ? 'curl' : 'missing',
+        ],
+        [
+            'label' => 'OpenSSL',
+            'ok' => extension_loaded('openssl'),
+            'detail' => extension_loaded('openssl') ? 'openssl' : 'missing',
+        ],
+        [
+            'label' => 'DNS (dns_get_record)',
+            'ok' => function_exists('dns_get_record'),
+            'detail' => function_exists('dns_get_record') ? 'dns_get_record' : 'missing (webhook security reduced)',
+        ],
     ];
 }
 
@@ -958,7 +978,18 @@ function testDatabaseConnection(string $driver, string $host, int $port, string 
     } catch (Throwable $e) {
         // SEC-001: Log full error details server-side, never expose to client
         error_log('[Installer] DB connection failed: ' . $e->getMessage());
-        return ['success' => false, 'message' => t('connection_fail')];
+        $errMsg = $e->getMessage();
+        $hint = '';
+        if (str_contains($errMsg, 'could not find driver')) {
+            $hint = ' (' . (t('db_connect_error')) . ': pdo_mysql extension required)';
+        } elseif (str_contains($errMsg, 'Access denied')) {
+            $hint = ': ' . (t('db_connect_error'));
+        } elseif (str_contains($errMsg, 'Unknown database')) {
+            $hint = ': ' . (t('db_connect_error'));
+        } elseif (str_contains($errMsg, 'Connection refused')) {
+            $hint = ' (' . t('host') . '/' . t('port') . ')';
+        }
+        return ['success' => false, 'message' => t('connection_fail') . $hint];
     }
 }
 
@@ -2799,6 +2830,10 @@ if (isAlreadyInstalled()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <title><?php echo t('already_installed'); ?> — CRM</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -3734,9 +3769,15 @@ echo $css;
             </div>
 
             <div class="btn-group between">
-                <button type="button" class="btn btn-secondary" id="test-connection-btn">
-                    <span class="test-icon">&#9881;</span> <?php echo t('test_connection'); ?>
-                </button>
+        <button type="button" class="btn btn-secondary" id="test-connection-btn">
+            <span class="test-icon">&#9881;</span>
+            <span class="test-text"><?php echo t('test_connection'); ?></span>
+            <span class="test-spinner" style="display:none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;vertical-align:middle">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+            </span>
+        </button>
                 <button type="submit" class="btn btn-primary" id="next-btn" <?php echo hasBlockingPreflightFailure() ? 'disabled' : ''; ?>><?php echo t('next'); ?> &#8594;</button>
             </div>
             <div id="test-result" class="test-result"></div>
@@ -4032,7 +4073,12 @@ $js = <<<'JS'
                 })
                 .finally(function() {
                     testBtn.disabled = false;
-                    testBtn.innerHTML = testBtn.textContent.includes('Test') ? '&#9881; Test Connection' : '&#9881; Проверить подключение';
+                    var spinner = testBtn.querySelector('.test-spinner');
+                    var icon = testBtn.querySelector('.test-icon');
+                    var text = testBtn.querySelector('.test-text');
+                    if (spinner) spinner.style.display = 'none';
+                    if (icon) icon.style.display = 'inline';
+                    if (text) text.textContent = testBtn.textContent.includes('Test') ? 'Test Connection' : (testBtn.textContent.includes('Проверить') ? 'Проверить подключение' : 'Test Connection');
                     // Refresh CSRF token
                     var newToken = document.querySelector('input[name="_csrf"]').value;
                 });
@@ -4058,6 +4104,14 @@ $js = <<<'JS'
     if (installForm) {
         installForm.addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // Confirmation dialog before starting installation
+            var lang = document.documentElement.lang;
+            var confirmMsg = lang === 'ru' ? 'Начать установку CRM? Убедитесь, что все настройки верны.' :
+                (lang === 'zh' ? '开始安装CRM？请确保所有设置正确。' : 'Start CRM installation? Make sure all settings are correct.');
+            if (!confirm(confirmMsg)) {
+                return;
+            }
 
             var progressDiv = document.getElementById('install-progress');
             var installBtn = document.getElementById('install-btn');
