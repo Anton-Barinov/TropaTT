@@ -138,10 +138,16 @@ php api/scripts/generate_openapi.php
 ## Версионирование и обновления
 
 - Семантическое версионирование (MAJOR.MINOR.PATCH)
-- Core обновления через `api/system/library/update/CoreUpdateClient.php`
+- Версия ядра хранится в `VERSION`, номер сборки — `YYYYMMDD.NNN`
+- Обновление из браузера: **Администрирование → Обновления системы** (`web/index.php?route=admin-updates`)
+- Сервер обновлений (`update.tropatt.com`) собирает и подписывает архивы по cron; CRM только скачивает готовый пакет, проверяет подпись, делает backup и применяет
+- Core обновления через `api/system/library/update/CoreUpdateClient.php` (проверка) и `updater/` (preflight → download → apply → rollback)
 - Миграции БД: `api/system/library/database/migration/`
+- Откат: backup создаётся перед установкой, кнопка «Восстановить из backup» на странице обновлений
+
+Полное описание системы обновлений: **[updates.md](updates.md)**
 
 ---
 
-*Последнее обновление: 2026-07-15*
+*Последнее обновление: 2026-07-31*
 *Версия: v0.x*

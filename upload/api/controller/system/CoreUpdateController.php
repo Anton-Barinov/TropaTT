@@ -12,6 +12,7 @@ use Api\System\Library\Update\CoreUpdatePlanner;
 use Api\System\Library\Update\CoreUpdateSessionService;
 use Api\System\Library\Update\CoreUpdateStatusService;
 use Api\System\Library\Update\CoreVersion;
+use Api\System\Library\Update\UpdateCenterAuditService;
 
 final class CoreUpdateController extends BaseController
 {
@@ -33,7 +34,16 @@ final class CoreUpdateController extends BaseController
         $config = CoreUpdateConfig::load();
         $client = new CoreUpdateClient($config);
         $version = new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3));
-        return $this->success('CORE_UPDATE_CHECK', 'Core update check', (new CoreUpdatePlanner($client, $version))->check());
+        $result = (new CoreUpdatePlanner($client, $version))->check();
+        // Refresh the update-center audit snapshot so it never shows a stale
+        // URL or checked_at. Best-effort: the check response must not fail if
+        // the audit file cannot be written (e.g. read-only storage).
+        try {
+            (new UpdateCenterAuditService((string)$config['storage_dir']))->write($config, $result);
+        } catch (\Throwable $e) {
+            // Ignore audit write errors; the check result is authoritative.
+        }
+        return $this->success('CORE_UPDATE_CHECK', 'Core update check', $result);
     }
 
     public function changes(): \Api\System\Library\Http\JsonResponse

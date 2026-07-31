@@ -29,6 +29,21 @@ return [
         'max_package_bytes' => 100 * 1024 * 1024,
         'min_free_space_multiplier' => 3,
     ],
+    // Rate limits for preflight/download requests per client IP. These actions
+    // are allowed without a one-time token when dry_run=true so the
+    // admin-updates page can drive them straight from the browser, which on
+    // shared hosting makes them a DoS / disk-fill vector. The limit applies
+    // regardless of whether a token is present (a session token must not be a
+    // free pass for unlimited downloads either). Set enabled=false only when a
+    // stricter gateway already does the job.
+    'rate_limits' => [
+        'enabled' => true,
+        // Up to max_attempts requests allowed per window; the next one is
+        // rejected and locks the IP for lock_seconds.
+        'max_attempts' => 20,
+        'window_seconds' => 300,
+        'lock_seconds' => 900,
+    ],
     'core_paths' => [
         'api/**',
         'web/**',

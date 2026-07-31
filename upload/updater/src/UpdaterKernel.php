@@ -15,6 +15,7 @@ use Updater\Package\PackageDownloader;
 use Updater\Package\PackageExtractor;
 use Updater\Rollback\RollbackManager;
 use Updater\Security\ManifestVerifier;
+use Updater\Security\RequestRateLimiter;
 use Updater\Security\TokenVerifier;
 use Updater\State\JobState;
 use Updater\State\LocalState;
@@ -29,7 +30,7 @@ final class UpdaterKernel
     {
         $this->config = require $basePath . '/api/config/update.php';
         $this->storageDir = (string)$this->config['storage_dir'];
-        foreach (['sessions', 'jobs', 'packages', 'staging', 'backups', 'locks', 'logs'] as $dir) {
+        foreach (['sessions', 'jobs', 'packages', 'staging', 'backups', 'locks', 'logs', 'ratelimit'] as $dir) {
             $path = $this->storageDir . '/' . $dir;
             if (!is_dir($path) && !@mkdir($path, 0775, true) && !is_dir($path)) {
                 throw new \RuntimeException('Unable to create updater storage directory: ' . $path);
@@ -76,6 +77,10 @@ final class UpdaterKernel
     private function preflight(array $input): JsonResponse
     {
         $this->verifyTokenIfPresent($input, 'preflight');
+        $limited = $this->rateLimitAnonymous($input, 'preflight');
+        if ($limited !== null) {
+            return $limited;
+        }
         $jobId = $this->jobId($input);
         $logger = new UpdateLogger($this->storageDir, $jobId);
         $state = new JobState($this->storageDir, $jobId);
@@ -139,6 +144,10 @@ final class UpdaterKernel
     private function download(array $input): JsonResponse
     {
         $this->verifyTokenIfPresent($input, 'download');
+        $limited = $this->rateLimitAnonymous($input, 'download');
+        if ($limited !== null) {
+            return $limited;
+        }
         $jobId = $this->jobId($input);
         $state = new JobState($this->storageDir, $jobId);
         $plan = $state->readFile('plan.json');
@@ -387,6 +396,41 @@ final class UpdaterKernel
         if (!(new TokenVerifier($this->storageDir))->verify($token, $action)) {
             throw new \RuntimeException('Updater token is invalid or expired.');
         }
+    }
+
+    /**
+     * Rate-limit preflight/download requests per client IP.
+     *
+     * These actions are allowed without a one-time token when dry_run=true so
+     * the admin-updates page can drive them directly from the browser, which
+     * makes them an anonymous DoS / disk-fill vector on shared hosting. We
+     * limit by IP regardless of whether a token is present: TokenVerifier only
+     * marks tokens used for apply/rollback, so a stolen session token must not
+     * become a free pass for unlimited downloads either. The limits are
+     * generous (see api/config/update.php) so the normal page flow (~2 calls
+     * per update) is never affected.
+     */
+    private function rateLimitAnonymous(array $input, string $action): ?JsonResponse
+    {
+        $limits = is_array($this->config['rate_limits'] ?? null) ? $this->config['rate_limits'] : [];
+        if (($limits['enabled'] ?? true) !== true) {
+            return null;
+        }
+        $clientIp = trim((string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+        if ($clientIp === '' || $clientIp === '0.0.0.0') {
+            $clientIp = 'cli';
+        }
+        $result = (new RequestRateLimiter($this->storageDir, $limits))->check($action, $clientIp);
+        if (($result['blocked'] ?? false) === true) {
+            $retryAfter = max(1, (int)($result['retry_after'] ?? 1));
+            return JsonResponse::error(
+                'RATE_LIMITED',
+                'Too many updater ' . $action . ' requests. Please try again later.',
+                429,
+                ['Retry-After' => (string)$retryAfter]
+            );
+        }
+        return null;
     }
 
     private function bearerToken(): ?string
