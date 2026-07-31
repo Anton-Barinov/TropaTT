@@ -288,6 +288,14 @@ Browser-based installer. No terminal, no composer, no npm. Designed for shared h
 
 > **Where are the files?** All application files live in the **`upload/`** folder. The repository root contains only documentation and config. To install, copy the **contents of `upload/`** into your server document root (so that `index.php`, `api/`, `web/`, and `modules/` end up at the top of your web root).
 
+**Get the code:**
+
+- Clone the repository:
+  ```bash
+  git clone https://github.com/Anton-Barinov/TropaTT.git
+  ```
+- Or download a ZIP from GitHub (**Code → Download ZIP**), or a packaged archive from the [Releases](https://github.com/Anton-Barinov/TropaTT/releases) page when available.
+
 **What you need:**
 - PHP 8.1+
 - An empty MySQL database
@@ -295,7 +303,7 @@ Browser-based installer. No terminal, no composer, no npm. Designed for shared h
 - Write access for the `api/` config and `storage/` directories
 
 **Steps:**
-1. Download the code and copy the **contents of `upload/`** to your server.
+1. Copy the **contents of the `upload/` folder** (not the folder itself) to your server — `index.php`, `api/`, `web/`, and `modules/` must end up in your web root.
 2. Create an empty MySQL database.
 3. Open your domain in a browser. TropaTT detects it's not configured and launches the installer.
 4. The installer checks your environment, asks for MySQL credentials, site URL, timezone, and the first admin account.
@@ -734,6 +742,14 @@ TropaTT включает браузерный установщик для про
 
 > **Где файлы?** Все файлы приложения лежат в папке **`upload/`**. В корне репозитория — только документация и конфигурация. Для установки скопируйте **содержимое `upload/`** в корень веб-сервера (чтобы `index.php`, `api/`, `web/`, `modules/` оказались в корне сайта).
 
+**Где скачать код:**
+
+- Склонировать репозиторий:
+  ```bash
+  git clone https://github.com/Anton-Barinov/TropaTT.git
+  ```
+- Или скачать ZIP с GitHub (**Code → Download ZIP**), либо готовый архив со страницы [Releases](https://github.com/Anton-Barinov/TropaTT/releases), когда он доступен.
+
 **Требования:**
 - PHP 8.1 или новее
 - База данных MySQL (пустая, готовая к использованию)
@@ -741,7 +757,7 @@ TropaTT включает браузерный установщик для про
 - Права записи для директорий конфигурации `api/` и `storage/`
 
 **Быстрый старт:**
-1. Скачайте код и скопируйте **содержимое `upload/`** на сервер или в локальную директорию веб-сервера.
+1. Скопируйте **содержимое папки `upload/`** (не саму папку) на сервер — `index.php`, `api/`, `web/` и `modules/` должны оказаться в корне сайта.
 2. Создайте пустую базу данных MySQL.
 3. Откройте домен в браузере — TropaTT определит, что не настроена, и запустит установщик.
 4. Установщик проверяет окружение, запрашивает хост/порт/БД/пользователя/пароль MySQL, URL сайта, часовой пояс и данные первого администратора.
@@ -1171,6 +1187,16 @@ TropaTT 以开源软件形式发布。您可以在自己的服务器上免费部
 
 TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：本地机器、自有服务器、VPS 或共享主机。无需终端、命令行、composer 或 npm。
 
+> **文件在哪里？** 所有应用程序文件都位于 **`upload/`** 文件夹中。仓库根目录只有文档和配置。安装时，请将 **`upload/` 的内容** 复制到服务器 Web 根目录（使 `index.php`、`api/`、`web/`、`modules/` 位于站点根目录）。
+
+**获取代码：**
+
+- 克隆仓库：
+  ```bash
+  git clone https://github.com/Anton-Barinov/TropaTT.git
+  ```
+- 或者从 GitHub 下载 ZIP（**Code → Download ZIP**），或从 [Releases](https://github.com/Anton-Barinov/TropaTT/releases) 页面下载打包归档（如有）。
+
 **要求：**
 - PHP 8.1 或更高版本
 - MySQL 数据库（可用的空数据库）
@@ -1178,15 +1204,15 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 - `api/` 配置目录和 `storage/` 目录的写权限
 
 **快速开始：**
-1. 将项目文件放到服务器或本地 Web 服务器目录中。
+1. 将 **`upload/` 文件夹的内容**（不是文件夹本身）复制到服务器——`index.php`、`api/`、`web/`、`modules/` 必须位于站点根目录。
 2. 创建一个空的 MySQL 数据库。
 3. 在浏览器中打开您的域名——TropaTT 自动检测到尚未配置并启动安装程序。
 4. 安装程序检查环境，询问 MySQL 主机/端口/数据库/用户名/密码、站点 URL 和时区，以及第一个管理员账户凭据。
-5. 安装程序写入 `api/.env`，创建 MySQL 架构，填充参考数据（状态、优先级、角色、权限），创建管理员用户，准备存储，并设置安装锁定文件。
+5. 安装程序写入 `.env`（在 `api/` 中），创建 MySQL 架构，填充参考数据（状态、优先级、角色、权限），创建管理员用户，准备存储，并设置安装锁定文件。
 6. 登录并开始工作。
 
 **共享主机场景：**
-上传 `api/`、`web/`、`modules/`、`index.php`、`favicon.ico` 和 `README.md` → 在主机面板中创建 MySQL 数据库 → 打开您的域名 → 按照安装程序操作 → 完成。
+上传 `upload/` 的内容（`api/`、`web/`、`modules/`、`index.php` 等）→ 在主机面板中创建 MySQL 数据库 → 打开您的域名 → 按照安装程序操作 → 完成。
 
 ---
 

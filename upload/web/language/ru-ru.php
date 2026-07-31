@@ -6980,6 +6980,11 @@ return array (
     'risk_high' => 'высокий',
     'risk_critical' => 'критичный',
     'no_special_requirements' => 'без особых требований',
+    'field_migrations' => 'Миграции БД',
+    'migrations_none' => 'не требовались',
+    'migrations_ok' => 'применены',
+    'migrations_failed' => 'не применены (см. детали)',
+    'migrations_executed' => 'Применено миграций: {count}',
   ),
   'admin_webhooks' => 
   array (

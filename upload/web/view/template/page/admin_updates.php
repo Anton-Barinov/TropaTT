@@ -129,6 +129,11 @@ $auJs = [
   'none' => $au('none', 'нет'),
   'not_loaded' => $au('not_loaded', 'Не загружено'),
   'plan_not_checked' => $au('plan_not_checked', 'Не проверено'),
+  'field_migrations' => $au('field_migrations', 'Миграции БД'),
+  'migrationsNone' => $au('migrations_none', 'не требовались'),
+  'migrationsOk' => $au('migrations_ok', 'применены'),
+  'migrationsFailed' => $au('migrations_failed', 'не применены (см. детали)'),
+  'migrationsExecuted' => $au('migrations_executed', 'Применено миграций: {count}'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -706,13 +711,19 @@ $auJs = [
       $('applyContent').innerHTML = `<div class="updates-empty">${esc(tr('applyError', 'Ошибка: {message}', {message: state.apply.message || state.apply.code || 'unknown'}))}</div>`;
       return;
     }
-    $('applyContent').innerHTML = list({
+    const migrations = apply.migrations || null;
+    const migrationsStatus = migrations === null ? tr('migrationsNone', 'не требовались') : (migrations.ok === true ? tr('migrationsOk', 'применены') : tr('migrationsFailed', 'не применены (см. детали)'));
+    const migrationsDetail = migrations && migrations.ok === true && Array.isArray(migrations.executed) && migrations.executed.length
+      ? tr('migrationsExecuted', 'Применено миграций: {count}', {count: migrations.executed.length})
+      : (migrations && migrations.ok === false && migrations.error ? String(migrations.error) : '');
+    $('applyContent').innerHTML = `${list({
       [tr('field_job_id', 'Job ID')]: apply.job_id || 'n/a',
       [tr('field_applied_files', 'Обновлено файлов')]: apply.applied ? apply.applied.count : 'n/a',
       [tr('field_backup', 'Backup')]: apply.backup ? apply.backup.backup_id : 'n/a',
       [tr('fieldHealth', 'Проверка состояния')]: apply.health && apply.health.ok ? 'OK' : tr('statusUnknown', 'Неизвестно'),
+      [tr('field_migrations', 'Миграции БД')]: migrationsStatus,
       [tr('field_installed_build', 'Установленная сборка')]: apply.installed_core ? apply.installed_core.core_build : 'n/a',
-    });
+    })}${migrationsDetail ? `<div class="updates-empty mt-2">${esc(migrationsDetail)}</div>` : ''}`;
     updateRecommendation();
   }
 

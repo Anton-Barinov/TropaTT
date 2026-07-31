@@ -1,0 +1,149 @@
+# Ignore everything in project root by default
+/*
+
+# Root contains only repo docs/config + the CRM app in upload/
+# Allow only these root directories
+!/upload/
+!/.github/
+
+# Allow only these root files (documentation + repo config)
+!/AGENTS.md
+!/CHANGELOG.md
+!/CODE_OF_CONDUCT.md
+!/CONTRIBUTING.md
+!/LICENSE
+!/README.md
+!/ROADMAP.md
+!/SECURITY.md
+!/SUPPORT.md
+!/INSTALL_TROUBLESHOOTING.md
+!/SHARED_HOSTING_GUIDE.md
+!/WEBHOOK_SECURITY.md
+
+!/.gitignore
+
+# Internal docs — intentionally not published to GitHub
+docs/
+
+# Other local-only development dirs (not part of the app, never commit)
+install/
+landing/
+test-results/
+tz/
+
+# The CRM application itself lives in upload/ — allow the app subtree,
+# but keep runtime storage dirs out (see below).
+/upload/**
+!/upload/api/
+!/upload/api/**
+!/upload/web/
+!/upload/web/**
+!/upload/modules/
+!/upload/modules/**
+!/upload/updater/
+!/upload/updater/**
+!/upload/index.php
+!/upload/VERSION
+
+# api/ runtime dirs — never commit
+upload/api/storage/
+upload/api/docs/
+upload/api/storage_test_runtime/
+
+# web/ runtime dirs — never commit
+upload/web/tmp/
+upload/web/DEPLOY_HASH
+
+# storage_api: only the .htaccess access-control files are allowed.
+# All other storage_api/ runtime files (SQLite DB, cache, dev-backups,
+# update logs, uploads, etc.) must never be committed.
+!/upload/storage_api/
+/upload/storage_api/**
+!/upload/storage_api/.htaccess
+!/upload/storage_api/secrets/
+/upload/storage_api/secrets/**
+!/upload/storage_api/secrets/.htaccess
+!/upload/storage_api/uploads/
+/upload/storage_api/uploads/**
+!/upload/storage_api/uploads/.htaccess
+
+# storage/: runtime only — keep only the .htaccess access-control file
+!/upload/storage/
+/upload/storage/**
+!/upload/storage/.htaccess
+
+# Updater runtime state — never commit
+upload/updater/active.json
+
+# Secrets, credentials, private keys — never upload
+
+.env
+.env.*
+*.env
+*.local
+*.local.*
+
+*.key
+*.pem
+*.p12
+# ... but the updater's PUBLIC verification key must ship with every install
+!upload/updater/keys/update_public.pem
+*.pfx
+*.crt
+*.csr
+*.jks
+*.keystore
+
+id_rsa
+id_rsa.*
+id_dsa
+id_dsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+
+*.pub
+*.ppk
+
+auth.json
+credentials.json
+service-account*.json
+google-services.json
+firebase*.json
+
+secrets.*
+secret.*
+*.secret
+*.secrets
+
+config.local.php
+*.local.php
+*.private.php
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+# Temporary / converted JS files
+upload/web/assets/js/*.tmp*
+upload/web/assets/js/*.broken
+upload/web/assets/js/*.converted*
+upload/web/assets/js/*.pre_tiny
+upload/web/assets/js/XX7FVWxB
+upload/web/assets/js/_i18n_replace2.pl
+upload/web/assets/js/i18n_convert.py
+
+# AtomCode local-scope configs (machine-specific)
+.atomcode/local/
+
+# Security audit reports with local machine paths — never commit
+upload/web/docs/security/*.txt
+
+# SQLite databases — never commit
+*.sqlite
+*.sqlite3

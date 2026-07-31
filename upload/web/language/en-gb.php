@@ -6875,6 +6875,11 @@ return array (
     'risk_high' => 'high',
     'risk_critical' => 'critical',
     'no_special_requirements' => 'no special requirements',
+    'field_migrations' => 'DB migrations',
+    'migrations_none' => 'not required',
+    'migrations_ok' => 'applied',
+    'migrations_failed' => 'not applied (see details)',
+    'migrations_executed' => 'Migrations applied: {count}',
   ),
   'admin_webhooks' => 
   array (
