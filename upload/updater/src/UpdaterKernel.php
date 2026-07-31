@@ -7,6 +7,7 @@ use Updater\Client\UpdateCenterClient;
 use Updater\Apply\FileApplier;
 use Updater\Apply\HealthChecker;
 use Updater\Apply\MaintenanceMode;
+use Updater\Apply\MigrationRunner;
 use Updater\Backup\FileBackupManager;
 use Updater\Http\JsonResponse;
 use Updater\Log\UpdateLogger;
