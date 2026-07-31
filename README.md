@@ -286,22 +286,24 @@ Paid services (customization, integration, migration, support) exist as optional
 
 Browser-based installer. No terminal, no composer, no npm. Designed for shared hosting, VPS, local servers, and simple PHP/MySQL deployments.
 
+> **Where are the files?** All application files live in the **`upload/`** folder. The repository root contains only documentation and config. To install, copy the **contents of `upload/`** into your server document root (so that `index.php`, `api/`, `web/`, and `modules/` end up at the top of your web root).
+
 **What you need:**
 - PHP 8.1+
 - An empty MySQL database
 - Any web server (Apache, Nginx, or PHP-compatible host)
-- Write access for `api/` config and `storage/`
+- Write access for the `api/` config and `storage/` directories
 
 **Steps:**
-1. Upload the files.
+1. Download the code and copy the **contents of `upload/`** to your server.
 2. Create an empty MySQL database.
 3. Open your domain in a browser. TropaTT detects it's not configured and launches the installer.
 4. The installer checks your environment, asks for MySQL credentials, site URL, timezone, and the first admin account.
-5. It writes `api/.env`, creates the schema, seeds reference data (statuses, priorities, roles, permissions), creates the admin user, and locks the installer.
+5. It writes `.env` in `api/`, creates the schema, seeds reference data (statuses, priorities, roles, permissions), creates the admin user, and locks the installer.
 6. Log in. Start working.
 
 **Shared hosting example:**
-Upload `api/`, `web/`, `modules/`, `index.php`, `favicon.ico`, `README.md` → create a MySQL database in your hosting panel → open your domain → follow the installer → done.
+Upload the contents of `upload/` (`api/`, `web/`, `modules/`, `index.php`, …) → create a MySQL database in your hosting panel → open your domain → follow the installer → done.
 
 ---
 
@@ -365,8 +367,8 @@ Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields
 | Frontend API coverage | 70.1% (521/743 in UI) |
 | External PHP deps | 0 |
 | Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
-| OpenAPI tooling | `api/scripts/generate_openapi.php` |
-| Public maintainer docs | `docs/maintainer/` |
+| OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
+| Maintainer docs kept local (not published) |
 | Module CLI commands | 19 |
 | Deployment options | Local machine, home/office server, VPS, cloud VM, shared hosting |
 | External hosting starting point | ~$3/month shared hosting |
@@ -382,7 +384,7 @@ Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields
 - **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
 - **Testing:** Public PHP lint CI is enabled. A fast MySQL-backed integration workflow is tracked in the public hardening backlog.
 - **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
-- **Docs:** Public maintainer docs are included in `docs/maintainer/`. OpenAPI generation tooling is included in `api/scripts/generate_openapi.php`.
+- **Docs:** Maintainer docs are kept local and are not published. OpenAPI generation tooling is included in `upload/api/scripts/generate_openapi.php`.
 
 ---
 
@@ -390,12 +392,13 @@ Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields
 
 ```text
 TropaTT/
-├── api/           # API core — controllers, services, repositories, config, migrations, scripts
-├── web/           # Web UI — installer, 68 pages, ~55 templates, 24 JS modules, assets
-├── modules/       # Pluggable business modules (boilerplate, hello-world, WIP-limit examples)
-├── docs/maintainer/ # Public maintainer checklists and OSS readiness notes
-├── index.php      # Root entry point
-└── README.md      # You're reading it
+├── upload/         # The CRM itself — copy the CONTENTS of this folder to your server
+│   ├── api/        #   API core — controllers, services, repositories, config, migrations, scripts
+│   ├── web/        #   Web UI — installer, pages, templates, JS modules, assets
+│   ├── modules/    #   Pluggable business modules (boilerplate, hello-world, WIP-limit examples)
+│   └── index.php   #   Root entry point
+├── README.md       # You're reading it (docs and config stay at the repo root)
+└── ...             # Other .md docs, LICENSE, .github/, .gitignore
 ```
 
 Backend modules organized in 9 groups: Auth/Users · CRM (clients, counterparties, contacts) · Projects/Tasks · Planning (calendar, recurring, reminders) · Communication (chats, notifications, push) · Automation (workflows, SLA, webhooks) · Analytics (dashboards, reports) · AI/LLM (11 modules: providers, intents, suggestions, actions, jobs, prompts, schemas, usage, retention, semantic, context builders) · Admin (settings, logs, audit, flags, modules, storage, trash, search).
@@ -426,8 +429,8 @@ The public repository currently includes a focused maintainer documentation set:
 
 | Layer | Where | What |
 |-------|-------|------|
-| Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
-| API tooling | `api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
+| Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
+| API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
 | Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, agent, security, contribution, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
 
@@ -729,6 +732,8 @@ TropaTT опубликована как программное обеспече�
 
 TropaTT включает браузерный установщик для простого PHP/MySQL-развёртывания: локальная машина, свой сервер, VPS или шаред-хостинг. Без терминала, командной строки, composer и npm.
 
+> **Где файлы?** Все файлы приложения лежат в папке **`upload/`**. В корне репозитория — только документация и конфигурация. Для установки скопируйте **содержимое `upload/`** в корень веб-сервера (чтобы `index.php`, `api/`, `web/`, `modules/` оказались в корне сайта).
+
 **Требования:**
 - PHP 8.1 или новее
 - База данных MySQL (пустая, готовая к использованию)
@@ -736,15 +741,15 @@ TropaTT включает браузерный установщик для про
 - Права записи для директорий конфигурации `api/` и `storage/`
 
 **Быстрый старт:**
-1. Загрузите файлы проекта на сервер или в локальную директорию веб-сервера.
+1. Скачайте код и скопируйте **содержимое `upload/`** на сервер или в локальную директорию веб-сервера.
 2. Создайте пустую базу данных MySQL.
 3. Откройте домен в браузере — TropaTT определит, что не настроена, и запустит установщик.
 4. Установщик проверяет окружение, запрашивает хост/порт/БД/пользователя/пароль MySQL, URL сайта, часовой пояс и данные первого администратора.
-5. Установщик создаёт `api/.env`, схему MySQL, заполняет справочные данные (статусы, приоритеты, роли, права), создаёт администратора, подготавливает хранилище и устанавливает lock-файлы.
+5. Установщик создаёт `.env` в `api/`, схему MySQL, заполняет справочные данные (статусы, приоритеты, роли, права), создаёт администратора, подготавливает хранилище и устанавливает lock-файлы.
 6. Войдите и начинайте работать.
 
 **Сценарий для шаред-хостинга:**
-Загрузите `api/`, `web/`, `modules/`, `index.php`, `favicon.ico` и `README.md` → создайте БД MySQL в панели хостинга → откройте домен → следуйте установщику → готово.
+Загрузите содержимое `upload/` (`api/`, `web/`, `modules/`, `index.php`, …) → создайте БД MySQL в панели хостинга → откройте домен → следуйте установщику → готово.
 
 ---
 
@@ -808,8 +813,8 @@ TropaTT включает браузерный установщик для про
 | Покрытие API фронтендом | 70.1% (521 из 743 эндпоинтов в UI) |
 | Внешних PHP-зависимостей | 0 |
 | Сторонних frontend-пакетов | 3 (Bootstrap 5, Font Awesome 6, SortableJS) |
-| OpenAPI tooling | `api/scripts/generate_openapi.php` |
-| Публичная maintainer-документация | `docs/maintainer/` |
+| OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
+| Maintainer-документы хранятся локально (не публикуются) |
 | CLI-команд для модулей | 19 |
 | Варианты развёртывания | локальный компьютер, домашний/офисный сервер, VPS, облачная VM, шаред-хостинг |
 | Внешний хостинг для старта | ~200–300 ₽/мес, шаред-хостинг |
@@ -825,7 +830,7 @@ TropaTT включает браузерный установщик для про
 - **Безопасность:** двойная аутентификация (cookie-сессия + CSRF для web, Bearer для API), RBAC с гранулярными правами, защита от SSRF, rate limiting, карантин файлов, имперсонация админа, маскирование sensitive-полей в ошибках.
 - **Тестирование:** публичный PHP lint CI уже включён. Fast integration workflow с MySQL вынесен в публичный hardening backlog.
 - **AI-слой:** настраиваемые провайдеры (OpenAI, Anthropic, DeepSeek, Google, совместимые), intent-based workflows, шаблоны промптов, JSON schema validation, модель preview-before-apply.
-- **Документация:** публичные maintainer-документы находятся в `docs/maintainer/`. Инструмент генерации OpenAPI включён в `api/scripts/generate_openapi.php`.
+- **Документация:** maintainer-документы хранятся локально и не публикуются. Инструмент генерации OpenAPI включён в `upload/api/scripts/generate_openapi.php`.
 
 ---
 
@@ -833,12 +838,13 @@ TropaTT включает браузерный установщик для про
 
 ```text
 TropaTT/
-├── api/           # Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
-├── web/           # Веб-интерфейс — установщик, 68 страниц, ~55 шаблонов, 24 JS-модуля, ресурсы
-├── modules/       # Подключаемые бизнес-модули (boilerplate, hello-world, WIP-limit)
-├── docs/maintainer/ # Публичные чеклисты сопровождения и OSS readiness notes
-├── index.php      # Корневая точка входа
-└── README.md      # Этот файл
+├── upload/         # Сама CRM — скопируйте СОДЕРЖИМОЕ этой папки на сервер
+│   ├── api/        #   Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
+│   ├── web/        #   Веб-интерфейс — установщик, страницы, шаблоны, JS-модули, ресурсы
+│   ├── modules/    #   Подключаемые бизнес-модули (boilerplate, hello-world, WIP-limit)
+│   └── index.php   #   Корневая точка входа
+├── README.md       # Этот файл (документация и конфигурация остаются в корне)
+└── ...             # Остальные .md-документы, LICENSE, .github/, .gitignore
 ```
 
 Доменные модули организованы в 9 групп: Аутификация/Пользователи, CRM (клиенты, контрагенты, контакты), Проекты/Задачи, Планирование (календарь, повторяющиеся задачи, напоминания), Коммуникации (чаты, уведомления, push), Автоматизация (workflows, SLA, вебхуки), Аналитика (дашборды, отчёты), AI/LLM (11 модулей: провайдеры, intents, предложения, действия, задания, промпты, схемы, использование, retention, семантический поиск, context builders), Администрирование (настройки, логи, аудит, feature-флаги, модули, хранилище, корзина, поиск).
@@ -863,8 +869,8 @@ TropaTT/
 
 | Слой | Расположение | Содержание |
 |------|-------------|-----------|
-| Maintainer | `docs/maintainer/` | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
-| API tooling | `api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI || Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, работы агентов, безопасности, вклада, troubleshooting установки, shared hosting гайд, webhook security |
+| Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
+| API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI || Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, работы агентов, безопасности, вклада, troubleshooting установки, shared hosting гайд, webhook security |
 ---
 
 ### Файлы open-source проекта
@@ -1241,8 +1247,8 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | 前端 API 覆盖率 | 70.1%（743 个端点中的 521 个已实现 UI） |
 | 外部 PHP 依赖 | 0 |
 | 前端第三方包 | 3（Bootstrap 5、Font Awesome 6、SortableJS） |
-| OpenAPI 工具 | `api/scripts/generate_openapi.php` |
-| 公开维护者文档 | `docs/maintainer/` |
+| OpenAPI 工具 | `upload/api/scripts/generate_openapi.php` |
+| 维护者文档本地保存（不公开） |
 | 模块 CLI 命令 | 19 |
 | 部署选项 | 本地电脑、家庭/办公室服务器、VPS、云虚拟机、共享主机 |
 | 外部主机起点 | ~$3/月，共享主机 |
@@ -1258,7 +1264,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 - **安全性：** 双重认证（Web 的 Cookie 会话 + CSRF，API 的 Bearer），带细粒度权限的 RBAC，速率限制，文件隔离，管理员模拟，已脱敏的错误响应。
 - **测试：** 已启用公开 PHP lint CI。带 MySQL service 的快速集成测试 workflow 已进入公开 hardening backlog。
 - **AI 层：** 可配置的提供商（OpenAI、Anthropic、DeepSeek、Google、兼容提供商），基于意图的工作流，提示词模板，JSON Schema 验证，预览后应用的安全模型。
-- **文档：** 公开维护者文档位于 `docs/maintainer/`。OpenAPI 生成工具位于 `api/scripts/generate_openapi.php`。
+- **文档：** 维护者文档本地保存，不公开发布。OpenAPI 生成工具位于 `upload/api/scripts/generate_openapi.php`。
 
 ---
 
@@ -1266,12 +1272,13 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 ```text
 TropaTT/
-├── api/           # API 核心——控制器、服务、仓库、配置、迁移、脚本
-├── web/           # Web 界面——安装程序、68 个页面、~55 个模板、24 个 JS 模块、资源
-├── modules/       # 可选业务模块（boilerplate、hello-world、WIP-limit 示例）
-├── docs/maintainer/ # 公开维护者清单和 OSS readiness notes
-├── index.php      # 根入口点
-└── README.md      # 本文件
+├── upload/         # CRM 本体——请将该文件夹的 CONTENTS 复制到服务器
+│   ├── api/        #   API 核心——控制器、服务、仓库、配置、迁移、脚本
+│   ├── web/        #   Web 界面——安装程序、页面、模板、JS 模块、资源
+│   ├── modules/    #   可选业务模块（boilerplate、hello-world、WIP-limit 示例）
+│   └── index.php   #   根入口点
+├── README.md       # 本文件（文档和配置保留在仓库根目录）
+└── ...             # 其他 .md 文档、LICENSE、.github/、.gitignore
 ```
 
 后端域模块分为 9 组：认证/用户，CRM（客户、合作方、联系人），项目/任务，规划（日历、重复任务、提醒），沟通（聊天、通知、推送），自动化（工作流、SLA、Webhook），分析（仪表盘、报告），AI/LLM（11 个模块：提供商、意图、建议、动作、任务、提示词、模式、使用量、保留、语义搜索、上下文构建器），管理（设置、日志、审计、功能标志、模块、存储、回收站、搜索）。
@@ -1296,8 +1303,8 @@ TropaTT/
 
 | 层级 | 位置 | 内容 |
 |------|------|------|
-| 维护者文档 | `docs/maintainer/` | Release checklist、security review checklist、Codex for OSS notes、starter issues、GitHub labels |
-| API 工具 | `api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
+| 维护者文档 | 本地保存（不公开） | Release checklist、security review checklist、Codex for OSS notes、starter issues、GitHub labels |
+| API 工具 | `upload/api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
 | 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | 公开使用、代理、安全和贡献指南 |
 
 ---

@@ -8,12 +8,17 @@ Follow these instructions for every change unless a more specific `AGENTS.md` ex
 
 ## Project Structure
 
-- `index.php` - root entry point.
-- `api/` - PHP API application, controllers, models, services, configuration, scripts, language files.
-- `web/` - PHP web application, browser installer, page controllers, templates, assets, page routes.
-- `modules/` - optional modules and module examples.
+The repository root holds only documentation and repository config. The CRM application itself lives in the `upload/` directory:
+
+- `upload/index.php` - root entry point.
+- `upload/api/` - PHP API application, controllers, models, services, configuration, scripts, language files.
+- `upload/web/` - PHP web application, browser installer, page controllers, templates, assets, page routes.
+- `upload/modules/` - optional modules and module examples.
+- `upload/storage/`, `upload/storage_api/` - runtime storage (only the `.htaccess` files are tracked).
 - `.github/` - GitHub workflows, issue templates, and pull request template.
 - `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `CHANGELOG.md`, `ROADMAP.md`, `CODE_OF_CONDUCT.md` - public project documentation.
+
+For deployment and installation, copy the **contents of `upload/`** to the server document root.
 
 Do not assume private local documentation, screenshots, runtime storage, or local environment files are present in public clones.
 
@@ -21,10 +26,10 @@ Do not assume private local documentation, screenshots, runtime storage, or loca
 
 - PHP 8.1+ is the baseline.
 - MySQL is the required database for real installations.
-- The public browser installer is `web/install.php`.
-- API requests route through `api/index.php`.
-- Web pages route through `web/index.php`.
-- Public configuration examples should use `api/.env.example`.
+- The public browser installer is `upload/web/install.php`.
+- API requests route through `upload/api/index.php`.
+- Web pages route through `upload/web/index.php`.
+- Public configuration examples should use `upload/api/.env.example`.
 
 Do not introduce SQLite as an installation target unless the project maintainers explicitly request it.
 
@@ -33,8 +38,8 @@ Do not introduce SQLite as an installation target unless the project maintainers
 Use these commands from the repository root when available:
 
 ```bash
-find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
-php api/scripts/generate_openapi.php
+find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n1 php -l
+php upload/api/scripts/generate_openapi.php
 ```
 
 Before reporting that a change is ready, run at least the PHP syntax check for any PHP change.
@@ -89,9 +94,9 @@ If a change touches auth, permissions, files, chat, webhooks, AI, installer, or 
 
 ## API and OpenAPI Rules
 
-- Keep `api/config/routes.php` and API controllers consistent.
+- Keep `upload/api/config/routes.php` and API controllers consistent.
 - If an endpoint is added, removed, or changed, update or regenerate OpenAPI output when the repository contains the required generator/artifact.
-- Run `php api/scripts/generate_openapi.php` after API contract changes when possible.
+- Run `php upload/api/scripts/generate_openapi.php` after API contract changes when possible.
 - Do not document an endpoint as public unless it is intentionally public and safe.
 - Keep response envelopes and error formats consistent with nearby endpoints.
 - Check RBAC and object-level access for every endpoint, not only the web UI path.

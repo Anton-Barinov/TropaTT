@@ -60,10 +60,10 @@ Useful checks depend on the area changed. When available in your local checkout:
 
 ```bash
 php -l path/to/file.php
-php api/scripts/test_runner.php fast
-php api/scripts/test_runner.php unit
-php api/scripts/test_runner.php integration
-php api/scripts/test_runner.php openapi
+php upload/api/scripts/test_runner.php fast
+php upload/api/scripts/test_runner.php unit
+php upload/api/scripts/test_runner.php integration
+php upload/api/scripts/test_runner.php openapi
 ```
 
 If a script is not included in the public install package or your checkout, describe what you tested manually.
