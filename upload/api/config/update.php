@@ -19,7 +19,10 @@ return [
     'timeouts' => [
         'check' => 10,
         'download' => 120,
-        'apply_step' => 60,
+        // Apply/rollback = backup + file copy + DB migrations. On slow shared
+        // hosting that can take minutes, and updater/index.php already lifts
+        // its own max_execution_time to 600s. Keep this in step with that.
+        'apply_step' => 300,
     ],
     'limits' => [
         'max_package_bytes' => 100 * 1024 * 1024,

@@ -261,6 +261,12 @@ final class UpdaterKernel
      * Uses the freshly deployed code so newly added migrations are picked
      * up. Failures are recorded but do not fail the whole apply: the admin
      * can retry migrations or roll back from the update page.
+     *
+     * NOTE: when the package itself updates this very UpdaterKernel file, the
+     * in-memory copy of this class is still the pre-update bytecode, so
+     * MigrationRunner here refers to the class from the already-loaded
+     * namespace imports. Keep MigrationRunner's signature stable across
+     * updater self-updates so this method keeps working with fresh code.
      */
     private function runMigrations(JobState $state, UpdateLogger $logger): array
     {
