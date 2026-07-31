@@ -13352,8 +13352,9 @@ window.CRM.pageApiBindings = (function () {
           var tokenInput = document.getElementById('invitationTokenInput');
           if (tokenInput) tokenInput.value = token;
           if (linkInput) {
+            var webBase = String(window.location.pathname || '').replace(/[^/]*$/, '');
             linkInput.value = window.CRM.api && typeof window.CRM.api.buildWebUrl === 'function'
-              ? window.CRM.api.buildWebUrl('invitation-accept', { token: token })
+              ? window.location.origin + webBase + window.CRM.api.buildWebUrl('invitation-accept', { token: token })
               : 'index.php?route=invitation-accept&token=' + encodeURIComponent(token);
           }
           if (inviteFormPanel) inviteFormPanel.classList.add('d-none');
