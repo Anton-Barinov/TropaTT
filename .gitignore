@@ -21,9 +21,6 @@
 !/INSTALL_TROUBLESHOOTING.md
 !/SHARED_HOSTING_GUIDE.md
 !/WEBHOOK_SECURITY.md
-!/phpstan.neon
-!/phpstan-baseline.neon
-!/phpstan-baseline-level3.neon
 
 # Allow .github directory (CI/CD workflows, issue templates, PR template)
 !/.github/
