@@ -19,9 +19,10 @@ return [
     'timeouts' => [
         'check' => 10,
         'download' => 120,
-        // Apply/rollback = backup + file copy + DB migrations. On slow shared
-        // hosting that can take minutes, and updater/index.php already lifts
-        // its own max_execution_time to 600s. Keep this in step with that.
+        // Used by CoreUpdateController when it proxies the updater over HTTP
+        // (preflight). Actual apply/rollback are invoked by the page JS directly
+        // against updater/index.php, which lifts max_execution_time to 600s.
+        // Generous anyway so slow shared hosts survive a slow preflight.
         'apply_step' => 300,
     ],
     'limits' => [
