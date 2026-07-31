@@ -322,6 +322,8 @@ $L['zh'] = [
     'lock_file_error' => '系统已安装。如需重新安装，请删除 api/.env 和 api/.install.lock。',
     'install' => '安装',
     'optional' => '可选',
+    'update_check_notice' => '安装程序将检查更新可用性，并将此安装的域名发送到更新服务器。',
+    'update_available_after_install' => '有更新版本 %s。安装完成后，请打开更新部分并更新系统。',
 ];
 
 // Spanish
@@ -397,6 +399,8 @@ $L['es'] = [
     'lock_file_error' => 'Sistema ya instalado. Para reinstalar, elimine api/.env y api/.install.lock.',
     'install' => 'Instalación',
     'optional' => 'opcional',
+    'update_check_notice' => 'El instalador comprobará la disponibilidad de actualizaciones y enviará el dominio de esta instalación al servidor de actualizaciones.',
+    'update_available_after_install' => 'Hay una versión más nueva %s disponible. Después de la instalación, abra Actualizaciones y actualice el sistema.',
 ];
 
 // Portuguese (Brazil)
@@ -472,6 +476,8 @@ $L['pt'] = [
     'lock_file_error' => 'Sistema já instalado. Para reinstalar, exclua api/.env e api/.install.lock.',
     'install' => 'Instalação',
     'optional' => 'opcional',
+    'update_check_notice' => 'O instalador verificará a disponibilidade de atualizações e enviará o domínio desta instalação ao servidor de atualizações.',
+    'update_available_after_install' => 'Uma versão mais recente %s está disponível. Após a instalação, abra Atualizações e atualize o sistema.',
 ];
 
 // German
@@ -547,6 +553,8 @@ $L['de'] = [
     'lock_file_error' => 'System bereits installiert. Zum Neuinstallieren löschen Sie api/.env und api/.install.lock.',
     'install' => 'Installation',
     'optional' => 'optional',
+    'update_check_notice' => 'Der Installer prüft die Verfügbarkeit von Updates und übermittelt die Domain dieser Installation an den Update-Server.',
+    'update_available_after_install' => 'Eine neuere Version %s ist verfügbar. Öffnen Sie nach der Installation den Bereich Updates und aktualisieren Sie das System.',
 ];
 
 // French
@@ -622,6 +630,8 @@ $L['fr'] = [
     'lock_file_error' => "Système déjà installé. Pour réinstaller, supprimez api/.env et api/.install.lock.",
     'install' => 'Installation',
     'optional' => 'optionnel',
+    'update_check_notice' => "L'installateur vérifiera la disponibilité des mises à jour et enverra le domaine de cette installation au serveur de mises à jour.",
+    'update_available_after_install' => "Une version plus récente %s est disponible. Après l'installation, ouvrez Mises à jour et mettez à jour le système.",
 ];
 
 // ============================================================================
@@ -956,12 +966,35 @@ function getTimezones(): array
     ];
 }
 
+// Validate/normalize a MySQL host so it can never break out of the DSN's
+// host= segment (reject ";", whitespace, quotes). Allows hostnames, IPv4,
+// bracketed IPv6, and UNIX socket paths (which contain "/").
+function normalizeDbHost(string $host): string
+{
+    $host = trim($host);
+    if ($host === '') {
+        throw new RuntimeException('DB host is required.');
+    }
+    if (preg_match('/^[a-zA-Z0-9._\-:\/\[\]]+$/', $host) !== 1) {
+        throw new RuntimeException('DB host contains unsupported characters.');
+    }
+    return $host;
+}
+
+function normalizeDbPort(int $port): int
+{
+    return max(1, min(65535, $port));
+}
+
 function testDatabaseConnection(string $driver, string $host, int $port, string $database, string $username, string $password): array
 {
     try {
         if ($driver !== SUPPORTED_DB_DRIVER) {
             throw new RuntimeException('Only MySQL is supported by this installer.');
         }
+
+        $host = normalizeDbHost($host);
+        $port = normalizeDbPort($port);
 
         $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $database);
 
@@ -1027,6 +1060,11 @@ function parseEnvFile(string $path): array
         }
         $key = trim(substr($line, 0, $eq));
         $value = trim(substr($line, $eq + 1));
+        if (strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value) - 1] === '"') {
+            $value = substr($value, 1, -1);
+        } elseif (strlen($value) >= 2 && $value[0] === "'" && $value[strlen($value) - 1] === "'") {
+            $value = substr($value, 1, -1);
+        }
         $env[$key] = $value;
     }
     return $env;
@@ -1119,8 +1157,8 @@ function getPdoConnection(array $env): PDO
     if ($driver === 'mysql') {
         $pdo = new PDO(
             sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $env['DB_HOST'] ?? '127.0.0.1',
-                (int)($env['DB_PORT'] ?? 3306),
+                normalizeDbHost((string)($env['DB_HOST'] ?? '127.0.0.1')),
+                normalizeDbPort((int)($env['DB_PORT'] ?? 3306)),
                 $env['DB_DATABASE'] ?? '',
                 $env['DB_CHARSET'] ?? 'utf8mb4'
             ),
@@ -1140,6 +1178,17 @@ function sanitizeEnvValue(string $value): string
     return trim(str_replace(["\r", "\n"], '', $value));
 }
 
+// Quote a value for api/.env. EnvLoader::parseValue() strips unquoted inline
+// comments (\s+#.*$) and trims whitespace, which would corrupt DB passwords or
+// site URLs containing "#", spaces, or leading/trailing whitespace. Double
+// quotes with escaping round-trip cleanly through EnvLoader, KeyGuard, and the
+// installer's own parseEnvFile().
+function quoteEnvValue(string $value): string
+{
+    $escaped = str_replace(['\\', '"'], ['\\\\', '\\"'], sanitizeEnvValue($value));
+    return '"' . $escaped . '"';
+}
+
 function writeEnvFile(array $data): bool
 {
     $envContent = "# TropaTT — Environment Configuration\n";
@@ -1148,41 +1197,41 @@ function writeEnvFile(array $data): bool
     $envContent .= "# Runtime mode\n";
     $envContent .= "APP_ENV=production\n";
     $envContent .= "APP_DEBUG=0\n";
-    $envContent .= "APP_TIMEZONE=" . sanitizeEnvValue((string)($data['timezone'] ?? 'Europe/Moscow')) . "\n\n";
+    $envContent .= "APP_TIMEZONE=" . quoteEnvValue((string)($data['timezone'] ?? 'Europe/Moscow')) . "\n\n";
 
     $envContent .= "# Storage\n";
     $envContent .= "CRM_STORAGE_BASE=" . STORAGE_BASE_DEFAULT . "\n\n";
 
     $envContent .= "# Database\n";
     $envContent .= "DB_CONNECTION=mysql\n";
-    $envContent .= "DB_HOST=" . sanitizeEnvValue((string)($data['db_host'] ?? '127.0.0.1')) . "\n";
-    $envContent .= "DB_PORT=" . sanitizeEnvValue((string)($data['db_port'] ?? '3306')) . "\n";
-    $envContent .= "DB_DATABASE=" . sanitizeEnvValue((string)($data['db_database'] ?? '')) . "\n";
-    $envContent .= "DB_USERNAME=" . sanitizeEnvValue((string)($data['db_username'] ?? '')) . "\n";
-    $envContent .= "DB_PASSWORD=" . sanitizeEnvValue((string)($data['db_password'] ?? '')) . "\n";
+    $envContent .= "DB_HOST=" . quoteEnvValue((string)($data['db_host'] ?? '127.0.0.1')) . "\n";
+    $envContent .= "DB_PORT=" . quoteEnvValue((string)($data['db_port'] ?? '3306')) . "\n";
+    $envContent .= "DB_DATABASE=" . quoteEnvValue((string)($data['db_database'] ?? '')) . "\n";
+    $envContent .= "DB_USERNAME=" . quoteEnvValue((string)($data['db_username'] ?? '')) . "\n";
+    $envContent .= "DB_PASSWORD=" . quoteEnvValue((string)($data['db_password'] ?? '')) . "\n";
     $envContent .= "DB_CHARSET=utf8mb4\n";
 
     $envContent .= "\n# Security secrets\n";
-    $envContent .= "APP_KEY=" . sanitizeEnvValue((string)($data['app_key'] ?? '')) . "\n";
-    $envContent .= "CSRF_SECRET_KEY=" . sanitizeEnvValue((string)($data['csrf_key'] ?? '')) . "\n";
-    $envContent .= "WEBHOOK_SECRET_KEY=" . sanitizeEnvValue((string)($data['webhook_key'] ?? '')) . "\n";
-    $envContent .= "AI_ENCRYPTION_KEY=" . sanitizeEnvValue((string)($data['ai_key'] ?? '')) . "\n";
-    $envContent .= "CRON_SECRET_KEY=" . sanitizeEnvValue((string)($data['cron_secret'] ?? '')) . "\n\n";
+    $envContent .= "APP_KEY=" . quoteEnvValue((string)($data['app_key'] ?? '')) . "\n";
+    $envContent .= "CSRF_SECRET_KEY=" . quoteEnvValue((string)($data['csrf_key'] ?? '')) . "\n";
+    $envContent .= "WEBHOOK_SECRET_KEY=" . quoteEnvValue((string)($data['webhook_key'] ?? '')) . "\n";
+    $envContent .= "AI_ENCRYPTION_KEY=" . quoteEnvValue((string)($data['ai_key'] ?? '')) . "\n";
+    $envContent .= "CRON_SECRET_KEY=" . quoteEnvValue((string)($data['cron_secret'] ?? '')) . "\n\n";
 
     $siteUrl = rtrim(sanitizeEnvValue((string)($data['site_url'] ?? 'http://localhost')), '/');
     $envContent .= "# CORS allowlist\n";
-    $envContent .= "CORS_ALLOW_ORIGIN=" . $siteUrl . "\n\n";
+    $envContent .= "CORS_ALLOW_ORIGIN=" . quoteEnvValue($siteUrl) . "\n\n";
 
     $envContent .= "# Install bootstrap secret\n";
-    $envContent .= "INSTALL_BOOTSTRAP_SECRET=" . bin2hex(random_bytes(16)) . "\n\n";
+    $envContent .= "INSTALL_BOOTSTRAP_SECRET=" . quoteEnvValue(bin2hex(random_bytes(16))) . "\n\n";
 
     $envContent .= "# Optional push gateway\n";
     $envContent .= "NOTIFICATIONS_PUSH_GATEWAY_URL=\n";
 
     $vapidKeys = generateVapidKeys();
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY=" . sanitizeEnvValue((string)$vapidKeys['public_key']) . "\n";
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY=" . sanitizeEnvValue((string)$vapidKeys['private_key']) . "\n";
-    $envContent .= "NOTIFICATIONS_PUSH_VAPID_SUBJECT=mailto:" . sanitizeEnvValue((string)($data['admin_email'] ?? 'admin@example.com')) . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PUBLIC_KEY=" . quoteEnvValue((string)$vapidKeys['public_key']) . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_PRIVATE_KEY=" . quoteEnvValue((string)$vapidKeys['private_key']) . "\n";
+    $envContent .= "NOTIFICATIONS_PUSH_VAPID_SUBJECT=" . quoteEnvValue('mailto:' . (string)($data['admin_email'] ?? 'admin@example.com')) . "\n";
 
     $envContent .= "NOTIFICATIONS_PUSH_TIMEOUT_SEC=5\n";
     $envContent .= "NOTIFICATIONS_PUSH_MAX_SUBSCRIPTIONS_PER_DISPATCH=100\n";
@@ -1192,7 +1241,12 @@ function writeEnvFile(array $data): bool
         return false;
     }
 
-    return file_put_contents(ENV_FILE_PATH, $envContent) !== false;
+    if (file_put_contents(ENV_FILE_PATH, $envContent) === false) {
+        return false;
+    }
+    // SEC: restrict .env to the owning user (secrets file)
+    @chmod(ENV_FILE_PATH, 0600);
+    return true;
 }
 
 function createDatabaseTables(PDO $pdo, string $driver): array
@@ -2126,7 +2180,7 @@ function createDatabaseTables(PDO $pdo, string $driver): array
         try {
             $pdo->exec($sql);
         } catch (Throwable $e) {
-            error_log('[Install::createDatabaseTables] Table #' . $index . ': ' . $e->getMessage());
+            error_log('[Install::createDatabaseTables] Table #' . ($index + 1) . ': ' . $e->getMessage());
             $errors[] = 'Table creation failed. Check server logs for details.';
         }
     }
@@ -2768,6 +2822,12 @@ if ($isAjax) {
                 $updateNotice = installUpdateNotice($installData);
                 $_SESSION['install_update_notice'] = $updateNotice;
                 $_SESSION['install_done'] = true;
+                $_SESSION['install_admin'] = $adminUser;
+                $_SESSION['install_credentials'] = [
+                    'login' => $installData['admin_login'] ?? $installData['admin_email'] ?? 'admin',
+                    'password' => $installData['admin_password'] ?? '',
+                    'name' => $installData['admin_name'] ?? 'Administrator',
+                ];
                 echo json_encode([
                     'success' => true,
                     'substep' => 5,
@@ -3025,7 +3085,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
                 } catch (Throwable $e) {
                     error_log('[Install::demoData] ' . $e->getMessage());
-                    $errors[] = 'Demo data creation failed. Check server logs for details.';
+                    $errors[] = 'Installation failed. Check server logs for details.';
                     $step = 4;
                 }
             }
@@ -3067,10 +3127,12 @@ $steps = [
 // Part 9: Language Switch Handler
 // ============================================================================
 
-if (isset($_GET['lang']) && in_array($_GET['lang'], ['ru', 'en', 'zh'], true)) {
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['ru', 'en', 'zh', 'es', 'pt', 'de', 'fr'], true)) {
     $_SESSION['lang'] = $_GET['lang'];
     $lang = $_GET['lang'];
-    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'), true, 302);
+    $redirectPath = strtok($_SERVER['REQUEST_URI'], '?');
+    $redirectPath .= isset($_GET['step']) ? '?step=' . max(1, min(4, (int)$_GET['step'])) : '';
+    header('Location: ' . $redirectPath, true, 302);
     exit;
 }
 
@@ -3673,8 +3735,8 @@ echo $css;
     <div class="install-subtitle"><?php echo t('title'); ?> v<?php echo INSTALL_VERSION; ?></div>
 
     <div class="lang-switch">
-        <?php foreach (['ru' => 'Русский', 'en' => 'English', 'zh' => '中文'] as $code => $label): ?>
-        <a href="?lang=<?php echo $code; ?>" class="lang-btn<?php echo $lang === $code ? ' active' : ''; ?>"><?php echo e($label); ?></a>
+        <?php foreach (['ru' => 'Русский', 'en' => 'English', 'zh' => '中文', 'es' => 'Español', 'de' => 'Deutsch', 'fr' => 'Français', 'pt' => 'Português'] as $code => $label): ?>
+        <a href="?lang=<?php echo $code; ?><?php echo $currentStep > 1 ? '&amp;step=' . $currentStep : ''; ?>" class="lang-btn<?php echo $lang === $code ? ' active' : ''; ?>"><?php echo e($label); ?></a>
         <?php endforeach; ?>
     </div>
 
@@ -4030,11 +4092,19 @@ $js = <<<'JS'
             resultDiv.textContent = '';
             resultDiv.className = 'test-result';
 
+            var lang = document.documentElement.lang;
+            var testText = testBtn.querySelector('.test-text');
+            var iconSpan = testBtn.querySelector('.test-icon');
+            var spinnerSpan = testBtn.querySelector('.test-spinner');
+            var originalText = testText ? testText.textContent : '';
+
             var driver = document.querySelector('input[name="db_driver"]:checked');
             driver = driver ? driver.value : 'mysql';
 
             testBtn.disabled = true;
-            testBtn.innerHTML = '<span class="spinner"></span> ' + (testBtn.textContent.includes('Testing') ? 'Testing...' : (testBtn.textContent.includes('Проверка') ? 'Проверка...' : '测试中...'));
+            if (iconSpan) iconSpan.style.display = 'none';
+            if (spinnerSpan) spinnerSpan.style.display = 'inline';
+            if (testText) testText.textContent = lang === 'ru' ? 'Проверка...' : (lang === 'zh' ? '测试中...' : 'Testing...');
 
             var formData = new FormData();
             formData.append('_ajax', '1');
@@ -4073,14 +4143,9 @@ $js = <<<'JS'
                 })
                 .finally(function() {
                     testBtn.disabled = false;
-                    var spinner = testBtn.querySelector('.test-spinner');
-                    var icon = testBtn.querySelector('.test-icon');
-                    var text = testBtn.querySelector('.test-text');
-                    if (spinner) spinner.style.display = 'none';
-                    if (icon) icon.style.display = 'inline';
-                    if (text) text.textContent = testBtn.textContent.includes('Test') ? 'Test Connection' : (testBtn.textContent.includes('Проверить') ? 'Проверить подключение' : 'Test Connection');
-                    // Refresh CSRF token
-                    var newToken = document.querySelector('input[name="_csrf"]').value;
+                    if (iconSpan) iconSpan.style.display = 'inline';
+                    if (spinnerSpan) spinnerSpan.style.display = 'none';
+                    if (testText) testText.textContent = originalText;
                 });
         });
     }
