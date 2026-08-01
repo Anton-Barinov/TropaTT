@@ -331,8 +331,15 @@ final class UpdaterKernel
             $lock->acquire($jobId);
             $maintenance->enable($jobId);
             $state->write(['state' => 'rolling_back', 'can_resume' => false, 'can_rollback' => false]);
-            $result = (new RollbackManager($this->basePath, $this->storageDir))->rollback($backupId);
+            // Restore the database BEFORE restoring files. The file backup of a
+            // self-updating package contains the pre-update updater files (an
+            // older DatabaseBackupManager without restore()), so touching the
+            // DB after the file rollback would autoload that older class from
+            // disk and fatal. Restoring the DB first runs against the current
+            // post-update code; it is best-effort and skips cleanly when no DB
+            // snapshot exists for the job (files-only update, old job).
             $dbRestore = $this->restoreDatabaseBackup($backupId, $logger);
+            $result = (new RollbackManager($this->basePath, $this->storageDir))->rollback($backupId);
             $health = (new HealthChecker($this->basePath))->check();
             if (($health['ok'] ?? false) !== true) {
                 throw new \RuntimeException('Post-rollback health check failed.');
