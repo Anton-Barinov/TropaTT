@@ -86,13 +86,19 @@ final class DatabaseBackupManager extends BackupManager
             $rows += $this->dumpTableData($pdo, $data, $table);
         }
 
-        // Views after tables so dependencies resolve.
+        // Views after tables so dependencies resolve. Only views whose
+        // SHOW CREATE VIEW actually returned DDL are dumped; the manifest
+        // must record the DUMPED count (not the raw list count) so the
+        // post-restore verification can never false-fail on a view that was
+        // skipped at backup time.
+        $viewsDumped = 0;
         foreach ($views as $view) {
             $create = $pdo->query('SHOW CREATE VIEW `' . $view . '`')->fetch(PDO::FETCH_NUM);
             $createSql = is_array($create) ? (string)($create[1] ?? '') : '';
             if ($createSql !== '') {
                 $this->writeStatement($schema, "DROP VIEW IF EXISTS `{$view}`;");
-                $this->writeStatement($schema, $createSql . ';');
+                $this->writeStatement($schema, $this->stripDefiner($createSql) . ';');
+                $viewsDumped++;
             }
         }
 
@@ -115,7 +121,7 @@ final class DatabaseBackupManager extends BackupManager
             'job_id' => $jobId,
             'created_at' => gmdate('c'),
             'tables' => count($tables),
-            'views' => count($views),
+            'views' => $viewsDumped,
             'triggers' => $triggers,
             'rows' => $rows,
             'schema_file' => 'db/schema.sql',
@@ -205,6 +211,33 @@ final class DatabaseBackupManager extends BackupManager
             if (is_file($triggersFile)) {
                 $this->execSqlFile($pdo, $triggersFile);
             }
+
+            // Post-restore verification: the replayed schema must match the
+            // manifest. A partial restore (a statement the host silently
+            // skipped, a definer mismatch, a packet limit) must NEVER be
+            // reported as success - the admin would otherwise be told the
+            // rollback worked while the CRM was left half-restored.
+            //
+            // >= is used instead of === on purpose: restore drops every
+            // view/table first and replays only what the dump contains, so
+            // the restored count can never EXCEED the manifest. A legacy
+            // backup made by an older build recorded manifest['views'] as
+            // the raw SHOW FULL TABLES list count (which could include a
+            // view whose SHOW CREATE VIEW returned empty and was skipped in
+            // the dump); >= stays correct under both old and new semantics
+            // while still catching any partial restore (fewer than expected).
+            $restoredTables = count($this->listBaseTables($pdo));
+            $restoredViews = count($this->listViews($pdo));
+            $expectedTables = (int)($manifest['tables'] ?? 0);
+            $expectedViews = (int)($manifest['views'] ?? 0);
+            if ($restoredTables < $expectedTables || $restoredViews < $expectedViews) {
+                return [
+                    'ok' => false,
+                    'error' => "Post-restore verification failed: expected at least {$expectedTables} tables / {$expectedViews} views, "
+                        . "found {$restoredTables} / {$restoredViews}. The database may be partially restored; "
+                        . 'retry the rollback or restore from the backup.',
+                ];
+            }
         } finally {
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         }
@@ -213,10 +246,12 @@ final class DatabaseBackupManager extends BackupManager
             'ok' => true,
             'driver' => 'mysql',
             'integrity' => 'verified',
-            'tables' => is_array($manifest) ? (int)($manifest['tables'] ?? 0) : 0,
-            'views' => is_array($manifest) ? (int)($manifest['views'] ?? 0) : 0,
-            'triggers' => is_array($manifest) ? (int)($manifest['triggers'] ?? 0) : 0,
-            'rows' => is_array($manifest) ? (int)($manifest['rows'] ?? 0) : 0,
+            'verified_tables' => $restoredTables,
+            'verified_views' => $restoredViews,
+            'tables' => (int)($manifest['tables'] ?? 0),
+            'views' => (int)($manifest['views'] ?? 0),
+            'triggers' => (int)($manifest['triggers'] ?? 0),
+            'rows' => (int)($manifest['rows'] ?? 0),
         ];
     }
 
@@ -366,7 +401,14 @@ final class DatabaseBackupManager extends BackupManager
         }
         $rows = 0;
         $batch = [];
+        $batchBytes = 0;
         $batchSize = 100;
+        // Shared hosting often sets a small max_allowed_packet (as low as 1MB
+        // on some hosts). A 100-row batch with TEXT/JSON values can exceed it,
+        // and restore would then fail with "packet too large" AFTER the tables
+        // have been dropped. Flush by BOTH row count and accumulated bytes so
+        // every INSERT statement stays well under common packet limits.
+        $maxBatchBytes = 512 * 1024; // 512 KiB, safely under 1MB+ limits
 
         while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
             $values = [];
@@ -379,10 +421,18 @@ final class DatabaseBackupManager extends BackupManager
                     $values[] = $pdo->quote((string)$value);
                 }
             }
-            $batch[] = '(' . implode(', ', $values) . ')';
-            if (count($batch) >= $batchSize) {
+            $line = '(' . implode(', ', $values) . ')';
+            $batch[] = $line;
+            // A single row larger than max_allowed_packet is not split here
+            // on purpose: the dump is restored to the same MySQL server that
+            // accepted the row originally, so the packet limit was already
+            // large enough to store it. Byte-flushing only guards the
+            // multi-row batch case (100 x KB-sized TEXT/JSON values).
+            $batchBytes += strlen($line) + 2;
+            if (count($batch) >= $batchSize || $batchBytes >= $maxBatchBytes) {
                 $this->writeStatement($handle, 'INSERT INTO `' . $table . '` VALUES ' . implode(', ', $batch) . ';');
                 $batch = [];
+                $batchBytes = 0;
             }
             $rows++;
         }
@@ -391,6 +441,18 @@ final class DatabaseBackupManager extends BackupManager
         }
 
         return $rows;
+    }
+
+    /**
+     * Strip the DEFINER clause from a SHOW CREATE VIEW/TRIGGER statement so
+     * the dump can be restored by any MySQL user (mysqldump --skip-definer
+     * equivalent). Without this, a view/trigger whose definer does not match
+     * the restore account requires SUPER privilege and the restore fails
+     * mid-way - after the schema was already dropped.
+     */
+    private function stripDefiner(string $sql): string
+    {
+        return (string)preg_replace('/\s+DEFINER=`[^`]+`@`[^`]+`/i', '', $sql);
     }
 
     /**
@@ -423,7 +485,7 @@ final class DatabaseBackupManager extends BackupManager
             $sql = is_array($row) ? (string)($row[2] ?? '') : '';
             if ($sql !== '') {
                 $this->writeStatement($handle, "DROP TRIGGER IF EXISTS `{$name}`;");
-                $this->writeStatement($handle, $sql . ';');
+                $this->writeStatement($handle, $this->stripDefiner($sql) . ';');
                 $written++;
             }
         }
@@ -517,6 +579,7 @@ final class DatabaseBackupManager extends BackupManager
             'triggers' => null,
             'rows' => null,
             'schema_file' => 'db/crm.sqlite',
+            'file_sha256' => hash_file('sha256', $target) ?: '',
         ];
         file_put_contents($dbDir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         return $manifest;
@@ -528,6 +591,14 @@ final class DatabaseBackupManager extends BackupManager
         $source = $dbDir . '/crm.sqlite';
         if (!is_file($source)) {
             return ['ok' => false, 'error' => 'SQLite backup file missing.'];
+        }
+        // Verify the copied sqlite file matches the hash recorded at backup
+        // time before overwriting the live database file.
+        $manifestFile = $dbDir . '/manifest.json';
+        $manifest = is_file($manifestFile) ? json_decode((string)file_get_contents($manifestFile), true) : null;
+        $expected = is_array($manifest) ? (string)($manifest['file_sha256'] ?? '') : '';
+        if ($expected !== '' && hash_file('sha256', $source) !== $expected) {
+            return ['ok' => false, 'error' => 'SQLite backup integrity check failed: crm.sqlite checksum mismatch.'];
         }
         $conn = Connection::open($this->basePath);
         $target = (string)($conn['database']['database'] ?? '');

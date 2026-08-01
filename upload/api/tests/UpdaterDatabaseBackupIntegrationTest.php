@@ -185,10 +185,12 @@ $schemaContent = (string)file_get_contents($schemaFile);
 ok(str_contains($schemaContent, 'CREATE TABLE `upd_test_items`'), 'schema has CREATE TABLE upd_test_items');
 ok(str_contains($schemaContent, 'VIEW `upd_test_items_view`'), 'schema has CREATE VIEW');
 ok(str_contains($schemaContent, 'FOREIGN KEY'), 'schema preserves FK (utf8mb4 fixture has FK)');
+ok(!str_contains($schemaContent, 'DEFINER='), 'schema dump has no DEFINER clauses (portable restore)');
 ok(is_file($backupRoot . '/db/triggers.sql'), 'triggers.sql written');
 $triggersContent = (string)file_get_contents($backupRoot . '/db/triggers.sql');
 ok(str_contains($triggersContent, 'upd_test_trg'), 'triggers.sql has CREATE TRIGGER for upd_test_trg');
 ok(str_contains($triggersContent, 'SET NEW.created_at = NOW()'), 'compound trigger body dumped intact');
+ok(!str_contains($triggersContent, 'DEFINER='), 'triggers dump has no DEFINER clauses (portable restore)');
 
 // --- Mutate the DB (simulate a migration + data change) ---
 $pdo->exec('ALTER TABLE upd_test_items DROP COLUMN note');
@@ -203,6 +205,8 @@ ok(($restore['ok'] ?? false) === true, 'restore ok');
 ok(($restore['driver'] ?? '') === 'mysql', 'restore driver mysql');
 ok(($restore['integrity'] ?? '') === 'verified', 'restore reports integrity=verified');
 ok(($restore['tables'] ?? 0) === 2, 'restore reports 2 tables');
+ok(($restore['verified_tables'] ?? 0) === 2, 'post-restore verification confirms 2 tables');
+ok(($restore['verified_views'] ?? 0) === 1, 'post-restore verification confirms 1 view');
 
 // --- Verify restored schema + data ---
 $tables = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);

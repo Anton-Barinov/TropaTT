@@ -54,6 +54,10 @@ $src = (string)file_get_contents($sourceFile);
 check(str_contains($src, "'schema_sha256' => hash_file('sha256', \$schemaFile)"), 'backup() records schema.sql sha256 in manifest');
 check(str_contains($src, "'data_sha256' => hash_file('sha256', \$dataFile)"), 'backup() records data.sql sha256 in manifest');
 check(str_contains($src, 'verifyDumpIntegrity($dbDir, is_array($manifest)'), 'restore() calls verifyDumpIntegrity()');
+check(str_contains($src, '$maxBatchBytes = 512 * 1024'), 'dumpTableData flushes INSERT batches by bytes (max_allowed_packet safety)');
+check(str_contains($src, 'stripDefiner('), 'backup() strips DEFINER from views/triggers');
+check(str_contains($src, "'file_sha256' => hash_file('sha256', \$target)"), 'sqlite backup records file sha256');
+check(str_contains($src, 'Post-restore verification failed'), 'restore() verifies replayed table/view count after replay');
 
 // verifyDumpIntegrity must run BEFORE the drop-all loop (DROP VIEW / DROP TABLE).
 $integrityPos = strpos($src, '$integrityError = $this->verifyDumpIntegrity(');
