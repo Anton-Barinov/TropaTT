@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 return array (
+  'e2e_update_marker' => 'E2E_UPDATE_MARKER_20260802_003402',
   'admin' => 
   array (
     'active_state' => 'Active',
