@@ -52,9 +52,11 @@ DEMO_SSH="${DEMO_SSH:-root@demo.tropatt.com}"
 UPDATE_SSH="${UPDATE_SSH:-root@update.tropatt.com}"
 DEMO_ROOT="${DEMO_ROOT:-/home/tropatt/web/demo.tropatt.com/public_html}"
 UPDATE_ROOT="${UPDATE_ROOT:-/home/tropatt/web/update.tropatt.com/public_html}"
-UPDATE_USER="${UPDATE_USER:-tropatt}"
-# Absolute PHP path on the update server (its own crontab uses /usr/bin/php;
-# the tropatt user's PATH under `su` may not contain `php`).
+# The update center's own crontab runs bin/cron.php as root (log + cache files
+# are root-owned), so scans must also run as root. UPDATE_USER is only used as
+# an optional su fallback when explicitly set (e.g. a non-root deployment).
+UPDATE_USER="${UPDATE_USER:-root}"
+# Absolute PHP path on the update server (its own crontab uses /usr/bin/php).
 UPDATE_PHP="${UPDATE_PHP:-/usr/bin/php}"
 DEMO_PHP="${DEMO_PHP:-php}"
 DEMO_BASE="${DEMO_BASE:-https://demo.tropatt.com}"
@@ -352,7 +354,12 @@ wait_for_build() {
   local deadline=$((SECONDS + BUILD_WAIT))
   local out=""
   local last_scan=-999
-  local scan_cmd="su -s /bin/sh - '$UPDATE_USER' -c '$UPDATE_PHP $UPDATE_ROOT/bin/cron.php run >> $UPDATE_ROOT/storage/logs/update-center-cron.log 2>&1'"
+  local scan_cmd
+  if [[ "$UPDATE_USER" == "root" || "$UPDATE_USER" == "" ]]; then
+    scan_cmd="$UPDATE_PHP $UPDATE_ROOT/bin/cron.php run >> $UPDATE_ROOT/storage/logs/update-center-cron.log 2>&1"
+  else
+    scan_cmd="su -s /bin/sh - '$UPDATE_USER' -c '$UPDATE_PHP $UPDATE_ROOT/bin/cron.php run >> $UPDATE_ROOT/storage/logs/update-center-cron.log 2>&1'"
+  fi
   # Poll/status lines go to stderr so command substitution captures ONLY the
   # build number on stdout (BUILD_A="$(wait_for_build ...)" must stay clean).
   echo "  [update-center] triggering scan" >&2
