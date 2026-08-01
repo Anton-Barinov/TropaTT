@@ -104,6 +104,11 @@ final class DatabaseBackupManager extends BackupManager
             return ['ok' => false, 'error' => 'Unable to dump database triggers.'];
         }
 
+        // Record SHA-256 of every dump file in the manifest so restore() can
+        // verify the backup is intact BEFORE dropping the live schema. A
+        // truncated, zeroed or bit-rotten dump must never be replayed over a
+        // healthy database (hash_file() streams internally, so this stays
+        // memory-flat even for hundreds-of-MB data dumps).
         $manifest = [
             'ok' => true,
             'driver' => 'mysql',
@@ -116,6 +121,9 @@ final class DatabaseBackupManager extends BackupManager
             'schema_file' => 'db/schema.sql',
             'data_file' => 'db/data.sql',
             'triggers_file' => 'db/triggers.sql',
+            'schema_sha256' => hash_file('sha256', $schemaFile) ?: '',
+            'data_sha256' => hash_file('sha256', $dataFile) ?: '',
+            'triggers_sha256' => is_file($triggersFile) ? (hash_file('sha256', $triggersFile) ?: '') : '',
         ];
         file_put_contents($dbDir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
@@ -160,6 +168,20 @@ final class DatabaseBackupManager extends BackupManager
             return ['ok' => false, 'error' => 'Backup dump files missing.'];
         }
 
+        // Integrity gate BEFORE any destructive step. Verify the dump files
+        // match the hashes recorded at backup time (with a structural fallback
+        // for legacy backups that predate hashing). A corrupt or truncated
+        // dump must never be replayed over the live database - an interrupted
+        // restore that has already dropped the schema is unrecoverable.
+        $integrityError = $this->verifyDumpIntegrity($dbDir, is_array($manifest) ? $manifest : []);
+        if ($integrityError !== null) {
+            return [
+                'ok' => false,
+                'error' => 'Database backup integrity check failed: ' . $integrityError
+                    . '. Restore aborted before any change; the live database was left untouched.',
+            ];
+        }
+
         $conn = Connection::open($this->basePath);
         if ($conn['driver'] !== 'mysql') {
             return ['ok' => false, 'error' => 'Current DB driver (' . $conn['driver'] . ') does not match backup driver (mysql).'];
@@ -190,11 +212,124 @@ final class DatabaseBackupManager extends BackupManager
         return [
             'ok' => true,
             'driver' => 'mysql',
+            'integrity' => 'verified',
             'tables' => is_array($manifest) ? (int)($manifest['tables'] ?? 0) : 0,
             'views' => is_array($manifest) ? (int)($manifest['views'] ?? 0) : 0,
             'triggers' => is_array($manifest) ? (int)($manifest['triggers'] ?? 0) : 0,
             'rows' => is_array($manifest) ? (int)($manifest['rows'] ?? 0) : 0,
         ];
+    }
+
+    /**
+     * Verify a MySQL dump directory is intact BEFORE any table/view is dropped.
+     *
+     * Primary check: SHA-256 of schema.sql/data.sql/triggers.sql recorded in
+     * manifest.json at backup time. Any mismatch (truncated file, bit rot,
+     * manual edit, partial disk write) aborts the restore.
+     *
+     * Fallback for LEGACY backups created before hashing existed (no *_sha256
+     * keys in the manifest): structural sanity - files exist and are non-empty,
+     * carry the expected dump header, and the schema file contains at least
+     * one statement marker per recorded table (a full truncation to zero bytes
+     * is the realistic corruption mode here).
+     *
+     * @return string|null error message when the dump is corrupt, null when OK
+     */
+    private function verifyDumpIntegrity(string $dbDir, array $manifest): ?string
+    {
+        $schemaFile = $dbDir . '/schema.sql';
+        $dataFile = $dbDir . '/data.sql';
+        $triggersFile = $dbDir . '/triggers.sql';
+
+        $schemaSha = (string)($manifest['schema_sha256'] ?? '');
+        $dataSha = (string)($manifest['data_sha256'] ?? '');
+        if ($schemaSha !== '' && $dataSha !== '') {
+            if (!is_file($schemaFile) || hash_file('sha256', $schemaFile) !== $schemaSha) {
+                return 'schema.sql checksum mismatch (corrupt or missing backup)';
+            }
+            if (!is_file($dataFile) || hash_file('sha256', $dataFile) !== $dataSha) {
+                return 'data.sql checksum mismatch (corrupt or missing backup)';
+            }
+            $triggersSha = (string)($manifest['triggers_sha256'] ?? '');
+            if ($triggersSha !== '') {
+                // backup() always writes triggers.sql (even when empty), so a
+                // recorded hash with a missing file is real corruption: the
+                // restore loop would otherwise silently skip triggers.
+                if (!is_file($triggersFile)) {
+                    return 'triggers.sql is missing (corrupt or modified backup)';
+                }
+                if (hash_file('sha256', $triggersFile) !== $triggersSha) {
+                    return 'triggers.sql checksum mismatch (corrupt or modified backup)';
+                }
+            }
+            return null;
+        }
+
+        // Legacy backups without recorded hashes: structural sanity check.
+        if (!is_file($schemaFile) || filesize($schemaFile) === 0) {
+            return 'schema.sql is missing or empty';
+        }
+        if (!is_file($dataFile) || filesize($dataFile) === 0) {
+            return 'data.sql is missing or empty';
+        }
+        if (!str_starts_with($this->firstLine($schemaFile), '-- TropaTT DB schema backup')) {
+            return 'schema.sql has an unexpected header (not a TropaTT dump)';
+        }
+        if (!str_starts_with($this->firstLine($dataFile), '-- TropaTT DB data backup')) {
+            return 'data.sql has an unexpected header (not a TropaTT dump)';
+        }
+        $expectedStatements = (int)($manifest['tables'] ?? 0);
+        if ($expectedStatements > 0) {
+            $found = $this->countStatementMarkers($schemaFile, $expectedStatements);
+            if ($found < $expectedStatements) {
+                return "schema.sql is truncated (found {$found} statements, expected at least {$expectedStatements} tables)";
+            }
+        }
+        // Legacy data.sql: when the manifest records rows, the dump must carry
+        // at least one INSERT marker (early-exit, so a huge data.sql costs a
+        // single fgets pass up to its first statement). Catches the realistic
+        // "data file stripped to just the header" corruption.
+        if ((int)($manifest['rows'] ?? 0) > 0 && $this->countStatementMarkers($dataFile, 1) < 1) {
+            return 'data.sql is truncated (no INSERT statements despite recorded rows)';
+        }
+        return null;
+    }
+
+    /**
+     * Read the first line of a dump file (used for header validation).
+     */
+    private function firstLine(string $file): string
+    {
+        $handle = @fopen($file, 'r');
+        if ($handle === false) {
+            return '';
+        }
+        $line = fgets($handle);
+        fclose($handle);
+        return is_string($line) ? rtrim($line) : '';
+    }
+
+    /**
+     * Stream-count `-- @@TROPA_SQL@@` markers up to a limit (early exit).
+     * Memory-flat: never loads the whole file, so it is safe on large dumps.
+     */
+    private function countStatementMarkers(string $file, int $limit): int
+    {
+        $handle = @fopen($file, 'r');
+        if ($handle === false) {
+            return 0;
+        }
+        $count = 0;
+        while (($line = fgets($handle, 1048576)) !== false) {
+            if (rtrim($line) === '-- @@TROPA_SQL@@') {
+                $count++;
+                if ($count >= $limit) {
+                    break;
+                }
+            }
+        }
+        fclose($handle);
+        return $count;
     }
 
     /** @return list<string> */

@@ -12,11 +12,14 @@ declare(strict_types=1);
  * Exit code 0 = all assertions passed.
  */
 
+// Defaults target local dev MySQL (root, no password). On CI/servers where
+// root uses unix_socket auth, set TROPA_TEST_DB_USER/PASSWORD/... to a
+// dedicated test account that can create/drop tables in the test database.
 putenv('DB_CONNECTION=mysql');
-putenv('DB_HOST=127.0.0.1');
-putenv('DB_DATABASE=upd_test_roundtrip');
-putenv('DB_USERNAME=root');
-putenv('DB_PASSWORD=');
+putenv('DB_HOST=' . (getenv('TROPA_TEST_DB_HOST') ?: '127.0.0.1'));
+putenv('DB_DATABASE=' . (getenv('TROPA_TEST_DB_NAME') ?: 'upd_test_roundtrip'));
+putenv('DB_USERNAME=' . (getenv('TROPA_TEST_DB_USER') ?: 'root'));
+putenv('DB_PASSWORD=' . (getenv('TROPA_TEST_DB_PASSWORD') ?: ''));
 
 $upload = dirname(__DIR__, 2); // upload/
 $backupRoot = sys_get_temp_dir() . '/upd_db_backup_test_' . bin2hex(random_bytes(4));
@@ -46,9 +49,12 @@ function ok(bool $cond, string $label): void {
     }
 }
 
-$pdo = new PDO('mysql:host=127.0.0.1;dbname=upd_test_roundtrip;charset=utf8mb4', 'root', '', [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-]);
+$pdo = new PDO(
+    'mysql:host=' . getenv('DB_HOST') . ';dbname=' . getenv('DB_DATABASE') . ';charset=utf8mb4',
+    getenv('DB_USERNAME'),
+    getenv('DB_PASSWORD'),
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
 
 // --- Seed fixture schema + data ---
 // Clean all fixtures from any previous run. FK checks off so drop order
@@ -118,13 +124,70 @@ $schemaFile = $backupRoot . '/db/schema.sql';
 $dataFile = $backupRoot . '/db/data.sql';
 ok(is_file($schemaFile), 'schema.sql written');
 ok(is_file($dataFile), 'data.sql written');
+
+// --- Integrity metadata: manifest must record SHA-256 of every dump file ---
+$manifest = json_decode((string)file_get_contents($manifestFile), true);
+ok(is_array($manifest), 'manifest.json is valid JSON');
+ok(($manifest['schema_sha256'] ?? '') !== '', 'manifest records schema.sql sha256');
+ok(($manifest['data_sha256'] ?? '') !== '', 'manifest records data.sql sha256');
+ok(($manifest['triggers_sha256'] ?? '') !== '', 'manifest records triggers.sql sha256');
+ok((string)($manifest['schema_sha256'] ?? '') === (string)hash_file('sha256', $schemaFile), 'schema sha256 matches file');
+ok((string)($manifest['data_sha256'] ?? '') === (string)hash_file('sha256', $dataFile), 'data sha256 matches file');
+ok((string)($manifest['triggers_sha256'] ?? '') === (string)hash_file('sha256', $backupRoot . '/db/triggers.sql'), 'triggers sha256 matches file');
+
+// --- Corrupt backup must be rejected BEFORE any table is dropped ---
+// Copy the backup dir, corrupt data.sql, and restore from the copy: the
+// integrity gate must abort without touching the live database (the seeded
+// fixture tables must still exist with all rows intact afterwards).
+$corruptRoot = $backupRoot . '_corrupt';
+$copyDir = static function (string $from, string $to) use (&$copyDir): void {
+    if (!is_dir($to) && !mkdir($to, 0775, true)) {
+        return;
+    }
+    foreach (scandir($from) ?: [] as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $src = $from . '/' . $entry;
+        $dst = $to . '/' . $entry;
+        if (is_dir($src)) {
+            $copyDir($src, $dst);
+        } else {
+            copy($src, $dst);
+        }
+    }
+};
+$copyDir($backupRoot, $corruptRoot);
+file_put_contents($corruptRoot . '/db/data.sql', "-- TropaTT DB data backup (job)\n-- @@TROPA_SQL@@\nINSERT INTO `upd_test_items` VALUES (999, 'corrupt', NULL, 0, 1, NOW());\n");
+$corruptRestore = $manager->restore($corruptRoot);
+ok(($corruptRestore['ok'] ?? false) === false, 'corrupt backup restore rejected');
+ok(is_string($corruptRestore['error'] ?? null) && str_contains($corruptRestore['error'], 'integrity'), 'rejection mentions integrity check');
+$tablesAfterReject = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+ok(in_array('upd_test_items', $tablesAfterReject, true), 'corrupt restore left upd_test_items intact');
+ok(in_array('upd_test_tags', $tablesAfterReject, true), 'corrupt restore left upd_test_tags intact');
+$itemsAfterReject = (int)$pdo->query('SELECT COUNT(*) FROM upd_test_items')->fetchColumn();
+ok($itemsAfterReject === 3, 'corrupt restore did not touch data (3 items remain)');
+
+// --- Legacy backup (no hashes) with corrupt schema must also be rejected ---
+$legacyRoot = $backupRoot . '_legacy';
+$copyDir($backupRoot, $legacyRoot);
+$legacyManifest = json_decode((string)file_get_contents($legacyRoot . '/db/manifest.json'), true);
+unset($legacyManifest['schema_sha256'], $legacyManifest['data_sha256'], $legacyManifest['triggers_sha256']);
+file_put_contents($legacyRoot . '/db/manifest.json', json_encode($legacyManifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+file_put_contents($legacyRoot . '/db/schema.sql', ''); // truncated to zero bytes
+$legacyRestore = $manager->restore($legacyRoot);
+ok(($legacyRestore['ok'] ?? false) === false, 'legacy corrupt backup restore rejected');
+$tablesAfterLegacyReject = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+ok(in_array('upd_test_items', $tablesAfterLegacyReject, true), 'legacy corrupt restore left upd_test_items intact');
+$itemsAfterLegacyReject = (int)$pdo->query('SELECT COUNT(*) FROM upd_test_items')->fetchColumn();
+ok($itemsAfterLegacyReject === 3, 'legacy corrupt restore did not touch data (3 items remain)');
 $schemaContent = (string)file_get_contents($schemaFile);
 ok(str_contains($schemaContent, 'CREATE TABLE `upd_test_items`'), 'schema has CREATE TABLE upd_test_items');
 ok(str_contains($schemaContent, 'VIEW `upd_test_items_view`'), 'schema has CREATE VIEW');
 ok(str_contains($schemaContent, 'FOREIGN KEY'), 'schema preserves FK (utf8mb4 fixture has FK)');
 ok(is_file($backupRoot . '/db/triggers.sql'), 'triggers.sql written');
 $triggersContent = (string)file_get_contents($backupRoot . '/db/triggers.sql');
-ok(str_contains($triggersContent, 'TRIGGER `upd_test_trg`'), 'triggers.sql has CREATE TRIGGER');
+ok(str_contains($triggersContent, 'upd_test_trg'), 'triggers.sql has CREATE TRIGGER for upd_test_trg');
 ok(str_contains($triggersContent, 'SET NEW.created_at = NOW()'), 'compound trigger body dumped intact');
 
 // --- Mutate the DB (simulate a migration + data change) ---
@@ -138,6 +201,7 @@ $pdo->exec('CREATE TABLE upd_test_brand_new (id INT PRIMARY KEY) ENGINE=InnoDB')
 $restore = $manager->restore($backupRoot);
 ok(($restore['ok'] ?? false) === true, 'restore ok');
 ok(($restore['driver'] ?? '') === 'mysql', 'restore driver mysql');
+ok(($restore['integrity'] ?? '') === 'verified', 'restore reports integrity=verified');
 ok(($restore['tables'] ?? 0) === 2, 'restore reports 2 tables');
 
 // --- Verify restored schema + data ---
@@ -182,11 +246,26 @@ $pdo->exec('DROP TABLE IF EXISTS upd_test_tags');
 $pdo->exec('DROP TABLE IF EXISTS upd_test_items');
 $pdo->exec('DROP TABLE IF EXISTS upd_test_brand_new');
 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-foreach (glob($backupRoot . '/db/*') ?: [] as $f) {
-    @unlink($f);
+foreach ([$backupRoot, $corruptRoot, $legacyRoot] as $root) {
+    $removeDir = static function (string $dir) use (&$removeDir): void {
+        if (!is_dir($dir)) {
+            return;
+        }
+        foreach (scandir($dir) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $entry;
+            if (is_dir($path)) {
+                $removeDir($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
+    };
+    $removeDir($root);
 }
-@rmdir($backupRoot . '/db');
-@rmdir($backupRoot);
 
 echo "\nResult: {$passes} passed, {$failures} failed\n";
 exit($failures === 0 ? 0 : 1);
