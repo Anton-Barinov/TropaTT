@@ -353,12 +353,14 @@ wait_for_build() {
   local out=""
   local last_scan=-999
   local scan_cmd="su -s /bin/sh - '$UPDATE_USER' -c '$UPDATE_PHP $UPDATE_ROOT/bin/cron.php run >> $UPDATE_ROOT/storage/logs/update-center-cron.log 2>&1'"
-  echo "  [update-center] triggering scan"
+  # Poll/status lines go to stderr so command substitution captures ONLY the
+  # build number on stdout (BUILD_A="$(wait_for_build ...)" must stay clean).
+  echo "  [update-center] triggering scan" >&2
   ssh $SSH_OPTS "$UPDATE_SSH" "$scan_cmd" || true
   last_scan=$SECONDS
   while (( SECONDS < deadline )); do
     out=$(ssh $SSH_OPTS "$UPDATE_SSH" "python3 /tmp/e2e_poll_build.py '$sha' '$UPDATE_ROOT'" 2>/dev/null || true)
-    echo "  [update-center] $out"
+    echo "  [update-center] $out" >&2
     if [[ "$out" == READY* ]]; then
       # READY <build_id> <core_build>
       echo "$out" | awk '{print $3}'
