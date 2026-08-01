@@ -208,10 +208,23 @@ final class UpdaterKernel
         $maintenance = new MaintenanceMode($this->basePath);
         $logger = new UpdateLogger($this->storageDir, $jobId);
 
+        // Guard 3 (maintenance hold): once the file tree or the database has
+        // been mutated, a failure must leave maintenance mode ON so the CRM
+        // never comes back online with new files over an old or partially
+        // migrated database. The admin resolves the state by rolling back or
+        // retrying the update from the updates page (which stays reachable
+        // during held maintenance). If maintenance was ALREADY held before
+        // this run (a previous failed attempt), it must never be turned off
+        // by this run, even if this run fails before mutating anything.
+        $maintenanceWasOn = is_file($this->basePath . '/storage_api/maintenance.flag');
+        $maintenanceEnabled = false;
+        $systemMutated = false;
+
         try {
             $lock->acquire($jobId);
             $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
             $maintenance->enable($jobId);
+            $maintenanceEnabled = true;
             $logger->info('maintenance_enabled', 'Maintenance mode enabled');
 
             $applier = new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']);
@@ -222,6 +235,9 @@ final class UpdaterKernel
             $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'] ?? null, 'can_rollback' => true]);
             $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id'] ?? null]);
 
+            // From this point the file tree can change; treat any later
+            // failure as a mutated state that must keep maintenance ON.
+            $systemMutated = true;
             $applied = $applier->apply($jobId, $manifest);
             $state->writeFile('applied.json', $applied);
             $logger->info('files_applied', 'Files applied', ['count' => $applied['count'] ?? 0]);
@@ -269,7 +285,8 @@ final class UpdaterKernel
                 $migrationError = (string)($migrations['error'] ?? 'migrations did not fully apply');
                 throw new \RuntimeException(
                     'Database migrations failed: ' . $migrationError . '. '
-                    . 'The update was not finalized; use rollback to restore the database and files from backup.'
+                    . 'The update was not finalized and maintenance mode stays enabled; '
+                    . 'roll back to restore the database and files, or retry the update.'
                 );
             }
 
@@ -298,10 +315,17 @@ final class UpdaterKernel
                 'installed_core' => (new LocalState($this->storageDir))->read(),
             ]);
         } catch (\Throwable $e) {
-            $maintenance->disable();
+            // Guard 3: maintenance stays ON when it was already held before
+            // this run (previous failed attempt) or when the failure happened
+            // after the file tree / DB was mutated. Only a clean pre-mutation
+            // failure with maintenance we enabled ourselves may turn it off.
+            $maintenanceHeld = $maintenanceWasOn || ($maintenanceEnabled && $systemMutated);
+            if (!$maintenanceHeld) {
+                $maintenance->disable();
+            }
             $lock->release();
-            $state->write(['state' => 'failed', 'error' => $e->getMessage(), 'can_rollback' => true]);
-            $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage()]);
+            $state->write(['state' => 'failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
+            $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('APPLY_FAILED', $e->getMessage(), 500);
         }
     }
@@ -359,9 +383,19 @@ final class UpdaterKernel
         $maintenance = new MaintenanceMode($this->basePath);
         $logger = new UpdateLogger($this->storageDir, $jobId);
 
+        // Guard 3 (rollback): a failed rollback can leave a partially
+        // restored database or file tree, so maintenance must stay ON until
+        // the admin retries the rollback. Only disable when we enabled it
+        // ourselves, nothing had been restored yet, and maintenance was not
+        // already held before this run.
+        $maintenanceWasOn = is_file($this->basePath . '/storage_api/maintenance.flag');
+        $maintenanceEnabled = false;
+        $systemMutated = false;
+
         try {
             $lock->acquire($jobId);
             $maintenance->enable($jobId);
+            $maintenanceEnabled = true;
             $state->write(['state' => 'rolling_back', 'can_resume' => false, 'can_rollback' => false]);
             // Restore the database BEFORE restoring files. The file backup of a
             // self-updating package contains the pre-update updater files (an
@@ -370,6 +404,7 @@ final class UpdaterKernel
             // disk and fatal. Restoring the DB first runs against the current
             // post-update code; it is best-effort and skips cleanly when no DB
             // snapshot exists for the job (files-only update, old job).
+            $systemMutated = true;
             $dbRestore = $this->restoreDatabaseBackup($backupId, $logger);
             $result = (new RollbackManager($this->basePath, $this->storageDir))->rollback($backupId);
             $health = (new HealthChecker($this->basePath))->check();
@@ -383,10 +418,16 @@ final class UpdaterKernel
             $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
             return JsonResponse::success(['job_id' => $jobId, 'rollback' => $result, 'db_restore' => $dbRestore, 'health' => $health, 'installed_core' => $installedCore]);
         } catch (\Throwable $e) {
-            $maintenance->disable();
+            // Guard 3 (rollback): a partially restored state must stay behind
+            // maintenance so the admin can retry; never silently reopen the
+            // CRM on a half-restored database or file tree.
+            $maintenanceHeld = $maintenanceWasOn || ($maintenanceEnabled && $systemMutated);
+            if (!$maintenanceHeld) {
+                $maintenance->disable();
+            }
             $lock->release();
-            $state->write(['state' => 'rollback_failed', 'error' => $e->getMessage(), 'can_rollback' => true]);
-            $logger->error('rollback_failed', 'Rollback failed', ['error' => $e->getMessage()]);
+            $state->write(['state' => 'rollback_failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
+            $logger->error('rollback_failed', 'Rollback failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('ROLLBACK_FAILED', $e->getMessage(), 500);
         }
     }

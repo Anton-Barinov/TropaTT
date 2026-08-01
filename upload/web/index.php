@@ -57,10 +57,19 @@ if (!headers_sent()) {
 
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
-    http_response_code(503);
-    header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><meta charset="utf-8"><title>Maintenance</title><body style="font-family:sans-serif;padding:40px"><h1>TropaTT maintenance</h1><p>Core update maintenance mode is active. Recovery is available at <code>/updater/rescue.php</code>.</p></body>';
-    exit;
+    // Guard 3 (maintenance hold): a failed update (e.g. partial DB migration)
+    // leaves maintenance ON so the CRM is not served in a broken state. The
+    // admin-updates page and its core/updates API must stay reachable so the
+    // admin can roll back or retry. Everything else stays behind maintenance.
+    $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
+    $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
+        || str_starts_with($maintenanceRoute, 'api/v1/core/updates');
+    if (!$maintenanceRecoveryAllowed) {
+        http_response_code(503);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!doctype html><meta charset="utf-8"><title>Maintenance</title><body style="font-family:sans-serif;padding:40px"><h1>TropaTT maintenance</h1><p>Core update maintenance mode is active. Recovery is available at <code>/updater/rescue.php</code>.</p></body>';
+        exit;
+    }
 }
 
 // Redirect to installer when .env is missing

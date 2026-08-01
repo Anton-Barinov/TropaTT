@@ -6784,6 +6784,8 @@ return array (
     'version_checking' => 'Version is not known yet',
     'job_checking' => 'No operations yet',
     'maintenance_checking' => 'CRM is running normally',
+    'maintenance_held_title' => 'Update not finished: CRM is in maintenance mode',
+    'maintenance_held_text' => 'The update failed after files or the database were changed, so the CRM stays in maintenance mode to avoid serving a broken state. Roll back from backup or retry the update.',
     'center_ok' => 'Update server is available',
     'center_warn' => 'Update server needs attention',
     'center_missing' => 'Update server has not been checked yet',

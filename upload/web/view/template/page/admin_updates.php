@@ -60,6 +60,8 @@ $auJs = [
   'jobEmpty' => $au('job_empty', 'Операций еще не было'),
   'maintenanceOn' => $au('maintenance_on', 'Maintenance включен'),
   'maintenanceOff' => $au('maintenance_off', 'CRM работает штатно'),
+  'maintenanceHeldTitle' => $au('maintenance_held_title', 'Обновление не завершено: CRM в режиме обслуживания'),
+  'maintenanceHeldText' => $au('maintenance_held_text', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'),
   'kpiInstalledUnknown' => $au('kpi_installed_unknown', 'unknown'),
   'kpiInstalledMetaUnknown' => $au('kpi_installed_meta_unknown', 'Локальная сборка еще не принята updater.'),
   'kpiTargetLatest' => $au('kpi_target_latest', 'latest'),
@@ -568,8 +570,16 @@ $auJs = [
       $('nextText').textContent = tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url});
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
     } else if (latest && latest.state === 'failed') {
-      $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
-      $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
+      const heldMaintenance = !!(state.status && state.status.maintenance);
+      if (heldMaintenance) {
+        $('nextTitle').textContent = tr('maintenanceHeldTitle', 'Обновление не завершено: CRM в режиме обслуживания');
+        $('nextText').textContent = tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.');
+        showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'));
+      } else {
+        $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
+        $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
+        clearNotice();
+      }
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
     } else if (plan && plan.update_available !== true) {
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
@@ -633,6 +643,11 @@ $auJs = [
     $('pillJobText').textContent = latest ? tr('jobKnown', 'Последняя операция: {state}', {state: latest.state}) : tr('jobEmpty', 'Операций еще не было');
     $('pillMaintenance').className = dotClass(maintenance ? 'danger' : 'ok');
     $('pillMaintenanceText').textContent = maintenance ? tr('maintenanceOn', 'Maintenance включен') : tr('maintenanceOff', 'CRM работает штатно');
+    // Guard 3 (maintenance hold): a failed update that left maintenance ON
+    // must be surfaced prominently so the admin rolls back or retries.
+    if (maintenance && latest && latest.state === 'failed') {
+      showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'));
+    }
     $('kpiInstalled').textContent = installed.core_build || tr('kpiInstalledUnknown', 'unknown');
     $('kpiInstalledMeta').textContent = installed.source_sha ? `SHA ${String(installed.source_sha).slice(0, 12)}...` : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
     $('updatesStatusRaw').textContent = pretty(status);

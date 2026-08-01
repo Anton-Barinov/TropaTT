@@ -36,15 +36,22 @@ foreach ($blockedPatterns as $pattern) {
 
 $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
-    http_response_code(503);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        'success' => false,
-        'code' => 'MAINTENANCE_MODE',
-        'message' => 'Core update maintenance mode is active',
-        'data' => json_decode((string) file_get_contents($maintenanceFlag), true) ?: ['enabled' => true],
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    exit;
+    // Guard 3 (maintenance hold): keep the update-center API reachable during
+    // held maintenance so the admin-updates page can roll back or retry a
+    // failed update. These routes are still auth + RBAC protected.
+    $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
+    $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates');
+    if (!$maintenanceRecoveryAllowed) {
+        http_response_code(503);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'code' => 'MAINTENANCE_MODE',
+            'message' => 'Core update maintenance mode is active',
+            'data' => json_decode((string) file_get_contents($maintenanceFlag), true) ?: ['enabled' => true],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }
 
 require_once __DIR__ . '/system/library/support/Autoloader.php';
