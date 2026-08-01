@@ -71,6 +71,15 @@ window.CRM.intake = (function () {
     return div.innerHTML;
   }
 
+  // Intake descriptions can be visual-editor HTML (e.g. "<p>text</p>").
+  // For compact previews strip tags to plain text; caller escapes for display.
+  function stripHtml(value) {
+    if (window.CRM.text && typeof window.CRM.text.stripHtml === 'function') {
+      return window.CRM.text.stripHtml(value);
+    }
+    return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function api() {
     return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function'
       ? window.CRM.api
@@ -319,11 +328,12 @@ window.CRM.intake = (function () {
     body.innerHTML = items.map(function (item) {
       var publicId = item.public_id || '';
       var description = String(item.description || '').trim();
+      var preview = stripHtml(description);
       var title = item.title || publicId;
       return '<tr data-intake-row="' + esc(publicId) + '">'
         + '<td class="crm-intake-title-cell">'
           + '<button type="button" class="crm-intake-title-button" data-intake-action="detail" data-intake-id="' + esc(publicId) + '">' + esc(title) + '</button>'
-          + (description ? '<small>' + esc(description.slice(0, 120)) + '</small>' : '<small>' + esc(publicId) + '</small>')
+          + (preview ? '<small>' + esc(preview.slice(0, 120)) + '</small>' : '<small>' + esc(publicId) + '</small>')
         + '</td>'
         + '<td>' + statusBadge(item.status) + '</td>'
         + '<td>' + esc(textOrDash(item.project_title)) + '</td>'
@@ -490,7 +500,7 @@ window.CRM.intake = (function () {
       + '</div>'
       + '<div class="crm-intake-detail-description mt-3">'
         + '<h6>' + esc(t('intake.field_description', 'Описание')) + '</h6>'
-        + '<p>' + esc(desc || t('intake.no_description', 'Описание не заполнено.')) + '</p>'
+        + '<p>' + esc(stripHtml(desc) || t('intake.no_description', 'Описание не заполнено.')) + '</p>'
       + '</div>';
   }
 
