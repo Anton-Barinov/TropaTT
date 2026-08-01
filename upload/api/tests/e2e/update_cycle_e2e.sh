@@ -379,8 +379,9 @@ wait_for_build() {
 
 run_harness() {
   # $1 = mode (apply|rollback|status), $2 = optional expected build
+  local expected="${2:-}"
   ssh $SSH_OPTS "$DEMO_SSH" \
-    "DEMO_BASE='$DEMO_BASE' DEMO_LOGIN='$DEMO_LOGIN' DEMO_PASSWORD='$DEMO_PASSWORD' MAINT_FILE='$DEMO_ROOT/storage_api/maintenance.flag' DEMO_SSL_VERIFY='$DEMO_SSL_VERIFY' $DEMO_PHP /tmp/e2e_update_harness.php '$1' '$2'"
+    "DEMO_BASE='$DEMO_BASE' DEMO_LOGIN='$DEMO_LOGIN' DEMO_PASSWORD='$DEMO_PASSWORD' MAINT_FILE='$DEMO_ROOT/storage_api/maintenance.flag' DEMO_SSL_VERIFY='$DEMO_SSL_VERIFY' $DEMO_PHP /tmp/e2e_update_harness.php '$1' '$expected'"
 }
 
 marker_present() {
