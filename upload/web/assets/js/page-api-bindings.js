@@ -4745,14 +4745,23 @@ window.CRM.pageApiBindings = (function () {
       badges[3].textContent = window.CRM.i18n.t('js.pab.fact_of_week', 'Fact of the week');
     }
 
-    function metricTile(title, value, muted) {
+    function metricTile(title, value, link, muted) {
       var tile = document.createElement('div');
       tile.className = 'crm-metric-tile crm-analytics-metric-line mb-2' + (muted ? ' text-muted' : '');
       var small = document.createElement('small');
       small.className = 'text-muted';
       small.textContent = title;
       var body = document.createElement('div');
-      body.textContent = value;
+      if (link) {
+        var bodyLink = document.createElement('a');
+        bodyLink.className = 'crm-analytics-link';
+        bodyLink.href = link;
+        bodyLink.textContent = value;
+        body.textContent = '';
+        body.appendChild(bodyLink);
+      } else {
+        body.textContent = value;
+      }
       tile.appendChild(small);
       tile.appendChild(body);
       return tile;
@@ -4777,7 +4786,16 @@ window.CRM.pageApiBindings = (function () {
         var tile = document.createElement('div');
         tile.className = 'crm-metric-tile crm-analytics-row mb-2';
         var title = document.createElement('strong');
-        title.textContent = row.title;
+        if (row.link) {
+          var titleLink = document.createElement('a');
+          titleLink.className = 'crm-analytics-link';
+          titleLink.href = row.link;
+          titleLink.textContent = row.title;
+          title.textContent = '';
+          title.appendChild(titleLink);
+        } else {
+          title.textContent = row.title;
+        }
         var meta = document.createElement('div');
         meta.className = 'small text-muted';
         meta.textContent = row.meta;
@@ -4789,7 +4807,16 @@ window.CRM.pageApiBindings = (function () {
           row.stats.forEach(function (stat) {
             var item = document.createElement('span');
             item.className = stat && stat.alert ? 'is-alert' : '';
-            item.textContent = String(stat && stat.text ? stat.text : '');
+            if (stat && stat.href) {
+              var chipLink = document.createElement('a');
+              chipLink.className = 'crm-analytics-chip-link';
+              chipLink.href = stat.href;
+              chipLink.textContent = String(stat && stat.text ? stat.text : '');
+              item.textContent = '';
+              item.appendChild(chipLink);
+            } else {
+              item.textContent = String(stat && stat.text ? stat.text : '');
+            }
             stats.appendChild(item);
           });
           tile.appendChild(stats);
@@ -4853,22 +4880,25 @@ window.CRM.pageApiBindings = (function () {
       var trendNode = document.querySelector('[data-analytics-trend]');
       if (trendNode) {
         trendNode.textContent = '';
-        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completed', 'Completed'), String(summary.completed_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + String(summary.total_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks')));
-        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completion_rate', 'Completion rate'), String(summary.completion_rate_percent || 0) + '%'));
-        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.weekly_time_logged', 'Weekly time logged'), String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min')));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completed', 'Completed'), String(summary.completed_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + String(summary.total_tasks || 0) + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks'), 'index.php?route=tasks'));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.completion_rate', 'Completion rate'), String(summary.completion_rate_percent || 0) + '%', 'index.php?route=tasks'));
+        trendNode.appendChild(metricTile(window.CRM.i18n.t('js.pab.weekly_time_logged', 'Weekly time logged'), String(summary.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min'), 'index.php?route=time-analytics'));
       }
 
       var teamsNode = document.querySelector('[data-analytics-teams]');
       if (teamsNode) {
         renderMetricRows(teamsNode, state.users.slice(0, 5).map(function (row) {
           var overdue = analyticsNumber(row.assigned_overdue_tasks);
+          var userPublicId = String(row.public_id || '').trim();
+          var userTasksBase = userPublicId ? 'index.php?route=tasks&assignee=' + encodeURIComponent(userPublicId) : '';
           return {
             title: String(row.full_name || row.login || window.CRM.i18n.t('js.pab.user', 'User')),
+            link: userTasksBase,
             meta: String(row.login || row.public_id || ''),
             stats: [
-              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0) },
-              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
-              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0), href: userTasksBase ? userTasksBase + '&kpi=active' : '' },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0, href: userTasksBase ? userTasksBase + '&kpi=overdue' : '' },
+              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min'), href: 'index.php?route=time-analytics' }
             ]
           };
         }), window.CRM.i18n.t('js.pab.user_load_not_calculated', 'User load not calculated yet.'));
@@ -4878,16 +4908,20 @@ window.CRM.pageApiBindings = (function () {
       if (projectsNode) {
         renderMetricRows(projectsNode, state.projects.slice(0, 6).map(function (row) {
           var overdue = analyticsNumber(row.overdue_tasks);
+          var projectPublicId = String(row.public_id || '').trim();
+          var projectDetailLink = projectPublicId ? 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(projectPublicId) : '';
+          var projectTasksBase = projectPublicId ? 'index.php?route=tasks&project=' + encodeURIComponent(projectPublicId) : '';
           var projectMeta = row.client_title
             ? window.CRM.i18n.t('js.pab.client', 'Client:') + ' ' + String(row.client_title)
             : (row.team_title ? window.CRM.i18n.t('js.pab.team', 'Team:') + ' ' + String(row.team_title) : window.CRM.i18n.t('js.pab.project_no_client', 'Project without client'));
           return {
             title: String(row.title || row.public_id || window.CRM.i18n.t('js.pab.project', 'Project')),
+            link: projectDetailLink,
             meta: projectMeta,
             stats: [
-              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.active_tasks || 0) },
-              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
-              { text: window.CRM.i18n.t('js.pab.total_prefix', 'Total') + ' ' + String(row.total_tasks || 0) }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.active_tasks || 0), href: projectTasksBase ? projectTasksBase + '&kpi=active' : '' },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0, href: projectTasksBase ? projectTasksBase + '&kpi=overdue' : '' },
+              { text: window.CRM.i18n.t('js.pab.total_prefix', 'Total') + ' ' + String(row.total_tasks || 0), href: projectTasksBase || '' }
             ]
           };
         }), window.CRM.i18n.t('js.pab.no_projects_at_risk', 'No projects at risk yet.'));
@@ -4897,13 +4931,16 @@ window.CRM.pageApiBindings = (function () {
       if (usersNode) {
         renderMetricRows(usersNode, state.users.slice(0, 8).map(function (row) {
           var overdue = analyticsNumber(row.assigned_overdue_tasks);
+          var userPublicId = String(row.public_id || '').trim();
+          var userTasksBase = userPublicId ? 'index.php?route=tasks&assignee=' + encodeURIComponent(userPublicId) : '';
           return {
             title: String(row.full_name || row.login || window.CRM.i18n.t('js.pab.user', 'User')),
+            link: userTasksBase,
             meta: String(row.login || row.public_id || ''),
             stats: [
-              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0) },
-              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0 },
-              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min') }
+              { text: window.CRM.i18n.t('js.pab.active_prefix', 'Active') + ' ' + String(row.assigned_active_tasks || 0), href: userTasksBase ? userTasksBase + '&kpi=active' : '' },
+              { text: window.CRM.i18n.t('js.pab.overdue_prefix', 'Overdue') + ' ' + String(overdue), alert: overdue > 0, href: userTasksBase ? userTasksBase + '&kpi=overdue' : '' },
+              { text: window.CRM.i18n.t('js.pab.time_logged_prefix', 'Time logged') + ' ' + String(row.worklog_minutes_week || 0) + ' ' + window.CRM.i18n.t('js.pab.min', 'min'), href: 'index.php?route=time-analytics' }
             ]
           };
         }), window.CRM.i18n.t('js.pab.assignees_not_loaded', 'Assignees not loaded yet.'));

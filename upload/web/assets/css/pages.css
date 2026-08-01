@@ -12261,6 +12261,44 @@ a.task-tag:hover {
     overflow-wrap: anywhere;
 }
 
+.crm-analytics-row strong a.crm-analytics-link {
+    color: var(--crm-accent, #0f8f72);
+    text-decoration: none;
+}
+
+.crm-analytics-row strong a.crm-analytics-link:hover,
+.crm-analytics-row strong a.crm-analytics-link:focus {
+    color: var(--crm-accent-strong, #0b725c);
+    text-decoration: underline;
+}
+
+.crm-analytics-row-stats span a.crm-analytics-chip-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.crm-analytics-row-stats span a.crm-analytics-chip-link:hover,
+.crm-analytics-row-stats span a.crm-analytics-chip-link:focus {
+    color: var(--crm-accent, #0f8f72);
+    text-decoration: underline;
+}
+
+.crm-analytics-row-stats span.is-alert a.crm-analytics-chip-link:hover,
+.crm-analytics-row-stats span.is-alert a.crm-analytics-chip-link:focus {
+    color: var(--crm-accent, #0f8f72);
+}
+
+.crm-analytics-metric-line a.crm-analytics-link {
+    color: var(--crm-accent, #0f8f72);
+    text-decoration: none;
+}
+
+.crm-analytics-metric-line a.crm-analytics-link:hover,
+.crm-analytics-metric-line a.crm-analytics-link:focus {
+    color: var(--crm-accent-strong, #0b725c);
+    text-decoration: underline;
+}
+
 .crm-analytics-row .small {
     grid-column: 1;
 }
