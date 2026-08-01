@@ -251,14 +251,20 @@ if ($mode === 'status') {
 }
 
 if ($mode === 'rollback') {
-    $up = req('POST', "$base/updater/index.php?action=status", [], null, null);
-    $latest = $up['data']['latest_job'] ?? [];
-    $jobId = (string)($latest['job_id'] ?? '');
+    // An explicit job id (argv[2]) wins: the updater's 'latest job' is ordered
+    // by directory name, so a stale upd_e2e_* job from an older run can shadow
+    // the job we just applied. The orchestrator passes the apply's job_id here.
+    $jobId = $expectedBuild !== '' ? $expectedBuild : '';
     if ($jobId === '') {
-        fail('rollback: no job found: ' . json_encode($up, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    }
-    if (($latest['can_rollback'] ?? false) !== true) {
-        fail('rollback: latest job is not rollback-able (state=' . (string)($latest['state'] ?? '?') . '): ' . json_encode($latest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $up = req('POST', "$base/updater/index.php?action=status", [], null, null);
+        $latest = $up['data']['latest_job'] ?? [];
+        $jobId = (string)($latest['job_id'] ?? '');
+        if ($jobId === '') {
+            fail('rollback: no job found: ' . json_encode($up, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        }
+        if (($latest['can_rollback'] ?? false) !== true) {
+            fail('rollback: latest job is not rollback-able (state=' . (string)($latest['state'] ?? '?') . '): ' . json_encode($latest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        }
     }
     $sess = req('POST', "$base/api/index.php?route=api/v1/core/updates/session", [], $token, $csrf);
     $updaterToken = (string)($sess['data']['updater_token'] ?? '');
@@ -503,7 +509,11 @@ BUILD_A="$(wait_for_build "$SHA_A")"
 echo "  target build: $BUILD_A"
 
 step "Apply $BUILD_A on the demo via public API"
-run_harness apply "$BUILD_A"
+APPLY_OUT="$(run_harness apply "$BUILD_A")"
+echo "$APPLY_OUT"
+JOB_A="$(echo "$APPLY_OUT" | sed -n 's/.*APPLY_OK job=\([^ ]*\).*/\1/p' | head -1)"
+[[ -n "$JOB_A" ]] || fatal "could not extract job_id from apply output"
+echo "  apply job_id: $JOB_A"
 
 step "Verify marker on the demo"
 COUNT_A="$(marker_present "$STAMP")"
@@ -513,8 +523,8 @@ echo "  OK: marker deployed through the update pipeline"
 
 # =========================================================== Rollback =======
 if [[ "$TEST_ROLLBACK" == "1" ]]; then
-  step "Optional: exercise updater rollback"
-  run_harness rollback
+  step "Optional: exercise updater rollback (job $JOB_A)"
+  run_harness rollback "$JOB_A"
   COUNT_R="$(marker_present "$STAMP")"
   echo "  locale files still containing the marker after rollback: $COUNT_R"
   [[ "$COUNT_R" -eq 0 ]] || fatal "marker still present after rollback"
