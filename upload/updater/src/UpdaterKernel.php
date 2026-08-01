@@ -222,11 +222,6 @@ final class UpdaterKernel
             $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'] ?? null, 'can_rollback' => true]);
             $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id'] ?? null]);
 
-            // Snapshot the database before migrations so rollback can restore
-            // both files AND schema/data. Best-effort: a failed DB backup is
-            // logged but does not block apply (same policy as migrations).
-            $dbBackup = $this->createDatabaseBackup($state, $backup['backup_id'] ?? null, $logger);
-
             $applied = $applier->apply($jobId, $manifest);
             $state->writeFile('applied.json', $applied);
             $logger->info('files_applied', 'Files applied', ['count' => $applied['count'] ?? 0]);
@@ -236,6 +231,13 @@ final class UpdaterKernel
             if (($health['ok'] ?? false) !== true) {
                 throw new \RuntimeException('Post-apply health check failed.');
             }
+
+            // Snapshot the database right before migrations (after the fresh
+            // code is deployed, so the pending list is accurate) so rollback
+            // can restore both files AND schema/data. Files-only updates with
+            // no pending migrations skip the dump entirely. Best-effort: a
+            // failed DB backup is logged but does not block apply.
+            $dbBackup = $this->createDatabaseBackup($state, $backup['backup_id'] ?? null, $logger);
 
             $migrations = $this->runMigrations($state, $logger);
 
@@ -394,6 +396,15 @@ final class UpdaterKernel
             return ['ok' => false, 'skipped' => true, 'reason' => 'db backup disabled in config'];
         }
         try {
+            // Files-only updates change no schema/data: skip the dump when the
+            // freshly deployed code reports no pending migrations. Saves time
+            // and disk on shared hosting for the common files-only case.
+            if ($this->pendingMigrations() === []) {
+                $report = ['ok' => false, 'skipped' => true, 'reason' => 'no pending migrations'];
+                $state->writeFile('db_backup.json', $report);
+                $logger->info('db_backup_skipped', 'Database backup skipped (no pending migrations)');
+                return $report;
+            }
             $report = (new DatabaseBackupManager($this->basePath))->backup($this->storageDir . '/backups/' . basename($backupId), $backupId);
             $state->writeFile('db_backup.json', $report);
             if (($report['ok'] ?? false) === true) {
@@ -411,6 +422,23 @@ final class UpdaterKernel
             $state->writeFile('db_backup.json', $report);
             $logger->error('db_backup_failed', 'Database backup failed', ['error' => $e->getMessage()]);
             return $report;
+        }
+    }
+
+    /**
+     * @return list<string> pending migration names, empty when nothing to run
+     */
+    private function pendingMigrations(): array
+    {
+        try {
+            $connection = \Updater\Db\Connection::open($this->basePath);
+            $schema = new \Api\System\Library\Database\SchemaManager();
+            $migrations = new \Api\System\Library\Database\Migration\MigrationManager($schema);
+            $status = $migrations->status($connection['pdo'], $connection['driver']);
+            return is_array($status['pending'] ?? null) ? array_values($status['pending']) : [];
+        } catch (\Throwable $e) {
+            // Unknown DB state - safest to take the backup anyway.
+            return ['__unknown__'];
         }
     }
 

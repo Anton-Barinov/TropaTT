@@ -32,6 +32,11 @@ final class DatabaseBackupManager extends BackupManager
      */
     public function backup(string $backupDir, string $jobId): array
     {
+        // A large database dump can exceed the default max_execution_time on
+        // shared hosting; the updater runs inside the web request, so lift the
+        // limit for the dump (best-effort, some hosts cap it regardless).
+        @set_time_limit(0);
+
         $conn = Connection::open($this->basePath);
         $pdo = $conn['pdo'];
         $driver = $conn['driver'];
@@ -131,6 +136,8 @@ final class DatabaseBackupManager extends BackupManager
      */
     public function restore(string $backupDir): array
     {
+        @set_time_limit(0);
+
         $dbDir = $backupDir . '/db';
         $manifestFile = $dbDir . '/manifest.json';
         if (!is_file($manifestFile)) {
