@@ -16,22 +16,30 @@ if ($assetsVersion === '') {
     $assetsVersion = trim((string)file_get_contents($deployHashFile));
   }
 }
-if ($assetsVersion === '') {
-  $assetsRoot = dirname(__DIR__, 3) . '/assets';
-  $assetsVersionMtime = 0;
-  foreach ([
-    '/css/*.css',
-    '/js/*.js',
-    '/vendor/bootstrap/*.js',
-    '/vendor/fontawesome/css/*.css',
-  ] as $assetsPattern) {
-    foreach (glob($assetsRoot . $assetsPattern) ?: [] as $assetsProbe) {
-      $mtime = @filemtime($assetsProbe);
-      if ($mtime !== false) {
-        $assetsVersionMtime = max($assetsVersionMtime, (int)$mtime);
-      }
+// Always fold the newest asset mtime into the version. Assets are served with
+// 'Cache-Control: immutable' (see web/.htaccess), so the query string is the
+// ONLY thing that busts the browser cache. DEPLOY_HASH is regenerated only by
+// deploy.sh, but updates applied through the in-CRM updater (update center) never
+// touch it — without the mtime suffix browsers would keep serving the old JS/CSS
+// for up to a year after an update.
+$assetsRoot = dirname(__DIR__, 3) . '/assets';
+$assetsVersionMtime = 0;
+foreach ([
+  '/css/*.css',
+  '/js/*.js',
+  '/vendor/bootstrap/*.js',
+  '/vendor/fontawesome/css/*.css',
+] as $assetsPattern) {
+  foreach (glob($assetsRoot . $assetsPattern) ?: [] as $assetsProbe) {
+    $mtime = @filemtime($assetsProbe);
+    if ($mtime !== false) {
+      $assetsVersionMtime = max($assetsVersionMtime, (int)$mtime);
     }
   }
+}
+if ($assetsVersion !== '') {
+  $assetsVersion .= $assetsVersionMtime > 0 ? '-' . (string)$assetsVersionMtime : '';
+} else {
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
 }
 ?><!doctype html>
