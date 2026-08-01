@@ -3248,6 +3248,8 @@ return array (
         'deleted' => 'Контакт удалён',
         'delete_fail' => 'Не удалось удалить контакт',
         'section_notes' => 'Связанные заметки',
+        'btn_knowledge' => 'Перейти в базу знаний',
+        'knowledge_empty' => 'Нет связанных заметок',
       ),
       'departments' => 
       array (
@@ -6985,6 +6987,14 @@ return array (
     'migrations_ok' => 'применены',
     'migrations_failed' => 'не применены (см. детали)',
     'migrations_executed' => 'Применено миграций: {count}',
+    'field_db_backup' => 'Бэкап БД',
+    'db_backup_ok' => 'создан',
+    'db_backup_failed' => 'не создан',
+    'db_backup_skipped' => 'пропущен',
+    'field_db_restore' => 'Восстановление БД',
+    'db_restore_ok' => 'восстановлена',
+    'db_restore_failed' => 'не восстановлена',
+    'db_restore_skipped' => 'нет бэкапа БД',
   ),
   'admin_webhooks' => 
   array (

@@ -8,6 +8,7 @@ use Updater\Apply\FileApplier;
 use Updater\Apply\HealthChecker;
 use Updater\Apply\MaintenanceMode;
 use Updater\Apply\MigrationRunner;
+use Updater\Backup\DatabaseBackupManager;
 use Updater\Backup\FileBackupManager;
 use Updater\Http\JsonResponse;
 use Updater\Log\UpdateLogger;
@@ -221,6 +222,11 @@ final class UpdaterKernel
             $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'] ?? null, 'can_rollback' => true]);
             $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id'] ?? null]);
 
+            // Snapshot the database before migrations so rollback can restore
+            // both files AND schema/data. Best-effort: a failed DB backup is
+            // logged but does not block apply (same policy as migrations).
+            $dbBackup = $this->createDatabaseBackup($state, $backup['backup_id'] ?? null, $logger);
+
             $applied = $applier->apply($jobId, $manifest);
             $state->writeFile('applied.json', $applied);
             $logger->info('files_applied', 'Files applied', ['count' => $applied['count'] ?? 0]);
@@ -251,6 +257,7 @@ final class UpdaterKernel
             return JsonResponse::success([
                 'job_id' => $jobId,
                 'backup' => $backup,
+                'db_backup' => $dbBackup,
                 'applied' => $applied,
                 'health' => $health,
                 'migrations' => $migrations,
@@ -323,6 +330,7 @@ final class UpdaterKernel
             $maintenance->enable($jobId);
             $state->write(['state' => 'rolling_back', 'can_resume' => false, 'can_rollback' => false]);
             $result = (new RollbackManager($this->basePath, $this->storageDir))->rollback($backupId);
+            $dbRestore = $this->restoreDatabaseBackup($backupId, $logger);
             $health = (new HealthChecker($this->basePath))->check();
             if (($health['ok'] ?? false) !== true) {
                 throw new \RuntimeException('Post-rollback health check failed.');
@@ -332,7 +340,7 @@ final class UpdaterKernel
             $lock->release();
             $state->write(['state' => 'rolled_back', 'rollback' => $result, 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c')]);
             $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
-            return JsonResponse::success(['job_id' => $jobId, 'rollback' => $result, 'health' => $health, 'installed_core' => $installedCore]);
+            return JsonResponse::success(['job_id' => $jobId, 'rollback' => $result, 'db_restore' => $dbRestore, 'health' => $health, 'installed_core' => $installedCore]);
         } catch (\Throwable $e) {
             $maintenance->disable();
             $lock->release();
@@ -370,6 +378,67 @@ final class UpdaterKernel
         ]);
 
         return $local->read();
+    }
+
+    /**
+     * Best-effort DB snapshot taken before migrations run. Failures are
+     * recorded and surfaced in the apply response, but do not fail the whole
+     * apply: rollback simply falls back to file-only restore.
+     */
+    private function createDatabaseBackup(JobState $state, ?string $backupId, UpdateLogger $logger): array
+    {
+        if ($backupId === null || $backupId === '') {
+            return ['ok' => false, 'skipped' => true, 'reason' => 'no file backup id'];
+        }
+        if (($this->config['db_backup']['enabled'] ?? true) !== true) {
+            return ['ok' => false, 'skipped' => true, 'reason' => 'db backup disabled in config'];
+        }
+        try {
+            $report = (new DatabaseBackupManager($this->basePath))->backup($this->storageDir . '/backups/' . basename($backupId), $backupId);
+            $state->writeFile('db_backup.json', $report);
+            if (($report['ok'] ?? false) === true) {
+                $logger->info('db_backup_created', 'Database backup created', [
+                    'driver' => $report['driver'] ?? null,
+                    'tables' => $report['tables'] ?? null,
+                    'rows' => $report['rows'] ?? null,
+                ]);
+            } else {
+                $logger->error('db_backup_failed', 'Database backup failed', ['error' => $report['error'] ?? ($report['reason'] ?? 'unknown')]);
+            }
+            return $report;
+        } catch (\Throwable $e) {
+            $report = ['ok' => false, 'error' => $e->getMessage()];
+            $state->writeFile('db_backup.json', $report);
+            $logger->error('db_backup_failed', 'Database backup failed', ['error' => $e->getMessage()]);
+            return $report;
+        }
+    }
+
+    /**
+     * Best-effort DB restore during rollback. If no DB backup exists for the
+     * job (older job, unsupported driver, or failed snapshot), rollback
+     * continues as file-only and the report explains why.
+     */
+    private function restoreDatabaseBackup(string $backupId, UpdateLogger $logger): array
+    {
+        if (($this->config['db_backup']['enabled'] ?? true) !== true) {
+            return ['ok' => false, 'skipped' => true, 'reason' => 'db backup disabled in config'];
+        }
+        try {
+            $report = (new DatabaseBackupManager($this->basePath))->restore($this->storageDir . '/backups/' . basename($backupId));
+            if (($report['ok'] ?? false) === true) {
+                $logger->info('db_restore_complete', 'Database restored from backup', ['backup_id' => $backupId]);
+            } elseif (($report['skipped'] ?? false) === true) {
+                $logger->info('db_restore_skipped', 'Database restore skipped', ['reason' => $report['reason'] ?? 'unknown']);
+            } else {
+                $logger->error('db_restore_failed', 'Database restore failed', ['error' => $report['error'] ?? 'unknown']);
+            }
+            return $report;
+        } catch (\Throwable $e) {
+            $report = ['ok' => false, 'error' => $e->getMessage()];
+            $logger->error('db_restore_failed', 'Database restore failed', ['error' => $e->getMessage()]);
+            return $report;
+        }
     }
 
     private function log(string $jobId): JsonResponse

@@ -54,6 +54,10 @@ upload/api/storage_test_runtime/
 upload/web/tmp/
 upload/web/DEPLOY_HASH
 
+# Local browser-test artifacts (Playwright output/specs without a committed harness)
+upload/web/test-results/
+upload/web/tests/
+
 # storage_api: only the .htaccess access-control files are allowed.
 # All other storage_api/ runtime files (SQLite DB, cache, dev-backups,
 # update logs, uploads, etc.) must never be committed.

@@ -29,6 +29,13 @@ return [
         'max_package_bytes' => 100 * 1024 * 1024,
         'min_free_space_multiplier' => 3,
     ],
+    // Database snapshot taken by the updater right before migrations, so a
+    // rollback can restore schema AND data. Disable only on hosts where the
+    // DB is very large or the DB user lacks dump privileges (then rollback
+    // falls back to file-only).
+    'db_backup' => [
+        'enabled' => true,
+    ],
     // Rate limits for preflight/download requests per client IP. These actions
     // are allowed without a one-time token when dry_run=true so the
     // admin-updates page can drive them straight from the browser, which on

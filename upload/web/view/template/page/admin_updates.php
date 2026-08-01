@@ -134,6 +134,14 @@ $auJs = [
   'migrationsOk' => $au('migrations_ok', 'применены'),
   'migrationsFailed' => $au('migrations_failed', 'не применены (см. детали)'),
   'migrationsExecuted' => $au('migrations_executed', 'Применено миграций: {count}'),
+  'field_db_backup' => $au('field_db_backup', 'Бэкап БД'),
+  'dbBackupOk' => $au('db_backup_ok', 'создан'),
+  'dbBackupFailed' => $au('db_backup_failed', 'не создан'),
+  'dbBackupSkipped' => $au('db_backup_skipped', 'пропущен'),
+  'field_db_restore' => $au('field_db_restore', 'Восстановление БД'),
+  'dbRestoreOk' => $au('db_restore_ok', 'восстановлена'),
+  'dbRestoreFailed' => $au('db_restore_failed', 'не восстановлена'),
+  'dbRestoreSkipped' => $au('db_restore_skipped', 'нет бэкапа БД'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -716,14 +724,21 @@ $auJs = [
     const migrationsDetail = migrations && migrations.ok === true && Array.isArray(migrations.executed) && migrations.executed.length
       ? tr('migrationsExecuted', 'Применено миграций: {count}', {count: migrations.executed.length})
       : (migrations && migrations.ok === false && migrations.error ? String(migrations.error) : '');
-    $('applyContent').innerHTML = `${list({
+    const dbBackup = apply.db_backup || null;
+    const dbRestore = apply.db_restore || null;
+    const dbBackupStatus = dbBackup === null ? tr('none', 'нет') : (dbBackup.ok === true ? tr('dbBackupOk', 'создан') : (dbBackup.skipped === true ? tr('dbBackupSkipped', 'пропущен') : tr('dbBackupFailed', 'не создан')));
+    const dbRestoreStatus = dbRestore === null ? tr('none', 'нет') : (dbRestore.ok === true ? tr('dbRestoreOk', 'восстановлена') : (dbRestore.skipped === true ? tr('dbRestoreSkipped', 'нет бэкапа БД') : tr('dbRestoreFailed', 'не восстановлена')));
+    const applyItems = {
       [tr('field_job_id', 'Job ID')]: apply.job_id || 'n/a',
       [tr('field_applied_files', 'Обновлено файлов')]: apply.applied ? apply.applied.count : 'n/a',
       [tr('field_backup', 'Backup')]: apply.backup ? apply.backup.backup_id : 'n/a',
       [tr('fieldHealth', 'Проверка состояния')]: apply.health && apply.health.ok ? 'OK' : tr('statusUnknown', 'Неизвестно'),
       [tr('field_migrations', 'Миграции БД')]: migrationsStatus,
+      [tr('field_db_backup', 'Бэкап БД')]: dbBackupStatus,
+      [tr('field_db_restore', 'Восстановление БД')]: dbRestoreStatus,
       [tr('field_installed_build', 'Установленная сборка')]: apply.installed_core ? apply.installed_core.core_build : 'n/a',
-    })}${migrationsDetail ? `<div class="updates-empty mt-2">${esc(migrationsDetail)}</div>` : ''}`;
+    };
+    $('applyContent').innerHTML = `${list(applyItems)}${migrationsDetail ? `<div class="updates-empty mt-2">${esc(migrationsDetail)}</div>` : ''}`;
     updateRecommendation();
   }
 

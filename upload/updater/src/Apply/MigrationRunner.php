@@ -20,31 +20,9 @@ final class MigrationRunner
      */
     public function run(): array
     {
-        $apiPath = $this->basePath . '/api';
-        $autoloaderFile = $apiPath . '/system/library/support/Autoloader.php';
-        if (!is_file($autoloaderFile)) {
-            return ['ok' => false, 'error' => 'api autoloader not found'];
-        }
-
-        require_once $autoloaderFile;
-        (new \Api\System\Library\Support\Autoloader($apiPath))->register();
-
-        if (class_exists(\Api\System\Library\Support\EnvLoader::class)) {
-            \Api\System\Library\Support\EnvLoader::loadFiles([
-                $this->basePath . '/.env',
-                $apiPath . '/.env',
-                $this->basePath . '/.env.local',
-                $apiPath . '/.env.local',
-            ]);
-        }
-
-        $config = new \Api\System\Library\Config();
-        $config->load($apiPath . '/config/database.php', 'database');
-
-        $connection = new \Api\System\Library\Database\ConnectionManager($config);
-        $pdo = $connection->connect();
-        $db = $connection->resolvedDatabaseConfig();
-        $driver = (string)($db['driver'] ?? 'sqlite');
+        $connection = \Updater\Db\Connection::open($this->basePath);
+        $pdo = $connection['pdo'];
+        $driver = $connection['driver'];
 
         $schema = new \Api\System\Library\Database\SchemaManager();
         $migrations = new \Api\System\Library\Database\Migration\MigrationManager($schema);
