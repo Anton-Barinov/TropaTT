@@ -42,7 +42,20 @@ find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules
 php upload/api/scripts/generate_openapi.php
 ```
 
-Before reporting that a change is ready, run at least the PHP syntax check for any PHP change.
+## Tests
+
+The self-contained test runner is `upload/api/scripts/test_runner.php` (no Composer/PHPUnit dependency). It runs each test file as a subprocess and aggregates `[OK]`/`[FAIL]` results plus exit codes.
+
+Groups:
+
+- `php upload/api/scripts/test_runner.php unit` — all unit tests in `upload/api/tests/unit/` (SQLite in-memory, no MySQL or network needed).
+- `php upload/api/scripts/test_runner.php fast` (alias: `all`) — module integration tests (`StickyNoteIntegrationTest`, `ProjectModuleIntegrationTest`, `KnowledgePageVersionIntegrationTest`, `WorkCycleIntegrationTest`, `CompanyCompatibilityTest`).
+- `php upload/api/scripts/test_runner.php full` — unit + module integration tests combined.
+- Individual groups: `sticky`, `modules`, `knowledge`, `cycles`, `companies`.
+
+Legacy Composer aliases (`integration`, `contract`, `openapi`, `e2e-web`, `live`) map to the full module suite. CI runs `unit` on PHP 8.1/8.2 (see `.github/workflows/php-ci.yml`). The `fast`/`full`/module groups require a live MySQL database and are local-only — they are not part of CI.
+
+Before reporting that a change is ready, run at least the PHP syntax check for any PHP change and the affected test group (`unit` for API/model/logic changes, `fast` for module changes).
 
 If you add or change GitHub Actions, also check the workflow YAML manually and keep workflows free of private secrets.
 

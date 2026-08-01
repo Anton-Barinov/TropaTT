@@ -6169,6 +6169,7 @@ return array (
       'status_updated' => 'Statut de la tâche mis à jour',
       'status_update_error' => 'Échec de la mise à jour du statut',
     ),
+    'knowledge_count' => 'Matériaux liés',
   ),
   'knowledge' => 
   array (
@@ -6315,6 +6316,7 @@ return array (
     'export_error' => 'Export error',
     'export_json' => 'JSON',
     'export_markdown' => 'Markdown',
+    'export_markdown_confirm' => 'Exporter en Markdown ? OK=MD, Annuler=JSON',
     'no_tags' => 'No tags added',
     'show_all_pages' => 'Show all pages of the section',
     'status' => 'Status',

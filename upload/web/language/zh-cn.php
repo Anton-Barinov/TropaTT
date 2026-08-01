@@ -1297,6 +1297,7 @@ return array (
       'status_updated' => '任务状态已更新',
       'status_update_error' => '状态更新失败',
     ),
+    'knowledge_count' => '关联材料',
   ),
   'my_day' => 
   array (

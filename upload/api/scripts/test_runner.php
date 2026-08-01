@@ -58,6 +58,10 @@ function extractResultSummary(string $output): array
         $failed = (int)$m[2];
     } elseif (preg_match('/All tests passed!/i', $output) === 1) {
         $passed = preg_match_all('/\bPASS:/', $output);
+    } elseif (preg_match_all('/\[OK\]/', $output, $m) > 0) {
+        // Unit tests print "[OK] <name>" on success / "[FAIL] <name>: msg" on failure.
+        $passed = count($m[0]);
+        $failed = preg_match_all('/\[FAIL\]/', $output);
     }
 
     // A few legacy integration scripts only print failed assertions and still
@@ -105,29 +109,40 @@ $groups = [
     ],
 ];
 
+$unitFiles = glob($testsDir . '/unit/*.php') ?: [];
+$moduleFiles = [];
+foreach ($groups as $g) {
+    foreach ($g['files'] as $f) {
+        $moduleFiles[] = $f;
+    }
+}
+
 $group = isset($_SERVER['argv'][1]) ? trim((string)$_SERVER['argv'][1]) : 'all';
 
 // Composer exposes these compatibility commands. The project currently uses a
 // single self-contained integration runner, so each alias executes its full
 // available coverage instead of failing with an unknown group.
-if (in_array($group, ['unit', 'integration', 'contract', 'openapi', 'e2e-web', 'live', 'full'], true)) {
+// 'unit' and 'full' have real dedicated groups below; the remaining legacy
+// aliases fall back to the full module integration suite.
+if (in_array($group, ['integration', 'contract', 'openapi', 'e2e-web', 'live'], true)) {
     $group = 'all';
 }
 
-if ($group === 'all' || $group === 'fast') {
-    $selectedFiles = [];
-    foreach ($groups as $g) {
-        foreach ($g['files'] as $f) {
-            $selectedFiles[] = $f;
-        }
-    }
+if ($group === 'unit') {
+    $selectedFiles = $unitFiles;
+    $label = 'ALL UNIT TESTS';
+} elseif ($group === 'full') {
+    $selectedFiles = array_merge($unitFiles, $moduleFiles);
+    $label = 'FULL TEST SUITE (UNIT + MODULES)';
+} elseif ($group === 'all' || $group === 'fast') {
+    $selectedFiles = $moduleFiles;
     $label = 'ALL MODULE INTEGRATION TESTS';
 } elseif (isset($groups[$group])) {
     $selectedFiles = $groups[$group]['files'];
     $label = strtoupper($groups[$group]['label']) . ' TESTS';
 } else {
     echo "Unknown group: {$group}\n";
-    echo "Available: all, fast, sticky, modules, knowledge, cycles, companies\n";
+    echo "Available: all, fast, unit, full, sticky, modules, knowledge, cycles, companies\n";
     exit(1);
 }
 
@@ -167,6 +182,9 @@ foreach ($existingFiles as $file) {
     }
 
     $summary = extractResultSummary($output);
+    if ($result['code'] !== 0 && $summary['failed'] === 0) {
+        $summary['failed'] = 1; // failure signalled only via non-zero exit code
+    }
     $totalPassed += $summary['passed'];
     $totalFailed += $summary['failed'];
 
