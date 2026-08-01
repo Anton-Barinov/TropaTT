@@ -40,7 +40,8 @@ if (is_file($maintenanceFlag)) {
     // held maintenance so the admin-updates page can roll back or retry a
     // failed update. These routes are still auth + RBAC protected.
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
-    $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates');
+    $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
+        || $maintenanceRoute === 'api/v1/auth/me';
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: application/json; charset=utf-8');
