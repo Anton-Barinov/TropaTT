@@ -61,6 +61,25 @@
     });
   }
 
+  // Cycle goal is stored as visual-editor HTML (e.g. "<p>text</p>").
+  // For compact previews strip tags to plain text; for the full detail view
+  // render sanitized HTML via the shared VisualEditor sanitizer.
+  function stripHtml(value) {
+    if (window.CRM.text && typeof window.CRM.text.stripHtml === 'function') {
+      return window.CRM.text.stripHtml(value);
+    }
+    return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function visualEditorHtml(value) {
+    var text = String(value || '').trim();
+    if (!text) return '';
+    if (/<[a-z][\s\S]*>/i.test(text) && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.sanitizeHtml === 'function') {
+      return window.CRM.VisualEditor.sanitizeHtml(text);
+    }
+    return escapeHtml(text).replace(/\n/g, '<br>');
+  }
+
   function formatDate(d) {
     if (!d) return '—';
     try {
@@ -286,7 +305,7 @@
             (cycle.start_at ? '<span><i class="fa-regular fa-calendar"></i> ' + formatDate(cycle.start_at) + '</span>' : '') +
             (cycle.end_at ? '<span>— ' + formatDate(cycle.end_at) + '</span>' : '') +
           '</div>' +
-          (cycle.goal ? '<div class="small text-muted mt-1"><i class="fa-regular fa-bullseye"></i> ' + escapeHtml(cycle.goal.substring(0, 150)) + '</div>' : '') +
+          (cycle.goal ? '<div class="small text-muted mt-1"><i class="fa-regular fa-bullseye"></i> ' + escapeHtml(stripHtml(cycle.goal).substring(0, 150)) + '</div>' : '') +
           '<div class="crm-cycle-next-step">' + escapeHtml(planningHint) + (dateHint ? '<span>' + escapeHtml(dateHint) + '</span>' : '') + '</div>' +
         '</div>' +
         '<div class="crm-cycle-progress-panel">' +
@@ -560,7 +579,7 @@
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_status', 'Статус') + '</small><br>' + statusBadge(cycle.status) + '</div>' +
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_project', 'Проект') + '</small><br>' + escapeHtml(cycle.project_title || '') + '</div>' +
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_owner', 'Владелец') + '</small><br>' + escapeHtml(cycle.owner_name || '—') + '</div>' +
-          (cycle.goal ? '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_goal', 'Цель') + '</small><br>' + escapeHtml(cycle.goal) + '</div>' : '') +
+          (cycle.goal ? '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_goal', 'Цель') + '</small><br>' + visualEditorHtml(cycle.goal) + '</div>' : '') +
         '</div>' +
         '<div class="col-md-6">' +
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_start', 'Дата начала') + '</small><br>' + formatDate(cycle.start_at) + '</div>' +

@@ -13,6 +13,17 @@ window.CRM.text = (function () {
     return escapeHtml(value);
   }
 
+  function stripHtml(value) {
+    // Visual-editor fields (e.g. cycle goal) store HTML like
+    // "<p>text</p>". For compact previews we want plain text: strip tags,
+    // normalize whitespace, then the caller escapes for display.
+    return String(value || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function pluralRu(count, one, few, many) {
     var n = Math.abs(Number(count) || 0);
     var mod10 = n % 10;
@@ -25,6 +36,7 @@ window.CRM.text = (function () {
   return {
     escapeHtml: escapeHtml,
     safeText: safeText,
+    stripHtml: stripHtml,
     pluralRu: pluralRu
   };
 })();

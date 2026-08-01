@@ -22,6 +22,13 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.br1 ? window.CRM.br1.safeText(value) : String(value || '');
   }
 
+  function stripHtmlText(value) {
+    if (window.CRM.text && typeof window.CRM.text.stripHtml === 'function') {
+      return window.CRM.text.stripHtml(value);
+    }
+    return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function renderVisualEditorHtml(value) {
     var text = String(value || '').trim();
     if (!text) return '';
@@ -4305,7 +4312,7 @@ window.CRM.pageApiBindings = (function () {
                         + '<div style="height:4px;background:#e9ecef;border-radius:3px;overflow:hidden;flex:1;"><div style="width:' + progress + '%;background:' + progressColor + ';height:100%;border-radius:3px;transition:width 0.3s ease;"></div></div>'
                         + '<small class="text-muted flex-shrink-0" style="font-size:11px;">' + progress + '%</small>'
                         + '</div>'
-                        + (cycle.goal ? '<div class="small text-muted mt-1 text-truncate" style="font-size:11px;">' + safeText(cycle.goal.substring(0, 80)) + '</div>' : '')
+                        + (cycle.goal ? '<div class="small text-muted mt-1 text-truncate" style="font-size:11px;">' + safeText(stripHtmlText(cycle.goal).substring(0, 80)) + '</div>' : '')
                         + (cycle.project_title ? '<div class="small text-muted mt-1" style="font-size:11px;"><i class="fa-regular fa-folder-open"></i> ' + safeText(cycle.project_title) + '</div>' : '')
                         + '</div>';
                 });
