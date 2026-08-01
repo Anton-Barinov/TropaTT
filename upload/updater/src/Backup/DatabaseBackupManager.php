@@ -314,23 +314,48 @@ final class DatabaseBackupManager extends BackupManager
 
     /**
      * Execute a dump file statement by statement. Full-line comments are
-     * stripped first so a leading comment line never swallows the following
+     * skipped so a leading comment line never swallows the following
      * statement during the split.
+     *
+     * STREAMS the file line by line (fgets) instead of loading it into
+     * memory: a real database dump (e.g. 300MB+ of INSERTs for 1M+ rows) must
+     * never be read with file_get_contents() + preg_split(), which blows the
+     * memory_limit with an UNCATCHABLE fatal error mid-restore - after the
+     * tables have already been dropped - leaving the CRM database empty and
+     * maintenance mode stuck on. Each statement is preceded by its own marker
+     * comment line, so the split is safe for statements containing ';' and
+     * newlines inside string literals or compound trigger bodies.
      */
     private function execSqlFile(PDO $pdo, string $file): void
     {
-        $content = (string)file_get_contents($file);
-        // Each statement is preceded by its own marker comment line, so the
-        // split is safe for statements containing ';' and newlines inside
-        // string literals or compound trigger bodies.
-        $chunks = preg_split('/^-- @@TROPA_SQL@@\s*$/m', $content) ?: [];
-        foreach ($chunks as $chunk) {
-            $statement = trim((string)$chunk);
-            if ($statement === '' || str_starts_with($statement, '--')) {
+        $handle = @fopen($file, 'r');
+        if ($handle === false) {
+            return;
+        }
+        $statement = '';
+        // 1MB read buffer: keeps memory flat even for multi-MB INSERT lines
+        // (a 100-row batch with TEXT/JSON values can be hundreds of KB). A
+        // line longer than the buffer is reassembled across fgets() calls,
+        // so correctness does not depend on the buffer size.
+        while (($line = fgets($handle, 1048576)) !== false) {
+            if (rtrim($line) === '-- @@TROPA_SQL@@') {
+                $this->execStatement($pdo, $statement);
+                $statement = '';
                 continue;
             }
-            $pdo->exec($statement);
+            $statement .= $line;
         }
+        $this->execStatement($pdo, $statement);
+        fclose($handle);
+    }
+
+    private function execStatement(PDO $pdo, string $statement): void
+    {
+        $statement = trim($statement);
+        if ($statement === '' || str_starts_with($statement, '--')) {
+            return;
+        }
+        $pdo->exec($statement);
     }
 
     private function backupSqlite(string $backupDir, string $jobId, array $dbConfig): array
