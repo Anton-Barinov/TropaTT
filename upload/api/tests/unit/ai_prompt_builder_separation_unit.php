@@ -51,6 +51,42 @@ try {
     unitAssertPromptSep(!array_key_exists('user_prompt', $sanitizedContext), 'Context block must not contain user prompt field');
     unitAssertPromptSep(!array_key_exists('system_prompt', $sanitizedContext), 'Context block must not contain system prompt field');
 
+    // Locale language directive: user-facing AI text must follow the UI language.
+    $ruEnvelope = $builder->buildPromptEnvelope(
+        'dashboard_daily_digest',
+        ['template_text' => $template],
+        $context,
+        ['prompt' => $userText],
+        256,
+        true,
+        'ru-ru'
+    );
+    $ruSystem = (string)($ruEnvelope['system_prompt'] ?? '');
+    unitAssertPromptSep(str_contains($ruSystem, 'Respond in Russian (ru-ru).'), 'Locale ru-ru must add a Russian language directive to the system prompt');
+
+    $enEnvelope = $builder->buildPromptEnvelope(
+        'dashboard_daily_digest',
+        ['template_text' => $template],
+        $context,
+        ['prompt' => $userText],
+        256,
+        true,
+        'en-gb'
+    );
+    $enSystem = (string)($enEnvelope['system_prompt'] ?? '');
+    unitAssertPromptSep(str_contains($enSystem, 'Respond in English (en-gb).'), 'Locale en-gb must add an English language directive to the system prompt');
+
+    $noLocaleEnvelope = $builder->buildPromptEnvelope(
+        'dashboard_daily_digest',
+        ['template_text' => $template],
+        $context,
+        ['prompt' => $userText],
+        256,
+        true
+    );
+    $noLocaleSystem = (string)($noLocaleEnvelope['system_prompt'] ?? '');
+    unitAssertPromptSep(!str_contains($noLocaleSystem, 'Respond in '), 'Empty locale must not add a language directive');
+
     echo "[OK] ai_prompt_builder_separation_unit\n";
 } catch (Throwable $e) {
     fwrite(STDERR, '[FAIL] ai_prompt_builder_separation_unit: ' . $e->getMessage() . "\n");

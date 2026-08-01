@@ -407,7 +407,8 @@ final class AiSuggestionService
             $myDayContext,
             $input,
             0,
-            $strictPromptMasking
+            $strictPromptMasking,
+            $locale
         );
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== '' ? trim((string)$intent['model']) : (string)($provider['default_model'] ?? '');
         $forceRefresh = $this->isForceRefreshRequested($input) || $isRegenerate;
@@ -749,7 +750,8 @@ final class AiSuggestionService
             $myWeekContext,
             $input,
             0,
-            $strictPromptMasking
+            $strictPromptMasking,
+            $locale
         );
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== '' ? trim((string)$intent['model']) : (string)($provider['default_model'] ?? '');
         $forceRefresh = $this->isForceRefreshRequested($input);
@@ -1108,7 +1110,8 @@ final class AiSuggestionService
             $context,
             $input,
             0,
-            $strictPromptMasking
+            $strictPromptMasking,
+            $locale
         );
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== '' ? trim((string)$intent['model']) : (string)($provider['default_model'] ?? '');
         $forceRefresh = $this->isForceRefreshRequested($input);
@@ -2564,7 +2567,7 @@ final class AiSuggestionService
         $locale = trim((string)($actor['locale'] ?? '')) !== '' ? trim((string)$actor['locale']) : 'ru-ru';
         $prompt = $this->promptSchemas->resolveActivePrompt($intentCode, $locale);
         $strictPromptMasking = $this->useStrictPromptMaskingForProvider($provider);
-        $promptEnvelope = $this->promptBuilder->buildPromptEnvelope($intentCode, $prompt, $minimalContext, $input, 0, $strictPromptMasking);
+        $promptEnvelope = $this->promptBuilder->buildPromptEnvelope($intentCode, $prompt, $minimalContext, $input, 0, $strictPromptMasking, $locale);
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== '' ? trim((string)$intent['model']) : (string)($provider['default_model'] ?? '');
         $forceRefresh = $this->isForceRefreshRequested($input);
         $dateBucket = $this->resolveCacheDateBucket($intentCode);
@@ -2864,7 +2867,7 @@ final class AiSuggestionService
         $locale = trim((string)($actor['locale'] ?? '')) !== '' ? trim((string)$actor['locale']) : 'ru-ru';
         $prompt = $this->promptSchemas->resolveActivePrompt($intentCode, $locale);
         $strictPromptMasking = $this->useStrictPromptMaskingForProvider($provider);
-        $promptEnvelope = $this->promptBuilder->buildPromptEnvelope($intentCode, $prompt, $minimalContext, $input, 0, $strictPromptMasking);
+        $promptEnvelope = $this->promptBuilder->buildPromptEnvelope($intentCode, $prompt, $minimalContext, $input, 0, $strictPromptMasking, $locale);
         $resolvedModel = trim((string)($intent['model'] ?? '')) !== '' ? trim((string)$intent['model']) : (string)($provider['default_model'] ?? '');
         $forceRefresh = $this->isForceRefreshRequested($input);
         $dateBucket = $this->resolveCacheDateBucket($intentCode);
