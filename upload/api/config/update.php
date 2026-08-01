@@ -30,9 +30,12 @@ return [
         'min_free_space_multiplier' => 3,
     ],
     // Database snapshot taken by the updater right before migrations, so a
-    // rollback can restore schema AND data. Disable only on hosts where the
-    // DB is very large or the DB user lacks dump privileges (then rollback
-    // falls back to file-only).
+    // rollback can restore schema AND data. The snapshot is MANDATORY when the
+    // update has pending migrations: without it a mid-way migration failure
+    // could not be undone, so apply aborts BEFORE any schema change. Updates
+    // that only change files (no pending migrations) skip the dump entirely.
+    // Set enabled=false only if you accept that updates with pending migrations
+    // will be blocked; files-only updates still apply.
     'db_backup' => [
         'enabled' => true,
     ],

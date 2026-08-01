@@ -235,11 +235,43 @@ final class UpdaterKernel
             // Snapshot the database right before migrations (after the fresh
             // code is deployed, so the pending list is accurate) so rollback
             // can restore both files AND schema/data. Files-only updates with
-            // no pending migrations skip the dump entirely. Best-effort: a
-            // failed DB backup is logged but does not block apply.
+            // no pending migrations skip the dump entirely.
             $dbBackup = $this->createDatabaseBackup($state, $backup['backup_id'] ?? null, $logger);
 
+            // Database-safety guard: migrations must never run without a DB
+            // snapshot they can be rolled back from. If the snapshot is
+            // missing/failed and the freshly deployed code reports pending
+            // migrations, abort BEFORE any schema change so the database
+            // stays exactly as it was (file rollback remains fully possible).
+            $dbBackupUsable = ($dbBackup['ok'] ?? false) === true
+                || (string)($dbBackup['reason'] ?? '') === 'no pending migrations';
+            // Re-check pending migrations here on purpose: createDatabaseBackup()
+            // skips the dump for 'no pending migrations' and 'db backup disabled'
+            // without exposing which case it was, so we must distinguish a safe
+            // files-only skip from a real failure before deciding to abort.
+            if (!$dbBackupUsable && $this->pendingMigrations() !== []) {
+                $dbReason = (string)($dbBackup['reason'] ?? $dbBackup['error'] ?? 'unknown');
+                throw new \RuntimeException(
+                    'Database backup is not available (' . $dbReason . ') but migrations are pending. '
+                    . 'Apply aborted before any schema change to protect the database; '
+                    . 'fix the backup issue and retry the update.'
+                );
+            }
+
             $migrations = $this->runMigrations($state, $logger);
+
+            // If migrations failed (or did not fully apply), do NOT finalize
+            // the update: the DB may be partially migrated while the new files
+            // are in place. installed_core is left at the previous build so the
+            // update remains offered after a rollback, and can_rollback stays
+            // true so the snapshot taken above can restore both DB and files.
+            if (($migrations['ok'] ?? false) !== true || (array)($migrations['pending_after'] ?? []) !== []) {
+                $migrationError = (string)($migrations['error'] ?? 'migrations did not fully apply');
+                throw new \RuntimeException(
+                    'Database migrations failed: ' . $migrationError . '. '
+                    . 'The update was not finalized; use rollback to restore the database and files from backup.'
+                );
+            }
 
             (new LocalState($this->storageDir))->write([
                 'state' => 'installed',
