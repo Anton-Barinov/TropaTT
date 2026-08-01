@@ -36,6 +36,7 @@ abstract class Controller
         'intake',
         'task_activity',
         'visual_editor',
+        'chat',
     ];
 
     /** @var array<int, string>|null */
