@@ -77,7 +77,9 @@
     if (/<[a-z][\s\S]*>/i.test(text) && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.sanitizeHtml === 'function') {
       return window.CRM.VisualEditor.sanitizeHtml(text);
     }
-    return escapeHtml(text).replace(/\n/g, '<br>');
+    // VisualEditor may not be loaded yet (deferred script race): show plain
+    // text instead of literal HTML tags.
+    return escapeHtml(stripHtml(text)).replace(/\n/g, '<br>');
   }
 
   function formatDate(d) {
@@ -593,7 +595,7 @@
           '<div class="mb-2"><small class="text-muted">' + t('cycles.overview_tasks', 'Задачи') + '</small><br>' + (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0) + ' ' + t('cycles.completed_short', 'завершено') + '</div>' +
         '</div>' +
       '</div>' +
-      (cycle.description ? '<div class="mt-2"><small class="text-muted">' + t('cycles.overview_description', 'Описание') + '</small><p class="mb-0">' + escapeHtml(cycle.description) + '</p></div>' : '');
+      (cycle.description ? '<div class="mt-2"><small class="text-muted">' + t('cycles.overview_description', 'Описание') + '</small><p class="mb-0">' + visualEditorHtml(cycle.description) + '</p></div>' : '');
 
     document.getElementById('cycleOverviewContent').innerHTML = html;
   }
