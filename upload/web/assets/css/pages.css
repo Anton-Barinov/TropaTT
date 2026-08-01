@@ -6311,6 +6311,15 @@ font-size: 0.72rem;
   overflow-wrap: anywhere;
 }
 
+.crm-dashboard-page .crm-dashboard-task-card-meta a {
+  color: var(--crm-accent);
+  text-decoration: none;
+}
+
+.crm-dashboard-page .crm-dashboard-task-card-meta a:hover {
+  text-decoration: underline;
+}
+
 .crm-dashboard-page .crm-dashboard-action-chip {
   border-radius: 10px;
   display: inline-flex;

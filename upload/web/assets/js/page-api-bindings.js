@@ -2480,7 +2480,7 @@ window.CRM.pageApiBindings = (function () {
           tbody.innerHTML = tasks.slice(0, 50).map(function (item) {
             return '<tr>'
               + '<td><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id) + '">' + safeText(item.title) + '</a></td>'
-              + '<td>' + safeText(item.assignee_full_name || item.assignee_login || '—') + '</td>'
+              + '<td>' + safeText(item.assignee_name || item.assignee_login || '—') + '</td>'
               + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></td>'
               + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
               + '</tr>';
@@ -3701,7 +3701,7 @@ window.CRM.pageApiBindings = (function () {
       + ' <span class="crm-chip">' + safeText(priorityLabel(task.priority_code || 'normal')) + '</span></div>'
       + '<ul class="small ps-3 mb-3">'
       + '<li>' + window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + safeText(task.project_title || '—') + '</li>'
-      + '<li>' + window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + safeText(task.assignee_full_name || task.assignee_login || '—') + '</li>'
+      + '<li>' + window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + safeText(task.assignee_name || task.assignee_login || '—') + '</li>'
       + '<li>' + window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + safeText(formatDate(task.due_at)) + '</li>'
       + '</ul>'
       + '<div class="d-flex gap-2">'
@@ -3926,17 +3926,35 @@ window.CRM.pageApiBindings = (function () {
         titleTd.appendChild(titleLink);
         tr.appendChild(titleTd);
 
-        ['project_title', 'assignee_full_name', 'due_at'].forEach(function (key) {
-          var td = document.createElement('td');
-          if (key === 'assignee_full_name') {
-            td.textContent = String(item.assignee_full_name || item.assignee_login || '—');
-          } else if (key === 'due_at') {
-            td.textContent = String(formatDate(item.due_at));
-          } else {
-            td.textContent = String(item.project_title || '—');
-          }
-          tr.appendChild(td);
-        });
+        // Project (clickable)
+        var projectTd = document.createElement('td');
+        var projectTitle = String(item.project_title || '—');
+        if (item.project_public_id) {
+          var projectLink = document.createElement('a');
+          projectLink.href = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.project_public_id);
+          projectLink.textContent = projectTitle;
+          projectTd.appendChild(projectLink);
+        } else {
+          projectTd.textContent = projectTitle;
+        }
+        tr.appendChild(projectTd);
+
+        // Assignee (full name; clickable -> tasks filtered by this user)
+        var assigneeTd = document.createElement('td');
+        var assigneeLabel = String(item.assignee_name || item.assignee_login || '—');
+        if (item.assignee_user_public_id) {
+          var assigneeLink = document.createElement('a');
+          assigneeLink.href = 'index.php?route=tasks&assignee=' + encodeURIComponent(item.assignee_user_public_id);
+          assigneeLink.textContent = assigneeLabel;
+          assigneeTd.appendChild(assigneeLink);
+        } else {
+          assigneeTd.textContent = assigneeLabel;
+        }
+        tr.appendChild(assigneeTd);
+
+        var dueTd = document.createElement('td');
+        dueTd.textContent = String(formatDate(item.due_at));
+        tr.appendChild(dueTd);
 
         var statusTd = document.createElement('td');
         var status = document.createElement('span');
@@ -3970,16 +3988,39 @@ window.CRM.pageApiBindings = (function () {
         link.textContent = String(item.title || window.CRM.i18n.t('js.pab.task', 'Task'));
         article.appendChild(link);
 
-        [
-          window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + String(item.project_title || '—'),
-          window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' ' + String(item.assignee_full_name || item.assignee_login || '—'),
-          window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + String(formatDate(item.due_at))
-        ].forEach(function (label) {
-          var meta = document.createElement('div');
-          meta.className = 'crm-dashboard-task-card-meta';
-          meta.textContent = label;
-          article.appendChild(meta);
-        });
+        // Project meta (clickable)
+        var projectMeta = document.createElement('div');
+        projectMeta.className = 'crm-dashboard-task-card-meta';
+        projectMeta.appendChild(document.createTextNode(window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' '));
+        if (item.project_public_id) {
+          var projectMetaLink = document.createElement('a');
+          projectMetaLink.href = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.project_public_id);
+          projectMetaLink.textContent = String(item.project_title || '—');
+          projectMeta.appendChild(projectMetaLink);
+        } else {
+          projectMeta.appendChild(document.createTextNode(String(item.project_title || '—')));
+        }
+        article.appendChild(projectMeta);
+
+        // Assignee meta (full name; clickable -> tasks filtered by this user)
+        var assigneeMeta = document.createElement('div');
+        assigneeMeta.className = 'crm-dashboard-task-card-meta';
+        assigneeMeta.appendChild(document.createTextNode(window.CRM.i18n.t('js.pab.assignee_label', 'Assignee:') + ' '));
+        var assigneeLabel = String(item.assignee_name || item.assignee_login || '—');
+        if (item.assignee_user_public_id) {
+          var assigneeMetaLink = document.createElement('a');
+          assigneeMetaLink.href = 'index.php?route=tasks&assignee=' + encodeURIComponent(item.assignee_user_public_id);
+          assigneeMetaLink.textContent = assigneeLabel;
+          assigneeMeta.appendChild(assigneeMetaLink);
+        } else {
+          assigneeMeta.appendChild(document.createTextNode(assigneeLabel));
+        }
+        article.appendChild(assigneeMeta);
+
+        var deadlineMeta = document.createElement('div');
+        deadlineMeta.className = 'crm-dashboard-task-card-meta';
+        deadlineMeta.textContent = window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + String(formatDate(item.due_at));
+        article.appendChild(deadlineMeta);
 
         var badge = document.createElement('span');
         badge.className = 'crm-badge ' + statusClass(item.status_code);
