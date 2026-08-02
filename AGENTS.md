@@ -46,16 +46,18 @@ php upload/api/scripts/generate_openapi.php
 
 The self-contained test runner is `upload/api/scripts/test_runner.php` (no Composer/PHPUnit dependency). It runs each test file as a subprocess and aggregates `[OK]`/`[FAIL]` results plus exit codes.
 
-Groups:
+**Tests are local-only and are NOT published to GitHub.** The test suite lives in `upload/api/tests/` on the developer machine only; it is excluded via `.gitignore` (`upload/api/tests/`, `upload/api/scripts/test_runner.php`). Public clones and CI never contain tests, so never rely on them in workflows, deploy scripts, or the update pipeline.
+
+Groups (local only):
 
 - `php upload/api/scripts/test_runner.php unit` — all unit tests in `upload/api/tests/unit/` (SQLite in-memory, no MySQL or network needed).
 - `php upload/api/scripts/test_runner.php fast` (alias: `all`) — module integration tests (`StickyNoteIntegrationTest`, `ProjectModuleIntegrationTest`, `KnowledgePageVersionIntegrationTest`, `WorkCycleIntegrationTest`, `CompanyCompatibilityTest`).
 - `php upload/api/scripts/test_runner.php full` — unit + module integration tests combined.
 - Individual groups: `sticky`, `modules`, `knowledge`, `cycles`, `companies`.
 
-Legacy Composer aliases (`integration`, `contract`, `openapi`, `e2e-web`, `live`) map to the full module suite. CI runs `unit` on PHP 8.1/8.2 (see `.github/workflows/php-ci.yml`). The `fast`/`full`/module groups require a live MySQL database and are local-only — they are not part of CI.
+Legacy Composer aliases (`integration`, `contract`, `openapi`, `e2e-web`, `live`) map to the full module suite. The `fast`/`full`/module groups require a live MySQL database.
 
-Before reporting that a change is ready, run at least the PHP syntax check for any PHP change and the affected test group (`unit` for API/model/logic changes, `fast` for module changes).
+Before reporting that a change is ready, run at least the PHP syntax check for any PHP change and the affected test group locally (`unit` for API/model/logic changes, `fast` for module changes).
 
 If you add or change GitHub Actions, also check the workflow YAML manually and keep workflows free of private secrets.
 

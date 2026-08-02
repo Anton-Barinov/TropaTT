@@ -27,26 +27,3 @@ jobs:
       - name: PHP syntax check
         run: |
           find . -name "*.php" -not -path "./upload/vendor/*" -not -path "./upload/modules/*" -print0 | xargs -0 -n50 -P4 php -l
-
-  unit-tests:
-    name: Unit tests (${{ matrix.php-version }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    strategy:
-      fail-fast: false
-      matrix:
-        php-version: ['8.1', '8.2']
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: pdo_sqlite, sqlite3, mbstring
-
-      - name: Run unit test suite
-        run: php upload/api/scripts/test_runner.php unit
