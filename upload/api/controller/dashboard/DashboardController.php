@@ -12,15 +12,18 @@ final class DashboardController extends BaseController
     private const WIDGET_PREF_NAME = 'dashboard_widgets';
 
     private const WIDGET_DEFINITIONS = [
-        'kpi' => ['label_key' => 'dashboard.widget_kpi', 'label' => 'KPI metrics', 'default_enabled' => true],
-        'quick_actions' => ['label_key' => 'dashboard.quick_actions', 'label' => 'Quick actions', 'default_enabled' => true],
-        'ai_digest' => ['label_key' => 'dashboard.ai_digest_title', 'label' => 'AI daily digest', 'default_enabled' => true],
-        'today_tasks' => ['label_key' => 'dashboard.today_tasks', 'label' => 'Tasks for today', 'default_enabled' => true],
-        'risks' => ['label_key' => 'dashboard.risks_title', 'label' => 'Risks', 'default_enabled' => true],
-        'activity' => ['label_key' => 'dashboard.activity_title', 'label' => 'Activity', 'default_enabled' => true],
-        'projects_overview' => ['label_key' => 'dashboard.projects_overview', 'label' => 'Projects overview', 'default_enabled' => true],
-        'knowledge' => ['label_key' => 'dashboard.knowledge_title', 'label' => 'Knowledge base', 'default_enabled' => true],
-        'cycles' => ['label_key' => 'dashboard.cycles_title', 'label' => 'Active cycles', 'default_enabled' => true],
+        'kpi' => ['label_key' => 'dashboard.widget_kpi', 'label' => 'KPI metrics', 'description_key' => 'dashboard.widget_kpi_desc', 'description' => 'Active tasks, overdue, active projects and weekly SLA counters.', 'size' => 'crm-col-12', 'icon' => 'fa-rectangle-list', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'quick_actions' => ['label_key' => 'dashboard.quick_actions', 'label' => 'Quick actions', 'description_key' => 'dashboard.widget_quick_actions_desc', 'description' => 'Shortcuts to open the last task, assign an assignee, create a project and more.', 'size' => 'crm-col-12', 'icon' => 'fa-bolt', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'ai_digest' => ['label_key' => 'dashboard.ai_digest_title', 'label' => 'AI daily digest', 'description_key' => 'dashboard.widget_ai_digest_desc', 'description' => 'AI summary of risks, highlights and recommended actions for the day.', 'size' => 'crm-col-12', 'icon' => 'fa-wand-magic-sparkles', 'default_enabled' => true, 'permissions' => ['ai.use']],
+        'today_tasks' => ['label_key' => 'dashboard.today_tasks', 'label' => 'Tasks for today', 'description_key' => 'dashboard.widget_today_tasks_desc', 'description' => 'Tasks with deadlines today with project, assignee and status.', 'size' => 'crm-col-12', 'icon' => 'fa-list-check', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'risks' => ['label_key' => 'dashboard.risks_title', 'label' => 'Risks', 'description_key' => 'dashboard.widget_risks_desc', 'description' => 'Overdue, blocked tasks and risky projects alerts.', 'size' => 'crm-col-4', 'icon' => 'fa-triangle-exclamation', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'activity' => ['label_key' => 'dashboard.activity_title', 'label' => 'Activity', 'description_key' => 'dashboard.widget_activity_desc', 'description' => 'Recent user activity feed.', 'size' => 'crm-col-4', 'icon' => 'fa-timeline', 'default_enabled' => true, 'permissions' => ['logs.view']],
+        'projects_overview' => ['label_key' => 'dashboard.projects_overview', 'label' => 'Projects overview', 'description_key' => 'dashboard.widget_projects_overview_desc', 'description' => 'Unread notifications, events today, tasks and the last updated project.', 'size' => 'crm-col-4', 'icon' => 'fa-folder-open', 'default_enabled' => true, 'permissions' => ['project.manage']],
+        'knowledge' => ['label_key' => 'dashboard.knowledge_title', 'label' => 'Knowledge base', 'description_key' => 'dashboard.widget_knowledge_desc', 'description' => 'Knowledge base stats and recent pages.', 'size' => 'crm-col-4', 'icon' => 'fa-book', 'default_enabled' => true, 'permissions' => ['knowledge.view']],
+        'cycles' => ['label_key' => 'dashboard.cycles_title', 'label' => 'Active cycles', 'description_key' => 'dashboard.widget_cycles_desc', 'description' => 'Active work cycles with progress bars.', 'size' => 'crm-col-4', 'icon' => 'fa-rotate', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'reminders' => ['label_key' => 'dashboard.widget_reminders', 'label' => 'My reminders', 'description_key' => 'dashboard.widget_reminders_desc', 'description' => 'Upcoming reminders for today.', 'size' => 'crm-col-4', 'icon' => 'fa-bell', 'default_enabled' => false, 'permissions' => []],
+        'my_day' => ['label_key' => 'dashboard.widget_my_day', 'label' => 'My day', 'description_key' => 'dashboard.widget_my_day_desc', 'description' => 'Today events, tasks due and reminders in one block.', 'size' => 'crm-col-6', 'icon' => 'fa-sun', 'default_enabled' => false, 'permissions' => []],
+        'sticky_notes' => ['label_key' => 'dashboard.widget_sticky_notes', 'label' => 'Sticky notes', 'description_key' => 'dashboard.widget_sticky_notes_desc', 'description' => 'Personal sticky notes with pinning and quick creation.', 'size' => 'crm-col-4', 'icon' => 'fa-note-sticky', 'default_enabled' => false, 'permissions' => ['task.manage']],
     ];
 
     public function summary(): \Api\System\Library\Http\JsonResponse
@@ -50,10 +53,12 @@ final class DashboardController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $preferences = $this->loadWidgetPreferences($userPublicId);
+        $active = $this->resolveActive($this->loadWidgetPreference($userPublicId));
 
         return $this->success('DASHBOARD_WIDGETS', $this->t('dashboard/messages.widgets'), [
-            'widgets' => $this->buildWidgetList($preferences),
+            'catalog' => $this->buildCatalog(),
+            'active' => $active,
+            'widgets' => $this->buildLegacyWidgets($active),
         ]);
     }
 
@@ -70,33 +75,45 @@ final class DashboardController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $items = $this->request()->input('widgets');
-        if (!is_array($items)) {
-            return $this->error('VALIDATION_ERROR', $this->t('dashboard/messages.widgets_required'), 422);
+        $input = $this->request()->allInput();
+        $activeRaw = $input['active'] ?? null;
+
+        if (is_array($activeRaw)) {
+            $active = $this->normalizeActive($activeRaw);
+        } else {
+            $items = $input['widgets'] ?? null;
+            if (!is_array($items)) {
+                return $this->error('VALIDATION_ERROR', $this->t('dashboard/messages.widgets_required'), 422);
+            }
+            $active = [];
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $key = $item['key'] ?? null;
+                if (!is_string($key) || !array_key_exists($key, self::WIDGET_DEFINITIONS)) {
+                    continue;
+                }
+                if ((bool)($item['enabled'] ?? true) && !in_array($key, $active, true)) {
+                    $active[] = $key;
+                }
+            }
         }
 
-        $validated = [];
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $key = $item['key'] ?? null;
-            if (!is_string($key) || !array_key_exists($key, self::WIDGET_DEFINITIONS)) {
-                continue;
-            }
-            $validated[$key] = (bool)($item['enabled'] ?? true);
-        }
+        $active = $this->resolveActive($active);
 
         /** @var \Api\System\Library\Service\SettingService $settingService */
         $settingService = $this->container->get('service.setting');
-        $settingService->set(self::WIDGET_USER_SCOPE_PREFIX . $userPublicId, self::WIDGET_PREF_NAME, $validated);
+        $settingService->set(self::WIDGET_USER_SCOPE_PREFIX . $userPublicId, self::WIDGET_PREF_NAME, $active);
 
         return $this->success('DASHBOARD_WIDGETS_SAVED', $this->t('dashboard/messages.widgets_saved'), [
-            'widgets' => $this->buildWidgetList($validated),
+            'catalog' => $this->buildCatalog(),
+            'active' => $active,
+            'widgets' => $this->buildLegacyWidgets($active),
         ]);
     }
 
-    private function loadWidgetPreferences(string $userPublicId): array
+    private function loadWidgetPreference(string $userPublicId): mixed
     {
         if ($userPublicId === '' || !$this->container->has('service.setting')) {
             return [];
@@ -112,26 +129,92 @@ final class DashboardController extends BaseController
             $value = $setting['value'] ?? [];
             return is_array($value) ? $value : [];
         } catch (\Throwable $e) {
-            error_log('[DashboardController::loadWidgetPreferences] ' . $e->getMessage());
+            error_log('[DashboardController::loadWidgetPreference] ' . $e->getMessage());
             return [];
         }
     }
 
-    private function buildWidgetList(array $preferences): array
+    private function normalizeActive(array $raw): array
     {
-        $list = [];
+        $seen = [];
+        $active = [];
+        foreach ($raw as $key) {
+            if (!is_string($key) || !array_key_exists($key, self::WIDGET_DEFINITIONS)) {
+                continue;
+            }
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $active[] = $key;
+        }
+
+        return $active;
+    }
+
+    private function resolveActive(array $stored): array
+    {
+        if (empty($stored)) {
+            $active = [];
+            foreach (self::WIDGET_DEFINITIONS as $key => $definition) {
+                if ((bool)($definition['default_enabled'] ?? false)) {
+                    $active[] = $key;
+                }
+            }
+            return $active;
+        }
+
+        if (array_is_list($stored)) {
+            $normalized = $this->normalizeActive($stored);
+            if (!empty($normalized)) {
+                return $normalized;
+            }
+        }
+
+        // Legacy format: associative map key => enabled boolean.
+        $active = [];
         foreach (self::WIDGET_DEFINITIONS as $key => $definition) {
-            $list[] = [
+            if (array_key_exists($key, $stored) && (bool)$stored[$key]) {
+                $active[] = $key;
+            }
+        }
+
+        return $active;
+    }
+
+    private function buildCatalog(): array
+    {
+        $catalog = [];
+        foreach (self::WIDGET_DEFINITIONS as $key => $definition) {
+            $catalog[] = [
                 'key' => $key,
                 'label_key' => $definition['label_key'],
                 'label' => $definition['label'],
-                'enabled' => array_key_exists($key, $preferences)
-                    ? (bool)$preferences[$key]
-                    : (bool)($definition['default_enabled'] ?? true),
-                'default_enabled' => (bool)($definition['default_enabled'] ?? true),
+                'description_key' => $definition['description_key'],
+                'description' => $definition['description'],
+                'size' => $definition['size'],
+                'icon' => $definition['icon'],
+                'permissions' => $definition['permissions'] ?? [],
+                'default_enabled' => (bool)($definition['default_enabled'] ?? false),
             ];
         }
 
-        return $list;
+        return $catalog;
+    }
+
+    private function buildLegacyWidgets(array $active): array
+    {
+        $widgets = [];
+        foreach (self::WIDGET_DEFINITIONS as $key => $definition) {
+            $widgets[] = [
+                'key' => $key,
+                'label_key' => $definition['label_key'],
+                'label' => $definition['label'],
+                'enabled' => in_array($key, $active, true),
+                'default_enabled' => (bool)($definition['default_enabled'] ?? false),
+            ];
+        }
+
+        return $widgets;
     }
 }

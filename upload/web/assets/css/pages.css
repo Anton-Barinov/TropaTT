@@ -10885,7 +10885,7 @@ font-size: 0.72rem;
 
 .crm-dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--space-5);
     margin-bottom: var(--space-6);
 }
@@ -10893,6 +10893,11 @@ font-size: 0.72rem;
 @media (max-width: 991px) {
     .crm-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.crm-dashboard-grid .crm-col-4 { grid-column: span 4; }
+.crm-dashboard-grid .crm-col-6 { grid-column: span 6; }
+.crm-dashboard-grid .crm-col-8 { grid-column: span 8; }
+.crm-dashboard-grid .crm-col-12 { grid-column: span 12; }
 
 @media (max-width: 575px) {
     .crm-dashboard-grid { grid-template-columns: 1fr; }
@@ -16774,4 +16779,146 @@ a.task-tag:hover {
   .kb-toc-card .crm-knowledge-toc {
     grid-template-columns: 1fr;
   }
+}
+
+.crm-dashboard-grid .crm-dashboard-section {
+    margin-bottom: 0;
+  }
+
+  .crm-dashboard-grid > [data-dashboard-widget] {
+    min-width: 0;
+  }
+
+  /* ===== Dashboard builder ===== */
+  .crm-dashboard-builder-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2, #f8f9fa);
+  border: 1px solid var(--color-border, #dfe2e7);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: var(--space-4);
+}
+
+.crm-dashboard-edit-mode [data-dashboard-widget] {
+  position: relative;
+  outline: 2px dashed var(--color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.crm-dashboard-edit-mode [data-dashboard-widget].crm-widget-placeholder {
+  outline: 2px solid var(--color-primary, #3b82f6);
+}
+
+.crm-dashboard-edit-mode [data-dashboard-widget].sortable-ghost {
+  opacity: 0.4;
+}
+
+.crm-widget-builder-controls {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.crm-dashboard-edit-mode .crm-widget-builder-controls {
+  opacity: 1;
+}
+
+.crm-widget-builder-drag {
+  cursor: grab;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border, #dfe2e7);
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text-muted, #6c757d);
+  font-size: 0.8125rem;
+}
+
+.crm-widget-builder-drag:active {
+  cursor: grabbing;
+}
+
+.crm-widget-builder-remove {
+  border: 1px solid var(--color-border, #dfe2e7);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-danger-600, #dc3545);
+  border-radius: var(--radius-sm, 6px);
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  line-height: 1;
+}
+
+.crm-widget-builder-remove:hover {
+  background: var(--color-danger-50, #fdecea);
+}
+
+.crm-widget-builder-label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, #6c757d);
+  position: absolute;
+  top: -12px;
+  left: 0;
+  background: var(--color-primary, #3b82f6);
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm, 4px);
+  max-width: 80%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Catalog offcanvas */
+.crm-dashboard-catalog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border, #eceff2);
+}
+
+.crm-dashboard-catalog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-primary-50, #eef2ff);
+  color: var(--color-primary, #3b82f6);
+}
+
+.crm-dashboard-catalog-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.crm-dashboard-catalog-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.crm-dashboard-catalog-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6c757d);
+  margin-bottom: 0;
+}
+
+.crm-dashboard-catalog-add.is-added {
+  color: var(--color-success-600, #198754);
+}
+
+.crm-dashboard-catalog-required {
+  font-size: 0.6875rem;
+  color: var(--color-warning-600, #e67e00);
+  margin-left: 4px;
 }

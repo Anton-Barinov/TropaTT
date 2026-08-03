@@ -73,6 +73,7 @@ $needsTaskActivity = in_array($currentRoute, [
 $needsStickyNotes = in_array($currentRoute, [
   '',
   'index',
+  'dashboard',
 ], true);
 $needsAdminEstimates = in_array($currentRoute, [
   'admin-estimates',

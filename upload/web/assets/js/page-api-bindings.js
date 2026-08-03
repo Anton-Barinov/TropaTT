@@ -3847,101 +3847,324 @@ window.CRM.pageApiBindings = (function () {
 
   }
 
+  window.CRM.dashboardWidgetsConfig = window.CRM.dashboardWidgetsConfig || null;
+
+  function dashboardWidgetNodeByKey(key) {
+    var found = null;
+    document.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+      if (!found && node.getAttribute('data-dashboard-widget') === key) found = node;
+    });
+    return found;
+  }
+
+  function dashboardWidgetCatalogEntry(key) {
+    var config = window.CRM.dashboardWidgetsConfig;
+    if (!config || !Array.isArray(config.catalog)) return null;
+    return config.catalog.filter(function (w) { return w && w.key === key; })[0] || null;
+  }
+
+  function dashboardWidgetSize(key) {
+    var entry = dashboardWidgetCatalogEntry(key);
+    if (entry && entry.size) return entry.size;
+    var defaults = { kpi: 'crm-col-12', quick_actions: 'crm-col-12', ai_digest: 'crm-col-12', today_tasks: 'crm-col-12', my_day: 'crm-col-6' };
+    return defaults[key] || 'crm-col-4';
+  }
+
+  function applyWidgetSize(node, size) {
+    if (!node) return;
+    var sizeClass = size || dashboardWidgetSize(node.getAttribute('data-dashboard-widget'));
+    ['crm-col-12', 'crm-col-8', 'crm-col-6', 'crm-col-4'].forEach(function (cls) {
+      node.classList.remove(cls);
+    });
+    if (sizeClass) node.classList.add(sizeClass);
+  }
+
   function dashWidgetsFromEnvelope(envelope) {
+    var data = envelope && envelope.data ? envelope.data : {};
+    var active = Array.isArray(data.active) ? data.active.slice() : [];
+    var catalog = Array.isArray(data.catalog) ? data.catalog : [];
     var map = {};
-    if (envelope && envelope.data && Array.isArray(envelope.data.widgets)) {
-      envelope.data.widgets.forEach(function (widget) {
-        if (widget && widget.key) {
-          map[widget.key] = widget.enabled !== false;
+    if (!active.length && Array.isArray(data.widgets)) {
+      data.widgets.forEach(function (widget) {
+        if (widget && widget.key && widget.enabled !== false && map[widget.key] !== true) {
+          active.push(widget.key);
         }
       });
     }
+    active.forEach(function (key) { if (key) map[key] = true; });
+    catalog.forEach(function (widget) {
+      if (!widget || !widget.key) return;
+      if (!(widget.key in map)) map[widget.key] = widget.default_enabled === true;
+    });
+    window.CRM.dashboardWidgetsConfig = { active: active, catalog: catalog, map: map };
     return map;
   }
 
   function applyDashboardWidgetVisibility(map) {
-    var config = map || {};
+    var config = window.CRM.dashboardWidgetsConfig;
+    var activeList = config && Array.isArray(config.active) && config.active.length ? config.active : null;
+    var grid = document.querySelector('[data-dashboard-grid]');
+    var pool = document.getElementById('dashboardWidgetPool');
+    var nodes = {};
     document.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
-      var key = node.getAttribute('data-dashboard-widget');
-      node.classList.toggle('d-none', config[key] === false);
+      nodes[node.getAttribute('data-dashboard-widget')] = node;
     });
-    document.querySelectorAll('[data-dashboard-widget-grid]').forEach(function (grid) {
-      var children = Array.prototype.slice.call(grid.querySelectorAll('[data-dashboard-widget]'));
-      var anyVisible = children.some(function (node) { return !node.classList.contains('d-none'); });
-      grid.classList.toggle('d-none', children.length > 0 && !anyVisible);
+
+    if (activeList && activeList.length) {
+      activeList.forEach(function (key) {
+        var node = nodes[key];
+        if (!node) return;
+        node.classList.remove('d-none');
+        applyWidgetSize(node);
+        if (grid && node.parentNode !== grid) grid.appendChild(node);
+      });
+      Object.keys(nodes).forEach(function (key) {
+        if (activeList.indexOf(key) !== -1) return;
+        var node = nodes[key];
+        node.classList.add('d-none');
+        if (pool && node.parentNode !== pool) pool.appendChild(node);
+      });
+    } else {
+      Object.keys(nodes).forEach(function (key) {
+        var node = nodes[key];
+        node.classList.remove('d-none');
+        applyWidgetSize(node);
+      });
+    }
+  }
+
+  function dashboardCatalogEnabled(key) {
+    var entry = dashboardWidgetCatalogEntry(key);
+    if (!entry) return true;
+    if (!Array.isArray(entry.permissions) || !entry.permissions.length) return true;
+    return entry.permissions.every(function (permission) { return hasPermission(permission); });
+  }
+
+  function dashboardWidgetTitle(key) {
+    var entry = dashboardWidgetCatalogEntry(key);
+    if (entry && entry.label_key) {
+      return window.CRM.i18n.t(String(entry.label_key), String(entry.label || key));
+    }
+    return key;
+  }
+
+  function injectWidgetBuilderControls(node) {
+    if (!node) return;
+    if (node.querySelector('.crm-widget-builder-controls')) return;
+    var key = node.getAttribute('data-dashboard-widget');
+    var controls = document.createElement('div');
+    controls.className = 'crm-widget-builder-controls';
+    var drag = document.createElement('button');
+    drag.type = 'button';
+    drag.className = 'crm-widget-builder-drag crm-widget-builder-drag-handle';
+    drag.title = window.CRM.i18n.t('js.pab.builder_drag', 'Drag to reorder');
+    drag.setAttribute('aria-label', window.CRM.i18n.t('js.pab.builder_drag', 'Drag to reorder'));
+    drag.innerHTML = '<i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>';
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'crm-widget-builder-remove';
+    remove.title = window.CRM.i18n.t('js.pab.builder_remove', 'Remove widget');
+    remove.setAttribute('aria-label', window.CRM.i18n.t('js.pab.builder_remove', 'Remove widget'));
+    remove.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+    remove.addEventListener('click', function () {
+      removeWidgetFromDashboard(key);
+    });
+    controls.appendChild(drag);
+    controls.appendChild(remove);
+    node.appendChild(controls);
+  }
+
+  function enterDashboardEditMode() {
+    window.CRM.__dashboardEditMode = '1';
+    var grid = document.querySelector('[data-dashboard-grid]');
+    if (grid) grid.classList.add('crm-dashboard-edit-mode');
+    var bar = document.querySelector('[data-dashboard-builder-bar]');
+    if (bar) bar.classList.remove('d-none');
+    var toggle = document.querySelector('[data-dashboard-builder-toggle]');
+    if (toggle) toggle.classList.add('active');
+    if (grid) {
+      grid.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+        injectWidgetBuilderControls(node);
+      });
+    }
+    initDashboardSortable();
+  }
+
+  function exitDashboardEditMode() {
+    window.CRM.__dashboardEditMode = '0';
+    var grid = document.querySelector('[data-dashboard-grid]');
+    if (grid) grid.classList.remove('crm-dashboard-edit-mode');
+    var bar = document.querySelector('[data-dashboard-builder-bar]');
+    if (bar) bar.classList.add('d-none');
+    var toggle = document.querySelector('[data-dashboard-builder-toggle]');
+    if (toggle) toggle.classList.remove('active');
+    document.querySelectorAll('.crm-widget-builder-controls').forEach(function (c) { c.remove(); });
+    if (dashboardSortable) { dashboardSortable.destroy(); dashboardSortable = null; }
+  }
+
+  function removeWidgetFromDashboard(key) {
+    var pool = document.getElementById('dashboardWidgetPool');
+    var node = dashboardWidgetNodeByKey(key);
+    if (!node) return;
+    node.classList.add('d-none');
+    node.classList.remove('crm-widget-placeholder');
+    if (pool) pool.appendChild(node);
+    refreshDashboardCatalog();
+  }
+
+  function addWidgetToDashboard(key) {
+    var pool = document.getElementById('dashboardWidgetPool');
+    var grid = document.querySelector('[data-dashboard-grid]');
+    var node = pool ? pool.querySelector('[data-dashboard-widget="' + key + '"]') : null;
+    if (!node) node = dashboardWidgetNodeByKey(key);
+    if (!node || !grid) return;
+    node.classList.remove('d-none');
+    applyWidgetSize(node);
+    if (node.parentNode !== grid) grid.appendChild(node);
+    if (window.CRM.__dashboardEditMode === '1') {
+      injectWidgetBuilderControls(node);
+    }
+    refreshDashboardCatalog();
+  }
+
+  var dashboardSortable = null;
+
+  function initDashboardSortable() {
+    if (typeof window.Sortable !== 'function') return;
+    var grid = document.querySelector('[data-dashboard-grid]');
+    if (!grid) return;
+    if (dashboardSortable) { dashboardSortable.destroy(); dashboardSortable = null; }
+    dashboardSortable = window.Sortable.create(grid, {
+      handle: '.crm-widget-builder-drag',
+      animation: 180,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      easing: 'cubic-bezier(1, 0, 0, 1)',
+      onEnd: function () { refreshDashboardCatalog(); }
     });
   }
 
-  function bindDashboardWidgetsSettings() {
-    if (window.CRM.__dashboardWidgetsSettingsBound === '1') return;
-    window.CRM.__dashboardWidgetsSettingsBound = '1';
+  function refreshDashboardCatalog() {
+    var list = document.querySelector('[data-dashboard-catalog-list]');
+    if (!list) return;
+    var config = window.CRM.dashboardWidgetsConfig;
+    if (!config || !Array.isArray(config.catalog)) {
+      list.innerHTML = '<div class="text-muted">' + window.CRM.i18n.t('js.pab.catalog_load_error', 'Widget catalog unavailable.') + '</div>';
+      return;
+    }
+    var grid = document.querySelector('[data-dashboard-grid]');
+    var activeKeys = {};
+    if (grid) {
+      grid.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+        activeKeys[node.getAttribute('data-dashboard-widget')] = true;
+      });
+    }
+    list.innerHTML = config.catalog.map(function (w) {
+      var key = String(w.key || '');
+      var title = window.CRM.i18n.t(String(w.label_key || ''), String(w.label || key));
+      var desc = window.CRM.i18n.t(String(w.description_key || ''), String(w.description || ''));
+      var enabled = dashboardCatalogEnabled(key);
+      var added = !!activeKeys[key];
+      return '<div class="crm-dashboard-catalog-item">'
+        + '<span class="crm-dashboard-catalog-icon" aria-hidden="true"><i class="fa-solid ' + safeText(String(w.icon || 'fa-puzzle-piece')) + '"></i></span>'
+        + '<div class="crm-dashboard-catalog-body">'
+        + '<div class="crm-dashboard-catalog-title">' + safeText(title)
+        + (enabled ? '' : '<span class="crm-dashboard-catalog-required">' + safeText(window.CRM.i18n.t('js.pab.builder_permission_required', 'permission required')) + '</span>')
+        + '</div>'
+        + '<p class="crm-dashboard-catalog-desc">' + safeText(desc) + '</p>'
+        + '</div>'
+        + (enabled
+          ? '<button type="button" class="btn btn-sm ' + (added ? 'crm-btn-secondary' : 'crm-btn-primary') + ' crm-dashboard-catalog-add" data-catalog-key="' + safeText(key) + '"' + (added ? ' disabled' : '') + '>'
+            + (added
+              ? safeText(window.CRM.i18n.t('js.pab.builder_added', 'Added'))
+              : '<i class="fa-solid fa-plus" aria-hidden="true"></i> ' + safeText(window.CRM.i18n.t('js.pab.builder_add', 'Add')))
+            + '</button>'
+          : '')
+        + '</div>';
+    }).join('');
 
-    var modalEl = document.getElementById('dashboardWidgetsModal');
-    if (!modalEl) return;
+    list.querySelectorAll('[data-catalog-key]').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.addEventListener('click', function () {
+        addWidgetToDashboard(btn.getAttribute('data-catalog-key'));
+      });
+      btn.dataset.bound = '1';
+    });
+  }
 
-    function populateWidgetsList(activeMap) {
-      var list = document.querySelector('[data-dashboard-widgets-list]');
-      if (!list) return;
-      var lastSaved = window.CRM.__dashboardWidgetsSaved || null;
-      var envelopePromise = lastSaved
-        ? Promise.resolve({ data: { widgets: lastSaved } })
-        : request('api/v1/dashboard/widgets', { silent: true }).catch(function () { return null; });
-      envelopePromise.then(function (envelope) {
-        var widgets = envelope && envelope.data && Array.isArray(envelope.data.widgets)
-          ? envelope.data.widgets
-          : [];
-        if (!widgets.length) {
-          list.innerHTML = '<div class="text-muted">' + window.CRM.i18n.t('js.pab.widgets_load_error', 'Failed to load widgets.') + '</div>';
+  async function saveDashboardWidgets() {
+    var saveBtn = document.querySelector('[data-dashboard-builder-save]');
+    if (saveBtn && saveBtn.dataset.loading === '1') return;
+    var grid = document.querySelector('[data-dashboard-grid]');
+    var active = [];
+    if (grid) {
+      grid.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+        active.push(node.getAttribute('data-dashboard-widget'));
+      });
+    }
+    if (saveBtn) { saveBtn.dataset.loading = '1'; saveBtn.disabled = true; }
+    try {
+      var envelope = await request('api/v1/dashboard/widgets', { method: 'PUT', body: { active: active } });
+      var updatedMap = dashWidgetsFromEnvelope(envelope);
+      notify(window.CRM.i18n.t('js.pab.widgets_saved', 'Dashboard widgets updated'));
+      exitDashboardEditMode();
+      applyDashboardWidgetVisibility(updatedMap);
+      await renderDashboardPage();
+    } catch (error) {
+      var envelopeError = error && error.envelope ? error.envelope : null;
+      notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.widgets_save_error', 'Failed to save widgets'), 'error');
+    } finally {
+      if (saveBtn) { saveBtn.dataset.loading = '0'; saveBtn.disabled = false; }
+    }
+  }
+
+  function bindDashboardWidgetSettings() {
+    if (window.CRM.__dashboardWidgetSettingsBound === '1') return;
+    window.CRM.__dashboardWidgetSettingsBound = '1';
+
+    var toggle = document.querySelector('[data-dashboard-builder-toggle]');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        if (window.CRM.__dashboardEditMode === '1') {
+          exitDashboardEditMode();
           return;
         }
-        list.innerHTML = widgets.map(function (widget, index) {
-          var key = String(widget.key || '');
-          var label = window.CRM.i18n.t(String(widget.label_key || ''), String(widget.label || key));
-          var enabled = activeMap ? activeMap[key] !== false : widget.enabled !== false;
-          var checked = enabled ? ' checked' : '';
-          var id = 'dash-widget-' + String(index) + '-' + key;
-          return '<div class="form-check form-switch d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">'
-            + '<label class="form-check-label" for="' + id + '">' + safeText(label) + '</label>'
-            + '<input class="form-check-input crm-dashboard-widget-toggle" type="checkbox" id="' + id + '" data-widget-key="' + safeText(key) + '"' + checked + '>'
-            + '</div>';
-        }).join('');
+        enterDashboardEditMode();
+        refreshDashboardCatalog();
       });
     }
 
-    modalEl.addEventListener('show.bs.modal', function () {
-      populateWidgetsList();
-    });
-
-    var saveBtn = document.getElementById('dashboardWidgetsSaveBtn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', async function () {
-        if (saveBtn.dataset.loading === '1') return;
-        var toggles = Array.prototype.slice.call(document.querySelectorAll('[data-dashboard-widgets-list] .crm-dashboard-widget-toggle'));
-        if (!toggles.length) return;
-        var widgets = toggles.map(function (toggle) {
-          return { key: toggle.getAttribute('data-widget-key'), enabled: toggle.checked };
-        });
-        saveBtn.dataset.loading = '1';
-        saveBtn.disabled = true;
-        try {
-          var envelope = await request('api/v1/dashboard/widgets', { method: 'PUT', body: { widgets: widgets } });
-          var saved = envelope && envelope.data && Array.isArray(envelope.data.widgets) ? envelope.data.widgets : null;
-          if (saved) {
-            window.CRM.__dashboardWidgetsSaved = saved;
-          }
-          notify(window.CRM.i18n.t('js.pab.widgets_saved', 'Dashboard widgets updated'));
-          if (modalEl && window.bootstrap && typeof window.bootstrap.Modal === 'function') {
-            window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-          }
-          applyDashboardWidgetVisibility(dashWidgetsFromEnvelope(envelope));
-          await renderDashboardPage();
-        } catch (error) {
-          var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.widgets_save_error', 'Failed to save widgets'), 'error');
-        } finally {
-          saveBtn.dataset.loading = '0';
-          saveBtn.disabled = false;
+    var addBtn = document.querySelector('[data-dashboard-builder-add]');
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        refreshDashboardCatalog();
+        var offcanvasEl = document.getElementById('dashboardCatalogOffcanvas');
+        if (offcanvasEl && window.bootstrap && typeof window.bootstrap.Offcanvas === 'function') {
+          window.bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl).show();
         }
+      });
+    }
+
+    var resetBtn = document.querySelector('[data-dashboard-builder-reset]');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        exitDashboardEditMode();
+        var config = window.CRM.dashboardWidgetsConfig;
+        applyDashboardWidgetVisibility(config ? config.map : {});
+        notify(window.CRM.i18n.t('js.pab.widgets_cancel', 'Changes discarded'), 'info');
+      });
+    }
+
+    var saveBtn = document.querySelector('[data-dashboard-builder-save]');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function () { saveDashboardWidgets(); });
+    }
+
+    var offcanvasEl = document.getElementById('dashboardCatalogOffcanvas');
+    if (offcanvasEl) {
+      offcanvasEl.addEventListener('show.bs.offcanvas', function () {
+        refreshDashboardCatalog();
       });
     }
   }
@@ -3967,7 +4190,7 @@ window.CRM.pageApiBindings = (function () {
     var widgetsEnvelope = await tryRequest('api/v1/dashboard/widgets', { silent: true });
     var dashboardWidgetConfig = dashWidgetsFromEnvelope(widgetsEnvelope);
     applyDashboardWidgetVisibility(dashboardWidgetConfig);
-    bindDashboardWidgetsSettings();
+    bindDashboardWidgetSettings();
 
     var results = await Promise.all([
       canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
@@ -4469,6 +4692,62 @@ window.CRM.pageApiBindings = (function () {
             .catch(function () {
                 cyclesList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.cycles_load_error', 'Failed to load cycles.') + '</div>';
             });
+    }
+
+    // ====== Reminders Widget ======
+    var remindersList = document.querySelector('[data-dashboard-reminders-list]');
+    if (remindersList) {
+      var remindersVisible = reminders.filter(function (item) {
+        if (!item.remind_at) return false;
+        var ms = Date.parse(String(item.remind_at).replace(' ', 'T'));
+        return Number.isFinite(ms) && ms >= dayStart.getTime() && ms <= dayEnd.getTime();
+      });
+      var remindersShown = (remindersVisible.length ? remindersVisible : reminders).slice(0, 6);
+      if (!Array.isArray(remindersShown) || !remindersShown.length) {
+        remindersList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today.') + '</div>';
+      } else {
+        remindersList.innerHTML = remindersShown.map(function (r) {
+          return '<div class="d-flex justify-content-between align-items-center gap-2 mb-2">'
+            + '<div class="small text-truncate">'
+            + '<i class="fa-solid fa-bell me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>'
+            + safeText(String(r.task_title || window.CRM.i18n.t('js.pab.reminders', 'Reminders')))
+            + '</div>'
+            + '<span class="small text-muted flex-shrink-0">' + safeText(dateTimeLabel(r.remind_at)) + '</span>'
+            + '</div>';
+        }).join('');
+      }
+    }
+
+    // ====== My Day Widget ======
+    var myDayWidgetList = document.querySelector('[data-dashboard-myday-list]');
+    if (myDayWidgetList) {
+      var myDayRows = [];
+      (myDayEvents || []).forEach(function (ev) {
+        if (!ev || !ev.title) return;
+        myDayRows.push({
+          icon: '<i class="fa-regular fa-calendar me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>',
+          text: String(ev.title),
+          time: ev.starts_at || ev.ends_at || ''
+        });
+      });
+      (myDayTasksDue || []).forEach(function (t) {
+        if (!t || !t.title) return;
+        myDayRows.push({
+          icon: '<i class="fa-solid fa-list-check me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>',
+          text: String(t.title),
+          time: t.due_at || ''
+        });
+      });
+      if (!myDayRows.length) {
+        myDayWidgetList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today.') + '</div>';
+      } else {
+        myDayWidgetList.innerHTML = myDayRows.slice(0, 7).map(function (row) {
+          return '<div class="d-flex justify-content-between align-items-center gap-2 mb-2">'
+            + '<div class="small text-truncate">' + row.icon + safeText(row.text) + '</div>'
+            + (row.time ? '<span class="small text-muted flex-shrink-0">' + safeText(dateTimeLabel(row.time)) + '</span>' : '')
+            + '</div>';
+        }).join('');
+      }
     }
 
 
