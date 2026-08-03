@@ -2511,7 +2511,10 @@ textarea {
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  /* SEC/layout: clip instead of hidden — hidden creates a scroll container on the
+     ancestor that breaks position:sticky on .crm-sidebar/.crm-topbar. clip keeps
+     horizontal clipping without breaking sticky. */
+  overflow-x: clip;
 }
 
 body {
