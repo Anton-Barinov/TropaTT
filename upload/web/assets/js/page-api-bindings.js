@@ -3847,6 +3847,105 @@ window.CRM.pageApiBindings = (function () {
 
   }
 
+  function dashWidgetsFromEnvelope(envelope) {
+    var map = {};
+    if (envelope && envelope.data && Array.isArray(envelope.data.widgets)) {
+      envelope.data.widgets.forEach(function (widget) {
+        if (widget && widget.key) {
+          map[widget.key] = widget.enabled !== false;
+        }
+      });
+    }
+    return map;
+  }
+
+  function applyDashboardWidgetVisibility(map) {
+    var config = map || {};
+    document.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+      var key = node.getAttribute('data-dashboard-widget');
+      node.classList.toggle('d-none', config[key] === false);
+    });
+    document.querySelectorAll('[data-dashboard-widget-grid]').forEach(function (grid) {
+      var children = Array.prototype.slice.call(grid.querySelectorAll('[data-dashboard-widget]'));
+      var anyVisible = children.some(function (node) { return !node.classList.contains('d-none'); });
+      grid.classList.toggle('d-none', children.length > 0 && !anyVisible);
+    });
+  }
+
+  function bindDashboardWidgetsSettings() {
+    if (window.CRM.__dashboardWidgetsSettingsBound === '1') return;
+    window.CRM.__dashboardWidgetsSettingsBound = '1';
+
+    var modalEl = document.getElementById('dashboardWidgetsModal');
+    if (!modalEl) return;
+
+    function populateWidgetsList(activeMap) {
+      var list = document.querySelector('[data-dashboard-widgets-list]');
+      if (!list) return;
+      var lastSaved = window.CRM.__dashboardWidgetsSaved || null;
+      var envelopePromise = lastSaved
+        ? Promise.resolve({ data: { widgets: lastSaved } })
+        : request('api/v1/dashboard/widgets', { silent: true }).catch(function () { return null; });
+      envelopePromise.then(function (envelope) {
+        var widgets = envelope && envelope.data && Array.isArray(envelope.data.widgets)
+          ? envelope.data.widgets
+          : [];
+        if (!widgets.length) {
+          list.innerHTML = '<div class="text-muted">' + window.CRM.i18n.t('js.pab.widgets_load_error', 'Failed to load widgets.') + '</div>';
+          return;
+        }
+        list.innerHTML = widgets.map(function (widget, index) {
+          var key = String(widget.key || '');
+          var label = window.CRM.i18n.t(String(widget.label_key || ''), String(widget.label || key));
+          var enabled = activeMap ? activeMap[key] !== false : widget.enabled !== false;
+          var checked = enabled ? ' checked' : '';
+          var id = 'dash-widget-' + String(index) + '-' + key;
+          return '<div class="form-check form-switch d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">'
+            + '<label class="form-check-label" for="' + id + '">' + safeText(label) + '</label>'
+            + '<input class="form-check-input crm-dashboard-widget-toggle" type="checkbox" id="' + id + '" data-widget-key="' + safeText(key) + '"' + checked + '>'
+            + '</div>';
+        }).join('');
+      });
+    }
+
+    modalEl.addEventListener('show.bs.modal', function () {
+      populateWidgetsList();
+    });
+
+    var saveBtn = document.getElementById('dashboardWidgetsSaveBtn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function () {
+        if (saveBtn.dataset.loading === '1') return;
+        var toggles = Array.prototype.slice.call(document.querySelectorAll('[data-dashboard-widgets-list] .crm-dashboard-widget-toggle'));
+        if (!toggles.length) return;
+        var widgets = toggles.map(function (toggle) {
+          return { key: toggle.getAttribute('data-widget-key'), enabled: toggle.checked };
+        });
+        saveBtn.dataset.loading = '1';
+        saveBtn.disabled = true;
+        try {
+          var envelope = await request('api/v1/dashboard/widgets', { method: 'PUT', body: { widgets: widgets } });
+          var saved = envelope && envelope.data && Array.isArray(envelope.data.widgets) ? envelope.data.widgets : null;
+          if (saved) {
+            window.CRM.__dashboardWidgetsSaved = saved;
+          }
+          notify(window.CRM.i18n.t('js.pab.widgets_saved', 'Dashboard widgets updated'));
+          if (modalEl && window.bootstrap && typeof window.bootstrap.Modal === 'function') {
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+          }
+          applyDashboardWidgetVisibility(dashWidgetsFromEnvelope(envelope));
+          await renderDashboardPage();
+        } catch (error) {
+          var envelopeError = error && error.envelope ? error.envelope : null;
+          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.widgets_save_error', 'Failed to save widgets'), 'error');
+        } finally {
+          saveBtn.dataset.loading = '0';
+          saveBtn.disabled = false;
+        }
+      });
+    }
+  }
+
   async function renderDashboardPage() {
     var canManageTasks = hasPermission('task.manage');
     var canManageProjects = hasPermission('project.manage');
@@ -3865,16 +3964,21 @@ window.CRM.pageApiBindings = (function () {
       ]);
     }
 
+    var widgetsEnvelope = await tryRequest('api/v1/dashboard/widgets', { silent: true });
+    var dashboardWidgetConfig = dashWidgetsFromEnvelope(widgetsEnvelope);
+    applyDashboardWidgetVisibility(dashboardWidgetConfig);
+    bindDashboardWidgetsSettings();
+
     var results = await Promise.all([
       canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/tasks', { query: { limit: 20 } }) : Promise.resolve(null),
       tryRequest('api/v1/notifications/counters'),
-      canViewActivity ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8, include_total: 0 }, silent: true }), 900) : Promise.resolve(null),
+      canViewActivity && dashboardWidgetConfig.activity !== false ? softDashboardRequest(tryRequest('api/v1/activity/feed', { query: { limit: 8, include_total: 0 }, silent: true }), 900) : Promise.resolve(null),
       softDashboardRequest(tryRequest('api/v1/reminders', { query: { limit: 8 }, silent: true }), 900),
       canManageProjects ? tryRequest('api/v1/projects', { query: { limit: 8 }, silent: true }) : Promise.resolve(null),
       canManageTasks ? tryRequest('api/v1/calendar/my-day', { silent: true }) : Promise.resolve(null),
-      hasPermission('knowledge.view') ? softDashboardRequest(tryRequest('api/v1/knowledge/overview', { silent: true }), 700) : Promise.resolve(null),
-      aiCanUse
+      hasPermission('knowledge.view') && dashboardWidgetConfig.knowledge !== false ? softDashboardRequest(tryRequest('api/v1/knowledge/overview', { silent: true }), 700) : Promise.resolve(null),
+      aiCanUse && dashboardWidgetConfig.ai_digest !== false
         ? softDashboardRequest(tryRequest('api/v1/ai/suggestions', { query: { intent_code: 'dashboard_daily_digest', entity_type: 'dashboard', limit: 10 }, silent: true }), 700)
         : Promise.resolve(null)
     ]);
@@ -4325,7 +4429,7 @@ window.CRM.pageApiBindings = (function () {
 
     // ====== Active Cycles Widget ======
     var cyclesList = document.querySelector('[data-dashboard-cycles-list]');
-    if (cyclesList) {
+    if (dashboardWidgetConfig.cycles !== false && cyclesList) {
         tryRequest('api/v1/cycles', { query: { status: 'active', limit: 5 }, silent: true })
             .then(function (env) {
                 if (!env || !env.data) {

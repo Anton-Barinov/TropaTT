@@ -19,13 +19,17 @@
           <p class="crm-subtitle mb-0" data-dashboard-subtitle data-i18n="dashboard.subtitle"><?= htmlspecialchars($t('dashboard.subtitle', 'Срез по задачам, рискам и загрузке команд на 01 мая 2026 г.'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
         <div class="crm-page-actions">
+          <button class="btn crm-btn-secondary d-inline-flex align-items-center gap-2" data-open-modal="dashboardWidgetsModal" type="button">
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            <span data-i18n="dashboard.widgets_configure"><?= htmlspecialchars($t('dashboard.widgets_configure', 'Настроить виджеты'), ENT_QUOTES, 'UTF-8') ?></span>
+          </button>
           <button class="btn crm-btn-primary d-inline-flex align-items-center gap-2" data-open-modal="createTaskModal" type="button" data-i18n="dashboard.btn_create_task">
             <span><?= htmlspecialchars($t('dashboard.btn_create_task', 'Создать задачу'), ENT_QUOTES, 'UTF-8') ?></span>
           </button>
         </div>
       </div>
 
-      <section class="crm-dashboard-section">
+      <section class="crm-dashboard-section" data-dashboard-widget="kpi">
         <div class="row g-3">
           <div class="col-12 col-sm-6 col-xl-3">
             <a class="text-decoration-none text-reset d-block" href="index.php?route=tasks&kpi=active" aria-label="<?= htmlspecialchars($t('dashboard.kpi_active_aria', 'Открыть выборку активных задач'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="dashboard.kpi_active_aria">
@@ -106,7 +110,7 @@
         </div>
       </section>
 
-      <section class="crm-card crm-dashboard-section crm-dashboard-actions">
+      <section class="crm-card crm-dashboard-section crm-dashboard-actions" data-dashboard-widget="quick_actions">
         <h2 class="crm-dashboard-actions-title mb-0" data-i18n="dashboard.quick_actions"><?= htmlspecialchars($t('dashboard.quick_actions', 'Быстрые действия'), ENT_QUOTES, 'UTF-8') ?></h2>
         <div class="crm-dashboard-actions-list">
           <button class="btn crm-btn-primary crm-dashboard-action-chip crm-dashboard-action-chip-primary" type="button" data-open-drawer="quickTaskDrawer" data-i18n="dashboard.action_last_task"><span class="crm-dashboard-chip-icon" aria-hidden="true"><i class="fa-regular fa-folder"></i></span><?= htmlspecialchars($t('dashboard.action_last_task', 'Открыть последнюю задачу'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -117,7 +121,7 @@
         </div>
       </section>
 
-      <section class="crm-card crm-dashboard-section" id="dashboardAiDigestCard" data-requires-ai-use="1" data-ai-state="idle">
+      <section class="crm-card crm-dashboard-section" id="dashboardAiDigestCard" data-dashboard-widget="ai_digest" data-requires-ai-use="1" data-ai-state="idle">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
             <h2 class="h5 mb-1 d-inline-flex align-items-center gap-2" data-i18n="dashboard.ai_digest_title">
@@ -156,7 +160,7 @@
         </div>
       </section>
 
-      <section class="crm-card crm-dashboard-section">
+      <section class="crm-card crm-dashboard-section" data-dashboard-widget="today_tasks">
         <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
           <h2 class="h5 mb-0" data-i18n="dashboard.today_tasks"><?= htmlspecialchars($t('dashboard.today_tasks', 'Задачи на сегодня'), ENT_QUOTES, 'UTF-8') ?></h2>
           <a href="index.php?route=tasks" class="fw-semibold" data-i18n="dashboard.all_tasks"><?= htmlspecialchars($t('dashboard.all_tasks', 'Все задачи'), ENT_QUOTES, 'UTF-8') ?></a>
@@ -184,9 +188,9 @@
         </div>
       </section>
 
-      <section class="crm-dashboard-section">
+      <section class="crm-dashboard-section" data-dashboard-widget-grid>
         <div class="row g-3">
-          <aside class="col-12 col-lg-4">
+          <aside class="col-12 col-lg-4" data-dashboard-widget="risks">
             <div class="crm-card h-100 crm-dashboard-widget">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h5 mb-0" data-i18n="dashboard.risks_title"><?= htmlspecialchars($t('dashboard.risks_title', 'Риски'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -198,7 +202,7 @@
               <div data-dashboard-risks-metrics class="mt-2"></div>
             </div>
           </aside>
-          <section class="col-12 col-lg-4">
+          <section class="col-12 col-lg-4" data-dashboard-widget="activity">
             <div class="crm-card h-100 crm-dashboard-widget">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h5 mb-0" data-i18n="dashboard.activity_title"><?= htmlspecialchars($t('dashboard.activity_title', 'Активность'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -210,7 +214,7 @@
               </div>
             </div>
           </section>
-          <section class="col-12 col-lg-4">
+          <section class="col-12 col-lg-4" data-dashboard-widget="projects_overview">
             <div class="crm-card h-100 crm-dashboard-widget">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h5 mb-0" data-i18n="dashboard.projects_overview"><?= htmlspecialchars($t('dashboard.projects_overview', 'Обзор проектов'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -221,7 +225,7 @@
               </div>
             </div>
           </section>
-          <section class="col-12 col-lg-4">
+          <section class="col-12 col-lg-4" data-dashboard-widget="knowledge">
             <div class="crm-card h-100 crm-dashboard-widget">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h5 mb-0" data-i18n="dashboard.knowledge_title"><?= htmlspecialchars($t('dashboard.knowledge_title', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -232,7 +236,7 @@
               </div>
             </div>
           </section>
-          <section class="col-12 col-lg-4">
+          <section class="col-12 col-lg-4" data-dashboard-widget="cycles">
             <div class="crm-card h-100 crm-dashboard-widget">
               <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                 <h2 class="h5 mb-0" data-i18n="dashboard.cycles_title"><?= htmlspecialchars($t('dashboard.cycles_title', 'Активные циклы'), ENT_QUOTES, 'UTF-8') ?></h2>
@@ -248,6 +252,27 @@
 
 
     </main>
+  </div>
+</div>
+
+<div class="modal fade" id="dashboardWidgetsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="dashboard.widgets_modal_title"><?= htmlspecialchars($t('dashboard.widgets_modal_title', 'Настройка виджетов'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3" data-i18n="dashboard.widgets_modal_hint"><?= htmlspecialchars($t('dashboard.widgets_modal_hint', 'Выберите блоки, которые хотите видеть на главной странице.'), ENT_QUOTES, 'UTF-8') ?></p>
+        <div class="crm-dashboard-widgets-list" id="dashboardWidgetsList" data-dashboard-widgets-list>
+          <div class="d-flex align-items-center gap-2 py-1"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> <span data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка'), ENT_QUOTES, 'UTF-8') ?></span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="dashboard.widgets_cancel"><?= htmlspecialchars($t('dashboard.widgets_cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+        <button type="button" class="btn crm-btn-primary" id="dashboardWidgetsSaveBtn" data-i18n="dashboard.widgets_save"><?= htmlspecialchars($t('dashboard.widgets_save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+      </div>
+    </div>
   </div>
 </div>
 

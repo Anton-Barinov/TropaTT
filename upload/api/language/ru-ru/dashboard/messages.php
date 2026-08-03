@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 return [
+    'widgets' => 'Виджеты дашборда',
+    'widgets_saved' => 'Настройки виджетов обновлены',
+    'widgets_required' => 'Не передан список виджетов',
     'summary' => 'Сводка дашборда',
 
     // Sticky Notes
