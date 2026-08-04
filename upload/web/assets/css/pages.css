@@ -6093,6 +6093,58 @@ font-size: 0.72rem;
   margin-top: 0.65rem;
 }
 
+/* Collapsible long comments (Jira-style expand block) */
+.crm-task-detail-page .crm-comment-body-wrap {
+  position: relative;
+}
+
+.crm-task-detail-page .crm-comment-body-wrap [data-comment-body] {
+  position: relative;
+  overflow: hidden;
+  max-height: 5000px;
+  transition: max-height 0.3s ease;
+}
+
+.crm-task-detail-page .crm-comment-body-wrap:not(.crm-comment-expanded) [data-comment-body] {
+  max-height: 200px;
+}
+
+.crm-task-detail-page .crm-comment-collapse-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: linear-gradient(180deg, transparent 0%, var(--crm-surface) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.crm-task-detail-page .crm-comment-body-wrap:not(.crm-comment-expanded) .crm-comment-collapse-fade {
+  opacity: 1;
+}
+
+.crm-task-detail-page .crm-comment-collapse-toggle {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--crm-accent);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.crm-task-detail-page .crm-comment-collapse-toggle:hover {
+  text-decoration: underline;
+}
+
+.crm-task-detail-page .crm-comment.crm-comment-editing .crm-comment-collapse-toggle {
+  display: none;
+}
+
 @media (max-width: 575.98px) {
   .crm-task-detail-page .crm-comment-create-actions,
   .crm-task-detail-page .crm-comment-mention-field {

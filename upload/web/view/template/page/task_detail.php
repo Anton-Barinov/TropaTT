@@ -181,7 +181,10 @@
               <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>
               <select id="commentMentionUserSelect" class="form-select form-select-sm crm-field-w-220"><option value="" data-i18n="task_detail.comment_no_mention"><?= htmlspecialchars($t('task_detail.comment_no_mention', 'Без упоминания'), ENT_QUOTES, 'UTF-8') ?></option></select>
             </div>
-            <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn crm-btn-secondary" type="button" data-comment-create-cancel data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+              <button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
           </div>
         </form>
         <div id="commentsList"><div class="text-muted" data-i18n="task_detail.comments_loading"><?= htmlspecialchars($t('task_detail.comments_loading', 'Комментарии загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>

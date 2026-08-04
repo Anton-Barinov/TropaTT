@@ -3015,6 +3015,15 @@ window.CRM.br1 = (function () {
       var editButton = canEditComment
         ? '<button type="button" class="btn btn-sm btn-light" data-comment-edit="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.redaktirovat_button', '">Редактировать</button>')
         : '';
+      // Deleting a comment goes through DELETE /api/v1/comments/{public_id},
+      // which requires the task.manage permission (route RBAC) plus a
+      // comment-level authorization check on the server.
+      var deleteButton = hasPermission('task.manage')
+        ? '<button type="button" class="btn btn-sm btn-light" data-comment-delete="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.udalit_kommentariy_button', '">Удалить</button>')
+        : '';
+      var commentActionsHtml = (editButton || deleteButton)
+        ? '<div class="d-flex gap-2">' + editButton + deleteButton + '</div>'
+        : '';
       var commentId = String(item.public_id || '');
       var ownReaction = currentTaskOwnReactionsByComment[commentId] || null;
       var reactionLabel = ownReaction && ownReaction.reaction
@@ -3024,7 +3033,7 @@ window.CRM.br1 = (function () {
       return '<div class="crm-comment mb-2" data-comment-id="' + escapeHtml(item.public_id || '') + '" data-comment-author="' + escapeHtml(item.author_public_id || '') + '" data-comment-raw="' + escapeHtml(item.body || '') + '">'
         + '<div class="d-flex justify-content-between align-items-start gap-2">'
         + '<div><strong>' + escapeHtml(item.author_name || item.author_login || window.CRM.i18n.t('js.br1.polzovatel_3', 'Пользователь')) + '</strong></div>'
-        + editButton
+        + commentActionsHtml
         + '</div>'
         + '<div class="mb-1" data-comment-body="' + escapeHtml(item.public_id || '') + '">' + renderRichTextOrPlain(item.body || '') + '</div>'
         + '<div class="d-flex gap-2 flex-wrap align-items-center mb-1">'
@@ -3039,6 +3048,53 @@ window.CRM.br1 = (function () {
     }).join('') : window.CRM.i18n.t('js.br1.div_class_crm_empty_h3_class_h6_kommentariev_poka_net_h', '<div class="crm-empty"><h3 class="h6">Комментариев пока нет</h3><p class="text-muted mb-0">Добавьте первый комментарий к задаче.</p></div>');
     if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.renderReadonly === 'function') {
       window.CRM.VisualEditor.renderReadonly(list);
+    }
+    applyCommentCollapse(list);
+  }
+
+  // Long comments are collapsed to COMMENT_COLLAPSE_MAX_HEIGHT with a toggle
+  // button (Jira-style expand block) so the feed does not grow endlessly.
+  function applyCommentCollapse(list) {
+    if (!list) return;
+    var expandLabel = window.CRM.i18n.t('js.br1.razvernut_kommentariy', 'Развернуть');
+    var collapseLabel = window.CRM.i18n.t('js.br1.svernut_kommentariy', 'Свернуть');
+    var comments = list.querySelectorAll('.crm-comment');
+    for (var ci = 0; ci < comments.length; ci += 1) {
+      var card = comments[ci];
+      var body = card.querySelector('[data-comment-body]');
+      if (!body) continue;
+      if (body.scrollHeight <= COMMENT_COLLAPSE_MAX_HEIGHT) continue;
+
+      var publicId = String(card.getAttribute('data-comment-id') || '');
+      var wrap = document.createElement('div');
+      wrap.className = 'crm-comment-body-wrap';
+      body.parentNode.insertBefore(wrap, body);
+      wrap.appendChild(body);
+
+      // Fade sits inside the clipped body so it is hidden while editing too.
+      var fade = document.createElement('div');
+      fade.className = 'crm-comment-collapse-fade';
+      body.appendChild(fade);
+
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'crm-comment-collapse-toggle';
+      wrap.appendChild(toggle);
+
+      function setExpanded(expanded) {
+        wrap.classList.toggle('crm-comment-expanded', expanded);
+        toggle.textContent = expanded ? collapseLabel : expandLabel;
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (expanded) {
+          expandedCommentIds[publicId] = true;
+        } else {
+          delete expandedCommentIds[publicId];
+        }
+      }
+      setExpanded(Boolean(expandedCommentIds[publicId]));
+      toggle.addEventListener('click', function () {
+        setExpanded(!wrap.classList.contains('crm-comment-expanded'));
+      });
     }
   }
 
@@ -3873,6 +3929,39 @@ window.CRM.br1 = (function () {
       });
     }
 
+    var cancelBtn = form.querySelector('[data-comment-create-cancel]');
+
+    function resetCommentMention() {
+      if (!mentionSelect) return;
+      mentionSelect.value = '';
+      // #commentMentionUserSelect is converted to a searchable select by
+      // applySearchableSelects(): the widget mirrors the value into a visible
+      // input only on 'change', so dispatch it to keep the UI in sync.
+      if (mentionSelect.dataset && mentionSelect.dataset.searchable === '1') {
+        mentionSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    if (cancelBtn && cancelBtn.dataset.bound !== '1') {
+      cancelBtn.dataset.bound = '1';
+      cancelBtn.addEventListener('click', function () {
+        if (textArea) {
+          textArea.value = '';
+          refreshVisualEditors(form, true);
+        }
+        resetCommentMention();
+        // Best-effort: drop the auto-saved draft so it does not resurrect on
+        // the next page load after the user cancelled the comment. The blur
+        // handler saves the draft (fire-and-forget) right before this click,
+        // so delay the DELETE a little to let that POST settle first.
+        window.setTimeout(function () {
+          window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft', {
+            method: 'DELETE'
+          }).catch(function () {});
+        }, 300);
+      });
+    }
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var text = textArea ? getVisualEditorTextareaValue(textArea).trim() : '';
@@ -3921,7 +4010,7 @@ window.CRM.br1 = (function () {
           textArea.value = '';
           refreshVisualEditors(form, true);
         }
-        if (mentionSelect) mentionSelect.value = '';
+        resetCommentMention();
 
         await window.CRM.api.request('api/v1/tasks/' + taskId + '/comment-draft', {
           method: 'DELETE'
@@ -3957,6 +4046,7 @@ window.CRM.br1 = (function () {
 
       var currentBody = commentCard.getAttribute('data-comment-raw') || bodyEl.innerHTML || bodyEl.textContent || '';
       bodyEl.classList.add('d-none');
+      commentCard.classList.add('crm-comment-editing');
 
       var editor = document.createElement('div');
       editor.setAttribute('data-comment-edit-form', '1');
@@ -3987,6 +4077,7 @@ window.CRM.br1 = (function () {
           if (cancelBody) cancelBody.classList.remove('d-none');
           var cancelEditor = cancelCard.querySelector('[data-comment-edit-form]');
           if (cancelEditor) cancelEditor.remove();
+          cancelCard.classList.remove('crm-comment-editing');
         }
         return;
       }
@@ -4069,6 +4160,25 @@ window.CRM.br1 = (function () {
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
         notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_kommentariy', 'Не удалось обновить комментарий'), 'error');
+      }
+    });
+
+    commentsList.addEventListener('click', async function (e) {
+      var deleteBtn = e.target.closest('[data-comment-delete]');
+      if (!deleteBtn) return;
+      var deleteCommentId = String(deleteBtn.getAttribute('data-comment-delete') || '');
+      if (!deleteCommentId) return;
+      if (!window.confirm(window.CRM.i18n.t('js.br1.udalit_kommentariy_confirm', 'Удалить комментарий?'))) return;
+
+      try {
+        await window.CRM.api.request('api/v1/comments/' + encodeURIComponent(deleteCommentId), {
+          method: 'DELETE'
+        });
+        await loadTaskComments(taskId);
+        notify(window.CRM.i18n.t('js.br1.kommentariy_udalen', 'Комментарий удалён'));
+      } catch (error) {
+        var envelopeError = error && error.envelope ? error.envelope : null;
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_udalit_kommentariy', 'Не удалось удалить комментарий'), 'error');
       }
     });
 
