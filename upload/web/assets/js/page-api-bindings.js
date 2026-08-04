@@ -641,10 +641,13 @@ window.CRM.pageApiBindings = (function () {
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
+    // NOTE: thead has 8 columns (checkbox, key, task, project, due, status,
+    // priority, actions). Key must be its own <td> so columns do not shift.
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="' + window.CRM.i18n.t('js.pab.select_task', 'Select task') + ' ' + safeText(item.title || taskId || '') + '"></td>'
+      + '<td>' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
       + '<td>'
-      + '<div class="crm-task-row-main">' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span> ' : '') + '<a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
+      + '<div class="crm-task-row-main">' + '<a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
       + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
       + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
