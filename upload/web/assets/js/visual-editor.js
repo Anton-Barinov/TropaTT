@@ -151,6 +151,13 @@ window.CRM.VisualEditor = (function () {
     DETAILS: true, SUMMARY: true
   };
 
+  // Tags that must be removed entirely (including their content), never
+  // unwrapped: their children are untrusted code, not readable text.
+  var DANGEROUS_TAGS = {
+    SCRIPT: true, STYLE: true, IFRAME: true, OBJECT: true, EMBED: true,
+    FORM: true, SVG: true, MATH: true, TEMPLATE: true, NOSCRIPT: true
+  };
+
   var BLOCK_TAGS = {
     P: true, H1: true, H2: true, H3: true, BLOCKQUOTE: true, PRE: true,
     UL: true, OL: true, LI: true, FIGURE: true, DETAILS: true
@@ -166,12 +173,31 @@ window.CRM.VisualEditor = (function () {
       children.forEach(function (child) {
         if (child.nodeType === Node.ELEMENT_NODE) {
           var tag = child.tagName.toUpperCase();
+          if (DANGEROUS_TAGS[tag]) {
+            // Remove the whole subtree: script/style/iframe/svg content is
+            // untrusted code, not readable text to keep.
+            node.removeChild(child);
+            return;
+          }
           if (!ALLOWED_TAGS[tag]) {
             var parent = child.parentNode;
+            var moved = [];
             while (child.firstChild) {
-              parent.insertBefore(child.firstChild, child);
+              var lifted = child.firstChild;
+              parent.insertBefore(lifted, child);
+              moved.push(lifted);
             }
             parent.removeChild(child);
+            // The walk iterates a pre-unwrap snapshot, so children moved up
+            // here are never visited again — check each one directly so a
+            // nested <script> (e.g. inside <div>) cannot survive.
+            moved.forEach(function (n) {
+              if (n.nodeType === Node.ELEMENT_NODE && DANGEROUS_TAGS[n.tagName.toUpperCase()]) {
+                parent.removeChild(n);
+              } else {
+                walk(n);
+              }
+            });
             return;
           }
 
@@ -252,11 +278,6 @@ window.CRM.VisualEditor = (function () {
             }
           }
 
-          if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'IFRAME' || tag === 'OBJECT' || tag === 'EMBED' || tag === 'FORM' || tag === 'SVG' || tag === 'MATH') {
-            node.removeChild(child);
-            return;
-          }
-
           walk(child);
 
         } else if (child.nodeType === Node.COMMENT_NODE) {
@@ -271,7 +292,10 @@ window.CRM.VisualEditor = (function () {
 
     walk(template.content);
 
+    // Leftover dangerous blocks pasted from Word/other apps (e.g. a <script>
+    // moved up by an unwrap) must not survive as text either.
     var result = template.innerHTML.trim();
+    result = result.replace(/<\/?(?:script|style|iframe|object|embed|form|svg|math|template|noscript)\b[^>]*>/gi, '');
     result = result.replace(/\u200B/g, '');
     result = result.replace(/\uFEFF/g, '');
     result = result.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '<br>');
