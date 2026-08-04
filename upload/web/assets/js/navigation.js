@@ -456,6 +456,22 @@ window.CRM.navigation = (function () {
       if (sidebarToggle && !sidebarToggle.querySelector('i')) sidebarToggle.innerHTML = icon('menu');
     }
 
+    // Quick create task button (like Jira) — opens the global createTaskModal.
+    // RBAC hiding is handled by br1.js applyPermissionVisibility() via the
+    // [data-open-modal="createTaskModal"] selector + MutationObserver.
+    if (!bar.querySelector('[data-quick-create]')) {
+      var quickCreate = document.createElement('button');
+      quickCreate.type = 'button';
+      quickCreate.className = 'btn crm-btn-primary crm-btn-compact crm-topbar-quick-create';
+      quickCreate.setAttribute('data-quick-create', '1');
+      quickCreate.setAttribute('data-open-modal', 'createTaskModal');
+      quickCreate.setAttribute('aria-label', t('topbar.create_task', 'Create task'));
+      quickCreate.setAttribute('title', t('topbar.create_task', 'Create task'));
+      quickCreate.innerHTML = '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-plus"></i></span><span class="crm-topbar-quick-create-label">' + t('topbar.create_task', 'Create task') + '</span>';
+      // #sidebarToggle is guaranteed to exist here (created in the block above).
+      bar.querySelector('#sidebarToggle').insertAdjacentElement('afterend', quickCreate);
+    }
+
     var searchGroup = bar.querySelector('[data-global-search], .input-group');
     if (!searchGroup) {
       bar.insertAdjacentHTML('beforeend', '<div class="input-group" data-global-search><span class="input-group-text">' + icon('search') + '</span><input class="form-control" placeholder="' + t('topbar.search_placeholder', 'Search') + '"></div>');
@@ -492,6 +508,21 @@ window.CRM.navigation = (function () {
     var existingSearchToggle = bar.querySelector('[data-search-toggle]');
     if (existingSearchToggle && !existingSearchToggle.querySelector('i')) {
       existingSearchToggle.innerHTML = icon('search');
+    }
+
+    // Global running-timer indicator slot; br1.js renderTopbarTaskTimer()
+    // fills it with the elapsed time and task link while a timer is running.
+    if (!bar.querySelector('#topbarTaskTimer')) {
+      var timerSlot = document.createElement('div');
+      timerSlot.id = 'topbarTaskTimer';
+      timerSlot.className = 'd-none';
+      timerSlot.setAttribute('data-topbar-timer', '1');
+      var searchToggleRef = bar.querySelector('[data-search-toggle]');
+      if (searchToggleRef) {
+        searchToggleRef.insertAdjacentElement('afterend', timerSlot);
+      } else {
+        right.insertAdjacentElement('afterbegin', timerSlot);
+      }
     }
 
     if (!bar.querySelector('[data-global-chat]')) {

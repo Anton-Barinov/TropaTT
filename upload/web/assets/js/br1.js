@@ -18,7 +18,11 @@ window.CRM.br1 = (function () {
   var currentTaskFollowSubscription = null;
   var currentTaskFavorite = null;
   var currentTaskOwnReactionsByComment = {};
+  var expandedCommentIds = {};
+  var COMMENT_COLLAPSE_MAX_HEIGHT = 200;
   var taskTimerTickIntervalId = null;
+  var topbarTimerEl = null;
+  var topbarTimerTickId = null;
   var availableTags = [];
   var availableUsers = [];
   var availableProjects = [];
@@ -4760,6 +4764,82 @@ window.CRM.br1 = (function () {
     return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
   }
 
+  function initTopbarTaskTimer() {
+    var slot = document.getElementById('topbarTaskTimer');
+    if (!slot || slot.dataset.bound === '1') return;
+    slot.dataset.bound = '1';
+    topbarTimerEl = slot;
+    renderTopbarTaskTimer();
+  }
+
+  // Global running-timer indicator in the topbar: shows elapsed time and the
+  // task while the user's timer is running, on every page. Clicking it opens
+  // the task detail page.
+  function renderTopbarTaskTimer() {
+    if (!topbarTimerEl) return;
+    var state = readTaskTimerState();
+    var currentUserId = getCurrentUserPublicId();
+    var isMine = Boolean(state && String(state.user_public_id || '') === String(currentUserId || ''));
+    if (!isMine) {
+      if (topbarTimerTickId) {
+        window.clearInterval(topbarTimerTickId);
+        topbarTimerTickId = null;
+      }
+      topbarTimerEl.classList.add('d-none');
+      return;
+    }
+
+    topbarTimerEl.classList.remove('d-none');
+    var taskPublicId = String(state.task_public_id || '');
+    var taskHref = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(taskPublicId);
+
+    if (!topbarTimerEl.dataset.built) {
+      topbarTimerEl.dataset.built = '1';
+      topbarTimerEl.innerHTML = ''
+        + '<a class="crm-topbar-timer-link" href="' + taskHref + '" title="' + window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + '">'
+        + '<span class="crm-topbar-timer-dot" aria-hidden="true"></span>'
+        + '<span class="crm-topbar-timer-time">00:00:00</span>'
+        + '<span class="crm-topbar-timer-title"></span>'
+        + '</a>';
+    } else {
+      var link = topbarTimerEl.querySelector('a');
+      if (link) link.setAttribute('href', taskHref);
+    }
+
+    var timeEl = topbarTimerEl.querySelector('.crm-topbar-timer-time');
+    var updateFn = function () {
+      var start = new Date(state.started_at);
+      var startMs = start.getTime();
+      timeEl.textContent = Number.isNaN(startMs)
+        ? '00:00:00'
+        : formatElapsedSeconds(Math.floor((Date.now() - startMs) / 1000));
+    };
+    updateFn();
+    if (topbarTimerTickId) {
+      window.clearInterval(topbarTimerTickId);
+    }
+    topbarTimerTickId = window.setInterval(updateFn, 1000);
+
+    if (topbarTimerEl.dataset.titleTask !== taskPublicId) {
+      topbarTimerEl.dataset.titleTask = taskPublicId;
+      var titleEl = topbarTimerEl.querySelector('.crm-topbar-timer-title');
+      if (titleEl) titleEl.textContent = '';
+      window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskPublicId), { silent: true })
+        .then(function (env) {
+          var task = env && env.data ? (env.data.task || env.data) : null;
+          var title = task && task.title ? String(task.title) : '';
+          if (!title || topbarTimerEl.dataset.titleTask !== taskPublicId) return;
+          var el = topbarTimerEl.querySelector('.crm-topbar-timer-title');
+          if (el) el.textContent = title;
+          var linkEl = topbarTimerEl.querySelector('a');
+          if (linkEl) {
+            linkEl.setAttribute('title', window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + ' · ' + title);
+          }
+        })
+        .catch(function () {});
+    }
+  }
+
   function renderTaskTimerState(taskId, state) {
     var elapsedEl = document.getElementById('taskTimerElapsed');
     var startedAtEl = document.getElementById('taskTimerStartedAt');
@@ -4873,6 +4953,7 @@ window.CRM.br1 = (function () {
       if (noteInput) noteInput.value = '';
       timerForm.classList.add('d-none');
       renderTaskTimerState(taskId, readTaskTimerState());
+      renderTopbarTaskTimer();
       notify(window.CRM.i18n.t('js.br1.taymer_zapushchen', 'Таймер запущен'));
     });
 
@@ -4904,6 +4985,7 @@ window.CRM.br1 = (function () {
       };
       clearTaskTimerState();
       renderTaskTimerState(taskId, null);
+      renderTopbarTaskTimer();
 
       if (minutesInput) minutesInput.value = String(roundedMinutes);
       if (noteInput) noteInput.value = '';
@@ -4955,6 +5037,7 @@ window.CRM.br1 = (function () {
         await loadTaskWorklogs(taskId);
         await loadTaskActivity(taskId);
         renderTaskTimerState(taskId, null);
+        renderTopbarTaskTimer();
         notify(window.CRM.i18n.t('js.br1.vremya_po_taymeru_dobavleno_v_uchyot', 'Время по таймеру добавлено в учёт'));
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
@@ -7084,6 +7167,7 @@ window.CRM.br1 = (function () {
       if (window.CRM.navigation && typeof window.CRM.navigation.init === 'function') {
         window.CRM.navigation.init();
       }
+      initTopbarTaskTimer();
       var syncedUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
         ? window.CRM.api.getUser()
         : null;

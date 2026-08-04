@@ -89,6 +89,8 @@ return array (
     'search_title' => 'Поиск',
     'search_placeholder' => 'Поиск по TropaTT',
     'quick_create' => 'Создать',
+    'create_task' => 'Создать задачу',
+    'timer_running' => 'Таймер запущен',
     'notifications' => 'Уведомления',
     'profile' => 'Мой профиль',
     'logout' => 'Выйти',

@@ -313,6 +313,77 @@ a:focus-visible {
   height: 36px;
 }
 
+.crm-topbar-quick-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.crm-topbar-quick-create .crm-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 0.75rem;
+}
+
+.crm-topbar-quick-create .crm-icon i {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Global running-timer indicator in the topbar */
+.crm-topbar-timer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 999px;
+  background: var(--crm-surface);
+  color: var(--crm-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  max-width: 260px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.crm-topbar-timer-link:hover {
+  border-color: var(--crm-accent);
+  color: var(--crm-accent);
+}
+
+.crm-topbar-timer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--crm-danger);
+  flex: 0 0 auto;
+  animation: crmTopbarTimerPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes crmTopbarTimerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.crm-topbar-timer-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.crm-topbar-timer-title {
+  color: var(--crm-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
 /* Hide mobile sidebar toggle on desktop */
 @media (min-width: 992px) {
   #sidebarToggle {

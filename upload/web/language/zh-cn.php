@@ -89,6 +89,8 @@ return array (
     'search_title' => '搜索',
     'search_placeholder' => '在 TropaTT 中搜索',
     'quick_create' => '创建',
+    'create_task' => '创建任务',
+    'timer_running' => '计时器运行中',
     'notifications' => '通知',
     'profile' => '我的资料',
     'logout' => '退出登录',

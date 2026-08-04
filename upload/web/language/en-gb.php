@@ -89,6 +89,8 @@ return array (
     'search_title' => 'Search',
     'search_placeholder' => 'Search in TropaTT',
     'quick_create' => '+ Create',
+    'create_task' => 'Create task',
+    'timer_running' => 'Timer running',
     'notifications' => 'Notifications',
     'profile' => 'My profile',
     'logout' => 'Logout',

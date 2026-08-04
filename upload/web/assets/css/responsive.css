@@ -212,6 +212,10 @@
     flex-basis: 100%;
   }
 
+  .crm-topbar-quick-create {
+    padding-inline: 0.6rem;
+  }
+
   .crm-search-group.is-open {
     max-width: 100%;
     width: 100% !important;
@@ -559,5 +563,27 @@
   .crm-cycles-page .crm-cycles-search-submit {
     background: var(--crm-primary);
     color: #fff;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .crm-topbar-quick-create .crm-topbar-quick-create-label {
+    display: none;
+  }
+
+  .crm-topbar-quick-create {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .crm-topbar-timer-title {
+    display: none;
+  }
+
+  .crm-topbar-timer-link {
+    max-width: 130px;
+    padding: 0.25rem 0.5rem;
   }
 }
