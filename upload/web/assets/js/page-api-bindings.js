@@ -1142,6 +1142,21 @@ window.CRM.pageApiBindings = (function () {
     var envelope = pageRequests[0];
     if (!envelope) return;
 
+    if (envelope.success === false) {
+      // Show a real error message instead of the misleading
+      // "No projects found for selected filters" empty state.
+      var projectsLoadError = window.CRM.i18n.t('js.pab.projects_load_error', 'Failed to load projects.');
+      var projectsErrorList = document.getElementById('projectsDynamicList');
+      if (projectsErrorList) {
+        projectsErrorList.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-danger">' + projectsLoadError + '</div></div></div>';
+      }
+      var projectsErrorTable = document.querySelector('.crm-card.table-responsive table.crm-table tbody');
+      if (projectsErrorTable) {
+        projectsErrorTable.innerHTML = '<tr><td colspan="7" class="text-danger">' + projectsLoadError + '</td></tr>';
+      }
+      return;
+    }
+
     var items = mapItems(envelope);
     var clientsEnvelope = pageRequests[1];
     var teamsEnvelope = pageRequests[2];
@@ -2782,6 +2797,22 @@ window.CRM.pageApiBindings = (function () {
 
     var envelope = await tasksPromise;
     if (!envelope) return;
+
+    if (envelope.success === false) {
+      // Show the dedicated error state (exists in the template) instead of
+      // misleading empty/no-results states when the list failed to load.
+      document.querySelectorAll('#tasksStates [data-state-item]').forEach(function (node) {
+        node.classList.add('d-none');
+      });
+      var tasksErrorState = document.querySelector('#tasksStates [data-state-item="error"]');
+      if (tasksErrorState) tasksErrorState.classList.remove('d-none');
+      var tasksErrorPager = document.getElementById('tasksPager');
+      if (tasksErrorPager) {
+        tasksErrorPager.classList.add('d-none');
+        tasksErrorPager.innerHTML = '';
+      }
+      return;
+    }
 
     var items = mapItems(envelope);
 
@@ -7113,6 +7144,24 @@ window.CRM.pageApiBindings = (function () {
     });
     if (!envelope) return;
 
+    if (envelope.success === false) {
+      // Replace the "Loading calendar..." placeholder with a real error state
+      // instead of silently rendering an empty-looking grid.
+      var calendarLoadError = window.CRM.i18n.t('js.pab.calendar_load_error', 'Failed to load the calendar.');
+      var calendarLoadErrorBody = window.CRM.i18n.t('js.pab.calendar_load_error_body', 'Please refresh the page or try again later.');
+      var calendarErrorSurface = document.querySelector('[data-calendar-surface]');
+      if (calendarErrorSurface) {
+        calendarErrorSurface.innerHTML = '<div class="crm-empty-state"><strong>' + calendarLoadError + '</strong><p class="mb-0">' + calendarLoadErrorBody + '</p></div>';
+      }
+      var calendarErrorSummary = document.querySelector('[data-calendar-summary]');
+      if (calendarErrorSummary) calendarErrorSummary.innerHTML = '';
+      var calendarErrorFeed = document.querySelector('[data-calendar-feed]');
+      if (calendarErrorFeed) {
+        calendarErrorFeed.innerHTML = '<div class="crm-calendar-agenda-empty">' + calendarLoadError + '</div>';
+      }
+      return;
+    }
+
     var events = mapItems(envelope);
     var eventsByDate = {};
     state.eventsById = {};
@@ -7946,10 +7995,26 @@ window.CRM.pageApiBindings = (function () {
     var preferencesEnvelope = pageRequests[2];
     if (!envelope) return;
 
-    var items = mapItems(envelope);
     var list = document.querySelector('[data-notifications-list]');
     if (!list) return;
     list.setAttribute('aria-busy', 'true');
+
+    if (envelope.success === false) {
+      // Show a real error state instead of the misleading
+      // "No notifications found" empty state.
+      list.innerHTML = '<div class="crm-card crm-empty-state">'
+        + '<strong>' + window.CRM.i18n.t('js.pab.notifications_load_error', 'Failed to load notifications.') + '</strong>'
+        + '<p class="mb-0">' + window.CRM.i18n.t('js.pab.notifications_load_error_body', 'Please refresh the page or try again later.') + '</p>'
+        + '</div>';
+      list.setAttribute('aria-busy', 'false');
+      var notifSummaryEl = document.getElementById('notificationsListSummary');
+      if (notifSummaryEl) {
+        notifSummaryEl.textContent = window.CRM.i18n.t('js.pab.notifications_load_error', 'Failed to load notifications.');
+      }
+      return;
+    }
+
+    var items = mapItems(envelope);
 
     var filter = document.getElementById('notificationsCategoryFilter');
     var readFilter = document.getElementById('notificationsReadFilter');
