@@ -393,10 +393,14 @@ final class MenuController extends BaseController
                 }
             }
 
+            // CAST(... AS JSON) is MySQL-only; MariaDB rejects it with a syntax
+            // error. JSON_CONTAINS accepts a JSON fragment literal, so bind the
+            // encoded id directly - portable across MySQL and MariaDB.
+            $uidJson = json_encode((int)$userId);
             $stmt = $pdo->prepare(
-                'SELECT public_id FROM teams WHERE JSON_CONTAINS(member_user_ids, CAST(:uid AS JSON))'
+                'SELECT public_id FROM teams WHERE JSON_CONTAINS(member_user_ids, :uid_json)'
             );
-            $stmt->execute([':uid' => (string)$userId]);
+            $stmt->execute([':uid_json' => $uidJson]);
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $pid = (string)($row['public_id'] ?? '');
                 if ($pid !== '' && !in_array($pid, $result, true)) {

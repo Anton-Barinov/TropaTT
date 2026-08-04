@@ -450,7 +450,9 @@ final class WorklogRepository
             ->from('teams')
             ->select(['id'])
             ->where('public_id', '=', $teamPublicId)
-            ->whereRaw('JSON_CONTAINS(member_user_ids, CAST(? AS JSON))', [(string)$userId])
+            // CAST(... AS JSON) is MySQL-only (MariaDB syntax error); bind the
+            // JSON fragment literal instead - portable across MySQL and MariaDB.
+            ->whereRaw('JSON_CONTAINS(member_user_ids, ?)', [json_encode($userId)])
             ->first();
         return $row !== null;
     }
