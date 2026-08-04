@@ -547,6 +547,26 @@ window.CRM.navigation = (function () {
     if (profileButton) {
       profileButton.setAttribute('data-session-user-btn', '1');
     }
+
+    // Some pages bake the user menu / notifications button into their own
+    // header markup, which puts them before the JS-added buttons and makes the
+    // topbar order differ from page to page. Normalize the order so every page
+    // shows: search toggle, running-timer indicator, chats, notifications and
+    // the user menu last (same as the dashboard).
+    if (right) {
+      var canonicalOrder = [
+        right.querySelector('[data-search-toggle]'),
+        bar.querySelector('#topbarTaskTimer'),
+        right.querySelector('[data-global-chat]'),
+        right.querySelector('[data-global-notifications]'),
+        right.querySelector('[data-profile-dropdown], .dropdown [data-bs-toggle="dropdown"]')
+      ];
+      canonicalOrder.forEach(function (el) {
+        if (el && el.parentNode === right) {
+          right.appendChild(el);
+        }
+      });
+    }
   }
 
   function markActive() {
