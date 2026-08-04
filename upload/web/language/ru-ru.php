@@ -2817,6 +2817,7 @@ return array (
         'select_key_usage_audit' => 'Выберите ключ, чтобы увидеть usage (audit).',
         'select_key_usage_security' => 'Выберите ключ, чтобы увидеть usage (security).',
         'logs_empty' => 'По выбранным фильтрам логи не найдены.',
+        'logs_load_error' => 'Не удалось загрузить логи.',
         'log_user' => 'Пользователь',
         'log_event' => 'Событие',
         'log_target' => 'Объект / маршрут',

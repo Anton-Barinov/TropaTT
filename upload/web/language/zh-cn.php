@@ -2771,6 +2771,7 @@ return array (
         'select_key_usage_audit' => '请选择密钥以查看使用情况（审计）。',
         'select_key_usage_security' => '请选择密钥以查看使用情况（安全）。',
         'logs_empty' => '根据当前筛选条件未找到日志。',
+        'logs_load_error' => '无法加载日志。',
         'log_user' => '用户',
         'log_event' => '事件',
         'log_target' => '对象/路径',

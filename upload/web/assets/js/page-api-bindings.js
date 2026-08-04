@@ -14111,6 +14111,11 @@ window.CRM.pageApiBindings = (function () {
             : 'api/v1/logs/audit';
 
       var envelope = await tryRequest(endpoint, { query: buildQueryBySource(source) });
+      if (envelope && envelope.success === false) {
+        // Show a real error instead of the misleading "No logs found" empty row.
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('admin.logs_load_error', 'Failed to load logs.')) + '</td></tr>';
+        return;
+      }
       var items = mapItems(envelope);
       currentRows = items.map(function (item) { return toRowModel(source, item); });
 

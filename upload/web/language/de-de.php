@@ -4987,6 +4987,7 @@ return array (
         'select_key_usage_audit' => 'Wählen Sie einen Schlüssel für die Nutzung (Audit).',
         'select_key_usage_security' => 'Wählen Sie einen Schlüssel für die Nutzung (Sicherheit).',
         'logs_empty' => 'Keine Logs für die ausgewählten Filter gefunden.',
+        'logs_load_error' => 'Logs konnten nicht geladen werden.',
         'log_user' => 'Benutzer',
         'log_event' => 'Ereignis',
         'log_target' => 'Objekt / Route',

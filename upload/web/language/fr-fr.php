@@ -4987,6 +4987,7 @@ return array (
         'select_key_usage_audit' => 'Sélectionnez une clé pour voir l\'utilisation (audit).',
         'select_key_usage_security' => 'Sélectionnez une clé pour voir l\'utilisation (sécurité).',
         'logs_empty' => 'Aucun journal trouvé pour les filtres sélectionnés.',
+        'logs_load_error' => 'Échec du chargement des journaux.',
         'log_user' => 'Utilisateur',
         'log_event' => 'Événement',
         'log_target' => 'Objet / route',

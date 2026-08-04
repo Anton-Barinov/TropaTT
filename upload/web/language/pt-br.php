@@ -4987,6 +4987,7 @@ return array (
         'select_key_usage_audit' => 'Selecione uma chave para ver o uso (auditoria).',
         'select_key_usage_security' => 'Selecione uma chave para ver o uso (segurança).',
         'logs_empty' => 'Nenhum log encontrado para os filtros selecionados.',
+        'logs_load_error' => 'Falha ao carregar logs.',
         'log_user' => 'Usuário',
         'log_event' => 'Evento',
         'log_target' => 'Objeto / rota',

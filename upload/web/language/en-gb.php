@@ -2821,6 +2821,7 @@ return array (
         'select_key_usage_audit' => 'Select a key to see usage (audit).',
         'select_key_usage_security' => 'Select a key to see usage (security).',
         'logs_empty' => 'No logs found for selected filters.',
+        'logs_load_error' => 'Failed to load logs.',
         'log_user' => 'User',
         'log_event' => 'Event',
         'log_target' => 'Object / route',
