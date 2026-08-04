@@ -2174,6 +2174,11 @@ window.CRM.VisualEditor = (function () {
 
     var style = document.createElement('style');
     style.id = 'crm-ve-styles';
+    // CSP style-src has no 'unsafe-inline': dynamically injected <style> needs
+    // the per-request nonce or the browser blocks it (see web/index.php).
+    if (window.CRM && window.CRM.config && window.CRM.config.cspNonce) {
+      style.setAttribute('nonce', window.CRM.config.cspNonce);
+    }
     style.textContent = css;
     document.head.appendChild(style);
   }

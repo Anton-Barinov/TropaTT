@@ -47,7 +47,10 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getPreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'savePreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/frontend-event', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'frontendEvent', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/csp-report', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'cspReport', 'auth' => true, 'authz_note' => 'self-service: any authenticated user'],
+    // CSP reports are sent automatically by the browser on policy violations and
+    // cannot carry a session or CSRF token. The controller only logs sanitized
+    // report data, so the endpoint is intentionally public.
+    ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/csp-report', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'cspReport', 'auth' => false, 'authz_note' => 'public: browser CSP violation reports'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/login-debug', 'controller' => Api\Controller\Telemetry\LoginDebugLogger::class, 'action' => 'log', 'auth' => true, 'required_permissions' => ['logs.view']],
 
     // users/roles/permissions baseline

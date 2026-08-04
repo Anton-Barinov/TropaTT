@@ -102,6 +102,7 @@ if ($assetsVersion !== '') {
       return { t: t, applyToDom: applyToDom, init: init };
     })();
     window.CRM.config = window.CRM.config || {};
+    window.CRM.config.cspNonce = <?= json_encode((string)($csp_nonce ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.assetsVersion = <?= json_encode($assetsVersion, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.pushVapidPublicKey = <?= json_encode($vapidPublicKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.realtimeTransport = <?= json_encode($realtimeTransport, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;

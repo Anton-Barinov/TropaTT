@@ -286,6 +286,11 @@ window.CRM.stickyNotes = (function () {
     if (style) return;
     style = document.createElement('style');
     style.id = 'crmStickyDragStyles';
+    // CSP style-src has no 'unsafe-inline': dynamically injected <style> needs
+    // the per-request nonce or the browser blocks it (see web/index.php).
+    if (window.CRM && window.CRM.config && window.CRM.config.cspNonce) {
+      style.setAttribute('nonce', window.CRM.config.cspNonce);
+    }
     style.textContent = '.crm-sticky-dragging { opacity: 0.5; } [data-note-id].crm-sticky-drag-over { transform: scale(1.03); box-shadow: 0 4px 12px rgba(0,0,0,0.15); } [data-note-id] { transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: grab; } [data-note-id]:active { cursor: grabbing; }';
     document.head.appendChild(style);
   }
