@@ -89,6 +89,13 @@ final class UserController extends BaseController
             return $this->error((string)$result['code'], $this->t('user/messages.create_failed'), 403, ['user' => [(string)$result['code']]]);
         }
 
+        // SEC-002: Financial fields (cost_rate/bill_rate) are root-only data.
+        // The create input never accepts them, but the returned user record
+        // must still be stripped for non-root actors (see AGENTS.md).
+        if (!$this->isCurrentUserRoot()) {
+            $result['user'] = $this->stripFinancialRates($result['user']);
+        }
+
         $this->invalidateCache('worklog');
 
         return $this->success('USER_CREATED', $this->t('user/messages.created'), ['user' => $result['user']], 201);
@@ -103,9 +110,10 @@ final class UserController extends BaseController
 
         $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id']);
 
-        // SEC-002: Only root users may change root status or role assignments.
+        // SEC-002: Only root users may change root status, role assignments,
+        // or financial rates (cost_rate/bill_rate) of other users.
         if (!$this->isCurrentUserRoot()) {
-            unset($input['is_root'], $input['role_public_ids']);
+            unset($input['is_root'], $input['role_public_ids'], $input['cost_rate'], $input['bill_rate']);
         }
 
         /** @var UserService $service */
@@ -115,6 +123,12 @@ final class UserController extends BaseController
         if (!$result['ok']) {
             $status = in_array((string)$result['code'], ['USER_NOT_FOUND'], true) ? 404 : 403;
             return $this->error((string)$result['code'], $this->t('user/messages.update_failed'), $status, ['user' => [(string)$result['code']]]);
+        }
+
+        // SEC-002: Never echo financial rates of the updated user back to a
+        // non-root actor, even when the update itself did not touch them.
+        if (!$this->isCurrentUserRoot()) {
+            $result['user'] = $this->stripFinancialRates($result['user']);
         }
 
         $this->invalidateCache('worklog');

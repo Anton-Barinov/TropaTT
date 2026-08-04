@@ -97,6 +97,18 @@ final class UserService
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('usr');
 
+        // SEC-002: financial rates are root-only data. Never seed them on
+        // users created by non-root actors (MCP path may pass them).
+        $set = ['cost_rate' => null, 'bill_rate' => null];
+        if ($actorIsRoot) {
+            foreach (['cost_rate', 'bill_rate'] as $field) {
+                if (array_key_exists($field, $input)) {
+                    $val = $input[$field];
+                    $set[$field] = ($val === null || $val === '' || $val === false) ? null : ((float)$val);
+                }
+            }
+        }
+
         $userId = $this->users->create([
             'public_id' => $publicId,
             'login' => trim((string)$input['login']),
@@ -110,6 +122,8 @@ final class UserService
             'created_by_user_id' => $actorId,
             'created_at' => $now,
             'updated_at' => $now,
+            'cost_rate' => $set['cost_rate'],
+            'bill_rate' => $set['bill_rate'],
         ]);
 
         if ($roles !== []) {
@@ -146,6 +160,13 @@ final class UserService
 
         if ($targetIsRoot && !$actorIsRoot) {
             return ['ok' => false, 'code' => 'FORBIDDEN_ROOT_PROTECTED'];
+        }
+
+        // SEC-002: financial rates are root-only data. Guarded here at the
+        // service layer so both REST and MCP paths cannot mutate them for
+        // non-root actors, and so non-root can never learn a user's rates.
+        if (!$actorIsRoot) {
+            unset($input['cost_rate'], $input['bill_rate']);
         }
 
         $set = [];

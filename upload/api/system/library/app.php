@@ -559,7 +559,7 @@ final class App
         try {
             $db = (new \Api\System\Library\Database\ConnectionManager($this->config))->connect();
             $userRepo = new \Api\Model\Common\UserRepository($db);
-            $adminUsers = $userRepo->findByCondition('is_root = 1 OR role_code = ?', ['admin']);
+            $adminUsers = $userRepo->findAdmins();
 
             if (empty($adminUsers)) {
                 return;
