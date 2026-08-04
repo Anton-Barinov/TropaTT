@@ -233,7 +233,10 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'listByTask', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/comments/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/comments/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
+    // Deleting a comment must be allowed for the comment author without
+    // task.manage; comment-level authorization (author/root/task participants)
+    // is enforced inside CommentService::canManageComment().
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/comments/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'delete', 'auth' => true, 'authz_note' => 'author-or-participant enforced in CommentService'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/comment-draft', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST', 'PUT', 'PATCH'], 'pattern' => '/api/v1/tasks/{public_id}/comment-draft', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'save', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/tasks/{public_id}/comment-draft', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -750,7 +753,7 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/recurring/{public_id}/resume', 'controller' => Api\Controller\Recurring\RecurringController::class, 'action' => 'resume', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/comment/add/{public_id}', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/comment/update/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/comment/delete/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/comment/delete/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'delete', 'auth' => true, 'authz_note' => 'author-or-participant enforced in CommentService'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/comment/draft/get/{public_id}', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST', 'PUT', 'PATCH'], 'pattern' => '/api/v1/comment/draft/save/{public_id}', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'save', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/comment/draft/delete/{public_id}', 'controller' => Api\Controller\Comment\CommentDraftController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],

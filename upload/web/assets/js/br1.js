@@ -3015,10 +3015,11 @@ window.CRM.br1 = (function () {
       var editButton = canEditComment
         ? '<button type="button" class="btn btn-sm btn-light" data-comment-edit="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.redaktirovat_button', '">Редактировать</button>')
         : '';
-      // Deleting a comment goes through DELETE /api/v1/comments/{public_id},
-      // which requires the task.manage permission (route RBAC) plus a
-      // comment-level authorization check on the server.
-      var deleteButton = hasPermission('task.manage')
+      // Deleting a comment goes through DELETE /api/v1/comments/{public_id}.
+      // The route is open to any authenticated user; the server only allows
+      // the author (or root / task participants) via CommentService. The
+      // author therefore gets the button even without task.manage.
+      var deleteButton = (canEditComment || hasPermission('task.manage'))
         ? '<button type="button" class="btn btn-sm btn-light" data-comment-delete="' + escapeHtml(item.public_id || '') + window.CRM.i18n.t('js.br1.udalit_kommentariy_button', '">Удалить</button>')
         : '';
       var commentActionsHtml = (editButton || deleteButton)
