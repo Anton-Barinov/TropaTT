@@ -20,6 +20,18 @@ $auJs = [
   'loadingDownload' => $au('loading_download', 'подготавливаем архив'),
   'loadingApply' => $au('loading_apply', 'устанавливаем обновление'),
   'loadingRollback' => $au('loading_rollback', 'восстанавливаем backup'),
+  'progressStep' => $au('progress_step', 'шаг {done} из {total}'),
+  'phaseBackupFiles' => $au('phase_backup_files', 'бэкап файлов'),
+  'phaseApplyFiles' => $au('phase_apply_files', 'установка файлов'),
+  'phaseHealth' => $au('phase_health', 'проверка состояния'),
+  'phaseBackupDb' => $au('phase_backup_db', 'бэкап базы данных'),
+  'phaseMigrate' => $au('phase_migrate', 'миграции БД'),
+  'phaseExtract' => $au('phase_extract', 'распаковка архива'),
+  'phaseRestoreDb' => $au('phase_restore_db', 'восстановление БД'),
+  'phaseRestoreFiles' => $au('phase_restore_files', 'восстановление файлов'),
+  'phaseFinalize' => $au('phase_finalize', 'завершение'),
+  'phaseFinalized' => $au('phase_finalized', 'готово'),
+  'stepWorking' => $au('step_working', 'выполняется...'),
   'statusReady' => $au('status_ready', 'CRM работает штатно'),
   'statusChecking' => $au('status_checking', 'Проверяем...'),
   'statusNoUpdates' => $au('status_no_updates', 'Обновлений нет'),
@@ -813,11 +825,63 @@ $auJs = [
     await loadStatus();
   }
 
+  const phaseLabels = {
+    backup_files: tr('phaseBackupFiles', 'бэкап файлов'),
+    apply_files: tr('phaseApplyFiles', 'установка файлов'),
+    health: tr('phaseHealth', 'проверка состояния'),
+    backup_db: tr('phaseBackupDb', 'бэкап базы данных'),
+    migrate: tr('phaseMigrate', 'миграции БД'),
+    extract: tr('phaseExtract', 'распаковка архива'),
+    restore_db: tr('phaseRestoreDb', 'восстановление БД'),
+    restore_files: tr('phaseRestoreFiles', 'восстановление файлов'),
+    finalize: tr('phaseFinalize', 'завершение'),
+    finalized: tr('phaseFinalized', 'готово')
+  };
+
+  function progressText(progress) {
+    const phase = progress && progress.phase ? String(progress.phase) : '';
+    const label = phaseLabels[phase] || phase || tr('stepWorking', 'выполняется...');
+    const done = Number(progress && progress.done || 0);
+    const total = Number(progress && progress.total || 0);
+    if (phase === 'backup_db' && done > 0 && !total) return `${label}: ${done}`;
+    if (total > 0) return `${label} — ${tr('progressStep', 'шаг {done} из {total}', {done, total})}`;
+    return label;
+  }
+
+  function renderUpdaterProgress(progress) {
+    const text = progressText(progress);
+    setBadge('nextStatusBadge', 'warn', text);
+    setBadge('detailsBadge', 'warn', text);
+    if ($('applyContent')) {
+      $('applyContent').innerHTML = `<div class="updates-empty">${esc(text)}…</div>`;
+    }
+  }
+
+  async function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // Drive a resumable updater action: the updater runs each job as many short
+  // HTTP requests (each well under shared-hosting timeouts) and returns
+  // {continue:true} until the job is done. This loop keeps issuing the next
+  // step, showing progress, until the final response arrives.
+  async function runUpdaterSteps(action, body) {
+    let stepBody = Object.assign({}, body);
+    for (let guard = 0; guard < 2000; guard++) {
+      const result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody)});
+      ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
+      const data = result.data || result;
+      if (!data.continue) return result;
+      renderUpdaterProgress(data.progress);
+      await sleep(400);
+    }
+    throw new Error(tr('errGeneric', 'Не удалось выполнить действие.'));
+  }
+
   async function download() {
     state.lastJobId = state.lastJobId || extractJobId(state.status);
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
-    const result = await api('/updater/index.php?action=download', {method: 'POST', body: JSON.stringify({dry_run: true, job_id: state.lastJobId})});
-    ensureSuccess(result, tr('errDownload', 'Не удалось подготовить архив.'));
+    const result = await runUpdaterSteps('download', {dry_run: true, job_id: state.lastJobId});
     state.download = result;
     renderPreflight();
     await loadStatus();
@@ -835,7 +899,10 @@ $auJs = [
     state.lastJobId = state.lastJobId || extractJobId(state.status);
     if (!state.lastJobId) throw new Error(tr('needJobApply', 'Нет job_id. Сначала выполните проверку безопасности и подготовку архива.'));
     const token = await updaterSession();
-    const result = await api('/updater/index.php?action=apply', {method: 'POST', body: JSON.stringify({job_id: state.lastJobId, confirm_apply: true, token})});
+    // runUpdaterSteps keeps posting the same job with the same token; the
+    // updater treats the first call as the start (confirm_apply checked once)
+    // and later calls as continuation steps of the same resumable job.
+    const result = await runUpdaterSteps('apply', {job_id: state.lastJobId, confirm_apply: true, token});
     ensureSuccess(result, tr('errApply', 'Не удалось установить обновление.'));
     state.apply = result;
     renderApply();
@@ -862,7 +929,7 @@ $auJs = [
     const jobId = state.lastJobId || (latest && latest.job_id);
     if (!jobId) throw new Error(tr('needJobRollback', 'Нет job_id для восстановления.'));
     const token = await updaterSession();
-    const result = await api('/updater/index.php?action=rollback', {method: 'POST', body: JSON.stringify({job_id: jobId, token})});
+    const result = await runUpdaterSteps('rollback', {job_id: jobId, token});
     ensureSuccess(result, tr('errRollback', 'Не удалось восстановить backup.'));
     state.apply = result;
     renderApply();

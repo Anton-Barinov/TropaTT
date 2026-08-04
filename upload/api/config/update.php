@@ -18,12 +18,47 @@ return [
     'public_key_path' => dirname(__DIR__, 2) . '/updater/keys/update_public.pem',
     'timeouts' => [
         'check' => 10,
+        // Per-socket-read timeout for the package download. The package is
+        // fetched in ONE streaming pass (memory-flat); on very slow shared
+        // hosts where a 100MB package cannot transfer inside the web-server
+        // proxy timeout, lower max_package_bytes below or mirror the package
+        // on a faster URL. Extraction itself is step-chunked.
         'download' => 120,
         // Used by CoreUpdateController when it proxies the updater over HTTP
         // (preflight). Actual apply/rollback are invoked by the page JS directly
         // against updater/index.php, which lifts max_execution_time to 600s.
         // Generous anyway so slow shared hosts survive a slow preflight.
         'apply_step' => 300,
+    ],
+    // Step budgets: how much REAL work a single updater HTTP request may do
+    // before it returns {continue:true} so the page issues the next request.
+    // This keeps every request far below shared-hosting limits that no amount
+    // of set_time_limit() can lift: nginx proxy_read_timeout (60s by default),
+    // Apache Timeout (300s), PHP-FPM request_terminate_timeout, and hosting
+    // firewalls that kill long requests. Large updates and big databases are
+    // processed as many small requests instead of one huge one, so the same
+    // code runs identically on virtual/shared hosting and on a VPS.
+    'steps' => [
+        // Hard ceiling of wall-clock work per updater request. 20s leaves
+        // comfortable headroom under a 30s/60s web-server timeout even when
+        // PHP startup, token checks and JSON I/O add a few seconds.
+        'max_seconds_per_request' => 20,
+        // File backup / file apply / rollback: at most this many files per
+        // request (whichever limit trips first with the time budget).
+        'max_files_per_request' => 150,
+        // DB backup: at most this many dumped rows per request. Tables are
+        // resumed with LIMIT/OFFSET, so memory stays flat per chunk.
+        'max_rows_per_request' => 50000,
+        // DB migrations: at most this many migrations per request. One is the
+        // safest default for shared hosting - a single slow migration cannot
+        // blow the whole request.
+        'max_migrations_per_request' => 1,
+        // DB restore: at most this many SQL statements per request.
+        'max_statements_per_request' => 500,
+        // How long the apply/rollback lock stays valid between steps without
+        // a heartbeat. Every step renews it; a crashed job (browser closed
+        // mid-update) becomes reclaimable after this many seconds.
+        'lock_ttl_seconds' => 600,
     ],
     'limits' => [
         'max_package_bytes' => 100 * 1024 * 1024,

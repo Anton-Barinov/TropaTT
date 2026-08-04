@@ -271,6 +271,21 @@ If you cannot modify nginx configuration directly (common on shared hosting), th
 
 ---
 
+## Updates on shared hosting
+
+TropaTT's update center (Admin → Updates) works on plain shared hosting without shell access, cron, or background processes.
+
+**How it survives hosting limits:** a single request on shared hosting is usually cut by the web server long before PHP's own `max_execution_time` matters (nginx `proxy_read_timeout` defaults to 60s, Apache `Timeout` to 300s, and some PHP-FPM setups enforce `request_terminate_timeout`). A big update or a large database dump can easily exceed those limits, so TropaTT runs every update as a **step machine**: backup, file apply, database dump, migrations, database restore and file rollback are each split into many short HTTP requests (about 20 seconds of work per request by default). The page automatically keeps issuing the next step until the job finishes, so updates run correctly even on the smallest virtual hosting.
+
+- No step ever depends on `set_time_limit()` or background processes.
+- Long jobs survive browser refreshes: progress is persisted per job, the lock is heartbeat-refreshed on every step, and a crashed job can be rolled back from the same page.
+- Step budgets are configurable in `api/config/update.php` under `steps` (`max_seconds_per_request`, `max_files_per_request`, `max_rows_per_request`, `max_migrations_per_request`, `max_statements_per_request`, `lock_ttl_seconds`).
+- The package is downloaded to disk in a single streaming pass (memory-flat even for 100MB packages); only extraction is chunked.
+
+If your host terminates requests even faster than 20 seconds, lower `steps.max_seconds_per_request` in `api/config/update.php` (for example to 10).
+
+---
+
 ## Minimum files needed
 
 If your host has strict file limits, these are the minimum directories and files required:

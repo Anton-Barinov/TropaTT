@@ -80,12 +80,28 @@ final class MigrationManager
     /** @return array<int,string> */
     public function migrateUp(PDO $pdo, string $driver): array
     {
+        return $this->migrateUpLimit($pdo, $driver, PHP_INT_MAX);
+    }
+
+    /**
+     * Apply at most $limit pending migrations (in order), so long-running
+     * update jobs can run one or a few migrations per HTTP request instead of
+     * risking a shared-hosting timeout on the full backlog.
+     *
+     * @return array<int,string> migration keys executed in this call
+     */
+    public function migrateUpLimit(PDO $pdo, string $driver, int $limit): array
+    {
         $this->ensureTable($pdo, $driver);
         $this->backfillLegacyState($pdo, $driver);
         $applied = $this->appliedKeys($pdo);
         $executed = [];
+        $limit = max(1, $limit);
 
         foreach ($this->migrations as $migration) {
+            if (count($executed) >= $limit) {
+                break;
+            }
             if (in_array($migration->key(), $applied, true)) {
                 continue;
             }

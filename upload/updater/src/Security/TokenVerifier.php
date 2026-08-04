@@ -20,7 +20,15 @@ final class TokenVerifier
             return false;
         }
         $session = json_decode((string)file_get_contents($file), true);
-        if (!is_array($session) || (bool)($session['used'] ?? false)) {
+        if (!is_array($session)) {
+            return false;
+        }
+        $isContinuation = in_array($action, ['apply_step', 'rollback_step'], true);
+        // Single-use gate: apply/rollback mark the token used on the first
+        // call, so the same token can never START a second job. Continuation
+        // steps (apply_step/rollback_step) of an already-started job may use
+        // a used token - that is exactly their purpose.
+        if (!$isContinuation && (bool)($session['used'] ?? false)) {
             return false;
         }
         if (strtotime((string)($session['expires_at'] ?? '')) < time()) {
@@ -33,8 +41,13 @@ final class TokenVerifier
         if (in_array($action, ['apply', 'rollback'], true)) {
             $session['used'] = true;
             $session['used_at'] = gmdate('c');
-            file_put_contents($file, json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
+        if ($isContinuation) {
+            // Sliding window: a long multi-request job keeps the token fresh
+            // on every step, so a huge update/rollback never expires mid-way.
+            $session['expires_at'] = gmdate('c', time() + 600);
+        }
+        file_put_contents($file, json_encode($session, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         return true;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Updater\Apply;
 
 use Updater\Package\PathGuard;
+use Updater\Util\WorkBudget;
 
 final class FileApplier
 {
@@ -14,7 +15,20 @@ final class FileApplier
     ) {
     }
 
-    public function apply(string $jobId, array $manifest): array
+    /**
+     * Apply the package files, optionally resuming from $cursor with a bounded
+     * amount of work per call.
+     *
+     * The plan is a flat ordered list: deletes first, then adds, then
+     * modifies (file order within a category does not matter). With a budget
+     * set, each call processes at most $maxFiles entries starting at $cursor
+     * and returns 'done' => false until the whole plan is applied, so a huge
+     * update runs as many small requests instead of one request that a shared
+     * host would cut mid-way.
+     *
+     * @return array{done:bool,cursor:int,total:int,count:int,files:array<int,array<string,mixed>>}
+     */
+    public function apply(string $jobId, array $manifest, int $cursor = 0, ?WorkBudget $budget = null, int $maxFiles = 150): array
     {
         $stagingDir = $this->storageDir . '/staging/' . basename($jobId);
         if (!is_dir($stagingDir)) {
@@ -22,42 +36,77 @@ final class FileApplier
         }
 
         $guard = new PathGuard($this->protectedPaths);
-        $files = $this->filesFromManifest($manifest);
-        $hashes = is_array($manifest['file_hashes'] ?? null) ? $manifest['file_hashes'] : [];
+        $plan = $this->buildPlan($manifest, $guard);
+        $total = count($plan);
+        $startCursor = min(max(0, $cursor), $total);
+
         $applied = [];
+        $hashes = is_array($manifest['file_hashes'] ?? null) ? $manifest['file_hashes'] : [];
+        $position = $startCursor;
+        while ($position < $total && count($applied) < $maxFiles) {
+            if ($budget !== null && $budget->exhausted()) {
+                break;
+            }
+            $entry = $plan[$position];
+            $relative = $entry['path'];
+            $action = $entry['action'];
+            if ($action === 'delete') {
+                $target = $this->basePath . '/' . $relative;
+                if (is_file($target) && !unlink($target)) {
+                    throw new \RuntimeException('Unable to delete file: ' . $relative);
+                }
+                $applied[] = ['path' => $relative, 'action' => 'delete'];
+            } else {
+                $source = $stagingDir . '/' . $relative;
+                if (!is_file($source)) {
+                    throw new \RuntimeException('Staged file is missing: ' . $relative);
+                }
+                $target = $this->basePath . '/' . $relative;
+                $targetDir = dirname($target);
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0775, true);
+                }
+                if (!copy($source, $target)) {
+                    throw new \RuntimeException('Unable to apply file: ' . $relative);
+                }
+                $expected = is_array($hashes[$relative] ?? null) ? (string)($hashes[$relative]['sha256'] ?? '') : '';
+                $actual = hash_file('sha256', $target) ?: '';
+                if ($expected !== '' && !hash_equals($expected, $actual)) {
+                    throw new \RuntimeException('Applied file hash mismatch: ' . $relative);
+                }
+                $applied[] = ['path' => $relative, 'action' => is_file($target) ? 'write' : 'add', 'sha256' => $actual];
+            }
+            $position++;
+        }
 
+        return [
+            'done' => $position >= $total,
+            'cursor' => $position,
+            'total' => $total,
+            'count' => count($applied),
+            'files' => $applied,
+        ];
+    }
+
+    /**
+     * Build the flat, ordered apply plan (deletes, then adds, then modifies),
+     * validating every path once up-front so a forbidden path aborts BEFORE
+     * any file is touched (the plan is validated on every step, but a partial
+     * apply can never have started when validation fails on the first call).
+     *
+     * @return array<int,array{path:string,action:string}>
+     */
+    private function buildPlan(array $manifest, PathGuard $guard): array
+    {
+        $files = $this->filesFromManifest($manifest);
+        $plan = [];
         foreach ($files['delete'] as $relative) {
-            $relative = $this->assertAllowed($guard, $relative);
-            $target = $this->basePath . '/' . $relative;
-            if (is_file($target) && !unlink($target)) {
-                throw new \RuntimeException('Unable to delete file: ' . $relative);
-            }
-            $applied[] = ['path' => $relative, 'action' => 'delete'];
+            $plan[] = ['path' => $this->assertAllowed($guard, $relative), 'action' => 'delete'];
         }
-
         foreach (array_merge($files['add'], $files['modify']) as $relative) {
-            $relative = $this->assertAllowed($guard, $relative);
-            $source = $stagingDir . '/' . $relative;
-            if (!is_file($source)) {
-                throw new \RuntimeException('Staged file is missing: ' . $relative);
-            }
-            $target = $this->basePath . '/' . $relative;
-            $targetDir = dirname($target);
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0775, true);
-            }
-            if (!copy($source, $target)) {
-                throw new \RuntimeException('Unable to apply file: ' . $relative);
-            }
-            $expected = is_array($hashes[$relative] ?? null) ? (string)($hashes[$relative]['sha256'] ?? '') : '';
-            $actual = hash_file('sha256', $target) ?: '';
-            if ($expected !== '' && !hash_equals($expected, $actual)) {
-                throw new \RuntimeException('Applied file hash mismatch: ' . $relative);
-            }
-            $applied[] = ['path' => $relative, 'action' => is_file($target) ? 'write' : 'add', 'sha256' => $actual];
+            $plan[] = ['path' => $this->assertAllowed($guard, $relative), 'action' => 'write'];
         }
-
-        return ['count' => count($applied), 'files' => $applied];
+        return $plan;
     }
 
     /**

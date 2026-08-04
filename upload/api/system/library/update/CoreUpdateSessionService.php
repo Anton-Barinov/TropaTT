@@ -9,7 +9,7 @@ final class CoreUpdateSessionService
     {
     }
 
-    public function create(int $userId, array $actions = ['preflight', 'download', 'apply', 'resume', 'rollback']): array
+    public function create(int $userId, array $actions = ['preflight', 'download', 'apply', 'apply_step', 'resume', 'rollback', 'rollback_step']): array
     {
         $token = bin2hex(random_bytes(32));
         $hash = hash('sha256', $token);

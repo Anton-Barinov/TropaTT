@@ -21,6 +21,7 @@ use Updater\Security\TokenVerifier;
 use Updater\State\JobState;
 use Updater\State\LocalState;
 use Updater\State\LockManager;
+use Updater\Util\WorkBudget;
 
 final class UpdaterKernel
 {
@@ -145,68 +146,118 @@ final class UpdaterKernel
     private function download(array $input): JsonResponse
     {
         $this->verifyTokenIfPresent($input, 'download');
-        $limited = $this->rateLimitAnonymous($input, 'download');
-        if ($limited !== null) {
-            return $limited;
-        }
         $jobId = $this->jobId($input);
         $state = new JobState($this->storageDir, $jobId);
-        $plan = $state->readFile('plan.json');
-        if (!$plan) {
-            $preflight = $this->preflight(array_merge($input, ['job_id' => $jobId, 'dry_run' => true]));
-            if ($preflight->status >= 400) {
-                return $preflight;
-            }
-            $plan = $state->readFile('plan.json');
-        }
-        $package = $plan['recommended_package'] ?? null;
-        if (!is_array($package)) {
-            return JsonResponse::error('NO_PACKAGE', 'No package available for this job', 409);
-        }
-        $path = (new PackageDownloader($this->storageDir))->download($jobId, $package);
-        $files = (new PackageExtractor($this->storageDir, (array)$this->config['protected_paths']))->extract($jobId, $path);
-        $state->write([
-            'state' => 'staging_ready',
-            'can_resume' => true,
-            'can_rollback' => false,
-            'package_path' => $path,
-            'staged_file_count' => count($files),
-            'staged_files_preview' => array_slice($files, 0, 50),
-        ]);
+        $steps = $this->stepConfig();
+        $budget = WorkBudget::forSeconds((float)$steps['max_seconds_per_request']);
 
-        return JsonResponse::success([
-            'job_id' => $jobId,
-            'package' => [
-                'path' => $path,
-                'exists' => is_file($path),
-                'size_bytes' => is_file($path) ? filesize($path) : null,
-            ],
-            'staging' => [
-                'file_count' => count($files),
-                'preview' => array_slice($files, 0, 20),
-                'preview_truncated' => count($files) > 20,
-            ],
-        ]);
+        try {
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+
+            // Rate limit only the FIRST request of a download job. Continuation
+            // steps of an already-started job (a large package extracts over
+            // many requests) must not trip the per-IP attempt window.
+            if ($progress === null) {
+                $limited = $this->rateLimitAnonymous($input, 'download');
+                if ($limited !== null) {
+                    return $limited;
+                }
+            }
+
+            if ($progress === null) {
+                $plan = $state->readFile('plan.json');
+                if (!$plan) {
+                    $preflight = $this->preflight(array_merge($input, ['job_id' => $jobId, 'dry_run' => true]));
+                    if ($preflight->status >= 400) {
+                        return $preflight;
+                    }
+                    $plan = $state->readFile('plan.json');
+                }
+                $package = $plan['recommended_package'] ?? null;
+                if (!is_array($package)) {
+                    return JsonResponse::error('NO_PACKAGE', 'No package available for this job', 409);
+                }
+                // The package itself is downloaded in one streaming pass (PHP
+                // keeps its own generous timeout; memory stays flat because the
+                // downloader streams to disk). Extraction below is chunked.
+                $path = (new PackageDownloader($this->storageDir))->download($jobId, $package);
+                $state->write(['progress' => ['phase' => 'extract', 'cursor' => 0, 'done' => 0, 'total' => 0]]);
+            }
+
+            // Extraction step machine: unzip at most max_files_per_request
+            // entries per request so a large package never trips a shared-host
+            // proxy timeout.
+            for ($guard = 0; $guard < 1000; $guard++) {
+                $stored = $state->readFile('state.json') ?: [];
+                $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+                if (($progress['phase'] ?? '') !== 'extract') {
+                    break;
+                }
+                $path = $this->storageDir . '/packages/' . basename($jobId) . '/package.zip';
+                if (!is_file($path)) {
+                    throw new \RuntimeException('Downloaded package is missing.');
+                }
+                $cursor = (int)($progress['cursor'] ?? 0);
+                $result = (new PackageExtractor($this->storageDir, (array)$this->config['protected_paths']))
+                    ->extract($jobId, $path, $cursor, $budget, (int)$steps['max_files_per_request']);
+                $state->write(['progress' => [
+                    'phase' => 'extract',
+                    'cursor' => $result['cursor'],
+                    'done' => $result['cursor'],
+                    'total' => $result['total'],
+                ]]);
+                if ($result['done'] || $budget->exhausted()) {
+                    break;
+                }
+            }
+
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            if (($progress['phase'] ?? '') === 'extract' && (int)($progress['done'] ?? 0) < (int)($progress['total'] ?? 0)) {
+                return JsonResponse::success(['job_id' => $jobId, 'continue' => true, 'progress' => $progress]);
+            }
+
+            $path = $this->storageDir . '/packages/' . basename($jobId) . '/package.zip';
+            $names = $this->stagedNames($jobId);
+            $state->write([
+                'state' => 'staging_ready',
+                'can_resume' => true,
+                'can_rollback' => false,
+                'package_path' => $path,
+                'staged_file_count' => count($names),
+                'staged_files_preview' => array_slice($names, 0, 50),
+                // Clear the extract progress: a finished download must not look
+                // like an in-progress job to apply()/rollback() (they decide
+                // continuation by the presence of progress in state.json).
+                'progress' => null,
+            ]);
+
+            return JsonResponse::success([
+                'job_id' => $jobId,
+                'continue' => false,
+                'package' => [
+                    'path' => $path,
+                    'exists' => is_file($path),
+                    'size_bytes' => is_file($path) ? filesize($path) : null,
+                ],
+                'staging' => [
+                    'file_count' => count($names),
+                    'preview' => array_slice($names, 0, 20),
+                    'preview_truncated' => count($names) > 20,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return JsonResponse::error('DOWNLOAD_FAILED', $e->getMessage(), 500);
+        }
     }
 
     private function apply(array $input): JsonResponse
     {
-        $this->verifyTokenIfPresent($input, 'apply');
-        if (($input['confirm_apply'] ?? false) !== true) {
-            return JsonResponse::error('CONFIRM_APPLY_REQUIRED', 'Real apply requires confirm_apply=true after successful dry-run preflight', 409);
-        }
-
         $jobId = $this->jobId($input);
         $state = new JobState($this->storageDir, $jobId);
-        $preflight = $state->readFile('preflight.json');
-        $manifest = $state->readFile('manifest.json');
-        if (!is_array($preflight) || ($preflight['ok'] ?? false) !== true || !is_array($manifest)) {
-            return JsonResponse::error('PREFLIGHT_REQUIRED', 'Successful preflight is required before apply.', 409);
-        }
-
-        $lock = new LockManager($this->storageDir);
-        $maintenance = new MaintenanceMode($this->basePath);
         $logger = new UpdateLogger($this->storageDir, $jobId);
+        $steps = $this->stepConfig();
 
         // Guard 3 (maintenance hold): once the file tree or the database has
         // been mutated, a failure must leave maintenance mode ON so the CRM
@@ -217,113 +268,117 @@ final class UpdaterKernel
         // this run (a previous failed attempt), it must never be turned off
         // by this run, even if this run fails before mutating anything.
         $maintenanceWasOn = is_file($this->basePath . '/storage_api/maintenance.flag');
-        $maintenanceEnabled = false;
-        $systemMutated = false;
 
         try {
-            $lock->acquire($jobId);
-            $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
-            $maintenance->enable($jobId);
-            $maintenanceEnabled = true;
-            $logger->info('maintenance_enabled', 'Maintenance mode enabled');
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+            // Re-post of an already-finished job: return its stored result
+            // right away, WITHOUT touching the lock. Renewing the lock here
+            // (via the continuation path below) would re-issue it and never
+            // release it, blocking the follow-up rollback() from acquiring.
+            if ($progress !== null
+                && ($progress['phase'] ?? '') === 'finalized'
+                && (($stored['state'] ?? '') === 'applied')
+            ) {
+                $this->verifyTokenIfPresent($input, 'apply_step');
+                return $this->applyFinalResponse($state, $jobId);
+            }
+            // A job is an apply continuation only while it is inside the apply
+            // flow (or a failed apply being retried). A download or a finished
+            // job must start apply() fresh, never resume as a continuation.
+            $isContinuation = $progress !== null
+                && in_array((string)($stored['state'] ?? ''), ['applying', 'backup_created', 'applied', 'failed'], true);
 
-            $applier = new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']);
-            $files = $applier->filesFromManifest($manifest);
-            $filesForBackup = array_values(array_unique(array_merge($files['add'], $files['modify'], $files['delete'])));
-            $backup = (new FileBackupManager($this->basePath, $this->storageDir))->backup($jobId, $filesForBackup);
-            $state->writeFile('backup.json', $backup);
-            $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'] ?? null, 'can_rollback' => true]);
-            $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id'] ?? null]);
+            if ($isContinuation) {
+                // Multi-request job: token is verified without being consumed
+                // (apply_step), and the job's lock heartbeat is refreshed.
+                $this->verifyTokenIfPresent($input, 'apply_step');
+                if (!$this->renewLockForJob($jobId, $steps)) {
+                    throw new \RuntimeException('Update lock was lost; another update may have started. Roll back or retry the update.');
+                }
+            } else {
+                if (($input['confirm_apply'] ?? false) !== true) {
+                    return JsonResponse::error('CONFIRM_APPLY_REQUIRED', 'Real apply requires confirm_apply=true after successful dry-run preflight', 409);
+                }
+                $preflight = $state->readFile('preflight.json');
+                $manifest = $state->readFile('manifest.json');
+                if (!is_array($preflight) || ($preflight['ok'] ?? false) !== true || !is_array($manifest)) {
+                    return JsonResponse::error('PREFLIGHT_REQUIRED', 'Successful preflight is required before apply.', 409);
+                }
+                $this->verifyTokenIfPresent($input, 'apply');
+                (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
+                (new MaintenanceMode($this->basePath))->enable($jobId);
+                $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
+                $logger->info('maintenance_enabled', 'Maintenance mode enabled');
 
-            // From this point the file tree can change; treat any later
-            // failure as a mutated state that must keep maintenance ON.
-            $systemMutated = true;
-            $applied = $applier->apply($jobId, $manifest);
-            $state->writeFile('applied.json', $applied);
-            $logger->info('files_applied', 'Files applied', ['count' => $applied['count'] ?? 0]);
-
-            $health = (new HealthChecker($this->basePath))->check();
-            $state->writeFile('health.json', $health);
-            if (($health['ok'] ?? false) !== true) {
-                throw new \RuntimeException('Post-apply health check failed.');
+                $applier = new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']);
+                $files = $applier->filesFromManifest($manifest);
+                $filesForBackup = array_values(array_unique(array_merge($files['add'], $files['modify'], $files['delete'])));
+                $applyTotal = count($files['delete']) + count($files['add']) + count($files['modify']);
+                $state->writeFile('apply-plan.json', [
+                    'files_for_backup' => $filesForBackup,
+                    'apply_total' => $applyTotal,
+                ]);
+                $state->write(['progress' => [
+                    'phase' => 'backup_files',
+                    'cursor' => 0,
+                    'done' => 0,
+                    'total' => count($filesForBackup),
+                ]]);
             }
 
-            // Snapshot the database right before migrations (after the fresh
-            // code is deployed, so the pending list is accurate) so rollback
-            // can restore both files AND schema/data. Files-only updates with
-            // no pending migrations skip the dump entirely.
-            $dbBackup = $this->createDatabaseBackup($state, $backup['backup_id'] ?? null, $logger);
-
-            // Database-safety guard: migrations must never run without a DB
-            // snapshot they can be rolled back from. If the snapshot is
-            // missing/failed and the freshly deployed code reports pending
-            // migrations, abort BEFORE any schema change so the database
-            // stays exactly as it was (file rollback remains fully possible).
-            $dbBackupUsable = ($dbBackup['ok'] ?? false) === true
-                || (string)($dbBackup['reason'] ?? '') === 'no pending migrations';
-            // Re-check pending migrations here on purpose: createDatabaseBackup()
-            // skips the dump for 'no pending migrations' and 'db backup disabled'
-            // without exposing which case it was, so we must distinguish a safe
-            // files-only skip from a real failure before deciding to abort.
-            if (!$dbBackupUsable && $this->pendingMigrations() !== []) {
-                $dbReason = (string)($dbBackup['reason'] ?? $dbBackup['error'] ?? 'unknown');
-                throw new \RuntimeException(
-                    'Database backup is not available (' . $dbReason . ') but migrations are pending. '
-                    . 'Apply aborted before any schema change to protect the database; '
-                    . 'fix the backup issue and retry the update.'
-                );
+            // Step machine: each phase performs only as much real work as the
+            // request budget allows, then returns {continue:true} so the page
+            // issues the next request. Every request stays far below shared
+            // hosting web-server/proxy timeouts no matter how big the update
+            // or the database is.
+            $budget = WorkBudget::forSeconds((float)$steps['max_seconds_per_request']);
+            for ($guard = 0; $guard < 1000; $guard++) {
+                $stored = $state->readFile('state.json') ?: [];
+                $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+                if (!is_array($progress)) {
+                    throw new \RuntimeException('Update progress is missing.');
+                }
+                $phase = (string)($progress['phase'] ?? '');
+                $result = $this->applyPhase($phase, $state, $progress, $budget, $steps, $logger);
+                if (($result['stop'] ?? false) === true) {
+                    break;
+                }
+                if (($result['finished'] ?? false) === true) {
+                    return $result['response'];
+                }
+                if (($result['next'] ?? false) === true) {
+                    // ['next' => true] requires the phase to have advanced;
+                    // without this check a missing transition would spin the
+                    // loop forever on the same phase.
+                    $stored = $state->readFile('state.json') ?: [];
+                    $newPhase = (string)(is_array($stored['progress'] ?? null) ? ($stored['progress']['phase'] ?? '') : '');
+                    if ($newPhase === $phase) {
+                        throw new \RuntimeException('Apply phase did not advance: ' . $phase);
+                    }
+                }
+                if ($budget->exhausted()) {
+                    break;
+                }
             }
 
-            $migrations = $this->runMigrations($state, $logger);
-
-            // If migrations failed (or did not fully apply), do NOT finalize
-            // the update: the DB may be partially migrated while the new files
-            // are in place. installed_core is left at the previous build so the
-            // update remains offered after a rollback, and can_rollback stays
-            // true so the snapshot taken above can restore both DB and files.
-            if (($migrations['ok'] ?? false) !== true || (array)($migrations['pending_after'] ?? []) !== []) {
-                $migrationError = (string)($migrations['error'] ?? 'migrations did not fully apply');
-                throw new \RuntimeException(
-                    'Database migrations failed: ' . $migrationError . '. '
-                    . 'The update was not finalized and maintenance mode stays enabled; '
-                    . 'roll back to restore the database and files, or retry the update.'
-                );
-            }
-
-            (new LocalState($this->storageDir))->write([
-                'state' => 'installed',
-                'product' => $manifest['product'] ?? $this->config['product'],
-                'core_version' => $manifest['core_version'] ?? null,
-                'core_build' => $manifest['to_build'] ?? null,
-                'source_sha' => $manifest['to_sha'] ?? null,
-                'short_sha' => $manifest['short_sha'] ?? null,
-                'last_job_id' => $jobId,
-            ]);
-
-            $maintenance->disable();
-            $lock->release();
-            $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c')]);
-            $logger->info('apply_complete', 'Update applied successfully');
-
-            return JsonResponse::success([
-                'job_id' => $jobId,
-                'backup' => $backup,
-                'db_backup' => $dbBackup,
-                'applied' => $applied,
-                'health' => $health,
-                'migrations' => $migrations,
-                'installed_core' => (new LocalState($this->storageDir))->read(),
-            ]);
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            return JsonResponse::success(['job_id' => $jobId, 'continue' => true, 'progress' => $progress]);
         } catch (\Throwable $e) {
             // Guard 3: maintenance stays ON when it was already held before
             // this run (previous failed attempt) or when the failure happened
             // after the file tree / DB was mutated. Only a clean pre-mutation
             // failure with maintenance we enabled ourselves may turn it off.
-            $maintenanceHeld = $maintenanceWasOn || ($maintenanceEnabled && $systemMutated);
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            $phase = (string)($progress['phase'] ?? '');
+            $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'backup_db', 'migrate', 'finalize'], true);
+            $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
-                $maintenance->disable();
+                (new MaintenanceMode($this->basePath))->disable();
             }
-            $lock->release();
+            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
             $state->write(['state' => 'failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('APPLY_FAILED', $e->getMessage(), 500);
@@ -331,33 +386,273 @@ final class UpdaterKernel
     }
 
     /**
-     * Best-effort database migration run after files have been applied.
-     * Uses the freshly deployed code so newly added migrations are picked
-     * up. Failures are recorded but do not fail the whole apply: the admin
-     * can retry migrations or roll back from the update page.
+     * Dispatch one bounded slice of the apply job for the current phase.
      *
-     * NOTE: when the package itself updates this very UpdaterKernel file, the
-     * in-memory copy of this class is still the pre-update bytecode, so
-     * MigrationRunner here refers to the class from the already-loaded
-     * namespace imports. Keep MigrationRunner's signature stable across
-     * updater self-updates so this method keeps working with fresh code.
+     * @return array{stop?:bool,next?:bool,finished?:bool,response?:JsonResponse}
      */
-    private function runMigrations(JobState $state, UpdateLogger $logger): array
+    private function applyPhase(string $phase, JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
     {
-        try {
-            $report = (new MigrationRunner($this->basePath))->run();
-            $state->writeFile('migrations.json', $report);
-            $logger->info('migrations_applied', 'Database migrations applied', [
-                'executed' => $report['executed'] ?? [],
-                'pending_after' => $report['pending_after'] ?? [],
-            ]);
-            return $report;
-        } catch (\Throwable $e) {
-            $report = ['ok' => false, 'error' => $e->getMessage()];
-            $state->writeFile('migrations.json', $report);
-            $logger->error('migrations_failed', 'Database migrations failed', ['error' => $e->getMessage()]);
-            return $report;
+        return match ($phase) {
+            'backup_files' => $this->applyPhaseBackupFiles($state, $progress, $budget, $steps, $logger),
+            'apply_files' => $this->applyPhaseApplyFiles($state, $progress, $budget, $steps, $logger),
+            'health' => $this->applyPhaseHealth($state),
+            'backup_db' => $this->applyPhaseBackupDb($state, $progress, $budget, $steps, $logger),
+            'migrate' => $this->applyPhaseMigrate($state, $progress, $budget, $steps, $logger),
+            'finalize' => $this->applyPhaseFinalize($state, $steps, $logger),
+            default => throw new \RuntimeException('Unknown apply phase: ' . $phase),
+        };
+    }
+
+    private function applyPhaseBackupFiles(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $plan = $state->readFile('apply-plan.json') ?: [];
+        $files = is_array($plan['files_for_backup'] ?? null) ? $plan['files_for_backup'] : [];
+        $cursor = (int)($progress['cursor'] ?? 0);
+        if ($cursor >= count($files)) {
+            // Nothing left to back up (empty file list, or a completed backup
+            // whose transition crashed). Emit a consistent empty backup
+            // manifest if needed, then move to the apply_files phase.
+            if (!$state->readFile('backup.json')) {
+                $backupId = 'backup_' . basename($jobId) . '_' . gmdate('Ymd_His');
+                $state->writeFile('backup.json', [
+                    'backup_id' => $backupId,
+                    'job_id' => $jobId,
+                    'created_at' => gmdate('c'),
+                    'items' => [],
+                ]);
+                $state->write(['state' => 'backup_created', 'backup_id' => $backupId, 'can_rollback' => true]);
+            }
+            return $this->beginApplyFiles($state, $logger);
         }
+        $backup = (new FileBackupManager($this->basePath, $this->storageDir))
+            ->backup($jobId, $files, $cursor, $budget, (int)$steps['max_files_per_request']);
+        $state->write(['progress' => [
+            'phase' => 'backup_files',
+            'cursor' => $backup['cursor'],
+            'done' => $backup['cursor'],
+            'total' => $backup['total'] ?? count($files),
+        ]]);
+        if (!$backup['done']) {
+            return ['stop' => true];
+        }
+        $state->writeFile('backup.json', $backup['manifest']);
+        $state->write(['state' => 'backup_created', 'backup_id' => $backup['backup_id'], 'can_rollback' => true]);
+        $logger->info('backup_created', 'File backup created', ['backup_id' => $backup['backup_id']]);
+        return $this->beginApplyFiles($state, $logger);
+    }
+
+    private function beginApplyFiles(JobState $state, UpdateLogger $logger): array
+    {
+        $plan = $state->readFile('apply-plan.json') ?: [];
+        $total = (int)($plan['apply_total'] ?? 0);
+        $state->write(['progress' => ['phase' => 'apply_files', 'cursor' => 0, 'done' => 0, 'total' => $total]]);
+        $logger->info('files_apply_started', 'Applying package files');
+        return ['next' => true];
+    }
+
+    private function applyPhaseApplyFiles(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $manifest = $state->readFile('manifest.json') ?: [];
+        $cursor = (int)($progress['cursor'] ?? 0);
+        $dir = $this->storageDir . '/jobs/' . basename($jobId);
+        // A failed chunk leaves applied.jsonl AHEAD of the committed cursor
+        // (partial entries from the attempt that threw). Trim back to the
+        // cursor before appending so a retry never duplicates entries.
+        $this->trimJsonlToCursor($dir . '/applied.jsonl', $cursor);
+        $result = (new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']))
+            ->apply($jobId, $manifest, $cursor, $budget, (int)$steps['max_files_per_request']);
+        foreach ($result['files'] as $item) {
+            $this->appendJsonl($dir, 'applied.jsonl', $item);
+        }
+        $state->write(['progress' => [
+            'phase' => 'apply_files',
+            'cursor' => $result['cursor'],
+            'done' => $result['cursor'],
+            'total' => $result['total'],
+        ]]);
+        if (!$result['done']) {
+            return ['stop' => true];
+        }
+        $files = $this->readJsonl($dir . '/applied.jsonl');
+        $state->writeFile('applied.json', ['count' => count($files), 'files' => $files]);
+        $logger->info('files_applied', 'Files applied', ['count' => count($files)]);
+        // Explicitly advance to the health phase: ['next' => true] must never
+        // be returned without a phase transition, or the step loop would spin
+        // on the finished phase forever.
+        $state->write(['progress' => ['phase' => 'health', 'cursor' => [], 'done' => 0, 'total' => 0]]);
+        return ['next' => true];
+    }
+
+    private function applyPhaseHealth(JobState $state): array
+    {
+        $health = (new HealthChecker($this->basePath))->check();
+        $state->writeFile('health.json', $health);
+        if (($health['ok'] ?? false) !== true) {
+            throw new \RuntimeException('Post-apply health check failed.');
+        }
+        // Cursor null on purpose: applyPhaseBackupDb() treats a null cursor as
+        // the FIRST backup_db request and runs its pre-checks (db_backup
+        // enabled toggle + "no pending migrations" skip).
+        $state->write(['progress' => ['phase' => 'backup_db', 'cursor' => null, 'done' => 0, 'total' => 0]]);
+        return ['next' => true];
+    }
+
+    private function applyPhaseBackupDb(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $backupId = (string)($state->readFile('state.json')['backup_id'] ?? '');
+        if ($backupId === '') {
+            throw new \RuntimeException('File backup id is missing; cannot snapshot the database.');
+        }
+        $cursor = is_array($progress['cursor'] ?? null) ? $progress['cursor'] : null;
+        $manager = new DatabaseBackupManager($this->basePath);
+
+        // Pre-checks run once, on the first backup_db request (cursor null).
+        if ($cursor === null) {
+            if (($this->config['db_backup']['enabled'] ?? true) !== true) {
+                $report = ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'db backup disabled in config'];
+                $state->writeFile('db_backup.json', $report);
+                return $this->beginMigrations($state, $logger, $report);
+            }
+            if ($this->pendingMigrations() === []) {
+                $report = ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'no pending migrations'];
+                $state->writeFile('db_backup.json', $report);
+                $logger->info('db_backup_skipped', 'Database backup skipped (no pending migrations)');
+                return $this->beginMigrations($state, $logger, $report);
+            }
+        }
+
+        $backupDir = $this->storageDir . '/backups/' . basename($backupId);
+        $report = $manager->backup($backupDir, $jobId, $cursor, $budget, (int)$steps['max_rows_per_request']);
+        if (($report['done'] ?? false) !== true) {
+            $state->write(['progress' => [
+                'phase' => 'backup_db',
+                'cursor' => $report['cursor'] ?? [],
+                'done' => (int)($report['rows_done'] ?? 0),
+                'total' => (int)($report['rows_done'] ?? 0),
+            ]]);
+            return ['stop' => true];
+        }
+        $state->writeFile('db_backup.json', $report);
+        if (($report['ok'] ?? false) === true) {
+            $logger->info('db_backup_created', 'Database backup created', [
+                'driver' => $report['driver'] ?? null,
+                'tables' => $report['tables'] ?? null,
+                'rows' => $report['rows'] ?? null,
+            ]);
+        } else {
+            $logger->error('db_backup_failed', 'Database backup failed', ['error' => $report['error'] ?? ($report['reason'] ?? 'unknown')]);
+        }
+        return $this->beginMigrations($state, $logger, $report);
+    }
+
+    /**
+     * Database-safety guard + move into the migrate phase. Migrations must
+     * never run without a DB snapshot they can be rolled back from; if the
+     * snapshot is missing/failed and migrations are pending, abort BEFORE any
+     * schema change so the database stays exactly as it was.
+     */
+    private function beginMigrations(JobState $state, UpdateLogger $logger, array $dbBackup): array
+    {
+        $dbBackupUsable = ($dbBackup['ok'] ?? false) === true
+            || (string)($dbBackup['reason'] ?? '') === 'no pending migrations';
+        if (!$dbBackupUsable && $this->pendingMigrations() !== []) {
+            $dbReason = (string)($dbBackup['reason'] ?? $dbBackup['error'] ?? 'unknown');
+            throw new \RuntimeException(
+                'Database backup is not available (' . $dbReason . ') but migrations are pending. '
+                . 'Apply aborted before any schema change to protect the database; '
+                . 'fix the backup issue and retry the update.'
+            );
+        }
+        $pending = $this->pendingMigrations();
+        $state->write(['progress' => [
+            'phase' => 'migrate',
+            'cursor' => [],
+            'done' => 0,
+            'total' => count($pending),
+            'executed' => [],
+        ]]);
+        return ['next' => true];
+    }
+
+    private function applyPhaseMigrate(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
+    {
+        $accumulated = array_merge((array)($progress['executed'] ?? []), []);
+        $maxMigrations = (int)$steps['max_migrations_per_request'];
+        $report = (new MigrationRunner($this->basePath))->run($maxMigrations, $budget);
+        $accumulated = array_values(array_unique(array_merge($accumulated, (array)($report['executed'] ?? []))));
+
+        if (($report['ok'] ?? false) !== true) {
+            $report['executed'] = $accumulated;
+            $state->writeFile('migrations.json', $report);
+            $logger->error('migrations_failed', 'Database migrations failed', ['error' => $report['error'] ?? 'unknown']);
+            throw new \RuntimeException(
+                'Database migrations failed: ' . (string)($report['error'] ?? 'migrations did not fully apply') . '. '
+                . 'The update was not finalized and maintenance mode stays enabled; '
+                . 'roll back to restore the database and files, or retry the update.'
+            );
+        }
+
+        $state->write(['progress' => [
+            'phase' => 'migrate',
+            'cursor' => [],
+            'done' => count($accumulated),
+            'total' => (int)($progress['total'] ?? 0),
+            'executed' => $accumulated,
+        ]]);
+        if (($report['done'] ?? false) !== true) {
+            return ['stop' => true];
+        }
+
+        $finalReport = $report;
+        $finalReport['executed'] = $accumulated;
+        $state->writeFile('migrations.json', $finalReport);
+        $logger->info('migrations_applied', 'Database migrations applied', [
+            'executed' => $accumulated,
+            'pending_after' => $report['pending_after'] ?? [],
+        ]);
+        $state->write(['progress' => ['phase' => 'finalize', 'cursor' => [], 'done' => 0, 'total' => 1]]);
+        return ['next' => true];
+    }
+
+    private function applyFinalResponse(JobState $state, string $jobId): JsonResponse
+    {
+        return JsonResponse::success([
+            'job_id' => $jobId,
+            'continue' => false,
+            'backup' => $state->readFile('backup.json'),
+            'db_backup' => $state->readFile('db_backup.json'),
+            'applied' => $state->readFile('applied.json'),
+            'health' => $state->readFile('health.json'),
+            'migrations' => $state->readFile('migrations.json'),
+            'installed_core' => (new LocalState($this->storageDir))->read(),
+        ]);
+    }
+
+    private function applyPhaseFinalize(JobState $state, array $steps, UpdateLogger $logger): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $manifest = $state->readFile('manifest.json') ?: [];
+        (new LocalState($this->storageDir))->write([
+            'state' => 'installed',
+            'product' => $manifest['product'] ?? $this->config['product'],
+            'core_version' => $manifest['core_version'] ?? null,
+            'core_build' => $manifest['to_build'] ?? null,
+            'source_sha' => $manifest['to_sha'] ?? null,
+            'short_sha' => $manifest['short_sha'] ?? null,
+            'last_job_id' => $jobId,
+        ]);
+        (new MaintenanceMode($this->basePath))->disable();
+        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+        $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        $logger->info('apply_complete', 'Update applied successfully');
+
+        return [
+            'finished' => true,
+            'response' => $this->applyFinalResponse($state, $jobId),
+        ];
     }
 
     private function resume(array $input): JsonResponse
@@ -368,20 +663,15 @@ final class UpdaterKernel
 
     private function rollback(array $input): JsonResponse
     {
-        $this->verifyTokenIfPresent($input, 'rollback');
         $jobId = $this->jobId($input);
         $state = new JobState($this->storageDir, $jobId);
-        $backup = $state->readFile('backup.json');
-        $manifest = $state->readFile('manifest.json') ?: [];
-        $plan = $state->readFile('plan.json') ?: [];
+        $logger = new UpdateLogger($this->storageDir, $jobId);
+        $steps = $this->stepConfig();
+        $backup = $state->readFile('backup.json') ?: [];
         $backupId = (string)($input['backup_id'] ?? ($backup['backup_id'] ?? ''));
         if ($backupId === '') {
             return JsonResponse::error('ROLLBACK_REQUIRES_BACKUP', 'No backup is available for rollback.', 409);
         }
-
-        $lock = new LockManager($this->storageDir);
-        $maintenance = new MaintenanceMode($this->basePath);
-        $logger = new UpdateLogger($this->storageDir, $jobId);
 
         // Guard 3 (rollback): a failed rollback can leave a partially
         // restored database or file tree, so maintenance must stay ON until
@@ -389,47 +679,216 @@ final class UpdaterKernel
         // ourselves, nothing had been restored yet, and maintenance was not
         // already held before this run.
         $maintenanceWasOn = is_file($this->basePath . '/storage_api/maintenance.flag');
-        $maintenanceEnabled = false;
-        $systemMutated = false;
 
         try {
-            $lock->acquire($jobId);
-            $maintenance->enable($jobId);
-            $maintenanceEnabled = true;
-            $state->write(['state' => 'rolling_back', 'can_resume' => false, 'can_rollback' => false]);
-            // Restore the database BEFORE restoring files. The file backup of a
-            // self-updating package contains the pre-update updater files (an
-            // older DatabaseBackupManager without restore()), so touching the
-            // DB after the file rollback would autoload that older class from
-            // disk and fatal. Restoring the DB first runs against the current
-            // post-update code; it is best-effort and skips cleanly when no DB
-            // snapshot exists for the job (files-only update, old job).
-            $systemMutated = true;
-            $dbRestore = $this->restoreDatabaseBackup($backupId, $logger);
-            $result = (new RollbackManager($this->basePath, $this->storageDir))->rollback($backupId);
-            $health = (new HealthChecker($this->basePath))->check();
-            if (($health['ok'] ?? false) !== true) {
-                throw new \RuntimeException('Post-rollback health check failed.');
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+            // Re-post of an already-finished rollback: return its stored result
+            // right away, without consuming the single-use rollback token or
+            // re-acquiring the lock / re-enabling maintenance.
+            if ($progress !== null
+                && ($progress['phase'] ?? '') === 'finalized'
+                && (($stored['state'] ?? '') === 'rolled_back')
+            ) {
+                $this->verifyTokenIfPresent($input, 'rollback_step');
+                return $this->rollbackFinalResponse($state, $jobId, (new LocalState($this->storageDir))->read());
             }
-            $installedCore = $this->rollbackInstalledCoreState($jobId, $manifest, $plan);
-            $maintenance->disable();
-            $lock->release();
-            $state->write(['state' => 'rolled_back', 'rollback' => $result, 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c')]);
-            $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
-            return JsonResponse::success(['job_id' => $jobId, 'rollback' => $result, 'db_restore' => $dbRestore, 'health' => $health, 'installed_core' => $installedCore]);
+            // Rollback reuses the APPLY job's id, whose state.json carries the
+            // apply progress (possibly 'finalized'). A rollback is a
+            // continuation only while inside the rollback flow, so a finished
+            // or downloaded job always starts rollback() fresh.
+            $isContinuation = $progress !== null
+                && in_array((string)($stored['state'] ?? ''), ['rolling_back', 'rollback_failed'], true);
+
+            if ($isContinuation) {
+                $this->verifyTokenIfPresent($input, 'rollback_step');
+                if (!$this->renewLockForJob($jobId, $steps)) {
+                    throw new \RuntimeException('Rollback lock was lost; another update may have started.');
+                }
+            } else {
+                $this->verifyTokenIfPresent($input, 'rollback');
+                (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
+                (new MaintenanceMode($this->basePath))->enable($jobId);
+                $state->write(['state' => 'rolling_back', 'can_resume' => false, 'can_rollback' => false]);
+                // Restore the database BEFORE restoring files. The file backup
+                // of a self-updating package contains the pre-update updater
+                // files (an older DatabaseBackupManager without restore()), so
+                // touching the DB after the file rollback would autoload that
+                // older class from disk and fatal. Restoring the DB first runs
+                // against the current post-update code; it is best-effort and
+                // skips cleanly when no DB snapshot exists for the job
+                // (files-only update, old job).
+                $state->write(['progress' => ['phase' => 'restore_db', 'cursor' => [], 'done' => 0, 'total' => 0]]);
+            }
+
+            // Step machine: DB restore, file restore, health and finalize each
+            // run in bounded chunks; {continue:true} is returned between
+            // requests so no single request exceeds shared-hosting limits.
+            $budget = WorkBudget::forSeconds((float)$steps['max_seconds_per_request']);
+            for ($guard = 0; $guard < 1000; $guard++) {
+                $stored = $state->readFile('state.json') ?: [];
+                $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+                if (!is_array($progress)) {
+                    throw new \RuntimeException('Rollback progress is missing.');
+                }
+                $phase = (string)($progress['phase'] ?? '');
+                $result = $this->rollbackPhase($phase, $state, $progress, $budget, $steps, $logger, $backupId);
+                if (($result['stop'] ?? false) === true) {
+                    break;
+                }
+                if (($result['finished'] ?? false) === true) {
+                    return $result['response'];
+                }
+                if (($result['next'] ?? false) === true) {
+                    // Safety net: a phase completion must always advance the
+                    // phase, otherwise the step loop would spin forever.
+                    $stored = $state->readFile('state.json') ?: [];
+                    $newPhase = (string)(is_array($stored['progress'] ?? null) ? ($stored['progress']['phase'] ?? '') : '');
+                    if ($newPhase === $phase) {
+                        throw new \RuntimeException('Rollback phase did not advance: ' . $phase);
+                    }
+                }
+                if ($budget->exhausted()) {
+                    break;
+                }
+            }
+
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            return JsonResponse::success(['job_id' => $jobId, 'continue' => true, 'progress' => $progress]);
         } catch (\Throwable $e) {
             // Guard 3 (rollback): a partially restored state must stay behind
             // maintenance so the admin can retry; never silently reopen the
             // CRM on a half-restored database or file tree.
-            $maintenanceHeld = $maintenanceWasOn || ($maintenanceEnabled && $systemMutated);
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            $phase = (string)($progress['phase'] ?? '');
+            $systemMutated = $phase === '' || in_array($phase, ['restore_db', 'restore_files', 'health'], true);
+            $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
-                $maintenance->disable();
+                (new MaintenanceMode($this->basePath))->disable();
             }
-            $lock->release();
+            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
             $state->write(['state' => 'rollback_failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('rollback_failed', 'Rollback failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('ROLLBACK_FAILED', $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * @return array{stop?:bool,next?:bool,finished?:bool,response?:JsonResponse}
+     */
+    private function rollbackPhase(string $phase, JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger, string $backupId): array
+    {
+        return match ($phase) {
+            'restore_db' => $this->rollbackPhaseRestoreDb($state, $progress, $budget, $steps, $logger, $backupId),
+            'restore_files' => $this->rollbackPhaseRestoreFiles($state, $progress, $budget, $steps, $logger, $backupId),
+            'health' => $this->rollbackPhaseHealth($state),
+            'finalize' => $this->rollbackPhaseFinalize($state, $steps, $logger, $backupId),
+            default => throw new \RuntimeException('Unknown rollback phase: ' . $phase),
+        };
+    }
+
+    private function rollbackPhaseRestoreDb(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger, string $backupId): array
+    {
+        $cursor = is_array($progress['cursor'] ?? null) ? $progress['cursor'] : null;
+        $report = (new DatabaseBackupManager($this->basePath))
+            ->restore($this->storageDir . '/backups/' . basename($backupId), $cursor, $budget, (int)$steps['max_statements_per_request']);
+        if (($report['done'] ?? false) !== true) {
+            $state->write(['progress' => [
+                'phase' => 'restore_db',
+                'cursor' => $report['cursor'] ?? [],
+                'done' => 0,
+                'total' => 0,
+            ]]);
+            return ['stop' => true];
+        }
+        $state->writeFile('db_restore.json', $report);
+        if (($report['ok'] ?? false) === true) {
+            $logger->info('db_restore_complete', 'Database restored from backup', ['backup_id' => $backupId]);
+        } elseif (($report['skipped'] ?? false) === true) {
+            $logger->info('db_restore_skipped', 'Database restore skipped', ['reason' => $report['reason'] ?? 'unknown']);
+        } else {
+            $logger->error('db_restore_failed', 'Database restore failed', ['error' => $report['error'] ?? 'unknown']);
+        }
+        return $this->beginRollbackFiles($state, $logger);
+    }
+
+    private function beginRollbackFiles(JobState $state, UpdateLogger $logger): array
+    {
+        $backup = $state->readFile('backup.json') ?: [];
+        $items = is_array($backup['items'] ?? null) ? $backup['items'] : [];
+        $state->write(['progress' => ['phase' => 'restore_files', 'cursor' => 0, 'done' => 0, 'total' => count($items)]]);
+        $logger->info('rollback_files_started', 'Restoring files from backup');
+        return ['next' => true];
+    }
+
+    private function rollbackPhaseRestoreFiles(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger, string $backupId): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $cursor = (int)($progress['cursor'] ?? 0);
+        $result = (new RollbackManager($this->basePath, $this->storageDir))
+            ->rollback($backupId, $cursor, $budget, (int)$steps['max_files_per_request']);
+        $dir = $this->storageDir . '/jobs/' . basename($jobId);
+        // Same trim-to-cursor as applied.jsonl: a failed chunk must not leave
+        // duplicate entries behind for a retried rollback.
+        $this->trimJsonlToCursor($dir . '/rollback.jsonl', $cursor);
+        foreach ($result['files'] as $item) {
+            $this->appendJsonl($dir, 'rollback.jsonl', $item);
+        }
+        $state->write(['progress' => [
+            'phase' => 'restore_files',
+            'cursor' => $result['cursor'],
+            'done' => $result['cursor'],
+            'total' => $result['total'],
+        ]]);
+        if (!$result['done']) {
+            return ['stop' => true];
+        }
+        $files = $this->readJsonl($dir . '/rollback.jsonl');
+        $state->writeFile('rollback.json', ['backup_id' => $backupId, 'restored_count' => count($files), 'files' => $files]);
+        $logger->info('rollback_files_done', 'Files restored', ['count' => count($files)]);
+        $state->write(['progress' => ['phase' => 'health', 'cursor' => [], 'done' => 0, 'total' => 0]]);
+        return ['next' => true];
+    }
+
+    private function rollbackPhaseHealth(JobState $state): array
+    {
+        $health = (new HealthChecker($this->basePath))->check();
+        $state->writeFile('health.json', $health);
+        if (($health['ok'] ?? false) !== true) {
+            throw new \RuntimeException('Post-rollback health check failed.');
+        }
+        $state->write(['progress' => ['phase' => 'finalize', 'cursor' => [], 'done' => 0, 'total' => 1]]);
+        return ['next' => true];
+    }
+
+    private function rollbackFinalResponse(JobState $state, string $jobId, array $installedCore): JsonResponse
+    {
+        return JsonResponse::success([
+            'job_id' => $jobId,
+            'continue' => false,
+            'rollback' => $state->readFile('rollback.json'),
+            'db_restore' => $state->readFile('db_restore.json'),
+            'health' => $state->readFile('health.json'),
+            'installed_core' => $installedCore,
+        ]);
+    }
+
+    private function rollbackPhaseFinalize(JobState $state, array $steps, UpdateLogger $logger, string $backupId): array
+    {
+        $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        $manifest = $state->readFile('manifest.json') ?: [];
+        $plan = $state->readFile('plan.json') ?: [];
+        $installedCore = $this->rollbackInstalledCoreState($jobId, $manifest, $plan);
+        (new MaintenanceMode($this->basePath))->disable();
+        (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
+        $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
+        return [
+            'finished' => true,
+            'response' => $this->rollbackFinalResponse($state, $jobId, $installedCore),
+        ];
     }
 
     private function rollbackInstalledCoreState(string $jobId, array $manifest, array $plan): array
@@ -463,49 +922,6 @@ final class UpdaterKernel
     }
 
     /**
-     * Best-effort DB snapshot taken before migrations run. Failures are
-     * recorded and surfaced in the apply response, but do not fail the whole
-     * apply: rollback simply falls back to file-only restore.
-     */
-    private function createDatabaseBackup(JobState $state, ?string $backupId, UpdateLogger $logger): array
-    {
-        if ($backupId === null || $backupId === '') {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'no file backup id'];
-        }
-        if (($this->config['db_backup']['enabled'] ?? true) !== true) {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'db backup disabled in config'];
-        }
-        try {
-            // Files-only updates change no schema/data: skip the dump when the
-            // freshly deployed code reports no pending migrations. Saves time
-            // and disk on shared hosting for the common files-only case.
-            if ($this->pendingMigrations() === []) {
-                $report = ['ok' => false, 'skipped' => true, 'reason' => 'no pending migrations'];
-                $state->writeFile('db_backup.json', $report);
-                $logger->info('db_backup_skipped', 'Database backup skipped (no pending migrations)');
-                return $report;
-            }
-            $report = (new DatabaseBackupManager($this->basePath))->backup($this->storageDir . '/backups/' . basename($backupId), $backupId);
-            $state->writeFile('db_backup.json', $report);
-            if (($report['ok'] ?? false) === true) {
-                $logger->info('db_backup_created', 'Database backup created', [
-                    'driver' => $report['driver'] ?? null,
-                    'tables' => $report['tables'] ?? null,
-                    'rows' => $report['rows'] ?? null,
-                ]);
-            } else {
-                $logger->error('db_backup_failed', 'Database backup failed', ['error' => $report['error'] ?? ($report['reason'] ?? 'unknown')]);
-            }
-            return $report;
-        } catch (\Throwable $e) {
-            $report = ['ok' => false, 'error' => $e->getMessage()];
-            $state->writeFile('db_backup.json', $report);
-            $logger->error('db_backup_failed', 'Database backup failed', ['error' => $e->getMessage()]);
-            return $report;
-        }
-    }
-
-    /**
      * @return list<string> pending migration names, empty when nothing to run
      */
     private function pendingMigrations(): array
@@ -519,33 +935,6 @@ final class UpdaterKernel
         } catch (\Throwable $e) {
             // Unknown DB state - safest to take the backup anyway.
             return ['__unknown__'];
-        }
-    }
-
-    /**
-     * Best-effort DB restore during rollback. If no DB backup exists for the
-     * job (older job, unsupported driver, or failed snapshot), rollback
-     * continues as file-only and the report explains why.
-     */
-    private function restoreDatabaseBackup(string $backupId, UpdateLogger $logger): array
-    {
-        if (($this->config['db_backup']['enabled'] ?? true) !== true) {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'db backup disabled in config'];
-        }
-        try {
-            $report = (new DatabaseBackupManager($this->basePath))->restore($this->storageDir . '/backups/' . basename($backupId));
-            if (($report['ok'] ?? false) === true) {
-                $logger->info('db_restore_complete', 'Database restored from backup', ['backup_id' => $backupId]);
-            } elseif (($report['skipped'] ?? false) === true) {
-                $logger->info('db_restore_skipped', 'Database restore skipped', ['reason' => $report['reason'] ?? 'unknown']);
-            } else {
-                $logger->error('db_restore_failed', 'Database restore failed', ['error' => $report['error'] ?? 'unknown']);
-            }
-            return $report;
-        } catch (\Throwable $e) {
-            $report = ['ok' => false, 'error' => $e->getMessage()];
-            $logger->error('db_restore_failed', 'Database restore failed', ['error' => $e->getMessage()]);
-            return $report;
         }
     }
 
@@ -650,5 +1039,92 @@ final class UpdaterKernel
             return $raw;
         }
         return 'upd_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(3));
+    }
+
+    /**
+     * Step budgets with defaults (see api/config/update.php 'steps').
+     *
+     * @return array{max_seconds_per_request:int,max_files_per_request:int,max_rows_per_request:int,max_migrations_per_request:int,max_statements_per_request:int,lock_ttl_seconds:int}
+     */
+    private function stepConfig(): array
+    {
+        $steps = is_array($this->config['steps'] ?? null) ? $this->config['steps'] : [];
+        return array_merge([
+            'max_seconds_per_request' => 20,
+            'max_files_per_request' => 150,
+            'max_rows_per_request' => 50000,
+            'max_migrations_per_request' => 1,
+            'max_statements_per_request' => 500,
+            'lock_ttl_seconds' => 600,
+        ], $steps);
+    }
+
+    /**
+     * Refresh the multi-request job lock. Returns false when the lock is held
+     * by a different, still-fresh job.
+     */
+    private function renewLockForJob(string $jobId, array $steps): bool
+    {
+        return (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->renew($jobId);
+    }
+
+    private function appendJsonl(string $dir, string $file, array $row): void
+    {
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        file_put_contents($dir . '/' . $file, json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND);
+    }
+
+    /**
+     * Keep at most $cursor lines of a jsonl accumulator. A failed chunk may
+     * have appended entries for files that were never committed; trimming to
+     * the committed cursor before appending the retried chunk prevents
+     * duplicate entries in the final assembled report.
+     */
+    private function trimJsonlToCursor(string $path, int $cursor): void
+    {
+        if ($cursor <= 0 || !is_file($path)) {
+            return;
+        }
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        if ($lines === false || count($lines) <= $cursor) {
+            return;
+        }
+        file_put_contents($path, implode(PHP_EOL, array_slice($lines, 0, $cursor)) . PHP_EOL);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function readJsonl(string $path): array
+    {
+        $rows = [];
+        $handle = @fopen($path, 'r');
+        if ($handle === false) {
+            return $rows;
+        }
+        while (($line = fgets($handle)) !== false) {
+            $decoded = json_decode((string)$line, true);
+            if (is_array($decoded)) {
+                $rows[] = $decoded;
+            }
+        }
+        fclose($handle);
+        return $rows;
+    }
+
+    /**
+     * @return array<int,string> names of staged package files
+     */
+    private function stagedNames(string $jobId): array
+    {
+        $listFile = $this->storageDir . '/staging/' . basename($jobId) . '.list.json';
+        if (!is_file($listFile)) {
+            return [];
+        }
+        $cached = json_decode((string)file_get_contents($listFile), true);
+        $names = is_array($cached['names'] ?? null) ? $cached['names'] : [];
+        return array_values(array_filter(array_map('strval', $names)));
     }
 }

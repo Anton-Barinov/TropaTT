@@ -26,15 +26,25 @@ final class DatabaseBackupManager extends BackupManager
     }
 
     /**
-     * Create a database backup inside the given backup directory.
+     * Create a database backup inside the given backup directory, optionally
+     * resuming from $cursor with a bounded amount of work per call.
      *
-     * @return array{ok:bool,driver?:string,tables?:int,views?:int,triggers?:int,rows?:int,error?:string,skipped?:bool,reason?:string}
+     * A real database dump (hundreds of MB / millions of rows) can never fit
+     * in one shared-hosting request, so the dump runs as a step machine:
+     * every call dumps at most $maxRows rows (LIMIT/OFFSET per table, so each
+     * chunk is memory-flat) and returns 'done' => false until the whole dump
+     * is written. The final manifest with integrity hashes is produced once
+     * the last chunk finishes.
+     *
+     * @param array{stage?:string,table_index?:int,offset?:int,rows_done?:int,views_done?:int,triggers_done?:int}|null $cursor
+     * @return array{ok:bool,done:bool,cursor?:array<string,int>,driver?:string,tables?:int,views?:int,triggers?:int,rows?:int,error?:string,skipped?:bool,reason?:string}
      */
-    public function backup(string $backupDir, string $jobId): array
+    public function backup(string $backupDir, string $jobId, ?array $cursor = null, ?\Updater\Util\WorkBudget $budget = null, int $maxRows = 50000): array
     {
         // A large database dump can exceed the default max_execution_time on
         // shared hosting; the updater runs inside the web request, so lift the
-        // limit for the dump (best-effort, some hosts cap it regardless).
+        // limit for the dump (best-effort, some hosts cap it regardless). The
+        // step budget below keeps each REQUEST short even when PHP allows more.
         @set_time_limit(0);
 
         $conn = Connection::open($this->basePath);
@@ -42,88 +52,155 @@ final class DatabaseBackupManager extends BackupManager
         $driver = $conn['driver'];
 
         if ($driver === 'sqlite') {
-            return $this->backupSqlite($backupDir, $jobId, $conn['database']);
+            $report = $this->backupSqlite($backupDir, $jobId, $conn['database']);
+            $report['done'] = true;
+            return $report;
         }
         if ($driver !== 'mysql') {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'Unsupported database driver for backup: ' . $driver];
+            return ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'Unsupported database driver for backup: ' . $driver];
         }
 
         $dbDir = $backupDir . '/db';
         if (!is_dir($dbDir) && !@mkdir($dbDir, 0775, true) && !is_dir($dbDir)) {
-            return ['ok' => false, 'error' => 'Unable to create db backup directory: ' . $dbDir];
+            return ['ok' => false, 'done' => true, 'error' => 'Unable to create db backup directory: ' . $dbDir];
         }
-
-        // Data and schema only for base tables; views are dumped as DDL only
-        // (SELECT * works, but INSERT INTO a view would fail on restore).
-        $tables = $this->listBaseTables($pdo);
-        $views = $this->listViews($pdo);
 
         $schemaFile = $dbDir . '/schema.sql';
         $dataFile = $dbDir . '/data.sql';
         $triggersFile = $dbDir . '/triggers.sql';
 
-        $schema = fopen($schemaFile, 'w');
-        $data = fopen($dataFile, 'w');
-        if ($schema === false || $data === false) {
-            return ['ok' => false, 'error' => 'Unable to open dump files.'];
-        }
+        $stage = (string)($cursor['stage'] ?? 'tables');
+        $tableIndex = (int)($cursor['table_index'] ?? 0);
+        $offset = (int)($cursor['offset'] ?? 0);
+        $rowsDone = (int)($cursor['rows_done'] ?? 0);
+        $viewsDone = (int)($cursor['views_done'] ?? 0);
+        $viewsDumped = (int)($cursor['views_dumped'] ?? 0);
+        $triggersDone = (int)($cursor['triggers_done'] ?? 0);
+        $triggersWritten = (int)($cursor['triggers_written'] ?? 0);
 
-        fwrite($schema, "-- TropaTT DB schema backup ({$jobId})\n");
-        fwrite($data, "-- TropaTT DB data backup ({$jobId})\n");
+        $tables = $this->listBaseTables($pdo);
+        $views = $this->listViews($pdo);
 
-        $rows = 0;
-        foreach ($tables as $table) {
-            $create = $pdo->query('SHOW CREATE TABLE `' . $table . '`')->fetch(PDO::FETCH_NUM);
-            $createSql = is_array($create) ? (string)($create[1] ?? '') : '';
-            if ($createSql === '') {
-                fclose($schema);
-                fclose($data);
-                return ['ok' => false, 'error' => 'Unable to read schema for table: ' . $table];
+        // Stage 1: base tables (schema + data in row-chunks).
+        if ($stage === 'tables') {
+            $schema = fopen($schemaFile, $tableIndex === 0 && $offset === 0 ? 'w' : 'a');
+            $data = fopen($dataFile, $tableIndex === 0 && $offset === 0 ? 'w' : 'a');
+            if ($schema === false || $data === false) {
+                return ['ok' => false, 'done' => true, 'error' => 'Unable to open dump files.'];
             }
-            $this->writeStatement($schema, "DROP TABLE IF EXISTS `{$table}`;");
-            $this->writeStatement($schema, $createSql . ';');
+            if ($tableIndex === 0 && $offset === 0) {
+                fwrite($schema, "-- TropaTT DB schema backup ({$jobId})\n");
+                fwrite($data, "-- TropaTT DB data backup ({$jobId})\n");
+            }
 
-            $rows += $this->dumpTableData($pdo, $data, $table);
+            $tableCount = count($tables);
+            $rowsThisRequest = 0;
+            while ($tableIndex < $tableCount) {
+                $table = $tables[$tableIndex];
+                if ($offset === 0) {
+                    $create = $pdo->query('SHOW CREATE TABLE `' . $table . '`')->fetch(PDO::FETCH_NUM);
+                    $createSql = is_array($create) ? (string)($create[1] ?? '') : '';
+                    if ($createSql === '') {
+                        fclose($schema);
+                        fclose($data);
+                        return ['ok' => false, 'done' => true, 'error' => 'Unable to read schema for table: ' . $table];
+                    }
+                    $this->writeStatement($schema, "DROP TABLE IF EXISTS `{$table}`;");
+                    $this->writeStatement($schema, $createSql . ';');
+                }
+                $remainingRows = max(1, $maxRows - $rowsThisRequest);
+                $result = $this->dumpTableData($pdo, $data, $table, $offset, $remainingRows, $budget);
+                $rowsThisRequest += $result['fetched'];
+                $rowsDone += $result['fetched'];
+                $offset += $result['fetched'];
+                // A SELECT with LIMIT returns exactly rowLimit rows when the
+                // table has more, so hitting the row budget is indistinguishable
+                // from the end of the table: resume with an offset cut. The
+                // next request then finds 0 rows and advances (harmless extra
+                // step when the table really ended exactly at the limit).
+                $cut = !$result['done'] || $rowsThisRequest >= $maxRows;
+                if ($cut) {
+                    fclose($schema);
+                    fclose($data);
+                    return $this->backupContinue('tables', [
+                        'table_index' => $tableIndex, 'offset' => $offset, 'rows_done' => $rowsDone,
+                        'views_done' => $viewsDone, 'views_dumped' => $viewsDumped,
+                        'triggers_done' => $triggersDone, 'triggers_written' => $triggersWritten,
+                    ], $tableCount, $views, $rowsDone);
+                }
+                $tableIndex++;
+                $offset = 0;
+            }
+            fclose($schema);
+            fclose($data);
+            $stage = 'views';
         }
 
-        // Views after tables so dependencies resolve. Only views whose
-        // SHOW CREATE VIEW actually returned DDL are dumped; the manifest
-        // must record the DUMPED count (not the raw list count) so the
-        // post-restore verification can never false-fail on a view that was
-        // skipped at backup time.
-        $viewsDumped = 0;
-        foreach ($views as $view) {
-            $create = $pdo->query('SHOW CREATE VIEW `' . $view . '`')->fetch(PDO::FETCH_NUM);
-            $createSql = is_array($create) ? (string)($create[1] ?? '') : '';
-            if ($createSql !== '') {
-                $this->writeStatement($schema, "DROP VIEW IF EXISTS `{$view}`;");
-                $this->writeStatement($schema, $this->stripDefiner($createSql) . ';');
-                $viewsDumped++;
+        // Stage 2: views after tables so dependencies resolve.
+        if ($stage === 'views') {
+            $schema = fopen($schemaFile, 'a');
+            if ($schema === false) {
+                return ['ok' => false, 'done' => true, 'error' => 'Unable to open schema dump for views.'];
+            }
+            $viewCount = count($views);
+            while ($viewsDone < $viewCount) {
+                if ($budget !== null && $budget->exhausted()) {
+                    break;
+                }
+                $view = $views[$viewsDone];
+                $create = $pdo->query('SHOW CREATE VIEW `' . $view . '`')->fetch(PDO::FETCH_NUM);
+                $createSql = is_array($create) ? (string)($create[1] ?? '') : '';
+                if ($createSql !== '') {
+                    $this->writeStatement($schema, "DROP VIEW IF EXISTS `{$view}`;");
+                    $this->writeStatement($schema, $this->stripDefiner($createSql) . ';');
+                    $viewsDumped++;
+                }
+                $viewsDone++;
+            }
+            fclose($schema);
+            if ($viewsDone < $viewCount) {
+                return $this->backupContinue('views', [
+                    'table_index' => $tableIndex, 'offset' => $offset, 'rows_done' => $rowsDone,
+                    'views_done' => $viewsDone, 'views_dumped' => $viewsDumped,
+                    'triggers_done' => $triggersDone, 'triggers_written' => $triggersWritten,
+                ], count($tables), $views, $rowsDone);
+            }
+            $stage = 'triggers';
+        }
+
+        // Stage 3: triggers (last, and only after data is dumped so they are
+        // not present during the dump; restore replays them after data too).
+        if ($stage === 'triggers') {
+            $result = $this->dumpTriggers($pdo, $triggersFile, $triggersDone, $budget, $triggersWritten);
+            if ($result === null) {
+                return ['ok' => false, 'done' => true, 'error' => 'Unable to dump database triggers.'];
+            }
+            $triggersDone = $result['processed'];
+            $triggersWritten = $result['written'];
+            if (!$result['done']) {
+                return $this->backupContinue('triggers', [
+                    'table_index' => $tableIndex, 'offset' => $offset, 'rows_done' => $rowsDone,
+                    'views_done' => $viewsDone, 'views_dumped' => $viewsDumped,
+                    'triggers_done' => $triggersDone, 'triggers_written' => $triggersWritten,
+                ], count($tables), $views, $rowsDone);
             }
         }
 
-        fclose($schema);
-        fclose($data);
-
-        $triggers = $this->dumpTriggers($pdo, $triggersFile);
-        if ($triggers === null) {
-            return ['ok' => false, 'error' => 'Unable to dump database triggers.'];
-        }
-
-        // Record SHA-256 of every dump file in the manifest so restore() can
-        // verify the backup is intact BEFORE dropping the live schema. A
-        // truncated, zeroed or bit-rotten dump must never be replayed over a
-        // healthy database (hash_file() streams internally, so this stays
-        // memory-flat even for hundreds-of-MB data dumps).
+        // Final stage: record SHA-256 of every dump file in the manifest so
+        // restore() can verify the backup is intact BEFORE dropping the live
+        // schema (hash_file() streams internally, so this stays memory-flat
+        // even for hundreds-of-MB data dumps).
         $manifest = [
             'ok' => true,
             'driver' => 'mysql',
             'job_id' => $jobId,
             'created_at' => gmdate('c'),
             'tables' => count($tables),
+            // Count only views/triggers actually dumped (DDL written): the
+            // restore verification compares these against the replayed schema.
             'views' => $viewsDumped,
-            'triggers' => $triggers,
-            'rows' => $rows,
+            'triggers' => $triggersWritten,
+            'rows' => $rowsDone,
             'schema_file' => 'db/schema.sql',
             'data_file' => 'db/data.sql',
             'triggers_file' => 'db/triggers.sql',
@@ -133,11 +210,38 @@ final class DatabaseBackupManager extends BackupManager
         ];
         file_put_contents($dbDir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
-        return $manifest;
+        return ['ok' => true, 'done' => true] + $manifest;
     }
 
     /**
-     * Restore the database from a backup directory created by backup().
+     * @param array<string,int> $cursor
+     */
+    private function backupContinue(string $stage, array $cursor, int $tables, array $views, int $rowsDone): array
+    {
+        return [
+            'ok' => false,
+            'done' => false,
+            'skipped' => true,
+            'reason' => 'step_budget_exhausted',
+            'stage' => $stage,
+            'cursor' => $cursor + ['stage' => $stage],
+            'tables_done' => (int)($cursor['table_index'] ?? 0),
+            'tables_total' => $tables,
+            'views_total' => count($views),
+            'rows_done' => $rowsDone,
+        ];
+    }
+
+    /**
+     * Restore the database from a backup directory created by backup(),
+     * optionally resuming from $cursor with a bounded amount of work per call.
+     *
+     * Restoring a large database cannot fit in one shared-hosting request, so
+     * restore runs as a step machine: the integrity gate runs once on the
+     * first call (before anything destructive), then views/tables are dropped
+     * and schema/data/triggers replayed in bounded chunks. Statement chunks
+     * resume by BYTE OFFSET inside each dump file (see execStatementsFrom), so
+     * the total work stays linear no matter how many requests it takes.
      *
      * NOTE: this drops every table/view in the connected database and replays
      * the backup - it assumes the CRM owns its MySQL database (the normal
@@ -146,112 +250,196 @@ final class DatabaseBackupManager extends BackupManager
      * fine, but on hosts where the definer user differs, those DDL statements
      * can fail and are reported in the restore report.
      *
-     * @return array{ok:bool,driver?:string,tables?:int,views?:int,triggers?:int,rows?:int,error?:string,skipped?:bool,reason?:string}
+     * @param array{stage?:string,index?:int,pos?:int}|null $cursor
+     * @return array{ok:bool,done:bool,cursor?:array<string,int>,driver?:string,tables?:int,views?:int,triggers?:int,rows?:int,error?:string,skipped?:bool,reason?:string}
      */
-    public function restore(string $backupDir): array
+    public function restore(string $backupDir, ?array $cursor = null, ?\Updater\Util\WorkBudget $budget = null, int $maxStatements = 500): array
     {
         @set_time_limit(0);
 
         $dbDir = $backupDir . '/db';
         $manifestFile = $dbDir . '/manifest.json';
         if (!is_file($manifestFile)) {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'No database backup manifest found.'];
+            return ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'No database backup manifest found.'];
         }
         $manifest = json_decode((string)file_get_contents($manifestFile), true);
         $driver = is_array($manifest) ? (string)($manifest['driver'] ?? 'mysql') : 'mysql';
 
         if ($driver === 'sqlite') {
-            return $this->restoreSqlite($backupDir);
+            $report = $this->restoreSqlite($backupDir);
+            $report['done'] = true;
+            return $report;
         }
         if ($driver !== 'mysql') {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'Unsupported backup driver: ' . $driver];
+            return ['ok' => false, 'done' => true, 'skipped' => true, 'reason' => 'Unsupported backup driver: ' . $driver];
         }
 
         $schemaFile = $dbDir . '/schema.sql';
         $dataFile = $dbDir . '/data.sql';
         $triggersFile = $dbDir . '/triggers.sql';
         if (!is_file($schemaFile) || !is_file($dataFile)) {
-            return ['ok' => false, 'error' => 'Backup dump files missing.'];
+            return ['ok' => false, 'done' => true, 'error' => 'Backup dump files missing.'];
         }
 
-        // Integrity gate BEFORE any destructive step. Verify the dump files
-        // match the hashes recorded at backup time (with a structural fallback
-        // for legacy backups that predate hashing). A corrupt or truncated
-        // dump must never be replayed over the live database - an interrupted
+        $stage = (string)($cursor['stage'] ?? 'integrity');
+
+        // Integrity gate BEFORE any destructive step, on the FIRST call only
+        // (subsequent steps already passed it). Verify the dump files match
+        // the hashes recorded at backup time (with a structural fallback for
+        // legacy backups that predate hashing). A corrupt or truncated dump
+        // must never be replayed over the live database - an interrupted
         // restore that has already dropped the schema is unrecoverable.
-        $integrityError = $this->verifyDumpIntegrity($dbDir, is_array($manifest) ? $manifest : []);
-        if ($integrityError !== null) {
-            return [
-                'ok' => false,
-                'error' => 'Database backup integrity check failed: ' . $integrityError
-                    . '. Restore aborted before any change; the live database was left untouched.',
-            ];
+        if ($stage === 'integrity') {
+            $integrityError = $this->verifyDumpIntegrity($dbDir, is_array($manifest) ? $manifest : []);
+            if ($integrityError !== null) {
+                return [
+                    'ok' => false,
+                    'done' => true,
+                    'error' => 'Database backup integrity check failed: ' . $integrityError
+                        . '. Restore aborted before any change; the live database was left untouched.',
+                ];
+            }
+            $stage = 'drop_views';
         }
 
         $conn = Connection::open($this->basePath);
         if ($conn['driver'] !== 'mysql') {
-            return ['ok' => false, 'error' => 'Current DB driver (' . $conn['driver'] . ') does not match backup driver (mysql).'];
+            return ['ok' => false, 'done' => true, 'error' => 'Current DB driver (' . $conn['driver'] . ') does not match backup driver (mysql).'];
         }
         $pdo = $conn['pdo'];
 
+        // FOREIGN_KEY_CHECKS is per-connection; every step sets it off before
+        // dropping/replaying and only the final verify stage turns it back on.
         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
         try {
+            $index = (int)($cursor['index'] ?? 0);
+            $pos = (int)($cursor['pos'] ?? 0);
+
             // Drop views and tables currently present so tables created by the
             // migration are removed too - a full rollback must restore the
             // exact pre-update schema.
-            foreach ($this->listViews($pdo) as $existingView) {
-                $pdo->exec('DROP VIEW IF EXISTS `' . $existingView . '`');
-            }
-            foreach ($this->listBaseTables($pdo) as $existingTable) {
-                $pdo->exec('DROP TABLE IF EXISTS `' . $existingTable . '`');
-            }
-            $this->execSqlFile($pdo, $schemaFile);
-            $this->execSqlFile($pdo, $dataFile);
-            // Triggers last so they do not fire during data restore.
-            if (is_file($triggersFile)) {
-                $this->execSqlFile($pdo, $triggersFile);
+            if ($stage === 'drop_views') {
+                $views = $this->listViews($pdo);
+                while ($index < count($views) && ($budget === null || !$budget->exhausted())) {
+                    $pdo->exec('DROP VIEW IF EXISTS `' . $views[$index] . '`');
+                    $index++;
+                }
+                if ($index < count($views)) {
+                    return $this->restoreContinue('drop_views', $index, 0);
+                }
+                $stage = 'drop_tables';
+                $index = 0;
             }
 
-            // Post-restore verification: the replayed schema must match the
-            // manifest. A partial restore (a statement the host silently
-            // skipped, a definer mismatch, a packet limit) must NEVER be
-            // reported as success - the admin would otherwise be told the
-            // rollback worked while the CRM was left half-restored.
-            //
-            // >= is used instead of === on purpose: restore drops every
-            // view/table first and replays only what the dump contains, so
-            // the restored count can never EXCEED the manifest. A legacy
-            // backup made by an older build recorded manifest['views'] as
-            // the raw SHOW FULL TABLES list count (which could include a
-            // view whose SHOW CREATE VIEW returned empty and was skipped in
-            // the dump); >= stays correct under both old and new semantics
-            // while still catching any partial restore (fewer than expected).
-            $restoredTables = count($this->listBaseTables($pdo));
-            $restoredViews = count($this->listViews($pdo));
-            $expectedTables = (int)($manifest['tables'] ?? 0);
-            $expectedViews = (int)($manifest['views'] ?? 0);
-            if ($restoredTables < $expectedTables || $restoredViews < $expectedViews) {
+            if ($stage === 'drop_tables') {
+                $tables = $this->listBaseTables($pdo);
+                while ($index < count($tables) && ($budget === null || !$budget->exhausted())) {
+                    $pdo->exec('DROP TABLE IF EXISTS `' . $tables[$index] . '`');
+                    $index++;
+                }
+                if ($index < count($tables)) {
+                    return $this->restoreContinue('drop_tables', $index, 0);
+                }
+                $stage = 'schema';
+                $index = 0;
+                $pos = 0;
+            }
+
+            if ($stage === 'schema') {
+                $result = $this->execStatementsFrom($pdo, $schemaFile, $pos, $maxStatements, $budget);
+                if (!$result['eof']) {
+                    return $this->restoreContinue('schema', $index, $result['pos']);
+                }
+                $stage = 'data';
+                $index = 0;
+                $pos = 0;
+            }
+
+            if ($stage === 'data') {
+                $result = $this->execStatementsFrom($pdo, $dataFile, $pos, $maxStatements, $budget);
+                if (!$result['eof']) {
+                    return $this->restoreContinue('data', $index, $result['pos']);
+                }
+                $stage = 'triggers';
+                $index = 0;
+                $pos = 0;
+            }
+
+            if ($stage === 'triggers') {
+                // Triggers last so they do not fire during data restore.
+                if (is_file($triggersFile)) {
+                    $result = $this->execStatementsFrom($pdo, $triggersFile, $pos, $maxStatements, $budget);
+                    if (!$result['eof']) {
+                        return $this->restoreContinue('triggers', $index, $result['pos']);
+                    }
+                }
+                $stage = 'verify';
+                $index = 0;
+            }
+
+            if ($stage === 'verify') {
+                // Post-restore verification: the replayed schema must match the
+                // manifest. A partial restore (a statement the host silently
+                // skipped, a definer mismatch, a packet limit) must NEVER be
+                // reported as success - the admin would otherwise be told the
+                // rollback worked while the CRM was left half-restored.
+                //
+                // >= is used instead of === on purpose: restore drops every
+                // view/table first and replays only what the dump contains, so
+                // the restored count can never EXCEED the manifest. A legacy
+                // backup made by an older build recorded manifest['views'] as
+                // the raw SHOW FULL TABLES list count (which could include a
+                // view whose SHOW CREATE VIEW returned empty and was skipped in
+                // the dump); >= stays correct under both old and new semantics
+                // while still catching any partial restore (fewer than expected).
+                $restoredTables = count($this->listBaseTables($pdo));
+                $restoredViews = count($this->listViews($pdo));
+                $expectedTables = (int)($manifest['tables'] ?? 0);
+                $expectedViews = (int)($manifest['views'] ?? 0);
+                if ($restoredTables < $expectedTables || $restoredViews < $expectedViews) {
+                    return [
+                        'ok' => false,
+                        'done' => true,
+                        'error' => "Post-restore verification failed: expected at least {$expectedTables} tables / {$expectedViews} views, "
+                            . "found {$restoredTables} / {$restoredViews}. The database may be partially restored; "
+                            . 'retry the rollback or restore from the backup.',
+                    ];
+                }
+                $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
                 return [
-                    'ok' => false,
-                    'error' => "Post-restore verification failed: expected at least {$expectedTables} tables / {$expectedViews} views, "
-                        . "found {$restoredTables} / {$restoredViews}. The database may be partially restored; "
-                        . 'retry the rollback or restore from the backup.',
+                    'ok' => true,
+                    'done' => true,
+                    'driver' => 'mysql',
+                    'integrity' => 'verified',
+                    'verified_tables' => $restoredTables,
+                    'verified_views' => $restoredViews,
+                    'tables' => (int)($manifest['tables'] ?? 0),
+                    'views' => (int)($manifest['views'] ?? 0),
+                    'triggers' => (int)($manifest['triggers'] ?? 0),
+                    'rows' => (int)($manifest['rows'] ?? 0),
                 ];
             }
         } finally {
+            // Safety net: if we are leaving without reaching verify (an error
+            // propagated above), re-enable FK checks on this connection anyway.
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         }
 
+        return ['ok' => false, 'done' => true, 'error' => 'Unexpected restore state: ' . $stage];
+    }
+
+    /**
+     * @return array{ok:bool,done:bool,stage:string,cursor:array{stage:string,index:int,pos:int}}
+     */
+    private function restoreContinue(string $stage, int $index, int $pos): array
+    {
         return [
-            'ok' => true,
-            'driver' => 'mysql',
-            'integrity' => 'verified',
-            'verified_tables' => $restoredTables,
-            'verified_views' => $restoredViews,
-            'tables' => (int)($manifest['tables'] ?? 0),
-            'views' => (int)($manifest['views'] ?? 0),
-            'triggers' => (int)($manifest['triggers'] ?? 0),
-            'rows' => (int)($manifest['rows'] ?? 0),
+            'ok' => false,
+            'done' => false,
+            'skipped' => true,
+            'reason' => 'step_budget_exhausted',
+            'stage' => $stage,
+            'cursor' => ['stage' => $stage, 'index' => $index, 'pos' => $pos],
         ];
     }
 
@@ -393,11 +581,11 @@ final class DatabaseBackupManager extends BackupManager
         return array_values(array_filter($views, static fn (string $v): bool => $v !== ''));
     }
 
-    private function dumpTableData(PDO $pdo, $handle, string $table): int
+    private function dumpTableData(PDO $pdo, $handle, string $table, int $offset, int $rowLimit, ?\Updater\Util\WorkBudget $budget): array
     {
-        $stmt = $pdo->query('SELECT * FROM `' . $table . '`');
+        $stmt = $pdo->query('SELECT * FROM `' . $table . '` LIMIT ' . max(1, $rowLimit) . ' OFFSET ' . max(0, $offset));
         if ($stmt === false) {
-            return 0;
+            return ['fetched' => 0, 'done' => true];
         }
         $rows = 0;
         $batch = [];
@@ -435,12 +623,18 @@ final class DatabaseBackupManager extends BackupManager
                 $batchBytes = 0;
             }
             $rows++;
+            if ($budget !== null && $budget->exhausted()) {
+                break;
+            }
         }
         if ($batch !== []) {
             $this->writeStatement($handle, 'INSERT INTO `' . $table . '` VALUES ' . implode(', ', $batch) . ';');
         }
 
-        return $rows;
+        // done means this table's rows are fully dumped in this request. A
+        // budget cut leaves rows unread, so the next request resumes with
+        // LIMIT/OFFSET from the current position.
+        return ['fetched' => $rows, 'done' => $budget !== null && $budget->exhausted() ? false : true];
     }
 
     /**
@@ -456,17 +650,20 @@ final class DatabaseBackupManager extends BackupManager
     }
 
     /**
-     * Dump CREATE TRIGGER statements (they are not part of SHOW CREATE TABLE).
+     * Dump CREATE TRIGGER statements (they are not part of SHOW CREATE TABLE),
+     * optionally resuming from $cursorDone with a time budget.
      *
-     * @return int|null number of triggers dumped, or null on error
+     * @return array{written:int,done:bool}|null null on error
      */
-    private function dumpTriggers(PDO $pdo, string $triggersFile): ?int
+    private function dumpTriggers(PDO $pdo, string $triggersFile, int $cursorDone = 0, ?\Updater\Util\WorkBudget $budget = null, int $cursorWritten = 0): ?array
     {
-        $handle = fopen($triggersFile, 'w');
+        $handle = fopen($triggersFile, $cursorDone > 0 ? 'a' : 'w');
         if ($handle === false) {
             return null;
         }
-        fwrite($handle, "-- TropaTT DB triggers backup\n");
+        if ($cursorDone === 0) {
+            fwrite($handle, "-- TropaTT DB triggers backup\n");
+        }
 
         $rows = $pdo->query('SHOW TRIGGERS');
         $names = [];
@@ -475,10 +672,17 @@ final class DatabaseBackupManager extends BackupManager
                 $names[] = (string)($row[0] ?? '');
             }
         }
-        $written = 0;
-        foreach ($names as $name) {
+        $processed = $cursorDone;
+        $written = (int)($cursorWritten ?? 0);
+        $total = count($names);
+        while ($processed < $total) {
+            if ($budget !== null && $budget->exhausted()) {
+                break;
+            }
+            $name = $names[$processed];
             $stmt = $pdo->query('SHOW CREATE TRIGGER `' . $name . '`');
             if ($stmt === false) {
+                $processed++;
                 continue;
             }
             $row = $stmt->fetch(PDO::FETCH_NUM);
@@ -488,10 +692,11 @@ final class DatabaseBackupManager extends BackupManager
                 $this->writeStatement($handle, $this->stripDefiner($sql) . ';');
                 $written++;
             }
+            $processed++;
         }
         fclose($handle);
 
-        return $written;
+        return ['written' => $written, 'processed' => $processed, 'done' => $processed >= $total];
     }
 
     /**
@@ -510,26 +715,38 @@ final class DatabaseBackupManager extends BackupManager
     }
 
     /**
-     * Execute a dump file statement by statement. Full-line comments are
-     * skipped so a leading comment line never swallows the following
-     * statement during the split.
+     * Execute a dump file statement by statement, starting at a byte offset
+     * and stopping after $maxStatements statements or when the budget runs
+     * out. Returns the byte offset to resume from, so a huge data.sql (300MB+
+     * of INSERTs for 1M+ rows) is replayed across many requests in linear
+     * total time.
      *
      * STREAMS the file line by line (fgets) instead of loading it into
-     * memory: a real database dump (e.g. 300MB+ of INSERTs for 1M+ rows) must
-     * never be read with file_get_contents() + preg_split(), which blows the
-     * memory_limit with an UNCATCHABLE fatal error mid-restore - after the
-     * tables have already been dropped - leaving the CRM database empty and
-     * maintenance mode stuck on. Each statement is preceded by its own marker
-     * comment line, so the split is safe for statements containing ';' and
-     * newlines inside string literals or compound trigger bodies.
+     * memory: the dump must never be read with file_get_contents() +
+     * preg_split(), which blows the memory_limit with an UNCATCHABLE fatal
+     * error mid-restore - after the tables have already been dropped - leaving
+     * the CRM database empty and maintenance mode stuck on. Each statement is
+     * preceded by its own marker comment line, so the split is safe for
+     * statements containing ';' and newlines inside string literals or
+     * compound trigger bodies.
+     *
+     * @return array{executed:int,pos:int,eof:bool}
      */
-    private function execSqlFile(PDO $pdo, string $file): void
+    private function execStatementsFrom(PDO $pdo, string $file, int $startPos, int $maxStatements, ?\Updater\Util\WorkBudget $budget): array
     {
         $handle = @fopen($file, 'r');
         if ($handle === false) {
-            return;
+            // Treat an unreadable file as fully consumed; the integrity gate
+            // already rejected a MISSING file before the first destructive
+            // step, so this can only happen mid-restore and must not loop.
+            return ['executed' => 0, 'pos' => 0, 'eof' => true];
+        }
+        if ($startPos > 0) {
+            fseek($handle, $startPos);
         }
         $statement = '';
+        $executed = 0;
+        $pos = $startPos;
         // 1MB read buffer: keeps memory flat even for multi-MB INSERT lines
         // (a 100-row batch with TEXT/JSON values can be hundreds of KB). A
         // line longer than the buffer is reassembled across fgets() calls,
@@ -538,12 +755,25 @@ final class DatabaseBackupManager extends BackupManager
             if (rtrim($line) === '-- @@TROPA_SQL@@') {
                 $this->execStatement($pdo, $statement);
                 $statement = '';
+                $executed++;
+                // Record the resume position AFTER the marker line: this is
+                // exactly where the next statement begins. If we cut here the
+                // accumulated buffer is empty, so no statement is lost.
+                $pos = ftell($handle);
+                if ($executed >= $maxStatements || ($budget !== null && $budget->exhausted())) {
+                    fclose($handle);
+                    return ['executed' => $executed, 'pos' => $pos, 'eof' => false];
+                }
                 continue;
             }
             $statement .= $line;
         }
+        // Last statement (its terminating marker is EOF).
         $this->execStatement($pdo, $statement);
+        $executed++;
+        $pos = ftell($handle);
         fclose($handle);
+        return ['executed' => $executed, 'pos' => $pos, 'eof' => true];
     }
 
     private function execStatement(PDO $pdo, string $statement): void
