@@ -4755,6 +4755,223 @@ window.CRM.pageApiBindings = (function () {
 
 
 
+    // ====== My Time widget ======
+    var worklogWidget = document.getElementById('dashboardWorklogWidget');
+    if (dashboardWidgetConfig.worklog !== false && worklogWidget && canManageTasks) {
+      function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+      function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+      function dateTimeStr(d) { return dateKey(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); }
+      function minsLabel(m) {
+        var t = Math.round(Number(m) || 0);
+        var h = Math.floor(t / 60);
+        var mm = t % 60;
+        if (h > 0) return h + ' ' + window.CRM.i18n.t('js.pab.hours_short', 'h') + (mm ? ' ' + mm + ' ' + window.CRM.i18n.t('js.pab.minutes_short', 'm') : '');
+        return mm + ' ' + window.CRM.i18n.t('js.pab.minutes_short', 'm');
+      }
+      var wlStart = new Date();
+      wlStart.setDate(wlStart.getDate() - 6);
+      wlStart.setHours(0, 0, 0, 0);
+      var wlEnd = new Date(dayStart.getTime() + 86400000 - 1);
+      tryRequest('api/v1/worklogs/summary', { query: { from: dateTimeStr(wlStart), to: dateTimeStr(wlEnd), user_public_id: currentUserPublicId }, silent: true }).then(function (env) {
+        var data = env && env.data ? env.data : {};
+        var userTotals = data.user_totals || {};
+        var dayTotals = data.day_totals || {};
+        var myWeekMinutes = currentUserPublicId ? Number(userTotals[currentUserPublicId] || 0) : 0;
+        var todayMinutes = Number(dayTotals[dateKey(new Date())] || 0);
+        var bars = [];
+        var now = new Date();
+        for (var i = 6; i >= 0; i--) {
+          var d = new Date();
+          d.setDate(now.getDate() - i);
+          var mins = Number(dayTotals[dateKey(d)] || 0);
+          bars.push({ mins: mins, isToday: i === 0, label: d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '') });
+        }
+        var maxMins = 1;
+        bars.forEach(function (b) { if (b.mins > maxMins) maxMins = b.mins; });
+        if (!myWeekMinutes && !todayMinutes) {
+          worklogWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_time_logged', 'No time logged in the last 7 days.') + '</div>';
+          return;
+        }
+        worklogWidget.innerHTML = ''
+          + '<div class="row g-2 text-center mb-2">'
+          + '<div class="col-6"><div class="crm-metric-tile"><small class="text-muted d-block">' + window.CRM.i18n.t('js.pab.today_label', 'Today') + '</small><div>' + safeText(minsLabel(todayMinutes)) + '</div></div></div>'
+          + '<div class="col-6"><div class="crm-metric-tile"><small class="text-muted d-block">' + window.CRM.i18n.t('js.pab.this_week_label', 'This week') + '</small><div>' + safeText(minsLabel(myWeekMinutes)) + '</div></div></div>'
+          + '</div>'
+          + '<div class="d-flex align-items-end gap-1" style="height:44px;">'
+          + bars.map(function (b) {
+            return '<div class="flex-grow-1 d-flex flex-column align-items-center justify-content-end" title="' + safeText(b.label) + ' · ' + safeText(minsLabel(b.mins)) + '">'
+              + '<div style="width:65%;height:' + Math.max(2, Math.round(b.mins / maxMins * 32)) + 'px;background:' + (b.isToday ? '#2563eb' : '#94a3b8') + ';border-radius:2px;"></div>'
+              + '<small style="font-size:9px;color:#6c757d;">' + safeText(b.label) + '</small>'
+              + '</div>';
+          }).join('')
+          + '</div>'
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=worklogs">' + window.CRM.i18n.t('js.pab.open_worklogs', 'Open time reports') + '</a>';
+      }).catch(function () {
+        worklogWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.worklog_load_error', 'Failed to load time data.') + '</div>';
+      });
+    }
+
+    // ====== My Tasks widget ======
+    var myTasksWidget = document.getElementById('dashboardMyTasksWidget');
+    if (dashboardWidgetConfig.my_tasks !== false && myTasksWidget && canManageTasks) {
+      function isMyTaskOverdue(t) {
+        if (!t || !t.due_at) return false;
+        var ms = Date.parse(String(t.due_at).replace(' ', 'T'));
+        return Number.isFinite(ms) && ms < nowMs;
+      }
+      tryRequest('api/v1/tasks', { query: { limit: 120 }, silent: true }).then(function (env) {
+        var all = mapItems(env);
+        var priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+        var mine = all.filter(function (t) {
+          if (!currentUserPublicId || String(t.assignee_user_public_id || '') !== currentUserPublicId) return false;
+          var st = String(t.status_code || '').toLowerCase();
+          return st !== 'done' && st !== 'completed' && st !== 'cancelled';
+        }).sort(function (a, b) {
+          var aOv = isMyTaskOverdue(a) ? 0 : (a.due_at ? 1 : 2);
+          var bOv = isMyTaskOverdue(b) ? 0 : (b.due_at ? 1 : 2);
+          if (aOv !== bOv) return aOv - bOv;
+          var pr = (priorityRank[a.priority_code || 'normal'] || 2) - (priorityRank[b.priority_code || 'normal'] || 2);
+          if (pr !== 0) return pr;
+          return toTimestamp(a.due_at) - toTimestamp(b.due_at);
+        });
+        var shown = mine.slice(0, 8);
+        if (!shown.length) {
+          myTasksWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_my_tasks', 'No open tasks assigned to you.') + '</div>';
+          return;
+        }
+        myTasksWidget.innerHTML = shown.map(function (t) {
+          var due = t.due_at
+            ? '<span class="small ' + (isMyTaskOverdue(t) ? 'text-danger' : 'text-muted') + '">' + safeText(formatDate(t.due_at)) + '</span>'
+            : '<span class="small text-muted">—</span>';
+          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<a class="small text-truncate text-reset text-decoration-none" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + '<span class="crm-badge ' + statusClass(t.status_code) + '">' + safeText(statusLabel(t.status_code)) + '</span></span>'
+            + '</div>';
+        }).join('')
+          + (mine.length > shown.length
+            ? '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=tasks&assignee=' + encodeURIComponent(currentUserPublicId) + '">' + window.CRM.i18n.t('js.pab.view_all_my_tasks', 'View all my tasks') + ' (' + mine.length + ')</a>'
+            : '');
+      }).catch(function () {
+        myTasksWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.my_tasks_error', 'Failed to load tasks.') + '</div>';
+      });
+    }
+
+    // ====== Pending Approvals widget ======
+    var approvalsWidget = document.getElementById('dashboardApprovalsWidget');
+    if (dashboardWidgetConfig.approvals !== false && approvalsWidget && hasPermission('approval.manage')) {
+      tryRequest('api/v1/approvals', { query: { status: 'pending', limit: 20 }, silent: true }).then(function (env) {
+        var items = mapItems(env).filter(function (a) {
+          return String(a.status || '') === 'pending' && a.viewer_can_review !== false;
+        });
+        var shown = items.slice(0, 6);
+        if (!shown.length) {
+          approvalsWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_pending_approvals', 'No approvals awaiting your review.') + '</div>';
+          return;
+        }
+        approvalsWidget.innerHTML = shown.map(function (a) {
+          var who = a.requester && a.requester.full_name ? String(a.requester.full_name) : '';
+          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="index.php?route=approvals">' + safeText(String(a.title || window.CRM.i18n.t('js.pab.approval', 'Approval'))) + '</a></div>'
+            + '<span class="small text-muted flex-shrink-0">' + safeText(who) + (who ? ' · ' : '') + safeText(dateTimeLabel(a.created_at)) + '</span>'
+            + '</div>';
+        }).join('')
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=approvals">' + window.CRM.i18n.t('js.pab.open_approvals', 'Open approvals') + '</a>';
+      }).catch(function () {
+        approvalsWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.approvals_load_error', 'Failed to load approvals.') + '</div>';
+      });
+    }
+
+    // ====== Upcoming Milestones widget ======
+    var milestonesWidget = document.getElementById('dashboardMilestonesWidget');
+    if (dashboardWidgetConfig.milestones !== false && milestonesWidget && canManageProjects) {
+      softDashboardRequest(tryRequest('api/v1/projects', { query: { status: 'active', limit: 50 }, silent: true }), 1500)
+        .then(function (env) {
+          var activeProjects = mapItems(env);
+          var activeIds = activeProjects.map(function (p) { return p && p.public_id ? String(p.public_id) : ''; }).filter(function (x) { return x !== ''; });
+          if (!activeIds.length) {
+            milestonesWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_active_projects', 'No active projects.') + '</div>';
+            return;
+          }
+          return softDashboardRequest(tryRequest('api/v1/milestones', { query: { project_public_ids: activeIds.join(',') }, silent: true }), 1500).then(function (msEnv) {
+            var byProject = msEnv && msEnv.data && msEnv.data.by_project ? msEnv.data.by_project : {};
+            var projectTitles = {};
+            activeProjects.forEach(function (p) { projectTitles[p.public_id] = p.title || ''; });
+            var all = [];
+            Object.keys(byProject).forEach(function (pid) {
+              (byProject[pid] || []).forEach(function (m) { all.push(m); });
+            });
+            var upcoming = all.filter(function (m) {
+              var st = String(m.status || '').toLowerCase();
+              if (st === 'done' || st === 'completed' || st === 'cancelled') return false;
+              if (!m.due_at) return false;
+              var ms = Date.parse(String(m.due_at).replace(' ', 'T'));
+              return Number.isFinite(ms) && ms >= nowMs;
+            }).sort(function (a, b) { return toTimestamp(a.due_at) - toTimestamp(b.due_at); });
+            var shown = upcoming.slice(0, 6);
+            if (!shown.length) {
+              milestonesWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_upcoming_milestones', 'No upcoming milestones.') + '</div>';
+              return;
+            }
+            milestonesWidget.innerHTML = shown.map(function (m) {
+              var pTitle = projectTitles[m.project_public_id] || m.project_title || '';
+              return '<div class="d-flex align-items-center justify-content-between gap-2 mb-1">'
+                + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="index.php?route=project-detail&project_public_id=' + encodeURIComponent(m.project_public_id) + '">' + safeText(String(m.title || window.CRM.i18n.t('js.pab.milestone', 'Milestone'))) + '</a></div>'
+                + '<span class="small text-muted flex-shrink-0">' + safeText(formatDate(m.due_at)) + '</span>'
+                + '</div>'
+                + (pTitle ? '<div class="small text-muted mb-2" style="font-size:11px;"><i class="fa-regular fa-folder-open me-1"></i>' + safeText(String(pTitle)) + '</div>' : '');
+            }).join('')
+              + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=projects">' + window.CRM.i18n.t('js.pab.open_projects', 'Open projects') + '</a>';
+          });
+        })
+        .catch(function () {
+          milestonesWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.milestones_load_error', 'Failed to load milestones.') + '</div>';
+        });
+    }
+
+    // ====== Favorites widget ======
+    var favoritesWidget = document.getElementById('dashboardFavoritesWidget');
+    if (dashboardWidgetConfig.favorites !== false && favoritesWidget && canManageTasks) {
+      tryRequest('api/v1/favorites', { query: { limit: 8 }, silent: true }).then(function (env) {
+        var favorites = mapItems(env).slice(0, 6);
+        if (!favorites.length) {
+          favoritesWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_favorites', 'You have no favorites yet.') + '</div>';
+          return;
+        }
+        var resolvers = favorites.map(function (fav) {
+          var type = String(fav.entity_type || '').toLowerCase();
+          var id = String(fav.entity_public_id || '');
+          if (type === 'task' && id) {
+            return softDashboardRequest(tryRequest('api/v1/tasks/' + encodeURIComponent(id), { silent: true }), 1200)
+              .then(function (res) {
+                var task = res && res.data && res.data.task;
+                return { fav: fav, title: task ? String(task.title || '') : '', href: 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(id), icon: 'fa-solid fa-list-check' };
+              });
+          }
+          if (type === 'project' && id) {
+            return softDashboardRequest(tryRequest('api/v1/projects/' + encodeURIComponent(id), { silent: true }), 1200)
+              .then(function (res) {
+                var project = res && res.data && res.data.project;
+                return { fav: fav, title: project ? String(project.title || '') : '', href: 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(id), icon: 'fa-regular fa-folder-open' };
+              });
+          }
+          return Promise.resolve({ fav: fav, title: '', href: '', icon: 'fa-solid fa-comment' });
+        });
+        Promise.all(resolvers).then(function (rows) {
+          favoritesWidget.innerHTML = rows.map(function (row) {
+            var title = row.title || window.CRM.i18n.t('js.pab.favorite', 'Favorite');
+            return '<div class="d-flex align-items-center gap-2 mb-2">'
+              + '<i class="' + row.icon + ' text-muted" aria-hidden="true" style="font-size:0.75rem;width:14px;text-align:center;"></i>'
+              + (row.href
+                ? '<a class="small text-truncate text-reset text-decoration-none" href="' + row.href + '">' + safeText(title) + '</a>'
+                : '<span class="small text-truncate text-muted">' + safeText(title) + '</span>')
+              + '</div>';
+          }).join('');
+        });
+      }).catch(function () {
+        favoritesWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.favorites_load_error', 'Failed to load favorites.') + '</div>';
+      });
+    }
+
     var aiDigestCard = document.getElementById('dashboardAiDigestCard');
     var aiDigestMeta = document.getElementById('dashboardAiDigestMeta');
     var aiDigestSummaryNode = document.getElementById('dashboardAiDigestSummary');

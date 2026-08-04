@@ -8022,6 +8022,8 @@ return array (
     'search_title' => 'Busca',
     'search_placeholder' => 'Buscar no TropaTT',
     'quick_create' => '+ Criar',
+    'create_task' => 'Criar tarefa',
+    'timer_running' => 'Temporizador em execução',
     'notifications' => 'Notificações',
     'profile' => 'Meu perfil',
     'logout' => 'Sair',

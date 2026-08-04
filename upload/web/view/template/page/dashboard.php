@@ -274,6 +274,46 @@
           <div class="col-12 text-muted small" data-i18n="dashboard.sticky_notes_loading"><?= htmlspecialchars($t('dashboard.sticky_notes_loading', 'Загрузка заметок...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-6" data-dashboard-widget="worklog">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_worklog"><?= htmlspecialchars($t('dashboard.widget_worklog', 'Моё время'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="dashboardWorklogWidget" data-dashboard-worklog-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-12" data-dashboard-widget="my_tasks">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_my_tasks"><?= htmlspecialchars($t('dashboard.widget_my_tasks', 'Мои задачи'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="dashboardMyTasksWidget" data-dashboard-my-tasks-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="approvals">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_approvals"><?= htmlspecialchars($t('dashboard.widget_approvals', 'Согласования'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="dashboardApprovalsWidget" data-dashboard-approvals-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="milestones">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_milestones"><?= htmlspecialchars($t('dashboard.widget_milestones', 'Ближайшие вехи'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="dashboardMilestonesWidget" data-dashboard-milestones-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="favorites">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_favorites"><?= htmlspecialchars($t('dashboard.widget_favorites', 'Избранное'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <div id="dashboardFavoritesWidget" data-dashboard-favorites-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
       </div>
 
       <div id="dashboardWidgetPool" hidden></div>
