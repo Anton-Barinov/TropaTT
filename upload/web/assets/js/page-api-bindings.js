@@ -4314,9 +4314,22 @@ window.CRM.pageApiBindings = (function () {
       return dt.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     }
 
-    function setDashboardTasksTable(tbody, rows, denied) {
+    function setDashboardTasksTable(tbody, rows, denied, errorText) {
       if (!tbody) return;
       tbody.textContent = '';
+      if (errorText) {
+        var errorTr = document.createElement('tr');
+        var errorTd = document.createElement('td');
+        errorTd.colSpan = 5;
+        errorTd.className = 'crm-dashboard-empty-cell';
+        var errorBox = document.createElement('div');
+        errorBox.className = 'crm-empty-state crm-empty-state-compact crm-dashboard-empty-state';
+        errorBox.textContent = errorText;
+        errorTd.appendChild(errorBox);
+        errorTr.appendChild(errorTd);
+        tbody.appendChild(errorTr);
+        return;
+      }
       if (denied || !Array.isArray(rows) || !rows.length) {
         var emptyTr = document.createElement('tr');
         var emptyTd = document.createElement('td');
@@ -4382,9 +4395,16 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    function setDashboardTaskCards(container, rows, denied) {
+    function setDashboardTaskCards(container, rows, denied, errorText) {
       if (!container) return;
       container.textContent = '';
+      if (errorText) {
+        var errorArticle = document.createElement('article');
+        errorArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state';
+        errorArticle.textContent = errorText;
+        container.appendChild(errorArticle);
+        return;
+      }
       if (denied || !Array.isArray(rows) || !rows.length) {
         var emptyArticle = document.createElement('article');
         emptyArticle.className = 'crm-dashboard-task-card crm-dashboard-empty-state';
@@ -4536,11 +4556,14 @@ window.CRM.pageApiBindings = (function () {
 
     var tableTasks = todayTasks.length ? todayTasks : tasks;
     var dashboardTasks = tableTasks.slice(0, 8);
+    var tasksLoadError = tasksEnvelope && tasksEnvelope.success === false
+      ? window.CRM.i18n.t('js.pab.today_tasks_load_error', 'Failed to load tasks.')
+      : '';
     var tbody = document.querySelector('[data-dashboard-tasks-body]');
-    setDashboardTasksTable(tbody, dashboardTasks, !canManageTasks);
+    setDashboardTasksTable(tbody, dashboardTasks, !canManageTasks, tasksLoadError);
 
     var taskList = document.querySelector('[data-dashboard-task-list]');
-    setDashboardTaskCards(taskList, dashboardTasks, !canManageTasks);
+    setDashboardTaskCards(taskList, dashboardTasks, !canManageTasks, tasksLoadError);
 
     var risksList = document.querySelector('[data-dashboard-risks-list]');
     if (risksList) {
@@ -4786,13 +4809,18 @@ window.CRM.pageApiBindings = (function () {
     // ====== Reminders Widget ======
     var remindersList = document.querySelector('[data-dashboard-reminders-list]');
     if (remindersList) {
+      var remindersLoadError = remindersEnvelope && remindersEnvelope.success === false
+        ? window.CRM.i18n.t('js.pab.reminders_load_error', 'Failed to load reminders.')
+        : '';
       var remindersVisible = reminders.filter(function (item) {
         if (!item.remind_at) return false;
         var ms = Date.parse(String(item.remind_at).replace(' ', 'T'));
         return Number.isFinite(ms) && ms >= dayStart.getTime() && ms <= dayEnd.getTime();
       });
       var remindersShown = (remindersVisible.length ? remindersVisible : reminders).slice(0, 6);
-      if (!Array.isArray(remindersShown) || !remindersShown.length) {
+      if (remindersLoadError) {
+        remindersList.innerHTML = '<div class="text-danger small">' + remindersLoadError + '</div>';
+      } else if (!Array.isArray(remindersShown) || !remindersShown.length) {
         remindersList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today.') + '</div>';
       } else {
         remindersList.innerHTML = remindersShown.map(function (r) {
@@ -4810,6 +4838,9 @@ window.CRM.pageApiBindings = (function () {
     // ====== My Day Widget ======
     var myDayWidgetList = document.querySelector('[data-dashboard-myday-list]');
     if (myDayWidgetList) {
+      var myDayLoadError = myDayEnvelope && myDayEnvelope.success === false
+        ? window.CRM.i18n.t('js.pab.myday_load_error', 'Failed to load your day.')
+        : '';
       var myDayRows = [];
       (myDayEvents || []).forEach(function (ev) {
         if (!ev || !ev.title) return;
@@ -4827,7 +4858,9 @@ window.CRM.pageApiBindings = (function () {
           time: t.due_at || ''
         });
       });
-      if (!myDayRows.length) {
+      if (myDayLoadError) {
+        myDayWidgetList.innerHTML = '<div class="text-danger small">' + myDayLoadError + '</div>';
+      } else if (!myDayRows.length) {
         myDayWidgetList.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_events_today', 'No events or reminders scheduled today.') + '</div>';
       } else {
         myDayWidgetList.innerHTML = myDayRows.slice(0, 7).map(function (row) {
