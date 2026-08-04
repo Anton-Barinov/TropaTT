@@ -4067,6 +4067,7 @@ return array (
       'no_unassigned' => 'Todas las tareas abiertas tienen un responsable.',
       'unassigned_load_error' => 'No se pudieron cargar las tareas.',
       'view_all_unassigned' => 'Todas las tareas sin responsable',
+      'filter_unassigned' => 'Sin responsable',
       'enter_view_name' => 'Enter view name',
       'error' => 'Error',
       'errors' => 'errors:',

@@ -1879,6 +1879,7 @@ return array (
       'no_unassigned' => 'У всех открытых задач есть исполнитель.',
       'unassigned_load_error' => 'Не удалось загрузить задачи.',
       'view_all_unassigned' => 'Все задачи без исполнителя',
+      'filter_unassigned' => 'Без исполнителя',
       'enter_view_name' => 'Введите название представления',
       'error' => 'Ошибка',
       'errors' => 'ошибки:',

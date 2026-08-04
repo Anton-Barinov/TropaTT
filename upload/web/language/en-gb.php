@@ -1891,6 +1891,7 @@ return array (
       'no_unassigned' => 'All open tasks have an assignee.',
       'unassigned_load_error' => 'Failed to load tasks.',
       'view_all_unassigned' => 'View all unassigned',
+      'filter_unassigned' => 'Unassigned',
       'enter_view_name' => 'Enter view name',
       'error' => 'Error',
       'errors' => 'errors:',

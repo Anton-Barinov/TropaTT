@@ -1848,6 +1848,7 @@ return array (
       'no_unassigned' => '所有未完成任务均有负责人。',
       'unassigned_load_error' => '无法加载任务。',
       'view_all_unassigned' => '查看所有未分配任务',
+      'filter_unassigned' => '未分配',
       'enter_view_name' => 'Enter view name',
       'error' => 'Error',
       'errors' => 'errors:',

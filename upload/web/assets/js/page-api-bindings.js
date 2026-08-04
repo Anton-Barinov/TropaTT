@@ -3383,7 +3383,24 @@ window.CRM.pageApiBindings = (function () {
     var tasksManagerSelect = document.getElementById('tasksManagerFilter');
     if (tasksAssignSelect || tasksManagerSelect) {
       var taskUsers = Object.keys(userDirectoryMap).map(function (k) { return userDirectoryMap[k]; });
-      if (tasksAssignSelect) fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
+      if (tasksAssignSelect) {
+        fillSelect(tasksAssignSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
+        // ТЗ: опция «Без исполнителя» (assignee=none) для задач без назначенного
+        // пользователя — ставим сразу после плейсхолдера, чтобы не терялась
+        // в конце длинного списка пользователей.
+        var unassignedOption = document.createElement('option');
+        unassignedOption.value = 'none';
+        unassignedOption.textContent = window.CRM.i18n.t('js.pab.filter_unassigned', 'Без исполнителя');
+        if (tasksAssignSelect.options.length > 1) {
+          tasksAssignSelect.insertBefore(unassignedOption, tasksAssignSelect.options[1]);
+        } else {
+          tasksAssignSelect.appendChild(unassignedOption);
+        }
+        if (assigneeFilter === 'none' || assigneeFilter === 'unassigned') {
+          tasksAssignSelect.value = 'none';
+          syncSearchableSingleSelect(tasksAssignSelect);
+        }
+      }
       if (tasksManagerSelect) fillSelect(tasksManagerSelect, taskUsers, 'public_id', function (u) { return u.full_name || u.login; });
     }
     if (tasksProjectSelect) {
@@ -28507,6 +28524,26 @@ window.CRM.pageApiBindings = (function () {
       if (isMultiple) renderChips();
     });
     tagObserver.observe(select, { childList: true, subtree: true });
+  }
+
+  // Sync the visible searchable input (and clear button) after programmatically
+  // setting a value on the hidden select (e.g. assignee=none from URL).
+  function syncSearchableSingleSelect(select) {
+    if (!select || select.dataset.searchable !== '1') return;
+    var wrapper = select.previousElementSibling;
+    if (!wrapper || !wrapper.classList || !wrapper.classList.contains('crm-searchable-select')) return;
+    var input = wrapper.querySelector('.crm-searchable-input');
+    if (!input) return;
+    var opt = select.options[select.selectedIndex];
+    if (opt && select.value && opt.textContent) {
+      input.value = opt.textContent || opt.text || '';
+    } else {
+      input.value = '';
+    }
+    var clearBtn = wrapper.querySelector('.crm-searchable-clear');
+    if (clearBtn) {
+      clearBtn.style.display = (select.value && select.selectedIndex > 0) ? 'flex' : 'none';
+    }
   }
 
   function applySearchableSelects(root) {

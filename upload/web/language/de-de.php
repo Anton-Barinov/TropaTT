@@ -4067,6 +4067,7 @@ return array (
       'no_unassigned' => 'Alle offenen Aufgaben haben einen Bearbeiter.',
       'unassigned_load_error' => 'Aufgaben konnten nicht geladen werden.',
       'view_all_unassigned' => 'Alle Aufgaben ohne Bearbeiter',
+      'filter_unassigned' => 'Ohne Bearbeiter',
       'enter_view_name' => 'Enter view name',
       'error' => 'Error',
       'errors' => 'errors:',
