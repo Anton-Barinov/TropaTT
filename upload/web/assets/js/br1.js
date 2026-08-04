@@ -6711,6 +6711,17 @@ window.CRM.br1 = (function () {
       if (endInput) endInput.value = toDateInputValue(currentTask.end_at);
       if (descInput) descInput.value = currentTask.description || '';
 
+      // Sync searchable-select widgets (page-api-bindings.js makeSelectSearchable):
+      // they hide the native <select> and mirror the value into a visible input
+      // on 'change'. Setting .value directly does not fire 'change', so the
+      // visible input stays empty (e.g. Project field). Dispatch 'change' so
+      // the widget re-renders from the selected option.
+      [projectSelect, assigneeSelect].forEach(function (sel) {
+        if (sel && sel.dataset && sel.dataset.searchable === '1') {
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+
       if (tagsSelect && currentTaskTags) {
         var selectedTagIds = currentTaskTags.map(function (tag) { return String(tag.public_id || ''); });
         for (var i = 0; i < tagsSelect.options.length; i++) {
