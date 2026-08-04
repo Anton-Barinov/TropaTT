@@ -173,7 +173,8 @@ details.crm-ve-spoiler[open] > summary {
   top: calc(var(--crm-ve-toolbar-height) + 56px);
   gap: 10px;
   flex-wrap: wrap;
-  pointer-events: none;
+  pointer-events: auto;
+  z-index: 4;
 }
 
 .crm-ve-wrapper.is-empty .crm-ve-empty-actions {
@@ -192,7 +193,7 @@ details.crm-ve-spoiler[open] > summary {
   font-size: 13px;
   font-weight: 650;
   line-height: 1;
-  pointer-events: none;
+  pointer-events: auto;
   cursor: pointer;
 }
 
@@ -407,6 +408,7 @@ details.crm-ve-spoiler[open] > summary {
   width: 100%;
   height: auto;
   border-radius: 8px;
+  border: 1px solid #e0e0e0;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -459,6 +461,7 @@ details.crm-ve-spoiler[open] > summary {
   height: auto;
   max-width: 100%;
   border-radius: 12px;
+  border: 1px solid #e0e0e0;
 }
 
 .crm-ve-readonly-figure figcaption {
@@ -541,7 +544,7 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-image-toolbar {
-  position: fixed;
+  position: absolute;
   display: flex;
   align-items: center;
   gap: 2px;

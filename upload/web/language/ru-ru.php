@@ -8885,6 +8885,7 @@ return array (
     'quick_heading' => '# Заголовок',
     'quick_list' => '• Список',
     'quick_paste' => 'Ctrl+V скриншот',
+    'paste_hint' => 'Скопируйте скриншот, затем нажмите Ctrl+V в редакторе',
     'align_left' => 'По левому краю',
     'align_center' => 'По центру',
     'align_right' => 'По правому краю',

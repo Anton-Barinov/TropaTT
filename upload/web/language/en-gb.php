@@ -8885,6 +8885,7 @@ return array (
     'quick_heading' => '# Heading',
     'quick_list' => '• List',
     'quick_paste' => 'Ctrl+V screenshot',
+    'paste_hint' => 'Copy a screenshot, then press Ctrl+V in the editor',
     'align_left' => 'Align left',
     'align_center' => 'Center',
     'align_right' => 'Align right',

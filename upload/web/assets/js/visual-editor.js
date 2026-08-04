@@ -363,7 +363,7 @@ window.CRM.VisualEditor = (function () {
   //  Image Block creation
   // ---------------------------------------------------------------------------
 
-  function createImageBlock(src, alt, widthPercent, blockId) {
+  function createImageBlock(src, alt, widthPercent, blockId, readonly) {
     var bid = blockId || generateId();
     var figWidth = widthPercent ? '--crm-ve-image-width:' + widthPercent + '%' : '';
     var altText = alt || '';
@@ -391,7 +391,9 @@ window.CRM.VisualEditor = (function () {
 
     var figcaption = document.createElement('figcaption');
     figcaption.className = 'crm-ve-image-caption';
-    figcaption.setAttribute('contenteditable', 'true');
+    if (!readonly) {
+      figcaption.setAttribute('contenteditable', 'true');
+    }
     figcaption.textContent = altText;
 
     var frame = document.createElement('div');
@@ -971,7 +973,7 @@ window.CRM.VisualEditor = (function () {
       var width = data.width ? Number(data.width) : 0;
       var widthPct = width > 0 ? clamp(width, editorInstance._options.minImageWidth / editorInstance._content.clientWidth * 100, 100) : 75;
 
-      var newBlock = createImageBlock(src, alt, widthPct, blockId);
+      var newBlock = createImageBlock(src, alt, widthPct, blockId, editorInstance._options.readonly);
       if (placeholderBlock && placeholderBlock.parentNode) {
         placeholderBlock.parentNode.replaceChild(newBlock, placeholderBlock);
       } else {
@@ -1088,7 +1090,7 @@ window.CRM.VisualEditor = (function () {
           target.parentNode.replaceChild(placeholder, target);
           deselectImage(self2);
         } else {
-          self2._content.appendChild(placeholder);
+          self2._insertAtCaret(placeholder);
         }
         uploadImage(self2, files[i], placeholder).catch(function () {});
       }
@@ -1115,6 +1117,10 @@ window.CRM.VisualEditor = (function () {
         document.execCommand('formatBlock', false, '<h2>');
       } else if (action === 'list') {
         document.execCommand('insertUnorderedList', false, null);
+      } else if (action === 'paste') {
+        // The chip is a hint: focus the editor so the user can press Ctrl+V
+        // to paste a screenshot from the clipboard.
+        notify(t('visual_editor.paste_hint', 'Скопируйте скриншот, затем нажмите Ctrl+V в редакторе'), 'info');
       }
       self2._sync();
       self2._updateEmptyState();
@@ -1519,7 +1525,7 @@ window.CRM.VisualEditor = (function () {
       for (var i = 0; i < files.length; i++) {
         if (isImageFile(files[i])) {
           var placeholder = createUploadingPlaceholder(generateId());
-          self._content.appendChild(placeholder);
+          self._insertAtCaret(placeholder);
           uploadImage(self, files[i], placeholder).catch(function () {});
         }
       }
@@ -1543,7 +1549,7 @@ window.CRM.VisualEditor = (function () {
               var ext = src.split(';')[0].split('/')[1] || 'png';
               var file = new File([blob], 'pasted_image.' + ext, { type: blob.type });
               var ph = createUploadingPlaceholder(generateId());
-              self._content.appendChild(ph);
+              self._insertAtCaret(ph);
               uploadImage(self, file, ph).catch(function () {});
             } catch (ex) { /* skip invalid data URLs */ }
           }
@@ -1570,6 +1576,49 @@ window.CRM.VisualEditor = (function () {
     }
   };
 
+  // Insert a node at the current caret position inside the editor. Falls back
+  // to appending at the end when there is no usable selection.
+  // Image blocks are block-level <div>s: when the caret sits inside a <p>,
+  // insertNode would nest the <div> inside the <p> (invalid HTML the browser
+  // will not auto-split). We pull it out to the block level and keep a
+  // paragraph before and after so typing continues on its own line.
+  Editor.prototype._insertAtCaret = function (node) {
+    var content = this._content;
+    var sel = window.getSelection();
+    var inserted = false;
+    if (sel && sel.rangeCount && content.contains(sel.anchorNode)) {
+      var range = sel.getRangeAt(0);
+      if (range) {
+        range.deleteContents();
+        range.insertNode(node);
+
+        // Keep block-level images as siblings of <p>, never nested inside one.
+        var parent = node.parentNode;
+        if (parent && parent !== content && parent.tagName === 'P') {
+          parent.parentNode.insertBefore(node, parent.nextSibling);
+          if (!node.nextSibling || node.nextSibling.nodeType !== Node.ELEMENT_NODE) {
+            var p2 = document.createElement('p');
+            p2.innerHTML = '<br>';
+            node.parentNode.insertBefore(p2, node.nextSibling);
+          }
+          if (parent.innerHTML.trim() === '' || !parent.querySelector('br')) {
+            parent.appendChild(document.createElement('br'));
+          }
+        }
+
+        var after = document.createRange();
+        after.setStartAfter(node);
+        after.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(after);
+        inserted = true;
+      }
+    }
+    if (!inserted) {
+      content.appendChild(node);
+    }
+  };
+
   Editor.prototype._onDrop = function (e) {
     e.preventDefault();
     this._content.classList.remove('crm-ve-dragover');
@@ -1582,7 +1631,7 @@ window.CRM.VisualEditor = (function () {
     for (var i = 0; i < files.length; i++) {
       if (isImageFile(files[i])) {
         var placeholder = createUploadingPlaceholder(generateId());
-        self._content.appendChild(placeholder);
+        self._insertAtCaret(placeholder);
         uploadImage(self, files[i], placeholder).catch(function () {});
       }
     }
@@ -1658,7 +1707,7 @@ window.CRM.VisualEditor = (function () {
         continue;
       }
       var alt = img.getAttribute('alt') || '';
-      var block = createImageBlock(src, alt, 75, generateId());
+      var block = createImageBlock(src, alt, 75, generateId(), this._options.readonly);
       img.parentNode.replaceChild(block, img);
     }
   };
@@ -1747,7 +1796,7 @@ window.CRM.VisualEditor = (function () {
       var src = imgEl.getAttribute('src') || '';
       var bid = generateId();
 
-      var block = createImageBlock(src, alt, widthPct, bid);
+      var block = createImageBlock(src, alt, widthPct, bid, this._options.readonly);
       block.setAttribute('data-align', align);
       block.setAttribute('data-width', String(widthPct));
 
@@ -1880,6 +1929,8 @@ window.CRM.VisualEditor = (function () {
     if (prev !== null && prev !== undefined) {
       this._content.innerHTML = prev;
       this._sync();
+      this._updateActiveButtons();
+      this._updateEmptyState();
       return true;
     }
     return false;
@@ -1891,6 +1942,8 @@ window.CRM.VisualEditor = (function () {
     if (next !== null && next !== undefined) {
       this._content.innerHTML = next;
       this._sync();
+      this._updateActiveButtons();
+      this._updateEmptyState();
       return true;
     }
     return false;
@@ -2309,6 +2362,14 @@ window.CRM.VisualEditor = (function () {
       if (!trigger) return;
       scheduleRefresh(document);
     }, true);
+
+    // Ensure Enter inside the editor produces <p> blocks rather than <div>.
+    // The sanitizer strips <div>, which would silently merge separate lines
+    // into a single paragraph on save. Document-global, so set it once here
+    // (idempotent; all editors on the page share this behavior).
+    try {
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+    } catch (e) { /* older browsers: fall back to native behavior */ }
   }
 
   // Auto-init on DOMContentLoaded
