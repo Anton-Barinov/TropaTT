@@ -60,6 +60,7 @@ window.CRM.modals = (function () {
       <div class="modal-body"><div class="row g-3">\
         <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'E.g.: Prepare Q2 presentation') + '"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_project', 'Project') + '</label><select class="form-select" name="project_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_project', 'No project') + '</option></select></div>\
+        <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_client', 'Client') + '</label><select class="form-select" name="client_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_client', 'No client') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_status', 'Status') + '</label><select class="form-select" name="status"><option value="new">' + window.CRM.i18n.t('js.modal.status_new', 'New') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_priority', 'Priority') + '</label><select class="form-select" name="priority"><option value="normal">' + window.CRM.i18n.t('js.modal.priority_normal', 'Normal') + '</option><option value="low">' + window.CRM.i18n.t('js.modal.priority_low', 'Low') + '</option><option value="high">' + window.CRM.i18n.t('js.modal.priority_high', 'High') + '</option><option value="urgent">' + window.CRM.i18n.t('js.modal.priority_urgent', 'Urgent') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_assignee', 'Assignee') + '</label><select class="form-select" name="assignee_user_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_assignee', 'Not assigned') + '</option></select></div>\
@@ -81,6 +82,7 @@ window.CRM.modals = (function () {
       <div class="modal-body"><div class="row g-3">\
         <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'E.g.: Prepare Q2 presentation') + '"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_project', 'Project') + '</label><select class="form-select" name="project_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_project', 'No project') + '</option></select></div>\
+        <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_client', 'Client') + '</label><select class="form-select" name="client_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_client', 'No client') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_status', 'Status') + '</label><select class="form-select" name="status"><option value="new">' + window.CRM.i18n.t('js.modal.status_new', 'New') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_priority', 'Priority') + '</label><select class="form-select" name="priority"><option value="normal">' + window.CRM.i18n.t('js.modal.priority_normal', 'Normal') + '</option><option value="low">' + window.CRM.i18n.t('js.modal.priority_low', 'Low') + '</option><option value="high">' + window.CRM.i18n.t('js.modal.priority_high', 'High') + '</option><option value="urgent">' + window.CRM.i18n.t('js.modal.priority_urgent', 'Urgent') + '</option></select></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_assignee', 'Assignee') + '</label><select class="form-select" name="assignee_user_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_assignee', 'Not assigned') + '</option></select></div>\
@@ -151,11 +153,39 @@ window.CRM.modals = (function () {
 
   function injectGlobalOverlays() {
     if (document.getElementById('createTaskModal')) {
+      if (!document.getElementById('createProjectModal')) {
+        document.body.insertAdjacentHTML('beforeend', buildProjectOverlay());
+      }
       ensureProjectQuickPreviewDrawer();
       return;
     }
     document.body.insertAdjacentHTML('beforeend', buildOverlays());
+    if (!document.getElementById('createProjectModal')) {
+      document.body.insertAdjacentHTML('beforeend', buildProjectOverlay());
+    }
     ensureProjectQuickPreviewDrawer();
+  }
+
+  function buildProjectOverlay() {
+    return '\
+<div class="modal fade" id="createProjectModal" tabindex="-1" aria-hidden="true">\
+  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered"><div class="modal-content">\
+    <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.create_project', 'Create Project') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
+    <form id="createProjectForm" novalidate>\
+      <div class="modal-body"><div class="row g-3">\
+        <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_title', 'Title') + '</label><input class="form-control" name="title" maxlength="255" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_task', 'Project name') + '"></div>\
+        <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_status', 'Status') + '</label><select class="form-select" name="status"><option value="active">' + window.CRM.i18n.t('js.modal.status_active', 'Active') + '</option><option value="new">' + window.CRM.i18n.t('js.modal.status_new', 'New') + '</option><option value="planning">' + window.CRM.i18n.t('js.modal.status_planning', 'Planning') + '</option><option value="in_progress">' + window.CRM.i18n.t('js.modal.status_in_progress', 'In progress') + '</option><option value="blocked">' + window.CRM.i18n.t('js.modal.status_blocked', 'Blocked') + '</option><option value="done">' + window.CRM.i18n.t('js.modal.status_done', 'Done') + '</option></select></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_client', 'Client') + '</label><select class="form-select" name="client_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_client', 'No client') + '</option></select></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_team', 'Team') + '</label><select class="form-select" name="team_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_team', 'No team') + '</option></select></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_manager', 'Manager') + '</label><select class="form-select" name="manager_user_public_id"><option value="">' + window.CRM.i18n.t('js.modal.no_manager', 'No manager') + '</option></select></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_priority', 'Priority') + '</label><select class="form-select" name="priority"><option value="normal">' + window.CRM.i18n.t('js.modal.priority_normal', 'Normal') + '</option><option value="low">' + window.CRM.i18n.t('js.modal.priority_low', 'Low') + '</option><option value="high">' + window.CRM.i18n.t('js.modal.priority_high', 'High') + '</option><option value="urgent">' + window.CRM.i18n.t('js.modal.priority_urgent', 'Urgent') + '</option></select></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_task_key_prefix', 'Task key prefix') + '</label><input class="form-control" name="task_key_prefix" maxlength="10"></div>\
+        <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_description', 'Description') + '</label><textarea class="form-control" name="description" rows="4" data-crm-visual-editor="1" data-richtext-off="1"></textarea></div>\
+      </div></div>\
+      <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.modal.cancel', 'Cancel') + '</button><button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.modal.create', 'Create') + '</button></div>\
+    </form>\
+  </div></div>\
+</div>';
   }
 
   function bindActions() {

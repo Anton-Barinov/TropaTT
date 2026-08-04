@@ -651,7 +651,7 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
       + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
-      + '<td>' + safeText(item.client_title || '—') + '</td>'
+      + '<td>' + safeText(item.task_client_title || item.client_title || '—') + '</td>'
       + '<td>' + safeText(item.project_manager_name || item.project_manager_login || '—') + '</td>'
       + '<td>' + safeText(item.assignee_name || item.assignee_login || '—') + '</td>'
       + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
@@ -1132,7 +1132,7 @@ window.CRM.pageApiBindings = (function () {
     });
 
     function resolveProjectClientLabel(item) {
-      var direct = String(item && item.client_title || '').trim();
+      var direct = String(item && (item.task_client_title || item.client_title) || '').trim();
       if (direct) return direct;
       var clientId = String(item && item.client_public_id || '').trim();
       if (clientId && clientMap[clientId]) return clientMap[clientId];
@@ -1152,7 +1152,7 @@ window.CRM.pageApiBindings = (function () {
         if (state.status && String(item.status_code || '') !== state.status) return false;
         if (state.priority && String(item.priority_code || '') !== state.priority) return false;
         if (state.teamPublicId && String(item.team_public_id || '') !== state.teamPublicId) return false;
-        if (state.clientPublicId && String(item.client_public_id || '') !== state.clientPublicId) return false;
+        if (state.clientPublicId && (String(item.client_public_id || '') !== state.clientPublicId && String(item.task_client_public_id || '') !== state.clientPublicId)) return false;
         if (state.managerPublicId && String(item.manager_user_public_id || '') !== state.managerPublicId) return false;
 
         if (state.search) {
@@ -2803,7 +2803,7 @@ window.CRM.pageApiBindings = (function () {
       items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
     }
     if (clientFilter) {
-      items = items.filter(function (item) { return String(item.client_public_id || '') === clientFilter; });
+      items = items.filter(function (item) { return String(item.client_public_id || '') === clientFilter || String(item.task_client_public_id || '') === clientFilter; });
     }
     if (managerFilter) {
       items = items.filter(function (item) { return String(item.project_manager_user_public_id || '') === managerFilter; });
@@ -8284,6 +8284,7 @@ window.CRM.pageApiBindings = (function () {
       'bank_name',
       'address_legal',
       'address_postal',
+      'address_actual',
       'status',
       'notes'
     ];
@@ -9093,6 +9094,7 @@ window.CRM.pageApiBindings = (function () {
       'bank_name',
       'address_legal',
       'address_postal',
+      'address_actual',
       'status',
       'notes'
     ];
@@ -10510,6 +10512,7 @@ window.CRM.pageApiBindings = (function () {
       'bank_name',
       'address_legal',
       'address_postal',
+      'address_actual',
       'status',
       'notes'
     ];
@@ -23210,6 +23213,7 @@ window.CRM.pageApiBindings = (function () {
     if (titleNode) titleNode.textContent = String(cp.title || cp.legal_name || cp.email || cp.phone || tp('counterparty_detail.untitled', 'Untitled counterparty'));
     if (subtitleNode) subtitleNode.textContent = tp('counterparty_detail.type_prefix', 'Type: ') + cpTypeLabel(cp.counterparty_type);
 
+    setupCounterpartyCreateActions(cp, cpPublicId);
     setupMainEditModal(cp, cpPublicId);
     setupProfileEditModal(cp, cpPublicId);
     setupContactModal(cp, cpPublicId);
@@ -23273,6 +23277,42 @@ window.CRM.pageApiBindings = (function () {
     });
   }
 
+  function setupCounterpartyCreateActions(cp, cpPublicId) {
+    var taskBtn = document.getElementById('counterpartyCreateTaskBtn');
+    if (taskBtn) {
+      if (!hasPermission('task.manage')) {
+        taskBtn.classList.add('d-none');
+      } else {
+        taskBtn.addEventListener('click', function () {
+          window._taskClientPrefill = cp.public_id;
+          var modalEl = document.getElementById('createTaskModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          } else {
+            window.location.href = 'index.php?route=tasks';
+          }
+        });
+      }
+    }
+
+    var projectBtn = document.getElementById('counterpartyCreateProjectBtn');
+    if (projectBtn) {
+      if (!hasPermission('project.manage')) {
+        projectBtn.classList.add('d-none');
+      } else {
+        projectBtn.addEventListener('click', function () {
+          window._projectClientPrefill = cp.public_id;
+          var modalEl = document.getElementById('createProjectModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          } else {
+            window.location.href = 'index.php?route=projects';
+          }
+        });
+      }
+    }
+  }
+
   function setupMainEditModal(cp, cpPublicId) {
     var editLink = document.getElementById('counterpartyDetailEditBtn');
     var editModalNode = document.getElementById('counterpartyDetailEditModal');
@@ -23281,14 +23321,14 @@ window.CRM.pageApiBindings = (function () {
     if (!editLink || !editForm || !editModal) return;
 
     editLink.onclick = function () {
-      fillFormFields(editForm, cp, cpPublicId, ['public_id', 'title', 'counterparty_type', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'email', 'phone', 'website', 'messenger', 'address_legal', 'address_postal', 'status', 'notes']);
+      fillFormFields(editForm, cp, cpPublicId, ['public_id', 'title', 'counterparty_type', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'email', 'phone', 'website', 'messenger', 'address_legal', 'address_postal', 'address_actual', 'status', 'notes']);
       toggleTypeGroups(editForm, cp.counterparty_type);
       editModal.show();
     };
     if (editForm.dataset.bound !== '1') {
       editForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var payload = extractFormPayload(editForm, ['title', 'counterparty_type', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'email', 'phone', 'website', 'messenger', 'address_legal', 'address_postal', 'status', 'notes']);
+        var payload = extractFormPayload(editForm, ['title', 'counterparty_type', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'email', 'phone', 'website', 'messenger', 'address_legal', 'address_postal', 'address_actual', 'status', 'notes']);
         if (!payload.title) { notify(tp('counterparty_detail.title_required', 'Enter counterparty name'), 'warning'); return; }
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
@@ -23449,7 +23489,7 @@ window.CRM.pageApiBindings = (function () {
     window._counterpartyRequisitesData = { cp: cp, cpPublicId: cpPublicId };
 
     btn.onclick = function () {
-      fillFormFields(form, cp, cpPublicId, ['public_id', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal']);
+      fillFormFields(form, cp, cpPublicId, ['public_id', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal', 'address_actual']);
       toggleRequisiteTypeGroups(form, cp.counterparty_type);
       toggleRequisiteLocaleFields();
       modal.show();
@@ -23458,7 +23498,7 @@ window.CRM.pageApiBindings = (function () {
       setupDaDataInnAutocomplete();
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var payload = extractFormPayload(form, ['legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal']);
+        var payload = extractFormPayload(form, ['legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal', 'address_actual']);
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
           notify(tp('counterparty_detail.requisites_updated', 'Requisites updated'));
@@ -23840,7 +23880,8 @@ window.CRM.pageApiBindings = (function () {
       [tp('counterparty_detail.req_corr_account', 'Correspondent account / IBAN'), cp.bank_corr_account],
       [tp('counterparty_detail.req_bank_name', 'Bank'), cp.bank_name],
       [tp('counterparty_detail.req_address_legal', 'Legal address'), cp.address_legal],
-      [tp('counterparty_detail.req_address_postal', 'Postal address'), cp.address_postal]
+      [tp('counterparty_detail.req_address_postal', 'Postal address'), cp.address_postal],
+      [tp('counterparty_detail.req_address_actual', 'Actual address'), cp.address_actual]
     ];
 
     var filtered = reqFields.filter(function (entry) { return entry && hasDisplayValue(entry[1]); });

@@ -35,6 +35,7 @@ final class ClientService
         'messenger',
         'address_legal',
         'address_postal',
+        'address_actual',
         'notes',
         'email',
         'phone',

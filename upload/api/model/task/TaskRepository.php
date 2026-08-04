@@ -47,6 +47,8 @@ final class TaskRepository
                 'p.title AS project_title',
                 'p.client_public_id AS client_public_id',
                 'c.title AS client_title',
+                'tc.public_id AS task_client_public_id',
+                'tc.title AS task_client_title',
                 'p.team_public_id AS project_team_public_id',
                 'pt.title AS project_team_title',
                 'au.public_id AS assignee_user_public_id',
@@ -164,6 +166,8 @@ final class TaskRepository
         return (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
+            ->leftJoin('counterparties tc', 'tc.public_id', '=', 't.client_public_id')
             ->leftJoin('users cu', 'cu.id', '=', 't.creator_user_id')
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
@@ -175,6 +179,10 @@ final class TaskRepository
                 't.task_sequence_number',
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
+                'p.client_public_id AS client_public_id',
+                'c.title AS client_title',
+                'tc.public_id AS task_client_public_id',
+                'tc.title AS task_client_title',
                 'p.created_by_user_id AS project_creator_user_id',
                 'p.manager_user_id AS project_manager_user_id',
                 'p.team_public_id AS project_team_public_id',
@@ -354,6 +362,8 @@ final class TaskRepository
         return (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
+            ->leftJoin('counterparties tc', 'tc.public_id', '=', 't.client_public_id')
             ->leftJoin('users cu', 'cu.id', '=', 't.creator_user_id')
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
             ->leftJoin('users pm', 'pm.id', '=', 'p.manager_user_id')
@@ -365,6 +375,10 @@ final class TaskRepository
                 't.task_sequence_number',
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
+                'p.client_public_id AS client_public_id',
+                'c.title AS client_title',
+                'tc.public_id AS task_client_public_id',
+                'tc.title AS task_client_title',
                 'p.created_by_user_id AS project_creator_user_id',
                 'p.manager_user_id AS project_manager_user_id',
                 'p.team_public_id AS project_team_public_id',
@@ -569,7 +583,8 @@ final class TaskRepository
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
             ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
-            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id');
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
+            ->leftJoin('counterparties tc', 'tc.public_id', '=', 't.client_public_id');
 
         if (($filters['archived'] ?? '0') !== '1') {
             $qb->whereNull('t.archived_at')
@@ -610,7 +625,8 @@ final class TaskRepository
         }
 
         if (!empty($filters['client_public_id'])) {
-            $qb->where('p.client_public_id', '=', (string)$filters['client_public_id']);
+            $clientPublicId = (string)$filters['client_public_id'];
+            $qb->whereRaw('(p.client_public_id = ? OR t.client_public_id = ?)', [$clientPublicId, $clientPublicId]);
         }
 
         if (!empty($filters['team_public_id'])) {

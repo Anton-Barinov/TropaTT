@@ -27,6 +27,7 @@ window.CRM.br1 = (function () {
   var availableUsers = [];
   var availableProjects = [];
   var availableClients = [];
+  var availableClients = [];
   var availableTeams = [];
   var availableTaskStatuses = [];
   var currentProject = null;
@@ -1440,7 +1441,9 @@ window.CRM.br1 = (function () {
       var managerSelect = form.querySelector('[name="manager_user_public_id"]');
 
       if (clientSelect) {
-        var currentClient = String(clientSelect.value || '').trim();
+        var projectPrefill = window._projectClientPrefill || '';
+        window._projectClientPrefill = null;
+        var currentClient = projectPrefill || String(clientSelect.value || '').trim();
         clientSelect.innerHTML = [window.CRM.i18n.t('js.br1.option_value_bez_klienta_option', '<option value="">Без клиента</option>')].concat(availableClients.map(function (client) {
           return '<option value="' + escapeHtml(client.public_id || '') + '">' + escapeHtml(client.title || client.legal_name || client.public_id || window.CRM.i18n.t('js.br1.klient', 'Клиент')) + '</option>';
         })).join('');
@@ -1496,6 +1499,9 @@ window.CRM.br1 = (function () {
     if (modal && modal.dataset.boundCreateProject !== '1') {
       modal.addEventListener('show.bs.modal', function () {
         ensureProjectCreateDictionaries();
+      });
+      modal.addEventListener('hidden.bs.modal', function () {
+        window._projectClientPrefill = null;
       });
       modal.dataset.boundCreateProject = '1';
     }
@@ -1680,10 +1686,45 @@ window.CRM.br1 = (function () {
       }
     }
 
+    if (availableClients.length === 0) {
+      try {
+        var clientsEnvelope = await window.CRM.api.request('api/v1/clients', { query: { limit: 200 } });
+        availableClients = window.CRM.api.items(clientsEnvelope);
+      } catch (e) {
+        availableClients = [];
+      }
+    }
+
     renderCreateTaskProjectOptions();
+    renderCreateTaskClientOptions();
     renderCreateTaskAssigneeOptions();
     renderCreateTaskStatusOptions();
     renderCreateTaskTagOptions();
+  }
+
+  function renderCreateTaskClientOptions() {
+    var modal = document.getElementById('createTaskModal');
+    if (!modal) return;
+
+    var clientSelect = modal.querySelector('select[name="client_public_id"]');
+    if (!clientSelect) return;
+
+    var currentValue = clientSelect.value || '';
+    var options = [window.CRM.i18n.t('js.br1.option_value_bez_klienta_2', '<option value="">Без клиента</option>')].concat(availableClients.map(function (client) {
+      return '<option value="' + escapeHtml(client.public_id || '') + '">' + escapeHtml(client.title || client.legal_name || client.public_id || window.CRM.i18n.t('js.br1.klient', 'Клиент')) + '</option>';
+    }));
+    clientSelect.innerHTML = options.join('');
+    clientSelect.value = currentValue;
+  }
+
+  function applyCreateTaskPrefill() {
+    var prefill = window._taskClientPrefill || '';
+    if (!prefill) return;
+    window._taskClientPrefill = null;
+    var modal = document.getElementById('createTaskModal');
+    if (!modal) return;
+    var clientSelect = modal.querySelector('select[name="client_public_id"]');
+    if (clientSelect) clientSelect.value = prefill;
   }
 
   function primeCreateTaskDefaults() {
@@ -1728,9 +1769,11 @@ window.CRM.br1 = (function () {
       modal.addEventListener('show.bs.modal', async function () {
         await ensureCreateTaskDictionaries();
         primeCreateTaskDefaults();
+        applyCreateTaskPrefill();
       });
 
       modal.addEventListener('hidden.bs.modal', function () {
+        window._taskClientPrefill = null;
         primeCreateTaskDefaults();
       });
 
@@ -1743,6 +1786,7 @@ window.CRM.br1 = (function () {
         var endInput = form.querySelector('[name="end_at"]');
         var descInput = form.querySelector('[name="description"]');
         var projectSelect = form.querySelector('[name="project_public_id"]');
+        var clientSelect = form.querySelector('[name="client_public_id"]');
         var statusSelect = form.querySelector('[name="status"]');
         var prioritySelect = form.querySelector('[name="priority"]');
         var assigneeSelect = form.querySelector('[name="assignee_user_public_id"]');
@@ -1782,6 +1826,7 @@ window.CRM.br1 = (function () {
               due_at: normalizeDateTime(dueInput && dueInput.value ? dueInput.value : '', '18:00'),
               end_at: normalizeDateTime(endInput && endInput.value ? endInput.value : '', '18:00'),
               project_public_id: projectSelect && projectSelect.value ? String(projectSelect.value) : '',
+              client_public_id: clientSelect && clientSelect.value ? String(clientSelect.value) : '',
               status: statusSelect && statusSelect.value ? String(statusSelect.value) : 'new',
               priority: prioritySelect && prioritySelect.value ? String(prioritySelect.value) : 'normal'
             }
@@ -6808,6 +6853,7 @@ window.CRM.br1 = (function () {
       if (!currentTask) return;
       var titleInput = form.querySelector('[name="title"]');
       var projectSelect = form.querySelector('[name="project_public_id"]');
+      var clientSelect = form.querySelector('[name="client_public_id"]');
       var statusSelect = form.querySelector('[name="status"]');
       var prioritySelect = form.querySelector('[name="priority"]');
       var assigneeSelect = form.querySelector('[name="assignee_user_public_id"]');
@@ -6819,6 +6865,7 @@ window.CRM.br1 = (function () {
 
       if (titleInput) titleInput.value = currentTask.title || '';
       if (projectSelect) projectSelect.value = currentTask.project_public_id || '';
+      if (clientSelect) clientSelect.value = currentTask.task_client_public_id || currentTask.client_public_id || '';
       if (statusSelect) statusSelect.value = currentTask.status_code || 'new';
       if (prioritySelect) prioritySelect.value = currentTask.priority_code || 'normal';
       if (assigneeSelect) assigneeSelect.value = currentTask.assignee_user_public_id || '';
@@ -6832,7 +6879,7 @@ window.CRM.br1 = (function () {
       // on 'change'. Setting .value directly does not fire 'change', so the
       // visible input stays empty (e.g. Project field). Dispatch 'change' so
       // the widget re-renders from the selected option.
-      [projectSelect, assigneeSelect].forEach(function (sel) {
+      [projectSelect, assigneeSelect, clientSelect].forEach(function (sel) {
         if (sel && sel.dataset && sel.dataset.searchable === '1') {
           sel.dispatchEvent(new Event('change', { bubbles: true }));
         }
@@ -6857,6 +6904,7 @@ window.CRM.br1 = (function () {
 
       var titleInput = form.querySelector('[name="title"]');
       var projectSelect = form.querySelector('[name="project_public_id"]');
+      var clientSelect = form.querySelector('[name="client_public_id"]');
       var statusSelect = form.querySelector('[name="status"]');
       var prioritySelect = form.querySelector('[name="priority"]');
       var assigneeSelect = form.querySelector('[name="assignee_user_public_id"]');
@@ -6879,6 +6927,9 @@ window.CRM.br1 = (function () {
 
       var projectPublicId = projectSelect ? String(projectSelect.value || '').trim() : '';
       body.project_public_id = projectPublicId || null;
+
+      var clientPublicId = clientSelect ? String(clientSelect.value || '').trim() : '';
+      body.client_public_id = clientPublicId || null;
 
       var statusCode = statusSelect ? String(statusSelect.value || '').trim() : '';
       if (statusCode) body.status_code = statusCode;
@@ -6979,6 +7030,15 @@ window.CRM.br1 = (function () {
       }
     }
 
+    if (!availableClients || !availableClients.length) {
+      try {
+        var clientsEnv = await window.CRM.api.request('api/v1/clients', { query: { limit: 200 } });
+        availableClients = window.CRM.api.items(clientsEnv);
+      } catch (e) {
+        availableClients = [];
+      }
+    }
+
     if (!currentTaskTags || !currentTaskTags.length) {
       try {
         var tagsEnv = await window.CRM.api.request('api/v1/tasks/' + (currentTask && currentTask.public_id) + '/tags');
@@ -6999,6 +7059,17 @@ window.CRM.br1 = (function () {
         return '<option value="' + escapeHtml(p.public_id || '') + '"' + selected + '>' + escapeHtml(p.title || p.public_id || '') + '</option>';
       }));
       projectSelect.innerHTML = projectOptions.join('');
+    }
+
+    var clientSelect = form.querySelector('[name="client_public_id"]');
+    if (clientSelect) {
+      var clients = availableClients || [];
+      var currentClientId = currentTask ? (String(currentTask.task_client_public_id || '') || String(currentTask.client_public_id || '')) : '';
+      var clientOptions = [window.CRM.i18n.t('js.br1.option_value_bez_klienta_2', '<option value="">Без клиента</option>')].concat(clients.map(function (client) {
+        var sel = currentClientId && String(currentClientId) === String(client.public_id || '') ? ' selected' : '';
+        return '<option value="' + escapeHtml(client.public_id || '') + '"' + sel + '>' + escapeHtml(client.title || client.legal_name || client.public_id || '') + '</option>';
+      }));
+      clientSelect.innerHTML = clientOptions.join('');
     }
 
     var statusSelect = form.querySelector('[name="status"]');

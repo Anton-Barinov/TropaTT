@@ -120,9 +120,12 @@ final class TaskService
         $createdAt = !empty($input['created_at']) ? (string)$input['created_at'] : gmdate('Y-m-d H:i:s');
         $updatedAt = !empty($input['updated_at']) ? (string)$input['updated_at'] : $createdAt;
 
+        $directClientPublicId = trim((string)($input['client_public_id'] ?? ''));
+
         $this->tasks->create([
             'public_id' => $publicId,
             'project_id' => $projectId,
+            'client_public_id' => $directClientPublicId !== '' ? $directClientPublicId : null,
             'task_key' => $taskKey,
             'task_key_prefix' => $taskKeyPrefix,
             'task_sequence_number' => $taskSequenceNumber,
@@ -279,6 +282,10 @@ final class TaskService
                 }
                 $set['project_id'] = $projectId;
             }
+        }
+        if (array_key_exists('client_public_id', $input)) {
+            $directClientPublicId = trim((string)$input['client_public_id']);
+            $set['client_public_id'] = $directClientPublicId !== '' ? $directClientPublicId : null;
         }
         if (array_key_exists('archived', $input)) {
             $set['archived_at'] = (bool)$input['archived'] ? gmdate('Y-m-d H:i:s') : null;

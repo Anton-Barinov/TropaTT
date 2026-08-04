@@ -56,6 +56,8 @@ final class MigrationManager
             new TaskEstimatesMigration(),
             new KnowledgeSourceMetadataMigration(),
             new RateLimitsMigration(),
+            new CounterpartyAddressActualMigration(),
+            new TaskDirectClientMigration(),
         ];
     }
 

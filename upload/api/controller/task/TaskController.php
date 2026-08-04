@@ -6,6 +6,7 @@ namespace Api\Controller\Task;
 use Api\Controller\Common\BaseController;
 use Api\Model\Status\StatusRepository;
 use Api\System\Library\Service\CommentService;
+use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
 use Api\System\Library\Service\TaskService;
@@ -113,6 +114,11 @@ final class TaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
 
+        $clientCheck = $this->validateDirectClient((string)($input['client_public_id'] ?? ''), $authUser['user']);
+        if ($clientCheck !== null) {
+            return $clientCheck;
+        }
+
         return $this->withIdempotency(function () use ($authUser, $input): \Api\System\Library\Http\JsonResponse {
             /** @var TaskService $service */
             $service = $this->container->get('service.task');
@@ -202,6 +208,11 @@ final class TaskController extends BaseController
 
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
+        }
+
+        $clientCheck = $this->validateDirectClient((string)($input['client_public_id'] ?? ''), $authUser['user']);
+        if ($clientCheck !== null) {
+            return $clientCheck;
         }
 
         /** @var TaskService $service */
@@ -540,5 +551,29 @@ final class TaskController extends BaseController
         $status = $statuses->findByScopeAndCode('task', $statusCode);
 
         return $status !== null && (int)($status['is_active'] ?? 1) === 1;
+    }
+
+    /**
+     * Validate a direct task-to-client link (3.2): the client must exist and be visible to the actor.
+     * Returns an error response when the public_id is provided but not resolvable, otherwise null.
+     */
+    private function validateDirectClient(string $clientPublicId, array $actor): ?\Api\System\Library\Http\JsonResponse
+    {
+        $clientPublicId = trim($clientPublicId);
+        if ($clientPublicId === '') {
+            return null;
+        }
+
+        /** @var CounterpartyService $counterparties */
+        $counterparties = $this->container->get('service.counterparty');
+        if ($counterparties->get($clientPublicId, $actor) === null) {
+            $message = $this->t('common/messages.client_not_found', 'Client not found');
+
+            return $this->error('CLIENT_NOT_FOUND', $message, 404, [
+                'client_public_id' => [$message],
+            ]);
+        }
+
+        return null;
     }
 }
