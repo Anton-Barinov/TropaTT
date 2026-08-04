@@ -5169,7 +5169,7 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         function dayKey(value) {
-          var dt = new Date(String(value || '').replace(' ', 'T'));
+          var dt = value instanceof Date ? value : new Date(String(value || '').replace(' ', 'T'));
           if (!Number.isFinite(dt.getTime())) return '';
           return dt.getFullYear() + '-' + (dt.getMonth() + 1 < 10 ? '0' : '') + (dt.getMonth() + 1) + '-' + (dt.getDate() < 10 ? '0' : '') + dt.getDate();
         }
@@ -5201,12 +5201,16 @@ window.CRM.pageApiBindings = (function () {
         });
         // Use the backend-reported week range so displayed days always match
         // the fetched agenda even when server and client timezones differ.
+        // Build the date from parts to avoid UTC parsing shifts (new Date('YYYY-MM-DD')
+        // is interpreted as UTC and can land on the previous day in negative offsets).
         var weekStart = new Date();
         if (data.range && data.range.from) {
-          weekStart = new Date(String(data.range.from).replace(' ', 'T').slice(0, 10));
-          if (!Number.isFinite(weekStart.getTime())) weekStart = new Date();
+          var fromParts = String(data.range.from).slice(0, 10).split('-').map(Number);
+          if (fromParts.length === 3 && fromParts.every(Number.isFinite)) {
+            weekStart = new Date(fromParts[0], fromParts[1] - 1, fromParts[2]);
+          }
         }
-        if (Number.isNaN(weekStart.getTime())) weekStart = new Date();
+        if (!Number.isFinite(weekStart.getTime())) weekStart = new Date();
         var dow = weekStart.getDay();
         weekStart.setDate(weekStart.getDate() - dow + (dow === 0 ? -6 : 1));
         weekStart.setHours(0, 0, 0, 0);
