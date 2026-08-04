@@ -45,20 +45,9 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
 
     private function createIndexIfMissing(PDO $pdo, string $table, string $indexName, string $columns): void
     {
-        try {
-            IndexHelper::createIndexIfNotExists($pdo, $table, $indexName, $columns);
-            return;
-        } catch (\Throwable $e) {
-            error_log('[AiSuggestionsInputHashMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
-            // Continue to fallback branch for engines without IF NOT EXISTS.
-        }
-
-        try {
-            $pdo->exec(sprintf('CREATE INDEX %s ON %s (%s)', $indexName, $table, $columns));
-        } catch (\Throwable $e) {
-            error_log('[AiSuggestionsInputHashMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
-            // Best effort migration: ignore duplicate/unsupported index creation syntax.
-        }
+        // Driver-aware helper checks information_schema first (vanilla MySQL has
+        // no IF NOT EXISTS on CREATE INDEX) and swallows duplicate-index races.
+        IndexHelper::createIndexIfNotExists($pdo, $table, $indexName, $columns);
     }
 
     private function tableExists(PDO $pdo, string $driver, string $table): bool

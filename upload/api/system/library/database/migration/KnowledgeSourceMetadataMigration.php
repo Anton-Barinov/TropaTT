@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class KnowledgeSourceMetadataMigration implements MigrationInterface
@@ -157,29 +158,12 @@ final class KnowledgeSourceMetadataMigration implements MigrationInterface
 
     private function addSourceIndexes(PDO $pdo): void
     {
-        try {
-            $pdo->exec('CREATE INDEX idx_knowledge_pages_source ON knowledge_pages(source_type, source_id)');
-        } catch (\Throwable $e) {
-            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
-        }
-
-        try {
-            $pdo->exec('CREATE INDEX idx_knowledge_spaces_source ON knowledge_spaces(source_type, source_id)');
-        } catch (\Throwable $e) {
-            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
-        }
-
-        try {
-            $pdo->exec('CREATE INDEX idx_files_source ON files(source_type, source_id)');
-        } catch (\Throwable $e) {
-            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
-        }
-
-        try {
-            $pdo->exec('CREATE INDEX idx_knowledge_comments_source ON knowledge_comments(source_type, source_id)');
-        } catch (\Throwable $e) {
-            error_log('[KnowledgeSourceMetadataMigration::addSourceIndexes] CREATE INDEX: ' . $e->getMessage());
-        }
+        // Use the driver-aware helper: vanilla MySQL has no "IF NOT EXISTS" on
+        // CREATE INDEX, so existence is checked via information_schema first.
+        IndexHelper::createIndexIfNotExists($pdo, 'knowledge_pages', 'idx_knowledge_pages_source', 'source_type, source_id');
+        IndexHelper::createIndexIfNotExists($pdo, 'knowledge_spaces', 'idx_knowledge_spaces_source', 'source_type, source_id');
+        IndexHelper::createIndexIfNotExists($pdo, 'files', 'idx_files_source', 'source_type, source_id');
+        IndexHelper::createIndexIfNotExists($pdo, 'knowledge_comments', 'idx_knowledge_comments_source', 'source_type, source_id');
     }
 
     /** @return array<int,string> */

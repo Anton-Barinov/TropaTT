@@ -113,18 +113,8 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
 
     private function createIndexIfMissing(PDO $pdo, string $table, string $index, string $columns): void
     {
-        try {
-            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
-            return;
-        } catch (\Throwable $e) {
-            error_log('[ImportExportJobsQueueRuntimeMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
-        }
-
-        try {
-            $pdo->exec(sprintf('CREATE INDEX %s ON %s(%s)', $index, $table, $columns));
-        } catch (\Throwable $e) {
-            error_log('[ImportExportJobsQueueRuntimeMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());
-            // noop
-        }
+        // Driver-aware helper checks information_schema first (vanilla MySQL has
+        // no IF NOT EXISTS on CREATE INDEX) and swallows duplicate-index races.
+        IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
     }
 }

@@ -36,12 +36,8 @@ final class KnowledgeSpacesHierarchyMigration implements MigrationInterface
 
         $pdo->exec("ALTER TABLE knowledge_spaces ADD COLUMN parent_id {$colType} NULL");
 
-        if ($driver === 'mysql') {
-            try { $pdo->exec("CREATE INDEX idx_knowledge_spaces_parent ON knowledge_spaces (parent_id)"); } catch (\Throwable $e) {
-                error_log('[KnowledgeSpacesHierarchyMigration] CREATE INDEX failed: ' . $e->getMessage());
-            }
-        } else {
-            IndexHelper::createIndexIfNotExists($pdo, 'knowledge_spaces', 'idx_knowledge_spaces_parent', 'parent_id');
-        }
+        // Driver-aware helper: vanilla MySQL has no IF NOT EXISTS on CREATE
+        // INDEX, so existence is checked via information_schema first.
+        IndexHelper::createIndexIfNotExists($pdo, 'knowledge_spaces', 'idx_knowledge_spaces_parent', 'parent_id');
     }
 }
