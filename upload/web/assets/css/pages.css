@@ -16977,3 +16977,100 @@ a.task-tag:hover {
   color: var(--color-warning-600, #e67e00);
   margin-left: 4px;
 }
+
+/* ===== Dashboard: My Week widget ===== */
+.crm-dashboard-page .crm-week-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.crm-dashboard-page .crm-week-mini-day {
+  border: 1px solid #e5eaf0;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 96px;
+  background: #fff;
+}
+
+.crm-dashboard-page .crm-week-mini-day.is-today {
+  border-color: var(--crm-primary, #2563eb);
+  box-shadow: 0 0 0 1px var(--crm-primary, #2563eb);
+}
+
+.crm-dashboard-page .crm-week-mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+.crm-dashboard-page .crm-week-mini-day.is-today .crm-week-mini-head {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.crm-dashboard-page .crm-week-mini-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--crm-text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.crm-dashboard-page .crm-week-mini-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--crm-text, #0f172a);
+}
+
+.crm-dashboard-page .crm-week-mini-body {
+  padding: 6px;
+  min-height: 84px;
+}
+
+.crm-dashboard-page .crm-week-mini-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--crm-text, #0f172a);
+}
+
+.crm-dashboard-page .crm-week-mini-item i {
+  margin-top: 2px;
+  width: 10px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.crm-dashboard-page .crm-week-mini-item small {
+  display: block;
+  color: var(--crm-text-muted, #64748b);
+  margin-top: 1px;
+}
+
+.crm-dashboard-page .crm-week-mini-empty {
+  color: #cbd5e1;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 12px;
+}
+
+.crm-dashboard-page .crm-week-mini-more {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--crm-primary, #2563eb);
+  padding: 2px 6px;
+}
+
+@media (max-width: 767.98px) {
+  .crm-dashboard-page .crm-week-mini-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

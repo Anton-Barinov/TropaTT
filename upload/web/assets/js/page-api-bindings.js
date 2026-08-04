@@ -5037,6 +5037,220 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    // ====== Incoming Requests (Intake) widget ======
+    var intakeWidget = document.getElementById('dashboardIntakeWidget');
+    if (dashboardWidgetConfig.intake !== false && intakeWidget && hasPermission('intake.view')) {
+      function intakeStatusLabel(status) {
+        var map = {
+          pending: window.CRM.i18n.t('js.pab.intake_status_pending', 'New'),
+          accepted: window.CRM.i18n.t('js.pab.intake_status_accepted', 'Accepted'),
+          rejected: window.CRM.i18n.t('js.pab.intake_status_rejected', 'Rejected'),
+          snoozed: window.CRM.i18n.t('js.pab.intake_status_snoozed', 'Snoozed'),
+          duplicate: window.CRM.i18n.t('js.pab.intake_status_duplicate', 'Duplicate')
+        };
+        return map[String(status || '')] || status || '—';
+      }
+      function intakeStatusBadge(status) {
+        var cls = 'archived';
+        var s = String(status || '');
+        if (s === 'pending') cls = 'warning';
+        else if (s === 'accepted') cls = 'success';
+        else if (s === 'rejected' || s === 'duplicate') cls = 'archived';
+        else if (s === 'snoozed') cls = 'active';
+        return '<span class="crm-badge ' + cls + '">' + safeText(intakeStatusLabel(status)) + '</span>';
+      }
+      tryRequest('api/v1/intake-items', { query: { status: 'pending', limit: 6 }, silent: true }).then(function (env) {
+        var items = mapItems(env).slice(0, 6);
+        if (!items.length) {
+          intakeWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_pending_intake', 'No pending requests.') + '</div>';
+          return;
+        }
+        intakeWidget.innerHTML = items.map(function (item) {
+          var title = String(item.title || item.public_id || '');
+          var meta = [];
+          if (item.client_name) meta.push('<i class="fa-regular fa-building me-1" aria-hidden="true"></i>' + safeText(String(item.client_name)));
+          if (item.project_title) meta.push('<i class="fa-regular fa-folder-open me-1" aria-hidden="true"></i>' + safeText(String(item.project_title)));
+          if (item.due_at) meta.push(safeText(formatDate(item.due_at)));
+          return '<div class="crm-dashboard-overview-row is-intake">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="index.php?route=intake">' + safeText(title) + '</a></div>'
+            + '<div class="d-flex align-items-center gap-2 flex-shrink-0">' + intakeStatusBadge(item.status) + '</div>'
+            + '</div>'
+            + (meta.length ? '<div class="small text-muted mb-2" style="font-size:11px;">' + meta.join(' · ') + '</div>' : '');
+        }).join('')
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=intake">' + window.CRM.i18n.t('js.pab.open_intake', 'Open requests') + '</a>';
+      }).catch(function () {
+        intakeWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.intake_load_error', 'Failed to load requests.') + '</div>';
+      });
+    }
+
+    // ====== Recurring tasks widget ======
+    var recurringWidget = document.getElementById('dashboardRecurringWidget');
+    if (dashboardWidgetConfig.recurring !== false && recurringWidget && canManageTasks) {
+      function recurringEntityLabel(type) {
+        var map = {
+          task: window.CRM.i18n.t('js.pab.entity_task', 'Task'),
+          project: window.CRM.i18n.t('js.pab.entity_project', 'Project')
+        };
+        return map[String(type || '')] || type || '—';
+      }
+      tryRequest('api/v1/recurring', { query: { is_active: '1', limit: 8 }, silent: true }).then(function (env) {
+        var rules = mapItems(env).slice(0, 6);
+        if (!rules.length) {
+          recurringWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_active_recurring', 'No active recurring rules.') + '</div>';
+          return;
+        }
+        recurringWidget.innerHTML = rules.map(function (rule) {
+          var title = String(rule.title || rule.public_id || '');
+          var entity = recurringEntityLabel(rule.entity_type);
+          var lastRun = rule.last_processed_at ? formatDate(rule.last_processed_at) : '';
+          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<div class="small text-truncate">'
+            + '<i class="fa-solid fa-arrows-rotate me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>'
+            + '<a class="text-reset text-decoration-none" href="index.php?route=recurring">' + safeText(title) + '</a>'
+            + '</div>'
+            + '<span class="small text-muted flex-shrink-0">' + safeText(entity) + (lastRun ? ' · ' + safeText(lastRun) : '') + '</span>'
+            + '</div>';
+        }).join('')
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=recurring">' + window.CRM.i18n.t('js.pab.open_recurring', 'Open recurring tasks') + '</a>';
+      }).catch(function () {
+        recurringWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.recurring_load_error', 'Failed to load recurring rules.') + '</div>';
+      });
+    }
+
+    // ====== Mentions widget ======
+    var mentionsWidget = document.getElementById('dashboardMentionsWidget');
+    if (dashboardWidgetConfig.mentions !== false && mentionsWidget && canManageTasks) {
+      function mentionEntityLabel(type) {
+        var map = {
+          task: window.CRM.i18n.t('js.pab.entity_task', 'Task'),
+          project: window.CRM.i18n.t('js.pab.entity_project', 'Project'),
+          comment: window.CRM.i18n.t('js.pab.entity_comment', 'Comment')
+        };
+        return map[String(type || '')] || type || '—';
+      }
+      tryRequest('api/v1/mentions', { query: { limit: 8 }, silent: true }).then(function (env) {
+        var items = mapItems(env).slice(0, 6);
+        if (!items.length) {
+          mentionsWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_mentions', 'No mentions yet.') + '</div>';
+          return;
+        }
+        mentionsWidget.innerHTML = items.map(function (item) {
+          var type = String(item.entity_type || '');
+          var id = String(item.entity_public_id || '');
+          var href = '';
+          if (type === 'task' && id) href = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(id);
+          else if (type === 'project' && id) href = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(id);
+          else href = 'index.php?route=mentions';
+          var label = safeText(mentionEntityLabel(type));
+          var when = item.created_at ? dateTimeLabel(item.created_at) : '';
+          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="' + href + '"><i class="fa-solid fa-at me-1 text-muted" aria-hidden="true" style="font-size:0.7rem"></i>' + label + '</a></div>'
+            + (when ? '<span class="small text-muted flex-shrink-0">' + safeText(when) + '</span>' : '')
+            + '</div>';
+        }).join('')
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=mentions">' + window.CRM.i18n.t('js.pab.open_mentions', 'All mentions') + '</a>';
+      }).catch(function () {
+        mentionsWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.mentions_load_error', 'Failed to load mentions.') + '</div>';
+      });
+    }
+
+    // ====== My Week widget ======
+    var myWeekWidget = document.getElementById('dashboardMyWeekWidget');
+    if (dashboardWidgetConfig.my_week !== false && myWeekWidget && canManageTasks) {
+      tryRequest('api/v1/calendar/my-week', { silent: true }).then(function (env) {
+        var data = env && env.data ? env.data : {};
+        var events = Array.isArray(data.events) ? data.events : [];
+        var tasksDue = Array.isArray(data.tasks_due) ? data.tasks_due : [];
+        var reminders = Array.isArray(data.reminders) ? data.reminders : [];
+        var summary = data.summary || {};
+        var hasAny = events.length || tasksDue.length || reminders.length;
+        if (!hasAny) {
+          myWeekWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_week_items', 'Nothing scheduled for this week.') + '</div>';
+          return;
+        }
+        function dayKey(value) {
+          var dt = new Date(String(value || '').replace(' ', 'T'));
+          if (!Number.isFinite(dt.getTime())) return '';
+          return dt.getFullYear() + '-' + (dt.getMonth() + 1 < 10 ? '0' : '') + (dt.getMonth() + 1) + '-' + (dt.getDate() < 10 ? '0' : '') + dt.getDate();
+        }
+        var byDay = {};
+        function pushRow(key, icon, text, when, href) {
+          if (!key) return;
+          if (!byDay[key]) byDay[key] = [];
+          byDay[key].push({ icon: icon, text: text, when: when, href: href });
+        }
+        events.forEach(function (ev) {
+          if (!ev || !ev.title) return;
+          pushRow(dayKey(ev.starts_at || ev.ends_at), 'fa-regular fa-calendar', String(ev.title), ev.starts_at || ev.ends_at || '', '');
+        });
+        tasksDue.forEach(function (t) {
+          if (!t || !t.title) return;
+          pushRow(
+            dayKey(t.due_at),
+            'fa-solid fa-list-check',
+            String(t.title),
+            t.due_at || '',
+            t.public_id ? taskLink(t.public_id) : ''
+          );
+        });
+        reminders.forEach(function (r) {
+          if (!r) return;
+          var reminderTitle = String(r.task_title || r.title || '').trim();
+          if (!reminderTitle) return;
+          pushRow(dayKey(r.remind_at), 'fa-solid fa-bell', reminderTitle, r.remind_at || '', '');
+        });
+        // Use the backend-reported week range so displayed days always match
+        // the fetched agenda even when server and client timezones differ.
+        var weekStart = new Date();
+        if (data.range && data.range.from) {
+          weekStart = new Date(String(data.range.from).replace(' ', 'T').slice(0, 10));
+          if (!Number.isFinite(weekStart.getTime())) weekStart = new Date();
+        }
+        if (Number.isNaN(weekStart.getTime())) weekStart = new Date();
+        var dow = weekStart.getDay();
+        weekStart.setDate(weekStart.getDate() - dow + (dow === 0 ? -6 : 1));
+        weekStart.setHours(0, 0, 0, 0);
+        var days = [];
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+          days.push(d);
+        }
+        var todayKey = dayKey(new Date());
+        var dayHtml = days.map(function (d) {
+          var key = dayKey(d);
+          var rows = byDay[key] || [];
+          var isToday = key === todayKey;
+          var dayLabel = d.toLocaleDateString(tpLocale('ru-RU'), { weekday: 'short' }).replace('.', '');
+          var dateNum = d.getDate();
+          var body = rows.length
+            ? rows.slice(0, 3).map(function (row) {
+                return '<div class="crm-week-mini-item">'
+                  + '<i class="' + row.icon + ' text-muted" aria-hidden="true"></i>'
+                  + (row.href
+                    ? '<a class="text-reset text-decoration-none" href="' + row.href + '">' + safeText(row.text) + '</a>'
+                    : '<span>' + safeText(row.text) + '</span>')
+                  + (row.when ? '<small>' + safeText(dateTimeLabel(row.when)) + '</small>' : '')
+                  + '</div>';
+              }).join('')
+              + (rows.length > 3 ? '<div class="crm-week-mini-more">+' + (rows.length - 3) + '</div>' : '')
+            : '<div class="crm-week-mini-empty">—</div>';
+          return '<div class="crm-week-mini-day' + (isToday ? ' is-today' : '') + '">'
+            + '<div class="crm-week-mini-head"><span class="crm-week-mini-name">' + safeText(dayLabel) + '</span><span class="crm-week-mini-num">' + safeText(String(dateNum)) + '</span></div>'
+            + '<div class="crm-week-mini-body">' + body + '</div>'
+            + '</div>';
+        }).join('');
+        var stats = [];
+        if (summary.events_count) stats.push('<span class="crm-chip">' + window.CRM.i18n.t('js.pab.week_events', 'Events') + ': ' + safeText(String(summary.events_count)) + '</span>');
+        if (summary.tasks_due_count) stats.push('<span class="crm-chip">' + window.CRM.i18n.t('js.pab.week_tasks', 'Tasks') + ': ' + safeText(String(summary.tasks_due_count)) + '</span>');
+        if (summary.reminders_count) stats.push('<span class="crm-chip">' + window.CRM.i18n.t('js.pab.week_reminders', 'Reminders') + ': ' + safeText(String(summary.reminders_count)) + '</span>');
+        myWeekWidget.innerHTML = (stats.length ? '<div class="d-flex flex-wrap gap-2 mb-2">' + stats.join('') + '</div>' : '')
+          + '<div class="crm-week-mini-grid">' + dayHtml + '</div>'
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=my-week">' + window.CRM.i18n.t('js.pab.open_my_week', 'Open my week') + '</a>';
+      }).catch(function () {
+        myWeekWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.my_week_load_error', 'Failed to load the week.') + '</div>';
+      });
+    }
+
     var aiDigestCard = document.getElementById('dashboardAiDigestCard');
     var aiDigestMeta = document.getElementById('dashboardAiDigestMeta');
     var aiDigestSummaryNode = document.getElementById('dashboardAiDigestSummary');

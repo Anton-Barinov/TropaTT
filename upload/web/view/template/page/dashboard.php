@@ -314,6 +314,42 @@
           <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="intake">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_intake"><?= htmlspecialchars($t('dashboard.widget_intake', 'Входящие заявки'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <a href="index.php?route=intake" data-i18n="dashboard.intake_more"><?= htmlspecialchars($t('dashboard.intake_more', 'Все заявки'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+        <div id="dashboardIntakeWidget" data-dashboard-intake-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="recurring">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_recurring"><?= htmlspecialchars($t('dashboard.widget_recurring', 'Повторяющиеся задачи'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <a href="index.php?route=recurring" data-i18n="dashboard.recurring_more"><?= htmlspecialchars($t('dashboard.recurring_more', 'Все правила'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+        <div id="dashboardRecurringWidget" data-dashboard-recurring-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-4" data-dashboard-widget="mentions">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_mentions"><?= htmlspecialchars($t('dashboard.widget_mentions', 'Мои упоминания'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <a href="index.php?route=mentions" data-i18n="dashboard.mentions_more"><?= htmlspecialchars($t('dashboard.mentions_more', 'Все упоминания'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+        <div id="dashboardMentionsWidget" data-dashboard-mentions-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-12" data-dashboard-widget="my_week">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_my_week"><?= htmlspecialchars($t('dashboard.widget_my_week', 'Моя неделя'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <a href="index.php?route=my-week" data-i18n="dashboard.my_week_more"><?= htmlspecialchars($t('dashboard.my_week_more', 'Открыть неделю'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+        <div id="dashboardMyWeekWidget" data-dashboard-my-week-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
       </div>
 
       <div id="dashboardWidgetPool" hidden></div>
