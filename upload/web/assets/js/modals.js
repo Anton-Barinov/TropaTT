@@ -156,6 +156,9 @@ window.CRM.modals = (function () {
       if (!document.getElementById('createProjectModal')) {
         document.body.insertAdjacentHTML('beforeend', buildProjectOverlay());
       }
+      if (!document.getElementById('quickClientCreateModal')) {
+        document.body.insertAdjacentHTML('beforeend', buildQuickClientOverlay());
+      }
       ensureProjectQuickPreviewDrawer();
       return;
     }
@@ -163,7 +166,29 @@ window.CRM.modals = (function () {
     if (!document.getElementById('createProjectModal')) {
       document.body.insertAdjacentHTML('beforeend', buildProjectOverlay());
     }
+    if (!document.getElementById('quickClientCreateModal')) {
+      document.body.insertAdjacentHTML('beforeend', buildQuickClientOverlay());
+    }
     ensureProjectQuickPreviewDrawer();
+  }
+
+  function buildQuickClientOverlay() {
+    return '\
+<div class="modal fade" id="quickClientCreateModal" tabindex="-1" aria-hidden="true">\
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">\
+    <div class="modal-header"><h5 class="modal-title">' + window.CRM.i18n.t('js.modal.quick_client_title', 'Quick create client') + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + window.CRM.i18n.t('js.modal.close', 'Close') + '"></button></div>\
+    <form id="quickClientCreateForm" novalidate>\
+      <div class="modal-body"><div class="row g-3">\
+        <div class="col-12 d-none" data-quick-client-error-summary></div>\
+        <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.quick_client_label_type', 'Type') + '</label><select class="form-select" name="client_type"><option value="individual">' + window.CRM.i18n.t('js.modal.quick_client_type_individual', 'Individual') + '</option><option value="sole_proprietor">' + window.CRM.i18n.t('js.modal.quick_client_type_sole_proprietor', 'Sole proprietor') + '</option><option value="legal_entity">' + window.CRM.i18n.t('js.modal.quick_client_type_legal_entity', 'Legal entity') + '</option></select></div>\
+        <div class="col-md-8"><label class="form-label">' + window.CRM.i18n.t('js.modal.quick_client_label_title', 'Name') + '</label><input class="form-control" name="title" maxlength="255" required></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_email', 'Email') + '</label><input class="form-control" type="email" name="email" maxlength="190"></div>\
+        <div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_phone', 'Phone') + '</label><input class="form-control" name="phone" maxlength="64"></div>\
+      </div></div>\
+      <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.modal.cancel', 'Cancel') + '</button><button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.modal.quick_client_create', 'Create client') + '</button></div>\
+    </form>\
+  </div></div>\
+</div>';
   }
 
   function buildProjectOverlay() {

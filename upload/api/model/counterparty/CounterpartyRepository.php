@@ -41,7 +41,8 @@ final class CounterpartyRepository
 
         if (!empty($filters['search'])) {
             $search = '%' . (string)$filters['search'] . '%';
-            $query->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ? OR cp.website LIKE ?)', [$search, $search, $search, $search, $search, $search]);
+            // ТЗ 6.5: кастомные поля (extra_attributes) участвуют в поиске.
+            $query->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ? OR cp.website LIKE ? OR cp.extra_attributes LIKE ?)', [$search, $search, $search, $search, $search, $search, $search]);
         }
 
         if (!empty($filters['status'])) {

@@ -22,6 +22,34 @@ window.CRM.pageApiBindings = (function () {
     return window.CRM.br1 ? window.CRM.br1.safeText(value) : String(value || '');
   }
 
+  function renderExtraChips(extra) {
+    // ТЗ 6.5: кастомные поля (extra_attributes) в табличном списке контрагентов/клиентов.
+    if (!extra) return '<span class="text-muted">—</span>';
+    var parsed = extra;
+    if (typeof extra === 'string') {
+      try {
+        parsed = JSON.parse(extra);
+      } catch (e) {
+        parsed = null;
+      }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return '<span class="text-muted">—</span>';
+    }
+    var entries = Object.keys(parsed).map(function (k) {
+      var v = parsed[k];
+      return [String(k), v === null || v === undefined ? '' : String(v)];
+    }).filter(function (pair) { return pair[1] !== ''; });
+    if (!entries.length) return '<span class="text-muted">—</span>';
+    var visible = entries.slice(0, 3).map(function (pair) {
+      return '<span class="badge text-bg-light border crm-extra-chip">' + safeText(pair[0]) + ': ' + safeText(pair[1]) + '</span>';
+    }).join(' ');
+    if (entries.length > 3) {
+      visible += ' <span class="badge text-bg-secondary">+' + (entries.length - 3) + '</span>';
+    }
+    return '<div class="d-flex flex-wrap gap-1">' + visible + '</div>';
+  }
+
   function stripHtmlText(value) {
     if (window.CRM.text && typeof window.CRM.text.stripHtml === 'function') {
       return window.CRM.text.stripHtml(value);
@@ -8551,7 +8579,7 @@ window.CRM.pageApiBindings = (function () {
     var tableBody = document.getElementById('clientsTableBody');
     if (tableBody) {
       if (!clients.length) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10" class="text-muted">' + tp('clients.empty_table', 'Clients not found.') + '</td></tr>';
       } else {
         tableBody.innerHTML = clients.map(function (client) {
           var id = String(client.public_id || '').trim();
@@ -8563,6 +8591,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(client.tax_inn || '—') + '</td>'
             + '<td>' + safeText(client.email || '—') + '</td>'
             + '<td>' + safeText(client.phone || client.phone_number || '—') + '</td>'
+            + '<td>' + renderExtraChips(client.extra_attributes) + '</td>'
             + '<td><span class="crm-badge ' + clientStatusClass(statusCode) + '">' + safeText(clientStatusLabel(statusCode || '—')) + '</span></td>'
             + '<td>' + safeText(formatDate(client.updated_at)) + '</td>'
             + '<td><div class="crm-client-actions">'
@@ -9357,7 +9386,7 @@ window.CRM.pageApiBindings = (function () {
     var tableBody = document.getElementById('counterpartiesTableBody');
     if (tableBody) {
       if (!counterparties.length) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10" class="text-muted">' + tp('counterparties.empty_table', 'Counterparties not found.') + '</td></tr>';
       } else {
         tableBody.innerHTML = counterparties.map(function (cp) {
           var id = String(cp.public_id || '').trim();
@@ -9369,6 +9398,7 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(cp.tax_inn || '—') + '</td>'
             + '<td>' + safeText(cp.email || '—') + '</td>'
             + '<td>' + safeText(cp.phone || '—') + '</td>'
+            + '<td>' + renderExtraChips(cp.extra_attributes) + '</td>'
             + '<td><span class="crm-badge ' + counterpartyStatusClass(statusCode) + '">' + safeText(counterpartyStatusLabel(statusCode || '—')) + '</span></td>'
             + '<td>' + safeText(formatDate(cp.updated_at)) + '</td>'
             + '<td><div class="crm-counterparty-actions">'

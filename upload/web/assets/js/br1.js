@@ -1752,6 +1752,114 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function enhanceClientSelects() {
+    // ТЗ 3.1: кнопка «+ Создать» рядом с селектом клиента (формы проекта и задачи).
+    if (!hasPermission('client.manage')) return;
+    document.querySelectorAll('select[name="client_public_id"]').forEach(function (select) {
+      if (!select || select.dataset.quickEnhanced === '1') return;
+      if (!select.closest('form')) return;
+      select.dataset.quickEnhanced = '1';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm crm-btn-secondary crm-quick-client-btn mt-1';
+      btn.setAttribute('data-quick-client-create', '1');
+      btn.title = window.CRM.i18n.t('js.br1.quick_client_btn_aria', 'Создать клиента');
+      btn.textContent = window.CRM.i18n.t('js.br1.quick_client_btn', '+ Создать');
+      select.insertAdjacentElement('afterend', btn);
+    });
+  }
+
+  function initQuickClientCreate() {
+    if (window._quickClientBound === '1') return;
+    window._quickClientBound = '1';
+
+    document.addEventListener('click', function (e) {
+      var trigger = e.target.closest('[data-quick-client-create]');
+      if (!trigger) return;
+      e.preventDefault();
+      if (!hasPermission('client.manage')) {
+        notify(window.CRM.i18n.t('js.br1.quick_client_no_perm', 'Недостаточно прав для создания клиента'), 'warning');
+        return;
+      }
+      var form = trigger.closest('form');
+      var targetSelect = form ? form.querySelector('select[name="client_public_id"]') : null;
+      if (!targetSelect) return;
+      window._quickClientTargetSelect = targetSelect;
+
+      var quickForm = document.getElementById('quickClientCreateForm');
+      if (quickForm) quickForm.reset();
+      var modalEl = document.getElementById('quickClientCreateModal');
+      if (modalEl) {
+        var clearTarget = function () { window._quickClientTargetSelect = null; };
+        modalEl.removeEventListener('hidden.bs.modal', clearTarget);
+        modalEl.addEventListener('hidden.bs.modal', clearTarget);
+        if (window.bootstrap && window.bootstrap.Modal) {
+          window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+      }
+    });
+
+    var quickForm = document.getElementById('quickClientCreateForm');
+    if (quickForm && quickForm.dataset.bound !== '1') {
+      quickForm.addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        var titleInput = quickForm.querySelector('[name="title"]');
+        var title = titleInput ? String(titleInput.value || '').trim() : '';
+        if (!title) {
+          notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_klienta', 'Введите название клиента'), 'warning');
+          return;
+        }
+        var typeInput = quickForm.querySelector('[name="client_type"]');
+        var emailInput = quickForm.querySelector('[name="email"]');
+        var phoneInput = quickForm.querySelector('[name="phone"]');
+        var submitBtn = quickForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          var envelope = await window.CRM.api.request('api/v1/clients', {
+            method: 'POST',
+            body: {
+              title: title,
+              client_type: typeInput ? String(typeInput.value || 'individual') : 'individual',
+              email: emailInput ? String(emailInput.value || '').trim() : '',
+              phone: phoneInput ? String(phoneInput.value || '').trim() : ''
+            }
+          });
+          var client = (envelope && envelope.data && envelope.data.client) || {};
+          var clientPublicId = String(client.public_id || '');
+          var targetSelect = window._quickClientTargetSelect;
+          window._quickClientTargetSelect = null;
+          if (clientPublicId && targetSelect) {
+            var exists = Array.prototype.some.call(targetSelect.options, function (opt) { return String(opt.value || '') === clientPublicId; });
+            if (!exists) {
+              var opt = document.createElement('option');
+              opt.value = clientPublicId;
+              opt.textContent = client.title || client.legal_name || clientPublicId;
+              targetSelect.appendChild(opt);
+            }
+            targetSelect.value = clientPublicId;
+            if (targetSelect.dataset && targetSelect.dataset.searchable === '1') {
+              targetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+          if (typeof availableClients !== 'undefined' && Array.isArray(availableClients)) {
+            availableClients.push(client);
+          }
+          var modalEl = document.getElementById('quickClientCreateModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+          }
+          notify(window.CRM.i18n.t('js.br1.quick_client_created', 'Клиент создан'));
+        } catch (error) {
+          var envelope = error && error.envelope ? error.envelope : null;
+          notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.quick_client_error', 'Не удалось создать клиента'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+      quickForm.dataset.bound = '1';
+    }
+  }
+
   function initTaskCreateFlow() {
     var modal = document.getElementById('createTaskModal');
     var form = document.getElementById('createTaskForm');
@@ -7362,6 +7470,8 @@ window.CRM.br1 = (function () {
       initProjectCreateFlow();
       initTaskCreateFlow();
       initCalendarEventCreateFlow();
+      enhanceClientSelects();
+      initQuickClientCreate();
       if (window.CRM.navigation && typeof window.CRM.navigation.init === 'function') {
         window.CRM.navigation.init();
       }
