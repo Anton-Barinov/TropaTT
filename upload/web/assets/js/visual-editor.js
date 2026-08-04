@@ -1144,6 +1144,8 @@ window.CRM.VisualEditor = (function () {
           self._execLink();
         } else if (cmd === 'insertImage') {
           self._execImageUpload();
+        } else if (cmd === 'inlineCode') {
+          self._execInlineCode();
         } else {
           document.execCommand(cmd, false, value || null);
         }
@@ -1165,7 +1167,7 @@ window.CRM.VisualEditor = (function () {
     addBtn('<strong>B</strong>', t('visual_editor.bold', 'Bold'), 'bold');
     addBtn('<em>I</em>', t('visual_editor.italic', 'Italic'), 'italic');
     addBtn('<s>S</s>', t('visual_editor.strike', 'Strikethrough'), 'strikeThrough');
-    addBtn('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Inline code'), 'insertHTML', '<code>' + t('visual_editor.code', 'code') + '</code>');
+    addBtn('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Inline code'), 'inlineCode');
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
       t('visual_editor.link', 'Link'),
@@ -1266,6 +1268,48 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype._execImageUpload = function () {
     this._replaceTarget = null;
     this._fileInput.click();
+  };
+
+  // Inline code (</>): wraps the current selection in <code> or, without a
+  // selection, inserts an empty <code> and puts the caret inside so the user
+  // can start typing code immediately. The previous insertHTML approach
+  // replaced the selection with a placeholder word, which looked like the
+  // comment content was erased.
+  Editor.prototype._execInlineCode = function () {
+    var selection = window.getSelection();
+    var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range) return;
+
+    if (range.collapsed) {
+      var emptyCode = document.createElement('code');
+      emptyCode.appendChild(document.createTextNode(''));
+      range.insertNode(emptyCode);
+      var caretRange = document.createRange();
+      caretRange.setStart(emptyCode.firstChild, 0);
+      caretRange.setEnd(emptyCode.firstChild, 0);
+      selection.removeAllRanges();
+      selection.addRange(caretRange);
+      return;
+    }
+
+    // Selection spanning block-level content: fall back to a <pre> code block
+    // (native formatBlock handles multi-block selections reliably).
+    var fragment = range.cloneContents();
+    if (fragment.querySelector('p, div, h1, h2, h3, h4, li, pre, blockquote, ul, ol')) {
+      document.execCommand('formatBlock', false, '<pre>');
+      return;
+    }
+
+    // Inline selection: wrap the selected text in <code>, preserving content.
+    var code = document.createElement('code');
+    code.appendChild(fragment);
+    range.deleteContents();
+    range.insertNode(code);
+    var afterRange = document.createRange();
+    afterRange.setStartAfter(code);
+    afterRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(afterRange);
   };
 
   Editor.prototype._bindEvents = function () {
