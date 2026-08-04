@@ -1,7 +1,18 @@
 window.CRM = window.CRM || {};
+/*
+ * Rich-text field enhancement — DELEGATED path.
+ *
+ * Plain <textarea>s with a "description"-like intent are handed off to the
+ * full visual editor (CRM.VisualEditor) by marking them with
+ * data-crm-visual-editor="1" and calling VisualEditor.initScope().
+ *
+ * The old self-contained RTE implementation (enhance/buildToolbar and its
+ * sanitizer/exec/sync helpers) was dead code: nothing called it after the
+ * delegation was introduced, and it duplicated the VisualEditor's own
+ * sanitizer and toolbar with a weaker allow-list. It has been removed.
+ */
 window.CRM.richtext = (function () {
   var FIELD_MARKER = 'data-crm-richtext-ready';
-  var WATCHERS = new WeakMap();
 
   function descriptionHint() {
     var translated = window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
@@ -44,6 +55,11 @@ window.CRM.richtext = (function () {
     return hasDescriptionIntent(textarea);
   }
 
+  // Mark the field and delegate rendering/editing to the visual editor. The
+  // visual-editor.js script initialises asynchronously (it may load after this
+  // file), so it scans for textareas marked with data-crm-visual-editor on its
+  // own init and via a MutationObserver; the direct initScope call below just
+  // covers the case where VisualEditor already finished loading.
   function handoffToVisualEditor(textarea) {
     textarea.setAttribute(FIELD_MARKER, '1');
     textarea.setAttribute('data-crm-visual-editor', '1');
@@ -51,212 +67,6 @@ window.CRM.richtext = (function () {
     if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.initScope === 'function') {
       window.CRM.VisualEditor.initScope(textarea.parentElement || document);
     }
-  }
-
-  function normalizeEmpty(html) {
-    var compact = String(html || '')
-      .replace(/<br\s*\/?>/gi, '')
-      .replace(/&nbsp;/gi, '')
-      .replace(/\s+/g, '');
-    return compact ? html : '';
-  }
-
-  function sanitizeLinkHref(href) {
-    var value = String(href || '').trim();
-    if (!value) return '';
-    if (value[0] === '#') return value;
-    if (value[0] === '/') return value;
-    if (/^https?:\/\//i.test(value)) return value;
-    if (/^mailto:/i.test(value)) return value;
-    return '';
-  }
-
-  function sanitizeHtml(rawHtml) {
-    var allowed = {
-      A: true,
-      P: true,
-      BR: true,
-      STRONG: true,
-      B: true,
-      EM: true,
-      I: true,
-      U: true,
-      S: true,
-      UL: true,
-      OL: true,
-      LI: true,
-      BLOCKQUOTE: true,
-      H3: true,
-      H4: true
-    };
-    var template = document.createElement('template');
-    template.innerHTML = String(rawHtml || '');
-
-    function walk(node) {
-      var children = Array.prototype.slice.call(node.childNodes || []);
-      children.forEach(function (child) {
-        if (child.nodeType === Node.ELEMENT_NODE) {
-          if (!allowed[child.tagName]) {
-            var parent = child.parentNode;
-            while (child.firstChild) {
-              parent.insertBefore(child.firstChild, child);
-            }
-            parent.removeChild(child);
-            return;
-          }
-
-          var attrs = Array.prototype.slice.call(child.attributes || []);
-          attrs.forEach(function (attr) {
-            var name = String(attr.name || '').toLowerCase();
-            if (child.tagName !== 'A') {
-              child.removeAttribute(attr.name);
-              return;
-            }
-            if (name !== 'href' && name !== 'target' && name !== 'rel') {
-              child.removeAttribute(attr.name);
-            }
-          });
-
-          if (child.tagName === 'A') {
-            var safeHref = sanitizeLinkHref(child.getAttribute('href'));
-            if (!safeHref) {
-              child.removeAttribute('href');
-            } else {
-              child.setAttribute('href', safeHref);
-              child.setAttribute('target', '_blank');
-              child.setAttribute('rel', 'noopener noreferrer');
-            }
-          }
-
-          walk(child);
-        } else if (child.nodeType === Node.COMMENT_NODE) {
-          node.removeChild(child);
-        }
-      });
-    }
-
-    walk(template.content);
-    return normalizeEmpty(template.innerHTML.trim());
-  }
-
-  function htmlFromTextareaValue(value) {
-    var source = String(value || '').trim();
-    if (!source) return '';
-    if (/<[a-z][\s\S]*>/i.test(source)) {
-      return sanitizeHtml(source);
-    }
-    return source
-      .split('\n')
-      .map(function (line) {
-        var safe = String(line || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        return '<p>' + (safe || '<br>') + '</p>';
-      })
-      .join('');
-  }
-
-  function syncSource(textarea, editor) {
-    var cleanHtml = sanitizeHtml(editor.innerHTML);
-    textarea.value = cleanHtml;
-    textarea.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
-  function syncEditor(textarea, editor) {
-    editor.innerHTML = htmlFromTextareaValue(textarea.value || '');
-  }
-
-  function exec(command, value) {
-    try {
-      document.execCommand(command, false, value || null);
-    } catch (e) {
-      // ignore execCommand fallback issues
-    }
-  }
-
-  function buildToolbar() {
-    var toolbar = document.createElement('div');
-    toolbar.className = 'crm-rte-toolbar';
-    toolbar.innerHTML = ''
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="bold" title="' + window.CRM.i18n.t('richtext.bold', 'Bold') + '"><strong>B</strong></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="italic" title="' + window.CRM.i18n.t('richtext.italic', 'Italic') + '"><em>I</em></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="underline" title="' + window.CRM.i18n.t('richtext.underline', 'Underline') + '"><u>U</u></button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertUnorderedList" title="' + window.CRM.i18n.t('richtext.bullet_list', 'Bullet list') + '">&bull; ' + window.CRM.i18n.t('richtext.list', 'List') + '</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="insertOrderedList" title="' + window.CRM.i18n.t('richtext.ordered_list', 'Ordered list') + '">1. ' + window.CRM.i18n.t('richtext.list', 'List') + '</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="formatBlock" data-rte-value="blockquote" title="' + window.CRM.i18n.t('richtext.blockquote', 'Quote') + '">' + window.CRM.i18n.t('richtext.blockquote', 'Quote') + '</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="createLink" title="' + window.CRM.i18n.t('richtext.link', 'Link') + '">' + window.CRM.i18n.t('richtext.link', 'Link') + '</button>'
-      + '<button type="button" class="btn btn-light btn-sm" data-rte-cmd="removeFormat" title="' + window.CRM.i18n.t('richtext.clear_format', 'Clear formatting') + '">' + window.CRM.i18n.t('richtext.clear', 'Clear') + '</button>';
-    return toolbar;
-  }
-
-  function enhance(textarea) {
-    textarea.setAttribute(FIELD_MARKER, '1');
-    textarea.classList.add('crm-rte-source');
-
-    var rows = Number(textarea.getAttribute('rows') || 4);
-    var minHeight = Math.max(120, rows * 22 + 38);
-
-    var host = document.createElement('div');
-    host.className = 'crm-rte';
-    host.style.setProperty('--crm-rte-min-height', String(minHeight) + 'px');
-
-    var toolbar = buildToolbar();
-    var editor = document.createElement('div');
-    editor.className = 'crm-rte-editor';
-    editor.setAttribute('contenteditable', 'true');
-    editor.setAttribute('role', 'textbox');
-    editor.setAttribute('aria-multiline', 'true');
-    editor.setAttribute('data-rte-editor', '1');
-    editor.innerHTML = htmlFromTextareaValue(textarea.value || '');
-
-    host.appendChild(toolbar);
-    host.appendChild(editor);
-    textarea.insertAdjacentElement('afterend', host);
-
-    toolbar.addEventListener('click', function (event) {
-      var button = event.target.closest('[data-rte-cmd]');
-      if (!button) return;
-      event.preventDefault();
-      editor.focus();
-      var cmd = button.getAttribute('data-rte-cmd');
-      if (cmd === 'createLink') {
-        var href = window.prompt(window.CRM.i18n.t('richtext.prompt_link', 'Enter link (https://...)'), 'https://');
-        if (!href) return;
-        var safeHref = sanitizeLinkHref(href);
-        if (!safeHref) return;
-        exec('createLink', safeHref);
-      } else if (cmd === 'formatBlock') {
-        var tag = button.getAttribute('data-rte-value') || 'p';
-        exec('formatBlock', '<' + tag + '>');
-      } else {
-        exec(cmd);
-      }
-      syncSource(textarea, editor);
-    });
-
-    editor.addEventListener('input', function () {
-      syncSource(textarea, editor);
-    });
-
-    editor.addEventListener('blur', function () {
-      syncSource(textarea, editor);
-    });
-
-    var watcher = window.setInterval(function () {
-      if (!document.body.contains(textarea)) {
-        window.clearInterval(watcher);
-        WATCHERS.delete(textarea);
-        return;
-      }
-      if (document.activeElement === editor) return;
-      var next = htmlFromTextareaValue(textarea.value || '');
-      var current = sanitizeHtml(editor.innerHTML);
-      if (next !== current) {
-        editor.innerHTML = next;
-      }
-    }, 350);
-    WATCHERS.set(textarea, watcher);
   }
 
   function enhanceScope(scope) {

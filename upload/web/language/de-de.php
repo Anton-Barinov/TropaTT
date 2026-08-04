@@ -7563,17 +7563,6 @@ return array (
   'richtext' => 
   array (
     'description_hint' => 'Beschreibung',
-    'bold' => 'Fett',
-    'italic' => 'Kursiv',
-    'underline' => 'Unterstrichen',
-    'bullet_list' => 'Aufzählungsliste',
-    'ordered_list' => 'Nummerierte Liste',
-    'list' => 'Liste',
-    'blockquote' => 'Zitat',
-    'link' => 'Link',
-    'clear_format' => 'Formatierung löschen',
-    'clear' => 'Löschen',
-    'prompt_link' => 'Link eingeben (https://...)',
   ),
   'tag' => 
   array (

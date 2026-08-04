@@ -7563,17 +7563,6 @@ return array (
   'richtext' => 
   array (
     'description_hint' => 'descrição',
-    'bold' => 'Negrito',
-    'italic' => 'Itálico',
-    'underline' => 'Sublinhado',
-    'bullet_list' => 'Lista com marcadores',
-    'ordered_list' => 'Lista numerada',
-    'list' => 'Lista',
-    'blockquote' => 'Citação',
-    'link' => 'Link',
-    'clear_format' => 'Limpar formatação',
-    'clear' => 'Limpar',
-    'prompt_link' => 'Digite o link (https://...)',
   ),
   'tag' => 
   array (

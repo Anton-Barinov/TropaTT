@@ -4171,17 +4171,6 @@ return array (
   'richtext' => 
   array (
     'description_hint' => 'описание',
-    'bold' => 'Жирный',
-    'italic' => 'Курсив',
-    'underline' => 'Подчеркнутый',
-    'bullet_list' => 'Маркированный список',
-    'ordered_list' => 'Нумерованный список',
-    'list' => 'Список',
-    'blockquote' => 'Цитата',
-    'link' => 'Ссылка',
-    'clear_format' => 'Очистить форматирование',
-    'clear' => 'Очистить',
-    'prompt_link' => 'Введите ссылку (https://...)',
   ),
   'login' => 
   array (

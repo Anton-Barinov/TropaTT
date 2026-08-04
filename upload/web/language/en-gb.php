@@ -4150,17 +4150,6 @@ return array (
   'richtext' => 
   array (
     'description_hint' => 'description',
-    'bold' => 'Bold',
-    'italic' => 'Italic',
-    'underline' => 'Underline',
-    'bullet_list' => 'Bullet list',
-    'ordered_list' => 'Ordered list',
-    'list' => 'List',
-    'blockquote' => 'Quote',
-    'link' => 'Link',
-    'clear_format' => 'Clear formatting',
-    'clear' => 'Clear',
-    'prompt_link' => 'Enter link (https://...)',
   ),
   'login' => 
   array (
