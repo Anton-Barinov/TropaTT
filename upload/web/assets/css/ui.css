@@ -415,6 +415,12 @@ a.btn {
   color: var(--crm-primary);
 }
 
+.crm-btn-muted.is-active {
+  background: var(--crm-primary-soft);
+  color: var(--crm-primary);
+  border-color: rgba(13, 110, 253, 0.35);
+}
+
 .crm-btn-danger-soft,
 .btn-outline-danger,
 .crm-btn-danger {

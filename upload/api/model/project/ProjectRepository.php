@@ -217,6 +217,26 @@ final class ProjectRepository
         return $prefix !== false ? (string)$prefix : null;
     }
 
+    /**
+     * Количество открытых задач проекта (для защиты от преждевременного закрытия проекта, ТЗ 7.3).
+     *
+     * @param string[] $closedStatuses
+     */
+    public function countOpenTasksByProjectId(int $projectId, array $closedStatuses = []): int
+    {
+        $closed = $closedStatuses !== [] ? $closedStatuses : ['done', 'completed', 'archived', 'cancelled', 'canceled'];
+        $placeholders = implode(',', array_fill(0, count($closed), '?'));
+        $params = array_merge([$projectId], array_values($closed));
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM tasks'
+            . ' WHERE project_id = ? AND archived_at IS NULL AND deleted_at IS NULL'
+            . ' AND status_code NOT IN (' . $placeholders . ')'
+        );
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, string $order = 'DESC'): QueryBuilder
     {
         $qb = (new QueryBuilder($this->pdo))

@@ -217,6 +217,14 @@ final class ProjectService
         }
         if (array_key_exists('status', $input)) {
             $set['status_code'] = (string)$input['status'];
+            // ТЗ 7.3: нельзя завершить проект, пока есть незакрытые задачи
+            $oldStatus = (string)($project['status_code'] ?? '');
+            if ($set['status_code'] !== $oldStatus && in_array($set['status_code'], ['done', 'completed'], true)) {
+                $openTasks = $this->projects->countOpenTasksByProjectId((int)$project['id']);
+                if ($openTasks > 0) {
+                    return ['error' => 'PROJECT_HAS_OPEN_TASKS', 'open_task_count' => $openTasks];
+                }
+            }
         }
         if (array_key_exists('priority', $input)) {
             $set['priority_code'] = (string)$input['priority'];

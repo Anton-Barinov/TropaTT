@@ -3522,6 +3522,9 @@ font-size: 0.72rem;
   display: grid;
   gap: 0.35rem;
   margin-top: 0.35rem;
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px dashed #dbe5f4;
 }
 
 .crm-tasks-page .crm-task-card-grid {

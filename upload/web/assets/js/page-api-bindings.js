@@ -651,6 +651,9 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
       + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
+      + '<td>' + safeText(item.client_title || '—') + '</td>'
+      + '<td>' + safeText(item.project_manager_name || item.project_manager_login || '—') + '</td>'
+      + '<td>' + safeText(item.assignee_name || item.assignee_login || '—') + '</td>'
       + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
       + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></td>'
       + '<td><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
@@ -1235,6 +1238,7 @@ window.CRM.pageApiBindings = (function () {
             + '<option value="active">' + window.CRM.i18n.t('js.pab.status_active', 'Active') + '</option>'
             + '<option value="new">' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
             + '<option value="in_progress">' + window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') + '</option>'
+            + '<option value="planning">' + window.CRM.i18n.t('js.pab.status_planning', 'Planning') + '</option>'
             + '<option value="blocked">' + window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') + '</option>'
             + '<option value="done">' + window.CRM.i18n.t('js.pab.status_done', 'Done') + '</option>'
             + '</select></div>'
@@ -1701,12 +1705,15 @@ window.CRM.pageApiBindings = (function () {
       }
       var updated = 0;
       var skipped = 0;
+      var lastErrorMsg = '';
       await Promise.all(ids.map(async function (id) {
         try {
           await request('api/v1/projects/' + encodeURIComponent(id), { method: 'PATCH', body: payload });
           updated += 1;
         } catch (e) {
           skipped += 1;
+          var msg = e && e.envelope && e.envelope.message ? String(e.envelope.message) : '';
+          if (msg && !lastErrorMsg) lastErrorMsg = msg;
         }
       }));
       var message = label + ': ' + window.CRM.i18n.t('js.pab.updated_out_of', 'updated') + ' ' + updated + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + ids.length + (skipped ? (', ' + window.CRM.i18n.t('js.pab.skipped', 'skipped') + ' ' + skipped) : '');
@@ -1715,6 +1722,9 @@ window.CRM.pageApiBindings = (function () {
         projectBulkResult.className = skipped ? 'small text-warning' : 'small text-success';
       }
       notify(message, skipped ? 'warning' : 'success');
+      if (lastErrorMsg) {
+        notify(lastErrorMsg, 'error');
+      }
       await renderProjectsPage();
     }
     if (table && table.dataset.boundProjectBulk !== '1') {
@@ -2697,6 +2707,7 @@ window.CRM.pageApiBindings = (function () {
     var assigneeFilter = String(query.get('assignee') || '').trim();
     var managerFilter = String(query.get('manager') || '').trim();
     var projectFilter = String(query.get('project') || '').trim();
+    var clientFilter = String(query.get('client') || '').trim();
     var cycleFilter = String(query.get('cycle_public_id') || '').trim();
     var tagFilter = String(query.get('tag') || '').trim();
     var dueFilter = String(query.get('due') || '').trim();
@@ -2729,6 +2740,10 @@ window.CRM.pageApiBindings = (function () {
     var savedViewsPromise = tryRequest('api/v1/views', { query: { entity_type: 'task', limit: 100 } });
     var projectOptionsPromise = tasksProjectSelect
       ? tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true })
+      : Promise.resolve(null);
+    var tasksClientSelect = document.getElementById('tasksClientFilter');
+    var clientsPromise = tasksClientSelect
+      ? tryRequest('api/v1/clients', { query: { limit: 500 }, silent: true })
       : Promise.resolve(null);
     var cycleOptionsPromise = tasksCycleSelect
       ? tryRequest('api/v1/cycles', { query: { limit: 100, archived: '1' }, silent: true })
@@ -2786,6 +2801,9 @@ window.CRM.pageApiBindings = (function () {
 
     if (assigneeFilter) {
       items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
+    }
+    if (clientFilter) {
+      items = items.filter(function (item) { return String(item.client_public_id || '') === clientFilter; });
     }
     if (managerFilter) {
       items = items.filter(function (item) { return String(item.project_manager_user_public_id || '') === managerFilter; });
@@ -2849,7 +2867,7 @@ window.CRM.pageApiBindings = (function () {
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
         delete queryObj[key];
       });
       if (!next.keepViewPublicId) {
@@ -2861,6 +2879,7 @@ window.CRM.pageApiBindings = (function () {
       if (next.assignee) queryObj.assignee = next.assignee;
       if (next.manager) queryObj.manager = next.manager;
       if (next.project) queryObj.project = next.project;
+      if (next.client) queryObj.client = next.client;
       if (next.cycle) queryObj.cycle_public_id = next.cycle;
       if (next.tag) queryObj.tag = next.tag;
       if (next.due) queryObj.due = next.due;
@@ -3054,6 +3073,7 @@ window.CRM.pageApiBindings = (function () {
       var assigneeSelect = document.getElementById('tasksAssigneeFilter');
       var managerSelect = document.getElementById('tasksManagerFilter');
       var projectSelect = document.getElementById('tasksProjectFilter');
+      var clientSelect = document.getElementById('tasksClientFilter');
       var tagSelect = document.getElementById('tasksTagFilter');
       var resetBtn = document.getElementById('tasksFiltersResetBtn');
       var summary = document.getElementById('tasksResultSummary');
@@ -3062,6 +3082,7 @@ window.CRM.pageApiBindings = (function () {
       if (assigneeSelect) assigneeSelect.value = assigneeFilter;
       if (managerSelect) managerSelect.value = managerFilter;
       if (projectSelect) projectSelect.value = projectFilter;
+      if (clientSelect) clientSelect.value = clientFilter;
       if (tagSelect) tagSelect.value = tagFilter;
 
       function tasksFiltersFromDom() {
@@ -3073,6 +3094,7 @@ window.CRM.pageApiBindings = (function () {
           assignee: assigneeSelect ? assigneeSelect.value : '',
           manager: managerSelect ? managerSelect.value : '',
           project: projectSelect ? projectSelect.value : '',
+          client: clientSelect ? clientSelect.value : '',
           cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
           tag: tagSelect ? tagSelect.value : '',
           due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
@@ -3095,7 +3117,7 @@ window.CRM.pageApiBindings = (function () {
         }
       }
 
-      [assigneeSelect, managerSelect, projectSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
+      [assigneeSelect, managerSelect, projectSelect, clientSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
         if (!sel || sel.dataset.bound === '1') return;
         sel.addEventListener('change', function () {
           applyTaskRouteQuery(tasksFiltersFromDom());
@@ -3128,6 +3150,7 @@ window.CRM.pageApiBindings = (function () {
           if (assigneeSelect) assigneeSelect.value = '';
           if (managerSelect) managerSelect.value = '';
           if (projectSelect) projectSelect.value = '';
+          if (clientSelect) clientSelect.value = '';
           if (tasksCycleSelect) tasksCycleSelect.value = '';
           if (tagSelect) tagSelect.value = '';
           // Clear searchable inputs
@@ -3135,13 +3158,13 @@ window.CRM.pageApiBindings = (function () {
           document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
           // Clear due-date buttons
           dueBtns.forEach(function (b) { b.classList.remove('is-active'); });
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', cycle: '', tag: '', due: '', sort: '', order: '' });
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', sort: '', order: '' });
         });
         resetBtn.dataset.bound = '1';
       }
 
       // Enable/disable reset button based on active filters
-      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || cycleFilter || tagFilter || dueFilter);
+      var hasActive = Boolean(searchFilter || assigneeFilter || managerFilter || projectFilter || clientFilter || cycleFilter || tagFilter || dueFilter);
       if (resetBtn) {
         resetBtn.disabled = !hasActive;
         resetBtn.classList.toggle('is-active', hasActive);
@@ -3157,12 +3180,21 @@ window.CRM.pageApiBindings = (function () {
         btn.textContent = btn.textContent.replace(/\s[▲▼]$/, '') + arrow;
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', function () {
-          var nextOrder = (sortFilter === sortKey && orderFilter === 'ASC') ? 'DESC' : 'ASC';
+          // Циклическая сортировка: ASC -> DESC -> по умолчанию (сброс)
+          var nextSort = sortKey;
+          var nextOrder = 'ASC';
+          if (sortKey === sortFilter && orderFilter === 'ASC') {
+            nextSort = sortKey;
+            nextOrder = 'DESC';
+          } else if (sortKey === sortFilter) {
+            nextSort = '';
+            nextOrder = '';
+          }
           applyTaskRouteQuery({
             search: searchFilter,
             status: statusFilter,
             priority: priorityFilter,
-            sort: sortKey,
+            sort: nextSort,
             order: nextOrder,
             view_public_id: currentViewPublicId
           });
@@ -3326,6 +3358,11 @@ window.CRM.pageApiBindings = (function () {
       var projEnv = await projectOptionsPromise;
       var projItems = mapItems(projEnv);
       fillSelect(tasksProjectSelect, projItems, 'public_id', function (p) { return p.title; });
+    }
+    if (tasksClientSelect) {
+      var clientsEnv = await clientsPromise;
+      var clientItems = mapItems(clientsEnv);
+      fillSelect(tasksClientSelect, clientItems, 'public_id', function (cl) { return cl.title || cl.legal_name || cl.name || cl.public_id; });
     }
     if (tasksCycleSelect) {
       var cycleEnv = await cycleOptionsPromise;
@@ -8654,7 +8691,7 @@ window.CRM.pageApiBindings = (function () {
     if (sortByInput) sortByInput.value = sortBy;
     if (sortDirInput) sortDirInput.value = sortDir;
     if (compactBtn) {
-      compactBtn.classList.toggle('btn-primary', compact);
+      compactBtn.classList.toggle('is-active', compact);
       compactBtn.textContent = compact ? tp('clients.normal_view', 'Normal view') : tp('clients.compact_view', 'Compact view');
     }
     function updateCounterpartiesSavedViewUi() {
@@ -9523,7 +9560,7 @@ window.CRM.pageApiBindings = (function () {
     if (sortByInput) sortByInput.value = sortBy;
     if (sortDirInput) sortDirInput.value = sortDir;
     if (compactBtn) {
-      compactBtn.classList.toggle('btn-primary', compact);
+      compactBtn.classList.toggle('is-active', compact);
       compactBtn.textContent = compact ? tp('counterparties.normal_view', 'Normal view') : tp('counterparties.compact_view', 'Compact view');
     }
 
@@ -23204,7 +23241,8 @@ window.CRM.pageApiBindings = (function () {
       user: tp('counterparty_detail.role_user', 'User'),
       technical: tp('counterparty_detail.role_technical', 'Technical')
     };
-    return labels[String(value || '').trim()] || '—';
+    var role = String(value || '').trim();
+    return labels[role] || (role || '—');
   }
 
   function confirmCounterpartyDetailAction(options) {
@@ -23306,15 +23344,21 @@ window.CRM.pageApiBindings = (function () {
       form.querySelector('[name="public_id"]').value = '';
       form.querySelector('[name="counterparty_public_id"]').value = cpPublicId;
       document.getElementById('counterpartyContactModalTitle').textContent = tp('counterparty_detail.contact_add_title', 'Add contact');
+      syncContactRoleUi(form, '');
       modal.show();
     };
     if (form.dataset.bound !== '1') {
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         var contactId = String(form.querySelector('[name="public_id"]').value || '').trim();
+        // Гибридная роль: если выбрано «Своя роль», берём текст из доп. поля (см. ТЗ 6.3)
+        var roleValue = String(form.querySelector('[name="role"]').value || '').trim();
+        if (roleValue === '__custom') {
+          roleValue = String(form.querySelector('[name="role_custom"]').value || '').trim();
+        }
         var payload = {
           full_name: String(form.querySelector('[name="full_name"]').value || '').trim() || null,
-          role: String(form.querySelector('[name="role"]').value || '').trim() || null,
+          role: roleValue || null,
           email: String(form.querySelector('[name="email"]').value || '').trim() || null,
           phone: String(form.querySelector('[name="phone"]').value || '').trim() || null
         };
@@ -23337,6 +23381,35 @@ window.CRM.pageApiBindings = (function () {
       form.dataset.bound = '1';
     }
 
+    // Гибридная роль контакта: select + свободный ввод (ТЗ 6.3)
+    function syncContactRoleUi(f, roleValue) {
+      var selectEl = f.querySelector('[name="role"]');
+      var customEl = f.querySelector('[name="role_custom"]');
+      if (!selectEl || !customEl) return;
+      var knownRoles = ['decision_maker', 'influencer', 'user', 'technical', 'contact'];
+      var role = String(roleValue || '').trim();
+      if (role && knownRoles.indexOf(role) < 0) {
+        selectEl.value = '__custom';
+        customEl.value = role;
+        customEl.classList.remove('d-none');
+      } else {
+        if (!role) selectEl.value = '';
+        customEl.value = '';
+        customEl.classList.add('d-none');
+      }
+    }
+    var roleSelect = form.querySelector('[name="role"]');
+    var roleCustomInput = form.querySelector('[name="role_custom"]');
+    if (roleSelect && roleCustomInput && roleSelect.dataset.bound !== '1') {
+      roleSelect.dataset.bound = '1';
+      roleSelect.addEventListener('change', function () {
+        var showCustom = String(roleSelect.value || '') === '__custom';
+        roleCustomInput.classList.toggle('d-none', !showCustom);
+        if (showCustom) roleCustomInput.focus();
+      });
+    }
+    window._syncContactRoleUi = function (f, role) { syncContactRoleUi(f, role); };
+
     window._counterpartyContactData = { cpPublicId: cpPublicId, form: form, modal: modal };
   }
 
@@ -23347,6 +23420,7 @@ window.CRM.pageApiBindings = (function () {
     var contact = contacts.find(function (c) { return String(c.public_id) === String(contactPublicId); });
     if (!contact) return;
     fillFormFields(data.form, contact, String(contact.public_id || ''), ['public_id', 'full_name', 'role', 'email', 'phone']);
+    if (window._syncContactRoleUi) window._syncContactRoleUi(data.form, contact.role);
     data.form.querySelector('[name="counterparty_public_id"]').value = data.cpPublicId;
     document.getElementById('counterpartyContactModalTitle').textContent = tp('counterparty_detail.contact_edit_title', 'Edit contact');
     data.modal.show();

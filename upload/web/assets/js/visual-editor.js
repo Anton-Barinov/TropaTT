@@ -147,12 +147,13 @@ window.CRM.VisualEditor = (function () {
   var ALLOWED_TAGS = {
     P: true, BR: true, STRONG: true, B: true, EM: true, I: true, S: true, U: true,
     CODE: true, PRE: true, BLOCKQUOTE: true, UL: true, OL: true, LI: true,
-    A: true, H1: true, H2: true, H3: true, FIGURE: true, FIGCAPTION: true, IMG: true
+    A: true, H1: true, H2: true, H3: true, FIGURE: true, FIGCAPTION: true, IMG: true,
+    DETAILS: true, SUMMARY: true
   };
 
   var BLOCK_TAGS = {
     P: true, H1: true, H2: true, H3: true, BLOCKQUOTE: true, PRE: true,
-    UL: true, OL: true, LI: true, FIGURE: true
+    UL: true, OL: true, LI: true, FIGURE: true, DETAILS: true
   };
 
   function sanitizeHtml(rawHtml) {
@@ -195,6 +196,10 @@ window.CRM.VisualEditor = (function () {
               }
             } else if (tag === 'FIGCAPTION') {
               if (name !== 'contenteditable') {
+                child.removeAttribute(attr.name);
+              }
+            } else if (tag === 'DETAILS' || tag === 'SUMMARY') {
+              if (name !== 'class') {
                 child.removeAttribute(attr.name);
               }
             } else {
@@ -1146,6 +1151,8 @@ window.CRM.VisualEditor = (function () {
           self._execImageUpload();
         } else if (cmd === 'inlineCode') {
           self._execInlineCode();
+        } else if (cmd === 'spoiler') {
+          self._execSpoiler();
         } else {
           document.execCommand(cmd, false, value || null);
         }
@@ -1168,6 +1175,11 @@ window.CRM.VisualEditor = (function () {
     addBtn('<em>I</em>', t('visual_editor.italic', 'Italic'), 'italic');
     addBtn('<s>S</s>', t('visual_editor.strike', 'Strikethrough'), 'strikeThrough');
     addBtn('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Inline code'), 'inlineCode');
+    addBtn(
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l-3-3 3-3M9 21h6M19 15l3-3-3-3M12 3v18"/></svg>',
+      t('visual_editor.spoiler', 'Spoiler'),
+      'spoiler'
+    );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
       t('visual_editor.link', 'Link'),
@@ -1275,6 +1287,30 @@ window.CRM.VisualEditor = (function () {
   // can start typing code immediately. The previous insertHTML approach
   // replaced the selection with a placeholder word, which looked like the
   // comment content was erased.
+  Editor.prototype._execSpoiler = function () {
+    var summaryText = (window.CRM && window.CRM.i18n)
+      ? window.CRM.i18n.t('visual_editor.spoiler_summary', 'Разворачивание')
+      : 'Разворачивание';
+    var html = '<details class="crm-ve-spoiler"><summary>' + summaryText + '</summary><p><br></p></details>';
+    document.execCommand('insertHTML', false, html);
+    var content = this._content;
+    var details = content.querySelector('details.crm-ve-spoiler:last-of-type') || content.querySelector('details.crm-ve-spoiler');
+    if (details) {
+      var paragraph = details.querySelector('p');
+      var node = paragraph || details;
+      var range = document.createRange();
+      range.selectNodeContents(node);
+      range.collapse(true);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      if (paragraph) paragraph.focus();
+    }
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    this._updateEmptyState();
+  };
+
   Editor.prototype._execInlineCode = function () {
     var selection = window.getSelection();
     var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;

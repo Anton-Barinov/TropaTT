@@ -3742,24 +3742,20 @@ window.CRM.br1 = (function () {
         notify(window.CRM.i18n.t('js.br1.vyberite_status', 'Выберите статус'), 'warning');
         return;
       }
+      // Причина смены статуса опциональна (см. ТЗ 3.6): заполнение не блокирует перевод.
       var statusReason = String(reasonText || '').trim();
-      if (!statusReason) {
-        notify(window.CRM.i18n.t('js.br1.ukazhite_prichinu_smeny_statusa', 'Укажите причину смены статуса'), 'warning');
-        return;
-      }
-      if (statusReason.length < 5) {
-        notify(window.CRM.i18n.t('js.br1.kommentariy_k_smene_statusa_dolzhen_byt_podrobnee', 'Комментарий к смене статуса должен быть подробнее'), 'warning');
-        return;
-      }
       var oldStatusCode = String(currentTask.status_code || '');
+      var patchBody = {
+        status: targetStatus,
+        row_version: currentTask.row_version
+      };
+      if (statusReason) {
+        patchBody.status_reason = statusReason;
+      }
       try {
         var envelope = await window.CRM.api.request('api/v1/tasks/' + taskId, {
           method: 'PATCH',
-          body: {
-            status: targetStatus,
-            status_reason: statusReason,
-            row_version: currentTask.row_version
-          }
+          body: patchBody
         });
 
         currentTask = mergeTaskState(extractTaskPayload(envelope));

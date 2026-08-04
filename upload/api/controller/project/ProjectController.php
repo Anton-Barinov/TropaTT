@@ -173,6 +173,13 @@ final class ProjectController extends BaseController
         if ($item === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('project/messages.row_version_conflict'), 409);
         }
+        if (is_array($item) && isset($item['error']) && $item['error'] === 'PROJECT_HAS_OPEN_TASKS') {
+            $openCount = (int)($item['open_task_count'] ?? 0);
+            $message = 'Нельзя завершить проект: осталось незакрытых задач: ' . $openCount . '. Завершите или перенесите их и повторите попытку.';
+            return $this->error('PROJECT_HAS_OPEN_TASKS', $message, 409, [
+                'project' => [$message],
+            ]);
+        }
         if (!$item || !is_array($item)) {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                 'project' => [$this->t('common/messages.project_not_found')],

@@ -46,6 +46,7 @@ final class TaskRepository
                 'p.public_id AS project_public_id',
                 'p.title AS project_title',
                 'p.client_public_id AS client_public_id',
+                'c.title AS client_title',
                 'p.team_public_id AS project_team_public_id',
                 'pt.title AS project_team_title',
                 'au.public_id AS assignee_user_public_id',
@@ -567,7 +568,8 @@ final class TaskRepository
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
-            ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id');
+            ->leftJoin('teams pt', 'pt.public_id', '=', 'p.team_public_id')
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id');
 
         if (($filters['archived'] ?? '0') !== '1') {
             $qb->whereNull('t.archived_at')
