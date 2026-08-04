@@ -154,8 +154,9 @@ window.CRM = window.CRM || {};
   };
 
   var commentsClient = {
-    list: function (taskId) { return request('api/v1/comments', { query: { task_public_id: taskId } }); },
-    create: function (data) { return request('api/v1/comments', { method: 'POST', body: data }); },
+    // Comments are task-scoped: GET/POST /api/v1/tasks/{task_public_id}/comments
+    list: function (taskId) { return request('api/v1/tasks/' + encodeURIComponent(taskId) + '/comments'); },
+    create: function (taskId, data) { return request('api/v1/tasks/' + encodeURIComponent(taskId) + '/comments', { method: 'POST', body: data }); },
     update: function (publicId, data) { return request('api/v1/comments/' + encodeURIComponent(publicId), { method: 'PATCH', body: data }); },
     delete: function (publicId) { return request('api/v1/comments/' + encodeURIComponent(publicId), { method: 'DELETE' }); }
   };
