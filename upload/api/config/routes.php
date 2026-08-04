@@ -232,7 +232,10 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'comments', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/files', 'controller' => Api\Controller\File\FileController::class, 'action' => 'listByTask', 'auth' => true, 'required_permissions' => ['task.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/comments', 'controller' => Api\Controller\Task\TaskController::class, 'action' => 'addComment', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/comments/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['task.manage']],
+    // Editing a comment must be allowed for the comment author without
+    // task.manage (same rule as deleting); comment-level authorization
+    // (author/root/task participants) is enforced in CommentService.
+    ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/comments/{public_id}', 'controller' => Api\Controller\Comment\CommentController::class, 'action' => 'update', 'auth' => true, 'authz_note' => 'author-or-participant enforced in CommentService'],
     // Deleting a comment must be allowed for the comment author without
     // task.manage; comment-level authorization (author/root/task participants)
     // is enforced inside CommentService::canManageComment().
