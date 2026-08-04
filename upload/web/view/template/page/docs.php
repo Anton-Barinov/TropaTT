@@ -258,7 +258,7 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <section class="crm-card crm-section-card mb-3">
 <div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.chats_title"><?= htmlspecialchars($t('docs.chats_title', 'Командный чат'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.chats_note"><?= htmlspecialchars($t('docs.chats_note', 'Встроенный мессенджер внутри CRM.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
-<p data-i18n="docs.chats_link_text"><?= htmlspecialchars($t('docs.chats_link_text', 'Перейти:'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=chats" data-i18n="docs.chats_link"><?= htmlspecialchars($t('docs.chats_link', 'Чат'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
+<p data-i18n="docs.chats_link_text"><?= htmlspecialchars($t('docs.chats_link_text', 'Перейти:'), ENT_QUOTES, 'UTF-8') ?> <a href="index.php?route=chat" data-i18n="docs.chats_link"><?= htmlspecialchars($t('docs.chats_link', 'Чат'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
 <ul>
 <li data-i18n="docs.chats_item1"><?= htmlspecialchars($t('docs.chats_item1', 'Двухпанельный интерфейс: список чатов слева, переписка справа.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.chats_item2"><?= htmlspecialchars($t('docs.chats_item2', 'Типы чатов: проектные, общие, личные, групповые.'), ENT_QUOTES, 'UTF-8') ?></li>

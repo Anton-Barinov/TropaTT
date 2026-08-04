@@ -4891,7 +4891,7 @@ window.CRM.pageApiBindings = (function () {
               + '</div>';
           }).join('')
           + '</div>'
-          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=worklogs">' + window.CRM.i18n.t('js.pab.open_worklogs', 'Open time reports') + '</a>';
+          + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=time-analytics">' + window.CRM.i18n.t('js.pab.open_worklogs', 'Open time reports') + '</a>';
       }).catch(function () {
         worklogWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.worklog_load_error', 'Failed to load time data.') + '</div>';
       });
