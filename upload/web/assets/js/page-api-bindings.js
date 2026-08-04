@@ -2828,7 +2828,11 @@ window.CRM.pageApiBindings = (function () {
     }
 
     if (assigneeFilter) {
-      items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
+      if (assigneeFilter === 'none' || assigneeFilter === 'unassigned') {
+        items = items.filter(function (item) { return !String(item.assignee_user_public_id || ''); });
+      } else {
+        items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
+      }
     }
     if (clientFilter) {
       items = items.filter(function (item) { return String(item.client_public_id || '') === clientFilter || String(item.task_client_public_id || '') === clientFilter; });
@@ -5252,6 +5256,52 @@ window.CRM.pageApiBindings = (function () {
           + '<a class="btn btn-sm crm-btn-secondary w-100 mt-2" href="index.php?route=my-week">' + window.CRM.i18n.t('js.pab.open_my_week', 'Open my week') + '</a>';
       }).catch(function () {
         myWeekWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.my_week_load_error', 'Failed to load the week.') + '</div>';
+      });
+    }
+
+    // ====== Unassigned tasks widget ======
+    var unassignedWidget = document.getElementById('dashboardUnassignedWidget');
+    if (dashboardWidgetConfig.unassigned !== false && unassignedWidget && canManageTasks) {
+      tryRequest('api/v1/tasks', { query: { assignee_user_public_id: 'none', limit: 120 }, silent: true }).then(function (env) {
+        var all = mapItems(env);
+        var openStatuses = { done: 1, completed: 1, cancelled: 1, archived: 1 };
+        var priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+        var openUnassigned = all.filter(function (t) {
+          var st = String(t.status_code || '').toLowerCase();
+          return !openStatuses[st];
+        }).sort(function (a, b) {
+          var aOv = a.due_at && toTimestamp(a.due_at) < nowMs ? 0 : (a.due_at ? 1 : 2);
+          var bOv = b.due_at && toTimestamp(b.due_at) < nowMs ? 0 : (b.due_at ? 1 : 2);
+          if (aOv !== bOv) return aOv - bOv;
+          var pr = (priorityRank[a.priority_code || 'normal'] || 2) - (priorityRank[b.priority_code || 'normal'] || 2);
+          if (pr !== 0) return pr;
+          return toTimestamp(a.due_at) - toTimestamp(b.due_at);
+        });
+        var shown = openUnassigned.slice(0, 7);
+        if (!shown.length) {
+          unassignedWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.no_unassigned', 'All open tasks have an assignee.') + '</div>';
+          return;
+        }
+        unassignedWidget.innerHTML = shown.map(function (t) {
+          var due = t.due_at
+            ? '<span class="small ' + (toTimestamp(t.due_at) < nowMs ? 'text-danger' : 'text-muted') + '">' + safeText(formatDate(t.due_at)) + '</span>'
+            : '<span class="small text-muted">—</span>';
+          var project = t.project_title
+            ? '<span class="small text-muted text-truncate"><i class="fa-regular fa-folder-open me-1" aria-hidden="true"></i>' + safeText(String(t.project_title)) + '</span>'
+            : '';
+          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<div class="min-w-0">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="' + taskLink(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a></div>'
+            + (project ? project : '')
+            + '</div>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + '<span class="crm-badge ' + statusClass(t.status_code) + '">' + safeText(statusLabel(t.status_code)) + '</span></span>'
+            + '</div>';
+        }).join('')
+          + (openUnassigned.length > shown.length
+            ? '<a class="btn btn-sm crm-btn-secondary w-100 mt-1" href="index.php?route=tasks&assignee=none">' + window.CRM.i18n.t('js.pab.view_all_unassigned', 'View all unassigned') + ' (' + openUnassigned.length + ')</a>'
+            : '');
+      }).catch(function () {
+        unassignedWidget.innerHTML = '<div class="text-muted small">' + window.CRM.i18n.t('js.pab.unassigned_load_error', 'Failed to load tasks.') + '</div>';
       });
     }
 

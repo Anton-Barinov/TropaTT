@@ -481,7 +481,11 @@ final class TaskRepository
                 ) AS modules",
             ]);
 
-        if (!empty($filters['assignee_user_public_id'])) {
+        // Unassigned/empty values are handled inside buildListQuery (whereNull);
+        // only apply the join-based filter for real user ids.
+        if (!empty($filters['assignee_user_public_id'])
+            && !in_array(strtolower(trim((string)$filters['assignee_user_public_id'])), ['none', 'unassigned', 'empty'], true)
+        ) {
             $qb->where('u.public_id', '=', (string)$filters['assignee_user_public_id']);
         }
 
@@ -608,6 +612,18 @@ final class TaskRepository
 
         if (!empty($filters['project_public_id'])) {
             $qb->where('p.public_id', '=', (string)$filters['project_public_id']);
+        }
+
+        if (!empty($filters['assignee_user_public_id'])) {
+            $assigneeFilter = strtolower(trim((string)$filters['assignee_user_public_id']));
+            if (in_array($assigneeFilter, ['none', 'unassigned', 'empty'], true)) {
+                $qb->whereNull('t.assignee_user_id');
+            } else {
+                $qb->whereRaw(
+                    'EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id = ?)',
+                    [(string)$filters['assignee_user_public_id']]
+                );
+            }
         }
 
         if (!empty($filters['cycle_public_id'])) {

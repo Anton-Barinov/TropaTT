@@ -33,6 +33,7 @@ final class DashboardController extends BaseController
         'my_week' => ['label_key' => 'dashboard.widget_my_week', 'label' => 'My week', 'description_key' => 'dashboard.widget_my_week_desc', 'description' => 'Week agenda: events, tasks due and reminders grouped by day.', 'size' => 'crm-col-12', 'icon' => 'fa-calendar-days', 'default_enabled' => false, 'permissions' => ['task.manage']],
         'recurring' => ['label_key' => 'dashboard.widget_recurring', 'label' => 'Recurring tasks', 'description_key' => 'dashboard.widget_recurring_desc', 'description' => 'Active recurring rules that generate tasks on a schedule.', 'size' => 'crm-col-4', 'icon' => 'fa-arrows-rotate', 'default_enabled' => false, 'permissions' => ['task.manage']],
         'mentions' => ['label_key' => 'dashboard.widget_mentions', 'label' => 'My mentions', 'description_key' => 'dashboard.widget_mentions_desc', 'description' => 'Tasks, projects and comments where you were mentioned.', 'size' => 'crm-col-4', 'icon' => 'fa-at', 'default_enabled' => false, 'permissions' => ['task.manage']],
+        'unassigned' => ['label_key' => 'dashboard.widget_unassigned', 'label' => 'Unassigned tasks', 'description_key' => 'dashboard.widget_unassigned_desc', 'description' => 'Open tasks without an assignee, sorted by deadline and priority.', 'size' => 'crm-col-6', 'icon' => 'fa-user-slash', 'default_enabled' => false, 'permissions' => ['task.manage']],
     ];
 
     public function summary(): \Api\System\Library\Http\JsonResponse

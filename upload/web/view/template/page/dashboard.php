@@ -350,6 +350,15 @@
           <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
       </section>
+      <section class="crm-card h-100 crm-dashboard-widget crm-col-6" data-dashboard-widget="unassigned">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h5 mb-0" data-i18n="dashboard.widget_unassigned"><?= htmlspecialchars($t('dashboard.widget_unassigned', 'Задачи без исполнителя'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <a href="index.php?route=tasks&assignee=none" data-i18n="dashboard.unassigned_more"><?= htmlspecialchars($t('dashboard.unassigned_more', 'Все такие задачи'), ENT_QUOTES, 'UTF-8') ?></a>
+        </div>
+        <div id="dashboardUnassignedWidget" data-dashboard-unassigned-widget>
+          <div class="col-12 text-muted small" data-i18n="dashboard.loading_widget"><?= htmlspecialchars($t('dashboard.loading_widget', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
       </div>
 
       <div id="dashboardWidgetPool" hidden></div>
