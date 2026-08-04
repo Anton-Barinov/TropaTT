@@ -208,36 +208,11 @@ final class ClientController extends BaseController
      */
     private function validateTypeSpecific(array &$errors, array $merged, string $clientType, bool $strictByType): void
     {
-        if ($strictByType) {
-            if ($clientType === 'sole_proprietor') {
-                $this->requireField($errors, $merged, 'legal_name', $this->t('client/messages.required_legal_name'));
-                $this->requireField($errors, $merged, 'tax_inn', $this->t('client/messages.required_tax_inn'));
-                $this->requireField($errors, $merged, 'tax_ogrnip', $this->t('client/messages.required_tax_ogrnip'));
-            }
-
-            if ($clientType === 'legal_entity') {
-                $this->requireField($errors, $merged, 'legal_name', $this->t('client/messages.required_legal_name'));
-                $this->requireField($errors, $merged, 'tax_inn', $this->t('client/messages.required_tax_inn'));
-                $this->requireField($errors, $merged, 'tax_kpp', $this->t('client/messages.required_tax_kpp'));
-                $this->requireField($errors, $merged, 'tax_ogrn', $this->t('client/messages.required_tax_ogrn'));
-            }
-        }
-
+        // ТЗ 6.1: реквизиты (ИНН/КПП/ОГРН/ОГРНИП/юр. наименование) не обязательны —
+        // контрагента можно создать, указав только название. Формат заполненных
+        // значений проверяется в validateDigitField.
         if ($clientType === 'individual') {
             return;
-        }
-
-    }
-
-    /**
-     * @param array<string,array<int,string>> $errors
-     * @param array<string,mixed> $source
-     */
-    private function requireField(array &$errors, array $source, string $field, string $message): void
-    {
-        $value = $source[$field] ?? null;
-        if ($value === null || trim((string)$value) === '') {
-            $errors[$field][] = $message;
         }
     }
 
