@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
 
 final class ModuleConfig
@@ -123,7 +124,7 @@ final class ModuleConfig
         $this->pdo->exec($sql);
 
         try {
-            $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_registry_name ON module_registry(module_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, 'module_registry', 'idx_module_registry_name', 'module_name', true);
         } catch (\Throwable $e) {
             error_log('[ModuleConfig::ensureTable] index creation failed: ' . $e->getMessage());
         }

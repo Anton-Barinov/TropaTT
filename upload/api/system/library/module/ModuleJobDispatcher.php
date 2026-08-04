@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class ModuleJobDispatcher
 {
@@ -145,8 +146,8 @@ final class ModuleJobDispatcher
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tableName} (id {$id}, module_name {$keyType} NOT NULL, job_name {$keyType} NOT NULL, payload {$keyType} NOT NULL, status {$keyType} NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 3, delay_until {$dt}, created_at {$dt} NOT NULL {$nowDefault}, completed_at {$dt})");
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_jobs_status ON {$this->tableName}(status, created_at)");
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_jobs_module ON {$this->tableName}(module_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_status', 'status, created_at');
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_jobs_module', 'module_name');
         } catch (\Throwable $e) {
             error_log('[ModuleJobDispatcher::dispatch] PDO rollBack failed: ' . $e->getMessage());
         }

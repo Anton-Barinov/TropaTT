@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class ProjectModulesMigration implements MigrationInterface
@@ -184,13 +185,13 @@ final class ProjectModulesMigration implements MigrationInterface
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_modules_public_id ON project_modules(public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_project_status ON project_modules(project_id, status)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_project_sort ON project_modules(project_id, sort_order)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_lead_status ON project_modules(lead_user_id, status)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_target_at ON project_modules(target_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_archived_at ON project_modules(archived_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_modules_deleted_at ON project_modules(deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'uq_project_modules_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_project_status', 'project_id, status');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_project_sort', 'project_id, sort_order');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_lead_status', 'lead_user_id, status');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_target_at', 'target_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_archived_at', 'archived_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_modules', 'idx_project_modules_deleted_at', 'deleted_at');
 
             $pdo->exec('CREATE TABLE IF NOT EXISTS project_module_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,10 +208,10 @@ final class ProjectModulesMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL,
                 deleted_at DATETIME NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_module_tasks_public_id ON project_module_tasks(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_module_tasks_active_key ON project_module_tasks(active_key)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_tasks_module_active ON project_module_tasks(module_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_tasks_task_active ON project_module_tasks(task_id, deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_tasks', 'uq_project_module_tasks_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_tasks', 'uq_project_module_tasks_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_tasks', 'idx_project_module_tasks_module_active', 'module_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_tasks', 'idx_project_module_tasks_task_active', 'task_id, deleted_at');
 
             $pdo->exec('CREATE TABLE IF NOT EXISTS project_module_members (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -227,10 +228,10 @@ final class ProjectModulesMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL,
                 deleted_at DATETIME NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_module_members_public_id ON project_module_members(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_module_members_active_key ON project_module_members(active_key)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_members_module_active ON project_module_members(module_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_members_user_active ON project_module_members(user_id, deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_members', 'uq_project_module_members_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_members', 'uq_project_module_members_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_members', 'idx_project_module_members_module_active', 'module_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_members', 'idx_project_module_members_user_active', 'user_id, deleted_at');
 
             $pdo->exec('CREATE TABLE IF NOT EXISTS project_module_links (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -245,9 +246,9 @@ final class ProjectModulesMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL,
                 deleted_at DATETIME NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_project_module_links_public_id ON project_module_links(public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_links_module_active ON project_module_links(module_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_project_module_links_type ON project_module_links(link_type)');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_links', 'uq_project_module_links_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_links', 'idx_project_module_links_module_active', 'module_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'project_module_links', 'idx_project_module_links_type', 'link_type');
         }
     }
 }

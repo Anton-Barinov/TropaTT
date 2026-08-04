@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
 
 final class ModuleMigrationRunner
@@ -255,13 +256,13 @@ final class ModuleMigrationRunner
         $this->pdo->exec($sql);
 
         try {
-            $this->pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_module_migrations_unique ON {$this->tableName}(module_name, migration_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_migrations_unique', 'module_name, migration_name', true);
         } catch (\Throwable $e) {
             error_log('[ModuleMigrationRunner::ensureTable] UNIQUE INDEX failed: ' . $e->getMessage());
         }
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_migrations_module ON {$this->tableName}(module_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_migrations_module', 'module_name');
         } catch (\Throwable $e) {
             error_log('[ModuleMigrationRunner::ensureTable] INDEX failed: ' . $e->getMessage());
         }

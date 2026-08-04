@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class TaskActivityFeedMigration implements MigrationInterface
@@ -115,14 +116,14 @@ final class TaskActivityFeedMigration implements MigrationInterface
                 deleted_at DATETIME NULL
             )');
 
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_task_activity_events_public_id ON task_activity_events(public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_task_created ON task_activity_events(task_id, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_task_public_created ON task_activity_events(task_public_id, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_actor_created ON task_activity_events(actor_user_id, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_event_type ON task_activity_events(event_type, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_related ON task_activity_events(related_entity_type, related_entity_public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_request_id ON task_activity_events(request_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_activity_events_deleted_at ON task_activity_events(deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'uq_task_activity_events_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_task_created', 'task_id, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_task_public_created', 'task_public_id, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_actor_created', 'actor_user_id, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_event_type', 'event_type, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_related', 'related_entity_type, related_entity_public_id');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_request_id', 'request_id');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_activity_events', 'idx_task_activity_events_deleted_at', 'deleted_at');
         }
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class WorkCyclesMigration implements MigrationInterface
@@ -147,12 +148,12 @@ final class WorkCyclesMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL,
                 deleted_at DATETIME NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_work_cycles_public_id ON work_cycles(public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_work_cycles_project_status ON work_cycles(project_id, status)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_work_cycles_project_dates ON work_cycles(project_id, start_at, end_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_work_cycles_owner_status ON work_cycles(owner_user_id, status)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_work_cycles_created_by ON work_cycles(created_by_user_id, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_work_cycles_deleted_at ON work_cycles(deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'uq_work_cycles_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'idx_work_cycles_project_status', 'project_id, status');
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'idx_work_cycles_project_dates', 'project_id, start_at, end_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'idx_work_cycles_owner_status', 'owner_user_id, status');
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'idx_work_cycles_created_by', 'created_by_user_id, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'work_cycles', 'idx_work_cycles_deleted_at', 'deleted_at');
 
             $pdo->exec('CREATE TABLE IF NOT EXISTS cycle_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -169,10 +170,10 @@ final class WorkCyclesMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL,
                 deleted_at DATETIME NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_cycle_tasks_public_id ON cycle_tasks(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_cycle_tasks_active_key ON cycle_tasks(active_key)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_cycle_tasks_cycle_active ON cycle_tasks(cycle_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_cycle_tasks_task_active ON cycle_tasks(task_id, deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_tasks', 'uq_cycle_tasks_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_tasks', 'uq_cycle_tasks_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_tasks', 'idx_cycle_tasks_cycle_active', 'cycle_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_tasks', 'idx_cycle_tasks_task_active', 'task_id, deleted_at');
 
             $pdo->exec('CREATE TABLE IF NOT EXISTS cycle_snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -187,8 +188,8 @@ final class WorkCyclesMigration implements MigrationInterface
                 payload_json TEXT NULL,
                 created_at DATETIME NOT NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_cycle_snapshots_public_id ON cycle_snapshots(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_cycle_snapshots_cycle_date ON cycle_snapshots(cycle_id, snapshot_date)');
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_snapshots', 'uq_cycle_snapshots_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'cycle_snapshots', 'uq_cycle_snapshots_cycle_date', 'cycle_id, snapshot_date', true);
         }
     }
 }

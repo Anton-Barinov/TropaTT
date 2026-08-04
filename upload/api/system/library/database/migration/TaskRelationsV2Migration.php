@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class TaskRelationsV2Migration implements MigrationInterface
@@ -71,13 +72,13 @@ final class TaskRelationsV2Migration implements MigrationInterface
                 row_version INTEGER NOT NULL DEFAULT 1
             )');
 
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_task_relations_v2_public_id ON task_relations_v2(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_task_relations_v2_active_key ON task_relations_v2(active_key)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_relations_v2_source ON task_relations_v2(source_task_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_relations_v2_target ON task_relations_v2(target_task_id, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_relations_v2_type ON task_relations_v2(relation_type, deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_relations_v2_created_by ON task_relations_v2(created_by_user_id, created_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_relations_v2_deleted_at ON task_relations_v2(deleted_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'uq_task_relations_v2_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'uq_task_relations_v2_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'idx_task_relations_v2_source', 'source_task_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'idx_task_relations_v2_target', 'target_task_id, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'idx_task_relations_v2_type', 'relation_type, deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'idx_task_relations_v2_created_by', 'created_by_user_id, created_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_relations_v2', 'idx_task_relations_v2_deleted_at', 'deleted_at');
         }
     }
 }

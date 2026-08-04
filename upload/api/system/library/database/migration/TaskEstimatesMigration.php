@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class TaskEstimatesMigration implements MigrationInterface
@@ -258,9 +259,9 @@ final class TaskEstimatesMigration implements MigrationInterface
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_estimate_sets_public_id ON estimate_sets(public_id)");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_estimate_sets_active_key ON estimate_sets(active_key)");
-            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_estimate_sets_scope ON estimate_sets(scope_type, project_id)");
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_sets', 'uq_estimate_sets_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_sets', 'uq_estimate_sets_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_sets', 'idx_estimate_sets_scope', 'scope_type, project_id');
 
             $pdo->exec("CREATE TABLE IF NOT EXISTS estimate_options (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -283,9 +284,9 @@ final class TaskEstimatesMigration implements MigrationInterface
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_estimate_options_public_id ON estimate_options(public_id)");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_estimate_options_active_key ON estimate_options(active_key)");
-            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_estimate_options_set_active ON estimate_options(estimate_set_id, is_active)");
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_options', 'uq_estimate_options_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_options', 'uq_estimate_options_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'estimate_options', 'idx_estimate_options_set_active', 'estimate_set_id, is_active');
 
             $pdo->exec("CREATE TABLE IF NOT EXISTS task_estimates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -308,9 +309,9 @@ final class TaskEstimatesMigration implements MigrationInterface
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_task_estimates_public_id ON task_estimates(public_id)");
-            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_task_estimates_active_key ON task_estimates(active_key)");
-            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_task_estimates_task_active ON task_estimates(task_id, deleted_at)");
+            IndexHelper::createIndexIfNotExists($pdo, 'task_estimates', 'uq_task_estimates_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'task_estimates', 'uq_task_estimates_active_key', 'active_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'task_estimates', 'idx_task_estimates_task_active', 'task_id, deleted_at');
         }
     }
 }

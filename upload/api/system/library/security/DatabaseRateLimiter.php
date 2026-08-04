@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Security;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class DatabaseRateLimiter implements RateLimiterInterface
 {
@@ -314,7 +315,7 @@ final class DatabaseRateLimiter implements RateLimiterInterface
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`key`)
             )');
-            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_updated_at ON rate_limits (updated_at)');
+            IndexHelper::createIndexIfNotExists($this->pdo, 'rate_limits', 'idx_updated_at', 'updated_at');
         }
 
         $this->ensureNewColumns();

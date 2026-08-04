@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class ClientProfileExpansionMigration implements MigrationInterface
@@ -48,15 +49,10 @@ final class ClientProfileExpansionMigration implements MigrationInterface
         }
 
         foreach ([
-            'CREATE INDEX IF NOT EXISTS idx_clients_type ON clients(client_type)',
-            'CREATE INDEX IF NOT EXISTS idx_clients_tax_inn ON clients(tax_inn)',
-        ] as $sql) {
-            try {
-                $pdo->exec($sql);
-            } catch (\Throwable $e) {
-                error_log('[ClientProfileExpansionMigration::up] CREATE INDEX: ' . $e->getMessage());
-                // Ignore unsupported IF NOT EXISTS syntax or duplicate index races.
-            }
+            ['clients', 'idx_clients_type', 'client_type'],
+            ['clients', 'idx_clients_tax_inn', 'tax_inn'],
+        ] as [$table, $index, $columns]) {
+            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
         }
     }
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
@@ -113,7 +114,7 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
     private function createIndexIfMissing(PDO $pdo, string $table, string $index, string $columns): void
     {
         try {
-            $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS %s ON %s(%s)', $index, $table, $columns));
+            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
             return;
         } catch (\Throwable $e) {
             error_log('[ImportExportJobsQueueRuntimeMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());

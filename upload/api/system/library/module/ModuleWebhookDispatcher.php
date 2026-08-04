@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class ModuleWebhookDispatcher
 {
@@ -123,7 +124,7 @@ final class ModuleWebhookDispatcher
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tableName} (id {$id}, module_name {$keyType} NOT NULL, event_name {$keyType} NOT NULL, url {$keyType} NOT NULL, secret {$keyType}, is_active INTEGER NOT NULL DEFAULT 1, headers {$keyType}, retry_count INTEGER NOT NULL DEFAULT 3, timeout INTEGER NOT NULL DEFAULT 30, created_at {$dt} NOT NULL {$nowDefault})");
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_webhooks_module ON {$this->tableName}(module_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_webhooks_module', 'module_name');
         } catch (\Throwable $e) {
             error_log('[ModuleWebhookDispatcher::ensureTable] ensureTable failed: ' . $e->getMessage());
         }

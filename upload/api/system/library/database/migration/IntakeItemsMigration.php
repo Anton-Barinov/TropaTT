@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class IntakeItemsMigration implements MigrationInterface
@@ -145,16 +146,16 @@ final class IntakeItemsMigration implements MigrationInterface
             deleted_at DATETIME NULL
         )');
 
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_status ON intake_items(status)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_project_status ON intake_items(project_id, status)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_client_status ON intake_items(client_id, status)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_assignee_status ON intake_items(assignee_user_id, status)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_creator_status ON intake_items(creator_user_id, status)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_snoozed_until ON intake_items(snoozed_until)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_due_at ON intake_items(due_at)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_created_at ON intake_items(created_at)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_updated_at ON intake_items(updated_at)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_items_deleted_at ON intake_items(deleted_at)');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_status', 'status');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_project_status', 'project_id, status');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_client_status', 'client_id, status');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_assignee_status', 'assignee_user_id, status');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_creator_status', 'creator_user_id, status');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_snoozed_until', 'snoozed_until');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_due_at', 'due_at');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_created_at', 'created_at');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_updated_at', 'updated_at');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_items', 'idx_intake_items_deleted_at', 'deleted_at');
 
         $pdo->exec('CREATE TABLE IF NOT EXISTS intake_item_activities (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,8 +173,8 @@ final class IntakeItemsMigration implements MigrationInterface
             created_at DATETIME NOT NULL
         )');
 
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_item_activities_item_created ON intake_item_activities(intake_item_id, created_at)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_item_activities_actor_created ON intake_item_activities(actor_user_id, created_at)');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_intake_item_activities_type_created ON intake_item_activities(event_type, created_at)');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_item_activities', 'idx_intake_item_activities_item_created', 'intake_item_id, created_at');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_item_activities', 'idx_intake_item_activities_actor_created', 'actor_user_id, created_at');
+        IndexHelper::createIndexIfNotExists($pdo, 'intake_item_activities', 'idx_intake_item_activities_type_created', 'event_type, created_at');
     }
 }

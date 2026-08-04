@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 use RuntimeException;
 
 final class ModuleErrorHandler
@@ -133,8 +134,8 @@ final class ModuleErrorHandler
         $this->pdo->exec($sql);
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_errors_module ON {$this->tableName}(module_name)");
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_errors_created ON {$this->tableName}(created_at)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_errors_module', 'module_name');
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_errors_created', 'created_at');
         } catch (\Throwable $e) {
             error_log('[ModuleErrorHandler::ensureTable] ' . $e->getMessage());
         }

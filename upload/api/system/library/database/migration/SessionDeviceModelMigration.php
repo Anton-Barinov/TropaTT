@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class SessionDeviceModelMigration implements MigrationInterface
@@ -24,14 +25,9 @@ final class SessionDeviceModelMigration implements MigrationInterface
         $this->ensureColumn($pdo, $driver, 'user_sessions', 'device_name', $deviceNameDefinition);
 
         foreach ([
-            'CREATE INDEX IF NOT EXISTS idx_sessions_user_device ON user_sessions(user_id, device_fingerprint)',
-        ] as $sql) {
-            try {
-                $pdo->exec($sql);
-            } catch (\Throwable $e) {
-                error_log('[SessionDeviceModelMigration::up] CREATE INDEX: ' . $e->getMessage());
-                // Ignore unsupported IF NOT EXISTS syntax or duplicate index races.
-            }
+            ['user_sessions', 'idx_sessions_user_device', 'user_id, device_fingerprint'],
+        ] as [$table, $index, $columns]) {
+            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
         }
     }
 

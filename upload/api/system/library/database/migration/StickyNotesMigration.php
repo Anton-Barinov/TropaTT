@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class StickyNotesMigration implements MigrationInterface
@@ -93,14 +94,14 @@ final class StickyNotesMigration implements MigrationInterface
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_sticky_notes_public_id ON sticky_notes(public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_owner_context ON sticky_notes(owner_user_id, context_type, context_public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_context ON sticky_notes(context_type, context_public_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_owner_pinned ON sticky_notes(owner_user_id, is_pinned, sort_order)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_visibility ON sticky_notes(visibility)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_archived_at ON sticky_notes(archived_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_deleted_at ON sticky_notes(deleted_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sticky_notes_converted ON sticky_notes(converted_to_entity_type, converted_to_entity_public_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'uq_sticky_notes_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_owner_context', 'owner_user_id, context_type, context_public_id');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_context', 'context_type, context_public_id');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_owner_pinned', 'owner_user_id, is_pinned, sort_order');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_visibility', 'visibility');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_archived_at', 'archived_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_deleted_at', 'deleted_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'sticky_notes', 'idx_sticky_notes_converted', 'converted_to_entity_type, converted_to_entity_public_id');
         }
     }
 }

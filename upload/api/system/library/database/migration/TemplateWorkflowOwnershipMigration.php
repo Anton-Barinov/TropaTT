@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class TemplateWorkflowOwnershipMigration implements MigrationInterface
@@ -24,16 +25,11 @@ final class TemplateWorkflowOwnershipMigration implements MigrationInterface
         $this->ensureColumn($pdo, $driver, 'automation_rules', 'created_by_user_id', 'INTEGER NULL');
 
         foreach ([
-            'CREATE INDEX IF NOT EXISTS idx_task_templates_created_by ON task_templates(created_by_user_id)',
-            'CREATE INDEX IF NOT EXISTS idx_project_templates_created_by ON project_templates(created_by_user_id)',
-            'CREATE INDEX IF NOT EXISTS idx_automation_rules_created_by ON automation_rules(created_by_user_id)',
-        ] as $sql) {
-            try {
-                $pdo->exec($sql);
-            } catch (\Throwable $e) {
-                error_log('[TemplateWorkflowOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
-                // ignore unsupported IF NOT EXISTS for index creation
-            }
+            ['task_templates', 'idx_task_templates_created_by', 'created_by_user_id'],
+            ['project_templates', 'idx_project_templates_created_by', 'created_by_user_id'],
+            ['automation_rules', 'idx_automation_rules_created_by', 'created_by_user_id'],
+        ] as [$table, $index, $columns]) {
+            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
         }
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class ModuleDeprecation
 {
@@ -73,7 +74,7 @@ final class ModuleDeprecation
         $this->pdo->exec($sql);
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_module_deprecations_module ON {$this->tableName}(module_name)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_module_deprecations_module', 'module_name');
         } catch (\Throwable $e) {
             error_log('[ModuleDeprecation::ensureTable] CREATE INDEX: ' . $e->getMessage());
         }

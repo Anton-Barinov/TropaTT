@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class ModuleCronScheduler
 {
@@ -139,9 +140,9 @@ final class ModuleCronScheduler
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->executionsTable} (id {$id}, module_name {$keyType} NOT NULL, task_name {$keyType} NOT NULL, started_at {$dt} NOT NULL {$nowDefault}, finished_at {$dt}, duration_ms INTEGER, status {$keyType} NOT NULL, output {$keyType}, error_message {$keyType}, error_trace {$keyType}, memory_peak_mb INTEGER, pid INTEGER, created_at {$dt} NOT NULL {$nowDefault})");
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_next ON {$this->tasksTable}(next_run_at, enabled)");
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_module ON {$this->tasksTable}(module_name)");
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_task_executions_module ON {$this->executionsTable}(module_name, task_name, started_at)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'idx_scheduled_tasks_next', 'next_run_at, enabled');
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'idx_scheduled_tasks_module', 'module_name');
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->executionsTable, 'idx_task_executions_module', 'module_name, task_name, started_at');
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
         }

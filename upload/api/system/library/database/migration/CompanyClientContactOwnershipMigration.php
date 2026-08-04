@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class CompanyClientContactOwnershipMigration implements MigrationInterface
@@ -24,21 +25,21 @@ final class CompanyClientContactOwnershipMigration implements MigrationInterface
         $this->ensureColumn($pdo, $driver, 'contacts', 'created_by_user_id', 'INTEGER NULL');
 
         try {
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_companies_created_by ON companies(created_by_user_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'companies', 'idx_companies_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
             error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_clients_created_by ON clients(created_by_user_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'clients', 'idx_clients_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
             error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation
         }
 
         try {
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_contacts_created_by ON contacts(created_by_user_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'contacts', 'idx_contacts_created_by', 'created_by_user_id');
         } catch (\Throwable $e) {
             error_log('[CompanyClientContactOwnershipMigration::up] CREATE INDEX: ' . $e->getMessage());
             // ignore unsupported IF NOT EXISTS on index creation

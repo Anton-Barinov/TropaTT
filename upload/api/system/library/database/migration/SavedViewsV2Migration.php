@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class SavedViewsV2Migration implements MigrationInterface
@@ -22,32 +23,32 @@ final class SavedViewsV2Migration implements MigrationInterface
         if ($driver === 'mysql') {
             // Add columns to saved_views table
             $columns = [
-                'ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER title',
-                'ADD COLUMN IF NOT EXISTS access_level VARCHAR(32) NOT NULL DEFAULT \'private\' AFTER filters',
-                'ADD COLUMN IF NOT EXISTS display_filters JSON NULL AFTER access_level',
-                'ADD COLUMN IF NOT EXISTS display_properties JSON NULL AFTER display_filters',
-                'ADD COLUMN IF NOT EXISTS rich_filters JSON NULL AFTER display_properties',
-                'ADD COLUMN IF NOT EXISTS layout VARCHAR(32) NOT NULL DEFAULT \'list\' AFTER rich_filters',
-                'ADD COLUMN IF NOT EXISTS group_by VARCHAR(64) NULL AFTER layout',
-                'ADD COLUMN IF NOT EXISTS order_by VARCHAR(64) NULL AFTER group_by',
-                'ADD COLUMN IF NOT EXISTS order_dir VARCHAR(8) NULL AFTER order_by',
-                'ADD COLUMN IF NOT EXISTS is_locked TINYINT(1) NOT NULL DEFAULT 0 AFTER order_dir',
-                'ADD COLUMN IF NOT EXISTS is_system TINYINT(1) NOT NULL DEFAULT 0 AFTER is_locked',
-                'ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 65535 AFTER is_system',
-                'ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL AFTER sort_order',
-                'ADD COLUMN IF NOT EXISTS updated_by_user_id BIGINT UNSIGNED NULL AFTER user_id',
+                ['description', 'TEXT NULL AFTER title'],
+                ['access_level', "VARCHAR(32) NOT NULL DEFAULT 'private' AFTER filters"],
+                ['display_filters', 'JSON NULL AFTER access_level'],
+                ['display_properties', 'JSON NULL AFTER display_filters'],
+                ['rich_filters', 'JSON NULL AFTER display_properties'],
+                ['layout', "VARCHAR(32) NOT NULL DEFAULT 'list' AFTER rich_filters"],
+                ['group_by', 'VARCHAR(64) NULL AFTER layout'],
+                ['order_by', 'VARCHAR(64) NULL AFTER group_by'],
+                ['order_dir', 'VARCHAR(8) NULL AFTER order_by'],
+                ['is_locked', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER order_dir'],
+                ['is_system', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER is_locked'],
+                ['sort_order', 'INT NOT NULL DEFAULT 65535 AFTER is_system'],
+                ['archived_at', 'DATETIME NULL AFTER sort_order'],
+                ['updated_by_user_id', 'BIGINT UNSIGNED NULL AFTER user_id'],
             ];
 
-            foreach ($columns as $col) {
-                $pdo->exec('ALTER TABLE saved_views ' . $col);
+            foreach ($columns as [$column, $definition]) {
+                IndexHelper::addColumnIfNotExists($pdo, 'saved_views', $column, $definition);
             }
 
             // Add indexes
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_views_entity_access ON saved_views (entity_type, access_level)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_views_user_entity ON saved_views (user_id, entity_type)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_views_archived ON saved_views (archived_at)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_views_sort_order ON saved_views (sort_order)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_views_system_locked ON saved_views (is_system, is_locked)');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_views', 'idx_saved_views_entity_access', 'entity_type, access_level');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_views', 'idx_saved_views_user_entity', 'user_id, entity_type');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_views', 'idx_saved_views_archived', 'archived_at');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_views', 'idx_saved_views_sort_order', 'sort_order');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_views', 'idx_saved_views_system_locked', 'is_system, is_locked');
 
             // Create user preferences table
             $pdo->exec('CREATE TABLE IF NOT EXISTS saved_view_user_preferences (
@@ -128,10 +129,10 @@ final class SavedViewsV2Migration implements MigrationInterface
                 updated_at DATETIME NOT NULL
             )');
 
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_view_user_preferences_public_id ON saved_view_user_preferences(public_id)');
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_view_user_preferences_view_user ON saved_view_user_preferences(saved_view_id, user_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_view_user_preferences_user_pinned ON saved_view_user_preferences(user_id, is_pinned, sort_order)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saved_view_user_preferences_last_used ON saved_view_user_preferences(user_id, last_used_at)');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_view_user_preferences', 'uq_saved_view_user_preferences_public_id', 'public_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_view_user_preferences', 'uq_saved_view_user_preferences_view_user', 'saved_view_id, user_id', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_view_user_preferences', 'idx_saved_view_user_preferences_user_pinned', 'user_id, is_pinned, sort_order');
+            IndexHelper::createIndexIfNotExists($pdo, 'saved_view_user_preferences', 'idx_saved_view_user_preferences_last_used', 'user_id, last_used_at');
         }
     }
 }

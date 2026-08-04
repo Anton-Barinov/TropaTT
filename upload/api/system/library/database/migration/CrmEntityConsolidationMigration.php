@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 /**
@@ -431,22 +432,17 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
     private function createIndexes(PDO $pdo, string $driver): void
     {
         $indexes = [
-            'CREATE INDEX IF NOT EXISTS idx_counterparties_type ON counterparties(counterparty_type)',
-            'CREATE INDEX IF NOT EXISTS idx_counterparties_status ON counterparties(status)',
-            'CREATE INDEX IF NOT EXISTS idx_counterparties_created_by ON counterparties(created_by_user_id)',
-            'CREATE INDEX IF NOT EXISTS idx_counterparties_tax_inn ON counterparties(tax_inn)',
-            'CREATE INDEX IF NOT EXISTS idx_contacts_counterparty ON contacts(counterparty_id)',
-            'CREATE INDEX IF NOT EXISTS idx_teams_type ON teams(team_type)',
-            'CREATE INDEX IF NOT EXISTS idx_teams_parent ON teams(parent_id)',
+            ['counterparties', 'idx_counterparties_type', 'counterparty_type'],
+            ['counterparties', 'idx_counterparties_status', 'status'],
+            ['counterparties', 'idx_counterparties_created_by', 'created_by_user_id'],
+            ['counterparties', 'idx_counterparties_tax_inn', 'tax_inn'],
+            ['contacts', 'idx_contacts_counterparty', 'counterparty_id'],
+            ['teams', 'idx_teams_type', 'team_type'],
+            ['teams', 'idx_teams_parent', 'parent_id'],
         ];
 
-        foreach ($indexes as $sql) {
-            try {
-                $pdo->exec($sql);
-            } catch (\Throwable $e) {
-                error_log('[CrmEntityConsolidationMigration::createIndexes] CREATE INDEX: ' . $e->getMessage());
-                // ignore unsupported IF NOT EXISTS on index creation
-            }
+        foreach ($indexes as [$table, $index, $columns]) {
+            IndexHelper::createIndexIfNotExists($pdo, $table, $index, $columns);
         }
     }
 

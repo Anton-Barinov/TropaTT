@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Module;
 
 use PDO;
+use Api\System\Library\Database\IndexHelper;
 
 final class TenantModuleRegistry
 {
@@ -75,7 +76,7 @@ final class TenantModuleRegistry
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->tableName} (tenant_id INTEGER NOT NULL, module_name {$keyType} NOT NULL, is_active INTEGER NOT NULL DEFAULT 1, config {$keyType}, enabled_at {$dt} NOT NULL {$nowDefault}, PRIMARY KEY (tenant_id, module_name))");
 
         try {
-            $this->pdo->exec("CREATE INDEX IF NOT EXISTS idx_tenant_modules_tenant ON {$this->tableName}(tenant_id)");
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tableName, 'idx_tenant_modules_tenant', 'tenant_id');
         } catch (\Throwable $e) {
             error_log('[TenantModuleRegistry::ensureTable] ' . $e->getMessage());
         }

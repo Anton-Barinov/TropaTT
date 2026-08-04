@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class CoreUpdateSystemMigration implements MigrationInterface
@@ -86,7 +87,7 @@ final class CoreUpdateSystemMigration implements MigrationInterface
             context TEXT NULL,
             created_at DATETIME NOT NULL
         )');
-        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_core_update_log_job ON core_update_log(job_id)');
+        IndexHelper::createIndexIfNotExists($pdo, 'core_update_log', 'idx_core_update_log_job', 'job_id');
         $pdo->exec("INSERT OR IGNORE INTO permissions (public_id, code, title, created_at)
             VALUES ('perm_system_update', 'system.update', 'System: manage core updates', datetime('now'))");
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Notification;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class PushSubscriptionRepository
@@ -195,7 +196,7 @@ final class PushSubscriptionRepository
                     updated_at DATETIME
                 )'
             );
-            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_notif_push_subscriptions_user_active ON notification_push_subscriptions(user_id, is_active, updated_at)');
+            IndexHelper::createIndexIfNotExists($this->pdo, 'notification_push_subscriptions', 'idx_notif_push_subscriptions_user_active', 'user_id, is_active, updated_at');
             $columns = $this->pdo->query('PRAGMA table_info(notification_push_subscriptions)');
             $hasLastError = false;
             if ($columns !== false) {

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class TaskHumanReadableKeysMigration implements MigrationInterface
@@ -21,23 +22,21 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
     {
         if ($driver === 'mysql') {
             // Add columns to projects
-            $pdo->exec('ALTER TABLE projects
-                ADD COLUMN IF NOT EXISTS task_key_prefix VARCHAR(10) NULL AFTER team_public_id,
-                ADD COLUMN IF NOT EXISTS task_key_prefix_locked TINYINT(1) NOT NULL DEFAULT 0 AFTER task_key_prefix');
+            IndexHelper::addColumnIfNotExists($pdo, 'projects', 'task_key_prefix', 'VARCHAR(10) NULL AFTER team_public_id');
+            IndexHelper::addColumnIfNotExists($pdo, 'projects', 'task_key_prefix_locked', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER task_key_prefix');
 
             // Add unique index on task_key_prefix (MySQL allows multiple NULLs in unique index)
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_projects_task_key_prefix ON projects (task_key_prefix)');
+            IndexHelper::createIndexIfNotExists($pdo, 'projects', 'uq_projects_task_key_prefix', 'task_key_prefix', true);
 
             // Add columns to tasks
-            $pdo->exec('ALTER TABLE tasks
-                ADD COLUMN IF NOT EXISTS task_key VARCHAR(32) NULL AFTER priority_code,
-                ADD COLUMN IF NOT EXISTS task_key_prefix VARCHAR(10) NULL AFTER task_key,
-                ADD COLUMN IF NOT EXISTS task_sequence_number BIGINT UNSIGNED NULL AFTER task_key_prefix');
+            IndexHelper::addColumnIfNotExists($pdo, 'tasks', 'task_key', 'VARCHAR(32) NULL AFTER priority_code');
+            IndexHelper::addColumnIfNotExists($pdo, 'tasks', 'task_key_prefix', 'VARCHAR(10) NULL AFTER task_key');
+            IndexHelper::addColumnIfNotExists($pdo, 'tasks', 'task_sequence_number', 'BIGINT UNSIGNED NULL AFTER task_key_prefix');
 
             // Add indexes
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_tasks_task_key ON tasks (task_key)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_tasks_task_key_prefix_sequence ON tasks (task_key_prefix, task_sequence_number)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_tasks_task_sequence_number ON tasks (task_sequence_number)');
+            IndexHelper::createIndexIfNotExists($pdo, 'tasks', 'uq_tasks_task_key', 'task_key', true);
+            IndexHelper::createIndexIfNotExists($pdo, 'tasks', 'idx_tasks_task_key_prefix_sequence', 'task_key_prefix, task_sequence_number');
+            IndexHelper::createIndexIfNotExists($pdo, 'tasks', 'idx_tasks_task_sequence_number', 'task_sequence_number');
 
             // Create task_key_counters table
             $pdo->exec('CREATE TABLE IF NOT EXISTS task_key_counters (
@@ -86,8 +85,8 @@ final class TaskHumanReadableKeysMigration implements MigrationInterface
                 updated_at DATETIME NOT NULL
             )');
 
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_key_counters_project_id ON task_key_counters(project_id)');
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_task_key_counters_prefix ON task_key_counters(prefix)');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_key_counters', 'idx_task_key_counters_project_id', 'project_id');
+            IndexHelper::createIndexIfNotExists($pdo, 'task_key_counters', 'idx_task_key_counters_prefix', 'prefix');
         }
 
         // Backfill: generate task_key_prefix for existing projects without one

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class AiSuggestionsInputHashMigration implements MigrationInterface
@@ -45,7 +46,7 @@ final class AiSuggestionsInputHashMigration implements MigrationInterface
     private function createIndexIfMissing(PDO $pdo, string $table, string $indexName, string $columns): void
     {
         try {
-            $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS %s ON %s (%s)', $indexName, $table, $columns));
+            IndexHelper::createIndexIfNotExists($pdo, $table, $indexName, $columns);
             return;
         } catch (\Throwable $e) {
             error_log('[AiSuggestionsInputHashMigration::createIndexIfMissing] CREATE INDEX: ' . $e->getMessage());

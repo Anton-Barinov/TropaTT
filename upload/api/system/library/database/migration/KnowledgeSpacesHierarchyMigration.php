@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class KnowledgeSpacesHierarchyMigration implements MigrationInterface
@@ -40,7 +41,7 @@ final class KnowledgeSpacesHierarchyMigration implements MigrationInterface
                 error_log('[KnowledgeSpacesHierarchyMigration] CREATE INDEX failed: ' . $e->getMessage());
             }
         } else {
-            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_knowledge_spaces_parent ON knowledge_spaces (parent_id)");
+            IndexHelper::createIndexIfNotExists($pdo, 'knowledge_spaces', 'idx_knowledge_spaces_parent', 'parent_id');
         }
     }
 }

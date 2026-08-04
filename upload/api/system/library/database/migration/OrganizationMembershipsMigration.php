@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Api\System\Library\Database\Migration;
 
+use Api\System\Library\Database\IndexHelper;
 use PDO;
 
 final class OrganizationMembershipsMigration implements MigrationInterface
@@ -39,14 +40,14 @@ final class OrganizationMembershipsMigration implements MigrationInterface
         );
 
         try {
-            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_org_membership_org_user ON organization_memberships(organization_id, user_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'organization_memberships', 'uq_org_membership_org_user', 'organization_id, user_id', true);
         } catch (\Throwable $e) {
             error_log('[OrganizationMembershipsMigration::up] CREATE UNIQUE: ' . $e->getMessage());
             // Some drivers do not support IF NOT EXISTS for index creation.
         }
 
         try {
-            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_org_membership_user ON organization_memberships(user_id)');
+            IndexHelper::createIndexIfNotExists($pdo, 'organization_memberships', 'idx_org_membership_user', 'user_id');
         } catch (\Throwable $e) {
             error_log('[OrganizationMembershipsMigration::up] CREATE INDEX: ' . $e->getMessage());
             // Some drivers do not support IF NOT EXISTS for index creation.
