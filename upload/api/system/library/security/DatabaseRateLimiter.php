@@ -204,6 +204,18 @@ final class DatabaseRateLimiter implements RateLimiterInterface
         try {
             $this->insertFirstAttempt($key, $windowStart, 'NOW()');
             return true;
+        } catch (\PDOException $e) {
+            // A duplicate-key violation (SQLSTATE 23000, MySQL error 1062) is the
+            // EXPECTED outcome when two concurrent requests race to insert the
+            // same key: the loser proceeds to the SELECT ... FOR UPDATE path to
+            // update the row the winner inserted. This is not an error and must
+            // not be logged - the dashboard and other pages fire parallel AJAX
+            // requests that share the same IP-based key.
+            if ((string)$e->getCode() === '23000' && (int)($e->errorInfo[1] ?? 0) === 1062) {
+                return false;
+            }
+            error_log('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
+            return false;
         } catch (\Throwable $e) {
             error_log('[DatabaseRateLimiter::tryInsert] ' . $e->getMessage());
             return false;
