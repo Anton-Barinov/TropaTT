@@ -246,6 +246,7 @@
         <div class="col-12">
           <label class="form-label" data-i18n="task_detail.timer_log_minutes_label"><?= htmlspecialchars($t('task_detail.timer_log_minutes_label', 'Затрачено (мин)'), ENT_QUOTES, 'UTF-8') ?></label>
           <input class="form-control" type="number" min="1" step="1" name="minutes_spent" required>
+          <div id="taskTimerLogElapsedHint" class="small text-muted mt-1 d-none"></div>
         </div>
         <div class="col-12">
           <label class="form-label" data-i18n="task_detail.timer_log_note_label"><?= htmlspecialchars($t('task_detail.timer_log_note_label', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?></label>

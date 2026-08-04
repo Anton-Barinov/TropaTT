@@ -5088,7 +5088,11 @@ window.CRM.br1 = (function () {
       }
 
       var seconds = Math.max(1, Math.floor((finishedAt.getTime() - startMs) / 1000));
-      var roundedMinutes = Math.max(1, Math.ceil(seconds / 60));
+      // Round to the nearest whole minute (minimum 1). The exact elapsed time is
+      // always preserved in the worklog note (e.g. [00:02:12]) and shown in the
+      // form hint below, so the logged value never silently contradicts what the
+      // timer displayed while it was running.
+      var roundedMinutes = Math.max(1, Math.round(seconds / 60));
       pendingLogPayload = {
         seconds: seconds,
         started_at: startedAt.toISOString(),
@@ -5101,6 +5105,11 @@ window.CRM.br1 = (function () {
       if (minutesInput) minutesInput.value = String(roundedMinutes);
       if (noteInput) noteInput.value = '';
       timerForm.classList.remove('d-none');
+      var elapsedHint = document.getElementById('taskTimerLogElapsedHint');
+      if (elapsedHint) {
+        elapsedHint.textContent = window.CRM.i18n.t('js.br1.taymer_tochnoe_vremya', 'Точное время: ') + formatElapsedSeconds(seconds);
+        elapsedHint.classList.remove('d-none');
+      }
       if (noteInput) noteInput.focus();
     });
 
