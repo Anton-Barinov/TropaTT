@@ -10441,6 +10441,32 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
+    function openGlobalModal(modalId) {
+      var modalEl = document.getElementById(modalId);
+      if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) return;
+      modalEl.classList.remove('d-none');
+      modalEl.removeAttribute('aria-hidden');
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    var createTaskBtn = document.getElementById('clientDetailCreateTaskBtn');
+    if (createTaskBtn && clientPublicId && createTaskBtn.dataset.bound !== '1') {
+      createTaskBtn.addEventListener('click', function () {
+        window._taskClientPrefill = clientPublicId;
+        openGlobalModal('createTaskModal');
+      });
+      createTaskBtn.dataset.bound = '1';
+    }
+
+    var createProjectBtn = document.getElementById('clientDetailCreateProjectBtn');
+    if (createProjectBtn && clientPublicId && createProjectBtn.dataset.bound !== '1') {
+      createProjectBtn.addEventListener('click', function () {
+        window._projectClientPrefill = clientPublicId;
+        openGlobalModal('createProjectModal');
+      });
+      createProjectBtn.dataset.bound = '1';
+    }
+
     function hasDisplayValue(value) {
       if (value === null || value === undefined) return false;
       if (typeof value === 'string') return value.trim() !== '';
@@ -24545,7 +24571,48 @@ window.CRM.pageApiBindings = (function () {
     };
 
     function roleLabel(value) {
-      return ROLE_LABELS[String(value || '').trim()] || '—';
+      var raw = String(value || '').trim();
+      return ROLE_LABELS[raw] || raw || '—';
+    }
+
+    function bindHybridRole(select, input) {
+      if (!select || !input) return;
+      if (select.dataset.hybridBound === '1') return;
+      function syncRoleInput() {
+        var custom = String(select.value || '') === '__custom__';
+        input.classList.toggle('d-none', !custom);
+        if (custom) input.focus();
+      }
+      select.addEventListener('change', syncRoleInput);
+      select.dataset.hybridBound = '1';
+      syncRoleInput();
+    }
+
+    function resolveRolePayload(form) {
+      var select = form.querySelector('[name="role"]');
+      var input = form.querySelector('[name="role_custom"]');
+      var value = String(select ? select.value || '' : '').trim();
+      if (value === '__custom__') {
+        return String(input ? input.value || '' : '').trim();
+      }
+      return value;
+    }
+
+    function setRoleControl(form, role) {
+      var select = form.querySelector('[name="role"]');
+      var input = form.querySelector('[name="role_custom"]');
+      if (!select || !input) return;
+      var raw = String(role || '').trim();
+      var isKnown = raw === '' || Object.prototype.hasOwnProperty.call(ROLE_LABELS, raw);
+      if (isKnown) {
+        select.value = raw;
+        input.classList.add('d-none');
+        input.value = '';
+      } else {
+        select.value = '__custom__';
+        input.classList.remove('d-none');
+        input.value = raw;
+      }
     }
 
     function clearFormErrors(form) {
@@ -24721,6 +24788,9 @@ window.CRM.pageApiBindings = (function () {
     populateCounterpartySelect(document.getElementById('contactCreateCounterpartySelect'));
     populateCounterpartySelect(document.getElementById('contactEditCounterpartySelect'));
 
+    bindHybridRole(createForm && createForm.querySelector('[name="role"]'), createForm && createForm.querySelector('[name="role_custom"]'));
+    bindHybridRole(editForm && editForm.querySelector('[name="role"]'), editForm && editForm.querySelector('[name="role_custom"]'));
+
     if (createForm && createForm.dataset.bound !== '1') {
       createForm.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -24729,7 +24799,7 @@ window.CRM.pageApiBindings = (function () {
           counterparty_public_id: String((createForm.querySelector('[name="counterparty_public_id"]') || {}).value || '').trim(),
           email: String((createForm.querySelector('[name="email"]') || {}).value || '').trim(),
           phone: String((createForm.querySelector('[name="phone"]') || {}).value || '').trim(),
-          role: String((createForm.querySelector('[name="role"]') || {}).value || '').trim(),
+          role: resolveRolePayload(createForm),
           is_primary: Boolean((createForm.querySelector('[name="is_primary"]') || {}).checked)
         };
         if (!payload.full_name) {
@@ -24766,7 +24836,7 @@ window.CRM.pageApiBindings = (function () {
           counterparty_public_id: String((editForm.querySelector('[name="counterparty_public_id"]') || {}).value || '').trim(),
           email: String((editForm.querySelector('[name="email"]') || {}).value || '').trim(),
           phone: String((editForm.querySelector('[name="phone"]') || {}).value || '').trim(),
-          role: String((editForm.querySelector('[name="role"]') || {}).value || '').trim(),
+          role: resolveRolePayload(editForm),
           is_primary: Boolean((editForm.querySelector('[name="is_primary"]') || {}).checked)
         };
         if (!payload.full_name) {
@@ -24819,7 +24889,7 @@ window.CRM.pageApiBindings = (function () {
         editForm.querySelector('[name="full_name"]').value = String(contact.full_name || '');
         editForm.querySelector('[name="email"]').value = String(contact.email || '');
         editForm.querySelector('[name="phone"]').value = String(contact.phone || '');
-        editForm.querySelector('[name="role"]').value = String(contact.role || '');
+        setRoleControl(editForm, contact.role);
         editForm.querySelector('[name="is_primary"]').checked = Boolean(contact.is_primary);
         var cpSelect = editForm.querySelector('[name="counterparty_public_id"]');
         if (cpSelect) {

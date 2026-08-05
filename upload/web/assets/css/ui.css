@@ -421,6 +421,13 @@ a.btn {
   border-color: rgba(13, 110, 253, 0.35);
 }
 
+/* ТЗ 6.6: активное состояние «Компактного вида» — читаемый контраст (не зелёное на зелёном) */
+.crm-clients-page #clientsCompactToggle.is-active {
+  background: var(--crm-primary);
+  border-color: transparent;
+  color: #fff;
+}
+
 .crm-btn-danger-soft,
 .btn-outline-danger,
 .crm-btn-danger {

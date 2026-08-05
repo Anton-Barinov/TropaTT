@@ -2548,6 +2548,8 @@ return array (
       ),
       'client_detail' => 
       array (
+        'btn_create_task' => 'Create task',
+        'btn_create_project' => 'Create project',
         'not_selected' => 'Client not selected',
         'load_fail' => 'Failed to load client card',
         'not_found' => 'Client not found',
@@ -3307,6 +3309,8 @@ return array (
         'role_influencer' => 'Influencer',
         'role_user' => 'User',
         'role_technical' => 'Technical',
+        'opt_custom_role' => 'Other role (custom)...',
+        'role_custom_placeholder' => 'Enter custom role',
         'empty' => 'Contacts not found.',
         'all_counterparties' => 'All counterparties',
         'select_counterparty' => 'Select counterparty',
