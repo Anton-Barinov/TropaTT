@@ -384,6 +384,84 @@ a:focus-visible {
   min-width: 0;
 }
 
+/* Multi-timer: several parallel running timers, total in the topbar */
+.crm-topbar-timer-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.crm-topbar-timer-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--crm-accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.crm-topbar-timer-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1080;
+  min-width: 300px;
+  max-width: 360px;
+  background: var(--crm-surface);
+  border: 1px solid var(--crm-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.crm-topbar-timer-menu-head {
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--crm-text-muted);
+}
+
+.crm-topbar-timer-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--crm-text);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: background-color 0.15s ease;
+}
+
+.crm-topbar-timer-menu-item:hover {
+  background: var(--crm-surface-soft, #f1f5f9);
+}
+
+.crm-topbar-timer-menu-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.crm-topbar-timer-menu-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--crm-accent);
+  flex: 0 0 auto;
+}
+
 /* Hide mobile sidebar toggle on desktop */
 @media (min-width: 992px) {
   #sidebarToggle {

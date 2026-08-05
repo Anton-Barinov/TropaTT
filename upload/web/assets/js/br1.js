@@ -23,6 +23,10 @@ window.CRM.br1 = (function () {
   var taskTimerTickIntervalId = null;
   var topbarTimerEl = null;
   var topbarTimerTickId = null;
+  var topbarTimerTitles = {};
+  var topbarTimerTitleFetching = {};
+  var topbarTimerMenuKey = null;
+  var topbarTimerMenuDocBound = false;
   var availableTags = [];
   var availableUsers = [];
   var availableProjects = [];
@@ -5000,11 +5004,51 @@ window.CRM.br1 = (function () {
     try {
       var parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return null;
-      if (!parsed.task_public_id || !parsed.user_public_id || !parsed.started_at) return null;
-      return parsed;
+      // Migrate the legacy single-timer cookie {task_public_id, user_public_id,
+      // started_at} to the multi-timer shape {user_public_id, timers: {task: startedAt}}.
+      if (parsed.timers === undefined && parsed.task_public_id && parsed.started_at) {
+        var migrated = { user_public_id: String(parsed.user_public_id || ''), timers: {} };
+        migrated.timers[String(parsed.task_public_id)] = String(parsed.started_at);
+        parsed = migrated;
+      }
+      if (!parsed.user_public_id || !parsed.timers || typeof parsed.timers !== 'object') return null;
+      var timers = {};
+      Object.keys(parsed.timers).forEach(function (taskId) {
+        var ts = parsed.timers[taskId];
+        if (typeof ts !== 'string' || ts === '') return;
+        if (Number.isNaN(new Date(ts).getTime())) return;
+        timers[String(taskId)] = ts;
+      });
+      if (Object.keys(timers).length === 0) return null;
+      return { user_public_id: String(parsed.user_public_id), timers: timers };
     } catch (e) {
       return null;
     }
+  }
+
+  // Timers that belong to the current user. A cookie left by a previously
+  // logged-in user (different user_public_id) is deliberately ignored.
+  function getMyTimerState() {
+    var state = readTaskTimerState();
+    var currentUserId = getCurrentUserPublicId();
+    if (!state || String(state.user_public_id || '') !== String(currentUserId || '')) return null;
+    return state;
+  }
+
+  function getTimerEntries(state) {
+    var entries = [];
+    if (!state || !state.timers || typeof state.timers !== 'object') return entries;
+    Object.keys(state.timers).forEach(function (taskId) {
+      entries.push({ task_public_id: String(taskId), started_at: String(state.timers[taskId]) });
+    });
+    entries.sort(function (a, b) { return String(a.started_at).localeCompare(String(b.started_at)); });
+    return entries;
+  }
+
+  function getTaskTimerStartedAt(state, taskId) {
+    if (!state || !state.timers || typeof state.timers !== 'object') return null;
+    var ts = state.timers[String(taskId || '')];
+    return (typeof ts === 'string' && ts !== '') ? ts : null;
   }
 
   function writeTaskTimerState(state) {
@@ -5014,6 +5058,70 @@ window.CRM.br1 = (function () {
 
   function clearTaskTimerState() {
     removeCookie(TASK_TIMER_COOKIE_NAME);
+  }
+
+  function persistTimerState(timers) {
+    var entries = {};
+    Object.keys(timers || {}).forEach(function (taskId) {
+      var ts = timers[taskId];
+      if (typeof ts === 'string' && ts !== '' && !Number.isNaN(new Date(ts).getTime())) {
+        entries[String(taskId)] = ts;
+      }
+    });
+    if (Object.keys(entries).length === 0) {
+      clearTaskTimerState();
+      return null;
+    }
+    var state = { user_public_id: String(getCurrentUserPublicId() || ''), timers: entries };
+    writeTaskTimerState(state);
+    return state;
+  }
+
+  // Starts the timer for a task without touching timers of other tasks: several
+  // timers may run in parallel, each tracked separately by task.
+  function startTaskTimer(taskId) {
+    var state = getMyTimerState() || { user_public_id: String(getCurrentUserPublicId() || ''), timers: {} };
+    var timers = state.timers || {};
+    var key = String(taskId || '');
+    if (!timers[key]) timers[key] = new Date().toISOString();
+    return persistTimerState(timers);
+  }
+
+  // Stops the timer of one task and returns the exact measured span
+  // {started_at, finished_at, seconds}. {error:'not_found'} when the task has
+  // no running timer; {error:'damaged'} when the stored timestamp is unusable
+  // (in that case the entry is dropped so it cannot block the flow).
+  function stopTaskTimer(taskId) {
+    var state = getMyTimerState();
+    if (!state) return { error: 'not_found' };
+    var timers = state.timers || {};
+    var key = String(taskId || '');
+    if (!Object.prototype.hasOwnProperty.call(timers, key)) return { error: 'not_found' };
+    var startedAt = String(timers[key]);
+    var started = new Date(startedAt);
+    if (Number.isNaN(started.getTime())) {
+      delete timers[key];
+      persistTimerState(timers);
+      return { error: 'damaged' };
+    }
+    var finishedAt = new Date();
+    var seconds = Math.max(1, Math.floor((finishedAt.getTime() - started.getTime()) / 1000));
+    delete timers[key];
+    persistTimerState(timers);
+    return { started_at: startedAt, finished_at: finishedAt.toISOString(), seconds: seconds };
+  }
+
+  // Sum of all running timers of the current user - the topbar widget shows
+  // this total while several timers run in parallel, while each task keeps its
+  // own start timestamp so per-task accounting stays exact.
+  function getTotalElapsedSeconds(state) {
+    var total = 0;
+    var now = Date.now();
+    getTimerEntries(state).forEach(function (entry) {
+      var ms = new Date(entry.started_at).getTime();
+      if (!Number.isNaN(ms)) total += Math.max(0, Math.floor((now - ms) / 1000));
+    });
+    return total;
   }
 
   function formatElapsedSeconds(totalSeconds) {
@@ -5032,72 +5140,162 @@ window.CRM.br1 = (function () {
     renderTopbarTaskTimer();
   }
 
-  // Global running-timer indicator in the topbar: shows elapsed time and the
-  // task while the user's timer is running, on every page. Clicking it opens
-  // the task detail page.
+  // Global running-timer indicator in the topbar: shows the total elapsed time
+  // of all running timers and the task while a single timer runs. With several
+  // parallel timers it shows the total + a count badge; clicking opens a small
+  // menu listing every running task with its own elapsed time.
   function renderTopbarTaskTimer() {
     if (!topbarTimerEl) return;
-    var state = readTaskTimerState();
-    var currentUserId = getCurrentUserPublicId();
-    var isMine = Boolean(state && String(state.user_public_id || '') === String(currentUserId || ''));
-    if (!isMine) {
+    var state = getMyTimerState();
+    var entries = getTimerEntries(state);
+
+    if (entries.length === 0) {
       if (topbarTimerTickId) {
         window.clearInterval(topbarTimerTickId);
         topbarTimerTickId = null;
       }
+      closeTopbarTimerMenu();
       topbarTimerEl.classList.add('d-none');
       return;
     }
 
     topbarTimerEl.classList.remove('d-none');
-    var taskPublicId = String(state.task_public_id || '');
-    var taskHref = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(taskPublicId);
-
     if (!topbarTimerEl.dataset.built) {
       topbarTimerEl.dataset.built = '1';
       topbarTimerEl.innerHTML = ''
-        + '<a class="crm-topbar-timer-link" href="' + taskHref + '" title="' + window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + '">'
+        + '<div class="crm-topbar-timer-wrap">'
+        + '<a class="crm-topbar-timer-link" href="javascript:void(0)" title="' + window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + '">'
         + '<span class="crm-topbar-timer-dot" aria-hidden="true"></span>'
         + '<span class="crm-topbar-timer-time">00:00:00</span>'
         + '<span class="crm-topbar-timer-title"></span>'
-        + '</a>';
-    } else {
-      var link = topbarTimerEl.querySelector('a');
-      if (link) link.setAttribute('href', taskHref);
+        + '<span class="crm-topbar-timer-count d-none" aria-hidden="true"></span>'
+        + '</a>'
+        + '<div class="crm-topbar-timer-menu d-none" role="menu"></div>'
+        + '</div>';
+      var linkEl = topbarTimerEl.querySelector('.crm-topbar-timer-link');
+      if (linkEl) {
+        linkEl.addEventListener('click', function (e) {
+          if (getTimerEntries(getMyTimerState()).length > 1) {
+            e.preventDefault();
+            toggleTopbarTimerMenu();
+          }
+        });
+      }
     }
 
     var timeEl = topbarTimerEl.querySelector('.crm-topbar-timer-time');
+    var titleEl = topbarTimerEl.querySelector('.crm-topbar-timer-title');
+    var countEl = topbarTimerEl.querySelector('.crm-topbar-timer-count');
+    var linkEl = topbarTimerEl.querySelector('.crm-topbar-timer-link');
+
     var updateFn = function () {
-      var start = new Date(state.started_at);
-      var startMs = start.getTime();
-      timeEl.textContent = Number.isNaN(startMs)
-        ? '00:00:00'
-        : formatElapsedSeconds(Math.floor((Date.now() - startMs) / 1000));
+      var s = getMyTimerState();
+      var list = getTimerEntries(s);
+      if (list.length === 0) {
+        renderTopbarTaskTimer();
+        return;
+      }
+      timeEl.textContent = formatElapsedSeconds(getTotalElapsedSeconds(s));
+      prefetchTopbarTimerTitles(list);
+      if (list.length === 1) {
+        var one = list[0];
+        countEl.classList.add('d-none');
+        titleEl.classList.remove('d-none');
+        titleEl.textContent = topbarTimerTitles[one.task_public_id] || one.task_public_id;
+        linkEl.setAttribute('href', 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(one.task_public_id));
+        linkEl.setAttribute('title', window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + (titleEl.textContent ? ' · ' + titleEl.textContent : ''));
+      } else {
+        titleEl.classList.add('d-none');
+        titleEl.textContent = '';
+        countEl.classList.remove('d-none');
+        countEl.textContent = '×' + list.length;
+        linkEl.removeAttribute('href');
+        linkEl.setAttribute('title', window.CRM.i18n.t('topbar.timers_running', 'Таймеры запущены') + ' (' + list.length + ')');
+        renderTopbarTimerMenu(s);
+      }
     };
     updateFn();
     if (topbarTimerTickId) {
       window.clearInterval(topbarTimerTickId);
     }
     topbarTimerTickId = window.setInterval(updateFn, 1000);
+  }
 
-    if (topbarTimerEl.dataset.titleTask !== taskPublicId) {
-      topbarTimerEl.dataset.titleTask = taskPublicId;
-      var titleEl = topbarTimerEl.querySelector('.crm-topbar-timer-title');
-      if (titleEl) titleEl.textContent = '';
-      window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskPublicId), { silent: true })
+  // Fetches task titles for the topbar widget once per task (cached), so the
+  // running-timer indicator and its menu show human-readable names without
+  // hammering the API on every tick.
+  function prefetchTopbarTimerTitles(entries) {
+    entries.forEach(function (entry) {
+      var id = String(entry.task_public_id || '');
+      if (!id || topbarTimerTitles[id] !== undefined || topbarTimerTitleFetching[id]) return;
+      topbarTimerTitleFetching[id] = true;
+      window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(id), { silent: true })
         .then(function (env) {
           var task = env && env.data ? (env.data.task || env.data) : null;
           var title = task && task.title ? String(task.title) : '';
-          if (!title || topbarTimerEl.dataset.titleTask !== taskPublicId) return;
-          var el = topbarTimerEl.querySelector('.crm-topbar-timer-title');
-          if (el) el.textContent = title;
-          var linkEl = topbarTimerEl.querySelector('a');
-          if (linkEl) {
-            linkEl.setAttribute('title', window.CRM.i18n.t('topbar.timer_running', 'Таймер запущен') + ' · ' + title);
-          }
+          topbarTimerTitles[id] = title || id;
+          delete topbarTimerTitleFetching[id];
+          renderTopbarTaskTimer();
         })
-        .catch(function () {});
+        .catch(function () {
+          topbarTimerTitles[id] = id;
+          delete topbarTimerTitleFetching[id];
+        });
+    });
+  }
+
+  function renderTopbarTimerMenu(state) {
+    var menu = topbarTimerEl ? topbarTimerEl.querySelector('.crm-topbar-timer-menu') : null;
+    if (!menu) return;
+    var list = getTimerEntries(state);
+    var key = list.map(function (e) { return e.task_public_id; }).sort().join('|');
+    if (topbarTimerMenuKey !== key) {
+      topbarTimerMenuKey = key;
+      var header = '<div class="crm-topbar-timer-menu-head">' + window.CRM.i18n.t('topbar.timers_running', 'Таймеры запущены') + ' (' + list.length + ')</div>';
+      var rows = list.map(function (entry) {
+        return '<a class="crm-topbar-timer-menu-item" role="menuitem" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(entry.task_public_id) + '">'
+          + '<span class="crm-topbar-timer-menu-id" data-menu-title="' + entry.task_public_id + '"></span>'
+          + '<span class="crm-topbar-timer-menu-time" data-menu-time="' + entry.task_public_id + '"></span>'
+          + '</a>';
+      }).join('');
+      menu.innerHTML = header + rows;
     }
+    var now = Date.now();
+    list.forEach(function (entry) {
+      var id = String(entry.task_public_id);
+      var titleEl = menu.querySelector('[data-menu-title="' + id + '"]');
+      if (titleEl) titleEl.textContent = topbarTimerTitles[id] || id;
+      var timeEl = menu.querySelector('[data-menu-time="' + id + '"]');
+      if (timeEl) {
+        var ms = new Date(entry.started_at).getTime();
+        timeEl.textContent = Number.isNaN(ms) ? '00:00:00' : formatElapsedSeconds(Math.max(0, Math.floor((now - ms) / 1000)));
+      }
+    });
+  }
+
+  function toggleTopbarTimerMenu() {
+    var menu = topbarTimerEl ? topbarTimerEl.querySelector('.crm-topbar-timer-menu') : null;
+    if (!menu) return;
+    if (!menu.classList.contains('d-none')) {
+      menu.classList.add('d-none');
+      return;
+    }
+    renderTopbarTimerMenu(getMyTimerState());
+    menu.classList.remove('d-none');
+    if (!topbarTimerMenuDocBound) {
+      topbarTimerMenuDocBound = true;
+      document.addEventListener('click', function (e) {
+        if (topbarTimerEl && !topbarTimerEl.contains(e.target)) closeTopbarTimerMenu();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.key === 'Esc') closeTopbarTimerMenu();
+      });
+    }
+  }
+
+  function closeTopbarTimerMenu() {
+    var menu = topbarTimerEl ? topbarTimerEl.querySelector('.crm-topbar-timer-menu') : null;
+    if (menu) menu.classList.add('d-none');
   }
 
   function renderTaskTimerState(taskId, state) {
@@ -5110,11 +5308,12 @@ window.CRM.br1 = (function () {
     if (!elapsedEl || !startedAtEl || !startBtn || !stopBtn) return;
 
     var canUseTimer = Boolean(currentTaskPermissions.canWorkItems);
-    var hasState = Boolean(state);
-    var currentUserId = getCurrentUserPublicId();
-    var isCurrentTask = hasState && String(state.task_public_id || '') === String(taskId || '');
-    var isCurrentUser = hasState && String(state.user_public_id || '') === String(currentUserId || '');
-    var isRunningHere = hasState && isCurrentTask && isCurrentUser;
+    var myState = getMyTimerState();
+    var startedAtHere = getTaskTimerStartedAt(myState, taskId);
+    var isRunningHere = Boolean(startedAtHere);
+    var otherTimers = myState ? getTimerEntries(myState).filter(function (e) {
+      return String(e.task_public_id) !== String(taskId || '');
+    }) : [];
 
     if (taskTimerTickIntervalId) {
       window.clearInterval(taskTimerTickIntervalId);
@@ -5130,44 +5329,37 @@ window.CRM.br1 = (function () {
       return;
     }
 
-    if (!hasState) {
+    if (!isRunningHere) {
       elapsedEl.textContent = '00:00:00';
-      startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_ne_zapushchen', 'Таймер не запущен');
+      if (otherTimers.length > 0) {
+        var hint = window.CRM.i18n.t('js.br1.taymer_takzhe_zapushchen_v_neskolkikh_zadachakh', 'Таймер также запущен ещё в {n} задачах');
+        startedAtEl.textContent = String(hint).replace('{n}', String(otherTimers.length));
+      } else {
+        startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_ne_zapushchen', 'Таймер не запущен');
+      }
       startBtn.disabled = false;
       stopBtn.disabled = true;
+      if (timerForm) timerForm.classList.add('d-none');
       return;
     }
 
-    if (isRunningHere) {
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-
-      var updateElapsed = function () {
-        var start = new Date(state.started_at);
-        var startMs = start.getTime();
-        if (Number.isNaN(startMs)) {
-          elapsedEl.textContent = '00:00:00';
-          return;
-        }
-        var seconds = Math.floor((Date.now() - startMs) / 1000);
-        elapsedEl.textContent = formatElapsedSeconds(seconds);
-      };
-
-      startedAtEl.textContent = window.CRM.i18n.t('js.br1.start', 'Старт: ') + formatDate(state.started_at);
-      updateElapsed();
-      taskTimerTickIntervalId = window.setInterval(updateElapsed, 1000);
-      return;
-    }
-
-    elapsedEl.textContent = '00:00:00';
-    if (isCurrentUser) {
-      startedAtEl.textContent = window.CRM.i18n.t('js.br1.u_vas_uzhe_zapushchen_taymer_v_drugoy_zadache', 'У вас уже запущен таймер в другой задаче');
-    } else {
-      startedAtEl.textContent = window.CRM.i18n.t('js.br1.taymer_zanyat_drugim_polzovatelem', 'Таймер занят другим пользователем');
-    }
     startBtn.disabled = true;
-    stopBtn.disabled = true;
-    if (timerForm) timerForm.classList.add('d-none');
+    stopBtn.disabled = false;
+
+    var updateElapsed = function () {
+      var s = getMyTimerState();
+      var ts = getTaskTimerStartedAt(s, taskId);
+      var ms = ts ? new Date(ts).getTime() : NaN;
+      if (Number.isNaN(ms)) {
+        elapsedEl.textContent = '00:00:00';
+        return;
+      }
+      elapsedEl.textContent = formatElapsedSeconds(Math.max(0, Math.floor((Date.now() - ms) / 1000)));
+    };
+
+    startedAtEl.textContent = window.CRM.i18n.t('js.br1.start', 'Старт: ') + formatDate(startedAtHere);
+    updateElapsed();
+    taskTimerTickIntervalId = window.setInterval(updateElapsed, 1000);
   }
 
   function bindTaskTimerFlow(taskId) {
@@ -5191,64 +5383,47 @@ window.CRM.br1 = (function () {
         return;
       }
 
-      var activeState = readTaskTimerState();
-      var currentUserId = getCurrentUserPublicId();
-      if (activeState && String(activeState.user_public_id || '') === String(currentUserId || '')) {
-        if (String(activeState.task_public_id || '') === String(taskId || '')) {
-          notify(window.CRM.i18n.t('js.br1.taymer_uzhe_zapushchen_dlya_etoy_zadachi', 'Таймер уже запущен для этой задачи'), 'warning');
-        } else {
-          notify(window.CRM.i18n.t('js.br1.snachala_ostanovite_taymer_v_drugoy_zadache', 'Сначала остановите таймер в другой задаче'), 'warning');
-        }
+      if (getTaskTimerStartedAt(getMyTimerState(), taskId)) {
+        notify(window.CRM.i18n.t('js.br1.taymer_uzhe_zapushchen_dlya_etoy_zadachi', 'Таймер уже запущен для этой задачи'), 'warning');
         return;
       }
 
-      var startedAt = new Date().toISOString();
-      writeTaskTimerState({
-        task_public_id: String(taskId || ''),
-        user_public_id: String(currentUserId || ''),
-        started_at: startedAt
-      });
+      startTaskTimer(taskId);
       pendingLogPayload = null;
       if (minutesInput) minutesInput.value = '';
       if (noteInput) noteInput.value = '';
       timerForm.classList.add('d-none');
-      renderTaskTimerState(taskId, readTaskTimerState());
+      renderTaskTimerState(taskId, getMyTimerState());
       renderTopbarTaskTimer();
       notify(window.CRM.i18n.t('js.br1.taymer_zapushchen', 'Таймер запущен'));
     });
 
     stopBtn.addEventListener('click', function () {
-      var state = readTaskTimerState();
-      var currentUserId = getCurrentUserPublicId();
-      if (!state || String(state.user_public_id || '') !== String(currentUserId || '') || String(state.task_public_id || '') !== String(taskId || '')) {
+      var result = stopTaskTimer(taskId);
+      if (!result || result.error === 'not_found') {
         notify(window.CRM.i18n.t('js.br1.aktivnyy_taymer_dlya_etoy_zadachi_ne_nayden', 'Активный таймер для этой задачи не найден'), 'warning');
-        renderTaskTimerState(taskId, state);
+        renderTaskTimerState(taskId, getMyTimerState());
         return;
       }
-
-      var startedAt = new Date(state.started_at);
-      var finishedAt = new Date();
-      var startMs = startedAt.getTime();
-      if (Number.isNaN(startMs)) {
-        clearTaskTimerState();
-        renderTaskTimerState(taskId, null);
+      if (result.error === 'damaged') {
+        renderTaskTimerState(taskId, getMyTimerState());
+        renderTopbarTaskTimer();
         notify(window.CRM.i18n.t('js.br1.taymer_byl_povrezhdyon_i_sbroshen', 'Таймер был повреждён и сброшен'), 'warning');
         return;
       }
 
-      var seconds = Math.max(1, Math.floor((finishedAt.getTime() - startMs) / 1000));
-      // Round to the nearest whole minute (minimum 1). The exact elapsed time is
-      // always preserved in the worklog note (e.g. [00:02:12]) and shown in the
-      // form hint below, so the logged value never silently contradicts what the
-      // timer displayed while it was running.
+      var seconds = result.seconds;
+      // Round to the nearest whole minute (minimum 1). The exact elapsed time
+      // is always preserved in the worklog note (e.g. [00:02:12]) and shown in
+      // the form hint below, so the logged value never silently contradicts
+      // what the timer displayed while it was running.
       var roundedMinutes = Math.max(1, Math.round(seconds / 60));
       pendingLogPayload = {
         seconds: seconds,
-        started_at: startedAt.toISOString(),
-        finished_at: finishedAt.toISOString()
+        started_at: result.started_at,
+        finished_at: result.finished_at
       };
-      clearTaskTimerState();
-      renderTaskTimerState(taskId, null);
+      renderTaskTimerState(taskId, getMyTimerState());
       renderTopbarTaskTimer();
 
       if (minutesInput) minutesInput.value = String(roundedMinutes);
@@ -5301,7 +5476,7 @@ window.CRM.br1 = (function () {
         if (noteInput) noteInput.value = '';
         await loadTaskWorklogs(taskId);
         await loadTaskActivity(taskId);
-        renderTaskTimerState(taskId, null);
+        renderTaskTimerState(taskId, getMyTimerState());
         renderTopbarTaskTimer();
         notify(window.CRM.i18n.t('js.br1.vremya_po_taymeru_dobavleno_v_uchyot', 'Время по таймеру добавлено в учёт'));
       } catch (error) {
