@@ -4998,6 +4998,8 @@ return array (
     'loading' => 'Loading contacts...',
     'role_decision_maker' => 'Decision maker',
     'role_influencer' => 'Influencer',
+    'opt_custom_role' => 'Other role (custom)...',
+    'role_custom_placeholder' => 'Enter custom role',
     'role_user' => 'User',
     'role_technical' => 'Technical',
     'role_contact' => 'Contact',
