@@ -296,6 +296,12 @@ final class UpdaterKernel
                 if (!$this->renewLockForJob($jobId, $steps)) {
                     throw new \RuntimeException('Update lock was lost; another update may have started. Roll back or retry the update.');
                 }
+                // A failed attempt is being retried: clear the failure marker
+                // so the page stops showing the stale error while the same
+                // job resumes from its stored progress.
+                if (($stored['state'] ?? '') === 'failed' && ($stored['error'] ?? null) !== null) {
+                    $state->write(['state' => 'applying', 'error' => null]);
+                }
             } else {
                 if (($input['confirm_apply'] ?? false) !== true) {
                     return JsonResponse::error('CONFIRM_APPLY_REQUIRED', 'Real apply requires confirm_apply=true after successful dry-run preflight', 409);
@@ -406,6 +412,18 @@ final class UpdaterKernel
     private function applyPhaseBackupFiles(JobState $state, array $progress, WorkBudget $budget, array $steps, UpdateLogger $logger): array
     {
         $jobId = (string)($state->readFile('state.json')['job_id'] ?? '');
+        // A failed apply may be retried. Reuse the COMPLETE backup from the
+        // first attempt as the rollback point: re-backing up from the current
+        // (possibly partially-updated) tree would silently destroy the original
+        // pre-update snapshot, so a rollback after multiple failed attempts
+        // would restore a broken half-updated state instead of the tree the
+        // update started from.
+        $existing = $state->readFile('backup.json') ?: [];
+        if (($existing['backup_id'] ?? '') !== '' && is_array($existing['items'] ?? null)) {
+            $state->write(['state' => 'backup_created', 'backup_id' => $existing['backup_id'], 'can_rollback' => true]);
+            $logger->info('backup_reused', 'Reusing backup from a previous attempt', ['backup_id' => $existing['backup_id']]);
+            return $this->beginApplyFiles($state, $logger);
+        }
         $plan = $state->readFile('apply-plan.json') ?: [];
         $files = is_array($plan['files_for_backup'] ?? null) ? $plan['files_for_backup'] : [];
         $cursor = (int)($progress['cursor'] ?? 0);
@@ -646,7 +664,9 @@ final class UpdaterKernel
         ]);
         (new MaintenanceMode($this->basePath))->disable();
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
-        $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        // Clear any error recorded by an earlier failed attempt: a job that
+        // finished successfully must never keep showing a stale error text.
+        $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('apply_complete', 'Update applied successfully');
 
         return [
@@ -704,6 +724,11 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'rollback_step');
                 if (!$this->renewLockForJob($jobId, $steps)) {
                     throw new \RuntimeException('Rollback lock was lost; another update may have started.');
+                }
+                // A failed rollback attempt being retried: drop the stale
+                // error marker while the job resumes from its progress.
+                if (($stored['state'] ?? '') === 'rollback_failed' && ($stored['error'] ?? null) !== null) {
+                    $state->write(['state' => 'rolling_back', 'error' => null]);
                 }
             } else {
                 $this->verifyTokenIfPresent($input, 'rollback');
@@ -883,7 +908,8 @@ final class UpdaterKernel
         $installedCore = $this->rollbackInstalledCoreState($jobId, $manifest, $plan);
         (new MaintenanceMode($this->basePath))->disable();
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
-        $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        // Clear any error recorded by an earlier failed attempt.
+        $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
         return [
             'finished' => true,
@@ -1007,29 +1033,7 @@ final class UpdaterKernel
 
     private function packageHead(string $url): array
     {
-        $headers = @get_headers($url, true);
-        if (!is_array($headers)) {
-            return ['status' => 0, 'content_length' => null, 'content_type' => null];
-        }
-        $status = 0;
-        foreach ($headers as $key => $value) {
-            if (is_int($key) && preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$value, $m)) {
-                $status = (int)$m[1];
-            }
-        }
-        $length = $headers['Content-Length'] ?? $headers['content-length'] ?? null;
-        if (is_array($length)) {
-            $length = end($length);
-        }
-        $type = $headers['Content-Type'] ?? $headers['content-type'] ?? null;
-        if (is_array($type)) {
-            $type = end($type);
-        }
-        return [
-            'status' => $status,
-            'content_length' => is_numeric($length) ? (int)$length : null,
-            'content_type' => is_string($type) ? $type : null,
-        ];
+        return \Updater\Util\HttpClient::head($url, (int)($this->config['timeouts']['check'] ?? 10));
     }
 
     private function jobId(array $input): string

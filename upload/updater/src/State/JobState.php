@@ -25,10 +25,17 @@ final class JobState
     public function latest(): ?array
     {
         $states = glob($this->storageDir . '/jobs/*/state.json') ?: [];
-        rsort($states);
         if (!$states) {
             return null;
         }
+        // Sort by the state file's modification time (newest first), NOT by
+        // the job id string: an old failed job id (e.g. upd_e2e_...) sorts
+        // ABOVE current upd_YYYYMMDD... ids under plain string rsort, which
+        // would surface a stale failed job as the "latest" forever and keep
+        // showing its error on the admin-updates page.
+        usort($states, static function (string $a, string $b): int {
+            return @filemtime($b) <=> @filemtime($a);
+        });
         $data = json_decode((string)file_get_contents($states[0]), true);
         return is_array($data) ? $data : null;
     }

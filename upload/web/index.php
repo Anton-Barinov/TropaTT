@@ -62,7 +62,13 @@ if (is_file($maintenanceFlag)) {
     // admin-updates page and its core/updates API must stay reachable so the
     // admin can roll back or retry. Everything else stays behind maintenance.
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
+    // 'login' must stay reachable during held maintenance: an update that
+    // failed after mutating files/DB leaves maintenance ON, and if the admin's
+    // session has expired they could otherwise never log in again to roll
+    // back or retry from the admin-updates page (recovery would be locked to
+    // the one-time rescue key). Login is rate-limited like any other attempt.
     $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
+        || $maintenanceRoute === 'login'
         || str_starts_with($maintenanceRoute, 'api/v1/core/updates');
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);

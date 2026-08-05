@@ -75,26 +75,74 @@ final class CoreUpdateClient
 
     private function request(string $url): array
     {
-        $body = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => (int)($this->config['timeouts']['check'] ?? 10), 'ignore_errors' => true]]));
+        $timeout = (int)($this->config['timeouts']['check'] ?? 10);
+        $body = false;
+        $status = 0;
+        $lastError = '';
+
+        // cURL first: allow_url_fopen (needed by file_get_contents() URL
+        // wrappers) is often disabled on shared hosting, while curl is
+        // enabled on virtually every shared-hosting PHP build. Without this
+        // fallback the whole update check would fail on those hosts.
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    // Headers stay out of the body buffer (binary bodies can
+                    // contain the header terminator sequence); status is read
+                    // via curl_getinfo().
+                    CURLOPT_HEADER => false,
+                    CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
+                    CURLOPT_TIMEOUT => $timeout,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 5,
+                ]);
+                $output = curl_exec($ch);
+                if ($output !== false) {
+                    $body = $output;
+                    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                } else {
+                    $lastError = (string)curl_error($ch);
+                }
+                // PHP 8.0+ frees handles automatically; curl_close() is deprecated on 8.5.
+                if (PHP_VERSION_ID < 80000) {
+                    curl_close($ch);
+                }
+            }
+        }
+
+        if ($body === false && $status === 0) {
+            $body = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => $timeout, 'ignore_errors' => true]]));
+            if ($body === false) {
+                $streamError = error_get_last();
+                $lastError = is_array($streamError) ? (string)($streamError['message'] ?? '') : $lastError;
+            } else {
+                // file_get_contents() exposes response headers in this scope on
+                // all PHP versions supported by the CRM, including shared-host 8.1.
+                foreach ($http_response_header ?? [] as $header) {
+                    if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
+                        $status = (int)$m[1];
+                    }
+                }
+                if ($status === 0) {
+                    $status = 200;
+                }
+            }
+        }
+
         if ($body === false) {
-            $lastError = error_get_last();
             return [
                 'ok' => false,
                 'status' => 0,
                 'error' => 'update_center_unavailable',
                 'message' => 'Update center is unavailable',
                 'url' => $url,
-                'detail' => is_array($lastError) ? (string)($lastError['message'] ?? '') : '',
+                'detail' => $lastError,
             ];
         }
-        $status = 200;
-        // file_get_contents() exposes response headers in this scope on all
-        // PHP versions supported by the CRM, including shared-hosting PHP 8.1.
-        $responseHeaders = $http_response_header;
-        foreach ($responseHeaders as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
-                $status = (int)$m[1];
-            }
+        if ($status === 0) {
+            $status = 200;
         }
         $json = json_decode($body, true);
         if (!is_array($json)) {

@@ -3983,15 +3983,41 @@ MD;
         $baseUrl = $this->coreUpdateLocalUpdaterBaseUrl($config);
         $url = $baseUrl . '/updater/index.php?action=' . rawurlencode($action);
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
-        $response = @file_get_contents($url, false, stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => "Content-Type: application/json\r\n",
-                'content' => $body,
-                'ignore_errors' => true,
-                'timeout' => (int)($config['timeouts']['apply_step'] ?? 60),
-            ],
-        ]));
+        $timeout = (int)($config['timeouts']['apply_step'] ?? 60);
+        $response = false;
+        // cURL first (allow_url_fopen is disabled on many shared hosts);
+        // stream wrappers as fallback.
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => $body,
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
+                    CURLOPT_TIMEOUT => $timeout,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 5,
+                ]);
+                $response = curl_exec($ch);
+                // PHP 8.0+ frees handles automatically; curl_close() is deprecated on 8.5.
+                if (PHP_VERSION_ID < 80000) {
+                    curl_close($ch);
+                }
+            }
+        }
+        if ($response === false || $response === '') {
+            $response = @file_get_contents($url, false, stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $body,
+                    'ignore_errors' => true,
+                    'timeout' => $timeout,
+                ],
+            ]));
+        }
         $decoded = json_decode((string)$response, true);
         return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
     }

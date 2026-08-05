@@ -42,6 +42,10 @@ if (is_file($maintenanceFlag)) {
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
     $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
         || $maintenanceRoute === 'api/v1/auth/me'
+        // Allow login during held maintenance: without it an admin whose
+        // session expired after a failed update could never reach the
+        // admin-updates page to roll back / retry. Login stays rate-limited.
+        || $maintenanceRoute === 'api/v1/auth/login'
         // The admin-updates page calls core/version in its loadStatus(); a 503
         // MAINTENANCE_MODE here makes the page show an error instead of the
         // update progress while an apply is legitimately holding maintenance.

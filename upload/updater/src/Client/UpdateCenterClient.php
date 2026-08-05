@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Updater\Client;
 
+use Updater\Util\HttpClient;
+
 final class UpdateCenterClient
 {
     public function __construct(private readonly array $config)
@@ -36,16 +38,19 @@ final class UpdateCenterClient
 
     public function getJson(string $url): array
     {
-        $context = stream_context_create(['http' => ['timeout' => (int)($this->config['timeouts']['check'] ?? 10), 'ignore_errors' => true]]);
-        $body = @file_get_contents($url, false, $context);
-        if ($body === false) {
-            throw new \RuntimeException('Unable to reach update center: ' . $url);
+        $result = HttpClient::request($url, [
+            'timeout' => (int)($this->config['timeouts']['check'] ?? 10),
+        ]);
+        if (($result['ok'] ?? false) !== true) {
+            $error = (string)($result['error'] ?? '');
+            throw new \RuntimeException('Unable to reach update center: ' . $url . ($error !== '' ? ' (' . $error . ')' : ''));
         }
-        $status = $this->statusCode($http_response_header ?? []);
+        $status = (int)($result['status'] ?? 0);
         if ($status >= 400) {
             throw new \RuntimeException('Update center returned HTTP ' . $status . ' for ' . $url);
         }
-        $data = json_decode($body, true);
+        $body = $result['body'] ?? false;
+        $data = is_string($body) ? json_decode($body, true) : null;
         if (!is_array($data)) {
             throw new \RuntimeException('Update center returned invalid JSON for ' . $url);
         }
@@ -55,15 +60,5 @@ final class UpdateCenterClient
     private function url(string $path): string
     {
         return rtrim((string)$this->config['update_center_url'], '/') . $path;
-    }
-
-    private function statusCode(array $headers): int
-    {
-        foreach ($headers as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$header, $m)) {
-                return (int)$m[1];
-            }
-        }
-        return 200;
     }
 }

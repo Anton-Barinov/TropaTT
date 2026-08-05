@@ -57,6 +57,13 @@ final class FileBackupManager extends BackupManager
             mkdir($filesDir, 0775, true);
         }
         $itemsFile = $backupDir . '/items.jsonl';
+        // A fresh backup pass (cursor 0) must start from an empty items
+        // ledger: a previous attempt that crashed mid-backup may have left
+        // partial entries, and appending to them would produce duplicate or
+        // stale items in the assembled manifest.
+        if ($startCursor === 0 && is_file($itemsFile)) {
+            @unlink($itemsFile);
+        }
 
         $chunk = [];
         $position = $startCursor;

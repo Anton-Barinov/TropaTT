@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Updater\Package;
 
+use Updater\Util\HttpClient;
+
 final class PackageDownloader
 {
     public function __construct(private readonly string $storageDir)
@@ -17,25 +19,14 @@ final class PackageDownloader
         }
         $tmp = $dir . '/package.tmp';
         $final = $dir . '/package.zip';
-        // Stream the download to disk (fopen + stream_copy_to_stream) instead
-        // of file_get_contents into memory: a 100MB package must not blow the
-        // shared-hosting memory_limit with an UNCATCHABLE fatal error.
-        $context = stream_context_create(['http' => ['timeout' => 120, 'ignore_errors' => true]]);
-        $remote = @fopen((string)$package['url'], 'rb', false, $context);
-        if ($remote === false) {
-            throw new \RuntimeException('Unable to download package.');
-        }
-        $local = @fopen($tmp, 'wb');
-        if ($local === false) {
-            fclose($remote);
-            throw new \RuntimeException('Unable to open package destination.');
-        }
-        $copied = @stream_copy_to_stream($remote, $local);
-        fclose($remote);
-        fclose($local);
-        if ($copied === false) {
+        $result = HttpClient::request((string)$package['url'], [
+            'timeout' => (int)($package['timeout'] ?? 120),
+            'stream_to' => $tmp,
+        ]);
+        if (($result['ok'] ?? false) !== true || !is_file($tmp)) {
             @unlink($tmp);
-            throw new \RuntimeException('Unable to download package.');
+            $error = (string)($result['error'] ?? '');
+            throw new \RuntimeException('Unable to download package.' . ($error !== '' ? ' (' . $error . ')' : ''));
         }
         if (filesize($tmp) !== (int)$package['size_bytes']) {
             @unlink($tmp);

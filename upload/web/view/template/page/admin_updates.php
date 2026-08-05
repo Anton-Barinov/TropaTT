@@ -865,11 +865,32 @@ $auJs = [
   // HTTP requests (each well under shared-hosting timeouts) and returns
   // {continue:true} until the job is done. This loop keeps issuing the next
   // step, showing progress, until the final response arrives.
+  //
+  // The one-time updater token has a 10-minute TTL that is extended on every
+  // continuation step. If the browser pauses longer than that between steps
+  // (idle tab, slow network, user walked away), the job fails with a token
+  // error and maintenance stays held. Instead of forcing the admin to notice
+  // and retry manually, refresh the token via the session endpoint and resume
+  // the same job from its stored progress.
   async function runUpdaterSteps(action, body) {
     let stepBody = Object.assign({}, body);
+    const maxTokenRetries = 3;
+    let tokenRetries = 0;
     for (let guard = 0; guard < 2000; guard++) {
-      const result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody)});
-      ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
+      let result;
+      try {
+        result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody)});
+        ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
+      } catch (err) {
+        const message = String(err && err.message ? err.message : err || '').toLowerCase();
+        const tokenProblem = message.includes('token') && (message.includes('invalid') || message.includes('expired'));
+        if (stepBody.token && tokenProblem && tokenRetries < maxTokenRetries) {
+          tokenRetries++;
+          stepBody = Object.assign({}, stepBody, {token: await updaterSession()});
+          continue;
+        }
+        throw err;
+      }
       const data = result.data || result;
       if (!data.continue) return result;
       renderUpdaterProgress(data.progress);

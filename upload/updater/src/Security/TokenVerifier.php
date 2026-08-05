@@ -36,7 +36,16 @@ final class TokenVerifier
         }
         $actions = is_array($session['allowed_actions'] ?? null) ? $session['allowed_actions'] : [];
         if (!in_array($action, $actions, true)) {
-            return false;
+            // Version-mix tolerance: sessions created by an older updater may
+            // not list the continuation actions (apply_step/rollback_step)
+            // even though the current kernel drives long multi-request jobs
+            // with them. A continuation can only resume a job the session was
+            // allowed to start, so accept it whenever the corresponding base
+            // action is allowed.
+            $base = $action === 'apply_step' ? 'apply' : ($action === 'rollback_step' ? 'rollback' : null);
+            if ($base === null || !in_array($base, $actions, true)) {
+                return false;
+            }
         }
         if (in_array($action, ['apply', 'rollback'], true)) {
             $session['used'] = true;
