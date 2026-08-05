@@ -178,7 +178,7 @@ final class ProjectController extends BaseController
             $message = 'Нельзя завершить проект: осталось незакрытых задач: ' . $openCount . '. Завершите или перенесите их и повторите попытку.';
             return $this->error('PROJECT_HAS_OPEN_TASKS', $message, 409, [
                 'project' => [$message],
-            ]);
+            ], ['open_task_count' => $openCount]);
         }
         if (!$item || !is_array($item)) {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [

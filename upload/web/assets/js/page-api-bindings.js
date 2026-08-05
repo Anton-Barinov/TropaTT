@@ -2383,6 +2383,23 @@ window.CRM.pageApiBindings = (function () {
     var users = mapItems(usersEnvelope);
     var teamsEnvelope = await tryRequest('api/v1/teams', { query: { limit: 200 } });
     var teams = mapItems(teamsEnvelope);
+    // ТЗ 7.2b/7.2c: статусы проекта из единого словаря админки (scope=project),
+    // fallback — полный набор переходов воркфлоу, включая «Планирование».
+    var projectStatusEnvelope = await tryRequest('api/v1/statuses', { query: { scope: 'project', limit: 50 } });
+    var adminProjectStatuses = projectStatusEnvelope ? mapItems(projectStatusEnvelope) : [];
+    var projectStatusOptions = adminProjectStatuses.length
+      ? adminProjectStatuses.map(function (statusItem) {
+          return { code: String(statusItem.code || '').trim(), label: String(statusItem.title || statusItem.code || '') };
+        }).filter(function (statusOption) { return statusOption.code !== ''; })
+      : [
+          { code: 'new', label: window.CRM.i18n.t('js.pab.status_new', 'New') },
+          { code: 'active', label: window.CRM.i18n.t('js.pab.status_active', 'Active') },
+          { code: 'planning', label: window.CRM.i18n.t('js.pab.status_planning', 'Planning') },
+          { code: 'in_progress', label: window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') },
+          { code: 'blocked', label: window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') },
+          { code: 'done', label: window.CRM.i18n.t('js.pab.status_done', 'Done') }
+        ];
+
     var blocksWrap = document.getElementById('projectEditBlocks');
     if (blocksWrap) {
       function clientTitleById(publicId) {
@@ -2440,10 +2457,9 @@ window.CRM.pageApiBindings = (function () {
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
         + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
-        + '<option value="new"' + (project.status_code === 'new' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
-        + '<option value="in_progress"' + (project.status_code === 'in_progress' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') + '</option>'
-        + '<option value="blocked"' + (project.status_code === 'blocked' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') + '</option>'
-        + '<option value="done"' + (project.status_code === 'done' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.status_done', 'Done') + '</option>'
+        + projectStatusOptions.map(function (statusOption) {
+          return '<option value="' + safeText(statusOption.code) + '"' + (String(project.status_code || '') === String(statusOption.code || '') ? ' selected' : '') + '>' + safeText(statusOption.label) + '</option>';
+        }).join('')
         + '</select></div>'
         + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</label><select class="form-select" name="priority">'
         + '<option value="low"' + (project.priority_code === 'low' ? ' selected' : '') + '>' + window.CRM.i18n.t('js.pab.priority_low', 'Low') + '</option>'
@@ -2519,6 +2535,38 @@ window.CRM.pageApiBindings = (function () {
             await renderProjectDetailPage();
           } catch (error) {
             var envelopeError = error && error.envelope ? error.envelope : null;
+            // ТЗ 7.3: закрытие проекта с незакрытыми задачами — модалка с выбором.
+            if (envelopeError && String(envelopeError.code || '') === 'PROJECT_HAS_OPEN_TASKS') {
+              var openCount = Number((envelopeError.meta && envelopeError.meta.open_task_count) || envelopeError.open_task_count || 0);
+              var proceedClose = await window.CRM.confirm({
+                title: window.CRM.i18n.t('js.pab.project_has_open_tasks', 'Project has open tasks'),
+                body: window.CRM.i18n.t('js.pab.project_has_open_tasks_body', 'Cannot complete the project while open tasks remain. Close all open tasks and complete the project?') + ' (' + openCount + ')',
+                actionText: window.CRM.i18n.t('js.pab.close_all_tasks', 'Close all tasks'),
+                actionClass: 'crm-btn-primary'
+              });
+              if (proceedClose) {
+                try {
+                  var openTasksEnvelope = await request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100 } });
+                  var openTasksList = mapItems(openTasksEnvelope).filter(function (taskItem) {
+                    var st = String(taskItem.status_code || '').toLowerCase();
+                    return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
+                  });
+                  var openTaskIds = openTasksList.map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
+                  if (openTaskIds.length) {
+                    await request('api/v1/tasks/bulk', { method: 'POST', body: { task_public_ids: openTaskIds, changes: { status: 'done' } } });
+                  }
+                  var completedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
+                  var completed = completedEnvelope && completedEnvelope.data && completedEnvelope.data.project ? completedEnvelope.data.project : null;
+                  if (completed) project = completed;
+                  notify(window.CRM.i18n.t('js.pab.project_completed_tasks_closed', 'Project completed, all tasks closed'), 'success');
+                  await renderProjectDetailPage();
+                } catch (closeError) {
+                  var closeEnvelope = closeError && closeError.envelope ? closeError.envelope : null;
+                  notify((closeEnvelope && closeEnvelope.message) || window.CRM.i18n.t('js.pab.failed_close_tasks', 'Failed to close tasks'), 'error');
+                }
+              }
+              return;
+            }
             notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_update_project', 'Failed to update project'), 'error');
           }
         });
@@ -13109,14 +13157,18 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var items = mapItems(envelope);
-    var tbody = document.getElementById('adminStatusesTableBody') || document.querySelector('table.crm-table tbody');
-    if (tbody) {
+    // ТЗ 7.2a: две независимые таблицы — «Статусы задач» и «Статусы проектов».
+    var taskTbody = document.getElementById('adminTaskStatusesTableBody');
+    var projectTbody = document.getElementById('adminProjectStatusesTableBody');
+    var fallbackTbody = document.getElementById('adminStatusesTableBody') || document.querySelector('table.crm-table tbody');
+    function renderStatusRows(tbody, scopeItems, emptyText) {
+      if (!tbody) return;
       if (!envelope.success) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
-      } else if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(tp('admin.statuses_empty', 'No statuses found.')) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
+      } else if (!scopeItems.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-muted">' + safeText(emptyText) + '</td></tr>';
       } else {
-        tbody.innerHTML = items.map(function (item) {
+        tbody.innerHTML = scopeItems.map(function (item) {
           var statusId = statusIdOf(item);
           var disabled = statusId ? '' : ' disabled';
           var badgeTextColor = contrastTextColor(item.color || '');
@@ -13124,11 +13176,21 @@ window.CRM.pageApiBindings = (function () {
             + '<td>' + safeText(item.title || item.code) + '<div class="small text-muted">' + safeText(item.code || '—') + '</div></td>'
             + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
-            + '<td>' + safeText(item.scope || 'task') + '</td>'
             + '<td><div class="d-flex gap-1"><button class="btn btn-sm btn-light" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
             + '</tr>';
         }).join('');
       }
+    }
+    var taskItems = items.filter(function (item) { return String(item.scope || 'task') === 'task'; });
+    var projectItems = items.filter(function (item) { return String(item.scope || 'task') === 'project'; });
+    if (taskTbody) {
+      renderStatusRows(taskTbody, taskItems, tp('admin.statuses_empty_tasks', 'No task statuses found.'));
+    }
+    if (projectTbody) {
+      renderStatusRows(projectTbody, projectItems, tp('admin.statuses_empty_projects', 'No project statuses found.'));
+    }
+    if (!taskTbody && fallbackTbody) {
+      renderStatusRows(fallbackTbody, items, tp('admin.statuses_empty', 'No statuses found.'));
     }
 
     var preview = document.getElementById('adminStatusesPreview') || document.querySelector('.crm-card .d-flex.flex-wrap.gap-2');
