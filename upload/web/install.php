@@ -151,6 +151,9 @@ $L['ru'] = [
     'step_finalize' => 'Финализация',
     'install_success' => 'Установка завершена!',
     'install_success_desc' => 'Система успешно установлена. Используйте данные ниже для входа.',
+    'recovery_key_title' => 'Ключ восстановления',
+    'recovery_key_desc' => 'Сохраните его сейчас — он понадобится для аварийного доступа к /updater/rescue.php, если обновление оставит CRM в режиме обслуживания. Ключ показывается только один раз.',
+    'recovery_key_value' => 'Ключ',
     'login_credentials' => 'Данные для входа',
     'url' => 'URL',
     'login_label' => 'Логин',
@@ -228,6 +231,9 @@ $L['en'] = [
     'step_finalize' => 'Finalizing',
     'install_success' => 'Installation complete!',
     'install_success_desc' => 'The system has been installed successfully. Use the credentials below to log in.',
+    'recovery_key_title' => 'Recovery key',
+    'recovery_key_desc' => 'Save it now - it is needed for emergency access to /updater/rescue.php if an update leaves the CRM in maintenance mode. The key is shown only once.',
+    'recovery_key_value' => 'Key',
     'login_credentials' => 'Login Credentials',
     'url' => 'URL',
     'login_label' => 'Login',
@@ -305,6 +311,9 @@ $L['zh'] = [
     'step_finalize' => '完成安装',
     'install_success' => '安装完成！',
     'install_success_desc' => '系统安装成功。请使用下方凭据登录。',
+    'recovery_key_title' => '恢复密钥',
+    'recovery_key_desc' => '请立即保存——如果更新使 CRM 处于维护模式，需要通过 /updater/rescue.php 进行紧急访问。该密钥仅显示一次。',
+    'recovery_key_value' => '密钥',
     'login_credentials' => '登录凭据',
     'url' => 'URL',
     'login_label' => '用户名',
@@ -382,6 +391,9 @@ $L['es'] = [
     'step_finalize' => 'Finalizando',
     'install_success' => '¡Instalación completada!',
     'install_success_desc' => 'El sistema se ha instalado correctamente. Use las credenciales a continuación para iniciar sesión.',
+    'recovery_key_title' => 'Clave de recuperación',
+    'recovery_key_desc' => 'Guárdela ahora: es necesaria para el acceso de emergencia a /updater/rescue.php si una actualización deja la CRM en modo mantenimiento. La clave se muestra solo una vez.',
+    'recovery_key_value' => 'Clave',
     'login_credentials' => 'Credenciales de acceso',
     'url' => 'URL',
     'login_label' => 'Usuario',
@@ -459,6 +471,9 @@ $L['pt'] = [
     'step_finalize' => 'Finalizando',
     'install_success' => 'Instalação concluída!',
     'install_success_desc' => 'O sistema foi instalado com sucesso. Use as credenciais abaixo para fazer login.',
+    'recovery_key_title' => 'Chave de recuperação',
+    'recovery_key_desc' => 'Salve-a agora: ela é necessária para o acesso de emergência a /updater/rescue.php se uma atualização deixar o CRM em modo de manutenção. A chave é exibida apenas uma vez.',
+    'recovery_key_value' => 'Chave',
     'login_credentials' => 'Credenciais de acesso',
     'url' => 'URL',
     'login_label' => 'Usuário',
@@ -536,6 +551,9 @@ $L['de'] = [
     'step_finalize' => 'Abschluss',
     'install_success' => 'Installation abgeschlossen!',
     'install_success_desc' => 'Das System wurde erfolgreich installiert. Verwenden Sie die Anmeldedaten unten zum Einloggen.',
+    'recovery_key_title' => 'Wiederherstellungsschlüssel',
+    'recovery_key_desc' => 'Speichern Sie ihn jetzt - er wird für den Notfallzugang zu /updater/rescue.php benötigt, falls ein Update die CRM im Wartungsmodus lässt. Der Schlüssel wird nur einmal angezeigt.',
+    'recovery_key_value' => 'Schlüssel',
     'login_credentials' => 'Anmeldedaten',
     'url' => 'URL',
     'login_label' => 'Benutzername',
@@ -613,6 +631,9 @@ $L['fr'] = [
     'step_finalize' => 'Finalisation',
     'install_success' => 'Installation terminée !',
     'install_success_desc' => "Le système a été installé avec succès. Utilisez les identifiants ci-dessous pour vous connecter.",
+    'recovery_key_title' => 'Clé de récupération',
+    'recovery_key_desc' => "Enregistrez-la maintenant : elle est nécessaire pour l'accès d'urgence à /updater/rescue.php si une mise à jour laisse le CRM en mode maintenance. La clé n'est affichée qu'une seule fois.",
+    'recovery_key_value' => 'Clé',
     'login_credentials' => 'Identifiants de connexion',
     'url' => 'URL',
     'login_label' => "Nom d'utilisateur",
@@ -2721,6 +2742,28 @@ function finalizeInstall(PDO $pdo): void
     if (!is_file($storageHtaccess)) {
         file_put_contents($storageHtaccess, "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n");
     }
+
+    // Generate the updater recovery key. Only its hash is stored on disk; the
+    // plain value is kept in the session for the one-time success screen and is
+    // never written anywhere else. If the hash file already exists (reinstall
+    // over an existing installation), keep the existing key.
+    $updatesDir = $storageBase . '/updates';
+    if (!is_dir($updatesDir) && !@mkdir($updatesDir, 0755, true)) {
+        error_log('[Installer] Cannot create updates directory: ' . $updatesDir);
+        throw new RuntimeException('Storage directory is not writable.');
+    }
+    $recoveryHashFile = $updatesDir . '/recovery_key.hash';
+    if (!is_file($recoveryHashFile)) {
+        try {
+            $recoveryKey = generateRandomHex(16);
+            if (@file_put_contents($recoveryHashFile, password_hash($recoveryKey, PASSWORD_DEFAULT)) !== false) {
+                @chmod($recoveryHashFile, 0640);
+                $_SESSION['install_recovery_key'] = $recoveryKey;
+            }
+        } catch (\Throwable $e) {
+            error_log('[Installer] Recovery key generation failed: ' . $e->getMessage());
+        }
+    }
 }
 
 // ============================================================================
@@ -3963,6 +4006,17 @@ echo $css;
                 <span class="val"><?php echo e($creds['name']); ?></span>
             </div>
         </div>
+
+        <?php if (!empty($_SESSION['install_recovery_key'])): ?>
+        <div class="credential-box" style="margin-top: 16px; border-color: #fcd34d;">
+            <h3><?php echo t('recovery_key_title'); ?></h3>
+            <p style="font-size: .85rem; color: var(--text-secondary); margin-bottom: 10px;"><?php echo t('recovery_key_desc'); ?></p>
+            <div class="credential-row">
+                <span class="key"><?php echo t('recovery_key_value'); ?>:</span>
+                <span class="val" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .03em;"><?php echo e((string)$_SESSION['install_recovery_key']); ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <div class="btn-group" style="margin-top: 24px;">
             <a href="index.php?route=login" class="btn btn-primary btn-block"><?php echo t('go_to_dashboard'); ?></a>

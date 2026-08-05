@@ -104,6 +104,40 @@ final class CoreUpdateController extends BaseController
         return $this->success('CORE_UPDATE_HISTORY', 'Core update history', ['items' => (new CoreUpdateHistoryRepository((string)$config['storage_dir']))->list()]);
     }
 
+    /**
+     * Rotate the updater recovery key and return the new value exactly once.
+     *
+     * The recovery key unlocks /updater/rescue.php (last-resort recovery while
+     * maintenance mode holds). It is generated at installation, but an admin
+     * may need a fresh copy - e.g. after a failed update the page still works,
+     * while the key shown during install has been lost. The endpoint is
+     * authenticated (settings.manage) and CSRF-protected like every other
+     * state-changing API call. The returned key is displayed once and never
+     * logged or stored in plain text (only its password hash is kept).
+     */
+    public function recoveryKey(): \Api\System\Library\Http\JsonResponse
+    {
+        if (!$this->allowed()) {
+            return $this->error('FORBIDDEN', 'Forbidden', 403);
+        }
+        $config = CoreUpdateConfig::load();
+        $storageDir = (string)$config['storage_dir'];
+        if (!is_dir($storageDir)) {
+            @mkdir($storageDir, 0775, true);
+        }
+        $key = bin2hex(random_bytes(16));
+        $hashFile = $storageDir . '/recovery_key.hash';
+        if (@file_put_contents($hashFile, password_hash($key, PASSWORD_DEFAULT)) === false) {
+            return $this->error('CORE_UPDATE_RECOVERY_KEY_WRITE_FAILED', 'Unable to write the recovery key file.', 500);
+        }
+        @chmod($hashFile, 0640);
+        return $this->success('CORE_UPDATE_RECOVERY_KEY', 'Recovery key rotated', [
+            'recovery_key' => $key,
+            'note' => 'Save this key now. It will not be shown again.',
+            'rescue_url' => '/updater/rescue.php',
+        ]);
+    }
+
     public function log(array $params): \Api\System\Library\Http\JsonResponse
     {
         if (!$this->allowed()) {

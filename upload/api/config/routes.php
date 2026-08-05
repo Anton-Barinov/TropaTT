@@ -36,6 +36,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/changes', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'changes', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/preflight', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'preflight', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/session', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'session', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/core/updates/recovery-key', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'recoveryKey', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/history', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'history', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/core/updates/log/{job_id}', 'controller' => Api\Controller\System\CoreUpdateController::class, 'action' => 'log', 'auth' => true, 'required_permissions' => ['settings.manage']],
 

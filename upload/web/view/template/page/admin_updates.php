@@ -109,6 +109,8 @@ $auJs = [
   'needJobApply' => $au('need_job_apply', 'Нет job_id. Сначала выполните проверку безопасности и подготовку архива.'),
   'needJobRollback' => $au('need_job_rollback', 'Нет job_id для восстановления.'),
   'tokenError' => $au('token_error', 'Не удалось получить одноразовый updater token.'),
+  'recoveryKeyError' => $au('recovery_key_error', 'Не удалось получить ключ восстановления.'),
+  'recoveryKeyAgain' => $au('recovery_key_again', 'Сгенерировать новый ключ'),
   'errVersion' => $au('err_version', 'Не удалось загрузить текущую версию CRM.'),
   'errStatus' => $au('err_status', 'Не удалось загрузить статус обновлений.'),
   'errCheck' => $au('err_check', 'Не удалось проверить обновления.'),
@@ -225,6 +227,8 @@ $auJs = [
     .updates-file-table th { color:#667085; font-size:.73rem; letter-spacing:.04em; text-transform:uppercase; }
     .updates-file-table td:first-child { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
     .updates-empty { border:1px dashed #d0d5dd; border-radius:14px; padding:14px; color:#667085; background:#f9fafb; }
+    .updates-recovery-key { margin:12px 0 0; border:1px solid #cbd5e1; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85rem; letter-spacing:.03em; user-select:all; }
+    .updates-recovery-warn { margin-top:10px; padding:10px 14px; border:1px solid #fcd34d; border-radius:12px; background:#fffbeb; color:#92400e; font-size:.85rem; }
     .updates-raw { margin-top:12px; border-top:1px solid #eaecf0; padding-top:10px; }
     .updates-raw summary { cursor:pointer; color:#475467; font-weight:800; font-size:.84rem; }
     .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-size:.78rem; }
@@ -363,6 +367,18 @@ $auJs = [
               </div>
               <div id="applyContent" class="updates-empty mt-3"><?= htmlspecialchars($au('apply_hint', 'Установка станет доступной по смыслу после успешной проверки и подготовки архива. Для применения потребуется ввести подтверждение.'), ENT_QUOTES, 'UTF-8') ?></div>
               <details class="updates-raw"><summary><?= htmlspecialchars($au('technical_apply', 'Технические данные установки'), ENT_QUOTES, 'UTF-8') ?></summary><pre id="updatesApplyRaw">{}</pre></details>
+            </div>
+          </details>
+          <hr>
+          <details>
+            <summary><strong><?= htmlspecialchars($au('btn_recovery', 'Аварийное восстановление'), ENT_QUOTES, 'UTF-8') ?></strong></summary>
+            <div class="mt-3">
+              <p class="updates-muted"><?= htmlspecialchars($au('recovery_text', 'Если обновление прервалось и CRM осталась в режиме обслуживания, эта страница обновлений остаётся доступной. Для аварийного входа через /updater/rescue.php нужен ключ восстановления — он показывается один раз при установке. Здесь можно получить новый ключ.'), ENT_QUOTES, 'UTF-8') ?></p>
+              <div class="updates-actions mt-0">
+                <button class="btn crm-btn-secondary" type="button" data-update-action="recovery-key"><?= htmlspecialchars($au('recovery_key_btn', 'Показать ключ восстановления'), ENT_QUOTES, 'UTF-8') ?></button>
+              </div>
+              <pre id="recoveryKeyValue" class="updates-recovery-key d-none"></pre>
+              <div id="recoveryKeyWarn" class="updates-recovery-warn d-none"><?= htmlspecialchars($au('recovery_key_warn', 'Сохраните ключ — после перезагрузки страницы он больше не будет показан. Ключ скопирован в буфер обмена.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
           </details>
         </div>
@@ -960,11 +976,45 @@ $auJs = [
     await loadStatus();
   }
 
+  // Rotate the updater recovery key and show the new value once. The key
+  // unlocks /updater/rescue.php (last-resort recovery while maintenance mode
+  // holds). It is created at installation; this button re-issues it whenever
+  // the admin needs a fresh copy - e.g. after a failed update when the page
+  // still works but the original key was lost.
+  async function showRecoveryKey() {
+    const keyEl = $('recoveryKeyValue');
+    const warnEl = $('recoveryKeyWarn');
+    const btn = document.querySelector('[data-update-action="recovery-key"]');
+    if (btn) btn.disabled = true;
+    try {
+      const result = await api('/api/index.php?route=api/v1/core/updates/recovery-key', {method: 'POST', body: '{}'});
+      ensureSuccess(result, tr('recoveryKeyError', 'Не удалось получить ключ восстановления.'));
+      const data = result.data || result;
+      const key = data && data.recovery_key ? String(data.recovery_key) : '';
+      if (keyEl) {
+        keyEl.textContent = key || '';
+        keyEl.classList.remove('d-none');
+      }
+      if (warnEl) warnEl.classList.remove('d-none');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = tr('recoveryKeyAgain', 'Сгенерировать новый ключ');
+      }
+      if (key) {
+        try { await navigator.clipboard.writeText(key); } catch (e) { /* clipboard may be unavailable */ }
+      }
+    } catch (err) {
+      const envelope = err && err.envelope ? err.envelope : null;
+      showNotice((envelope && envelope.message) || tr('recoveryKeyError', 'Не удалось получить ключ восстановления.'));
+      if (btn) btn.disabled = false;
+    }
+  }
+
   document.addEventListener('click', (event) => {
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh: () => loadStatus(), check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback };
+    const actions = { refresh: () => loadStatus(), check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey };
     if (actions[action]) withAction(action, actions[action]);
   });
 
