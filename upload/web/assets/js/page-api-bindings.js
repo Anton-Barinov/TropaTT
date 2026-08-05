@@ -3,6 +3,7 @@ window.CRM.pageApiBindings = (function () {
   var statusNode = null;
   var userDirectoryMap = {};
   var userDirectoryLoaded = false;
+  var projectStatusTitleMap = {};
 
   function routeName() {
     if (window.CRM.api && typeof window.CRM.api.currentRoute === 'function') {
@@ -379,6 +380,23 @@ window.CRM.pageApiBindings = (function () {
       return window.CRM.br1.statusBadgeClass(code);
     }
     return 'archived';
+  }
+
+  function projectStatusLabel(code, fallbackTitle) {
+    var key = String(code || '').trim();
+    var builtIn = {
+      new: window.CRM.i18n.t('projects.status_new', 'New'),
+      active: window.CRM.i18n.t('projects.status_active', 'Active'),
+      planning: window.CRM.i18n.t('projects.status_planning', 'Planning'),
+      in_progress: window.CRM.i18n.t('projects.status_in_progress', 'In progress'),
+      blocked: window.CRM.i18n.t('projects.status_blocked', 'Blocked'),
+      done: window.CRM.i18n.t('projects.status_done', 'Done'),
+      completed: window.CRM.i18n.t('projects.status_done', 'Done'),
+      on_hold: window.CRM.i18n.t('projects.status_on_hold', 'On hold'),
+      cancelled: window.CRM.i18n.t('projects.status_cancelled', 'Cancelled'),
+      archived: window.CRM.i18n.t('projects.status_archived', 'Archived')
+    };
+    return builtIn[key] || projectStatusTitleMap[key] || String(fallbackTitle || '').trim() || key || window.CRM.i18n.t('projects.status_unknown', 'No status');
   }
 
   function aiStateLabel(stateCode) {
@@ -1137,6 +1155,7 @@ window.CRM.pageApiBindings = (function () {
       tryRequest('api/v1/projects', { query: projectsQuery }),
       tryRequest('api/v1/clients', { query: { limit: 500 }, silent: true }),
       tryRequest('api/v1/teams', { query: { limit: 200 }, silent: true }),
+      tryRequest('api/v1/statuses', { query: { scope: 'project', limit: 100 }, silent: true }),
       tryRequest('api/v1/views', { query: { entity_type: 'project', limit: 200 }, silent: true })
     ]);
     var envelope = pageRequests[0];
@@ -1160,7 +1179,25 @@ window.CRM.pageApiBindings = (function () {
     var items = mapItems(envelope);
     var clientsEnvelope = pageRequests[1];
     var teamsEnvelope = pageRequests[2];
-    var savedViewsEnvelope = pageRequests[3];
+    var projectStatusesEnvelope = pageRequests[3];
+    var savedViewsEnvelope = pageRequests[4];
+    projectStatusTitleMap = {};
+    var projectStatusOptions = mapItems(projectStatusesEnvelope).map(function (statusItem) {
+      var code = String(statusItem.code || '').trim();
+      var title = String(statusItem.title || '').trim();
+      if (code && title) projectStatusTitleMap[code] = title;
+      return { code: code, label: code ? projectStatusLabel(code, title) : '' };
+    }).filter(function (statusItem) { return statusItem.code !== ''; });
+    if (!projectStatusOptions.length) {
+      projectStatusOptions = [
+        { code: 'new', label: projectStatusLabel('new') },
+        { code: 'active', label: projectStatusLabel('active') },
+        { code: 'planning', label: projectStatusLabel('planning') },
+        { code: 'in_progress', label: projectStatusLabel('in_progress') },
+        { code: 'blocked', label: projectStatusLabel('blocked') },
+        { code: 'done', label: projectStatusLabel('done') }
+      ];
+    }
     var clientMap = {};
     mapItems(clientsEnvelope).forEach(function (client) {
       var clientId = String(client.public_id || '').trim();
@@ -1222,7 +1259,7 @@ window.CRM.pageApiBindings = (function () {
       var openLink = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(project.public_id || '');
       body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
         + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</small><div>' + safeText(resolveProjectClientLabel(project)) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.team', 'Team') + '</small><div>' + safeText(resolveProjectTeamLabel(project)) + '</div></div>'
@@ -1278,12 +1315,7 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="mb-3 pb-3 border-bottom"><label class="form-label">' + window.CRM.i18n.t('js.pab.saved_views', 'Saved views') + '</label><div class="d-flex gap-2"><select class="form-select form-select-sm" id="projectsSavedViewSelect" aria-label="' + window.CRM.i18n.t('js.pab.saved_project_views', 'Saved project views') + '"><option value="">' + window.CRM.i18n.t('js.pab.default_view', 'Default view') + '</option></select><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsSaveViewBtn" title="' + window.CRM.i18n.t('js.pab.save_filters_as_view', 'Save current filters as view') + '">' + window.CRM.i18n.t('js.pab.save', 'Save') + '</button><button type="button" class="btn crm-btn-subtle crm-btn-compact flex-shrink-0" id="projectsDeleteViewBtn" disabled title="' + window.CRM.i18n.t('js.pab.delete_selected_view', 'Delete selected view') + '">' + window.CRM.i18n.t('js.pab.delete', 'Delete') + '</button></div></div>'
             + '<div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
             + '<option value="">' + window.CRM.i18n.t('js.pab.all', 'All') + '</option>'
-            + '<option value="active">' + window.CRM.i18n.t('js.pab.status_active', 'Active') + '</option>'
-            + '<option value="new">' + window.CRM.i18n.t('js.pab.status_new', 'New') + '</option>'
-            + '<option value="in_progress">' + window.CRM.i18n.t('js.pab.status_in_progress', 'In progress') + '</option>'
-            + '<option value="planning">' + window.CRM.i18n.t('js.pab.status_planning', 'Planning') + '</option>'
-            + '<option value="blocked">' + window.CRM.i18n.t('js.pab.status_blocked', 'Blocked') + '</option>'
-            + '<option value="done">' + window.CRM.i18n.t('js.pab.status_done', 'Done') + '</option>'
+            + projectStatusOptions.map(function (statusItem) { return '<option value="' + safeText(statusItem.code) + '">' + safeText(statusItem.label) + '</option>'; }).join('')
             + '</select></div>'
             + '<div class="mb-3"><label class="form-label">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</label><select class="form-select" name="priority">'
             + '<option value="">' + window.CRM.i18n.t('js.pab.all', 'All') + '</option>'
@@ -1366,6 +1398,14 @@ window.CRM.pageApiBindings = (function () {
           clientSelect.innerHTML += '<option value="' + safeText(c.public_id) + '">' + safeText(c.title || c.name || c.company_name || c.public_id) + '</option>';
         });
         clientSelect.value = clientVal || state.clientPublicId || '';
+      }
+      // Populate project status select from the same project-scoped dictionary used by the detail page.
+      var statusSelect = document.getElementById('projectsStatusFilter');
+      if (statusSelect) {
+        var statusVal = statusSelect.value;
+        statusSelect.innerHTML = '<option value="">' + window.CRM.i18n.t('page.all_statuses', 'All statuses') + '</option>'
+          + projectStatusOptions.map(function (statusItem) { return '<option value="' + safeText(statusItem.code) + '">' + safeText(statusItem.label) + '</option>'; }).join('');
+        statusSelect.value = statusVal || state.status || '';
       }
       // Populate team select
       var teamSelect = document.getElementById('projectsTeamFilter');
@@ -1686,7 +1726,7 @@ window.CRM.pageApiBindings = (function () {
           : '<p class="crm-project-card-subtitle crm-project-card-subtitle-muted mb-2">' + window.CRM.i18n.t('js.pab.no_client_team_assigned', 'Client and team not assigned yet') + '</p>';
         return '<div class="col-lg-4"><article class="crm-card crm-card-hover">'
           + '<div class="d-flex justify-content-between"><h2 class="h6 mb-1">' + safeText(item.title) + '</h2>'
-          + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
+          + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(projectStatusLabel(item.status_code)) + '</span></div>'
           + projectMetaLine
           + '<div class="crm-project-card-meta"><span class="crm-chip">' + window.CRM.i18n.t('js.pab.priority_prefix', 'Priority:') + ' ' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span>'
           + '<span class="crm-chip">' + window.CRM.i18n.t('js.pab.updated_prefix', 'Updated:') + ' ' + safeText(formatDate(item.updated_at)) + '</span></div>'
@@ -1706,7 +1746,7 @@ window.CRM.pageApiBindings = (function () {
         return '<tr>'
           + '<td><input class="form-check-input" type="checkbox" data-project-bulk-id="' + safeText(item.public_id || '') + '"></td>'
           + '<td><a href="' + link + '">' + safeText(item.title) + '</a></td>'
-          + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></td>'
+          + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(projectStatusLabel(item.status_code)) + '</span></td>'
           + '<td>' + safeText((item.progress_percent || 0) + '%') + '</td>'
           + '<td>' + safeText(resolveProjectClientLabel(item)) + '</td>'
           + '<td>' + safeText(resolveProjectTeamLabel(item)) + '</td>'
@@ -1866,7 +1906,7 @@ window.CRM.pageApiBindings = (function () {
 
     setText('.crm-page-title', project.title || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
     setText('#projectBreadcrumbTitle', project.title || project.public_id || window.CRM.i18n.t('js.pab.project_card', 'Project card'));
-    setText('.crm-subtitle', window.CRM.i18n.t('js.pab.status_label', 'Status:') + ' ' + statusLabel(project.status_code) + ' · ' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + formatDate(project.updated_at));
+    setText('.crm-subtitle', window.CRM.i18n.t('js.pab.status_label', 'Status:') + ' ' + projectStatusLabel(project.status_code) + ' · ' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + formatDate(project.updated_at));
     setText('#projectPublicIdChip', 'ID: ' + (project.public_id || '—'));
     setText('#projectRowVersionChip', window.CRM.i18n.t('js.pab.version_label', 'Version:') + ' ' + String(project.row_version || 1));
     setText('#projectSummaryCreator', resolveUserLabel(project.creator_user_name || '', project.creator_user_public_id || '', '—'));
@@ -1875,7 +1915,7 @@ window.CRM.pageApiBindings = (function () {
     setText('#projectSummaryClient', project.client_title || project.client_public_id || '—');
     setText('#projectSummaryCreatedAt', formatDate(project.created_at));
     setText('#projectSummaryUpdatedAt', formatDate(project.updated_at));
-    setText('#projectSummaryStatus', statusLabel(project.status_code));
+    setText('#projectSummaryStatus', projectStatusLabel(project.status_code));
     setText('#projectSummaryPriority', priorityLabel(project.priority_code || 'normal'));
     var projectSummaryDescription = document.querySelector('#projectSummaryDescription');
     if (projectSummaryDescription) {
@@ -1900,7 +1940,7 @@ window.CRM.pageApiBindings = (function () {
       body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
         + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + '<div class="progress mb-3"><div class="progress-bar" style="width:' + safeText(String(progress)) + '%">' + safeText(String(progress)) + '%</div></div>'
-        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div></div>'
+        + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.risks', 'Risks') + '</small><div>' + window.CRM.i18n.t('js.pab.overdue', 'Overdue:') + ' ' + safeText(String(overdue)) + ' · ' + window.CRM.i18n.t('js.pab.blocked', 'Blocked:') + ' ' + safeText(String(blocked)) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.created', 'Created') + '</small><div>' + safeText(createdAt) + '</div></div>'
@@ -2368,7 +2408,7 @@ window.CRM.pageApiBindings = (function () {
     var statusBadge = document.getElementById('projectStatusBadge');
     if (statusBadge) {
       statusBadge.className = 'crm-badge ' + statusClass(project.status_code);
-      statusBadge.textContent = statusLabel(project.status_code);
+      statusBadge.textContent = projectStatusLabel(project.status_code);
     }
 
     var editAccessNote = document.getElementById('projectEditAccessNote');
@@ -2387,9 +2427,13 @@ window.CRM.pageApiBindings = (function () {
     // fallback — полный набор переходов воркфлоу, включая «Планирование».
     var projectStatusEnvelope = await tryRequest('api/v1/statuses', { query: { scope: 'project', limit: 50 } });
     var adminProjectStatuses = projectStatusEnvelope ? mapItems(projectStatusEnvelope) : [];
+    projectStatusTitleMap = {};
     var projectStatusOptions = adminProjectStatuses.length
       ? adminProjectStatuses.map(function (statusItem) {
-          return { code: String(statusItem.code || '').trim(), label: String(statusItem.title || statusItem.code || '') };
+          var code = String(statusItem.code || '').trim();
+          var title = String(statusItem.title || '').trim();
+          if (code && title) projectStatusTitleMap[code] = title;
+          return { code: code, label: code ? projectStatusLabel(code, title) : '' };
         }).filter(function (statusOption) { return statusOption.code !== ''; })
       : [
           { code: 'new', label: window.CRM.i18n.t('js.pab.status_new', 'New') },
@@ -2453,7 +2497,7 @@ window.CRM.pageApiBindings = (function () {
         + '</article></div>'
         + '<div class="col-lg-6"><article class="border rounded-3 p-3 h-100">'
         + '<div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">' + window.CRM.i18n.t('js.pab.status_and_priority', 'Status and priority') + '</h3><button class="btn btn-sm btn-light" type="button" data-project-edit-open="workflow" aria-label="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '" title="' + window.CRM.i18n.t('js.pab.edit_project_workflow', 'Edit status and priority') + '"><span aria-hidden="true">✏️</span></button></div>'
-        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(statusLabel(project.status_code)) + '</span></div>'
+        + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</div><div class="mb-2"><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div>'
         + '<div class="small text-muted mb-1">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</div><div class="mb-2">' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div>'
         + '<form class="row g-2 d-none" data-project-edit-form="workflow">'
         + '<div class="col-6"><label class="form-label">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</label><select class="form-select" name="status">'
