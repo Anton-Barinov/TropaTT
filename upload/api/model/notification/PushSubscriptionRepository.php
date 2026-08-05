@@ -224,9 +224,17 @@ final class PushSubscriptionRepository
     {
         try {
             if ($this->driver() === 'mysql') {
-                $stmt = $this->pdo->prepare('SHOW COLUMNS FROM notification_push_subscriptions LIKE :name');
-                $stmt->execute([':name' => $name]);
-                return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+                // SHOW COLUMNS ... LIKE ? is a SHOW command: MySQL/MariaDB do
+                // not accept prepared-statement parameters in SHOW statements,
+                // so with PDO::ATTR_EMULATE_PREPARES=false the server chokes on
+                // the placeholder (SQLSTATE 1064 near '?'). Use the standard
+                // information_schema introspection instead (same as IndexHelper).
+                $stmt = $this->pdo->prepare(
+                    'SELECT 1 FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :column LIMIT 1'
+                );
+                $stmt->execute(['table' => 'notification_push_subscriptions', 'column' => $name]);
+                return (bool)$stmt->fetchColumn();
             }
 
             $columns = $this->pdo->query('PRAGMA table_info(notification_push_subscriptions)');
