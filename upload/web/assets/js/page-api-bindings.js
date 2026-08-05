@@ -2538,43 +2538,138 @@ window.CRM.pageApiBindings = (function () {
             // ТЗ 7.3: закрытие проекта с незакрытыми задачами — модалка с выбором.
             if (envelopeError && String(envelopeError.code || '') === 'PROJECT_HAS_OPEN_TASKS') {
               var openCount = Number((envelopeError.meta && envelopeError.meta.open_task_count) || envelopeError.open_task_count || 0);
-              var proceedClose = await window.CRM.confirm({
-                title: window.CRM.i18n.t('js.pab.project_has_open_tasks', 'Project has open tasks'),
-                body: window.CRM.i18n.t('js.pab.project_has_open_tasks_body', 'Cannot complete the project while open tasks remain. Close all open tasks and complete the project?') + ' (' + openCount + ')',
-                actionText: window.CRM.i18n.t('js.pab.close_all_tasks', 'Close all tasks'),
-                actionClass: 'crm-btn-primary'
-              });
-              if (proceedClose) {
-                try {
+              function isOpenTask(taskItem) {
+                var st = String(taskItem.status_code || '').toLowerCase();
+                return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
+              }
+              function listOpenTaskIds(pageNum) {
+                return request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100, page: pageNum } }).then(function (envelope) {
+                  return mapItems(envelope).filter(isOpenTask).map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
+                });
+              }
+              // Модалка выбора: закрыть все задачи / перенести в другой проект / отмена.
+              function showProjectCloseActionModal(targetOptionsHtml) {
+                return new Promise(function (resolve) {
+                  var modalId = 'projectCloseActionModal';
+                  var oldModal = document.getElementById(modalId);
+                  if (oldModal) oldModal.remove();
+                  var modalEl = document.createElement('div');
+                  modalEl.className = 'modal fade';
+                  modalEl.id = modalId;
+                  modalEl.tabIndex = -1;
+                  modalEl.setAttribute('aria-hidden', 'true');
+                  modalEl.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">'
+                    + '<div class="modal-header"><h5 class="modal-title">' + safeText(window.CRM.i18n.t('js.pab.project_has_open_tasks', 'Project has open tasks')) + '</h5>'
+                    + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('common.close', 'Close')) + '"></button></div>'
+                    + '<div class="modal-body">'
+                    + '<p>' + safeText(window.CRM.i18n.t('js.pab.project_has_open_tasks_body', 'Cannot complete the project while open tasks remain. Choose how to proceed:')) + ' <strong>' + safeText(String(openCount)) + '</strong></p>'
+                    + '<div class="mb-2"><button type="button" class="btn crm-btn-primary w-100" data-project-close-action="close">' + safeText(window.CRM.i18n.t('js.pab.close_all_tasks', 'Close all tasks')) + '</button></div>'
+                    + '<div class="mb-2"><button type="button" class="btn crm-btn-secondary w-100" data-project-close-action="move">' + safeText(window.CRM.i18n.t('js.pab.move_to_other_project', 'Move to another project')) + '</button></div>'
+                    + '<div class="d-none" data-project-move-panel>'
+                    + '<label class="form-label">' + safeText(window.CRM.i18n.t('js.pab.target_project', 'Target project')) + '</label>'
+                    + '<select class="form-select" data-project-move-select>' + targetOptionsHtml + '</select>'
+                    + '<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-sm crm-btn-primary" data-project-close-action="do-move">' + safeText(window.CRM.i18n.t('js.pab.move_tasks', 'Move tasks')) + '</button>'
+                    + '<button type="button" class="btn btn-sm btn-light" data-project-move-cancel>' + safeText(tp('common.cancel', 'Cancel')) + '</button></div>'
+                    + '</div>'
+                    + '</div></div></div>';
+                  document.body.appendChild(modalEl);
+                  var instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                  var settled = false;
+                  function finish(result) {
+                    if (settled) return;
+                    settled = true;
+                    instance.hide();
+                    modalEl.addEventListener('hidden.bs.modal', function () { modalEl.remove(); }, { once: true });
+                    resolve(result);
+                  }
+                  modalEl.addEventListener('click', function (e) {
+                    var actionBtn = e.target.closest('[data-project-close-action]');
+                    if (!actionBtn) return;
+                    var action = String(actionBtn.getAttribute('data-project-close-action') || '');
+                    if (action === 'close') { finish('close'); return; }
+                    if (action === 'move') {
+                      var panel = modalEl.querySelector('[data-project-move-panel]');
+                      if (panel) panel.classList.remove('d-none');
+                      return;
+                    }
+                    if (action === 'do-move') {
+                      var select = modalEl.querySelector('[data-project-move-select]');
+                      var target = String(select && select.value || '').trim();
+                      if (!target) { if (select) select.focus(); return; }
+                      finish(target);
+                    }
+                  });
+                  var moveCancel = modalEl.querySelector('[data-project-move-cancel]');
+                  if (moveCancel) {
+                    moveCancel.addEventListener('click', function () {
+                      var panel = modalEl.querySelector('[data-project-move-panel]');
+                      if (panel) panel.classList.add('d-none');
+                    });
+                  }
+                  modalEl.addEventListener('hidden.bs.modal', function () {
+                    if (!settled) {
+                      settled = true;
+                      resolve(null);
+                    }
+                  });
+                  instance.show();
+                });
+              }
+              try {
+                var moveProjectsEnvelope = await request('api/v1/projects', { query: { limit: 200 } });
+                var moveProjectsHtml = ['<option value="">' + safeText(tp('common.select', 'Select...')) + '</option>']
+                  .concat(mapItems(moveProjectsEnvelope).filter(function (projectItem) {
+                    return String(projectItem.public_id || '') !== String(projectId || '');
+                  }).map(function (projectItem) {
+                    return '<option value="' + safeText(projectItem.public_id || '') + '">' + safeText(projectItem.title || projectItem.public_id || '') + '</option>';
+                  })).join('');
+                var closeAction = await showProjectCloseActionModal(moveProjectsHtml);
+                if (!closeAction) return;
+                if (closeAction === 'close') {
                   // Закрываем открытые задачи постранично (bulk-эндпоинт ограничен 100 за запрос).
                   var page = 1;
                   var closedAny = false;
                   while (true) {
-                    var openTasksEnvelope = await request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100, page: page } });
-                    var openTasksList = mapItems(openTasksEnvelope).filter(function (taskItem) {
-                      var st = String(taskItem.status_code || '').toLowerCase();
-                      return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
-                    });
-                    var openTaskIds = openTasksList.map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
-                    if (!openTaskIds.length) break;
-                    await request('api/v1/tasks/bulk', { method: 'POST', body: { task_public_ids: openTaskIds, changes: { status: 'done' } } });
+                    var closeBatchIds = await listOpenTaskIds(page);
+                    if (!closeBatchIds.length) break;
+                    await request('api/v1/tasks/bulk', { method: 'POST', body: { task_public_ids: closeBatchIds, changes: { status: 'done' } } });
                     closedAny = true;
                     page += 1;
-                    if (openTaskIds.length < 100) break;
+                    if (closeBatchIds.length < 100) break;
                   }
                   if (!closedAny) {
                     notify(window.CRM.i18n.t('js.pab.no_open_tasks_found', 'No open tasks found'), 'warning');
                     return;
                   }
-                  var completedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
-                  var completed = completedEnvelope && completedEnvelope.data && completedEnvelope.data.project ? completedEnvelope.data.project : null;
-                  if (completed) project = completed;
-                  notify(window.CRM.i18n.t('js.pab.project_completed_tasks_closed', 'Project completed, all tasks closed'), 'success');
-                  await renderProjectDetailPage();
-                } catch (closeError) {
-                  var closeEnvelope = closeError && closeError.envelope ? closeError.envelope : null;
-                  notify((closeEnvelope && closeEnvelope.message) || window.CRM.i18n.t('js.pab.failed_close_tasks', 'Failed to close tasks'), 'error');
+                  notify(window.CRM.i18n.t('js.pab.tasks_closed_prefix', 'Open tasks closed: ') + openCount, 'success');
+                } else {
+                  // Переносим открытые задачи в выбранный проект (постранично).
+                  var movePage = 1;
+                  var movedAny = false;
+                  while (true) {
+                    var moveBatchIds = await listOpenTaskIds(movePage);
+                    if (!moveBatchIds.length) break;
+                    for (var i = 0; i < moveBatchIds.length; i += 1) {
+                      await request('api/v1/tasks/' + encodeURIComponent(moveBatchIds[i]), { method: 'PATCH', body: { project_public_id: closeAction } });
+                      movedAny = true;
+                    }
+                    movePage += 1;
+                    if (moveBatchIds.length < 100) break;
+                  }
+                  if (!movedAny) {
+                    notify(window.CRM.i18n.t('js.pab.no_open_tasks_found', 'No open tasks found'), 'warning');
+                    return;
+                  }
+                  notify(window.CRM.i18n.t('js.pab.tasks_moved_prefix', 'Open tasks moved to the selected project: ') + openCount, 'success');
                 }
+                var completedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
+                var completed = completedEnvelope && completedEnvelope.data && completedEnvelope.data.project ? completedEnvelope.data.project : null;
+                if (completed) project = completed;
+                notify(window.CRM.i18n.t('js.pab.project_completed', 'Project completed'), 'success');
+                await renderProjectDetailPage();
+              } catch (closeError) {
+                var closeEnvelope = closeError && closeError.envelope ? closeError.envelope : null;
+                notify((closeEnvelope && closeEnvelope.message) || window.CRM.i18n.t('js.pab.failed_close_tasks', 'Failed to close tasks'), 'error');
               }
               return;
             }
