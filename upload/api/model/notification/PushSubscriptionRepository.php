@@ -15,6 +15,11 @@ final class PushSubscriptionRepository
     {
     }
 
+    private function driver(): string
+    {
+        return (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    }
+
     /** @return array{0:array<int,array<string,mixed>>,1:int,2:int,3:int} */
     public function listByUser(int $userId, array $filters): array
     {
@@ -179,9 +184,18 @@ final class PushSubscriptionRepository
         $this->schemaEnsured = true;
 
         try {
+            // AUTOINCREMENT is SQLite-only; MySQL/MariaDB needs AUTO_INCREMENT.
+            // Mirror SchemaManager's driver-aware id column instead of duplicating
+            // the whole DDL per driver (they would drift apart). The old code
+            // hard-coded the SQLite syntax, so every hourly notification sweep
+            // logged a schema error on MySQL/MariaDB.
+            $id = $this->driver() === 'mysql'
+                ? 'INT AUTO_INCREMENT PRIMARY KEY'
+                : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+
             $this->pdo->exec(
-                'CREATE TABLE IF NOT EXISTS notification_push_subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                "CREATE TABLE IF NOT EXISTS notification_push_subscriptions (
+                    id {$id},
                     public_id VARCHAR(64) UNIQUE,
                     user_id INTEGER,
                     endpoint TEXT,
@@ -194,25 +208,40 @@ final class PushSubscriptionRepository
                     last_seen_at DATETIME NULL,
                     created_at DATETIME,
                     updated_at DATETIME
-                )'
+                )"
             );
             IndexHelper::createIndexIfNotExists($this->pdo, 'notification_push_subscriptions', 'idx_notif_push_subscriptions_user_active', 'user_id, is_active, updated_at');
-            $columns = $this->pdo->query('PRAGMA table_info(notification_push_subscriptions)');
-            $hasLastError = false;
-            if ($columns !== false) {
-                foreach ($columns->fetchAll(PDO::FETCH_ASSOC) as $column) {
-                    if ((string)($column['name'] ?? '') === 'last_error') {
-                        $hasLastError = true;
-                        break;
-                    }
-                }
-            }
-            if (!$hasLastError) {
+            if (!$this->hasColumn('last_error')) {
                 $this->pdo->exec('ALTER TABLE notification_push_subscriptions ADD COLUMN last_error TEXT NULL');
             }
         } catch (\Throwable $e) {
             error_log('[PushSubscriptionRepository::ensureSchema] DB exec: ' . $e->getMessage());
             // Keep fail-safe behavior for already managed schema or restricted DB modes.
+        }
+    }
+
+    private function hasColumn(string $name): bool
+    {
+        try {
+            if ($this->driver() === 'mysql') {
+                $stmt = $this->pdo->prepare('SHOW COLUMNS FROM notification_push_subscriptions LIKE :name');
+                $stmt->execute([':name' => $name]);
+                return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+            }
+
+            $columns = $this->pdo->query('PRAGMA table_info(notification_push_subscriptions)');
+            if ($columns === false) {
+                return true; // Unknown introspection: avoid a destructive ALTER guess.
+            }
+            foreach ($columns->fetchAll(PDO::FETCH_ASSOC) as $column) {
+                if ((string)($column['name'] ?? '') === $name) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (\Throwable $e) {
+            error_log('[PushSubscriptionRepository::hasColumn] ' . $e->getMessage());
+            return true; // Fail-safe: assume the column exists rather than guessing DDL.
         }
     }
 }
