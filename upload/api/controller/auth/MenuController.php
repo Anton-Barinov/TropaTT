@@ -811,7 +811,7 @@ final class MenuController extends BaseController
                 $entry['title'] = trim((string)($item['title'] ?? $item['label'] ?? ''));
                 $entry['href'] = trim((string)($item['href'] ?? ''));
                 $entry['icon'] = trim((string)($item['icon'] ?? ''));
-                if ($entry['title'] === '' || $entry['href'] === '') {
+                if ($entry['title'] === '' || !$this->isSafeMenuHref($entry['href'])) {
                     continue;
                 }
             }
@@ -820,6 +820,34 @@ final class MenuController extends BaseController
         }
 
         return $validated;
+    }
+
+    private function isSafeMenuHref(string $href): bool
+    {
+        $href = trim($href);
+        if ($href === '' || preg_match('/[\x00-\x1F\x7F]/', $href) === 1) {
+            return false;
+        }
+
+        $decoded = $href;
+        for ($i = 0; $i < 2; $i++) {
+            $next = rawurldecode($decoded);
+            if ($next === $decoded) {
+                break;
+            }
+            $decoded = $next;
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $decoded) === 1) {
+            return false;
+        }
+
+        if (str_starts_with($decoded, '//') || str_starts_with($decoded, '\\\\')) {
+            return false;
+        }
+
+        $scheme = parse_url($decoded, PHP_URL_SCHEME);
+        return $scheme === null || in_array(strtolower((string)$scheme), ['http', 'https', 'mailto', 'tel'], true);
     }
 
     private function canAccess(AuthzService $authz, array $user, array $requiredPermissions): bool

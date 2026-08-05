@@ -32,7 +32,7 @@
     <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_knowledge"><?= htmlspecialchars($t('counterparty_detail.section_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_knowledge_note"><?= htmlspecialchars($t('counterparty_detail.section_knowledge_note', 'Связанные страницы и документация.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
       <div id="counterpartyKnowledgeList"><div class="text-muted small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
-      <div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><a id="counterpartyCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_create_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
+      <div class="mt-2 d-flex gap-2 flex-wrap"><a class="btn btn-sm crm-btn-primary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_knowledge', 'Перейти в базу знаний'), ENT_QUOTES, 'UTF-8') ?></a><button id="counterpartyAttachKnowledgeBtn" class="btn btn-sm crm-btn-secondary" type="button" data-i18n="counterparty_detail.btn_attach_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_attach_knowledge', 'Прикрепить статью'), ENT_QUOTES, 'UTF-8') ?></button><a id="counterpartyCreateKnowledgeBtn" class="btn btn-sm crm-btn-secondary" href="index.php?route=knowledge" data-i18n="counterparty_detail.btn_create_knowledge"><?= htmlspecialchars($t('counterparty_detail.btn_create_knowledge', 'Создать связанную страницу'), ENT_QUOTES, 'UTF-8') ?></a></div>
     </div>
     <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="counterparty_detail.section_extra"><?= htmlspecialchars($t('counterparty_detail.section_extra', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="counterparty_detail.section_extra_note"><?= htmlspecialchars($t('counterparty_detail.section_extra_note', 'Кастомные поля контрагента.'), ENT_QUOTES, 'UTF-8') ?></div></div><button class="btn btn-sm crm-inline-icon-btn" id="counterpartyExtraEditBtn" type="button" aria-label="<?= htmlspecialchars($t('counterparty_detail.btn_edit_extra_aria', 'Редактировать дополнительные поля'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="counterparty_detail.btn_edit_extra_aria"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-pen"></i></span></button></div>
@@ -111,10 +111,12 @@
   <div id="counterpartyExtraFieldsContainer"><div class="text-muted" data-i18n="counterparty_detail.extra_fields_empty"><?= htmlspecialchars($t('counterparty_detail.extra_fields_empty', 'Нет дополнительных полей.'), ENT_QUOTES, 'UTF-8') ?></div></div>
   <div class="col-12 mt-3"><button type="button" class="btn btn-sm crm-btn-secondary" id="addExtraFieldBtn" data-i18n="counterparty_detail.btn_add_field"><?= htmlspecialchars($t('counterparty_detail.btn_add_field', 'Добавить поле'), ENT_QUOTES, 'UTF-8') ?></button></div>
 </div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
+<div class="modal fade" id="counterpartyKnowledgeAttachModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" data-i18n="counterparty_detail.attach_knowledge_title"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_title', 'Прикрепить статью базы знаний'), ENT_QUOTES, 'UTF-8') ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label" for="counterpartyKnowledgeSearch" data-i18n="counterparty_detail.attach_knowledge_search_label"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_search_label', 'Поиск статьи'), ENT_QUOTES, 'UTF-8') ?></label><input id="counterpartyKnowledgeSearch" class="form-control" type="search" autocomplete="off" placeholder="<?= htmlspecialchars($t('counterparty_detail.attach_knowledge_search_placeholder', 'Введите название статьи...'), ENT_QUOTES, 'UTF-8') ?>"></div><div id="counterpartyKnowledgeAttachResults"><div class="text-muted small" data-i18n="counterparty_detail.attach_knowledge_loading"><?= htmlspecialchars($t('counterparty_detail.attach_knowledge_loading', 'Загрузка статей...'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div></div></div></div>
+
 <script>
 (function () {
   var urlParams = new URLSearchParams(window.location.search);
-  var counterpartyId = urlParams.get('id');
+  var counterpartyId = urlParams.get('counterparty_public_id') || urlParams.get('id');
   if (!counterpartyId) return;
   var createKnowledgeBtn = document.getElementById('counterpartyCreateKnowledgeBtn');
   if (createKnowledgeBtn) createKnowledgeBtn.href = 'index.php?route=knowledge&entity_type=counterparty&entity_public_id=' + encodeURIComponent(counterpartyId);
@@ -142,6 +144,146 @@
       }
     } catch (e) {
       listEl.innerHTML = '<div class="text-muted small">—</div>';
+    }
+  });
+})();
+</script>
+<script>
+(function () {
+  var attachBtn = document.getElementById('counterpartyAttachKnowledgeBtn');
+  var modalEl = document.getElementById('counterpartyKnowledgeAttachModal');
+  var searchInput = document.getElementById('counterpartyKnowledgeSearch');
+  var resultsEl = document.getElementById('counterpartyKnowledgeAttachResults');
+  if (!attachBtn || !modalEl || !searchInput || !resultsEl) return;
+
+  var urlParams = new URLSearchParams(window.location.search);
+  var counterpartyId = urlParams.get('counterparty_public_id') || urlParams.get('id');
+  if (!counterpartyId) {
+    attachBtn.disabled = true;
+    return;
+  }
+
+  var api = null;
+  var searchTimer = null;
+  var loading = false;
+  var linkedIds = {};
+
+  function canAttachKnowledge() {
+    return !api || typeof api.hasPermission !== 'function' || api.hasPermission('knowledge.edit');
+  }
+
+  function getApi() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
+    });
+  }
+
+  function text(key, fallback) {
+    return window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
+      ? window.CRM.i18n.t(key, fallback)
+      : fallback;
+  }
+
+  function setResultsMessage(message, className) {
+    resultsEl.innerHTML = '<div class="text-muted small ' + (className || '') + '">' + escapeHtml(message) + '</div>';
+  }
+
+  async function loadLinkedIds() {
+    linkedIds = {};
+    var envelope = await api.request('api/v1/knowledge/entities/counterparty/' + encodeURIComponent(counterpartyId) + '/pages', { method: 'GET' });
+    var items = envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
+    items.forEach(function (item) {
+      var id = String(item && item.public_id || '').trim();
+      if (id) linkedIds[id] = true;
+    });
+  }
+
+  async function loadArticles() {
+    if (loading) return;
+    loading = true;
+    setResultsMessage(text('counterparty_detail.attach_knowledge_loading', 'Загрузка статей...'));
+    try {
+      var query = { limit: 50, q: String(searchInput.value || '').trim() };
+      var envelope = await api.request('api/v1/knowledge/pages', { method: 'GET', query: query });
+      var items = envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
+      var available = items.filter(function (item) {
+        return item && item.public_id && !linkedIds[String(item.public_id)];
+      });
+      if (!available.length) {
+        setResultsMessage(text('counterparty_detail.attach_knowledge_empty', 'Статьи не найдены'));
+        return;
+      }
+      resultsEl.innerHTML = available.map(function (item) {
+        var id = encodeURIComponent(String(item.public_id));
+        var title = escapeHtml(item.title || text('knowledge.untitled', 'Без названия'));
+        var meta = [item.space_title, item.status].filter(Boolean).map(escapeHtml).join(' · ');
+        return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3" data-knowledge-page-id="' + id + '"><span class="text-start"><strong class="d-block">' + title + '</strong>' + (meta ? '<span class="small text-muted">' + meta + '</span>' : '') + '</span><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-link"></i></span></button>';
+      }).join('');
+    } catch (e) {
+      setResultsMessage(text('counterparty_detail.attach_knowledge_error', 'Не удалось загрузить статьи'), 'text-danger');
+    } finally {
+      loading = false;
+    }
+  }
+
+  attachBtn.addEventListener('click', async function () {
+    api = getApi();
+    if (!api || !canAttachKnowledge()) return;
+    try {
+      await loadLinkedIds();
+    } catch (e) {
+      setResultsMessage(text('counterparty_detail.attach_knowledge_error', 'Не удалось загрузить связанные статьи'), 'text-danger');
+      return;
+    }
+    searchInput.value = '';
+    resultsEl.innerHTML = '';
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    loadArticles();
+  });
+
+  function refreshAttachPermission() {
+    api = getApi();
+    if (!api) return false;
+    if (typeof api.hasPermission === 'function' && !api.hasPermission('knowledge.edit')) {
+      attachBtn.classList.add('d-none');
+    }
+    return true;
+  }
+
+  function waitForAttachPermission(attempt) {
+    if (refreshAttachPermission() || (attempt || 0) >= 80) return;
+    window.setTimeout(function () { waitForAttachPermission((attempt || 0) + 1); }, 50);
+  }
+
+  waitForAttachPermission(0);
+
+  searchInput.addEventListener('input', function () {
+    if (!api) api = getApi();
+    if (!api) return;
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(loadArticles, 250);
+  });
+
+  resultsEl.addEventListener('click', async function (event) {
+    var button = event.target.closest('[data-knowledge-page-id]');
+    if (!button || !api) return;
+    button.disabled = true;
+    try {
+      var pageId = decodeURIComponent(button.getAttribute('data-knowledge-page-id') || '');
+      await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/links', {
+        method: 'POST',
+        body: { entity_type: 'counterparty', entity_public_id: counterpartyId, relation_type: 'related' },
+        idempotent: true
+      });
+      bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+      window.location.reload();
+    } catch (e) {
+      button.disabled = false;
+      setResultsMessage(text('counterparty_detail.attach_knowledge_error', 'Не удалось прикрепить статью'), 'text-danger');
     }
   });
 })();

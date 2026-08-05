@@ -169,6 +169,30 @@ window.CRM.navigation = (function () {
     });
   }
 
+  function safeNavHref(value) {
+    var href = String(value || '').trim();
+    if (!href || /[\u0000-\u001F\u007F]/.test(href)) return '#';
+
+    var decoded = href;
+    for (var i = 0; i < 2; i += 1) {
+      try {
+        var next = decodeURIComponent(decoded);
+        if (next === decoded) break;
+        decoded = next;
+      } catch (e) {
+        break;
+      }
+    }
+
+    if (/[\u0000-\u001F\u007F]/.test(decoded)) return '#';
+    if (/^\/\//.test(decoded) || /^\\\\/.test(decoded)) return '#';
+    var schemeMatch = decoded.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (schemeMatch && ['http', 'https', 'mailto', 'tel'].indexOf(schemeMatch[1].toLowerCase()) === -1) {
+      return '#';
+    }
+    return href;
+  }
+
   function resultUrl(item) {
     var type = String(item && item.entity_type || '').trim();
     var publicId = String(item && item.public_id || '').trim();
@@ -306,7 +330,7 @@ window.CRM.navigation = (function () {
         : (item.key === 'notifications'
           ? '<span class="crm-nav-badge d-none" data-nav-notification-badge aria-label=""></span>'
           : '');
-      var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + item.href + '" title="' + safeLabel + '">'
+      var html = '<a class="nav-link" data-nav="' + escapeHtml(item.key) + '" href="' + escapeHtml(safeNavHref(item.href)) + '" title="' + safeLabel + '">'
         + '<span class="crm-nav-icon" aria-hidden="true">' + iconHtml + '</span>'
         + '<span class="crm-nav-label">' + safeLabel + '</span>'
         + badge
@@ -315,7 +339,7 @@ window.CRM.navigation = (function () {
       if (parented[item.key]) {
         parented[item.key].forEach(function (sub) {
           var subLabel = t(sub.i18n, sub.label || sub.key);
-          html += '<a class="nav-link crm-nav-sub" data-nav="' + sub.key + '" href="' + sub.href + '" title="' + escapeHtml(subLabel) + '">'
+          html += '<a class="nav-link crm-nav-sub" data-nav="' + escapeHtml(sub.key) + '" href="' + escapeHtml(safeNavHref(sub.href)) + '" title="' + escapeHtml(subLabel) + '">'
             + '<span class="crm-nav-label ps-4">' + escapeHtml(subLabel) + '</span>'
             + '</a>';
         });
@@ -355,8 +379,8 @@ window.CRM.navigation = (function () {
         : (item.key === 'notifications'
           ? '<span class="crm-nav-badge d-none" data-nav-notification-badge aria-label=""></span>'
           : '');
-      var href = item.href || '#';
-      var html = '<a class="nav-link" data-nav="' + item.key + '" href="' + href + '" title="' + safeLabel + '">'
+      var href = safeNavHref(item.href);
+      var html = '<a class="nav-link" data-nav="' + escapeHtml(item.key) + '" href="' + escapeHtml(href) + '" title="' + safeLabel + '">'
         + '<span class="crm-nav-icon" aria-hidden="true">' + iconHtml + '</span>'
         + '<span class="crm-nav-label">' + safeLabel + '</span>'
         + badge
@@ -368,7 +392,7 @@ window.CRM.navigation = (function () {
           var subIcon = sub.is_custom && sub.icon
             ? '<span class="crm-icon" aria-hidden="true"><i class="' + escapeHtml(sub.icon) + '"></i></span>'
             : (sub.icon || navIcon(sub.key));
-          html += '<a class="nav-link crm-nav-sub" data-nav="' + sub.key + '" href="' + (sub.href || '#') + '" title="' + escapeHtml(subLabel) + '">'
+          html += '<a class="nav-link crm-nav-sub" data-nav="' + escapeHtml(sub.key) + '" href="' + escapeHtml(safeNavHref(sub.href)) + '" title="' + escapeHtml(subLabel) + '">'
             + '<span class="crm-nav-label ps-4">' + escapeHtml(subLabel) + '</span>'
             + '</a>';
         });
@@ -1138,7 +1162,7 @@ window.CRM.navigation = (function () {
 
     var customHtml = customItems.map(function (item) {
       var iconHtml = item.icon ? '<i class="' + escapeHtml(item.icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
-      return buildCustomizeRow(item.key, iconHtml, item.label || item.title || item.key, visibleSet[item.key] !== false, true);
+      return buildCustomizeRow(item.key, iconHtml, item.label || item.title || item.key, visibleSet[item.key] !== false, true, item.href);
     }).join('');
 
     var modal = document.createElement('div');
@@ -1229,11 +1253,12 @@ window.CRM.navigation = (function () {
     });
   }
 
-  function buildCustomizeRow(key, iconHtml, label, isVisible, isCustom) {
+  function buildCustomizeRow(key, iconHtml, label, isVisible, isCustom, customHref) {
     var deleteBtn = isCustom
       ? '<button type="button" class="btn btn-sm crm-btn-ghost crm-btn-icon text-danger" data-menu-customize-delete title="' + escapeHtml(t('common.delete', 'Delete')) + '"><i class="fa-solid fa-xmark"></i></button>'
       : '';
-    return '<div class="crm-menu-customize-item' + (isCustom ? ' crm-menu-customize-item--custom' : '') + '" data-key="' + escapeHtml(key) + '" data-is-custom="' + (isCustom ? '1' : '0') + '">'
+    var hrefAttribute = isCustom ? ' data-custom-href="' + escapeHtml(customHref || '') + '"' : '';
+    return '<div class="crm-menu-customize-item' + (isCustom ? ' crm-menu-customize-item--custom' : '') + '" data-key="' + escapeHtml(key) + '" data-is-custom="' + (isCustom ? '1' : '0') + '"' + hrefAttribute + '>'
       + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
       + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
       + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
@@ -1258,7 +1283,7 @@ window.CRM.navigation = (function () {
 
     var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
     var iconHtml = icon ? '<i class="' + escapeHtml(icon) + '"></i>' : '<i class="fa-solid fa-link"></i>';
-    var rowHtml = buildCustomizeRow(key, iconHtml, title, true, true);
+    var rowHtml = buildCustomizeRow(key, iconHtml, title, true, true, href);
 
     var customList = modal.querySelector('[data-menu-customize-custom-list]');
     if (customList) {
@@ -1331,11 +1356,11 @@ window.CRM.navigation = (function () {
         var existingCustom = navItems.find(function (ni) { return ni.key === key; });
         if (existingCustom) {
           entry.title = existingCustom.label || existingCustom.title || key;
-          entry.href = existingCustom.href || '#';
+          entry.href = row.getAttribute('data-custom-href') || existingCustom.href || '#';
           entry.icon = existingCustom.icon || 'fa-solid fa-link';
         } else {
           entry.title = row.querySelector('.crm-menu-customize-label') ? row.querySelector('.crm-menu-customize-label').textContent : key;
-          entry.href = '#';
+          entry.href = row.getAttribute('data-custom-href') || '#';
           entry.icon = 'fa-solid fa-link';
         }
       }
