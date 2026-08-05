@@ -104,8 +104,9 @@ final class TaskKeyService
         }
 
         // Global scope
-        $this->counters->ensureGlobalCounter();
-        return $this->counters->nextGlobal();
+        $prefix = $projectPrefix ?? self::GLOBAL_PREFIX;
+        $this->counters->ensureGlobalCounter($prefix);
+        return $this->counters->nextGlobal($prefix);
     }
 
     /**

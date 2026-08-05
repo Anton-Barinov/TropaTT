@@ -1065,7 +1065,8 @@ final class App
         ));
         $this->container->factory('service.subtask', fn(Container $c) => new SubtaskService(
             $c->get('repository.subtask'),
-            $c->get('service.task')
+            $c->get('service.task'),
+            $c->get('service.task_key')
         ));
         $this->container->factory('service.checklist', fn(Container $c) => new ChecklistService(
             $c->get('repository.checklist'),

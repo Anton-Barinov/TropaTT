@@ -3321,6 +3321,29 @@ font-size: 0.72rem;
   box-shadow: none;
 }
 
+/* ТЗ 4.2: hierarchy levels read as a ladder on desktop too - each nesting
+   level indents by 18px via the --task-level variable set in the item style.
+   The mobile layout (grid-template-columns) already uses the same variable. */
+.crm-tasks-page .crm-task-tree-item .crm-task-tree-content {
+  padding-left: calc(var(--task-level, 0) * 18px);
+}
+
+/* ТЗ 4.1: the subtask modal must scroll inside itself, never the page body.
+   Bootstrap's .modal-dialog-scrollable already does most of this, but a tall
+   visual editor inside the form can push the dialog past the viewport; these
+   rules pin the dialog to the viewport and force internal scrolling so the
+   form title stays reachable while a long description is being pasted. */
+#createSubtaskModal .modal-dialog-scrollable {
+  max-height: calc(100vh - 1.75rem);
+}
+#createSubtaskModal .modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+body.modal-open {
+  overflow: hidden !important;
+}
+
 .crm-tasks-page .crm-task-tree-item.is-parent > .crm-task-tree-content {
   background: transparent;
 }

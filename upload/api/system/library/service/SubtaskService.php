@@ -10,7 +10,8 @@ final class SubtaskService
 {
     public function __construct(
         private readonly SubtaskRepository $subtasks,
-        private readonly TaskService $tasks
+        private readonly TaskService $tasks,
+        private readonly ?TaskKeyService $taskKeys = null
     ) {
     }
 
@@ -49,9 +50,25 @@ final class SubtaskService
             ? max(0, (int)$input['sort_order'])
             : $this->subtasks->nextSortOrderForParentTaskId((int)$parentTask['id']);
 
+        // ТЗ 4.3: subtasks must always get a key. The prefix is inherited from
+        // the parent task (TASK-1 -> TASK-2, PRJ-1 -> PRJ-2), falling back to
+        // the project prefix and then to the global TASK prefix. Without this a
+        // subtask would be created with an empty task_key.
+        $childProjectId = (int)($parentTask['project_id'] ?? 0) ?: null;
+        $taskKeyData = null;
+        if ($this->taskKeys !== null) {
+            // parentTaskByPublicId() selects a minimal column set, so read the
+            // prefix from the fully-loaded task row (same task) instead.
+            $inheritedPrefix = trim((string)($task['task_key_prefix'] ?? $parentTask['task_key_prefix'] ?? ''));
+            $taskKeyData = $this->taskKeys->assignNextTaskKey($childProjectId, $inheritedPrefix !== '' ? $inheritedPrefix : null);
+        }
+
         $this->subtasks->createTask([
             'public_id' => $childPublicId,
-            'project_id' => (int)($parentTask['project_id'] ?? 0) ?: null,
+            'project_id' => $childProjectId,
+            'task_key' => $taskKeyData['task_key'] ?? null,
+            'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
+            'task_sequence_number' => $taskKeyData['task_sequence_number'] ?? null,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
             'status_code' => (string)($input['status'] ?? 'new'),
