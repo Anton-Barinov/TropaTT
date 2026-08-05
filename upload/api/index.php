@@ -41,7 +41,11 @@ if (is_file($maintenanceFlag)) {
     // failed update. These routes are still auth + RBAC protected.
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
     $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-        || $maintenanceRoute === 'api/v1/auth/me';
+        || $maintenanceRoute === 'api/v1/auth/me'
+        // The admin-updates page calls core/version in its loadStatus(); a 503
+        // MAINTENANCE_MODE here makes the page show an error instead of the
+        // update progress while an apply is legitimately holding maintenance.
+        || $maintenanceRoute === 'api/v1/core/version';
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: application/json; charset=utf-8');
