@@ -1564,7 +1564,11 @@ window.CRM.br1 = (function () {
             team_public_id: teamEl ? String(teamEl.value || '').trim() : '',
             manager_user_public_id: managerEl ? String(managerEl.value || '').trim() : '',
             status: statusEl ? String(statusEl.value || 'active') : 'active',
-            priority: priorityEl ? String(priorityEl.value || 'normal') : 'normal'
+            priority: priorityEl ? String(priorityEl.value || 'normal') : 'normal',
+            task_key_prefix: (function () {
+              var prefixEl = form.querySelector('[name="task_key_prefix"]');
+              return prefixEl ? String(prefixEl.value || '').trim() : '';
+            }())
           }
         });
 
