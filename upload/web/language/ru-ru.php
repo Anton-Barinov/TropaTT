@@ -1907,6 +1907,7 @@ return array (
       'close_all_tasks' => 'Закрыть все задачи',
       'project_completed_tasks_closed' => 'Проект завершён, все задачи закрыты',
       'failed_close_tasks' => 'Не удалось закрыть задачи',
+      'no_open_tasks_found' => 'Открытых задач не найдено',
       'focus_block' => 'Фокус-блок',
       'for_count_tasks' => 'для',
       'generate_ai_agenda' => 'Сформировать AI-повестку',

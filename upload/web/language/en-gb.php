@@ -1919,6 +1919,7 @@ return array (
       'close_all_tasks' => 'Close all tasks',
       'project_completed_tasks_closed' => 'Project completed, all tasks closed',
       'failed_close_tasks' => 'Failed to close tasks',
+      'no_open_tasks_found' => 'No open tasks found',
       'focus_block' => 'Focus block',
       'for_count_tasks' => 'for',
       'generate_ai_agenda' => 'Generate AI agenda',

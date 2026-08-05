@@ -2546,14 +2546,25 @@ window.CRM.pageApiBindings = (function () {
               });
               if (proceedClose) {
                 try {
-                  var openTasksEnvelope = await request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100 } });
-                  var openTasksList = mapItems(openTasksEnvelope).filter(function (taskItem) {
-                    var st = String(taskItem.status_code || '').toLowerCase();
-                    return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
-                  });
-                  var openTaskIds = openTasksList.map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
-                  if (openTaskIds.length) {
+                  // Закрываем открытые задачи постранично (bulk-эндпоинт ограничен 100 за запрос).
+                  var page = 1;
+                  var closedAny = false;
+                  while (true) {
+                    var openTasksEnvelope = await request('api/v1/tasks', { query: { project_public_id: projectId, limit: 100, page: page } });
+                    var openTasksList = mapItems(openTasksEnvelope).filter(function (taskItem) {
+                      var st = String(taskItem.status_code || '').toLowerCase();
+                      return st !== 'done' && st !== 'completed' && st !== 'cancelled' && st !== 'canceled';
+                    });
+                    var openTaskIds = openTasksList.map(function (taskItem) { return taskItem.public_id; }).filter(Boolean);
+                    if (!openTaskIds.length) break;
                     await request('api/v1/tasks/bulk', { method: 'POST', body: { task_public_ids: openTaskIds, changes: { status: 'done' } } });
+                    closedAny = true;
+                    page += 1;
+                    if (openTaskIds.length < 100) break;
+                  }
+                  if (!closedAny) {
+                    notify(window.CRM.i18n.t('js.pab.no_open_tasks_found', 'No open tasks found'), 'warning');
+                    return;
                   }
                   var completedEnvelope = await request('api/v1/projects/' + projectId, { method: 'PATCH', body: body });
                   var completed = completedEnvelope && completedEnvelope.data && completedEnvelope.data.project ? completedEnvelope.data.project : null;
