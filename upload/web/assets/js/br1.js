@@ -5282,12 +5282,8 @@ window.CRM.br1 = (function () {
         notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya', 'Укажите количество минут больше нуля'), 'warning');
         return;
       }
-      if (!note) {
-        notify(window.CRM.i18n.t('js.br1.opishite_chto_bylo_sdelano', 'Опишите, что было сделано'), 'warning');
-        return;
-      }
 
-      var timerNote = '[' + formatElapsedSeconds(pendingLogPayload.seconds) + '] ' + note;
+      var timerNote = '[' + formatElapsedSeconds(pendingLogPayload.seconds) + ']' + (note ? ' ' + note : '');
 
       try {
         await window.CRM.api.request('api/v1/worklogs', {

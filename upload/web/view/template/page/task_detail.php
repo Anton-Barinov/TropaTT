@@ -250,7 +250,7 @@
         </div>
         <div class="col-12">
           <label class="form-label" data-i18n="task_detail.timer_log_note_label"><?= htmlspecialchars($t('task_detail.timer_log_note_label', 'Что было сделано'), ENT_QUOTES, 'UTF-8') ?></label>
-          <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.timer_log_note_placeholder', 'Кратко опишите выполненную работу'), ENT_QUOTES, 'UTF-8') ?>" required data-i18n-placeholder="task_detail.timer_log_note_placeholder">
+          <input class="form-control" name="note" maxlength="8000" placeholder="<?= htmlspecialchars($t('task_detail.timer_log_note_placeholder', 'Кратко опишите выполненную работу'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.timer_log_note_placeholder">
         </div>
         <div class="col-12 d-flex gap-2">
           <button type="submit" class="btn btn-sm crm-btn-primary crm-btn-compact" data-i18n="task_detail.timer_log_add_btn"><?= htmlspecialchars($t('task_detail.timer_log_add_btn', 'Добавить запись'), ENT_QUOTES, 'UTF-8') ?></button>

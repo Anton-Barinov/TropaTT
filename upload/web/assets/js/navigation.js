@@ -512,6 +512,8 @@ window.CRM.navigation = (function () {
 
     // Global running-timer indicator slot; br1.js renderTopbarTaskTimer()
     // fills it with the elapsed time and task link while a timer is running.
+    // Placed BEFORE the search toggle so the running timer is the first item
+    // in the global-actions block when it is visible.
     if (!bar.querySelector('#topbarTaskTimer')) {
       var timerSlot = document.createElement('div');
       timerSlot.id = 'topbarTaskTimer';
@@ -519,7 +521,7 @@ window.CRM.navigation = (function () {
       timerSlot.setAttribute('data-topbar-timer', '1');
       var searchToggleRef = bar.querySelector('[data-search-toggle]');
       if (searchToggleRef) {
-        searchToggleRef.insertAdjacentElement('afterend', timerSlot);
+        searchToggleRef.insertAdjacentElement('beforebegin', timerSlot);
       } else {
         right.insertAdjacentElement('afterbegin', timerSlot);
       }
@@ -551,12 +553,12 @@ window.CRM.navigation = (function () {
     // Some pages bake the user menu / notifications button into their own
     // header markup, which puts them before the JS-added buttons and makes the
     // topbar order differ from page to page. Normalize the order so every page
-    // shows: search toggle, running-timer indicator, chats, notifications and
+    // shows: running-timer indicator, search toggle, chats, notifications and
     // the user menu last (same as the dashboard).
     if (right) {
       var canonicalOrder = [
-        right.querySelector('[data-search-toggle]'),
         bar.querySelector('#topbarTaskTimer'),
+        right.querySelector('[data-search-toggle]'),
         right.querySelector('[data-global-chat]'),
         right.querySelector('[data-global-notifications]'),
         right.querySelector('[data-profile-dropdown], .dropdown [data-bs-toggle="dropdown"]')
