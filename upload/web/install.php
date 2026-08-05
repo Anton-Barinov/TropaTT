@@ -823,6 +823,42 @@ function checkLatestCoreVersion(array $installData): ?array
         'context' => 'install',
         'installed_version' => installingCoreVersion(),
     ], static fn($value): bool => $value !== null && $value !== ''));
+    // A fresh install has no known build yet, so ask the update center for the
+    // plan as if starting from build 0 (exactly what the CRM's own planner does
+    // for an unknown local core). This compares BUILD numbers, so the notice
+    // actually fires when a newer build was published - a plain semver compare
+    // could never fire because every build ships the same VERSION (1.0.0).
+    $planUrl = rtrim(UPDATE_CENTER_URL, '/') . '/api/v1/products/' . rawurlencode(UPDATE_PRODUCT)
+        . '/update-plan?current_build=0&channel=' . rawurlencode(UPDATE_CHANNEL);
+    $response = @file_get_contents($planUrl, false, stream_context_create([
+        'http' => [
+            'timeout' => 5,
+            'ignore_errors' => true,
+        ],
+    ]));
+    if ($response !== false) {
+        $plan = json_decode($response, true);
+        if (is_array($plan)) {
+            $targetBuild = trim((string)($plan['target_build'] ?? ''));
+            if ($targetBuild !== '') {
+                return [
+                    'latest_version' => $targetBuild,
+                    'latest_build' => $targetBuild,
+                    'current_version' => installingCoreVersion(),
+                    'update_available' => ($plan['update_available'] ?? false) === true,
+                ];
+            }
+        }
+    }
+
+    // Fallback: channel metadata (best effort - the update center cannot infer
+    // a fresh install's own build from its semver, so any published build is
+    // reported as an update).
+    $query = http_build_query(array_filter([
+        'installation_domain' => $domain,
+        'context' => 'install',
+        'installed_version' => installingCoreVersion(),
+    ], static fn($value): bool => $value !== null && $value !== ''));
     $url = rtrim(UPDATE_CENTER_URL, '/') . '/api/v1/products/' . rawurlencode(UPDATE_PRODUCT) . '/channels/' . rawurlencode(UPDATE_CHANNEL) . ($query !== '' ? '?' . $query : '');
     $response = @file_get_contents($url, false, stream_context_create([
         'http' => [
@@ -837,15 +873,15 @@ function checkLatestCoreVersion(array $installData): ?array
     if (!is_array($payload)) {
         return null;
     }
-    $latestVersion = trim((string)($payload['latest_version'] ?? ''));
-    if ($latestVersion === '') {
+    $latestBuild = trim((string)($payload['latest_build'] ?? ''));
+    if ($latestBuild === '') {
         return null;
     }
     return [
-        'latest_version' => $latestVersion,
-        'latest_build' => $payload['latest_build'] ?? null,
+        'latest_version' => $latestBuild,
+        'latest_build' => $latestBuild,
         'current_version' => installingCoreVersion(),
-        'update_available' => version_compare($latestVersion, installingCoreVersion(), '>'),
+        'update_available' => true,
     ];
 }
 
