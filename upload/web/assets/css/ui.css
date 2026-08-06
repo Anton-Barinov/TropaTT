@@ -3967,6 +3967,51 @@ body {
   min-height: 1px;
 }
 
+/* The metadata table lives in the narrow right sidebar, unlike list tables. */
+.crm-content table.crm-idea-info-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  table-layout: fixed !important;
+}
+
+.crm-content.crm-idea-detail-page table.crm-idea-info-table td {
+  min-width: 0 !important;
+  padding: 10px 20px !important;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.crm-content table.crm-idea-info-table td:first-child {
+  width: 42%;
+  color: var(--crm-text-muted);
+  white-space: normal;
+}
+
+.crm-content table.crm-idea-info-table td:last-child {
+  width: 58%;
+  text-align: right;
+}
+
+.crm-content table.crm-idea-info-table #ideaVisibility {
+  white-space: normal;
+}
+
+.crm-content table.crm-idea-info-table #ideaVisibility .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  .crm-content.crm-idea-detail-page table.crm-idea-info-table td {
+    padding: 9px 16px !important;
+  }
+}
+
+/* The metadata table lives in the narrow right sidebar, unlike list tables. */
+
 .crm-idea-detail-page #aiPipelineCard {
   position: fixed;
   top: 76px;
