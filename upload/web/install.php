@@ -1,21 +1,6 @@
 <?php
 declare(strict_types=1);
 
-// SEC-001: Block access after installation — return 410 Gone immediately
-$lockFiles = [
-    __DIR__ . '/../api/.install.lock',
-    __DIR__ . '/../storage_api/install.lock',
-];
-foreach ($lockFiles as $lockFile) {
-    $resolved = realpath($lockFile);
-    if ($resolved !== false && is_file($resolved)) {
-        http_response_code(410);
-        header('Content-Type: text/plain; charset=utf-8');
-        echo 'Installation already completed.';
-        exit;
-    }
-}
-
 // ============================================================================
 // Part 1: Constants
 // ============================================================================
@@ -173,6 +158,18 @@ $L['ru'] = [
     'optional' => 'опционально',
     'update_check_notice' => 'Установщик проверит доступность обновлений и передаст домен этой установки на сервер обновлений.',
     'update_available_after_install' => 'Доступна более новая версия %s. После установки зайдите в раздел обновлений и обновите систему.',
+    'confirm_install' => 'Начать установку CRM? Убедитесь, что все настройки верны.',
+    'network_error' => 'Ошибка сети',
+    'install_failed' => 'Установка не выполнена. Проверьте журнал сервера.',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'Доступна запись в конфигурацию API',
+    'preflight_storage_writable' => 'Доступна запись в хранилище',
+    'preflight_session' => 'Сессия',
+    'preflight_file_info' => 'Fileinfo (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
 
 // English
@@ -253,6 +250,18 @@ $L['en'] = [
     'optional' => 'optional',
     'update_check_notice' => 'The installer will check update availability and send this installation domain to the update server.',
     'update_available_after_install' => 'A newer version %s is available. After installation, open Updates and update the system.',
+    'confirm_install' => 'Start CRM installation? Make sure all settings are correct.',
+    'network_error' => 'Network error',
+    'install_failed' => 'Installation failed. Check server logs for details.',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'API config writable',
+    'preflight_storage_writable' => 'Storage writable',
+    'preflight_session' => 'Session',
+    'preflight_file_info' => 'File info (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
 
 // Chinese
@@ -333,6 +342,18 @@ $L['zh'] = [
     'optional' => '可选',
     'update_check_notice' => '安装程序将检查更新可用性，并将此安装的域名发送到更新服务器。',
     'update_available_after_install' => '有更新版本 %s。安装完成后，请打开更新部分并更新系统。',
+    'confirm_install' => '开始安装 CRM？请确保所有设置正确。',
+    'network_error' => '网络错误',
+    'install_failed' => '安装失败。请检查服务器日志。',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'API 配置可写',
+    'preflight_storage_writable' => '存储可写',
+    'preflight_session' => '会话',
+    'preflight_file_info' => 'Fileinfo（finfo）',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS（dns_get_record）',
 ];
 
 // Spanish
@@ -413,6 +434,18 @@ $L['es'] = [
     'optional' => 'opcional',
     'update_check_notice' => 'El instalador comprobará la disponibilidad de actualizaciones y enviará el dominio de esta instalación al servidor de actualizaciones.',
     'update_available_after_install' => 'Hay una versión más nueva %s disponible. Después de la instalación, abra Actualizaciones y actualice el sistema.',
+    'confirm_install' => '¿Iniciar la instalación de CRM? Asegúrese de que todos los ajustes sean correctos.',
+    'network_error' => 'Error de red',
+    'install_failed' => 'La instalación falló. Consulte los registros del servidor.',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'Configuración de API escribible',
+    'preflight_storage_writable' => 'Almacenamiento escribible',
+    'preflight_session' => 'Sesión',
+    'preflight_file_info' => 'Fileinfo (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
 
 // Portuguese (Brazil)
@@ -493,6 +526,18 @@ $L['pt'] = [
     'optional' => 'opcional',
     'update_check_notice' => 'O instalador verificará a disponibilidade de atualizações e enviará o domínio desta instalação ao servidor de atualizações.',
     'update_available_after_install' => 'Uma versão mais recente %s está disponível. Após a instalação, abra Atualizações e atualize o sistema.',
+    'confirm_install' => 'Iniciar a instalação do CRM? Verifique se todas as configurações estão corretas.',
+    'network_error' => 'Erro de rede',
+    'install_failed' => 'A instalação falhou. Verifique os logs do servidor.',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'Configuração da API gravável',
+    'preflight_storage_writable' => 'Armazenamento gravável',
+    'preflight_session' => 'Sessão',
+    'preflight_file_info' => 'Fileinfo (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
 
 // German
@@ -573,6 +618,18 @@ $L['de'] = [
     'optional' => 'optional',
     'update_check_notice' => 'Der Installer prüft die Verfügbarkeit von Updates und übermittelt die Domain dieser Installation an den Update-Server.',
     'update_available_after_install' => 'Eine neuere Version %s ist verfügbar. Öffnen Sie nach der Installation den Bereich Updates und aktualisieren Sie das System.',
+    'confirm_install' => 'CRM-Installation starten? Stellen Sie sicher, dass alle Einstellungen korrekt sind.',
+    'network_error' => 'Netzwerkfehler',
+    'install_failed' => 'Installation fehlgeschlagen. Prüfen Sie die Serverprotokolle.',
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'API-Konfiguration beschreibbar',
+    'preflight_storage_writable' => 'Speicher beschreibbar',
+    'preflight_session' => 'Sitzung',
+    'preflight_file_info' => 'Fileinfo (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
 
 // French
@@ -653,7 +710,36 @@ $L['fr'] = [
     'optional' => 'optionnel',
     'update_check_notice' => "L'installateur vérifiera la disponibilité des mises à jour et enverra le domaine de cette installation au serveur de mises à jour.",
     'update_available_after_install' => "Une version plus récente %s est disponible. Après l'installation, ouvrez Mises à jour et mettez à jour le système.",
+    'confirm_install' => "Démarrer l'installation de CRM ? Vérifiez que tous les paramètres sont corrects.",
+    'network_error' => 'Erreur réseau',
+    'install_failed' => "Échec de l'installation. Consultez les journaux du serveur.",
+    'preflight_php' => 'PHP 8.1+',
+    'preflight_pdo_mysql' => 'PDO MySQL',
+    'preflight_api_writable' => 'Configuration API accessible en écriture',
+    'preflight_storage_writable' => 'Stockage accessible en écriture',
+    'preflight_session' => 'Session',
+    'preflight_file_info' => 'Fileinfo (finfo)',
+    'preflight_curl' => 'cURL',
+    'preflight_openssl' => 'OpenSSL',
+    'preflight_dns' => 'DNS (dns_get_record)',
 ];
+
+// SEC-001: Block access after installation — return 410 Gone immediately.
+// This check intentionally runs after language/session initialization so the
+// response can use the selected locale without duplicating the language map.
+$lockFiles = [
+    __DIR__ . '/../api/.install.lock',
+    __DIR__ . '/../storage_api/install.lock',
+];
+foreach ($lockFiles as $lockFile) {
+    $resolved = realpath($lockFile);
+    if ($resolved !== false && is_file($resolved)) {
+        http_response_code(410);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo t('already_installed');
+        exit;
+    }
+}
 
 // ============================================================================
 // Part 4: Helper Functions
@@ -923,47 +1009,47 @@ function getPreflightChecks(): array
 
     return [
         [
-            'label' => 'PHP 8.1+',
+            'label' => t('preflight_php'),
             'ok' => PHP_VERSION_ID >= 80100,
             'detail' => PHP_VERSION,
         ],
         [
-            'label' => 'PDO MySQL',
+            'label' => t('preflight_pdo_mysql'),
             'ok' => extension_loaded('pdo_mysql') && in_array('mysql', $pdoDrivers, true),
             'detail' => extension_loaded('pdo_mysql') ? 'pdo_mysql' : 'missing',
         ],
         [
-            'label' => 'API config writable',
+            'label' => t('preflight_api_writable'),
             'ok' => is_dir($apiDir) ? is_writable($apiDir) : is_writable(dirname($apiDir)),
             'detail' => $apiDir,
         ],
         [
-            'label' => 'Storage writable',
+            'label' => t('preflight_storage_writable'),
             'ok' => is_dir($storageBase) ? is_writable($storageBase) : is_writable($storageParent),
             'detail' => $storageBase,
         ],
         [
-            'label' => 'Session',
+            'label' => t('preflight_session'),
             'ok' => session_status() === PHP_SESSION_ACTIVE,
             'detail' => session_name(),
         ],
         [
-            'label' => 'File info (finfo)',
+            'label' => t('preflight_file_info'),
             'ok' => function_exists('finfo_open') || function_exists('mime_content_type'),
             'detail' => function_exists('finfo_open') ? 'finfo' : (function_exists('mime_content_type') ? 'mime_content_type' : 'missing'),
         ],
         [
-            'label' => 'cURL',
+            'label' => t('preflight_curl'),
             'ok' => function_exists('curl_init'),
             'detail' => function_exists('curl_init') ? 'curl' : 'missing',
         ],
         [
-            'label' => 'OpenSSL',
+            'label' => t('preflight_openssl'),
             'ok' => extension_loaded('openssl'),
             'detail' => extension_loaded('openssl') ? 'openssl' : 'missing',
         ],
         [
-            'label' => 'DNS (dns_get_record)',
+            'label' => t('preflight_dns'),
             'ok' => function_exists('dns_get_record'),
             'detail' => function_exists('dns_get_record') ? 'dns_get_record' : 'missing (webhook security reduced)',
         ],
@@ -2928,7 +3014,7 @@ if ($isAjax) {
 
         } catch (Throwable $e) {
             error_log('[Install::install] ' . $e->getMessage());
-            echo json_encode(['success' => false, 'substep' => $substep, 'message' => 'Installation failed. Check server logs for details.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'substep' => $substep, 'message' => t('install_failed')], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -3164,7 +3250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAjax) {
 
                 } catch (Throwable $e) {
                     error_log('[Install::demoData] ' . $e->getMessage());
-                    $errors[] = 'Installation failed. Check server logs for details.';
+                    $errors[] = t('install_failed');
                     $step = 4;
                 }
             }
@@ -4121,24 +4207,25 @@ echo $css;
     </div>
 </div>
 
+<script>window.installerI18n = <?php echo json_encode($L[$lang] ?? $L['en'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <script><?php
 // Embedded JS
 $js = <<<'JS'
 (function() {
+    var i18n = window.installerI18n || {};
+    function tr(key, fallback) {
+        return typeof i18n[key] === 'string' && i18n[key] !== '' ? i18n[key] : fallback;
+    }
 
     function togglePassword(btn) {
         var input = btn.parentElement.querySelector('.password-input');
         if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';
-            btn.textContent = btn.textContent.replace(/Показать|Show|显示/, function(m) {
-                return m === 'Показать' ? 'Скрыть' : (m === 'Show' ? 'Hide' : '隐藏');
-            });
+            btn.textContent = tr('hide', 'Hide');
         } else {
             input.type = 'password';
-            btn.textContent = btn.textContent.replace(/Скрыть|Hide|隐藏/, function(m) {
-                return m === 'Скрыть' ? 'Показать' : (m === 'Hide' ? 'Show' : '显示');
-            });
+            btn.textContent = tr('show', 'Show');
         }
     }
 
@@ -4182,7 +4269,6 @@ $js = <<<'JS'
             resultDiv.textContent = '';
             resultDiv.className = 'test-result';
 
-            var lang = document.documentElement.lang;
             var testText = testBtn.querySelector('.test-text');
             var iconSpan = testBtn.querySelector('.test-icon');
             var spinnerSpan = testBtn.querySelector('.test-spinner');
@@ -4194,7 +4280,7 @@ $js = <<<'JS'
             testBtn.disabled = true;
             if (iconSpan) iconSpan.style.display = 'none';
             if (spinnerSpan) spinnerSpan.style.display = 'inline';
-            if (testText) testText.textContent = lang === 'ru' ? 'Проверка...' : (lang === 'zh' ? '测试中...' : 'Testing...');
+            if (testText) testText.textContent = tr('testing', 'Testing...');
 
             var formData = new FormData();
             formData.append('_ajax', '1');
@@ -4261,9 +4347,7 @@ $js = <<<'JS'
             e.preventDefault();
 
             // Confirmation dialog before starting installation
-            var lang = document.documentElement.lang;
-            var confirmMsg = lang === 'ru' ? 'Начать установку CRM? Убедитесь, что все настройки верны.' :
-                (lang === 'zh' ? '开始安装CRM？请确保所有设置正确。' : 'Start CRM installation? Make sure all settings are correct.');
+            var confirmMsg = tr('confirm_install', 'Start CRM installation? Make sure all settings are correct.');
             if (!confirm(confirmMsg)) {
                 return;
             }
@@ -4276,9 +4360,7 @@ $js = <<<'JS'
 
             progressDiv.style.display = 'block';
             installBtn.disabled = true;
-            installBtn.innerHTML = '<span class="spinner"></span> ' + installBtn.textContent.replace(/Install|Установить|开始安装/, function(m) {
-                return m === 'Install' ? 'Installing...' : (m === 'Установить' ? 'Установка...' : '安装中...');
-            });
+            installBtn.innerHTML = '<span class="spinner"></span> ' + tr('installing', 'Installing...');
 
             var steps = [
                 { num: 1, id: 'li-1' },
@@ -4348,7 +4430,8 @@ $js = <<<'JS'
                     })
                     .catch(function(err) {
                         markStep(index, 'error');
-                        showError('Network error: ' + err.message);
+                        console.error('[Installer] network error', err);
+                        showError(tr('network_error', 'Network error'));
                     });
             }
 
@@ -4361,25 +4444,24 @@ $js = <<<'JS'
                 var errorDiv = document.getElementById('install-error');
                 errorDiv.style.display = 'none';
 
-                var name = credentials ? credentials.name : 'Administrator';
+                var name = credentials ? credentials.name : tr('admin_name', 'Administrator');
                 var login = credentials ? credentials.login : 'admin';
                 var pwd = credentials ? credentials.password : '';
                 var noticeHtml = updateNotice ? '<div class="alert alert-warning">' + escapeHtml(updateNotice) + '</div>' : '';
 
                 successDiv.innerHTML = '<h1 style="color: var(--success);">&#10003;</h1>' +
-                    '<h2>' + (document.documentElement.lang === 'ru' ? 'Установка завершена!' : (document.documentElement.lang === 'zh' ? '安装完成！' : 'Installation complete!')) + '</h2>' +
+                    '<h2>' + tr('install_success', 'Installation complete!') + '</h2>' +
                     '<p style="color: #94a3b8; text-align: center; margin-bottom: 20px;">' +
-                    (document.documentElement.lang === 'ru' ? 'Система успешно установлена. Используйте данные ниже для входа.' :
-                     (document.documentElement.lang === 'zh' ? '系统安装成功。请使用下方凭据登录。' : 'The system has been installed successfully.')) +
+                    tr('install_success_desc', 'The system has been installed successfully. Use the credentials below to log in.') +
                     '</p>' + noticeHtml +
                     '<div class="credential-box">' +
-                    '<h3>' + (document.documentElement.lang === 'ru' ? 'Данные для входа' : (document.documentElement.lang === 'zh' ? '登录凭据' : 'Login Credentials')) + '</h3>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Логин' : (document.documentElement.lang === 'zh' ? '用户名' : 'Login')) + ':</span><span class="val">' + escapeHtml(login) + '</span></div>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Пароль' : (document.documentElement.lang === 'zh' ? '密码' : 'Password')) + ':</span><span class="val">' + escapeHtml(pwd) + '</span></div>' +
-                    '<div class="credential-row"><span class="key">' + (document.documentElement.lang === 'ru' ? 'Имя' : (document.documentElement.lang === 'zh' ? '名称' : 'Name')) + ':</span><span class="val">' + escapeHtml(name) + '</span></div>' +
+                    '<h3>' + tr('login_credentials', 'Login Credentials') + '</h3>' +
+                    '<div class="credential-row"><span class="key">' + tr('login_label', 'Login') + ':</span><span class="val">' + escapeHtml(login) + '</span></div>' +
+                    '<div class="credential-row"><span class="key">' + tr('password', 'Password') + ':</span><span class="val">' + escapeHtml(pwd) + '</span></div>' +
+                    '<div class="credential-row"><span class="key">' + tr('admin_name', 'Name') + ':</span><span class="val">' + escapeHtml(name) + '</span></div>' +
                     '</div>' +
                     '<div class="btn-group" style="margin-top:24px;">' +
-                    '<a href="index.php?route=login" class="btn btn-primary btn-block">' + (document.documentElement.lang === 'ru' ? 'Перейти в панель управления' : (document.documentElement.lang === 'zh' ? '进入控制面板' : 'Go to Dashboard')) + '</a>' +
+                    '<a href="index.php?route=login" class="btn btn-primary btn-block">' + tr('go_to_dashboard', 'Go to Dashboard') + '</a>' +
                     '</div>';
 
                 successDiv.style.display = 'block';
@@ -4391,7 +4473,7 @@ $js = <<<'JS'
                 errorDiv.style.display = 'block';
                 installButtons.style.display = 'flex';
                 installBtn.disabled = false;
-                installBtn.innerHTML = document.documentElement.lang === 'ru' ? 'Установить' : (document.documentElement.lang === 'zh' ? '开始安装' : 'Install');
+                installBtn.innerHTML = tr('install_now', 'Install');
             }
 
             runStep(0);
