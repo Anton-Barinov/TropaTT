@@ -355,6 +355,7 @@ return [
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/draft', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteDraft', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'links', 'auth' => true, 'required_permissions' => ['knowledge.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'linkEntity', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/knowledge-pages', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'attachPageToTask', 'auth' => true, 'required_permissions' => ['task.manage', 'knowledge.view']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/knowledge/pages/{public_id}/links/{link_public_id}', 'controller' => Api\Controller\Knowledge\KnowledgeController::class, 'action' => 'deleteLink', 'auth' => true, 'required_permissions' => ['knowledge.edit']],
 
     // knowledge page tags
