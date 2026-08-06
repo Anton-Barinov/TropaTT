@@ -5816,14 +5816,16 @@ return array (
       ),
     ),
     'api' => 
-    array (
-      'aborted' => 'Request cancelled',
-      'auth_required' => 'Re-authentication required',
-      'error' => 'API Error',
-      'network_error' => 'Network error',
-      'permission_denied' => 'Insufficient permissions',
-      'rate_limited' => 'Too many requests, try again later',
-      'timeout' => 'Response timeout expired',
+  array (
+      'aborted' => 'Solicitação cancelada',
+      'auth_required' => 'É necessário autenticar novamente',
+      'error' => 'Erro da API',
+      'http_error' => 'Erro HTTP {status}',
+      'invalid_response' => 'A API retornou uma resposta HTML inesperada',
+      'network_error' => 'Erro de rede',
+      'permission_denied' => 'Permissões insuficientes',
+      'rate_limited' => 'Muitas solicitações; tente novamente mais tarde',
+      'timeout' => 'O tempo limite da resposta expirou',
     ),
     'app' => 
     array (

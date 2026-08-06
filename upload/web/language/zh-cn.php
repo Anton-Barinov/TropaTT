@@ -3405,14 +3405,16 @@ return array (
       ),
     ),
     'api' => 
-    array (
-      'aborted' => 'Request cancelled',
-      'auth_required' => 'Re-authentication required',
-      'error' => 'API Error',
-      'network_error' => 'Network error',
-      'permission_denied' => 'Insufficient permissions',
-      'rate_limited' => 'Too many requests, try again later',
-      'timeout' => 'Response timeout expired',
+  array (
+      'aborted' => '请求已取消',
+      'auth_required' => '需要重新登录',
+      'error' => 'API 错误',
+      'http_error' => 'HTTP 错误 {status}',
+      'invalid_response' => 'API 返回了意外的 HTML 响应',
+      'network_error' => '网络错误',
+      'permission_denied' => '权限不足',
+      'rate_limited' => '请求过多，请稍后再试',
+      'timeout' => '响应等待超时',
     ),
     'app' => 
     array (

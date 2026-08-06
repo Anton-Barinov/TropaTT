@@ -3483,10 +3483,12 @@ return array (
       'kb_recent' => 'Недавно обновлено',
     ),
     'api' => 
-    array (
+  array (
       'aborted' => 'Запрос отменён',
       'auth_required' => 'Требуется повторная авторизация',
       'error' => 'Ошибка API',
+      'http_error' => 'Ошибка HTTP {status}',
+      'invalid_response' => 'API вернул неожиданный HTML-ответ',
       'network_error' => 'Сетевая ошибка',
       'permission_denied' => 'Недостаточно прав',
       'rate_limited' => 'Слишком много запросов, попробуйте позже',
