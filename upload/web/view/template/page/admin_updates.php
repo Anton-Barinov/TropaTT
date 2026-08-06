@@ -101,6 +101,24 @@ $auJs = [
   'typeCol' => $au('type_col', 'Тип'),
   'packageCol' => $au('package_col', 'Архив'),
   'preflightOk' => $au('preflight_ok', 'Проверка пройдена'),
+  'checkOk' => $au('check_ok', 'OK'),
+  'checkFailed' => $au('check_failed', 'FAIL'),
+  'checkLabels' => [
+    'update_center' => $au('check_update_center', 'Сервер обновлений'),
+    'manifest_signature' => $au('check_manifest_signature', 'Подпись манифеста'),
+    'package_signature' => $au('check_package_signature', 'Подпись архива'),
+    'package_url_accessible' => $au('check_package_url', 'Доступность архива'),
+    'package_content_length' => $au('check_package_length', 'Размер архива'),
+    'package_size_limit' => $au('check_package_limit', 'Ограничение размера архива'),
+    'zip_extension' => $au('check_zip', 'ZIP-расширение PHP'),
+    'openssl_extension' => $au('check_openssl', 'OpenSSL-расширение PHP'),
+    'storage_writable' => $au('check_storage_writable', 'Доступ к хранилищу'),
+    'api_writable' => $au('check_api_writable', 'Доступ к API-файлам'),
+    'web_writable' => $au('check_web_writable', 'Доступ к web-файлам'),
+    'no_forbidden_paths' => $au('check_forbidden_paths', 'Защищённые пути'),
+    'free_space' => $au('check_free_space', 'Свободное место'),
+    'no_active_lock' => $au('check_active_lock', 'Активная блокировка'),
+  ],
   'preflightFailed' => $au('preflight_failed', 'Проверка не пройдена'),
   'applyError' => $au('apply_error', 'Ошибка: {message}'),
   'confirmApply' => $au('confirm_apply', 'Для реального применения обновления введите APPLY'),
@@ -122,6 +140,8 @@ $auJs = [
   'errSession' => $au('err_session', 'Сессия истекла. Обновите страницу и войдите в CRM снова.'),
   'errForbidden' => $au('err_forbidden', 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.'),
   'errGeneric' => $au('err_generic', 'Не удалось выполнить действие.'),
+  'errPreflightRequired' => $au('err_preflight_required', 'Сначала успешно выполните проверку безопасности.'),
+  'errNoPackage' => $au('err_no_package', 'Для этой операции пакет обновления недоступен.'),
   'fieldTarget' => $au('field_target', 'Целевая сборка'),
   'fieldHealth' => $au('field_health', 'Проверка состояния'),
   'fieldStaging' => $au('field_staging', 'Подготовка архива'),
@@ -139,6 +159,9 @@ $auJs = [
   'field_package' => $au('field_package', 'Архив'),
   'field_state' => $au('field_state', 'Состояние'),
   'field_updated' => $au('field_updated', 'Обновлено'),
+  'field_error' => $au('field_error', 'Причина ошибки'),
+  'field_failed_checks' => $au('field_failed_checks', 'Не пройдены проверки'),
+  'field_log' => $au('field_log', 'Журнал операции'),
   'history_empty' => $au('history_empty', 'История появится после первой операции.'),
   'no_job' => $au('no_job', 'Нет операции'),
   'no_special_requirements' => $au('no_special_requirements', 'без особых требований'),
@@ -517,9 +540,38 @@ $auJs = [
 
   function errorMessage(payload, fallback) {
     const status = Number(payload && payload.http_status || 0);
+    const code = String(payload && payload.code || '').toUpperCase();
     if (status === 401) return tr('errSession', 'Сессия истекла. Обновите страницу и войдите в CRM снова.');
     if (status === 403) return tr('errForbidden', 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.');
-    return String((payload && (payload.message || payload.code)) || fallback || tr('errGeneric', 'Не удалось выполнить действие.'));
+    if (code === 'PREFLIGHT_REQUIRED') return tr('errPreflightRequired', 'Сначала успешно выполните проверку безопасности.');
+    if (code === 'NO_PACKAGE') return tr('errNoPackage', 'Для этой операции пакет обновления недоступен.');
+    if (code === 'PREFLIGHT_FAILED') return tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
+    if (code === 'DOWNLOAD_FAILED') return tr('errDownload', 'Не удалось подготовить архив.');
+    if (code === 'APPLY_FAILED') return tr('errApply', 'Не удалось установить обновление.');
+    if (code === 'ROLLBACK_FAILED') return tr('errRollback', 'Не удалось восстановить backup.');
+    if (code === 'UPDATER_ERROR') return tr('errGeneric', 'Не удалось выполнить действие.');
+    return fallback || tr('errGeneric', 'Не удалось выполнить действие.');
+  }
+
+  function jobErrorMessage(job) {
+    if (!job) return '';
+    const code = String(job.error_code || '').toUpperCase();
+    const knownByCode = {
+      PREFLIGHT_FAILED: 'errPreflight',
+      DOWNLOAD_FAILED: 'errDownload',
+      APPLY_FAILED: 'errApply',
+      ROLLBACK_FAILED: 'errRollback',
+      PREFLIGHT_REQUIRED: 'errPreflightRequired',
+      NO_PACKAGE: 'errNoPackage'
+    };
+    if (knownByCode[code]) return tr(knownByCode[code], 'Не удалось выполнить действие.');
+    const legacy = String(job.error || '');
+    if (legacy === 'Preflight checks failed.') return tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
+    if (legacy === 'Package download failed.') return tr('errDownload', 'Не удалось подготовить архив.');
+    if (legacy === 'Update package preparation failed.') return tr('errDownload', 'Не удалось подготовить архив.');
+    if (legacy === 'Update apply failed.') return tr('errApply', 'Не удалось установить обновление.');
+    if (legacy === 'Rollback failed.') return tr('errRollback', 'Не удалось восстановить backup.');
+    return legacy ? tr('errGeneric', 'Не удалось выполнить действие.') : '';
   }
 
   function ensureSuccess(payload, fallback) {
@@ -584,7 +636,7 @@ $auJs = [
     if (state.plan && state.plan.update_available !== true) return tr('statusNoUpdates', 'Обновлений нет');
     if (latest && latest.state === 'applied') return tr('statusApplied', 'Обновление установлено');
     if (state.download) return tr('statusPrepared', 'Архив подготовлен');
-    if (state.preflight) return tr('preflightOk', 'Проверка пройдена');
+    if (state.preflight && state.preflight.ok === true) return tr('preflightOk', 'Проверка пройдена');
     if (state.plan && state.plan.update_available === true) return tr('statusUpdateFound', 'Есть обновление');
     return tr('statusChecking', 'Проверяем...');
   }
@@ -606,7 +658,11 @@ $auJs = [
       } else {
         $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
         $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
-        clearNotice();
+        if (latest.error || latest.error_code) {
+          showNotice(jobErrorMessage(latest));
+        } else {
+          clearNotice();
+        }
       }
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
     } else if (plan && plan.update_available !== true) {
@@ -617,7 +673,7 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
       setPrimary('install', tr('primaryApply', 'Установить обновление'));
-    } else if (state.preflight) {
+    } else if (state.preflight && state.preflight.ok === true) {
       $('nextTitle').textContent = tr('recommendPreflightTitle', 'Проверка пройдена');
       $('nextText').textContent = tr('recommendPreflightText', 'Теперь можно подготовить архив во временной папке. Рабочие файлы CRM еще не меняются.');
       setPrimary('install', tr('primaryApply', 'Установить обновление'));
@@ -686,6 +742,8 @@ $auJs = [
       [tr('field_backup', 'Backup')]: latest.backup_id || tr('none', 'нет'),
       [tr('field_files', 'Файлов подготовлено')]: latest.staged_file_count || 0,
       [tr('field_updated', 'Обновлено')]: latest.updated_at || 'n/a',
+      ...((latest.error || latest.error_code) ? {[tr('field_error', 'Причина ошибки')]: jobErrorMessage(latest)} : {}),
+      ...(Array.isArray(latest.failed_checks) && latest.failed_checks.length ? {[tr('field_failed_checks', 'Не пройдены проверки')]: latest.failed_checks.join(', ')} : {}),
     }) : `<div class="updates-empty">${esc(tr('history_empty', 'История появится после первой операции.'))}</div>`;
     updateRecommendation();
   }
@@ -748,7 +806,8 @@ $auJs = [
     if (!preflight) return;
     const report = preflight.preflight || preflight;
     const checks = report.checks || {};
-    const rows = Object.keys(checks).map((key) => `<li><span>${esc(key)}</span><span class="${checks[key] ? 'updates-badge ok' : 'updates-badge danger'}">${checks[key] ? 'OK' : 'FAIL'}</span></li>`).join('');
+    const labels = i18n.checkLabels || {};
+    const rows = Object.keys(checks).map((key) => `<li><span>${esc(labels[key] || key)}</span><span class="${checks[key] ? 'updates-badge ok' : 'updates-badge danger'}">${checks[key] ? esc(tr('checkOk', 'OK')) : esc(tr('checkFailed', 'FAIL'))}</span></li>`).join('');
     const staging = download && download.data && download.data.staging ? download.data.staging : null;
     $('preflightContent').innerHTML = `${list({[tr('field_job_id', 'Job ID')]: state.lastJobId || 'n/a', [tr('fieldTarget', 'Целевая сборка')]: report.target_build || 'n/a', [tr('field_package', 'Архив')]: report.package ? String(report.package.type).toUpperCase() : tr('none', 'нет'), [tr('field_files', 'Файлов подготовлено')]: report.manifest_report ? report.manifest_report.file_count : 'n/a'})}<h3 class="h6 mt-3">${esc(tr('checks_title', 'Проверки'))}</h3><ul class="updates-list">${rows}</ul>${staging ? `<h3 class="h6 mt-3">${esc(tr('fieldStaging', 'Подготовка архива'))}</h3>${list({[tr('field_files', 'Файлов подготовлено')]: staging.file_count, [tr('fieldPreview', 'Первые файлы')]: (staging.preview || []).join(', ')})}` : ''}`;
     updateRecommendation();
@@ -775,7 +834,7 @@ $auJs = [
       [tr('field_job_id', 'Job ID')]: apply.job_id || 'n/a',
       [tr('field_applied_files', 'Обновлено файлов')]: apply.applied ? apply.applied.count : 'n/a',
       [tr('field_backup', 'Backup')]: apply.backup ? apply.backup.backup_id : 'n/a',
-      [tr('fieldHealth', 'Проверка состояния')]: apply.health && apply.health.ok ? 'OK' : tr('statusUnknown', 'Неизвестно'),
+      [tr('fieldHealth', 'Проверка состояния')]: apply.health && apply.health.ok ? tr('checkOk', 'OK') : tr('statusUnknown', 'Неизвестно'),
       [tr('field_migrations', 'Миграции БД')]: migrationsStatus,
       [tr('field_db_backup', 'Бэкап БД')]: dbBackupStatus,
       [tr('field_db_restore', 'Восстановление БД')]: dbRestoreStatus,

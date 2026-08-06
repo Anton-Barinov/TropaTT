@@ -57,7 +57,7 @@ final class UpdaterKernel
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
         } catch (\Throwable $e) {
-            $response = JsonResponse::error('UPDATER_ERROR', $e->getMessage(), 500);
+            $response = JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
         }
 
         $response->send();
@@ -88,7 +88,8 @@ final class UpdaterKernel
         $state = new JobState($this->storageDir, $jobId);
         $state->write(['state' => 'created', 'can_resume' => true, 'can_rollback' => false]);
 
-        $client = new UpdateCenterClient($this->config);
+        try {
+            $client = new UpdateCenterClient($this->config);
         $local = new LocalState($this->storageDir);
         $current = (string)($input['current_build'] ?? $local->currentBuild() ?? '0');
         $plan = $client->updatePlan($current);
@@ -139,8 +140,25 @@ final class UpdaterKernel
         $state->writeFile('plan.json', $plan);
         $state->writeFile('manifest.json', $manifest);
         $state->writeFile('preflight.json', $report);
-        $state->write(['state' => $ok ? 'preflight_passed' : 'failed', 'can_resume' => $ok, 'can_rollback' => false]);
-        return JsonResponse::success(['job_id' => $jobId, 'preflight' => $report]);
+            $failedChecks = array_keys(array_filter($checks, static fn(mixed $value): bool => $value === false));
+            $state->write([
+                'state' => $ok ? 'preflight_passed' : 'failed',
+                'can_resume' => $ok,
+                'can_rollback' => false,
+                'error' => $ok ? null : 'Preflight checks failed.',
+                'error_code' => $ok ? null : 'PREFLIGHT_FAILED',
+                'failed_checks' => $failedChecks,
+            ]);
+            if (!$ok) {
+                $logger->error('preflight_failed', 'Update preflight checks failed', ['failed_checks' => $failedChecks]);
+            }
+            return JsonResponse::success(['job_id' => $jobId, 'preflight' => $report]);
+        } catch (\Throwable $e) {
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            $state->write(['state' => 'failed', 'can_resume' => false, 'can_rollback' => false, 'error' => $safeMessage, 'error_code' => 'PREFLIGHT_FAILED', 'maintenance_held' => false, 'failed_checks' => []]);
+            $logger->error('preflight_failed', 'Update preflight failed', ['error' => $e->getMessage()]);
+            return JsonResponse::error('PREFLIGHT_FAILED', $safeMessage, 500);
+        }
     }
 
     private function download(array $input): JsonResponse
@@ -173,6 +191,10 @@ final class UpdaterKernel
                         return $preflight;
                     }
                     $plan = $state->readFile('plan.json');
+                }
+                $preflightReport = $state->readFile('preflight.json');
+                if (!is_array($preflightReport) || ($preflightReport['ok'] ?? false) !== true) {
+                    return JsonResponse::error('PREFLIGHT_REQUIRED', 'Successful preflight is required before package preparation.', 409);
                 }
                 $package = $plan['recommended_package'] ?? null;
                 if (!is_array($package)) {
@@ -248,7 +270,10 @@ final class UpdaterKernel
                 ],
             ]);
         } catch (\Throwable $e) {
-            return JsonResponse::error('DOWNLOAD_FAILED', $e->getMessage(), 500);
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            $state->write(['state' => 'failed', 'can_resume' => true, 'can_rollback' => false, 'error' => $safeMessage, 'error_code' => 'DOWNLOAD_FAILED', 'maintenance_held' => false, 'failed_checks' => []]);
+            (new UpdateLogger($this->storageDir, $jobId))->error('download_failed', 'Update package preparation failed', ['error' => $e->getMessage()]);
+            return JsonResponse::error('DOWNLOAD_FAILED', $safeMessage, 500);
         }
     }
 
@@ -385,9 +410,10 @@ final class UpdaterKernel
                 (new MaintenanceMode($this->basePath))->disable();
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
-            $state->write(['state' => 'failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            $state->write(['state' => 'failed', 'error' => $safeMessage, 'error_code' => 'APPLY_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
-            return JsonResponse::error('APPLY_FAILED', $e->getMessage(), 500);
+            return JsonResponse::error('APPLY_FAILED', $safeMessage, 500);
         }
     }
 
@@ -794,9 +820,10 @@ final class UpdaterKernel
                 (new MaintenanceMode($this->basePath))->disable();
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release();
-            $state->write(['state' => 'rollback_failed', 'error' => $e->getMessage(), 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            $state->write(['state' => 'rollback_failed', 'error' => $safeMessage, 'error_code' => 'ROLLBACK_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('rollback_failed', 'Rollback failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
-            return JsonResponse::error('ROLLBACK_FAILED', $e->getMessage(), 500);
+            return JsonResponse::error('ROLLBACK_FAILED', $safeMessage, 500);
         }
     }
 
@@ -1121,6 +1148,30 @@ final class UpdaterKernel
     /**
      * @return array<int,string> names of staged package files
      */
+    private function safeDiagnosticMessage(string $message): string
+    {
+        $value = trim($message);
+        if ($value === '') {
+            return 'Updater operation failed. Check the operation log for details.';
+        }
+        foreach ([
+            'Unable to reach update center:' => 'Update center request failed.',
+            'Update center returned HTTP ' => 'Update center returned an HTTP error.',
+            'Update center returned invalid JSON' => 'Update center returned invalid data.',
+            'Unable to download package.' => 'Package download failed.',
+            'Downloaded package size mismatch.' => 'Downloaded package size does not match the manifest.',
+            'Downloaded package sha256 mismatch.' => 'Downloaded package checksum does not match the manifest.',
+            'Downloaded package is missing.' => 'Downloaded package is missing.',
+            'Unable to open update package zip.' => 'Downloaded package could not be opened as a ZIP archive.',
+            'Unable to extract update package.' => 'Downloaded package could not be extracted.',
+        ] as $prefix => $safe) {
+            if (str_starts_with($value, $prefix)) {
+                return $safe;
+            }
+        }
+        return 'Updater operation failed. Check the operation log for details.';
+    }
+
     private function stagedNames(string $jobId): array
     {
         $listFile = $this->storageDir . '/staging/' . basename($jobId) . '.list.json';
