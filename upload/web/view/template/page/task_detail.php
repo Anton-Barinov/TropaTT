@@ -760,6 +760,38 @@
     var loading = false;
     var loadRequestId = 0;
     var linkedIds = {};
+    var permissionPromise = null;
+
+    function ensurePermissions() {
+      if (permissionPromise) return permissionPromise;
+      permissionPromise = (async function () {
+        var attempts = 0;
+        while (!getApi() && attempts < 100) {
+          await new Promise(function (resolve) { window.setTimeout(resolve, 50); });
+          attempts += 1;
+        }
+        api = getApi();
+        if (!api) return false;
+        if (typeof api.me === 'function') {
+          try {
+            await api.me();
+          } catch (e) {
+            return false;
+          }
+        }
+        return true;
+      })();
+      return permissionPromise;
+    }
+
+    async function refreshPermission() {
+      var ready = await ensurePermissions();
+      if (!ready || !api || typeof api.hasPermission !== 'function') {
+        attachBtn.classList.add('d-none');
+        return;
+      }
+      attachBtn.classList.toggle('d-none', !canAttach());
+    }
 
     function text(key, fallback) {
       return window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
@@ -820,8 +852,8 @@
     }
 
     attachBtn.addEventListener('click', async function () {
-      api = getApi();
-      if (!api || !canAttach()) return;
+      var ready = await ensurePermissions();
+      if (!ready || !api || !canAttach()) return;
       try {
         await loadLinkedIds();
       } catch (e) {
@@ -834,17 +866,7 @@
       loadArticles();
     });
 
-    function refreshPermission(attempt) {
-      api = getApi();
-      if (!api) {
-        if ((attempt || 0) < 80) window.setTimeout(function () { refreshPermission((attempt || 0) + 1); }, 50);
-        return;
-      }
-      if (typeof api.hasPermission === 'function' && !canAttach()) {
-        attachBtn.classList.add('d-none');
-      }
-    }
-    refreshPermission(0);
+    refreshPermission();
 
     searchInput.addEventListener('input', function () {
       if (!api) api = getApi();
