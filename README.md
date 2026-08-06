@@ -14,19 +14,39 @@
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — `admin` · `adminadmin`
 
-### Product tour (SVG mockups)
+### Product tour (sanitized browser captures)
 
-![TropaTT dashboard](.github/assets/screenshots/dashboard.svg)
+These optimized PNGs were captured from the current demo in an isolated browser session. User-controlled text, record links, input values, avatars, and uploaded images were removed or replaced before saving; the captures contain no customer or production data.
+
+![TropaTT dashboard](.github/assets/screenshots/dashboard-live.png)
 
 | CRM | Tasks | Kanban |
 |---|---|---|
-| ![CRM counterparties](.github/assets/screenshots/counterparties.svg) | ![Tasks](.github/assets/screenshots/tasks.svg) | ![Kanban](.github/assets/screenshots/kanban.svg) |
+| ![CRM counterparties](.github/assets/screenshots/counterparties-live.png) | ![Tasks](.github/assets/screenshots/tasks-live.png) | ![Kanban](.github/assets/screenshots/kanban-live.png) |
 
 | Gantt | Team chat | Browser installer |
 |---|---|---|
-| ![Gantt](.github/assets/screenshots/gantt.svg) | ![Team chat](.github/assets/screenshots/chat.svg) | ![Browser installer](.github/assets/screenshots/installer.svg) |
+| ![Gantt](.github/assets/screenshots/gantt-live.png) | ![Team chat](.github/assets/screenshots/chat-live.png) | ![Browser installer](.github/assets/screenshots/installer-live.png) |
 
-These are sanitized public SVG mockups with fictional labels, not browser captures of the live demo; they contain no customer or production data.
+The installer capture was produced from an isolated local copy with no configuration or installation lock; the already-installed demo correctly returns HTTP 410 for its installer endpoint.
+
+Fallback UI mockups with fictional labels are also available as [SVG assets](.github/assets/screenshots/README.md).
+
+---
+
+### Product tour (SVG mockups)
+
+![TropaTT dashboard mockup](.github/assets/screenshots/dashboard.svg)
+
+| CRM | Tasks | Kanban |
+|---|---|---|
+| ![CRM counterparties mockup](.github/assets/screenshots/counterparties.svg) | ![Tasks mockup](.github/assets/screenshots/tasks.svg) | ![Kanban mockup](.github/assets/screenshots/kanban.svg) |
+
+| Gantt | Team chat | Browser installer |
+|---|---|---|
+| ![Gantt mockup](.github/assets/screenshots/gantt.svg) | ![Team chat mockup](.github/assets/screenshots/chat.svg) | ![Browser installer mockup](.github/assets/screenshots/installer.svg) |
+
+These SVGs are sanitized public mockups with fictional labels, not browser captures; they contain no customer or production data.
 
 ---
 
