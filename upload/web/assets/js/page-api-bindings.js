@@ -9873,6 +9873,16 @@ window.CRM.pageApiBindings = (function () {
         var value = cp && cp[field] !== undefined && cp[field] !== null ? String(cp[field]) : '';
         input.value = field === 'counterparty_type' ? normalizeType(value || 'individual') : value;
       });
+      var extraInput = form.querySelector('[name="extra_attributes_text"]');
+      if (extraInput) {
+        var extra = cp ? cp.extra_attributes : null;
+        if (typeof extra === 'string') {
+          try { extra = JSON.parse(extra); } catch (e) { extra = null; }
+        }
+        extraInput.value = extra && typeof extra === 'object' && !Array.isArray(extra)
+          ? JSON.stringify(extra, null, 2)
+          : '';
+      }
       clearFormErrors(form);
       applyTypeVisibility(form, cp && cp.counterparty_type);
     }
@@ -9892,6 +9902,16 @@ window.CRM.pageApiBindings = (function () {
           payload[field] = value;
         }
       });
+      var extraInput = form.querySelector('[name="extra_attributes_text"]');
+      if (extraInput) {
+        var extra = parseCounterpartyExtraAttributes(extraInput.value);
+        if (extra && extra.__error) return { __error: 'invalid_extra_attributes' };
+        if (updateMode) {
+          payload.extra_attributes = extra;
+        } else if (extra !== null) {
+          payload.extra_attributes = extra;
+        }
+      }
       return payload;
     }
 
@@ -10473,6 +10493,11 @@ window.CRM.pageApiBindings = (function () {
       createForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var payload = collectFormPayload(createForm, 'create');
+        if (payload && payload.__error === 'invalid_extra_attributes') {
+          showFormErrors(createForm, { extra_attributes_text: [tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект')] });
+          notify(tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект'), 'warning');
+          return;
+        }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(createForm, localErrors);
@@ -10504,6 +10529,11 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         var payload = collectFormPayload(editForm, 'update');
+        if (payload && payload.__error === 'invalid_extra_attributes') {
+          showFormErrors(editForm, { extra_attributes_text: [tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект')] });
+          notify(tp('counterparties.extra_json_invalid', 'Дополнительные поля должны содержать корректный JSON-объект'), 'warning');
+          return;
+        }
         var localErrors = validatePayload(payload);
         if (Object.keys(localErrors).length) {
           showFormErrors(editForm, localErrors);
