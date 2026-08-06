@@ -4015,20 +4015,12 @@ body {
   }
 }
 
-/* The metadata table lives in the narrow right sidebar, unlike list tables. */
-
+/* Keep the AI pipeline in the normal sidebar flow so it never overlays page content. */
 .crm-idea-detail-page #aiPipelineCard {
-  position: fixed;
-  top: 76px;
-  width: 352px;
-  max-width: calc(100vw - 32px);
-  z-index: 2;
-}
-
-@media (min-width: 992px) {
-  .crm-idea-detail-page .crm-idea-side {
-    padding-top: 510px;
-  }
+  position: static;
+  width: auto;
+  max-width: none;
+  z-index: auto;
 }
 
 .crm-idea-detail-page #aiPipelineCard .crm-section-head {
