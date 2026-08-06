@@ -14977,8 +14977,8 @@ window.CRM.pageApiBindings = (function () {
 
           var customHtml = customItems.map(function (item) {
             var iconClass = item.icon || 'fa-link';
-            return '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(item.key) + '" data-is-custom="1">'
-              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+          return '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(item.key) + '" data-is-custom="1" data-custom-href="' + safeText(item.href || '') + '">'
+            + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.title || item.key) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -15059,7 +15059,7 @@ window.CRM.pageApiBindings = (function () {
             if (!title || !href) return;
             var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
             var iconClass = icon || 'fa-link';
-            var rowHtml = '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(key) + '" data-is-custom="1">'
+            var rowHtml = '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(key) + '" data-is-custom="1" data-custom-href="' + safeText(href) + '">'
               + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(title) + '</span>'
@@ -15093,7 +15093,7 @@ window.CRM.pageApiBindings = (function () {
                 if (row.getAttribute('data-is-custom') === '1') {
                   var label = row.querySelector('.crm-menu-customize-label');
                   entry.title = label ? label.textContent : key;
-                  entry.href = '#';
+                  entry.href = row.getAttribute('data-custom-href') || '#';
                   entry.icon = 'fa-solid fa-link';
                 }
                 items.push(entry);
