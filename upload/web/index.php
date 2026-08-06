@@ -6,6 +6,7 @@ ini_set('memory_limit', '512M');
 set_time_limit(0);
 
 $baseDir = __DIR__;
+require_once $baseDir . '/system/I18n/EarlyResponse.php';
 
 /**
  * Baseline web security headers.
@@ -73,11 +74,7 @@ if (is_file($maintenanceFlag)) {
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><meta charset="utf-8"><title>Maintenance</title><body style="font-family:sans-serif;padding:40px"><h1>TropaTT maintenance</h1>'
-            . '<p>Core update maintenance mode is active. Follow or finish the update from the admin panel: '
-            . '<code>/web/index.php?route=admin-updates</code>. The updates page stays reachable during maintenance.</p>'
-            . '<p>Emergency recovery (disabling maintenance) is available at <code>/updater/rescue.php</code> using the '
-            . 'recovery key shown once at installation or re-issued at <code>admin-updates</code> &rarr; &laquo;Emergency recovery&raquo;.</p></body>';
+        echo \Web\System\I18n\EarlyResponse::maintenancePage($baseDir);
         exit;
     }
 }
@@ -574,7 +571,8 @@ if ($route === 'admin-ai') {
     $hasPermission = crmWebApiCheckPermission($sessionToken, 'ai.admin', $baseDir);
     if (!$hasPermission) {
         http_response_code(403);
-        echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>You do not have permission to access this page.</p></body></html>';
+        header('Content-Type: text/html; charset=utf-8');
+        echo \Web\System\I18n\EarlyResponse::forbiddenPage($baseDir);
         exit;
     }
 }

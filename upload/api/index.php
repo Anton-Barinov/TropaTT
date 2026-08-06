@@ -2,6 +2,25 @@
 declare(strict_types=1);
 
 // Remove PHP execution limits for long-running AI operations
+require_once __DIR__ . '/system/library/language/LanguageManager.php';
+
+$earlyLanguage = new Api\System\Library\Language\LanguageManager(__DIR__ . '/language', 'en-gb');
+$earlyLocale = strtolower(str_replace('_', '-', trim((string)($_SERVER['HTTP_X_LOCALE'] ?? $_COOKIE['crm_locale'] ?? 'en-gb'))));
+$earlyLocale = match ($earlyLocale) {
+    'ru' => 'ru-ru',
+    'en' => 'en-gb',
+    'zh', 'cn', 'zh-hans' => 'zh-cn',
+    'es' => 'es-es',
+    'pt' => 'pt-br',
+    'de' => 'de-de',
+    'fr' => 'fr-fr',
+    default => $earlyLocale,
+};
+if (!in_array($earlyLocale, ['ru-ru', 'en-gb', 'zh-cn', 'es-es', 'pt-br', 'de-de', 'fr-fr'], true)) {
+    $earlyLocale = 'en-gb';
+}
+$earlyLanguage->setLocale($earlyLocale);
+
 ini_set('max_execution_time', '0');
 ini_set('memory_limit', '512M');
 set_time_limit(0);
@@ -56,7 +75,7 @@ if (is_file($maintenanceFlag)) {
         echo json_encode([
             'success' => false,
             'code' => 'MAINTENANCE_MODE',
-            'message' => 'Core update maintenance mode is active',
+            'message' => $earlyLanguage->get('common/messages.maintenance_mode', 'Core update maintenance mode is active'),
             'data' => json_decode((string) file_get_contents($maintenanceFlag), true) ?: ['enabled' => true],
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
@@ -86,7 +105,9 @@ try {
     $exceptionMessage = $e->getMessage();
     $isConfigError = str_starts_with($exceptionMessage, 'CONFIG_');
     $responseCode = $isConfigError ? 'CONFIGURATION_ERROR' : 'INTERNAL_ERROR';
-    $responseMessage = $isConfigError ? 'Configuration error' : 'Internal server error';
+    $responseMessage = $isConfigError
+        ? $earlyLanguage->get('common/messages.configuration_error', 'Configuration error')
+        : $earlyLanguage->get('common/messages.internal_error', 'Internal server error');
     error_log(sprintf(
         'Tropa API bootstrap error [%s]: %s in %s:%d',
         $requestId,
