@@ -3962,6 +3962,11 @@ body {
   resize: vertical;
 }
 
+/* The visual editor is inserted after the hidden source textarea. */
+.crm-idea-detail-page #commentInput + .crm-ve-editor {
+  margin-bottom: 0.5rem;
+}
+
 .crm-idea-detail-page .crm-idea-side {
   align-self: flex-start;
   min-height: 1px;
