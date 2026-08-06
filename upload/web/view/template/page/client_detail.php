@@ -44,7 +44,7 @@
     </div>
     <div class="crm-card crm-section-card mt-3">
       <div class="crm-section-head"><div><h2 class="h6 mb-0" data-i18n="client_detail.section_extra"><?= htmlspecialchars($t('client_detail.section_extra', 'Дополнительные поля'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="client_detail.section_extra_note"><?= htmlspecialchars($t('client_detail.section_extra_note', 'Кастомные поля клиента из API.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
-      <pre id="clientDetailExtra" class="mb-0 small crm-pre-wrap" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></pre>
+      <div id="clientDetailExtra" class="small" data-i18n="page.loading"><?= htmlspecialchars($t('page.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div>
     </div>
   </div>
 </div>
@@ -60,6 +60,7 @@
   <div class="col-md-4"><label class="form-label" data-i18n="clients.field_phone"><?= htmlspecialchars($t('clients.field_phone', 'Телефон'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="phone" maxlength="64"></div>
   <div class="col-md-4"><label class="form-label" data-i18n="clients.field_website"><?= htmlspecialchars($t('clients.field_website', 'Сайт'), ENT_QUOTES, 'UTF-8') ?></label><input class="form-control" name="website" maxlength="2048"></div>
   <div class="col-12"><label class="form-label" data-i18n="clients.field_notes"><?= htmlspecialchars($t('clients.field_notes', 'Комментарий'), ENT_QUOTES, 'UTF-8') ?></label><textarea class="form-control" name="notes" rows="3"></textarea></div>
+  <div class="col-12"><label class="form-label" data-i18n="clients.field_extra_attributes"><?= htmlspecialchars($t('clients.field_extra_attributes', 'Дополнительные поля (JSON)'), ENT_QUOTES, 'UTF-8') ?></label><div class="form-text mb-1" data-i18n="clients.extra_attributes_hint"><?= htmlspecialchars($t('clients.extra_attributes_hint', 'Укажите пары «поле — значение» в JSON. После сохранения они видны в карточке и доступны для поиска.'), ENT_QUOTES, 'UTF-8') ?></div><textarea class="form-control" name="extra_attributes_text" rows="3"></textarea></div>
 </div></div><div class="modal-footer"><button class="btn crm-btn-secondary" type="button" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-primary" type="submit" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div></form></div></div></div>
 <script>
 (function () {

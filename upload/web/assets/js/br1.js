@@ -31,7 +31,6 @@ window.CRM.br1 = (function () {
   var availableUsers = [];
   var availableProjects = [];
   var availableClients = [];
-  var availableClients = [];
   var availableTeams = [];
   var availableTaskStatuses = [];
   var currentProject = null;
@@ -578,6 +577,18 @@ window.CRM.br1 = (function () {
       return data.task;
     }
     if (data && typeof data === 'object' && (data.public_id || data.title || data.status_code || data.creator_user_public_id)) {
+      return data;
+    }
+    return null;
+  }
+
+  function extractProjectPayload(envelope) {
+    if (!envelope || typeof envelope !== 'object') return null;
+    var data = envelope.data;
+    if (data && typeof data === 'object' && data.project && typeof data.project === 'object') {
+      return data.project;
+    }
+    if (data && typeof data === 'object' && (data.public_id || data.title || data.status_code || data.task_key_prefix)) {
       return data;
     }
     return null;
@@ -1552,7 +1563,7 @@ window.CRM.br1 = (function () {
 
       if (submitBtn) submitBtn.disabled = true;
       try {
-        await window.CRM.api.request('api/v1/projects', {
+        var createEnvelope = await window.CRM.api.request('api/v1/projects', {
           method: 'POST',
           headers: {
             'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-project')
@@ -1571,6 +1582,29 @@ window.CRM.br1 = (function () {
             }())
           }
         });
+        var createdProject = extractProjectPayload(createEnvelope);
+        if (createdProject && createdProject.public_id) {
+          availableProjects = availableProjects.filter(function (item) {
+            return String(item.public_id || '') !== String(createdProject.public_id);
+          });
+          availableProjects.push(createdProject);
+
+          var quickProjectTarget = window._quickProjectTargetSelect;
+          if (quickProjectTarget) {
+            var projectOptionExists = Array.prototype.some.call(quickProjectTarget.options, function (option) {
+              return String(option.value || '') === String(createdProject.public_id);
+            });
+            if (!projectOptionExists) {
+              var projectOption = document.createElement('option');
+              projectOption.value = String(createdProject.public_id);
+              projectOption.textContent = String(createdProject.title || createdProject.public_id);
+              quickProjectTarget.appendChild(projectOption);
+            }
+            quickProjectTarget.value = String(createdProject.public_id);
+            quickProjectTarget.dispatchEvent(new Event('change', { bubbles: true }));
+            window._quickProjectTargetSelect = null;
+          }
+        }
 
         notify(window.CRM.i18n.t('js.br1.proekt_sozdan', 'Проект создан'));
         if (window.bootstrap && modal) {
@@ -1777,6 +1811,57 @@ window.CRM.br1 = (function () {
     });
   }
 
+  function enhanceProjectSelects() {
+    // Быстрое создание проекта закрывает сценарий «новая задача → новый проект».
+    if (!hasPermission('project.manage')) return;
+    document.querySelectorAll('#createTaskForm select[name="project_public_id"]').forEach(function (select) {
+      if (!select || select.dataset.quickProjectEnhanced === '1') return;
+      select.dataset.quickProjectEnhanced = '1';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm crm-btn-secondary crm-quick-project-btn mt-1';
+      btn.setAttribute('data-quick-project-create', '1');
+      btn.title = window.CRM.i18n.t('js.br1.quick_project_btn_aria', 'Создать проект');
+      btn.textContent = window.CRM.i18n.t('js.br1.quick_project_btn', '+ Создать');
+      select.insertAdjacentElement('afterend', btn);
+    });
+  }
+
+  function initQuickProjectCreate() {
+    if (window._quickProjectBound === '1') return;
+    window._quickProjectBound = '1';
+
+    document.addEventListener('click', function (e) {
+      var trigger = e.target.closest('[data-quick-project-create]');
+      if (!trigger) return;
+      e.preventDefault();
+      if (!hasPermission('project.manage')) {
+        notify(window.CRM.i18n.t('js.br1.quick_project_no_perm', 'Недостаточно прав для создания проекта'), 'warning');
+        return;
+      }
+      var taskForm = trigger.closest('form');
+      var targetSelect = taskForm ? taskForm.querySelector('select[name="project_public_id"]') : null;
+      if (!targetSelect) return;
+      window._quickProjectTargetSelect = targetSelect;
+      // If the task already has a client, carry it into the project form.
+      window._projectClientPrefill = String((taskForm.querySelector('select[name="client_public_id"]') || {}).value || '').trim();
+
+      var modalEl = document.getElementById('createProjectModal');
+      if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      }
+    });
+
+    var modalEl = document.getElementById('createProjectModal');
+    if (modalEl && modalEl.dataset.quickProjectBound !== '1') {
+      modalEl.addEventListener('hidden.bs.modal', function () {
+        window._quickProjectTargetSelect = null;
+        window._projectClientPrefill = null;
+      });
+      modalEl.dataset.quickProjectBound = '1';
+    }
+  }
+
   function initQuickClientCreate() {
     if (window._quickClientBound === '1') return;
     window._quickClientBound = '1';
@@ -1850,6 +1935,9 @@ window.CRM.br1 = (function () {
             }
           }
           if (typeof availableClients !== 'undefined' && Array.isArray(availableClients)) {
+            availableClients = availableClients.filter(function (item) {
+              return String(item.public_id || '') !== clientPublicId;
+            });
             availableClients.push(client);
           }
           var modalEl = document.getElementById('quickClientCreateModal');
@@ -4958,6 +5046,24 @@ window.CRM.br1 = (function () {
     return String(hours) + window.CRM.i18n.t('js.br1.ch', ' ч ') + String(mins) + window.CRM.i18n.t('js.br1.min_2', ' мин');
   }
 
+  function timerSecondsFromNote(note) {
+    var match = String(note || '').match(/\[timer_seconds:(\d+)\]/i);
+    if (!match) return 0;
+    var seconds = Number(match[1]);
+    return Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  }
+
+  function worklogDurationLabel(item) {
+    var exactSeconds = timerSecondsFromNote(item && item.note);
+    return exactSeconds > 0
+      ? formatElapsedSeconds(exactSeconds)
+      : formatMinutes(item && item.minutes_spent ? item.minutes_spent : 0);
+  }
+
+  function worklogVisibleNote(note) {
+    return String(note || '').replace(/\[timer_seconds:\d+\]\s*/i, '').trim();
+  }
+
   function formatWorklogEntriesLabel(count) {
     var normalized = Number(count || 0);
     var mod10 = normalized % 10;
@@ -5462,7 +5568,10 @@ window.CRM.br1 = (function () {
         return;
       }
 
-      var timerNote = '[' + formatElapsedSeconds(pendingLogPayload.seconds) + ']' + (note ? ' ' + note : '');
+      var timerNote = '[timer_seconds:' + String(Math.max(1, Math.floor(pendingLogPayload.seconds))) + '] '
+        + window.CRM.i18n.t('js.br1.taymer_tochnoe_vremya', 'Точное время: ')
+        + formatElapsedSeconds(pendingLogPayload.seconds)
+        + (note ? ' — ' + note : '');
 
       try {
         await window.CRM.api.request('api/v1/worklogs', {
@@ -6759,14 +6868,14 @@ window.CRM.br1 = (function () {
       var isEditing = worklogActiveEditId === worklogId;
       var draft = isEditing ? (worklogEditDrafts[worklogId] || getWorklogDraftFromItem(item)) : null;
       var author = resolveUserDisplayName(item.user_full_name || item.user_login || '', item.user_public_id || '', '—');
-      var note = String(item.note || '').trim();
+      var note = worklogVisibleNote(item.note);
       var noteHtml = note
         ? '<div class="crm-worklog-note">' + escapeHtml(note) + '</div>'
         : window.CRM.i18n.t('js.br1.div_class_crm_worklog_note_text_muted_kommentariy_ne_uk', '<div class="crm-worklog-note text-muted">Комментарий не указан</div>');
       if (!isEditing) {
         return '<article class="crm-worklog-card" data-worklog-id="' + escapeHtml(worklogId) + '">'
           + '<div class="crm-worklog-view-head">'
-          + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(formatMinutes(item.minutes_spent || 0)) + '</strong>'
+          + '<div class="crm-worklog-view-main"><span class="crm-worklog-entry-icon" aria-hidden="true"><i class="fa-regular fa-clock"></i></span><strong>' + escapeHtml(worklogDurationLabel(item)) + '</strong>'
           + '<span class="crm-worklog-entry-date"><i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(formatDate(item.logged_at)) + '</span></div>'
           + '<div class="crm-worklog-view-actions"><button class="btn btn-light crm-btn-compact" type="button" data-worklog-edit-open="' + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.redaktirovat_button_4', '" aria-label="Редактировать запись" title="Редактировать"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Редактировать</span></button>')
           + window.CRM.i18n.t('js.br1.details_class_crm_worklog_more_summary_class_btn_btn_li', '<details class="crm-worklog-more"><summary class="btn btn-light crm-btn-compact" aria-label="Дополнительные действия"><span>...</span></summary><div class="crm-worklog-more-menu"><button class="btn btn-sm crm-btn-danger crm-btn-compact" type="button" data-worklog-delete-view="') + escapeHtml(worklogId) + window.CRM.i18n.t('js.br1.udalit_button_div_details_div', '">Удалить</button></div></details></div>')
@@ -7646,7 +7755,9 @@ window.CRM.br1 = (function () {
       initTaskCreateFlow();
       initCalendarEventCreateFlow();
       enhanceClientSelects();
+      enhanceProjectSelects();
       initQuickClientCreate();
+      initQuickProjectCreate();
       if (window.CRM.navigation && typeof window.CRM.navigation.init === 'function') {
         window.CRM.navigation.init();
       }

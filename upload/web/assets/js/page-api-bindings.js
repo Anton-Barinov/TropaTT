@@ -8855,6 +8855,7 @@ window.CRM.pageApiBindings = (function () {
     var query = pageQuery();
     var editClientPublicId = String(query.get('edit_client_public_id') || '').trim();
     var filterSearch = String(query.get('search') || '').trim();
+    var filterExtra = String(query.get('extra_search') || '').trim();
     var filterType = String(query.get('client_type') || '').trim();
     var filterStatus = String(query.get('status') || '').trim();
     var filterHasWebsite = String(query.get('has_website') || '').trim();
@@ -8952,6 +8953,7 @@ window.CRM.pageApiBindings = (function () {
         if (text) params.set(key, text);
       }
       pick('search', filterSearch);
+      pick('extra_search', filterExtra);
       pick('client_type', filterType);
       pick('status', filterStatus);
       pick('has_website', filterHasWebsite);
@@ -9103,17 +9105,19 @@ window.CRM.pageApiBindings = (function () {
       if (!isValidWebsite(payload.website)) push('website', tp('clients.validation_website_url', 'Website must be a valid URL (http/https)'));
 
       var type = normalizeType(payload.client_type);
-      if (type === 'sole_proprietor' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', tp('clients.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
+      function checkOptionalDigits(field, expectedLength, messageKey, fallback) {
+        var raw = String(payload[field] || '').trim();
+        if (!raw) return;
+        if (normalizeDigits(raw).length !== expectedLength || raw.length !== expectedLength) push(field, tp(messageKey, fallback));
       }
       if (type === 'sole_proprietor') {
-        if (normalizeDigits(payload.tax_inn).length !== 12 || String(payload.tax_inn || '').trim().length !== 12) push('tax_inn', tp('clients.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits'));
-        if (normalizeDigits(payload.tax_ogrnip).length !== 15 || String(payload.tax_ogrnip || '').trim().length !== 15) push('tax_ogrnip', tp('clients.validation_ogrnip', 'OGRNIP must contain 15 digits'));
+        checkOptionalDigits('tax_inn', 12, 'clients.validation_inn_sp', 'Sole proprietor TIN must contain 12 digits');
+        checkOptionalDigits('tax_ogrnip', 15, 'clients.validation_ogrnip', 'OGRNIP must contain 15 digits');
       }
       if (type === 'legal_entity') {
-        if (normalizeDigits(payload.tax_inn).length !== 10 || String(payload.tax_inn || '').trim().length !== 10) push('tax_inn', tp('clients.validation_inn_legal', 'Legal entity TIN must contain 10 digits'));
-        if (normalizeDigits(payload.tax_kpp).length !== 9 || String(payload.tax_kpp || '').trim().length !== 9) push('tax_kpp', tp('clients.validation_kpp', 'KPP must contain 9 digits'));
-        if (normalizeDigits(payload.tax_ogrn).length !== 13 || String(payload.tax_ogrn || '').trim().length !== 13) push('tax_ogrn', tp('clients.validation_ogrn', 'OGRN must contain 13 digits'));
+        checkOptionalDigits('tax_inn', 10, 'clients.validation_inn_legal', 'Legal entity TIN must contain 10 digits');
+        checkOptionalDigits('tax_kpp', 9, 'clients.validation_kpp', 'KPP must contain 9 digits');
+        checkOptionalDigits('tax_ogrn', 13, 'clients.validation_ogrn', 'OGRN must contain 13 digits');
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {
@@ -9138,6 +9142,7 @@ window.CRM.pageApiBindings = (function () {
       query: {
         limit: 500,
         search: filterSearch,
+        extra_search: filterExtra,
         client_type: filterType,
         status: filterStatus,
         has_website: filterHasWebsite,
@@ -9280,6 +9285,7 @@ window.CRM.pageApiBindings = (function () {
     updateClientsBulkUi();
 
     var filterSearchInput = document.getElementById('clientsFilterSearch');
+    var filterExtraInput = document.getElementById('clientsFilterExtra');
     var filterTypeInput = document.getElementById('clientsFilterType');
     var filterStatusInput = document.getElementById('clientsFilterStatus');
     var filterHasWebsiteInput = document.getElementById('clientsFilterHasWebsite');
@@ -9294,6 +9300,7 @@ window.CRM.pageApiBindings = (function () {
     var compactBtn = document.getElementById('clientsCompactToggle');
 
     if (filterSearchInput) filterSearchInput.value = filterSearch;
+    if (filterExtraInput) filterExtraInput.value = filterExtra;
     if (filterTypeInput) filterTypeInput.value = filterType;
     if (filterStatusInput) filterStatusInput.value = filterStatus;
     if (filterHasWebsiteInput) filterHasWebsiteInput.value = filterHasWebsite;
@@ -9315,6 +9322,7 @@ window.CRM.pageApiBindings = (function () {
       currentViewPublicId = '';
       navigateClients({
         search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
+        extra_search: filterExtraInput ? String(filterExtraInput.value || '').trim() : '',
         client_type: filterTypeInput ? String(filterTypeInput.value || '').trim() : '',
         status: filterStatusInput ? String(filterStatusInput.value || '').trim() : '',
         has_website: filterHasWebsiteInput ? String(filterHasWebsiteInput.value || '').trim() : '',
@@ -9323,6 +9331,15 @@ window.CRM.pageApiBindings = (function () {
         sort_by: sortByInput ? String(sortByInput.value || '').trim() : 'created_at',
         sort_dir: sortDirInput ? String(sortDirInput.value || '').trim().toUpperCase() : 'DESC',
         compact: compact ? '1' : ''
+      });
+    }
+
+    if (filterExtraInput) {
+      filterExtraInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyFilters();
+        }
       });
     }
 
@@ -9355,6 +9372,7 @@ window.CRM.pageApiBindings = (function () {
             currentViewPublicId = '';
             navigateClients({
               search: filterSearch,
+              extra_search: filterExtra,
               client_type: filterType,
               status: filterStatus,
               has_website: filterHasWebsite,
@@ -9374,6 +9392,7 @@ window.CRM.pageApiBindings = (function () {
           currentViewPublicId = selectedId;
           navigateClients({
             search: String(filters.search || ''),
+            extra_search: String(filters.extra_search || ''),
             client_type: String(filters.client_type || ''),
             status: String(filters.status || ''),
             has_website: String(filters.has_website || ''),
@@ -9414,6 +9433,7 @@ window.CRM.pageApiBindings = (function () {
       resetBtn.onclick = function () {
         navigateClients({
           search: '',
+          extra_search: '',
           client_type: '',
           status: '',
           has_website: '',
@@ -9429,6 +9449,7 @@ window.CRM.pageApiBindings = (function () {
       compactBtn.onclick = function () {
         navigateClients({
           search: filterSearch,
+          extra_search: filterExtra,
           client_type: filterType,
           status: filterStatus,
           has_website: filterHasWebsite,
@@ -9459,6 +9480,7 @@ window.CRM.pageApiBindings = (function () {
               title: trimmedTitle,
               filters: {
                 search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
+                extra_search: filterExtraInput ? String(filterExtraInput.value || '').trim() : '',
                 client_type: filterTypeInput ? String(filterTypeInput.value || '').trim() : '',
                 status: filterStatusInput ? String(filterStatusInput.value || '').trim() : '',
                 has_website: filterHasWebsiteInput ? String(filterHasWebsiteInput.value || '').trim() : '',
@@ -9476,6 +9498,7 @@ window.CRM.pageApiBindings = (function () {
             currentViewPublicId = createdId;
             navigateClients({
               search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
+              extra_search: filterExtraInput ? String(filterExtraInput.value || '').trim() : '',
               client_type: filterTypeInput ? String(filterTypeInput.value || '').trim() : '',
               status: filterStatusInput ? String(filterStatusInput.value || '').trim() : '',
               has_website: filterHasWebsiteInput ? String(filterHasWebsiteInput.value || '').trim() : '',
@@ -9508,6 +9531,7 @@ window.CRM.pageApiBindings = (function () {
           currentViewPublicId = '';
           navigateClients({
             search: filterSearchInput ? String(filterSearchInput.value || '').trim() : '',
+            extra_search: filterExtraInput ? String(filterExtraInput.value || '').trim() : '',
             client_type: filterTypeInput ? String(filterTypeInput.value || '').trim() : '',
             status: filterStatusInput ? String(filterStatusInput.value || '').trim() : '',
             has_website: filterHasWebsiteInput ? String(filterHasWebsiteInput.value || '').trim() : '',
@@ -10592,14 +10616,33 @@ window.CRM.pageApiBindings = (function () {
     var editForm = document.getElementById('clientDetailEditForm');
     var editModal = editModalNode && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(editModalNode) : null;
     if (editLink && editForm && editModal) {
+      function clearClientDetailEditErrors() {
+        editForm.querySelectorAll('.is-invalid').forEach(function (node) { node.classList.remove('is-invalid'); });
+        editForm.querySelectorAll('[data-client-detail-inline-error]').forEach(function (node) { node.remove(); });
+      }
+
+      function showClientDetailEditError(field, message) {
+        var input = editForm.querySelector('[name="' + field + '"]');
+        if (!input) return;
+        input.classList.add('is-invalid');
+        var feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        feedback.setAttribute('data-client-detail-inline-error', '1');
+        feedback.textContent = String(message || '');
+        input.parentNode.appendChild(feedback);
+      }
+
       editLink.onclick = function () {
-        var fields = ['public_id', 'title', 'client_type', 'legal_name', 'tax_inn', 'status', 'email', 'phone', 'website', 'notes'];
+        clearClientDetailEditErrors();
+        var fields = ['public_id', 'title', 'client_type', 'legal_name', 'tax_inn', 'status', 'email', 'phone', 'website', 'notes', 'extra_attributes_text'];
         fields.forEach(function (field) {
           var input = editForm.querySelector('[name="' + field + '"]');
           if (!input) return;
           var value = field === 'public_id'
             ? clientPublicId
-            : String(client && client[field] !== undefined && client[field] !== null ? client[field] : '');
+            : (field === 'extra_attributes_text'
+              ? (client && client.extra_attributes && typeof client.extra_attributes === 'object' ? JSON.stringify(client.extra_attributes, null, 2) : '')
+              : String(client && client[field] !== undefined && client[field] !== null ? client[field] : ''));
           input.value = value;
         });
         editModal.show();
@@ -10607,6 +10650,15 @@ window.CRM.pageApiBindings = (function () {
       if (editForm.dataset.bound !== '1') {
         editForm.addEventListener('submit', async function (e) {
           e.preventDefault();
+          clearClientDetailEditErrors();
+          var extraInput = editForm.querySelector('[name="extra_attributes_text"]');
+          var extraAttributes = parseExtraAttributes(extraInput ? extraInput.value : '');
+          if (extraAttributes && extraAttributes.__error) {
+            var extraJsonMessage = tp('clients.extra_json_invalid', 'extra_attributes field must be valid JSON');
+            showClientDetailEditError('extra_attributes_text', extraJsonMessage);
+            notify(extraJsonMessage, 'warning');
+            return;
+          }
           var payload = {
             title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
             client_type: String((editForm.querySelector('[name="client_type"]') || {}).value || '').trim(),
@@ -10616,10 +10668,13 @@ window.CRM.pageApiBindings = (function () {
             email: String((editForm.querySelector('[name="email"]') || {}).value || '').trim(),
             phone: String((editForm.querySelector('[name="phone"]') || {}).value || '').trim(),
             website: String((editForm.querySelector('[name="website"]') || {}).value || '').trim(),
-            notes: String((editForm.querySelector('[name="notes"]') || {}).value || '').trim()
+            notes: String((editForm.querySelector('[name="notes"]') || {}).value || '').trim(),
+            extra_attributes: extraAttributes
           };
           if (!payload.title) {
-            notify(tp('clients.validation_title_required', 'Enter client name'), 'warning');
+            var titleMessage = tp('clients.validation_title_required', 'Enter client name');
+            showClientDetailEditError('title', titleMessage);
+            notify(titleMessage, 'warning');
             return;
           }
           try {
@@ -10750,10 +10805,16 @@ window.CRM.pageApiBindings = (function () {
 
     var extraNode = document.getElementById('clientDetailExtra');
     if (extraNode) {
-      var extra = client.extra_attributes && typeof client.extra_attributes === 'object'
-        ? JSON.stringify(client.extra_attributes, null, 2)
-        : tp('client_detail.extra_empty', 'No extra attributes');
-      extraNode.textContent = String(extra);
+      var extra = client.extra_attributes && typeof client.extra_attributes === 'object' ? client.extra_attributes : null;
+      if (!extra || Array.isArray(extra) || Object.keys(extra).length === 0) {
+        extraNode.textContent = tp('client_detail.extra_empty', 'No extra attributes');
+      } else {
+        extraNode.innerHTML = '<div class="d-flex flex-column gap-2">' + Object.keys(extra).map(function (key) {
+          var value = extra[key];
+          var display = value === null || value === undefined ? '—' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+          return '<div class="crm-metric-tile"><div class="small text-muted">' + safeText(key) + '</div><div>' + safeText(display) + '</div></div>';
+        }).join('') + '</div>';
+      }
     }
 
     var clientAiCard = document.getElementById('clientAiCard');
@@ -11388,17 +11449,14 @@ window.CRM.pageApiBindings = (function () {
         }
       }
 
-      if (type === 'sole_proprietor' || type === 'legal_entity') {
-        if (isBlank(payload.legal_name)) push('legal_name', tp('clients.validation_legal_name_required', 'Enter legal name / sole proprietor full name'));
-      }
       if (type === 'sole_proprietor') {
-        checkDigits('tax_inn', 12, true, tp('client_detail.field_inn', 'TIN'));
-        checkDigits('tax_ogrnip', 15, true, tp('client_detail.field_ogrnip', 'OGRNIP'));
+        checkDigits('tax_inn', 12, false, tp('client_detail.field_inn', 'TIN'));
+        checkDigits('tax_ogrnip', 15, false, tp('client_detail.field_ogrnip', 'OGRNIP'));
       }
       if (type === 'legal_entity') {
-        checkDigits('tax_inn', 10, true, tp('client_detail.field_inn', 'TIN'));
-        checkDigits('tax_kpp', 9, true, tp('client_detail.field_kpp', 'KPP'));
-        checkDigits('tax_ogrn', 13, true, tp('client_detail.field_ogrn', 'OGRN'));
+        checkDigits('tax_inn', 10, false, tp('client_detail.field_inn', 'TIN'));
+        checkDigits('tax_kpp', 9, false, tp('client_detail.field_kpp', 'KPP'));
+        checkDigits('tax_ogrn', 13, false, tp('client_detail.field_ogrn', 'OGRN'));
       }
 
       ['bank_account', 'bank_corr_account'].forEach(function (field) {

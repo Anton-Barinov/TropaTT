@@ -40,6 +40,7 @@ final class ClientService
         'email',
         'phone',
         'status',
+        'extra_attributes',
     ];
 
     public function __construct(
@@ -224,6 +225,11 @@ final class ClientService
         $set = [];
 
         foreach (self::CLIENT_FIELDS as $field) {
+            // extra_attributes is a JSON object and is encoded separately below;
+            // never coerce it through scalar normalization ("Array to string conversion").
+            if ($field === 'extra_attributes') {
+                continue;
+            }
             if (!$forCreate && !array_key_exists($field, $input)) {
                 continue;
             }
