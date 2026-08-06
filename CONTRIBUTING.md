@@ -64,13 +64,24 @@ php upload/api/scripts/test_runner.php fast
 php upload/api/scripts/test_runner.php unit
 php upload/api/scripts/test_runner.php integration
 php upload/api/scripts/test_runner.php openapi
+DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=crm DB_USERNAME=root DB_PASSWORD=secret php upload/api/scripts/ci_mysql_smoke.php
+php upload/api/scripts/generate_openapi.php
+php upload/api/scripts/api_coverage_check.php
 ```
 
-If a script is not included in the public install package or your checkout, describe what you tested manually.
+The public CI workflows run the MySQL smoke test and OpenAPI consistency check without private secrets. The `test_runner.php` suite and its tests are local-only in maintainer checkouts; do not add them as a public CI dependency. If a script is not included in the public install package or your checkout, describe what you tested manually.
 
 ## Documentation
 
 Update public documentation when behavior changes. For API route changes, also check OpenAPI compatibility and generated documentation expectations.
+
+### Public CI checks
+
+- `php upload/api/scripts/generate_openapi.php` generates the ignored runtime artifact at `upload/api/docs/openapi/openapi.v1.json`.
+- `php upload/api/scripts/api_coverage_check.php` compares every normal route/method with the generated OpenAPI paths. Install and internal migration routes are explicitly excluded.
+- `php upload/api/scripts/ci_mysql_smoke.php` applies all migrations twice against MySQL and verifies the core tables plus the knowledge-link uniqueness index. Set `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in the environment; never commit credentials.
+
+The corresponding workflows are `.github/workflows/openapi-ci.yml` and `.github/workflows/mysql-ci.yml`. The generated OpenAPI JSON remains untracked by design and is regenerated in CI.
 
 ## Pull Request Checklist
 

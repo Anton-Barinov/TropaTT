@@ -195,8 +195,12 @@ foreach ($routes as $route) {
         continue;
     }
 
-    // Do not publish install/internal-only routes in public OpenAPI.
-    if (str_starts_with($pattern, '/install/') || str_starts_with($pattern, '/internal/')) {
+    // Do not publish install/internal-only routes or routes explicitly marked
+    // outside the public contract.
+    if (str_starts_with($pattern, '/install/')
+        || str_starts_with($pattern, '/internal/')
+        || ($route['openapi'] ?? true) === false
+    ) {
         continue;
     }
 

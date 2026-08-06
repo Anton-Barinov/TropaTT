@@ -195,7 +195,19 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT public_id, created_by_user_id, title, status, email, created_at, updated_at FROM companies');
+        // Older installations may not have the newer optional columns on
+        // companies. Keep the migration valid for both the original schema
+        // and upgraded copies by selecting safe defaults for missing fields.
+        $createdByExpression = $this->columnExists($pdo, $driver, 'companies', 'created_by_user_id')
+            ? 'created_by_user_id'
+            : 'NULL AS created_by_user_id';
+        $statusExpression = $this->columnExists($pdo, $driver, 'companies', 'status')
+            ? 'status'
+            : "'active' AS status";
+        $emailExpression = $this->columnExists($pdo, $driver, 'companies', 'email')
+            ? 'email'
+            : 'NULL AS email';
+        $stmt = $pdo->query("SELECT public_id, {$createdByExpression}, title, {$statusExpression}, {$emailExpression}, created_at, updated_at FROM companies");
         $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($companies)) {
@@ -344,31 +356,42 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
 
     private function migrateContactRelations(PDO $pdo, string $driver): void
     {
-        if (!$this->tableExists($pdo, $driver, 'contacts')) {
+        if (!$this->tableExists($pdo, $driver, 'contacts')
+            || !$this->columnExists($pdo, $driver, 'contacts', 'counterparty_id')
+            || !$this->columnExists($pdo, $driver, 'contacts', 'role')) {
             return;
         }
 
-        // Обновить contacts где есть client_id → counterparty_id
-        $pdo->exec("
-            UPDATE contacts c
-            INNER JOIN clients cl ON c.client_id = cl.id
-            SET c.counterparty_id = (
-                SELECT cp.id FROM counterparties cp WHERE cp.public_id = cl.public_id LIMIT 1
-            ),
-            c.role = COALESCE(c.role, 'contact')
-            WHERE c.client_id IS NOT NULL AND c.counterparty_id IS NULL
-        ");
+        // Do not use MySQL-only UPDATE ... JOIN here. This migration is also
+        // exercised by SQLite and must remain safe for upgraded legacy copies.
+        $sources = [
+            ['clients', 'client_id'],
+            ['companies', 'company_id'],
+        ];
+        $findCounterparty = $pdo->prepare('SELECT id FROM counterparties WHERE public_id = :public_id LIMIT 1');
+        $updateContact = $pdo->prepare('UPDATE contacts SET counterparty_id = :counterparty_id, role = COALESCE(role, :role) WHERE id = :contact_id AND counterparty_id IS NULL');
 
-        // Обновить contacts где есть company_id → counterparty_id
-        $pdo->exec("
-            UPDATE contacts c
-            INNER JOIN companies co ON c.company_id = co.id
-            SET c.counterparty_id = (
-                SELECT cp.id FROM counterparties cp WHERE cp.public_id = co.public_id LIMIT 1
-            ),
-            c.role = COALESCE(c.role, 'contact')
-            WHERE c.company_id IS NOT NULL AND c.counterparty_id IS NULL
-        ");
+        foreach ($sources as [$sourceTable, $contactColumn]) {
+            if (!$this->tableExists($pdo, $driver, $sourceTable)
+                || !$this->columnExists($pdo, $driver, $sourceTable, 'public_id')
+                || !$this->columnExists($pdo, $driver, 'contacts', $contactColumn)) {
+                continue;
+            }
+
+            $stmt = $pdo->query("SELECT c.id AS contact_id, source.public_id FROM contacts c INNER JOIN {$sourceTable} source ON c.{$contactColumn} = source.id WHERE c.{$contactColumn} IS NOT NULL AND c.counterparty_id IS NULL");
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $relation) {
+                $findCounterparty->execute(['public_id' => (string)$relation['public_id']]);
+                $counterpartyId = $findCounterparty->fetchColumn();
+                if ($counterpartyId === false) {
+                    continue;
+                }
+                $updateContact->execute([
+                    'counterparty_id' => (int)$counterpartyId,
+                    'role' => 'contact',
+                    'contact_id' => (int)$relation['contact_id'],
+                ]);
+            }
+        }
     }
 
     private function updateTeamsTable(PDO $pdo, string $driver): void
@@ -388,7 +411,18 @@ final class CrmEntityConsolidationMigration implements MigrationInterface
             return;
         }
 
-        $stmt = $pdo->query('SELECT public_id, title, code, manager_user_id, created_by_user_id, created_at, updated_at FROM departments');
+        // Legacy department tables predate code/ownership fields. Select
+        // nullable defaults so the consolidation remains upgrade-safe.
+        $codeExpression = $this->columnExists($pdo, $driver, 'departments', 'code')
+            ? 'code'
+            : 'NULL AS code';
+        $managerExpression = $this->columnExists($pdo, $driver, 'departments', 'manager_user_id')
+            ? 'manager_user_id'
+            : 'NULL AS manager_user_id';
+        $createdByExpression = $this->columnExists($pdo, $driver, 'departments', 'created_by_user_id')
+            ? 'created_by_user_id'
+            : 'NULL AS created_by_user_id';
+        $stmt = $pdo->query("SELECT public_id, title, {$codeExpression}, {$managerExpression}, {$createdByExpression}, created_at, updated_at FROM departments");
         $departments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($departments)) {

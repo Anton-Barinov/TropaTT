@@ -68,7 +68,7 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
                 return (bool)$stmt->fetchColumn();
             }
 
-            $stmt = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_name = :name LIMIT 1');
+            $stmt = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1');
             $stmt->execute(['name' => $table]);
             return (bool)$stmt->fetchColumn();
         } catch (\Throwable $e) {
@@ -99,7 +99,7 @@ final class ImportExportJobsQueueRuntimeMigration implements MigrationInterface
                 return (bool)$stmt->fetchColumn();
             }
 
-            $stmt = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_name = :table_name AND column_name = :column_name LIMIT 1');
+            $stmt = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table_name AND column_name = :column_name LIMIT 1');
             $stmt->execute([
                 'table_name' => $table,
                 'column_name' => $column,

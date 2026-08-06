@@ -8,9 +8,25 @@
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-No%20Limits-12805C?style=flat-square)](#self-hosted-your-server-your-rules)
 [![AI](https://img.shields.io/badge/AI-20%2B%20workflows-111827?style=flat-square)](#ai--what-it-can-do)
 [![PHP CI](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml)
+[![MySQL Integration](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml)
+[![OpenAPI Consistency](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — `admin` · `adminadmin`
+
+### Product tour (SVG mockups)
+
+![TropaTT dashboard](.github/assets/screenshots/dashboard.svg)
+
+| CRM | Tasks | Kanban |
+|---|---|---|
+| ![CRM counterparties](.github/assets/screenshots/counterparties.svg) | ![Tasks](.github/assets/screenshots/tasks.svg) | ![Kanban](.github/assets/screenshots/kanban.svg) |
+
+| Gantt | Team chat | Browser installer |
+|---|---|---|
+| ![Gantt](.github/assets/screenshots/gantt.svg) | ![Team chat](.github/assets/screenshots/chat.svg) | ![Browser installer](.github/assets/screenshots/installer.svg) |
+
+These are sanitized public SVG mockups with fictional labels, not browser captures of the live demo; they contain no customer or production data.
 
 ---
 
@@ -261,7 +277,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **API clients and keys** — programmatic access with scoped permissions.
 - **Background jobs** — scheduled and queued for imports, exports, AI workflows.
 - **Module system** — extend business logic without touching core. 19 CLI commands.
-- **743 documented REST endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
+- **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
 
 ---
@@ -348,7 +364,7 @@ No. TropaTT removes vendor-side limits, not physics. Performance depends on PHP 
 Yes. Free to use, modify, and deploy.
 
 **API access?**
-743 documented REST endpoints. OpenAPI 3.1 spec generated from code. Every feature is programmable.
+Generated REST API endpoints. OpenAPI 3.1 spec generated from code. Every feature is programmable.
 
 **Can I customize it?**
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
@@ -365,17 +381,17 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 
 | Metric | Value |
 |--------|-------|
-| API endpoints | 743 (695 route records) |
+| API endpoints | Generated from the live route configuration |
 | Web routes | 68 pages, ~55 templates |
 | Backend services | 100+ |
 | Repositories | 65+ |
 | Domain modules | 35+ |
 | JS modules | 24 custom vanilla JS modules, no SPA framework, no build step |
-| Public CI | PHP lint on 8.1 and 8.2 |
+| Public CI | PHP lint on 8.1 and 8.2, MySQL schema smoke test, OpenAPI consistency check |
 | AI endpoints | 65 |
 | AI workflows | 22 |
 | Feature flags | 43 |
-| Frontend API coverage | 70.1% (521/743 in UI) |
+| Frontend API coverage | Tracked against the generated route inventory |
 | External PHP deps | 0 |
 | Frontend vendor libs | 3 (Bootstrap 5, FA6, SortableJS) |
 | OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
@@ -393,7 +409,7 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 - **Frontend:** PHP-rendered MPA with Bootstrap 5 for UI/layout and custom vanilla JS ES5+ modules for behavior. No React/Vue/Angular. No build step. No bundler.
 - **Architecture:** API-first. Web UI uses REST API for all data. Zero direct database access from the web layer.
 - **Security:** Dual auth (cookie + CSRF for web, Bearer for API). Granular RBAC. Rate limiting. File quarantine. Admin impersonation. Sanitized error responses.
-- **Testing:** Public PHP lint CI is enabled. A fast MySQL-backed integration workflow is tracked in the public hardening backlog.
+- **Testing:** Public CI runs PHP lint, a MySQL migration/schema smoke test, and OpenAPI route coverage validation. The broader integration suite remains local-only because it is excluded from public packages.
 - **AI layer:** Configurable providers (OpenAI, Anthropic, DeepSeek, Google, compatible). Intent-based workflows. Prompt templates. JSON Schema validation. Preview-before-apply.
 - **Docs:** Maintainer docs are kept local and are not published. OpenAPI generation tooling is included in `upload/api/scripts/generate_openapi.php`.
 
@@ -430,7 +446,7 @@ ADR-006 Web — server-side session verification (cookie + CSRF).
 
 **API-first.** The web UI does not touch the database. Every data load and state change goes through `window.CRM.api.request` → `/api/v1/...`. The API is authoritative. The UI is one consumer.
 
-**Testing roadmap.** The public repository currently ships a fast PHP syntax CI workflow for PHP 8.1 and 8.2. The next hardening step is a MySQL-backed integration workflow, tracked in the public milestone. Security-sensitive areas such as RBAC, CSRF, file access, AI data handling, and OpenAPI consistency are called out in the maintainer checklists.
+**Testing.** Public CI runs PHP syntax checks on PHP 8.1 and 8.2, a MySQL 8.0 migration/schema smoke test, and an OpenAPI route-consistency check. The MySQL workflow intentionally exercises the public migration path rather than the local-only integration suite; contributors can reproduce it with the commands documented in `CONTRIBUTING.md`.
 
 ---
 
@@ -717,7 +733,7 @@ TropaTT поддерживает полный цикл клиентской ра
 - **API-клиенты и ключи** — программный доступ с ограниченными правами.
 - **Фоновые задачи** — запланированная и очередейная обработка для импорта, экспорта, AI.
 - **Модульная система** — расширение бизнес-логики без модификации ядра. 19 CLI-команд для управления модулями.
-- **743 документированных REST API эндпоинта** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
+- **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
 
 ---
@@ -806,7 +822,7 @@ TropaTT включает браузерный установщик для про
 Да, опубликовано как open-source проект. Бесплатно для использования, модификации и развёртывания.
 
 **Есть ли API?**
-Да, 743 документированных REST API эндпоинта со спецификацией OpenAPI 3.1, сгенерированной из кода. Каждая функция доступна программно.
+Да, REST API со спецификацией OpenAPI 3.1, сгенерированной из кода. Каждая функция доступна программно.
 
 **Можно ли кастомизировать?**
 Да. PHP/MySQL стек, модульные расширения, REST API, вебхуки, workflow-правила, настраиваемые поля, роли, права — всё адаптируется под ваши процессы.
@@ -823,7 +839,7 @@ TropaTT включает браузерный установщик для про
 
 | Метрика | Значение |
 |--------|----------|
-| API эндпоинтов | 743 нормализованных, 695 записей маршрутов |
+| API эндпоинтов | Генерируются из актуальной конфигурации маршрутов |
 | Веб-страниц | 68 маршрутов, ~55 шаблонов |
 | PHP-сервисов | 100+ |
 | Репозиториев БД | 65+ |
@@ -833,7 +849,7 @@ TropaTT включает браузерный установщик для про
 | AI API эндпоинтов | 65 |
 | Типов AI-процессов | 22 |
 | Feature-флагов | 43 |
-| Покрытие API фронтендом | 70.1% (521 из 743 эндпоинтов в UI) |
+| Покрытие API фронтендом | Сверяется с актуальным реестром маршрутов |
 | Внешних PHP-зависимостей | 0 |
 | Сторонних frontend-пакетов | 3 (Bootstrap 5, Font Awesome 6, SortableJS) |
 | OpenAPI tooling | `upload/api/scripts/generate_openapi.php` |
@@ -882,7 +898,7 @@ TropaTT/
 
 **API-first дизайн.** Веб-интерфейс не имеет прямого доступа к базе данных. Каждая загрузка данных, отправка формы, изменение состояния идёт через `window.CRM.api.request` → `/api/v1/...`. API — авторитетный слой данных, веб-интерфейс — лишь один из потребителей.
 
-**План тестирования.** В публичном репозитории сейчас есть быстрый PHP syntax CI workflow для PHP 8.1 и 8.2. Следующий hardening-шаг — интеграционный workflow с MySQL, он уже вынесен в публичный milestone. Security-sensitive области вроде RBAC, CSRF, доступа к файлам, AI data handling и OpenAPI consistency отдельно отмечены в maintainer-чеклистах.
+**Тестирование.** Публичный CI выполняет проверку синтаксиса PHP на 8.1 и 8.2, smoke-тест миграций и схемы MySQL 8.0, а также проверку соответствия маршрутов OpenAPI. MySQL workflow проверяет публичный путь миграций; расширенный интеграционный набор остаётся локальным и исключён из публичных пакетов.
 
 ---
 
@@ -1169,7 +1185,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 - **API 客户端和密钥**——具有限定权限的编程访问。
 - **后台任务**——用于导入、导出、AI 工作流的计划和队列处理。
 - **模块系统**——在不修改核心的情况下扩展业务逻辑。19 个模块管理 CLI 命令。
-- **743 个文档化的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
+- **从路由配置生成的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
 - **OpenAPI 3.1 规范**——从实际路由配置生成，与实现保持同步。
 
 ---
@@ -1255,7 +1271,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 是的，以开源项目形式发布。免费使用、修改和部署。
 
 **它有 API 访问吗？**
-有，743 个文档化的 REST API 端点，带有从代码生成的 OpenAPI 3.1 规范。每个功能均可编程访问。
+有，REST API 带有从代码生成的 OpenAPI 3.1 规范。每个功能均可编程访问。
 
 **可以定制吗？**
 可以。PHP/MySQL 技术栈、模块化扩展、REST API、Webhook、工作流规则、自定义字段、角色、权限——全部可适应您的流程。
@@ -1272,7 +1288,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 | 指标 | 数值 |
 |------|------|
-| API 端点 | 743 个标准化，695 条路由记录 |
+| API 端点 | 从当前路由配置生成 |
 | Web 应用路由 | 68 个页面，~55 个模板 |
 | 后端 PHP 服务 | 100+ |
 | 数据库仓库 | 65+ |
@@ -1282,7 +1298,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 | AI API 端点 | 65 |
 | AI 工作流类型 | 22 |
 | 功能标志 | 43 |
-| 前端 API 覆盖率 | 70.1%（743 个端点中的 521 个已实现 UI） |
+| 前端 API 覆盖率 | 与当前生成的路由清单保持同步 |
 | 外部 PHP 依赖 | 0 |
 | 前端第三方包 | 3（Bootstrap 5、Font Awesome 6、SortableJS） |
 | OpenAPI 工具 | `upload/api/scripts/generate_openapi.php` |
@@ -1331,7 +1347,7 @@ TropaTT/
 
 **API 优先设计。** Web UI 零直接数据库访问。每次数据加载、每次表单提交、每次状态变更都通过 `window.CRM.api.request` → `/api/v1/...` 完成。API 是权威数据层——Web UI 只是其中一个消费者。
 
-**测试路线图。** 公开仓库当前包含适用于 PHP 8.1 和 8.2 的快速 PHP syntax CI workflow。下一步 hardening 工作是加入带 MySQL 的集成测试 workflow，并已在公开 milestone 中跟踪。RBAC、CSRF、文件访问、AI data handling 和 OpenAPI consistency 等安全敏感领域已在维护者清单中列出。
+**测试。** 公开 CI 会在 PHP 8.1 和 8.2 上执行语法检查、MySQL 8.0 迁移/架构 smoke test，以及 OpenAPI 路由一致性检查。MySQL workflow 验证公开迁移路径；更广泛的集成测试仍为本地测试，不会进入公开安装包。
 
 ---
 

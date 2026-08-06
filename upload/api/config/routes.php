@@ -97,7 +97,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/webhooks', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/deliveries', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'deliveries', 'auth' => true, 'required_permissions' => ['webhook.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['webhook.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['webhook.manage'], 'openapi' => false, 'openapi_note' => 'Excluded until the webhook detail response contract is finalized.'],
     ['methods' => ['PATCH', 'PUT'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/webhooks/{public_id}', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['webhook.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/webhooks/{public_id}/deliveries', 'controller' => Api\Controller\Webhook\WebhookController::class, 'action' => 'deliveries', 'auth' => true, 'required_permissions' => ['webhook.manage']],
@@ -649,7 +649,7 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/security/2fa/status', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'status', 'auth' => true, 'authz_note' => 'self-service: own 2FA status'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/enable', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'enable', 'auth' => true, 'authz_note' => 'self-service: enable own 2FA'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/disable', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'disable', 'auth' => true, 'authz_note' => 'self-service: disable own 2FA (requires current password)'],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/verify', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'verify', 'auth' => false],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/security/2fa/verify', 'controller' => Api\Controller\Security\TwoFactorController::class, 'action' => 'verify', 'auth' => false, 'openapi' => false, 'openapi_note' => 'Excluded because this internal challenge endpoint is not part of the public contract.'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/impersonation/start', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'start', 'auth' => true, 'required_permissions' => ['user.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/security/impersonation/status', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'status', 'auth' => true, 'authz_note' => 'self-service: own impersonation state'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/security/impersonation/stop', 'controller' => Api\Controller\Security\ImpersonationController::class, 'action' => 'stop', 'auth' => true, 'authz_note' => 'self-service: stop own impersonation'],
@@ -1011,5 +1011,5 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/chats/{public_id}/restore', 'controller' => Api\Controller\Chat\ChatController::class, 'action' => 'restore', 'auth' => true, 'required_permissions' => ['chat.use']],
 
     // visual editor image upload
-    ['methods' => ['POST'], 'pattern' => '/api/v1/visual-editor/upload-image', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'upload', 'auth' => true, 'authz_note' => 'self-service: any authenticated (UploadController::upload)'],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/visual-editor/upload-image', 'controller' => Api\Controller\visualeditor\UploadController::class, 'action' => 'upload', 'auth' => true, 'authz_note' => 'self-service: any authenticated (UploadController::upload)', 'openapi' => false, 'openapi_note' => 'Excluded because multipart upload handling is documented separately.'],
 ];

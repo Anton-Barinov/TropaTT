@@ -414,14 +414,14 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <!-- ==================== 17. API ==================== -->
 <div class="col-12" id="docs-api">
 <section class="crm-card crm-section-card mb-3">
-<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.api_title"><?= htmlspecialchars($t('docs.api_title', 'API'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.api_note"><?= htmlspecialchars($t('docs.api_note', 'REST API, 743 эндпоинта, OpenAPI 3.1.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
+<div class="crm-section-head"><div><h2 class="h5 mb-0" data-i18n="docs.api_title"><?= htmlspecialchars($t('docs.api_title', 'API'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note" data-i18n="docs.api_note"><?= htmlspecialchars($t('docs.api_note', 'REST API, endpoints generated from routes, OpenAPI 3.1.'), ENT_QUOTES, 'UTF-8') ?></div></div></div>
 <div class="p-3">
 <p data-i18n="docs.api_intro"><?= htmlspecialchars($t('docs.api_intro', 'API — программный доступ ко всем функциям CRM. Каждый эндпоинт документирован и доступен через Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></p>
 <ul>
 <li data-i18n="docs.api_item1"><?= htmlspecialchars($t('docs.api_item1', '<strong>База:</strong> /api/index.php?route=api/v1/...'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.api_item2"><?= htmlspecialchars($t('docs.api_item2', '<strong>Аутентификация:</strong> POST /api/v1/auth/login → Bearer-токен.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.api_item3"><?= htmlspecialchars($t('docs.api_item3', '<strong>Документация OpenAPI:</strong> генерируется из кода, спецификация 3.1.'), ENT_QUOTES, 'UTF-8') ?></li>
-<li data-i18n="docs.api_item4"><?= htmlspecialchars($t('docs.api_item4', '<strong>Эндпоинты:</strong> 743 (695 route records), покрытие UI — 70%.'), ENT_QUOTES, 'UTF-8') ?></li>
+<li data-i18n="docs.api_item4"><?= htmlspecialchars($t('docs.api_item4', '<strong>Эндпоинты:</strong> формируются из актуальной конфигурации маршрутов, покрытие UI отслеживается отдельно.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.api_item5"><?= htmlspecialchars($t('docs.api_item5', '<strong>Идемпотентность:</strong> заголовок X-Idempotency-Key для безопасных повторных запросов.'), ENT_QUOTES, 'UTF-8') ?></li>
 <li data-i18n="docs.api_item6"><?= htmlspecialchars($t('docs.api_item6', '<strong>API-ключи:</strong> создаются в админке для доступа без Bearer-токена.'), ENT_QUOTES, 'UTF-8') ?></li>
 </ul>
@@ -541,7 +541,7 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <p data-i18n="docs.faq_q7"><?= htmlspecialchars($t('docs.faq_q7', '<strong>Какие AI-инструменты доступны?</strong><br>20+ инструментов: проработка идей, план на день/неделю, сводки, чеклисты, риски, подготовка к встречам.'), ENT_QUOTES, 'UTF-8') ?></p>
 </div>
 <div class="mb-3">
-<p data-i18n="docs.faq_q8"><?= htmlspecialchars($t('docs.faq_q8', '<strong>Есть ли API?</strong><br>Да, 743 REST API эндпоинта с OpenAPI 3.1 спецификацией, сгенерированной из кода.'), ENT_QUOTES, 'UTF-8') ?></p>
+<p data-i18n="docs.faq_q8"><?= htmlspecialchars($t('docs.faq_q8', '<strong>Есть ли API?</strong><br>Да, REST API со спецификацией OpenAPI 3.1, сгенерированной из кода.'), ENT_QUOTES, 'UTF-8') ?></p>
 </div>
 <div class="mb-3">
 <p data-i18n="docs.faq_q9"><?= htmlspecialchars($t('docs.faq_q9', '<strong>Можно ли кастомизировать?</strong><br>Да. PHP-код, модули, вебхуки, API, workflow-правила, кастомные поля, роли и права доступа.'), ENT_QUOTES, 'UTF-8') ?></p>

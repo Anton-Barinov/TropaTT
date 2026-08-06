@@ -1,0 +1,29 @@
+name: OpenAPI Consistency CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  openapi-consistency:
+    name: Generate and validate OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Generate OpenAPI specification
+        run: php upload/api/scripts/generate_openapi.php
+
+      - name: Check route coverage
+        run: php upload/api/scripts/api_coverage_check.php

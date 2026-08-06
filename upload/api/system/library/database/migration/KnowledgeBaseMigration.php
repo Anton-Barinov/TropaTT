@@ -68,6 +68,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             ['knowledge_pages', 'idx_knowledge_pages_type', 'page_type'],
             ['knowledge_drafts', 'uq_knowledge_drafts_page_user', 'page_id, user_id', true],
             ['knowledge_page_versions', 'uq_knowledge_versions_page_number', 'page_id, version_number', true],
+            ['knowledge_entity_links', 'uq_knowledge_links_page_entity', 'page_id, entity_type, entity_public_id', true],
             ['knowledge_entity_links', 'idx_knowledge_links_entity', 'entity_type, entity_public_id'],
             ['knowledge_search_index', 'idx_knowledge_search_space_status_updated', 'space_id, status, updated_at'],
             ['knowledge_search_index', 'idx_knowledge_search_page_type', 'page_type'],

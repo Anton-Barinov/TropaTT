@@ -211,7 +211,9 @@ final class AuthService
             return null;
         }
 
-        if ((int)($session['is_active'] ?? 0) !== 1) {
+        // Older/current schemas do not store a separate session is_active flag;
+        // revoked_at and expires_at already determine whether the session is active.
+        if ((int)($session['is_active'] ?? 1) !== 1) {
             return null;
         }
 
@@ -263,7 +265,7 @@ final class AuthService
             'full_name' => (string)$session['full_name'],
             'locale' => (string)$session['locale'],
             'is_root' => (bool)$session['is_root'],
-            'is_active' => (bool)$session['is_active'],
+            'is_active' => (bool)($session['is_active'] ?? true),
             'created_by_user_id' => $session['created_by_user_id'] ?? null,
         ]);
 

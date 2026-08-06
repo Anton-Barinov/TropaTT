@@ -9,6 +9,7 @@ use Api\Model\Tag\TagRepository;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Service\FileService;
 use Api\System\Library\Service\AiSemanticIndexService;
+use Api\System\Library\Service\TaskService;
 use Api\System\Library\Validation\Validator;
 use Throwable;
 
@@ -44,6 +45,39 @@ final class KnowledgeController extends BaseController
     private function requirePageAccess(string $publicId, string $minAccess = 'view'): ?array
     {
         return $this->repo()->page($publicId, $this->actor(), $minAccess);
+    }
+
+    private function canLinkEntity(string $entityType, string $entityPublicId): bool
+    {
+        $actor = $this->actor();
+        switch ($entityType) {
+            case 'task':
+                /** @var TaskService $service */
+                $service = $this->container->get('service.task');
+                return $service->get($entityPublicId, $actor) !== null;
+            case 'project':
+                return $this->container->get('service.project')->get($entityPublicId, $actor) !== null;
+            case 'counterparty':
+                return $this->container->get('service.counterparty')->get($entityPublicId, $actor) !== null;
+            case 'client':
+                return $this->container->get('service.client')->get($entityPublicId, $actor) !== null;
+            case 'contact':
+                return $this->container->get('service.contact')->get($entityPublicId, $actor) !== null;
+            case 'knowledge_page':
+                return $this->repo()->page($entityPublicId, $actor) !== null;
+            case 'team':
+                return $this->container->get('service.team')->get($entityPublicId, $actor) !== null;
+            case 'department':
+                return $this->container->get('service.department')->get($entityPublicId, $actor) !== null;
+            case 'chat':
+                $stmt = $this->container->get('db.pdo')->prepare(
+                    'SELECT 1 FROM chats c JOIN chat_participants cp ON cp.chat_id = c.id WHERE c.public_id = :public_id AND cp.user_id = :user_id LIMIT 1'
+                );
+                $stmt->execute(['public_id' => $entityPublicId, 'user_id' => $this->actorUserId()]);
+                return $stmt->fetchColumn() !== false;
+            default:
+                return false;
+        }
     }
 
     private function actorCanManagePermissions(): bool
@@ -341,7 +375,7 @@ final class KnowledgeController extends BaseController
         $this->repo()->recordView((string)$params['public_id'], $this->actorUserId() ?: null, (string)$this->request()->input('source', 'direct'));
         return $this->success('KNOWLEDGE_PAGE_DETAIL', $this->t('knowledge/messages.page_detail', 'Knowledge page loaded'), [
             'page' => $page,
-            'links' => $this->repo()->links((string)$params['public_id']),
+            'links' => $this->visibleLinks((string)$params['public_id']),
         ], meta: ['row_version' => (int)($page['row_version'] ?? 1)]);
     }
 
@@ -639,8 +673,28 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         return $this->success('KNOWLEDGE_LINKS', $this->t('knowledge/messages.links', 'Links loaded'), [
-            'items' => $this->repo()->links((string)$params['public_id']),
+            'items' => $this->visibleLinks((string)$params['public_id']),
         ]);
+    }
+
+    /**
+     * Return only links whose target entity is still visible to the actor.
+     * This prevents a previously linked task/client/etc. public ID from being
+     * disclosed after access to the target entity has been revoked.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function visibleLinks(string $pagePublicId): array
+    {
+        return array_values(array_filter(
+            $this->repo()->links($pagePublicId),
+            function (array $link): bool {
+                return $this->canLinkEntity(
+                    strtolower(trim((string)($link['entity_type'] ?? ''))),
+                    trim((string)($link['entity_public_id'] ?? ''))
+                );
+            }
+        ));
     }
 
     public function linkEntity(array $params): JsonResponse
@@ -648,23 +702,38 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'edit')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
-        $auth = $this->user();
         $input = $this->request()->allInput();
-        try {
-            $link = $this->repo()->linkEntity(
-                (string)$params['public_id'],
-                (string)($input['entity_type'] ?? ''),
-                (string)($input['entity_public_id'] ?? ''),
-                (string)($input['relation_type'] ?? 'related'),
-                $this->actorUserId() ?: null
-            );
-        } catch (\RuntimeException $e) {
-            error_log('[KnowledgeController::createLink] ' . $e->getMessage());
-            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', 'Knowledge page not found.', 404);
+        $entityType = strtolower(trim((string)($input['entity_type'] ?? '')));
+        $entityPublicId = trim((string)($input['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422, [
+                'entity_public_id' => [$this->t('common/messages.field_required', 'Field is required')],
+            ]);
         }
-        return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
-            'link' => $link,
-        ], 201);
+        if (!$this->canLinkEntity($entityType, $entityPublicId)) {
+            return $this->error('ENTITY_NOT_FOUND', $this->t('common/messages.not_found', 'Entity not found'), 404);
+        }
+        $relationType = strtolower(trim((string)($input['relation_type'] ?? 'related')));
+        if (!in_array($relationType, ['related', 'instruction', 'reference', 'derived_from'], true)) {
+            $relationType = 'related';
+        }
+        return $this->withIdempotency(function () use ($params, $entityType, $entityPublicId, $relationType): JsonResponse {
+            try {
+                $link = $this->repo()->linkEntity(
+                    (string)$params['public_id'],
+                    $entityType,
+                    $entityPublicId,
+                    $relationType,
+                    $this->actorUserId() ?: null
+                );
+            } catch (\RuntimeException $e) {
+                error_log('[KnowledgeController::createLink] ' . $e->getMessage());
+                return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', 'Knowledge page not found.', 404);
+            }
+            return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
+                'link' => $link,
+            ], 201);
+        });
     }
 
     public function deleteLink(array $params): JsonResponse
@@ -674,7 +743,7 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         try {
-            $this->repo()->unlinkEntity((string)$params['link_public_id']);
+            $this->repo()->unlinkEntity($pageId, (string)$params['link_public_id'], $this->actor());
         } catch (\RuntimeException $e) {
             error_log('[KnowledgeController::deleteLink] ' . $e->getMessage());
             return $this->error('KNOWLEDGE_LINK_NOT_FOUND', 'Knowledge link not found.', 404);
@@ -804,9 +873,15 @@ final class KnowledgeController extends BaseController
 
     public function entityPages(array $params): JsonResponse
     {
+        $entityType = strtolower(trim((string)($params['entity_type'] ?? '')));
+        $entityPublicId = trim((string)($params['entity_public_id'] ?? ''));
+        if ($entityType === '' || $entityPublicId === '' || !$this->canLinkEntity($entityType, $entityPublicId)) {
+            return $this->error('ENTITY_NOT_FOUND', $this->t('common/messages.not_found', 'Entity not found'), 404);
+        }
+
         return $this->success('KNOWLEDGE_ENTITY_PAGES', $this->t('knowledge/messages.entity_pages', 'Related pages loaded'), [
             'items' => array_values(array_filter(
-                $this->repo()->entityPages((string)$params['entity_type'], (string)$params['entity_public_id']),
+                $this->repo()->entityPages($entityType, $entityPublicId, $this->actor()),
                 fn(array $page): bool => $this->repo()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
             )),
         ]);

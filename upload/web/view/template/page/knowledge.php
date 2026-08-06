@@ -263,6 +263,22 @@
 
   var state = { spaces:[], activeSpace:'', activeStatus:'' };
   var flatSpaces = [];
+  var queryParams = new URLSearchParams(window.location.search || '');
+  var linkedEntityType = String(queryParams.get('entity_type') || '').trim();
+  var linkedEntityPublicId = String(queryParams.get('entity_public_id') || '').trim();
+
+  function hasLinkedEntityContext(){
+    return linkedEntityType !== '' && linkedEntityPublicId !== '';
+  }
+
+  async function linkCreatedPageToEntity(pagePublicId){
+    if(!hasLinkedEntityContext() || !pagePublicId) return;
+    await req('api/v1/knowledge/pages/' + encodeURIComponent(pagePublicId) + '/links', {
+      method:'POST',
+      body:{entity_type:linkedEntityType, entity_public_id:linkedEntityPublicId, relation_type:'related'},
+      idempotent:true
+    });
+  }
 
   /* ── Cookie helpers ── */
   function getCookie(name){
@@ -623,16 +639,28 @@
       });
     }
     try {
-      await req('api/v1/knowledge/pages', {method:'POST', body:{
+      var createdEnvelope = await req('api/v1/knowledge/pages', {method:'POST', body:{
         title: title,
         space_public_id: document.getElementById('kbPageSpace').value,
         page_type: document.getElementById('kbPageType').value,
         content_html: contentHtml
       }});
+      var createdPage = createdEnvelope && createdEnvelope.data && createdEnvelope.data.page;
+      var linkError = null;
+      if(hasLinkedEntityContext() && createdPage && createdPage.public_id){
+        try {
+          await linkCreatedPageToEntity(createdPage.public_id);
+        } catch(e) {
+          linkError = e;
+        }
+      }
       bootstrap.Modal.getInstance(document.getElementById('kbPageModal')).hide();
       document.getElementById('kbPageTitleInput').value='';
       document.getElementById('kbPageContent').value='';
       loadArticles();
+      if(linkError){
+        alert(_t('knowledge.alert_link_error', 'Страница создана, но не удалось связать её с объектом'));
+      }
     } catch(e){ alert(_t('knowledge.alert_create_error', 'Ошибка создания')); }
   });
 
@@ -656,6 +684,12 @@
     loadRecent();
     loadArticles();
     loadTags();
+    if(hasLinkedEntityContext()){
+      window.setTimeout(function(){
+        var createBtn = document.getElementById('btnCreatePage');
+        if(createBtn) createBtn.click();
+      }, 120);
+    }
   });
 })();
 </script>

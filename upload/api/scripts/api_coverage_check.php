@@ -9,29 +9,12 @@ $apiRoutesFile = $projectRoot . '/api/config/routes.php';
 $openApiFile = $projectRoot . '/api/docs/openapi/openapi.v1.json';
 
 /**
- * These routes are deliberately absent from the public OpenAPI contract:
- * installation and migration endpoints are available only during maintenance,
- * while the last three are internal integration endpoints.
- *
- * Keep this allow-list short and explicit: every normal API route must have a
- * matching OpenAPI operation.
+ * Install and migration routes are deliberately absent from the public
+ * contract. Other exclusions are declared next to their route in routes.php
+ * with openapi=false, so a route cannot silently disappear from this check.
  *
  * @var array<string,true>
  */
-$openApiExclusions = array_fill_keys([
-    '/install/status|GET',
-    '/install/check|GET',
-    '/install/check|POST',
-    '/install/setup|POST',
-    '/internal/migration/status|GET',
-    '/internal/migration/up|POST',
-    '/internal/migration/dry-run|GET',
-    '/internal/migration/rollback-check|GET',
-    '/api/v1/webhooks/{public_id}|GET',
-    '/api/v1/security/2fa/verify|POST',
-    '/api/v1/visual-editor/upload-image|POST',
-], true);
-
 if (!is_file($apiRoutesFile) || !is_file($openApiFile)) {
     fwrite(STDERR, "[FAIL] Missing routes.php or openapi.v1.json\n");
     exit(1);
@@ -39,6 +22,24 @@ if (!is_file($apiRoutesFile) || !is_file($openApiFile)) {
 
 /** @var array<int,array<string,mixed>> $routes */
 $routes = require $apiRoutesFile;
+
+$openApiExclusions = [];
+foreach ($routes as $route) {
+    $pattern = (string)($route['pattern'] ?? '');
+    if ($pattern === '') {
+        continue;
+    }
+    $isInternal = str_starts_with($pattern, '/install/') || str_starts_with($pattern, '/internal/');
+    if (!$isInternal && (($route['openapi'] ?? true) !== false)) {
+        continue;
+    }
+    foreach ((array)($route['methods'] ?? []) as $method) {
+        $method = strtoupper(trim((string)$method));
+        if ($method !== '') {
+            $openApiExclusions[$pattern . '|' . $method] = true;
+        }
+    }
+}
 
 $routeKeys = [];
 foreach ($routes as $route) {

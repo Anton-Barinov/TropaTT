@@ -814,18 +814,46 @@ final class KnowledgeRepository
         if (!$page) {
             throw new \RuntimeException('Knowledge page not found');
         }
-        $publicId = $this->publicId('kbl');
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_entity_links (public_id, page_id, entity_type, entity_public_id, relation_type, created_by_user_id, created_at) VALUES (:public_id, :page_id, :entity_type, :entity_public_id, :relation_type, :created_by_user_id, :created_at)');
-        $stmt->execute([
-            'public_id' => $publicId,
+        $relation = $relationType !== '' ? $relationType : 'related';
+        $existing = $this->pdo->prepare('SELECT id, public_id, page_id, entity_type, entity_public_id, relation_type, created_by_user_id, created_at FROM knowledge_entity_links WHERE page_id = :page_id AND entity_type = :entity_type AND entity_public_id = :entity_public_id LIMIT 1');
+        $existing->execute([
             'page_id' => (int)$page['id'],
             'entity_type' => $entityType,
             'entity_public_id' => $entityPublicId,
-            'relation_type' => $relationType !== '' ? $relationType : 'related',
-            'created_by_user_id' => $actorId,
-            'created_at' => gmdate('Y-m-d H:i:s'),
         ]);
-        return $this->links($pagePublicId)[0] ?? [];
+        $existingLink = $existing->fetch(PDO::FETCH_ASSOC);
+        if (is_array($existingLink)) {
+            return $existingLink;
+        }
+
+        $publicId = $this->publicId('kbl');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_entity_links (public_id, page_id, entity_type, entity_public_id, relation_type, created_by_user_id, created_at) VALUES (:public_id, :page_id, :entity_type, :entity_public_id, :relation_type, :created_by_user_id, :created_at)');
+        try {
+            $stmt->execute([
+                'public_id' => $publicId,
+                'page_id' => (int)$page['id'],
+                'entity_type' => $entityType,
+                'entity_public_id' => $entityPublicId,
+                'relation_type' => $relation,
+                'created_by_user_id' => $actorId,
+                'created_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+        } catch (\PDOException $e) {
+            // A concurrent request may have won the unique page/entity race.
+            $existing->execute([
+                'page_id' => (int)$page['id'],
+                'entity_type' => $entityType,
+                'entity_public_id' => $entityPublicId,
+            ]);
+            $existingLink = $existing->fetch(PDO::FETCH_ASSOC);
+            if (is_array($existingLink)) {
+                return $existingLink;
+            }
+            throw $e;
+        }
+        $created = $this->pdo->prepare('SELECT id, public_id, page_id, entity_type, entity_public_id, relation_type, created_by_user_id, created_at FROM knowledge_entity_links WHERE public_id = :public_id LIMIT 1');
+        $created->execute(['public_id' => $publicId]);
+        return $created->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function links(string $pagePublicId): array
@@ -839,22 +867,43 @@ final class KnowledgeRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function unlinkEntity(string $linkPublicId): void
+    public function unlinkEntity(string $pagePublicId, string $linkPublicId, array $actor): void
     {
-        $stmt = $this->pdo->prepare('SELECT page_id FROM knowledge_entity_links WHERE public_id = :public_id LIMIT 1');
-        $stmt->execute(['public_id' => $linkPublicId]);
-        $link = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$link) {
+        $page = $this->page($pagePublicId, $actor, 'edit');
+        if (!$page) {
+            throw new \RuntimeException('Knowledge page not found');
+        }
+        $stmt = $this->pdo->prepare('DELETE FROM knowledge_entity_links WHERE public_id = :public_id AND page_id = :page_id');
+        $stmt->execute([
+            'public_id' => $linkPublicId,
+            'page_id' => (int)$page['id'],
+        ]);
+        if ($stmt->rowCount() === 0) {
             throw new \RuntimeException('Knowledge link not found');
         }
-        $stmt = $this->pdo->prepare('DELETE FROM knowledge_entity_links WHERE public_id = :public_id');
-        $stmt->execute(['public_id' => $linkPublicId]);
     }
 
-    public function entityPages(string $entityType, string $entityPublicId): array
+    public function linkContext(string $linkPublicId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL ORDER BY p.updated_at DESC");
-        $stmt->execute(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId]);
+        $stmt = $this->pdo->prepare('SELECT l.public_id, p.public_id AS page_public_id FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id WHERE l.public_id = :public_id LIMIT 1');
+        $stmt->execute(['public_id' => $linkPublicId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+    public function entityPages(string $entityType, string $entityPublicId, ?array $actor = null): array
+    {
+        // Legacy internal callers omit an actor; preserve their historical
+        // behavior while authenticated callers receive actor-scoped results.
+        if ($actor === null) {
+            $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND s.visibility = 'public' ORDER BY p.updated_at DESC");
+            $stmt->execute(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        [$aclSql, $aclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
+        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title, l.relation_type FROM knowledge_entity_links l JOIN knowledge_pages p ON p.id = l.page_id JOIN knowledge_spaces s ON s.id = p.space_id WHERE l.entity_type = :entity_type AND l.entity_public_id = :entity_public_id AND p.deleted_at IS NULL AND {$aclSql} ORDER BY p.updated_at DESC");
+        $stmt->execute(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId] + $aclParams);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 

@@ -7948,15 +7948,48 @@ MD;
         return ['removed' => $this->knowledge()->unsubscribePage($publicId, (int)($this->actor()['id'] ?? 0))];
     }
 
+    private function canAccessKnowledgeEntity(string $entityType, string $entityPublicId): bool
+    {
+        $actor = $this->actor();
+        return match ($entityType) {
+            'task' => (bool)$this->container->get('service.task')->get($entityPublicId, $actor),
+            'project' => (bool)$this->container->get('service.project')->get($entityPublicId, $actor),
+            'counterparty' => (bool)$this->container->get('service.counterparty')->get($entityPublicId, $actor),
+            'client' => (bool)$this->container->get('service.client')->get($entityPublicId, $actor),
+            'contact' => (bool)$this->container->get('service.contact')->get($entityPublicId, $actor),
+            'knowledge_page' => $this->knowledge()->page($entityPublicId, $actor) !== null,
+            'team' => (bool)$this->container->get('service.team')->get($entityPublicId, $actor),
+            'department' => (bool)$this->container->get('service.department')->get($entityPublicId, $actor),
+            'chat' => $this->mcpActorCanAccessChat($entityPublicId),
+            default => false,
+        };
+    }
+
+    private function mcpActorCanAccessChat(string $chatPublicId): bool
+    {
+        $actorId = (int)($this->actor()['id'] ?? 0);
+        if ($actorId <= 0) {
+            return false;
+        }
+        $stmt = $this->container->get('db.pdo')->prepare(
+            'SELECT 1 FROM chats c JOIN chat_participants cp ON cp.chat_id = c.id WHERE c.public_id = :public_id AND cp.user_id = :user_id LIMIT 1'
+        );
+        $stmt->execute(['public_id' => $chatPublicId, 'user_id' => $actorId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
     private function crmEntityKnowledgePages(array $arguments): array
     {
-        $entityType = trim((string)($arguments['entity_type'] ?? ''));
+        $entityType = strtolower(trim((string)($arguments['entity_type'] ?? '')));
         $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
         if ($entityType === '' || $entityPublicId === '') {
             return ['error' => 'entity_type and entity_public_id are required.'];
         }
+        if (!$this->canAccessKnowledgeEntity($entityType, $entityPublicId)) {
+            return ['error' => 'Entity not found or not authorized.'];
+        }
         $items = array_values(array_filter(
-            $this->knowledge()->entityPages($entityType, $entityPublicId),
+            $this->knowledge()->entityPages($entityType, $entityPublicId, $this->actor()),
             fn(array $page): bool => $this->knowledge()->page((string)($page['public_id'] ?? ''), $this->actor()) !== null
         ));
         return ['items' => $this->publicData($items)];
@@ -8260,8 +8293,12 @@ MD;
         if ($linkPublicId === '') {
             return ['error' => 'link_public_id is required.'];
         }
+        $linkContext = $this->knowledge()->linkContext($linkPublicId);
+        if (!$linkContext || !$this->knowledge()->page((string)$linkContext['page_public_id'], $this->actor(), 'edit')) {
+            return ['error' => 'Knowledge link not found or not authorized.'];
+        }
         try {
-            $this->knowledge()->unlinkEntity($linkPublicId);
+            $this->knowledge()->unlinkEntity((string)$linkContext['page_public_id'], $linkPublicId, $this->actor());
         } catch (\RuntimeException $e) {
             return ['error' => 'Knowledge link not found.'];
         }
