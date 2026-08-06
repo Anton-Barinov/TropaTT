@@ -41,9 +41,15 @@ final class WorkCycleRepository
             $qb->where('p.public_id', '=', (string)$filters['project_public_id']);
         }
 
-        if (!empty($filters['status'])) {
-            $qb->where('wc.status', '=', (string)$filters['status']);
+        $statusFilter = trim((string)($filters['status'] ?? ''));
+        if ($statusFilter === 'archived') {
+            // Archived cycles keep their lifecycle status (for example,
+            // completed) and are marked by archived_at.
+            $qb->whereNotNull('wc.archived_at');
+        } elseif ($statusFilter !== '') {
+            $qb->where('wc.status', '=', $statusFilter);
         }
+
 
         if (!empty($filters['owner_user_public_id'])) {
             $qb->where('o.public_id', '=', (string)$filters['owner_user_public_id']);
@@ -70,7 +76,7 @@ final class WorkCycleRepository
             $qb->where('wc.end_at', '<=', (string)$filters['end_to']);
         }
 
-        if (empty($filters['archived']) || $filters['archived'] !== '1') {
+        if ($statusFilter !== 'archived' && (empty($filters['archived']) || $filters['archived'] !== '1')) {
             $qb->whereNull('wc.archived_at');
         }
 

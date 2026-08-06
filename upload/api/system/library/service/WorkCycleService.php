@@ -312,7 +312,7 @@ final class WorkCycleService
             return 'CYCLE_FORBIDDEN';
         }
 
-        if ((string)$cycle['status'] !== 'planned') {
+        if (!empty($cycle['archived_at']) || (string)$cycle['status'] !== 'planned') {
             return 'CYCLE_INVALID_STATUS_TRANSITION';
         }
 
@@ -360,7 +360,7 @@ final class WorkCycleService
             return 'CYCLE_FORBIDDEN';
         }
 
-        if ((string)$cycle['status'] === 'archived') {
+        if (!empty($cycle['archived_at']) || (string)$cycle['status'] === 'archived') {
             return 'CYCLE_CANNOT_COMPLETE_ARCHIVED';
         }
 
@@ -397,6 +397,18 @@ final class WorkCycleService
 
             $targetCycle = $this->cycles->findByPublicId($targetCyclePublicId);
             if (!$targetCycle) {
+                return 'CYCLE_TARGET_CYCLE_NOT_FOUND';
+            }
+
+            if ((int)($targetCycle['project_id'] ?? 0) !== (int)($cycle['project_id'] ?? 0)) {
+                return 'CYCLE_TARGET_CYCLE_PROJECT_MISMATCH';
+            }
+
+            if (!empty($targetCycle['archived_at'])) {
+                return 'CYCLE_TARGET_CYCLE_INVALID';
+            }
+
+            if (!$this->canViewCycle($targetCycle, $actor)) {
                 return 'CYCLE_TARGET_CYCLE_NOT_FOUND';
             }
 
@@ -449,7 +461,7 @@ final class WorkCycleService
         }
 
         $status = (string)$cycle['status'];
-        if (!in_array($status, ['completed', 'archived'], true)) {
+        if (empty($cycle['archived_at']) && !in_array($status, ['completed', 'archived'], true)) {
             return 'CYCLE_INVALID_STATUS_TRANSITION';
         }
 
@@ -464,6 +476,7 @@ final class WorkCycleService
 
         $this->cycles->updateByPublicId($cyclePublicId, [
             'status' => 'active',
+            'archived_at' => null,
             'completed_by_user_id' => null,
             'completed_at' => null,
         ]);
@@ -533,7 +546,7 @@ final class WorkCycleService
             return 'CYCLE_FORBIDDEN';
         }
 
-        if (in_array((string)$cycle['status'], ['completed', 'archived'], true)) {
+        if (!empty($cycle['archived_at']) || in_array((string)$cycle['status'], ['completed', 'archived'], true)) {
             return 'CYCLE_INVALID_STATUS_TRANSITION';
         }
 
@@ -784,6 +797,18 @@ final class WorkCycleService
 
         $targetCycle = $this->cycles->findByPublicId($targetCyclePublicId);
         if (!$targetCycle) {
+            return 'CYCLE_TARGET_CYCLE_NOT_FOUND';
+        }
+
+        if ((int)($targetCycle['project_id'] ?? 0) !== (int)($cycle['project_id'] ?? 0)) {
+            return 'CYCLE_TARGET_CYCLE_PROJECT_MISMATCH';
+        }
+
+        if (!empty($targetCycle['archived_at'])) {
+            return 'CYCLE_TARGET_CYCLE_INVALID';
+        }
+
+        if (!$this->canViewCycle($targetCycle, $actor)) {
             return 'CYCLE_TARGET_CYCLE_NOT_FOUND';
         }
 
