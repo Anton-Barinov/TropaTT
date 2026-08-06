@@ -736,6 +736,47 @@ final class KnowledgeController extends BaseController
         });
     }
 
+    public function attachPageToTask(array $params): JsonResponse
+    {
+        $taskPublicId = trim((string)($params['public_id'] ?? ''));
+        $input = $this->request()->allInput();
+        $pagePublicId = trim((string)($input['page_public_id'] ?? ''));
+        if ($taskPublicId === '' || $pagePublicId === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error', 'Validation error'), 422, [
+                'page_public_id' => [$this->t('common/messages.field_required', 'Field is required')],
+            ]);
+        }
+        if (!$this->canLinkEntity('task', $taskPublicId)) {
+            return $this->error('ENTITY_NOT_FOUND', $this->t('common/messages.not_found', 'Entity not found'), 404);
+        }
+        if (!$this->requirePageAccess($pagePublicId, 'view')) {
+            return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+        }
+
+        $relationType = strtolower(trim((string)($input['relation_type'] ?? 'related')));
+        if (!in_array($relationType, ['related', 'instruction', 'reference', 'derived_from'], true)) {
+            $relationType = 'related';
+        }
+
+        return $this->withIdempotency(function () use ($pagePublicId, $taskPublicId, $relationType): JsonResponse {
+            try {
+                $link = $this->repo()->linkEntity(
+                    $pagePublicId,
+                    'task',
+                    $taskPublicId,
+                    $relationType,
+                    $this->actorUserId() ?: null
+                );
+            } catch (\RuntimeException $e) {
+                error_log('[KnowledgeController::attachPageToTask] ' . $e->getMessage());
+                return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
+            }
+            return $this->success('KNOWLEDGE_LINK_CREATED', $this->t('knowledge/messages.link_created', 'Link created'), [
+                'link' => $link,
+            ], 201);
+        });
+    }
+
     public function deleteLink(array $params): JsonResponse
     {
         $pageId = (string)$params['public_id'];

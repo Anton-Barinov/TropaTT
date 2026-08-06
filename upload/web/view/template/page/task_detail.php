@@ -768,7 +768,7 @@
     }
 
     function canAttach() {
-      return !api || typeof api.hasPermission !== 'function' || api.hasPermission('knowledge.edit');
+      return !api || typeof api.hasPermission !== 'function' || (api.hasPermission('knowledge.view') && api.hasPermission('task.manage'));
     }
 
     function setMessage(message, className) {
@@ -794,7 +794,7 @@
       try {
         var envelope = await api.request('api/v1/knowledge/pages', {
           method: 'GET',
-          query: { limit: 50, q: query, min_access: 'edit' }
+          query: { limit: 50, q: query, min_access: 'view' }
         });
         if (requestId !== loadRequestId) return;
         var items = envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
@@ -840,7 +840,7 @@
         if ((attempt || 0) < 80) window.setTimeout(function () { refreshPermission((attempt || 0) + 1); }, 50);
         return;
       }
-      if (typeof api.hasPermission === 'function' && !api.hasPermission('knowledge.edit')) {
+      if (typeof api.hasPermission === 'function' && !canAttach()) {
         attachBtn.classList.add('d-none');
       }
     }
@@ -859,9 +859,9 @@
       button.disabled = true;
       try {
         var pageId = decodeURIComponent(button.getAttribute('data-task-knowledge-page-id') || '');
-        await api.request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/links', {
+        await api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/knowledge-pages', {
           method: 'POST',
-          body: { entity_type: 'task', entity_public_id: taskId, relation_type: 'related' },
+          body: { page_public_id: pageId, relation_type: 'related' },
           idempotent: true
         });
         bootstrap.Modal.getOrCreateInstance(modalEl).hide();
