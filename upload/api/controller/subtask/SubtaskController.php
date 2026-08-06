@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Subtask;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Service\SubtaskService;
 use Api\System\Library\Validation\Validator;
 
@@ -37,7 +38,6 @@ final class SubtaskController extends BaseController
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('subtask/messages.max_255'))
-            ->maxLen($input, 'description', 8000, $this->t('subtask/messages.max_8000'))
             ->enum($input, 'status', ['new', 'in_progress', 'blocked', 'done'], $this->t('subtask/messages.invalid_status'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('subtask/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('subtask/messages.invalid_due_at'));
@@ -46,9 +46,23 @@ final class SubtaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = (new HtmlSanitizer())->sanitize((string)$input['description']);
+            if (mb_strlen($input['description']) > 8000) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'description' => [$this->t('subtask/messages.max_8000')],
+                ]);
+            }
+        }
+
         /** @var SubtaskService $service */
         $service = $this->container->get('service.subtask');
         $item = $service->create((string)$params['public_id'], $input, $auth['user']);
+        if ($item === 'DESCRIPTION_TOO_LONG') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'description' => [$this->t('subtask/messages.max_8000')],
+            ]);
+        }
         if (!$item) {
             return $this->error('TASK_NOT_FOUND', $this->t('subtask/messages.task_not_found'), 404);
         }
@@ -83,7 +97,6 @@ final class SubtaskController extends BaseController
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('subtask/messages.max_255'))
-            ->maxLen($input, 'description', 8000, $this->t('subtask/messages.max_8000'))
             ->enum($input, 'status', ['new', 'in_progress', 'blocked', 'done'], $this->t('subtask/messages.invalid_status'))
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('subtask/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('subtask/messages.invalid_due_at'));
@@ -92,9 +105,23 @@ final class SubtaskController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
+        if (isset($input['description']) && is_string($input['description'])) {
+            $input['description'] = (new HtmlSanitizer())->sanitize((string)$input['description']);
+            if (mb_strlen($input['description']) > 8000) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'description' => [$this->t('subtask/messages.max_8000')],
+                ]);
+            }
+        }
+
         /** @var SubtaskService $service */
         $service = $this->container->get('service.subtask');
         $item = $service->update((string)$params['public_id'], $input, $auth['user']);
+        if ($item === 'DESCRIPTION_TOO_LONG') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'description' => [$this->t('subtask/messages.max_8000')],
+            ]);
+        }
         if (!$item) {
             return $this->error('SUBTASK_NOT_FOUND', $this->t('subtask/messages.not_found'), 404);
         }

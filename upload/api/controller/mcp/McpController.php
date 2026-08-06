@@ -5231,6 +5231,9 @@ MD;
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
         $task = $service->create($this->taskInput($arguments), $this->actor());
+        if ($task === 'DESCRIPTION_TOO_LONG') {
+            return ['error' => 'Description is too long.'];
+        }
         return is_array($task) ? ['task' => $this->publicData($task)] : ['error' => $task];
     }
 
@@ -5244,6 +5247,9 @@ MD;
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
         $task = $service->update($publicId, $this->taskInput($arguments), (int)($this->actor()['id'] ?? 0), $this->actor());
+        if ($task === 'DESCRIPTION_TOO_LONG') {
+            return ['error' => 'Description is too long.'];
+        }
         return is_array($task) ? ['task' => $this->publicData($task)] : ['error' => $task ?: 'Task not found.'];
     }
 
@@ -5378,6 +5384,9 @@ MD;
         /** @var SubtaskService $service */
         $service = $this->container->get('service.subtask');
         $item = $service->create($taskPublicId, $input, $this->actor());
+        if ($item === 'DESCRIPTION_TOO_LONG') {
+            return ['error' => 'Description is too long.'];
+        }
 
         return is_array($item) ? ['subtask' => $item] : ['error' => 'Task not found or creation failed.'];
     }
@@ -5405,6 +5414,9 @@ MD;
         /** @var SubtaskService $service */
         $service = $this->container->get('service.subtask');
         $item = $service->update($publicId, $input, $this->actor());
+        if ($item === 'DESCRIPTION_TOO_LONG') {
+            return ['error' => 'Description is too long.'];
+        }
 
         return is_array($item) ? ['subtask' => $item] : ['error' => 'Subtask not found.'];
     }

@@ -29,7 +29,7 @@
         </div>
         <form id="taskDescriptionInlineForm" class="d-none crm-task-description-edit-form">
           <label class="form-label" data-i18n="task_detail.desc_field_label"><?= htmlspecialchars($t('task_detail.desc_field_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-          <textarea id="taskDescriptionInlineInput" class="form-control" rows="5" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+          <textarea id="taskDescriptionInlineInput" class="form-control" rows="5" data-crm-visual-editor="1"></textarea>
           <div class="d-flex gap-2 mt-2"><button type="submit" class="btn btn-sm crm-btn-primary" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button><button type="button" class="btn btn-sm btn-light" data-task-inline-cancel="description" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div>
         </form>
         <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
@@ -457,7 +457,7 @@
             </div>
             <div class="col-12">
               <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_description"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" name="description" rows="5" placeholder="<?= htmlspecialchars($t('task_detail.modal_create_subtask_placeholder_description', 'Контекст, шаги, критерии готовности'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.modal_create_subtask_placeholder_description" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+              <textarea class="form-control" name="description" rows="5" placeholder="<?= htmlspecialchars($t('task_detail.modal_create_subtask_placeholder_description', 'Контекст, шаги, критерии готовности'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.modal_create_subtask_placeholder_description" data-crm-visual-editor="1"></textarea>
             </div>
           </div>
         </div>
@@ -522,7 +522,7 @@
             </div>
             <div class="col-12">
               <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_description"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-              <textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+              <textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1"></textarea>
             </div>
           </div>
         </div>

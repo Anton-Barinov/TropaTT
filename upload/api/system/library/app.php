@@ -1014,7 +1014,8 @@ final class App
             $c->get('service.task_activity'),
             $c->get('service.task_key'),
             $c->get('repository.task_key_counter'),
-            $c->get('repository.project')
+            $c->get('repository.project'),
+            new HtmlSanitizer()
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -1025,7 +1026,8 @@ final class App
             $c->get('repository.task'),
             $c->get('repository.status'),
             $c->get('service.task'),
-            $c->get('lang')
+            $c->get('lang'),
+            new HtmlSanitizer()
         ));
         $this->container->factory('service.comment', fn(Container $c) => new CommentService(
             $c->get('repository.comment'),
@@ -1068,7 +1070,8 @@ final class App
         $this->container->factory('service.subtask', fn(Container $c) => new SubtaskService(
             $c->get('repository.subtask'),
             $c->get('service.task'),
-            $c->get('service.task_key')
+            $c->get('service.task_key'),
+            new HtmlSanitizer()
         ));
         $this->container->factory('service.checklist', fn(Container $c) => new ChecklistService(
             $c->get('repository.checklist'),

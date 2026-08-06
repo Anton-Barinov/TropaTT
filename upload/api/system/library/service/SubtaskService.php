@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Subtask\SubtaskRepository;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
 
 final class SubtaskService
@@ -11,7 +12,8 @@ final class SubtaskService
     public function __construct(
         private readonly SubtaskRepository $subtasks,
         private readonly TaskService $tasks,
-        private readonly ?TaskKeyService $taskKeys = null
+        private readonly ?TaskKeyService $taskKeys = null,
+        private readonly ?HtmlSanitizer $htmlSanitizer = null
     ) {
     }
 
@@ -22,10 +24,11 @@ final class SubtaskService
             return null;
         }
 
-        return $this->subtasks->listByTaskPublicId($taskPublicId);
+        return array_map(fn(array $item): array => $this->sanitizeSubtask($item), $this->subtasks->listByTaskPublicId($taskPublicId));
     }
 
-    public function create(string $taskPublicId, array $input, array $actor): ?array
+    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|null */
+    public function create(string $taskPublicId, array $input, array $actor): array|string|null
     {
         $task = $this->tasks->get($taskPublicId, $actor);
         if (!$task) {
@@ -63,6 +66,11 @@ final class SubtaskService
             $taskKeyData = $this->taskKeys->assignNextTaskKey($childProjectId, $inheritedPrefix !== '' ? $inheritedPrefix : null);
         }
 
+        $description = $this->sanitizeDescription((string)($input['description'] ?? ''));
+        if (mb_strlen($description) > 8000) {
+            return 'DESCRIPTION_TOO_LONG';
+        }
+
         $this->subtasks->createTask([
             'public_id' => $childPublicId,
             'project_id' => $childProjectId,
@@ -70,7 +78,7 @@ final class SubtaskService
             'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
             'task_sequence_number' => $taskKeyData['task_sequence_number'] ?? null,
             'title' => trim((string)$input['title']),
-            'description' => trim((string)($input['description'] ?? '')),
+            'description' => $description,
             'status_code' => (string)($input['status'] ?? 'new'),
             'priority_code' => (string)($input['priority'] ?? ($parentTask['priority_code'] ?? 'normal')),
             'due_at' => !empty($input['due_at']) ? $this->normalizeDueAt((string)$input['due_at']) : null,
@@ -101,7 +109,8 @@ final class SubtaskService
             'updated_at' => $updatedAt,
         ]);
 
-        return $this->subtasks->findByPublicId($childPublicId);
+        $created = $this->subtasks->findByPublicId($childPublicId);
+        return $created ? $this->sanitizeSubtask($created) : null;
     }
 
     public function get(string $publicId, array $actor): ?array
@@ -116,10 +125,11 @@ final class SubtaskService
             return null;
         }
 
-        return $item;
+        return $this->sanitizeSubtask($item);
     }
 
-    public function update(string $publicId, array $input, array $actor): ?array
+    /** @return array<string,mixed>|'DESCRIPTION_TOO_LONG'|null */
+    public function update(string $publicId, array $input, array $actor): array|string|null
     {
         $current = $this->subtasks->findByPublicId($publicId);
         if (!$current) {
@@ -129,6 +139,13 @@ final class SubtaskService
         $parentTask = $this->tasks->get((string)$current['parent_task_public_id'], $actor);
         if (!$parentTask) {
             return null;
+        }
+
+        if (array_key_exists('description', $input)) {
+            $input['description'] = $this->sanitizeDescription((string)$input['description']);
+            if (mb_strlen($input['description']) > 8000) {
+                return 'DESCRIPTION_TOO_LONG';
+            }
         }
 
         $taskSet = [];
@@ -166,7 +183,8 @@ final class SubtaskService
             $this->subtasks->updateRelationByChildTaskPublicId((string)$current['public_id'], $relationSet);
         }
 
-        return $this->subtasks->findByPublicId((string)$current['public_id']);
+        $updated = $this->subtasks->findByPublicId((string)$current['public_id']);
+        return $updated ? $this->sanitizeSubtask($updated) : null;
     }
 
     public function delete(string $publicId, array $actor): bool
@@ -185,6 +203,21 @@ final class SubtaskService
         $this->subtasks->deleteRelationByChildTaskPublicId((string)$current['public_id']);
 
         return $this->subtasks->softDeleteTaskByPublicId((string)$current['public_id'], $deletedAt);
+    }
+
+    private function sanitizeDescription(string $description): string
+    {
+        return ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($description);
+    }
+
+    /** @param array<string,mixed> $item */
+    private function sanitizeSubtask(array $item): array
+    {
+        if (array_key_exists('description', $item)) {
+            $item['description'] = $this->sanitizeDescription((string)$item['description']);
+        }
+
+        return $item;
     }
 
     private function normalizeDueAt(string $value): string

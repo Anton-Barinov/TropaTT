@@ -366,8 +366,12 @@ window.CRM.br1 = (function () {
   }
 
   function refreshVisualEditors(scope, force) {
+    var root = scope || document;
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.initScope === 'function') {
+      window.CRM.VisualEditor.initScope(root);
+    }
     if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.refreshEditors === 'function') {
-      window.CRM.VisualEditor.refreshEditors(scope || document, !!force);
+      window.CRM.VisualEditor.refreshEditors(root, !!force);
     }
   }
 
@@ -2027,7 +2031,7 @@ window.CRM.br1 = (function () {
             },
             body: {
               title: title,
-              description: descInput ? descInput.value.trim() : '',
+              description: descInput ? getVisualEditorTextareaValue(descInput).trim() : '',
               start_at: normalizeDateTime(startInput && startInput.value ? startInput.value : '', '09:00'),
               due_at: normalizeDateTime(dueInput && dueInput.value ? dueInput.value : '', '18:00'),
               end_at: normalizeDateTime(endInput && endInput.value ? endInput.value : '', '18:00'),
@@ -3196,7 +3200,7 @@ window.CRM.br1 = (function () {
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_opisanie_div_div_class', '<div class="small text-muted mb-1">Описание</div><div class="mb-2">') + escapeHtml(currentTask && currentTask.description || window.CRM.i18n.t('js.br1.opisanie_otsutstvuet', 'Описание отсутствует')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="identity">'
       + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_nazvanie_labe', '<div class="col-md-6"><label class="form-label">Название</label><input class="form-control" name="title" maxlength="255" value="') + escapeHtml(currentTask && currentTask.title || '') + '"></div>'
-      + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_opisanie_labe', '<div class="col-md-6"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="3">') + escapeHtml(currentTask && currentTask.description || '') + '</textarea></div>'
+      + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_opisanie_labe', '<div class="col-md-6"><label class="form-label">Описание</label><textarea class="form-control" name="description" rows="3" data-crm-visual-editor="1">') + escapeHtml(currentTask && currentTask.description || '') + '</textarea></div>'
       + window.CRM.i18n.t('js.br1.div_class_col_12_d_flex_gap_2_button_type_submit_class', '<div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-sm crm-btn-primary">Сохранить</button><button type="button" class="btn btn-sm btn-light" data-task-edit-cancel="identity">Отмена</button></div>')
       + '</form>'
       + '</article>'
@@ -3253,6 +3257,8 @@ window.CRM.br1 = (function () {
       + '</div>'
       + '</div>'
       + '</div>';
+
+    refreshVisualEditors(panel, true);
   }
 
   function renderTaskComments(items) {
@@ -3618,7 +3624,10 @@ window.CRM.br1 = (function () {
     renderSubtaskFormTagOptions(formNode, selectedTagIds || []);
 
     if (titleInput) titleInput.value = String(subtask.title || '');
-    if (descInput) descInput.value = String(subtask.description || '');
+    if (descInput) {
+      descInput.value = String(subtask.description || '');
+      refreshVisualEditors(formNode, true);
+    }
     if (startInput) startInput.value = toDateInputValue(subtask.start_at);
     if (dueInput) dueInput.value = toDateInputValue(subtask.due_at);
     if (endInput) endInput.value = toDateInputValue(subtask.end_at);
@@ -4595,7 +4604,7 @@ window.CRM.br1 = (function () {
               title: title,
               status: String((createForm.querySelector('[name="status"]') || {}).value || 'new'),
               priority: String((createForm.querySelector('[name="priority"]') || {}).value || 'normal'),
-              description: String((createForm.querySelector('[name="description"]') || {}).value || '').trim(),
+              description: getVisualEditorTextareaValue(createForm.querySelector('[name="description"]')).trim(),
               assignee_user_public_id: String((createForm.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim(),
               due_at: String((createForm.querySelector('[name="due_at"]') || {}).value || '').trim(),
               start_at: String((createForm.querySelector('[name="start_at"]') || {}).value || '').trim(),
@@ -4655,7 +4664,7 @@ window.CRM.br1 = (function () {
               title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
               status: String((editForm.querySelector('[name="status"]') || {}).value || 'new'),
               priority: String((editForm.querySelector('[name="priority"]') || {}).value || 'normal'),
-              description: String((editForm.querySelector('[name="description"]') || {}).value || '').trim(),
+              description: getVisualEditorTextareaValue(editForm.querySelector('[name="description"]')).trim(),
               assignee_user_public_id: String((editForm.querySelector('[name="assignee_user_public_id"]') || {}).value || '').trim(),
               due_at: String((editForm.querySelector('[name="due_at"]') || {}).value || '').trim(),
               start_at: String((editForm.querySelector('[name="start_at"]') || {}).value || '').trim(),
@@ -7106,6 +7115,7 @@ window.CRM.br1 = (function () {
         var form = panel.querySelector('[data-task-manage-form="' + section + '"]');
         if (!form) return;
         form.classList.remove('d-none');
+        refreshVisualEditors(form, true);
         return;
       }
 
@@ -7139,7 +7149,7 @@ window.CRM.br1 = (function () {
       try {
         if (section === 'identity') {
           var titleValue = String((form.querySelector('[name="title"]') || {}).value || '').trim();
-          var descriptionValue = String((form.querySelector('[name="description"]') || {}).value || '').trim();
+          var descriptionValue = getVisualEditorTextareaValue(form.querySelector('[name="description"]')).trim();
           if (!titleValue) {
             notify(window.CRM.i18n.t('js.br1.vvedite_nazvanie_zadachi_2', 'Введите название задачи'), 'warning');
             return;
@@ -7265,8 +7275,10 @@ window.CRM.br1 = (function () {
       if (assigneeSelect) assigneeSelect.value = currentTask.assignee_user_public_id || '';
       if (startInput) startInput.value = toDateInputValue(currentTask.start_at);
       if (dueInput) dueInput.value = toDateInputValue(currentTask.due_at);
-      if (endInput) endInput.value = toDateInputValue(currentTask.end_at);
-      if (descInput) descInput.value = currentTask.description || '';
+      if (endInput) endInput.value = toDateInputValue(currentTask.end_at);       if (descInput) {
+         descInput.value = currentTask.description || '';
+         refreshVisualEditors(form, true);
+       }
 
       // Sync searchable-select widgets (page-api-bindings.js makeSelectSearchable):
       // they hide the native <select> and mirror the value into a visible input
@@ -7341,9 +7353,7 @@ window.CRM.br1 = (function () {
       if (dueAt) body.due_at = dueAt + ' 18:00:00';
 
       var endAt = endInput ? String(endInput.value || '').trim() : '';
-      if (endAt) body.end_at = endAt + ' 18:00:00';
-
-      var description = descInput ? descInput.value.trim() : '';
+      if (endAt) body.end_at = endAt + ' 18:00:00';       var description = descInput ? getVisualEditorTextareaValue(descInput).trim() : '';
       body.description = description;
 
       try {

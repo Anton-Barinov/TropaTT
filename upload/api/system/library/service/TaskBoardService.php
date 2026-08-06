@@ -7,6 +7,7 @@ use Api\Model\Status\StatusRepository;
 use Api\Model\Task\TaskRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
+use Api\System\Library\Security\HtmlSanitizer;
 
 final class TaskBoardService
 {
@@ -16,7 +17,8 @@ final class TaskBoardService
         private readonly TaskRepository $tasks,
         private readonly StatusRepository $statuses,
         private readonly TaskService $taskService,
-        LanguageManager $lang
+        LanguageManager $lang,
+        private readonly ?HtmlSanitizer $htmlSanitizer = null
     ) {
         $this->lang = $lang;
     }
@@ -239,7 +241,7 @@ final class TaskBoardService
         return [
             'public_id' => (string)$item['public_id'],
             'title' => (string)$item['title'],
-            'description' => (string)($item['description'] ?? ''),
+            'description' => ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize((string)($item['description'] ?? '')),
             'status_code' => (string)($item['status_code'] ?? 'new'),
             'priority_code' => (string)($item['priority_code'] ?? 'normal'),
             'due_at' => $item['due_at'] ?? null,

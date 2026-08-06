@@ -7,6 +7,7 @@ use Api\Model\Team\TeamRepository;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
 use Api\Model\Project\ProjectRepository;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
 
 final class TaskService
@@ -20,7 +21,8 @@ final class TaskService
         private readonly ?TaskActivityService $activity = null,
         private readonly ?TaskKeyService $taskKeys = null,
         private readonly ?TaskKeyCounterRepository $keyCounters = null,
-        private readonly ?ProjectRepository $projectRepo = null
+        private readonly ?ProjectRepository $projectRepo = null,
+        private readonly ?HtmlSanitizer $htmlSanitizer = null
     )
     {
     }
@@ -83,7 +85,7 @@ final class TaskService
         }
 
         return [
-            'items' => $items,
+            'items' => array_map(fn(array $item): array => $this->sanitizeTask($item), $items),
             'meta' => $meta,
         ];
     }
@@ -121,6 +123,11 @@ final class TaskService
         $updatedAt = !empty($input['updated_at']) ? (string)$input['updated_at'] : $createdAt;
 
         $directClientPublicId = trim((string)($input['client_public_id'] ?? ''));
+
+        $input['description'] = $this->sanitizeDescription((string)($input['description'] ?? ''));
+        if (mb_strlen($input['description']) > 65000) {
+            return 'DESCRIPTION_TOO_LONG';
+        }
 
         $this->tasks->create([
             'public_id' => $publicId,
@@ -169,7 +176,7 @@ final class TaskService
             $this->activity?->recordTaskCreated($createdTask, $actor, ['source_type' => $input['source_type'] ?? 'web']);
         }
 
-        return $createdTask;
+        return $this->sanitizeTask($createdTask);
     }
 
     public function get(string $publicId, array $actor): ?array
@@ -186,7 +193,7 @@ final class TaskService
             return null;
         }
 
-        return $task;
+        return $this->sanitizeTask($task);
     }
 
     public function getByTaskKey(string $taskKey, array $actor): ?array
@@ -210,10 +217,10 @@ final class TaskService
             return null;
         }
 
-        return $task;
+        return $this->sanitizeTask($task);
     }
 
-    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED' */
+    /** @return array<string,mixed>|null|'ROW_VERSION_CONFLICT'|'PROJECT_NOT_FOUND'|'PARENT_TASK_NOT_FOUND'|'INVALID_PARENT_TASK'|'FORBIDDEN_TASK_IDENTITY_EDIT'|'CYCLIC_DEPENDENCY_DETECTED'|'DESCRIPTION_TOO_LONG' */
     public function update(string $publicId, array $input, int $actorUserId, array $actor): array|string|null
     {
         $task = $this->tasks->findByPublicId($publicId);
@@ -242,6 +249,13 @@ final class TaskService
         $isAuthor = (int)($task['creator_user_id'] ?? 0) === $actorUserId;
         if (!$isAuthor && (array_key_exists('title', $input) || array_key_exists('description', $input))) {
             return 'FORBIDDEN_TASK_IDENTITY_EDIT';
+        }
+
+        if (array_key_exists('description', $input)) {
+            $input['description'] = $this->sanitizeDescription((string)$input['description']);
+            if (mb_strlen($input['description']) > 65000) {
+                return 'DESCRIPTION_TOO_LONG';
+            }
         }
 
         $set = [];
@@ -403,7 +417,7 @@ final class TaskService
             }
         }
 
-        return $updatedTask;
+        return $this->sanitizeTask($updatedTask);
     }
 
     public function delete(string $publicId, array $actor): bool
@@ -447,6 +461,21 @@ final class TaskService
             || (int)($task['project_manager_user_id'] ?? 0) === $actorId
             || (int)($task['project_team_manager_user_id'] ?? 0) === $actorId
             || in_array($actorId, $this->decodeTeamMemberIds($task['project_team_member_user_ids'] ?? null), true);
+    }
+
+    private function sanitizeDescription(string $description): string
+    {
+        return ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($description);
+    }
+
+    /** @param array<string,mixed> $task */
+    private function sanitizeTask(array $task): array
+    {
+        if (array_key_exists('description', $task)) {
+            $task['description'] = $this->sanitizeDescription((string)$task['description']);
+        }
+
+        return $task;
     }
 
     /** @return string[] */

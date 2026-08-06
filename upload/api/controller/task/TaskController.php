@@ -93,7 +93,6 @@ final class TaskController extends BaseController
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
-            ->maxLen($input, 'description', 65000, 'Description is too long')
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
 
@@ -102,9 +101,12 @@ final class TaskController extends BaseController
             $input['title'] = strip_tags((string)$input['title']);
         }
         if (isset($input['description']) && is_string($input['description'])) {
-            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+            $input['description'] = (new HtmlSanitizer())->sanitize((string)$input['description']);
         }
         $errors = $v->errors();
+        if (isset($input['description']) && mb_strlen((string)$input['description']) > 65000) {
+            $errors['description'][] = 'Description is too long';
+        }
         if (array_key_exists('status', $input)) {
             $statusCode = trim((string)$input['status']);
             if ($statusCode !== '' && !$this->isAllowedTaskStatus($statusCode)) {
@@ -127,6 +129,11 @@ final class TaskController extends BaseController
             if ($item === 'PROJECT_NOT_FOUND') {
                 return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [
                     'project' => [$this->t('common/messages.project_not_found')],
+                ]);
+            }
+            if ($item === 'DESCRIPTION_TOO_LONG') {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'description' => ['Description is too long'],
                 ]);
             }
             if ($item === 'PARENT_TASK_NOT_FOUND') {
@@ -181,7 +188,6 @@ final class TaskController extends BaseController
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
-            ->maxLen($input, 'description', 65000, 'Description is too long')
             ->enum($input, 'priority', ['low', 'normal', 'high', 'urgent'], $this->t('task/messages.invalid_priority'))
             ->date($input, 'due_at', $this->t('common/messages.invalid_date'));
 
@@ -190,7 +196,10 @@ final class TaskController extends BaseController
             $input['title'] = strip_tags((string)$input['title']);
         }
         if (isset($input['description']) && is_string($input['description'])) {
-            $input['description'] = strip_tags((string)$input['description'], '<b><i><u><p><br><ul><ol><li><a><strong><em><h1><h2><h3><h4><h5><h6><blockquote><code><pre><table><thead><tbody><tr><th><td><hr>');
+            $input['description'] = (new HtmlSanitizer())->sanitize((string)$input['description']);
+        }
+        if (isset($input['description']) && mb_strlen((string)$input['description']) > 65000) {
+            $v->addError('description', 'Description is too long');
         }
         if (isset($input['status_reason']) && is_string($input['status_reason'])) {
             $input['status_reason'] = trim(strip_tags($input['status_reason']));
@@ -223,6 +232,11 @@ final class TaskController extends BaseController
 
         if ($item === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('task/messages.row_version_conflict'), 409);
+        }
+        if ($item === 'DESCRIPTION_TOO_LONG') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'description' => ['Description is too long'],
+            ]);
         }
         if ($item === 'PROJECT_NOT_FOUND') {
             return $this->error('PROJECT_NOT_FOUND', $this->t('common/messages.project_not_found'), 404, [

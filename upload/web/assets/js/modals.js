@@ -68,7 +68,7 @@ window.CRM.modals = (function () {
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_due', 'Deadline') + '</label><input class="form-control" name="due_at" type="date"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_end', 'Planned completion') + '</label><input class="form-control" name="end_at" type="date"></div>\
         <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_tags', 'Tags') + '</label><select class="form-select" name="tag_public_ids" multiple size="5"></select><div class="form-text">' + window.CRM.i18n.t('js.modal.tags_hint', 'Select multiple tags.') + '</div></div>\
-        <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_description', 'Description') + '</label><textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1" data-richtext-off="1" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_desc', 'Context, steps, risks, acceptance criteria') + '"></textarea></div>\
+        <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_description', 'Description') + '</label><textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_desc', 'Context, steps, risks, acceptance criteria') + '"></textarea></div>\
       </div></div>\
       <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.modal.cancel', 'Cancel') + '</button><button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.modal.create', 'Create') + '</button></div>\
     </form>\
@@ -90,7 +90,7 @@ window.CRM.modals = (function () {
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_due', 'Deadline') + '</label><input class="form-control" name="due_at" type="date"></div>\
         <div class="col-md-4"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_end', 'Planned completion') + '</label><input class="form-control" name="end_at" type="date"></div>\
         <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_tags', 'Tags') + '</label><select class="form-select" name="tag_public_ids" multiple size="5"></select><div class="form-text">' + window.CRM.i18n.t('js.modal.tags_hint', 'Select multiple tags.') + '</div></div>\
-        <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_description', 'Description') + '</label><textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1" data-richtext-off="1" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_desc', 'Context, steps, risks, acceptance criteria') + '"></textarea></div>\
+        <div class="col-12"><label class="form-label">' + window.CRM.i18n.t('js.modal.label_description', 'Description') + '</label><textarea class="form-control" name="description" rows="5" data-crm-visual-editor="1" placeholder="' + window.CRM.i18n.t('js.modal.placeholder_desc', 'Context, steps, risks, acceptance criteria') + '"></textarea></div>\
       </div></div>\
       <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal">' + window.CRM.i18n.t('js.modal.cancel', 'Cancel') + '</button><button type="submit" class="btn crm-btn-primary">' + window.CRM.i18n.t('js.modal.save', 'Save') + '</button></div>\
     </form>\
