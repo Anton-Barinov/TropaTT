@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 return [
     'ru-ru' => [
+        'early_response' => ['maintenance_title' => 'Техническое обслуживание', 'maintenance_heading' => 'TropaTT находится на обслуживании', 'maintenance_body' => 'Выполняется обновление ядра. Перейдите в панель администратора, чтобы продолжить или завершить обновление: {updates_url}. Страница обновлений остаётся доступной.', 'recovery_body' => 'Аварийное восстановление доступно по адресу {rescue_url} с ключом восстановления, показанным один раз при установке или повторно выданным на странице обновлений.', 'forbidden_title' => '403 Доступ запрещён', 'forbidden_heading' => '403 Доступ запрещён', 'forbidden_body' => 'У вас нет прав для доступа к этой странице.'],
         'admin_statuses' => ['section_task_statuses' => 'Статусы задач', 'section_project_statuses' => 'Статусы проектов'],
         'client_detail' => ['btn_create_task' => 'Создать задачу', 'btn_create_project' => 'Создать проект'],
         'clients' => ['extra_attributes_hint' => 'Укажите пары «поле — значение» в JSON. После сохранения они видны в карточке и доступны для поиска.', 'field_address_actual' => 'Фактический адрес', 'filter_extra_label' => 'Кастомные поля', 'filter_extra_placeholder' => 'Например: VIP или источник', 'th_extra' => 'Доп. поля'],
@@ -20,6 +21,7 @@ return [
         'tasks' => ['filter_all_clients' => 'Все клиенты', 'filter_client' => 'Клиент', 'th_assignee' => 'Исполнитель', 'th_client' => 'Клиент', 'th_manager' => 'Менеджер'],
     ],
     'en-gb' => [
+        'early_response' => ['maintenance_title' => 'Maintenance', 'maintenance_heading' => 'TropaTT maintenance', 'maintenance_body' => 'Core update maintenance mode is active. Follow or finish the update from the admin panel: {updates_url}. The updates page stays reachable during maintenance.', 'recovery_body' => 'Emergency recovery is available at {rescue_url} using the recovery key shown once at installation or re-issued from the updates page.', 'forbidden_title' => '403 Forbidden', 'forbidden_heading' => '403 Forbidden', 'forbidden_body' => 'You do not have permission to access this page.'],
         'admin_statuses' => ['section_task_statuses' => 'Task statuses', 'section_project_statuses' => 'Project statuses'],
         'client_detail' => ['btn_create_task' => 'Create task', 'btn_create_project' => 'Create project'],
         'clients' => ['extra_attributes_hint' => 'Enter field-value pairs as JSON. They appear in the card and can be searched after saving.', 'field_address_actual' => 'Actual address', 'filter_extra_label' => 'Custom fields', 'filter_extra_placeholder' => 'For example: VIP or source', 'th_extra' => 'Extra fields'],
@@ -32,6 +34,7 @@ return [
         'tasks' => ['filter_all_clients' => 'All clients', 'filter_client' => 'Client', 'th_assignee' => 'Assignee', 'th_client' => 'Client', 'th_manager' => 'Manager'],
     ],
     'de-de' => [
+        'early_response' => ['maintenance_title' => 'Wartungsarbeiten', 'maintenance_heading' => 'TropaTT befindet sich im Wartungsmodus', 'maintenance_body' => 'Das Kernupdate wird ausgeführt. Öffnen Sie die Administrationsoberfläche, um das Update fortzusetzen oder abzuschließen: {updates_url}. Die Update-Seite bleibt während der Wartung erreichbar.', 'recovery_body' => 'Die Notfallwiederherstellung ist unter {rescue_url} mit dem bei der Installation einmalig angezeigten oder auf der Update-Seite neu ausgestellten Wiederherstellungsschlüssel verfügbar.', 'forbidden_title' => '403 Zugriff verweigert', 'forbidden_heading' => '403 Zugriff verweigert', 'forbidden_body' => 'Sie haben keine Berechtigung für diese Seite.'],
         'admin_statuses' => ['section_task_statuses' => 'Aufgabenstatus', 'section_project_statuses' => 'Projektstatus'],
         'client_detail' => ['btn_create_task' => 'Aufgabe erstellen', 'btn_create_project' => 'Projekt erstellen'],
         'clients' => ['extra_attributes_hint' => 'Geben Sie Feld-Wert-Paare als JSON ein. Nach dem Speichern erscheinen sie in der Karte und sind durchsuchbar.', 'field_address_actual' => 'Tatsächliche Adresse', 'filter_extra_label' => 'Benutzerdefinierte Felder', 'filter_extra_placeholder' => 'Zum Beispiel: VIP oder Quelle', 'th_extra' => 'Zusatzfelder'],
@@ -44,6 +47,7 @@ return [
         'tasks' => ['filter_all_clients' => 'Alle Kunden', 'filter_client' => 'Kunde', 'th_assignee' => 'Zuständig', 'th_client' => 'Kunde', 'th_manager' => 'Manager'],
     ],
     'es-es' => [
+        'early_response' => ['maintenance_title' => 'Mantenimiento', 'maintenance_heading' => 'TropaTT está en mantenimiento', 'maintenance_body' => 'Se está ejecutando una actualización del núcleo. Abra el panel de administración para continuar o finalizarla: {updates_url}. La página de actualizaciones sigue disponible durante el mantenimiento.', 'recovery_body' => 'La recuperación de emergencia está disponible en {rescue_url} con la clave mostrada una vez durante la instalación o emitida de nuevo desde la página de actualizaciones.', 'forbidden_title' => '403 Acceso denegado', 'forbidden_heading' => '403 Acceso denegado', 'forbidden_body' => 'No tiene permiso para acceder a esta página.'],
         'admin_statuses' => ['section_task_statuses' => 'Estados de tareas', 'section_project_statuses' => 'Estados de proyectos'],
         'client_detail' => ['btn_create_task' => 'Crear tarea', 'btn_create_project' => 'Crear proyecto'],
         'clients' => ['extra_attributes_hint' => 'Introduzca pares campo-valor en JSON. Después de guardar, aparecerán en la ficha y podrán buscarse.', 'field_address_actual' => 'Dirección real', 'filter_extra_label' => 'Campos personalizados', 'filter_extra_placeholder' => 'Por ejemplo: VIP u origen', 'th_extra' => 'Campos extra'],
@@ -56,6 +60,7 @@ return [
         'tasks' => ['filter_all_clients' => 'Todos los clientes', 'filter_client' => 'Cliente', 'th_assignee' => 'Responsable', 'th_client' => 'Cliente', 'th_manager' => 'Gerente'],
     ],
     'fr-fr' => [
+        'early_response' => ['maintenance_title' => 'Maintenance', 'maintenance_heading' => 'TropaTT est en maintenance', 'maintenance_body' => 'Une mise à jour du cœur est en cours. Ouvrez le panneau d’administration pour poursuivre ou terminer la mise à jour : {updates_url}. La page des mises à jour reste accessible pendant la maintenance.', 'recovery_body' => 'La récupération d’urgence est disponible à l’adresse {rescue_url} avec la clé affichée une seule fois lors de l’installation ou régénérée depuis la page des mises à jour.', 'forbidden_title' => '403 Accès interdit', 'forbidden_heading' => '403 Accès interdit', 'forbidden_body' => 'Vous n’avez pas l’autorisation d’accéder à cette page.'],
         'admin_statuses' => ['section_task_statuses' => 'Statuts des tâches', 'section_project_statuses' => 'Statuts des projets'],
         'client_detail' => ['btn_create_task' => 'Créer une tâche', 'btn_create_project' => 'Créer un projet'],
         'clients' => ['extra_attributes_hint' => 'Saisissez les paires champ-valeur en JSON. Après l’enregistrement, elles apparaîtront dans la fiche et seront recherchables.', 'field_address_actual' => 'Adresse réelle', 'filter_extra_label' => 'Champs personnalisés', 'filter_extra_placeholder' => 'Par exemple : VIP ou source', 'th_extra' => 'Champs supplémentaires'],
@@ -68,6 +73,7 @@ return [
         'tasks' => ['filter_all_clients' => 'Tous les clients', 'filter_client' => 'Client', 'th_assignee' => 'Responsable', 'th_client' => 'Client', 'th_manager' => 'Responsable'],
     ],
     'pt-br' => [
+        'early_response' => ['maintenance_title' => 'Manutenção', 'maintenance_heading' => 'O TropaTT está em manutenção', 'maintenance_body' => 'Uma atualização do núcleo está em andamento. Abra o painel administrativo para continuar ou concluir a atualização: {updates_url}. A página de atualizações permanece acessível durante a manutenção.', 'recovery_body' => 'A recuperação de emergência está disponível em {rescue_url} usando a chave exibida uma vez na instalação ou reemitida na página de atualizações.', 'forbidden_title' => '403 Acesso negado', 'forbidden_heading' => '403 Acesso negado', 'forbidden_body' => 'Você não tem permissão para acessar esta página.'],
         'admin_statuses' => ['section_task_statuses' => 'Status das tarefas', 'section_project_statuses' => 'Status dos projetos'],
         'client_detail' => ['btn_create_task' => 'Criar tarefa', 'btn_create_project' => 'Criar projeto'],
         'clients' => ['extra_attributes_hint' => 'Informe pares campo-valor em JSON. Após salvar, eles aparecem no cadastro e podem ser pesquisados.', 'field_address_actual' => 'Endereço real', 'filter_extra_label' => 'Campos personalizados', 'filter_extra_placeholder' => 'Por exemplo: VIP ou origem', 'th_extra' => 'Campos extras'],
@@ -80,6 +86,7 @@ return [
         'tasks' => ['filter_all_clients' => 'Todos os clientes', 'filter_client' => 'Cliente', 'th_assignee' => 'Responsável', 'th_client' => 'Cliente', 'th_manager' => 'Gerente'],
     ],
     'zh-cn' => [
+        'early_response' => ['maintenance_title' => '维护中', 'maintenance_heading' => 'TropaTT 正在维护', 'maintenance_body' => '核心更新正在进行。请打开管理面板继续或完成更新：{updates_url}。维护期间更新页面仍可访问。', 'recovery_body' => '可通过 {rescue_url} 进行紧急恢复，使用安装时显示一次或在更新页面重新签发的恢复密钥。', 'forbidden_title' => '403 禁止访问', 'forbidden_heading' => '403 禁止访问', 'forbidden_body' => '您没有访问此页面的权限。'],
         'admin_statuses' => ['section_task_statuses' => '任务状态', 'section_project_statuses' => '项目状态'],
         'client_detail' => ['btn_create_task' => '创建任务', 'btn_create_project' => '创建项目'],
         'clients' => ['extra_attributes_hint' => '请以 JSON 格式填写字段和值。保存后会显示在卡片中并支持搜索。', 'field_address_actual' => '实际地址', 'filter_extra_label' => '自定义字段', 'filter_extra_placeholder' => '例如：VIP 或来源', 'th_extra' => '额外字段'],
