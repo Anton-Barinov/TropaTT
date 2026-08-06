@@ -24,6 +24,27 @@ final class I18n
         $current = self::loadLocaleFile($baseDir, $locale);
         $messages = self::mergeRecursive($fallback, $current);
 
+        // Supplemental packs keep late translation fixes separate from the
+        // generated/large locale files. They are merged last so every runtime
+        // label is resolved in the requested locale instead of leaking the
+        // Russian fallback into another language.
+        $supplementalPath = $baseDir . '/language/overrides.php';
+        if (is_file($supplementalPath)) {
+            $supplemental = require $supplementalPath;
+            if (is_array($supplemental)) {
+                if (is_array($supplemental['ru-ru'] ?? null)) {
+                    /** @var array<string, mixed> $fallbackOverrides */
+                    $fallbackOverrides = $supplemental['ru-ru'];
+                    $messages = self::mergeRecursive($messages, $fallbackOverrides);
+                }
+                if ($locale !== 'ru-ru' && is_array($supplemental[$locale] ?? null)) {
+                    /** @var array<string, mixed> $localeOverrides */
+                    $localeOverrides = $supplemental[$locale];
+                    $messages = self::mergeRecursive($messages, $localeOverrides);
+                }
+            }
+        }
+
         return new self($baseDir, $locale, $messages);
     }
 

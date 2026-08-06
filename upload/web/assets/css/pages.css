@@ -16956,8 +16956,9 @@ a.task-tag:hover {
 
 /* Catalog offcanvas */
 .crm-dashboard-catalog-item {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(5.75rem, 7.5rem);
+  align-items: start;
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border, #eceff2);
@@ -16969,26 +16970,43 @@ a.task-tag:hover {
   justify-content: center;
   width: 34px;
   height: 34px;
-  flex-shrink: 0;
+  flex: 0 0 34px;
   border-radius: var(--radius-sm, 8px);
   background: var(--color-primary-50, #eef2ff);
   color: var(--color-primary, #3b82f6);
 }
 
 .crm-dashboard-catalog-body {
-  flex: 1 1 auto;
   min-width: 0;
 }
 
 .crm-dashboard-catalog-title {
   font-weight: 600;
   font-size: 0.875rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .crm-dashboard-catalog-desc {
   font-size: 0.75rem;
   color: var(--color-text-muted, #6c757d);
+  line-height: 1.4;
   margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
+.offcanvas .crm-dashboard-catalog-add {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 34px;
+  height: auto;
+  padding: 0.45rem 0.55rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .crm-dashboard-catalog-add.is-added {
@@ -16996,9 +17014,23 @@ a.task-tag:hover {
 }
 
 .crm-dashboard-catalog-required {
+  display: inline-block;
   font-size: 0.6875rem;
   color: var(--color-warning-600, #e67e00);
   margin-left: 4px;
+}
+
+@media (max-width: 420px) {
+  .crm-dashboard-catalog-item {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .offcanvas .crm-dashboard-catalog-add {
+    grid-column: 2;
+    justify-self: start;
+    width: auto;
+    max-width: 100%;
+  }
 }
 
 /* ===== Dashboard: My Week widget ===== */
