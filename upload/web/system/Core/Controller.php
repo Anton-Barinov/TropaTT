@@ -128,7 +128,14 @@ abstract class Controller
         }
 
         $titleKey = str_starts_with($routeKey, 'module_') ? substr($routeKey, 7) : $routeKey;
-        $routeTitle = $titleKey !== '' ? $i18n->t($titleKey . '.title', '') : '';
+        $titleTranslationKey = $titleKey . '.title';
+        $routeTitle = $titleKey !== '' ? $i18n->t($titleTranslationKey, '') : '';
+        // I18n::t() returns the key itself when a translation is missing and
+        // the default is empty. Never expose that implementation fallback in
+        // the document title; keep the controller-provided title instead.
+        if ($routeTitle === $titleTranslationKey) {
+            $routeTitle = '';
+        }
         $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
         $data['lang_messages'] = $this->clientMessages($i18n->all());
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
