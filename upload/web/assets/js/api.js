@@ -345,6 +345,17 @@ window.CRM.api = (function () {
     return p + '-' + Date.now() + '-' + random;
   }
 
+  function translateMessage(key, fallback, replacements) {
+    var message = fallback;
+    if (window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      message = window.CRM.i18n.t(key, fallback);
+    }
+    Object.keys(replacements || {}).forEach(function (placeholder) {
+      message = String(message).split('{' + placeholder + '}').join(String(replacements[placeholder]));
+    });
+    return message;
+  }
+
   function normalizeEnvelope(status, payload) {
     if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'success')) {
       return payload;
@@ -363,8 +374,8 @@ window.CRM.api = (function () {
 
     return {
       success: false,
-      code: 'HTTP_' + status,
-      message: 'HTTP error ' + status,
+      code: 'HTTP_' + status,        message: translateMessage('js.api.http_error', 'HTTP error {status}', { status: status }),
+
       data: null,
       errors: [],
       meta: {}
@@ -772,7 +783,7 @@ window.CRM.api = (function () {
           tError.envelope = {
             success: false,
             code: 'NETWORK_TIMEOUT',
-            message: 'Request timeout',
+            message: translateMessage('js.api.timeout', 'Response timeout expired'),
             data: null,
             errors: [String(networkError)],
             meta: { timeout_ms: timeoutMs, attempts: attempts }
@@ -789,7 +800,7 @@ window.CRM.api = (function () {
           aError.envelope = {
             success: false,
             code: 'REQUEST_ABORTED',
-            message: 'Request aborted',
+            message: translateMessage('js.api.aborted', 'Request cancelled'),
             data: null,
             errors: [String(networkError)],
             meta: { attempts: attempts }
@@ -806,7 +817,7 @@ window.CRM.api = (function () {
         nError.envelope = {
           success: false,
           code: 'NETWORK_ERROR',
-          message: 'Network error',
+          message: translateMessage('js.api.network_error', 'Network error'),
           data: null,
           errors: [String(networkError)],
           meta: { attempts: attempts }
@@ -837,7 +848,7 @@ window.CRM.api = (function () {
         invalidApiResponseError.envelope = {
           success: false,
           code: 'INVALID_API_RESPONSE',
-          message: 'API returned unexpected HTML response',
+          message: translateMessage('js.api.invalid_response', 'API returned unexpected HTML response'),
           data: null,
           errors: [],
           meta: {

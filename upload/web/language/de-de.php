@@ -5816,14 +5816,16 @@ return array (
       ),
     ),
     'api' => 
-    array (
-      'aborted' => 'Request cancelled',
-      'auth_required' => 'Re-authentication required',
-      'error' => 'API Error',
-      'network_error' => 'Network error',
-      'permission_denied' => 'Insufficient permissions',
-      'rate_limited' => 'Too many requests, try again later',
-      'timeout' => 'Response timeout expired',
+  array (
+      'aborted' => 'Anfrage abgebrochen',
+      'auth_required' => 'Erneute Anmeldung erforderlich',
+      'error' => 'API-Fehler',
+      'http_error' => 'HTTP-Fehler {status}',
+      'invalid_response' => 'Die API hat eine unerwartete HTML-Antwort zurückgegeben',
+      'network_error' => 'Netzwerkfehler',
+      'permission_denied' => 'Unzureichende Berechtigungen',
+      'rate_limited' => 'Zu viele Anfragen, versuchen Sie es später erneut',
+      'timeout' => 'Zeitüberschreitung der Antwort',
     ),
     'app' => 
     array (

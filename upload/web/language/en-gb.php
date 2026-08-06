@@ -3482,10 +3482,12 @@ return array (
       ),
     ),
     'api' => 
-    array (
+  array (
       'aborted' => 'Request cancelled',
       'auth_required' => 'Re-authentication required',
       'error' => 'API Error',
+      'http_error' => 'HTTP error {status}',
+      'invalid_response' => 'API returned an unexpected HTML response',
       'network_error' => 'Network error',
       'permission_denied' => 'Insufficient permissions',
       'rate_limited' => 'Too many requests, try again later',
