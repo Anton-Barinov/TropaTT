@@ -317,6 +317,8 @@ final class WorkCycleController extends BaseController
             'CYCLE_TASK_ALREADY_IN_ACTIVE_CYCLE',
             'ROW_VERSION_CONFLICT' => $this->error($code, $this->t('common/messages.conflict', 'Conflict'), 409, ['conflict' => [$code]]),
 
+            'CYCLE_TARGET_CYCLE_PROJECT_MISMATCH' => $this->error($code, $this->t('common/messages.validation_error', 'Target cycle must belong to the same project'), 422, ['target_cycle_public_id' => [$code]]),
+
             default => $this->error($code, $this->t('common/messages.validation_error', 'Validation error'), 422, ['validation' => [$code]]),
         };
     }
