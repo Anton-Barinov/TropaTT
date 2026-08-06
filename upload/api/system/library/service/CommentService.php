@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Comment\CommentRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Support\Ulid;
 
 final class CommentService
@@ -14,7 +15,8 @@ final class CommentService
         private readonly TaskRepository $tasks,
         private readonly ?NotificationService $notifications = null,
         private readonly ?AiSemanticIndexService $semanticIndex = null,
-        private readonly ?TaskActivityService $activity = null
+        private readonly ?TaskActivityService $activity = null,
+        private readonly ?HtmlSanitizer $htmlSanitizer = null
     )
     {
     }
@@ -25,6 +27,7 @@ final class CommentService
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
 
         [$items, $total, $page, $limit] = $this->comments->listByTaskPublicId($taskPublicId, $page, $limit);
+        $items = array_map(fn(array $item): array => $this->sanitizeComment($item), $items);
 
         return [
             'items' => $items,
@@ -41,13 +44,18 @@ final class CommentService
 
     public function createByTask(string $taskPublicId, array $input, int $authorUserId): ?array
     {
+        $body = $this->sanitizeBody((string)($input['body'] ?? ''));
+        if ($body === '') {
+            return null;
+        }
+
         $commentPublicId = Ulid::generate('cmt');
         $existingParticipants = $this->comments->participantUserIdsByTaskPublicId($taskPublicId);
 
         $created = $this->comments->createByTaskPublicId($taskPublicId, [
             'public_id' => $commentPublicId,
             'author_user_id' => $authorUserId,
-            'body' => trim((string)$input['body']),
+            'body' => $body,
             'visibility' => (string)($input['visibility'] ?? 'internal'),
             'created_at' => gmdate('Y-m-d H:i:s'),
             'updated_at' => gmdate('Y-m-d H:i:s'),
@@ -73,7 +81,7 @@ final class CommentService
             ], ['source_type' => 'web']);
         }
 
-        return $comment;
+        return $comment ? $this->sanitizeComment($comment) : null;
     }
 
     /** @return array<string,mixed>|null */
@@ -89,7 +97,11 @@ final class CommentService
 
         $set = [];
         if (array_key_exists('body', $input)) {
-            $set['body'] = trim((string)$input['body']);
+            $body = $this->sanitizeBody((string)$input['body']);
+            if ($body === '' || mb_strlen($body) > 8000) {
+                return null;
+            }
+            $set['body'] = $body;
         }
         if (array_key_exists('visibility', $input)) {
             $set['visibility'] = (string)$input['visibility'];
@@ -107,7 +119,7 @@ final class CommentService
             }
         }
 
-        return $updatedComment;
+        return $updatedComment ? $this->sanitizeComment($updatedComment) : null;
     }
 
     public function delete(string $commentPublicId, array $actor): bool
@@ -131,6 +143,19 @@ final class CommentService
         }
 
         return $deleted;
+    }
+
+    /** @param array<string,mixed> $comment */
+    private function sanitizeComment(array $comment): array
+    {
+        $comment['body'] = $this->sanitizeBody((string)($comment['body'] ?? ''));
+        return $comment;
+    }
+
+    private function sanitizeBody(string $body): string
+    {
+        $sanitized = ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($body);
+        return mb_strlen($sanitized) <= 8000 ? $sanitized : '';
     }
 
     /** @param array<string,mixed> $comment */

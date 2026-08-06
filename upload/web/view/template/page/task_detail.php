@@ -175,7 +175,7 @@
         </div>
         <form id="commentForm" class="mb-3 crm-comment-create-shell">
           <label class="form-label" data-i18n="task_detail.comment_new_label"><?= htmlspecialchars($t('task_detail.comment_new_label', 'Новый комментарий'), ENT_QUOTES, 'UTF-8') ?></label>
-          <textarea class="form-control" name="comment_text" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.comment_placeholder', 'Добавьте комментарий и сохраните его в карточке задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.comment_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
+          <textarea class="form-control" name="comment_text" rows="2" placeholder="<?= htmlspecialchars($t('task_detail.comment_placeholder', 'Добавьте комментарий и сохраните его в карточке задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.comment_placeholder" data-crm-visual-editor="1"></textarea>
           <div class="crm-comment-create-actions">
             <div class="crm-comment-mention-field">
               <label class="small text-muted mb-0" for="commentMentionUserSelect" data-i18n="task_detail.comment_mention_label"><?= htmlspecialchars($t('task_detail.comment_mention_label', 'Упомянуть:'), ENT_QUOTES, 'UTF-8') ?></label>

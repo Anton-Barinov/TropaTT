@@ -9,6 +9,7 @@ use Api\System\Library\Service\CommentService;
 use Api\System\Library\Service\CounterpartyService;
 use Api\System\Library\Service\TaskBulkService;
 use Api\System\Library\Service\TaskBoardService;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Service\TaskService;
 use Api\System\Library\Validation\Validator;
 
@@ -361,6 +362,13 @@ final class TaskController extends BaseController
 
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        }
+
+        $input['body'] = (new HtmlSanitizer())->sanitize((string)$input['body']);
+        if (trim((string)$input['body']) === '') {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                'body' => [$this->t('common/messages.field_required')],
+            ]);
         }
 
         /** @var TaskService $taskService */

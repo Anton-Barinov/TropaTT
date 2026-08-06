@@ -117,6 +117,8 @@ window.CRM.br1 = (function () {
       FIGURE: true,
       I: true,
       IMG: true,
+      DETAILS: true,
+      SUMMARY: true,
       LI: true,
       OL: true,
       P: true,
@@ -132,7 +134,7 @@ window.CRM.br1 = (function () {
       var valueHref = String(href || '').trim().toLowerCase();
       return valueHref === ''
         || valueHref.indexOf('#') === 0
-        || valueHref.indexOf('/') === 0
+        || (valueHref.indexOf('/') === 0 && valueHref.indexOf('//') !== 0)
         || valueHref.indexOf('https://') === 0
         || valueHref.indexOf('http://') === 0
         || valueHref.indexOf('mailto:') === 0;
@@ -4298,7 +4300,7 @@ window.CRM.br1 = (function () {
       editor.setAttribute('data-comment-edit-form', '1');
       editor.className = 'crm-comment-edit-shell';
       editor.innerHTML = ''
-        + '<textarea class="form-control" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1" data-richtext-off="1"></textarea>'
+        + '<textarea class="form-control" rows="3" data-comment-edit-text="' + commentPublicId + '" data-crm-visual-editor="1"></textarea>'
         + '<div class="crm-comment-edit-actions">'
         + '<button type="button" class="btn btn-sm crm-btn-primary crm-btn-compact" data-comment-save="' + commentPublicId + window.CRM.i18n.t('js.br1.sokhranit_button_2', '">Сохранить</button>')
         + '<button type="button" class="btn btn-sm btn-light crm-btn-compact" data-comment-cancel="' + commentPublicId + window.CRM.i18n.t('js.br1.otmena_button_3', '">Отмена</button>')

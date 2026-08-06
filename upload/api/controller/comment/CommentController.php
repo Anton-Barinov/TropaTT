@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Controller\Comment;
 
 use Api\Controller\Common\BaseController;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Service\CommentService;
 use Api\System\Library\Validation\Validator;
 
@@ -22,6 +23,15 @@ final class CommentController extends BaseController
         $v->enum($input, 'visibility', ['internal', 'client'], $this->t('comment/messages.invalid_visibility'));
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        }
+
+        if (array_key_exists('body', $input)) {
+            $input['body'] = (new HtmlSanitizer())->sanitize((string)$input['body']);
+            if (trim((string)$input['body']) === '') {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'body' => [$this->t('common/messages.field_required')],
+                ]);
+            }
         }
 
         /** @var CommentService $service */

@@ -37,6 +37,7 @@ use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Logger\JsonLogger;
 use Api\System\Library\Router\Router;
 use Api\System\Library\Security\PasswordHasher;
+use Api\System\Library\Security\HtmlSanitizer;
 use Api\System\Library\Security\DatabaseRateLimiter;
 use Api\System\Library\Security\RateLimiterInterface;
 use Api\System\Library\Security\TokenManager;
@@ -1031,7 +1032,8 @@ final class App
             $c->get('repository.task'),
             $c->get('service.notification'),
             $c->get('service.ai_semantic_index'),
-            $c->get('service.task_activity')
+            $c->get('service.task_activity'),
+            new HtmlSanitizer()
         ));
         $this->container->factory('service.comment_draft', fn(Container $c) => new CommentDraftService(
             $c->get('repository.comment_draft'),
