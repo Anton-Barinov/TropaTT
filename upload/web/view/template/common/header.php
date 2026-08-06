@@ -42,6 +42,18 @@ if ($assetsVersion !== '') {
 } else {
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
 }
+$jsOverridesPath = dirname(__DIR__, 3) . '/language/js_overrides.php';
+if (is_file($jsOverridesPath)) {
+  $jsOverrides = require $jsOverridesPath;
+  if (is_array($jsOverrides)) {
+    if (is_array($jsOverrides['ru-ru'] ?? null)) {
+      $lang_messages = array_replace_recursive(is_array($lang_messages ?? null) ? $lang_messages : [], $jsOverrides['ru-ru']);
+    }
+    if ($currentLocale !== 'ru-ru' && is_array($jsOverrides[$currentLocale] ?? null)) {
+      $lang_messages = array_replace_recursive($lang_messages, $jsOverrides[$currentLocale]);
+    }
+  }
+}
 ?><!doctype html>
 <html lang="<?= htmlspecialchars($htmlLang, ENT_QUOTES, 'UTF-8') ?>">
 <head>
