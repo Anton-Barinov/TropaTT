@@ -33,21 +33,6 @@ The installer capture was produced from an isolated local copy with no configura
 Fallback UI mockups with fictional labels are also available as [SVG assets](.github/assets/screenshots/README.md).
 
 ---
-
-### Product tour (SVG mockups)
-
-![TropaTT dashboard mockup](.github/assets/screenshots/dashboard.svg)
-
-| CRM | Tasks | Kanban |
-|---|---|---|
-| ![CRM counterparties mockup](.github/assets/screenshots/counterparties.svg) | ![Tasks mockup](.github/assets/screenshots/tasks.svg) | ![Kanban mockup](.github/assets/screenshots/kanban.svg) |
-
-| Gantt | Team chat | Browser installer |
-|---|---|---|
-| ![Gantt mockup](.github/assets/screenshots/gantt.svg) | ![Team chat mockup](.github/assets/screenshots/chat.svg) | ![Browser installer mockup](.github/assets/screenshots/installer.svg) |
-
-These SVGs are sanitized public mockups with fictional labels, not browser captures; they contain no customer or production data.
-
 ---
 
 ---
