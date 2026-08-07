@@ -641,15 +641,29 @@ $auJs = [
     return tr('statusChecking', 'Проверяем...');
   }
 
+  function failedJobBlocksNewUpdate(latest) {
+    if (!latest || latest.state !== 'failed') return false;
+    if (state.status && state.status.maintenance) return true;
+    if (String(latest.backup_id || '').trim() !== '') return true;
+    if (latest.can_rollback === true || latest.maintenance_held === true) return true;
+    const appliedCount = Number(
+      latest.applied_file_count
+      ?? (latest.applied && latest.applied.count)
+      ?? 0
+    );
+    return appliedCount > 0;
+  }
+
   function updateRecommendation() {
     const latest = state.status && state.status.latest_job;
     const plan = state.plan;
+    const failedBlocksNewUpdate = failedJobBlocksNewUpdate(latest);
     if (updateCenterUnavailable()) {
       const url = updateCenterUrl();
       $('nextTitle').textContent = tr('recommendCenterDownTitle', 'Сервер обновлений недоступен');
       $('nextText').textContent = tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url});
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
-    } else if (latest && latest.state === 'failed') {
+    } else if (latest && latest.state === 'failed' && failedBlocksNewUpdate) {
       const heldMaintenance = !!(state.status && state.status.maintenance);
       if (heldMaintenance) {
         $('nextTitle').textContent = tr('maintenanceHeldTitle', 'Обновление не завершено: CRM в режиме обслуживания');
@@ -860,6 +874,20 @@ $auJs = [
       setLoading(name, false);
       updateRecommendation();
     }
+  }
+
+  async function refresh() {
+    // Refresh must discard transient pipeline data and reload the plan as well
+    // as local status. Otherwise a manually copied installation can retain a
+    // failed job id from the previous page state and continue the wrong job.
+    state.plan = null;
+    state.preflight = null;
+    state.download = null;
+    state.apply = null;
+    state.changes = null;
+    state.lastJobId = null;
+    await loadStatus();
+    await check();
   }
 
   async function loadStatus() {
@@ -1073,7 +1101,7 @@ $auJs = [
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh: () => loadStatus(), check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey };
+    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey };
     if (actions[action]) withAction(action, actions[action]);
   });
 
