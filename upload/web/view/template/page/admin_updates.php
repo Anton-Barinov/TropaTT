@@ -645,7 +645,10 @@ $auJs = [
     if (!latest || latest.state !== 'failed') return false;
     if (state.status && state.status.maintenance) return true;
     if (String(latest.backup_id || '').trim() !== '') return true;
-    if (latest.can_rollback === true || latest.maintenance_held === true) return true;
+    // `can_rollback` may be true on a failed apply even when the failure
+    // happened before a backup was created. In that case there is nothing to
+    // restore, so the failed job must not block a fresh update attempt.
+    if (latest.maintenance_held === true) return true;
     const appliedCount = Number(
       latest.applied_file_count
       ?? (latest.applied && latest.applied.count)
