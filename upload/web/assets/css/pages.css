@@ -3354,6 +3354,37 @@ body.modal-open {
   background: transparent;
 }
 
+/* Keep every nested level visually legible instead of treating all subtasks
+   as one flat child tier. The renderer emits is-level-N and data-task-level
+   so the hierarchy remains visible even when nested child containers reset
+   their own layout. */
+.crm-tasks-page .crm-task-tree-item.is-level-2 > .crm-task-tree-content {
+  border-left-color: #93c5fd;
+  background: rgba(239, 246, 255, 0.42);
+}
+
+.crm-tasks-page .crm-task-tree-item.is-level-3 > .crm-task-tree-content {
+  border-left-color: #c4b5fd;
+  background: rgba(245, 243, 255, 0.52);
+}
+
+.crm-tasks-page .crm-task-tree-item.is-level-deep > .crm-task-tree-content {
+  border-left-color: #f0abfc;
+  background: rgba(253, 244, 255, 0.56);
+}
+
+.crm-tasks-page .crm-task-tree-item.is-level-2 > .crm-task-tree-content .crm-task-tree-title {
+  font-size: 0.89rem;
+}
+
+.crm-tasks-page .crm-task-tree-item.is-level-3 > .crm-task-tree-content .crm-task-tree-title {
+  font-size: 0.86rem;
+}
+
+.crm-tasks-page .crm-task-tree-item.is-level-deep > .crm-task-tree-content .crm-task-tree-title {
+  font-size: 0.83rem;
+}
+
 .crm-tasks-page .crm-task-tree-item:last-child > .crm-task-tree-content {
   border-bottom: 0;
 }
@@ -3783,6 +3814,7 @@ body.modal-open {
   }
 
   .crm-tasks-page .crm-task-tree-content {
+    display: grid;
     grid-template-columns: calc(var(--task-level, 0) * 18px) minmax(0, 1fr);
   }
 
