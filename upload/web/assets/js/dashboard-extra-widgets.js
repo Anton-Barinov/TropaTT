@@ -1,0 +1,179 @@
+(function () {
+  'use strict';
+
+  var definitions = {
+    analytics_summary: { route: 'api/v1/analytics/summary', permission: 'task.manage', kind: 'summary', link: 'index.php?route=analytics' },
+    project_health: { route: 'api/v1/analytics/projects', permission: 'task.manage', kind: 'projects', link: 'index.php?route=analytics' },
+    team_workload: { route: 'api/v1/analytics/users', permission: 'task.manage', kind: 'users', link: 'index.php?route=analytics' },
+    notification_inbox: { route: 'api/v1/notifications', permission: 'task.manage', kind: 'notifications', query: { limit: 5 }, link: 'index.php?route=notifications' },
+    chat_unread: { route: 'api/v1/chats/unread-count', permission: 'chat.use', kind: 'count', link: 'index.php?route=chat' },
+    client_pipeline: { route: 'api/v1/clients', permission: 'client.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    company_directory: { route: 'api/v1/companies', permission: 'company.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    contact_followups: { route: 'api/v1/contacts', permission: 'contact.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    tag_usage: { route: 'api/v1/tags', permission: 'task.manage', kind: 'tags', query: { limit: 6 }, link: 'index.php?route=admin-tags' },
+    saved_views: { route: 'api/v1/views', permission: 'task.manage', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
+    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, link: 'index.php?route=tasks' },
+    dependency_watch: { route: 'api/v1/dependencies', permission: 'task.manage', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
+    milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', query: { limit: 6 }, link: 'index.php?route=projects' },
+    recurring_health: { route: 'api/v1/recurring', permission: 'task.manage', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
+    approval_queue: { route: 'api/v1/approvals', permission: 'approval.manage', kind: 'approvals', query: { limit: 6 }, link: 'index.php?route=approvals' },
+    intake_sla: { route: 'api/v1/intake-items', permission: 'intake.view', kind: 'intake', query: { limit: 6 }, link: 'index.php?route=intake' },
+    webhook_health: { route: 'api/v1/webhooks/deliveries', permission: 'webhook.manage', kind: 'webhooks', query: { limit: 6 }, link: 'index.php?route=admin-webhooks' },
+    workflow_automation: { route: 'api/v1/workflow/rules', permission: 'settings.manage', kind: 'workflows', query: { limit: 6 }, link: 'index.php?route=admin-workflow' },
+    system_health: { route: 'api/v1/health/status', kind: 'health', link: 'index.php?route=admin' },
+    active_sessions: { route: 'api/v1/security/sessions', permission: 'logs.view', kind: 'sessions', query: { limit: 6 }, link: 'index.php?route=profile' }
+  };
+
+  function api() {
+    return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' ? window.CRM.api : null;
+  }
+
+  function safe(value) {
+    if (window.CRM && window.CRM.text && typeof window.CRM.text.safeText === 'function') return window.CRM.text.safeText(value);
+    var text = String(value === null || value === undefined ? '' : value);
+    return text.replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]; });
+  }
+
+  function translate(key, fallback) {
+    return window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
+      ? window.CRM.i18n.t(key, fallback)
+      : fallback;
+  }
+
+  function hasPermission(permission) {
+    if (!permission) return true;
+    return !!api() && typeof api().hasPermission === 'function' && api().hasPermission(permission);
+  }
+
+  function items(envelope) {
+    return envelope && envelope.data && Array.isArray(envelope.data.items) ? envelope.data.items : [];
+  }
+
+  function data(envelope) {
+    return envelope && envelope.data && typeof envelope.data === 'object' ? envelope.data : {};
+  }
+
+  function request(definition) {
+    if (!api()) return Promise.resolve({ success: false, data: null });
+    return api().request(definition.route, { method: 'GET', query: definition.query || {} }).catch(function () {
+      return { success: false, data: null };
+    });
+  }
+
+  function value(item, fields, fallback) {
+    for (var i = 0; i < fields.length; i += 1) {
+      var candidate = item && item[fields[i]];
+      if (candidate !== undefined && candidate !== null && String(candidate).trim() !== '') return candidate;
+    }
+    return fallback || '—';
+  }
+
+  function link(definition, id) {
+    if (!id) return definition.link;
+    if (String(definition.link).indexOf('route=task') >= 0) return definition.link + '&task_public_id=' + encodeURIComponent(id);
+    return definition.link;
+  }
+
+  function row(label, valueHtml, href) {
+    var content = href ? '<a href="' + safe(href) + '">' + valueHtml + '</a>' : valueHtml;
+    return '<div class="crm-dashboard-overview-row"><span>' + safe(label) + '</span><strong>' + content + '</strong></div>';
+  }
+
+  function renderSummary(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      return renderList(container, envelope, definition);
+    }
+    var summary = data(envelope).summary || {};
+    var entries = [
+      [translate('dashboard.extra_active_tasks', 'Активные задачи'), Number(summary.active_tasks !== undefined ? summary.active_tasks : Math.max(0, Number(summary.total_tasks || 0) - Number(summary.completed_tasks || 0)))],
+      [translate('dashboard.extra_overdue_tasks', 'Просроченные задачи'), Number(summary.overdue_tasks || 0)],
+      [translate('dashboard.extra_active_projects', 'Активные проекты'), Number(summary.active_projects || summary.total_projects || 0)],
+      [translate('dashboard.extra_week_minutes', 'Минут за неделю'), Number(summary.worklog_minutes_week || 0)]
+    ];
+    container.innerHTML = entries.map(function (entry) { return row(entry[0], safe(String(entry[1])), definition.link); }).join('');
+  }
+
+  function renderCount(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      return renderList(container, envelope, definition);
+    }
+    var count = Number(data(envelope).count || 0);
+    container.innerHTML = '<div class="crm-dashboard-extra-count"><strong>' + safe(String(count)) + '</strong><span>' + safe(translate('dashboard.extra_unread_count', 'непрочитанных диалогов')) + '</span></div><a class="btn btn-sm crm-btn-secondary mt-2" href="' + safe(definition.link) + '">' + safe(translate('dashboard.extra_open', 'Открыть')) + '</a>';
+  }
+
+  function renderList(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var list = items(envelope).slice(0, 6);
+    if (!list.length) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+    container.innerHTML = list.map(function (item) {
+      var id = value(item, ['public_id'], '');
+      var title = value(item, ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title'], translate('dashboard.extra_untitled', 'Без названия'));
+      var meta = value(item, ['status_title', 'status_code', 'priority_title', 'priority_code', 'due_at', 'next_run_at', 'created_at', 'updated_at'], '');
+      var href = link(definition, id);
+      return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(href) + '">' + safe(title) + '</a>' + (meta ? '<small>' + safe(meta) + '</small>' : '') + '</div></div>';
+    }).join('');
+  }
+
+  function renderTags(container, envelope, definition) {
+    var list = items(envelope).slice(0, 6);
+    if (!list.length) { renderList(container, envelope, definition); return; }
+    container.innerHTML = list.map(function (tag) {
+      var title = value(tag, ['title', 'code'], '—');
+      var count = Number(tag.usage_count || tag.tasks_count || 0);
+      return '<div class="crm-dashboard-extra-row"><span class="crm-chip">' + safe(title) + '</span><strong>' + safe(String(count)) + '</strong></div>';
+    }).join('');
+  }
+
+  function renderHealth(container, envelope) {
+    if (!envelope || envelope.success === false) {
+      return renderList(container, envelope, { link: 'index.php?route=admin' });
+    }
+    var health = data(envelope);
+    var ok = health.status === 'ok';
+    container.innerHTML = '<div class="crm-dashboard-extra-health ' + (ok ? 'is-ok' : 'is-error') + '"><span></span><strong>' + safe(ok ? translate('dashboard.extra_healthy', 'Работает') : translate('dashboard.extra_unhealthy', 'Требует проверки')) + '</strong></div>'
+      + (health.version ? '<small class="text-muted">' + safe(health.version) + '</small>' : '');
+  }
+
+  function render(definition, envelope) {
+    var key = definition.key;
+    var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
+    if (!container) return;
+    if (definition.kind === 'summary') return renderSummary(container, envelope, definition);
+    if (definition.kind === 'count') return renderCount(container, envelope, definition);
+    if (definition.kind === 'health') return renderHealth(container, envelope);
+    if (definition.kind === 'tags') return renderTags(container, envelope, definition);
+    return renderList(container, envelope, definition);
+  }
+
+  function activeKeys() {
+    var config = window.CRM && window.CRM.dashboardWidgetsConfig;
+    var active = config && Array.isArray(config.active) ? config.active : [];
+    return active.filter(function (key) { return definitions[key] && hasPermission(definitions[key].permission); });
+  }
+
+  var loaded = false;
+
+  function load() {
+    if (loaded || !document.querySelector('[data-page="dashboard"]')) return;
+    var keys = activeKeys();
+    if (!keys.length) return;
+    loaded = true;
+    Promise.all(keys.map(function (key) {
+      var definition = Object.assign({}, definitions[key], { key: key });
+      var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
+      if (container) container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.loading_widget', 'Загрузка...')) + '</div>';
+      return request(definition).then(function (envelope) { render(definition, envelope); });
+    })).catch(function () { loaded = false; });
+  }
+
+  document.addEventListener('crm:page-data-ready', load);
+  document.addEventListener('DOMContentLoaded', function () {
+    window.setTimeout(load, 1000);
+  });
+}());

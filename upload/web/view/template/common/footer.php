@@ -133,7 +133,10 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <script defer src="assets/js/br1.js?v=<?= urlencode($assetsVersion) ?>"></script><?php if ($needsPageApiBindings):
 ?><script defer src="assets/js/page-api-bindings.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
-?><?php if ($needsTaskActivity):
+?><?php if ($currentRoute === 'dashboard'): ?>
+<script defer src="assets/js/dashboard-extra-widgets.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsTaskActivity):
 ?><script defer src="assets/js/task/task-activity.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif;
 ?>

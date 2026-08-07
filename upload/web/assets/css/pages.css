@@ -6632,6 +6632,69 @@ body.modal-open {
   padding-right: 4px;
 }
 
+.crm-dashboard-page .crm-dashboard-extra-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+
+.crm-dashboard-page .crm-dashboard-extra-row:last-child {
+  border-bottom: 0;
+}
+
+.crm-dashboard-page .crm-dashboard-extra-row a {
+  color: var(--crm-text);
+  text-decoration: none;
+  font-weight: 650;
+}
+
+.crm-dashboard-page .crm-dashboard-extra-row a:hover {
+  color: var(--crm-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.crm-dashboard-page .crm-dashboard-extra-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--crm-text-muted);
+  font-size: var(--text-xs);
+}
+
+.crm-dashboard-page .crm-dashboard-extra-count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--crm-text-muted);
+}
+
+.crm-dashboard-page .crm-dashboard-extra-count strong {
+  color: var(--crm-text);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.crm-dashboard-page .crm-dashboard-extra-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+}
+
+.crm-dashboard-page .crm-dashboard-extra-health > span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--crm-danger);
+}
+
+.crm-dashboard-page .crm-dashboard-extra-health.is-ok > span {
+  background: var(--crm-success);
+}
+
 .crm-dashboard-page .crm-dashboard-overview-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
