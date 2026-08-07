@@ -297,7 +297,7 @@ window.CRM.navigation = (function () {
       var activeClass = index === activeIndex ? ' active' : '';
       var subtitle = resultTypeLabel(item.entity_type) + (score > 0 ? (' · ' + t('nav.score', 'score') + ' ' + score.toFixed(2)) : '');
       return '<a class="dropdown-item crm-search-result' + activeClass + '" href="' + resultUrl(item) + '" data-search-result-index="' + index + '">'
-        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || t('nav.untitled', 'Untitled')) + '</strong><span class="text-muted small">AI</span></div>'
+        + '<div class="d-flex justify-content-between gap-2"><strong>' + escapeHtml(item.label || t('nav.untitled', 'Untitled')) + '</strong><span class="text-muted small">' + escapeHtml(t('nav.ai_search_short', 'AI')) + '</span></div>'
         + '<div class="small text-muted">' + escapeHtml(subtitle) + '</div>'
         + '</a>';
     }).join('');
@@ -799,7 +799,7 @@ window.CRM.navigation = (function () {
         modeToggle.setAttribute('data-search-mode-toggle', '1');
         modeToggle.setAttribute('title', t('nav.ai_search', 'AI Search'));
         modeToggle.setAttribute('aria-label', t('nav.ai_search', 'AI Search'));
-        modeToggle.textContent = 'AI';
+        modeToggle.textContent = t('nav.ai_search_short', 'AI');
         input.insertAdjacentElement('afterend', modeToggle);
       }
     }
@@ -1174,7 +1174,7 @@ window.CRM.navigation = (function () {
     modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
       + '<div class="modal-header">'
       + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + escapeHtml(t('nav.customize_menu', 'Customize menu')) + '</h5>'
-      + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+      + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + escapeHtml(t('page.close', 'Close')) + '"></button>'
       + '</div>'
       + '<div class="modal-body">'
       + '<p class="text-muted small mb-3">' + escapeHtml(t('nav.customize_menu_hint', 'Drag to reorder items, toggle switches to show or hide menu items.')) + '</p>'
@@ -1259,7 +1259,7 @@ window.CRM.navigation = (function () {
       : '';
     var hrefAttribute = isCustom ? ' data-custom-href="' + escapeHtml(customHref || '') + '"' : '';
     return '<div class="crm-menu-customize-item' + (isCustom ? ' crm-menu-customize-item--custom' : '') + '" data-key="' + escapeHtml(key) + '" data-is-custom="' + (isCustom ? '1' : '0') + '"' + hrefAttribute + '>'
-      + '<span class="crm-menu-customize-drag" title="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>'
+      + '<span class="crm-menu-customize-drag" title="' + escapeHtml(t('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
       + '<span class="crm-menu-customize-icon">' + iconHtml + '</span>'
       + '<span class="crm-menu-customize-label">' + escapeHtml(label) + '</span>'
       + '<label class="crm-menu-customize-toggle">'

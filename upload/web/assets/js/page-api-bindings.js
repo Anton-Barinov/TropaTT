@@ -8415,7 +8415,7 @@ window.CRM.pageApiBindings = (function () {
 
         var idRow = document.createElement('div');
         idRow.className = 'text-muted';
-        idRow.textContent = 'ID: ' + publicId;
+        idRow.textContent = tp('notifications.push_device_id_prefix', 'ID: ') + publicId;
         info.appendChild(idRow);
 
         if (seen) {
@@ -8776,7 +8776,7 @@ window.CRM.pageApiBindings = (function () {
           input.checked = matrix[category][channel] !== false;
           input.setAttribute('data-matrix-category', category);
           input.setAttribute('data-matrix-channel', channel);
-          input.setAttribute('aria-label', (labels[category] || category) + ': ' + (channel === 'in_app' ? tp('notifications.channel_in_app', 'in-app') : channel === 'sound' ? tp('notifications.channel_sound', 'sound') : 'push'));
+          input.setAttribute('aria-label', (labels[category] || category) + ': ' + (channel === 'in_app' ? tp('notifications.channel_in_app', 'in-app') : channel === 'sound' ? tp('notifications.channel_sound', 'sound') : tp('notifications.channel_push', 'push')));
           if (category === 'security' && channel === 'in_app') {
             input.checked = true;
             input.disabled = true;
@@ -12585,7 +12585,7 @@ window.CRM.pageApiBindings = (function () {
             var isVisible = visMap[item.key] !== false;
             var iconClass = menuIcons[item.key] || 'fa-circle-dot';
             return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -12604,7 +12604,7 @@ window.CRM.pageApiBindings = (function () {
           modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
             + '<div class="modal-header">'
             + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('teams.menu_template', 'Menu template')) + ' — ' + teamTitle + '</h5>'
-            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
             + '</div>'
             + '<div class="modal-body">'
             + '<p class="text-muted small mb-3">' + safeText(tp('teams.menu_template_hint', 'Configure the default menu for all members of this team. Drag to reorder, toggle to show/hide.')) + '</p>'
@@ -14965,7 +14965,7 @@ window.CRM.pageApiBindings = (function () {
             var isVisible = orderKeys.length === 0 || visMap[item.key] !== false;
             var iconClass = menuIcons[item.key] || 'fa-circle-dot';
             return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -14978,7 +14978,7 @@ window.CRM.pageApiBindings = (function () {
           var customHtml = customItems.map(function (item) {
             var iconClass = item.icon || 'fa-link';
           return '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(item.key) + '" data-is-custom="1" data-custom-href="' + safeText(item.href || '') + '">'
-            + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(item.title || item.key) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -14997,7 +14997,7 @@ window.CRM.pageApiBindings = (function () {
           modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
             + '<div class="modal-header">'
             + '<h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>' + safeText(tp('admin.user_menu_title', 'Menu settings')) + ' — ' + userName + '</h5>'
-            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+            + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
             + '</div>'
             + '<div class="modal-body">'
             + '<p class="text-muted small mb-3">' + safeText(tp('admin.user_menu_hint', 'Configure menu for this user. Drag to reorder, toggle to show/hide.')) + '</p>'
@@ -15060,7 +15060,7 @@ window.CRM.pageApiBindings = (function () {
             var key = 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
             var iconClass = icon || 'fa-link';
             var rowHtml = '<div class="crm-menu-customize-item crm-menu-customize-item--custom" data-key="' + safeText(key) + '" data-is-custom="1" data-custom-href="' + safeText(href) + '">'
-              + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+              + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
               + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + safeText(iconClass) + '"></i></span>'
               + '<span class="crm-menu-customize-label">' + safeText(title) + '</span>'
               + '<label class="crm-menu-customize-toggle">'
@@ -15336,7 +15336,7 @@ window.CRM.pageApiBindings = (function () {
           var isVisible = visMap[item.key] !== false;
           var iconClass = menuIcons[item.key] || 'fa-circle-dot';
           return '<div class="crm-menu-customize-item" data-key="' + safeText(item.key) + '">'
-            + '<span class="crm-menu-customize-drag" title="Drag"><i class="fa-solid fa-grip-vertical"></i></span>'
+            + '<span class="crm-menu-customize-drag" title="' + safeText(tp('nav.drag_reorder', 'Drag to reorder')) + '"><i class="fa-solid fa-grip-vertical"></i></span>'
             + '<span class="crm-menu-customize-icon"><i class="fa-solid ' + iconClass + '"></i></span>'
             + '<span class="crm-menu-customize-label">' + safeText(item.label) + '</span>'
             + '<label class="crm-menu-customize-toggle">'
@@ -15355,7 +15355,7 @@ window.CRM.pageApiBindings = (function () {
         modal.innerHTML = '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'
           + '<div class="modal-header">'
           + '<h5 class="modal-title"><i class="fa-solid fa-shield-halved me-2"></i>' + safeText(tp('admin.role_menu_template', 'Role menu template')) + ' — ' + roleTitle + '</h5>'
-          + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+          + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + safeText(tp('page.close', 'Close')) + '"></button>'
           + '</div>'
           + '<div class="modal-body">'
           + '<p class="text-muted small mb-3">' + safeText(tp('admin.role_menu_template_hint', 'Configure the default menu for all users with this role. This is the highest priority — items hidden here cannot be shown by team or user settings.')) + '</p>'
@@ -18233,7 +18233,7 @@ window.CRM.pageApiBindings = (function () {
       marker.className = 'gantt-dep-marker';
       marker.style.cssText = 'position:absolute;left:' + (tgtPos.left + 10) + 'px;top:' + (tgtPos.top + 4) + 'px;width:16px;height:16px;border-radius:50%;background:white;border:1.5px solid #ea580c;cursor:pointer;z-index:11;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ea580c;';
       marker.textContent = '!';
-      marker.title = 'Dependency violated — ' + (info.sourceTitles ? info.sourceTitles.join(', ') : '') + ' → ' + (tgtPos.title || '');
+      marker.title = tp('gantt.dependency_violated', 'Dependency violated') + ' — ' + (info.sourceTitles ? info.sourceTitles.join(', ') : '') + ' → ' + (tgtPos.title || '');
       marker.setAttribute('data-conflict-idx', k);
 
       (function (marker, idx) {
@@ -23555,7 +23555,7 @@ window.CRM.pageApiBindings = (function () {
             var nameTd = document.createElement('td');
             nameTd.textContent = settingLabel(name);
             if (settingLabel(name) !== name && name) {
-              nameTd.title = 'API key: ' + name;
+              nameTd.title = tp('admin_settings.api_key_title', 'API key: ') + name;
             }
             tr.appendChild(nameTd);
 
@@ -23597,7 +23597,7 @@ window.CRM.pageApiBindings = (function () {
           tr.setAttribute('data-retention-field', field);
           var nameTd = document.createElement('td');
           nameTd.textContent = retentionLabel(field);
-          nameTd.title = 'API field: ' + field;
+          nameTd.title = tp('admin_settings.api_field_title', 'API field: ') + field;
           tr.appendChild(nameTd);
 
           var valueTd = document.createElement('td');
