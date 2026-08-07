@@ -13,7 +13,7 @@ final class DashboardController extends BaseController
 
     private const WIDGET_DEFINITIONS = [
         'kpi' => ['label_key' => 'dashboard.widget_kpi', 'label' => 'KPI metrics', 'description_key' => 'dashboard.widget_kpi_desc', 'description' => 'Active tasks, overdue, active projects and weekly SLA counters.', 'size' => 'crm-col-12', 'icon' => 'fa-rectangle-list', 'default_enabled' => true, 'permissions' => ['task.manage']],
-        'quick_actions' => ['label_key' => 'dashboard.quick_actions', 'label' => 'Quick actions', 'description_key' => 'dashboard.widget_quick_actions_desc', 'description' => 'Shortcuts to open the last task, assign an assignee, create a project and more.', 'size' => 'crm-col-12', 'icon' => 'fa-bolt', 'default_enabled' => true, 'permissions' => ['task.manage']],
+        'quick_actions' => ['label_key' => 'dashboard.quick_actions', 'label' => 'Quick actions', 'description_key' => 'dashboard.widget_quick_actions_desc', 'description' => 'Shortcuts to open the last task, assign an assignee, create a project and more.', 'size' => 'crm-col-12', 'icon' => 'fa-bolt', 'default_enabled' => true, 'permissions' => ['task.manage', 'project.manage']],
         'ai_digest' => ['label_key' => 'dashboard.ai_digest_title', 'label' => 'AI daily digest', 'description_key' => 'dashboard.widget_ai_digest_desc', 'description' => 'AI summary of risks, highlights and recommended actions for the day.', 'size' => 'crm-col-12', 'icon' => 'fa-wand-magic-sparkles', 'default_enabled' => true, 'permissions' => ['ai.use']],
         'today_tasks' => ['label_key' => 'dashboard.today_tasks', 'label' => 'Tasks for today', 'description_key' => 'dashboard.widget_today_tasks_desc', 'description' => 'Tasks with deadlines today with project, assignee and status.', 'size' => 'crm-col-12', 'icon' => 'fa-list-check', 'default_enabled' => true, 'permissions' => ['task.manage']],
         'risks' => ['label_key' => 'dashboard.risks_title', 'label' => 'Risks', 'description_key' => 'dashboard.widget_risks_desc', 'description' => 'Overdue, blocked tasks and risky projects alerts.', 'size' => 'crm-col-4', 'icon' => 'fa-triangle-exclamation', 'default_enabled' => true, 'permissions' => ['task.manage']],
@@ -21,8 +21,8 @@ final class DashboardController extends BaseController
         'projects_overview' => ['label_key' => 'dashboard.projects_overview', 'label' => 'Projects overview', 'description_key' => 'dashboard.widget_projects_overview_desc', 'description' => 'Unread notifications, events today, tasks and the last updated project.', 'size' => 'crm-col-4', 'icon' => 'fa-folder-open', 'default_enabled' => true, 'permissions' => ['project.manage']],
         'knowledge' => ['label_key' => 'dashboard.knowledge_title', 'label' => 'Knowledge base', 'description_key' => 'dashboard.widget_knowledge_desc', 'description' => 'Knowledge base stats and recent pages.', 'size' => 'crm-col-4', 'icon' => 'fa-book', 'default_enabled' => true, 'permissions' => ['knowledge.view']],
         'cycles' => ['label_key' => 'dashboard.cycles_title', 'label' => 'Active cycles', 'description_key' => 'dashboard.widget_cycles_desc', 'description' => 'Active work cycles with progress bars.', 'size' => 'crm-col-4', 'icon' => 'fa-rotate', 'default_enabled' => true, 'permissions' => ['task.manage']],
-        'reminders' => ['label_key' => 'dashboard.widget_reminders', 'label' => 'My reminders', 'description_key' => 'dashboard.widget_reminders_desc', 'description' => 'Upcoming reminders for today.', 'size' => 'crm-col-4', 'icon' => 'fa-bell', 'default_enabled' => false, 'permissions' => []],
-        'my_day' => ['label_key' => 'dashboard.widget_my_day', 'label' => 'My day', 'description_key' => 'dashboard.widget_my_day_desc', 'description' => 'Today events, tasks due and reminders in one block.', 'size' => 'crm-col-6', 'icon' => 'fa-sun', 'default_enabled' => false, 'permissions' => []],
+        'reminders' => ['label_key' => 'dashboard.widget_reminders', 'label' => 'My reminders', 'description_key' => 'dashboard.widget_reminders_desc', 'description' => 'Upcoming reminders for today.', 'size' => 'crm-col-4', 'icon' => 'fa-bell', 'default_enabled' => false, 'permissions' => ['task.manage']],
+        'my_day' => ['label_key' => 'dashboard.widget_my_day', 'label' => 'My day', 'description_key' => 'dashboard.widget_my_day_desc', 'description' => 'Today events, tasks due and reminders in one block.', 'size' => 'crm-col-6', 'icon' => 'fa-sun', 'default_enabled' => false, 'permissions' => ['task.manage']],
         'sticky_notes' => ['label_key' => 'dashboard.widget_sticky_notes', 'label' => 'Sticky notes', 'description_key' => 'dashboard.widget_sticky_notes_desc', 'description' => 'Personal sticky notes with pinning and quick creation.', 'size' => 'crm-col-4', 'icon' => 'fa-note-sticky', 'default_enabled' => false, 'permissions' => ['task.manage']],
         'worklog' => ['label_key' => 'dashboard.widget_worklog', 'label' => 'My time', 'description_key' => 'dashboard.widget_worklog_desc', 'description' => 'Time logged today and this week with a 7-day breakdown.', 'size' => 'crm-col-6', 'icon' => 'fa-hourglass-half', 'default_enabled' => false, 'permissions' => ['task.manage']],
         'my_tasks' => ['label_key' => 'dashboard.widget_my_tasks', 'label' => 'My tasks', 'description_key' => 'dashboard.widget_my_tasks_desc', 'description' => 'Open tasks assigned to you, sorted by deadline and priority.', 'size' => 'crm-col-12', 'icon' => 'fa-user-check', 'default_enabled' => false, 'permissions' => ['task.manage']],
@@ -221,18 +221,22 @@ final class DashboardController extends BaseController
             return true;
         }
 
-        if ($this->container->has('service.authz')) {
-            try {
-                /** @var \\Api\\System\\Library\\Service\\AuthzService $authz */
-                $authz = $this->container->get('service.authz');
-                return $authz->hasPermissions($user, $required);
-            } catch (\Throwable $e) {
-                error_log('[DashboardController::widgetAllowed] ' . $e->getMessage());
-            }
+        // Permission checks must fail closed. The user-provided auth context and
+        // widget preferences must never become an authorization fallback when
+        // the authoritative RBAC service is unavailable or throws.
+        if (!$this->container->has('service.authz')) {
+            error_log('[DashboardController::widgetAllowed] Authorization service is unavailable');
+            return false;
         }
 
-        $granted = array_map('strval', (array)($user['permission_codes'] ?? []));
-        return in_array('*', $granted, true) || count(array_intersect($required, $granted)) === count($required);
+        try {
+            /** @var \\Api\\System\\Library\\Service\\AuthzService $authz */
+            $authz = $this->container->get('service.authz');
+            return $authz->hasPermissions($user, $required);
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::widgetAllowed] ' . $e->getMessage());
+            return false;
+        }
     }
 
     private function buildCatalog(array $user): array

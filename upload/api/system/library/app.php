@@ -1335,10 +1335,12 @@ final class App
             $c->get('logger')
         ));
         $this->container->factory('service.dashboard', fn(Container $c) => new DashboardService(
-            $c->get('repository.dashboard')
+            $c->get('repository.dashboard'),
+            $c->get('repository.team')
         ));
         $this->container->factory('service.analytics', fn(Container $c) => new AnalyticsService(
-            $c->get('repository.analytics')
+            $c->get('repository.analytics'),
+            $c->get('repository.team')
         ));
         $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
             $c->get('repository.task_activity')

@@ -15,19 +15,12 @@ final class AnalyticsController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $cache = $this->cacheApi();
-        if ($cache !== null) {
-            $cacheKey = 'summary:' . $this->cacheUserId();
-            $summary = $cache->remember('analytics', $cacheKey, 60, function () use ($authUser) {
-                /** @var AnalyticsService $service */
-                $service = $this->container->get('service.analytics');
-                return $service->summary($authUser['user']);
-            });
-        } else {
-            /** @var AnalyticsService $service */
-            $service = $this->container->get('service.analytics');
-            $summary = $service->summary($authUser['user']);
-        }
+        // Analytics aggregates are authorization-sensitive. Do not serve a
+        // stale file-cache entry after role, team membership, or hierarchy
+        // changes; the service applies the current actor scope on every call.
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        $summary = $service->summary($authUser['user']);
 
         return $this->success('ANALYTICS_SUMMARY', $this->t('analytics/messages.summary'), [
             'summary' => $summary,
@@ -41,21 +34,11 @@ final class AnalyticsController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $cache = $this->cacheApi();
-        if ($cache !== null) {
-            $input = $this->request()->allInput();
-            ksort($input);
-            $cacheKey = 'projects:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
-            $items = $cache->remember('analytics', $cacheKey, 60, function () use ($input, $authUser) {
-                /** @var AnalyticsService $service */
-                $service = $this->container->get('service.analytics');
-                return $service->projects($authUser['user'], $input);
-            });
-        } else {
-            /** @var AnalyticsService $service */
-            $service = $this->container->get('service.analytics');
-            $items = $service->projects($authUser['user'], $this->request()->allInput());
-        }
+        // Keep the current authorization scope authoritative for every request.
+        // In particular, a team or role change must not wait for a cache TTL.
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        $items = $service->projects($authUser['user'], $this->request()->allInput());
 
         return $this->success('ANALYTICS_PROJECTS', $this->t('analytics/messages.projects'), [
             'items' => $items,
@@ -69,21 +52,11 @@ final class AnalyticsController extends BaseController
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 
-        $cache = $this->cacheApi();
-        if ($cache !== null) {
-            $input = $this->request()->allInput();
-            ksort($input);
-            $cacheKey = 'users:' . $this->cacheUserId() . ':' . hash('sha256', json_encode($input));
-            $items = $cache->remember('analytics', $cacheKey, 60, function () use ($input, $authUser) {
-                /** @var AnalyticsService $service */
-                $service = $this->container->get('service.analytics');
-                return $service->users($authUser['user'], $input);
-            });
-        } else {
-            /** @var AnalyticsService $service */
-            $service = $this->container->get('service.analytics');
-            $items = $service->users($authUser['user'], $this->request()->allInput());
-        }
+        // User workload is also object-scoped and must be recalculated after
+        // hierarchy/team changes instead of being served from a stale cache.
+        /** @var AnalyticsService $service */
+        $service = $this->container->get('service.analytics');
+        $items = $service->users($authUser['user'], $this->request()->allInput());
 
         return $this->success('ANALYTICS_USERS', $this->t('analytics/messages.users'), [
             'items' => $items,
