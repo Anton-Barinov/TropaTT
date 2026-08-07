@@ -36,8 +36,8 @@ final class DashboardAiContextBuilder
     public function buildAnalyticsOverviewContext(array $input, array $actor): array
     {
         $prompt = trim((string)($input['prompt'] ?? $input['input_text'] ?? ''));
-        $period = trim((string)($input['period'] ?? 'week'));
-        if ($period === '') {
+        $period = strtolower(trim((string)($input['period'] ?? 'week')));
+        if (!in_array($period, ['day', 'week', 'month'], true)) {
             $period = 'week';
         }
 

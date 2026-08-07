@@ -4,11 +4,14 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Analytics\AnalyticsRepository;
+use Api\Model\Team\TeamRepository;
 
 final class AnalyticsService
 {
-    public function __construct(private readonly AnalyticsRepository $analytics)
-    {
+    public function __construct(
+        private readonly AnalyticsRepository $analytics,
+        private readonly TeamRepository $teams
+    ) {
     }
 
     public function summary(array $actor): array
@@ -16,13 +19,15 @@ final class AnalyticsService
         $now = gmdate('Y-m-d H:i:s');
         $weekStart = gmdate('Y-m-d 00:00:00', strtotime('monday this week'));
         $weekEnd = gmdate('Y-m-d 23:59:59', strtotime('sunday this week'));
+        $teamIds = $this->accessibleTeamPublicIds($actor);
 
         $data = $this->analytics->summary(
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),
             $now,
             $weekStart,
-            $weekEnd
+            $weekEnd,
+            $teamIds
         );
 
         $totalTasks = (int)($data['total_tasks'] ?? 0);
@@ -41,7 +46,8 @@ final class AnalyticsService
             (int)($actor['id'] ?? 0),
             (bool)($actor['is_root'] ?? false),
             $limit,
-            $now
+            $now,
+            $this->accessibleTeamPublicIds($actor)
         );
 
         foreach ($items as &$item) {
@@ -68,7 +74,9 @@ final class AnalyticsService
             $limit,
             $now,
             $weekStart,
-            $weekEnd
+            $weekEnd,
+            $this->visibleUserIds($actor),
+            $this->accessibleTeamPublicIds($actor)
         );
 
         foreach ($items as &$item) {
@@ -79,5 +87,33 @@ final class AnalyticsService
         unset($item);
 
         return $items;
+    }
+
+    /** @return string[] */
+    private function accessibleTeamPublicIds(array $actor): array
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return [];
+        }
+
+        return $this->teams->listAccessiblePublicIdsForUser((int)($actor['id'] ?? 0));
+    }
+
+    /** @return int[] */
+    private function visibleUserIds(array $actor): array
+    {
+        if ((bool)($actor['is_root'] ?? false)) {
+            return [];
+        }
+
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return [-1];
+        }
+
+        return array_values(array_unique(array_merge(
+            [$actorId],
+            $this->teams->findMemberIdsByManager($actorId)
+        )));
     }
 }
