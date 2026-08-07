@@ -904,10 +904,12 @@ window.CRM.pageApiBindings = (function () {
     var taskId = item.public_id || '';
     var children = node.children || [];
     var childCount = children.length;
+    var visualLevel = Math.min(Math.max(Number(level) || 0, 0), 32);
     var itemClass = 'crm-task-tree-item'
       + (childCount ? ' is-parent' : ' is-leaf')
-      + (level > 0 ? ' is-child' : ' is-root');
-    return '<article class="' + itemClass + '" style="--task-level:' + String(Math.min(level, 8)) + '">'
+      + (visualLevel > 0 ? ' is-child' : ' is-root')
+      + (visualLevel <= 3 ? ' is-level-' + String(visualLevel) : ' is-level-deep');
+    return '<article class="' + itemClass + '" data-task-level="' + String(visualLevel) + '" style="--task-level:' + String(visualLevel) + '">'
       + '<div class="crm-task-tree-content">'
       + '<div class="crm-task-tree-indent" aria-hidden="true"></div>'
       + '<div class="crm-task-tree-body">'
