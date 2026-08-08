@@ -13,7 +13,7 @@
     contact_followups: { route: 'api/v1/contacts', permission: 'contact.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
     tag_usage: { route: 'api/v1/tags', permission: 'task.manage', kind: 'tags', query: { limit: 6 }, link: 'index.php?route=admin-tags' },
     saved_views: { route: 'api/v1/views', permission: 'task.manage', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
-    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks' },
+    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks', entityLink: true },
     dependency_watch: { route: 'api/v1/dependencies', permission: 'task.manage', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
     milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', link: 'index.php?route=projects' },
     recurring_health: { route: 'api/v1/recurring', permission: 'task.manage', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
@@ -75,6 +75,26 @@
     return definition.link;
   }
 
+  // Build a deep link straight to the subscribed entity (task/project/knowledge
+  // page/client/counterparty). Raw & is intentional: safe() escapes it once to
+  // &amp;, which the browser decodes back to & when following the link.
+  function entityUrl(item, definition) {
+    var type = String(item && item.entity_type || '').trim().toLowerCase();
+    var entityId = String(item && item.entity_public_id || '').trim();
+    if (!entityId) return definition.link;
+    if (type === 'task') return 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(entityId);
+    if (type === 'project') return 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(entityId);
+    if (type === 'knowledge' || type === 'knowledge_page') return 'index.php?route=knowledge-page&id=' + encodeURIComponent(entityId);
+    if (type === 'client') return 'index.php?route=client-detail&client_public_id=' + encodeURIComponent(entityId);
+    if (type === 'counterparty') return 'index.php?route=counterparty-detail&counterparty_public_id=' + encodeURIComponent(entityId);
+    if (type === 'company' || type === 'contact') {
+      var label = String(item && (item.title || item.entity_title) || '').trim();
+      return 'index.php?route=clients&search=' + encodeURIComponent(label || entityId);
+    }
+    // Comments and unknown types have no detail page — fall back to the list.
+    return definition.link;
+  }
+
   function row(label, valueHtml, href) {
     var content = href ? '<a href="' + safe(href) + '">' + valueHtml + '</a>' : valueHtml;
     return '<div class="crm-dashboard-overview-row"><span>' + safe(label) + '</span><strong>' + content + '</strong></div>';
@@ -125,7 +145,7 @@
           : translate('dashboard.extra_untitled', 'Без названия');
       }
       var meta = value(item, ['status_title', 'status_code', 'priority_title', 'priority_code', 'due_at', 'next_run_at', 'created_at', 'updated_at'], '');
-      var href = link(definition, id);
+      var href = definition.entityLink ? entityUrl(item, definition) : link(definition, id);
       return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(href) + '">' + safe(title) + '</a>' + (meta ? '<small>' + safe(meta) + '</small>' : '') + '</div></div>';
     }).join('');
   }
