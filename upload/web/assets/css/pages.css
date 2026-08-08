@@ -6734,6 +6734,100 @@ body.modal-open {
   font-size: var(--text-xs);
 }
 
+/* Dashboard: team time widget (hours per visible user, 7 days) */
+.crm-dashboard-page .crm-dashboard-time-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 2px 0 10px;
+  font-size: var(--text-sm);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-time-summary strong {
+  color: var(--crm-text);
+  font-weight: 700;
+}
+.crm-dashboard-page .crm-dashboard-time-list {
+  display: flex;
+  flex-direction: column;
+}
+.crm-dashboard-page .crm-dashboard-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+.crm-dashboard-page .crm-dashboard-time-row:last-child {
+  border-bottom: 0;
+}
+.crm-dashboard-page .crm-dashboard-time-rank {
+  min-width: 18px;
+  font-size: var(--text-xs);
+  color: var(--crm-text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.crm-dashboard-page .crm-dashboard-time-name {
+  min-width: 0;
+  flex: 1 1 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--crm-text);
+}
+.crm-dashboard-page .crm-dashboard-time-bar {
+  flex: 1 1 60px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--crm-surface-muted);
+  overflow: hidden;
+}
+.crm-dashboard-page .crm-dashboard-time-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--crm-accent);
+  transition: width 0.3s ease;
+}
+.crm-dashboard-page .crm-dashboard-time-row.is-over .crm-dashboard-time-bar i {
+  background: var(--crm-danger);
+}
+.crm-dashboard-page .crm-dashboard-time-row.is-under .crm-dashboard-time-bar i {
+  background: var(--crm-warning);
+}
+.crm-dashboard-page .crm-dashboard-time-row.is-none .crm-dashboard-time-bar i {
+  background: var(--crm-border);
+}
+.crm-dashboard-page .crm-dashboard-time-value {
+  min-width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--crm-text);
+}
+.crm-dashboard-page .crm-dashboard-time-badge {
+  font-size: var(--text-xs);
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.crm-dashboard-page .crm-dashboard-time-badge.is-leader {
+  color: #1e6b3e;
+  background: #e2f3e7;
+}
+.crm-dashboard-page .crm-dashboard-time-badge.is-laggard {
+  color: #8a4b1e;
+  background: #fbeedd;
+}
+.crm-dashboard-page .crm-dashboard-time-more {
+  padding-top: 8px;
+  font-size: var(--text-xs);
+  color: var(--crm-text-muted);
+}
+
 .crm-dashboard-page .crm-dashboard-extra-count {
   display: flex;
   align-items: baseline;

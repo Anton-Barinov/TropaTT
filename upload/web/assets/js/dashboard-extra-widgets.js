@@ -5,6 +5,7 @@
     analytics_summary: { route: 'api/v1/analytics/summary', permission: 'task.manage', kind: 'summary', link: 'index.php?route=analytics' },
     project_health: { route: 'api/v1/analytics/projects', permission: 'task.manage', kind: 'projects', link: 'index.php?route=analytics' },
     team_workload: { route: 'api/v1/analytics/users', permission: 'task.manage', kind: 'users', link: 'index.php?route=analytics' },
+    time_team: { route: 'api/v1/worklogs/matrix', permission: 'task.manage', kind: 'time_team', link: 'index.php?route=time-analytics' },
     notification_inbox: { route: 'api/v1/notifications', permission: 'task.manage', kind: 'notifications', query: { limit: 5 }, link: 'index.php?route=notifications' },
     chat_unread: { route: 'api/v1/chats/unread-count', permission: 'chat.use', kind: 'count', link: 'index.php?route=chat' },
     client_pipeline: { route: 'api/v1/clients', permission: 'client.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
@@ -53,9 +54,9 @@
     return envelope && envelope.data && typeof envelope.data === 'object' ? envelope.data : {};
   }
 
-  function request(definition) {
+  function request(definition, queryOverride) {
     if (!api()) return Promise.resolve({ success: false, data: null });
-    return api().request(definition.route, { method: 'GET', query: definition.query || {} }).catch(function () {
+    return api().request(definition.route, { method: 'GET', query: queryOverride || definition.query || {} }).catch(function () {
       return { success: false, data: null };
     });
   }
@@ -130,6 +131,105 @@
     }).join('');
   }
 
+  function isoDateForPeriod(date) {
+    var m = String(date.getMonth() + 1);
+    var d = String(date.getDate());
+    if (m.length === 1) m = '0' + m;
+    if (d.length === 1) d = '0' + d;
+    return date.getFullYear() + '-' + m + '-' + d;
+  }
+
+  function formatMinutesCompact(mins) {
+    mins = Number(mins || 0);
+    if (mins <= 0) return '0';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h > 0 && m > 0) return h + translate('dashboard.extra_time_hour', 'ч') + ' ' + m + translate('dashboard.extra_time_min', 'м');
+    if (h > 0) return h + translate('dashboard.extra_time_hour', 'ч');
+    return m + translate('dashboard.extra_time_min', 'м');
+  }
+
+  // Team time: ranked hours per visible user for the last 7 days.
+  // Visibility is enforced server-side by the worklog matrix endpoint
+  // (root sees all, managers see subordinates + team members, employees see only themselves).
+  // The matrix payload carries no financial fields, so no rate stripping is needed here.
+  var TEAM_TIME_OVER_MINUTES = 2400;  // 40h in 7 days => overload signal
+  var TEAM_TIME_UNDER_MINUTES = 900;  // < 15h in 7 days => underload signal
+
+  function renderTeamTime(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var data = envelope.data || {};
+    var users = data.users || [];
+    var totals = data.user_totals || {};
+    var dayTotals = data.day_totals || {};
+    var dates = data.dates || [];
+    if (!users.length) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+
+    var rows = users.map(function (u) {
+      return {
+        publicId: String(u.public_id || ''),
+        name: String(u.full_name || u.login || u.public_id || ''),
+        minutes: Number(totals[u.public_id] || 0)
+      };
+    }).sort(function (a, b) { return b.minutes - a.minutes; });
+
+    var grandTotal = 0;
+    Object.keys(dayTotals).forEach(function (day) { grandTotal += Number(dayTotals[day] || 0); });
+    var days = dates.length || 7;
+    var avgPerDay = days > 0 ? Math.round(grandTotal / days) : 0;
+    var maxMinutes = rows.length ? rows[0].minutes : 0;
+    var visible = rows.slice(0, 8);
+    var hiddenCount = rows.length - visible.length;
+    var leaderId = rows.length && rows[0].minutes > 0 ? rows[0].publicId : '';
+    var laggardId = rows.length > 1 && rows[rows.length - 1].minutes > 0 ? rows[rows.length - 1].publicId : '';
+
+    var html = '<div class="crm-dashboard-time-summary">'
+      + '<span>' + safe(translate('dashboard.extra_time_team_period', 'за 7 дней')) + '</span>'
+      + '<strong>' + safe(formatMinutesCompact(grandTotal)) + ' ' + safe(translate('dashboard.extra_time_team_total', 'всего')) + '</strong>'
+      + '<span>' + safe(translate('dashboard.extra_time_team_avg', 'в среднем в день')) + ': ' + safe(formatMinutesCompact(avgPerDay)) + '</span>'
+      + '</div>';
+
+    html += '<div class="crm-dashboard-time-list">';
+    visible.forEach(function (row, index) {
+      var status = '';
+      if (row.minutes >= TEAM_TIME_OVER_MINUTES) {
+        status = ' is-over';
+      } else if (row.minutes > 0 && row.minutes <= TEAM_TIME_UNDER_MINUTES) {
+        status = ' is-under';
+      } else if (row.minutes === 0) {
+        status = ' is-none';
+      }
+      var width = maxMinutes > 0 ? Math.max(2, Math.round((row.minutes / maxMinutes) * 100)) : 0;
+      var label = status === ' is-over' ? translate('dashboard.extra_time_team_over', 'Переработка')
+        : status === ' is-under' ? translate('dashboard.extra_time_team_under', 'Мало времени')
+          : status === ' is-none' ? translate('dashboard.extra_time_team_none', 'Нет учёта времени') : '';
+      var badge = '';
+      if (row.publicId === leaderId) {
+        badge = '<span class="crm-dashboard-time-badge is-leader">' + safe(translate('dashboard.extra_time_team_leader', 'Лидер')) + '</span>';
+      } else if (row.publicId === laggardId) {
+        badge = '<span class="crm-dashboard-time-badge is-laggard">' + safe(translate('dashboard.extra_time_team_laggard', 'Меньше всех')) + '</span>';
+      }
+      html += '<div class="crm-dashboard-time-row' + status + '" title="' + safe(row.name + (label ? ' — ' + label : '')) + '">'
+        + '<span class="crm-dashboard-time-rank">' + (index + 1) + '</span>'
+        + '<span class="crm-dashboard-time-name">' + safe(row.name) + '</span>'
+        + '<span class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></span>'
+        + '<strong class="crm-dashboard-time-value">' + safe(formatMinutesCompact(row.minutes)) + '</strong>'
+        + badge
+        + '</div>';
+    });
+    html += '</div>';
+    if (hiddenCount > 0) {
+      html += '<div class="crm-dashboard-time-more">' + safe(translate('dashboard.extra_time_team_more', 'и ещё')) + ' ' + hiddenCount + '</div>';
+    }
+    container.innerHTML = html;
+  }
+
   function renderHealth(container, envelope) {
     if (!envelope || envelope.success === false) {
       return renderList(container, envelope, { link: 'index.php?route=admin' });
@@ -148,6 +248,7 @@
     if (definition.kind === 'count') return renderCount(container, envelope, definition);
     if (definition.kind === 'health') return renderHealth(container, envelope);
     if (definition.kind === 'tags') return renderTags(container, envelope, definition);
+    if (definition.kind === 'time_team') return renderTeamTime(container, envelope, definition);
     return renderList(container, envelope, definition);
   }
 
@@ -168,7 +269,13 @@
       var definition = Object.assign({}, definitions[key], { key: key });
       var container = document.querySelector('[data-extra-widget-body="' + key + '"]');
       if (container) container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.loading_widget', 'Загрузка...')) + '</div>';
-      return request(definition).then(function (envelope) { render(definition, envelope); });
+      var queryOverride = null;
+      if (key === 'time_team') {
+        var from = new Date();
+        from.setDate(from.getDate() - 6);
+        queryOverride = { from: isoDateForPeriod(from), to: isoDateForPeriod(new Date()) };
+      }
+      return request(definition, queryOverride).then(function (envelope) { render(definition, envelope); });
     })).catch(function () { loaded = false; });
   }
 
