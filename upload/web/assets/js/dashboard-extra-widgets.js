@@ -121,7 +121,7 @@
         // fall back to a humanized entity_type instead of a bare placeholder.
         var etype = String(item.entity_type || '').trim();
         title = etype
-          ? etype.charAt(0).toUpperCase() + etype.slice(1)
+          ? etype.charAt(0).toUpperCase() + etype.slice(1).replace(/_/g, ' ')
           : translate('dashboard.extra_untitled', 'Без названия');
       }
       var meta = value(item, ['status_title', 'status_code', 'priority_title', 'priority_code', 'due_at', 'next_run_at', 'created_at', 'updated_at'], '');
@@ -151,7 +151,7 @@
       var active = Number(u.assigned_active_tasks || 0);
       var overdue = Number(u.assigned_overdue_tasks || 0);
       var mins = Number(u.worklog_minutes_week || 0);
-      var width = Math.min(100, Math.round(mins / maxMinutes * 100));
+      var width = Math.max(2, Math.min(100, Math.round(mins / maxMinutes * 100)));
       var meta = safe(String(active)) + ' ' + safe(translate('dashboard.extra_team_tasks', 'задач'));
       if (overdue > 0) meta += ' · <span class="is-overdue">' + safe(String(overdue)) + ' ' + safe(translate('dashboard.extra_team_overdue', 'просрочено')) + '</span>';
       return '<div class="crm-dashboard-wl-row">'

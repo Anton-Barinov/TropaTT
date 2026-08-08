@@ -4791,8 +4791,7 @@ window.CRM.pageApiBindings = (function () {
 
     // Show only tasks due today under the “Tasks for today” header;
     // fall back to an honest empty state when there are none.
-    var tableTasks = todayTasks.slice(0, 8);
-    var dashboardTasks = tableTasks;
+    var dashboardTasks = todayTasks.slice(0, 8);
     var tasksLoadError = tasksEnvelope && tasksEnvelope.success === false
       ? window.CRM.i18n.t('js.pab.today_tasks_load_error', 'Failed to load tasks.')
       : '';
