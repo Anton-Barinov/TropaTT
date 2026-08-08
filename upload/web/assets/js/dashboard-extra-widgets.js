@@ -136,7 +136,7 @@
   // flattens the result into a list of upcoming milestones.
   function loadMilestones(definition) {
     if (!api()) return Promise.resolve({ success: false, data: null });
-    return api().request('api/v1/projects', { method: 'GET', query: { status: 'active', limit: 50 } })
+    return api().request('api/v1/projects', { method: 'GET', query: { status: 'active', limit: 50 }, silent: true })
       .then(function (projectsEnv) {
         var projects = (projectsEnv && projectsEnv.data && Array.isArray(projectsEnv.data.items)) ? projectsEnv.data.items : [];
         var ids = [];
@@ -149,7 +149,7 @@
           }
         });
         if (!ids.length) return { success: true, data: { by_project: {} } };
-        return api().request('api/v1/milestones', { method: 'GET', query: { project_public_ids: ids.join(',') } })
+        return api().request('api/v1/milestones', { method: 'GET', query: { project_public_ids: ids.join(',') }, silent: true })
           .then(function (msEnv) {
             if (!msEnv || !msEnv.data || !msEnv.data.by_project) return { success: false, data: null };
             Object.keys(msEnv.data.by_project).forEach(function (pid) {
@@ -189,8 +189,10 @@
       return;
     }
     container.innerHTML = upcoming.map(function (m) {
+      // Raw & is intentional: safe() escapes it once to &amp;, which the
+      // browser decodes back to & when following the link.
       var href = m.project_public_id
-        ? 'index.php?route=project-detail&amp;project_public_id=' + encodeURIComponent(String(m.project_public_id))
+        ? 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(String(m.project_public_id))
         : definition.link;
       return '<div class="crm-dashboard-extra-row"><div class="text-truncate">'
         + '<a href="' + safe(href) + '">' + safe(String(m.title || m.public_id || '')) + '</a>'
