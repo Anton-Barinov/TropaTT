@@ -15,7 +15,7 @@
     saved_views: { route: 'api/v1/views', permission: 'task.manage', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
     subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks' },
     dependency_watch: { route: 'api/v1/dependencies', permission: 'task.manage', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
-    milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', query: { limit: 6 }, link: 'index.php?route=projects' },
+    milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', link: 'index.php?route=projects' },
     recurring_health: { route: 'api/v1/recurring', permission: 'task.manage', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
     approval_queue: { route: 'api/v1/approvals', permission: 'approval.manage', kind: 'approvals', query: { limit: 6 }, link: 'index.php?route=approvals' },
     intake_sla: { route: 'api/v1/intake-items', permission: 'intake.view', kind: 'intake', query: { limit: 6 }, link: 'index.php?route=intake' },
@@ -127,6 +127,76 @@
       var meta = value(item, ['status_title', 'status_code', 'priority_title', 'priority_code', 'due_at', 'next_run_at', 'created_at', 'updated_at'], '');
       var href = link(definition, id);
       return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(href) + '">' + safe(title) + '</a>' + (meta ? '<small>' + safe(meta) + '</small>' : '') + '</div></div>';
+    }).join('');
+  }
+
+  // Upcoming milestones across active projects.
+  // The milestones endpoint requires project_public_ids and returns a
+  // by_project map, so this loader resolves active projects first and
+  // flattens the result into a list of upcoming milestones.
+  function loadMilestones(definition) {
+    if (!api()) return Promise.resolve({ success: false, data: null });
+    return api().request('api/v1/projects', { method: 'GET', query: { status: 'active', limit: 50 } })
+      .then(function (projectsEnv) {
+        var projects = (projectsEnv && projectsEnv.data && Array.isArray(projectsEnv.data.items)) ? projectsEnv.data.items : [];
+        var ids = [];
+        var titles = {};
+        projects.forEach(function (p) {
+          var pid = p && p.public_id ? String(p.public_id) : '';
+          if (pid) {
+            ids.push(pid);
+            titles[pid] = String(p.title || '');
+          }
+        });
+        if (!ids.length) return { success: true, data: { by_project: {} } };
+        return api().request('api/v1/milestones', { method: 'GET', query: { project_public_ids: ids.join(',') } })
+          .then(function (msEnv) {
+            if (!msEnv || !msEnv.data || !msEnv.data.by_project) return { success: false, data: null };
+            Object.keys(msEnv.data.by_project).forEach(function (pid) {
+              (msEnv.data.by_project[pid] || []).forEach(function (m) {
+                if (!m.project_title && titles[pid]) m.project_title = titles[pid];
+              });
+            });
+            return msEnv;
+          })
+          .catch(function () { return { success: false, data: null }; });
+      })
+      .catch(function () { return { success: false, data: null }; });
+  }
+
+  function renderMilestones(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var byProject = (envelope.data && envelope.data.by_project) ? envelope.data.by_project : {};
+    var all = [];
+    Object.keys(byProject).forEach(function (pid) {
+      (byProject[pid] || []).forEach(function (m) { all.push(m); });
+    });
+    var nowMs = Date.now();
+    var upcoming = all.filter(function (m) {
+      var st = String(m.status || '').toLowerCase();
+      if (st === 'done' || st === 'completed' || st === 'cancelled') return false;
+      if (!m.due_at) return false;
+      var ms = Date.parse(String(m.due_at).replace(' ', 'T'));
+      return Number.isFinite(ms) && ms >= nowMs;
+    }).sort(function (a, b) {
+      return String(a.due_at || '').localeCompare(String(b.due_at || ''));
+    }).slice(0, 6);
+    if (!upcoming.length) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+    container.innerHTML = upcoming.map(function (m) {
+      var href = m.project_public_id
+        ? 'index.php?route=project-detail&amp;project_public_id=' + encodeURIComponent(String(m.project_public_id))
+        : definition.link;
+      return '<div class="crm-dashboard-extra-row"><div class="text-truncate">'
+        + '<a href="' + safe(href) + '">' + safe(String(m.title || m.public_id || '')) + '</a>'
+        + (m.due_at ? '<small>' + safe(String(m.due_at).slice(0, 10)) + '</small>' : '')
+        + (m.project_title ? '<small>' + safe(String(m.project_title)) + '</small>' : '')
+        + '</div></div>';
     }).join('');
   }
 
@@ -293,6 +363,7 @@
     if (definition.kind === 'tags') return renderTags(container, envelope, definition);
     if (definition.kind === 'time_team') return renderTeamTime(container, envelope, definition);
     if (definition.kind === 'workload') return renderWorkload(container, envelope, definition);
+    if (definition.kind === 'milestones') return renderMilestones(container, envelope, definition);
     return renderList(container, envelope, definition);
   }
 
@@ -318,6 +389,9 @@
         var from = new Date();
         from.setDate(from.getDate() - 6);
         queryOverride = { from: isoDateForPeriod(from), to: isoDateForPeriod(new Date()) };
+      }
+      if (key === 'milestone_watch') {
+        return loadMilestones(definition).then(function (envelope) { render(definition, envelope); });
       }
       return request(definition, queryOverride).then(function (envelope) { render(definition, envelope); });
     })).catch(function () { loaded = false; });
