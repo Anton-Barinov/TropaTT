@@ -60,6 +60,16 @@
       try {
         await window.CRM.api.login(login, password, locale);
         await window.CRM.api.me();
+        // Pull the per-user color theme into localStorage so the next page
+        // load renders with it immediately (no flash). Non-blocking on purpose.
+        if (window.CRM.theme) {
+          window.CRM.api.request('api/v1/profile/preferences', { silent: true })
+            .then(function (env) {
+              var prefs = env && env.data && env.data.preferences ? env.data.preferences : {};
+              window.CRM.theme.syncFromPreferences(prefs);
+            })
+            .catch(function () {});
+        }
         var query = new URLSearchParams(window.location.search || '');
         var returnRoute = query.get('return_route') || query.get('redirect') || 'dashboard';
         window.location.href = withQuery(returnRoute);

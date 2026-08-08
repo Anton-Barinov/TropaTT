@@ -12015,6 +12015,7 @@ window.CRM.pageApiBindings = (function () {
     var titleInput = document.getElementById('profileTitleInput');
     var startPageSelect = document.getElementById('profileStartPageSelect');
     var tableDensitySelect = document.getElementById('profileTableDensitySelect');
+    var themeSelect = document.getElementById('profileThemeSelect');
     var notifyEmailCritical = document.getElementById('profileNotifyEmailCritical');
     var notifyPushComments = document.getElementById('profileNotifyPushComments');
     var notifyWeeklyReport = document.getElementById('profileNotifyWeeklyReport');
@@ -12053,6 +12054,28 @@ window.CRM.pageApiBindings = (function () {
     }
     if (tableDensitySelect) {
       tableDensitySelect.value = String(preferences.table_density || preferences.table_view_density || 'normal');
+    }
+    if (themeSelect) {
+      var currentTheme = String(preferences.theme || (window.CRM.theme ? window.CRM.theme.get() : 'light'));
+      themeSelect.value = currentTheme;
+      // Apply the server-side per-user theme immediately on profile load too —
+      // this is the reliable cross-device sync point (covers the first login
+      // on a new browser, when the login-time preferences fetch may be aborted
+      // by the redirect).
+      if (window.CRM.theme) {
+        var appliedTheme = String(document.documentElement.getAttribute('data-theme') || 'light');
+        if (appliedTheme !== currentTheme) {
+          window.CRM.theme.apply(currentTheme);
+        }
+      }
+      if (themeSelect.dataset.bound !== '1') {
+        themeSelect.addEventListener('change', function () {
+          if (window.CRM.theme) {
+            window.CRM.theme.apply(themeSelect.value);
+          }
+        });
+        themeSelect.dataset.bound = '1';
+      }
     }
     if (notifyEmailCritical) {
       notifyEmailCritical.checked = prefBool(preferences.notify_email_critical, true);
@@ -12190,7 +12213,8 @@ window.CRM.pageApiBindings = (function () {
             notify_email_critical: notifyEmailCritical ? !!notifyEmailCritical.checked : true,
             notify_push_comments: notifyPushComments ? !!notifyPushComments.checked : true,
             notify_weekly_report: notifyWeeklyReport ? !!notifyWeeklyReport.checked : false,
-            profile_title: titleInput ? titleInput.value.trim() : ''
+            profile_title: titleInput ? titleInput.value.trim() : '',
+            theme: themeSelect ? themeSelect.value : 'light'
           }
         };
 

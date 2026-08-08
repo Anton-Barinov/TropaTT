@@ -1,0 +1,630 @@
+/* ==========================================================================
+   Theme layer — attribute-driven color themes.
+   --------------------------------------------------------------------------
+   All default colors come from CSS custom properties (tokens.css / ui.css).
+   This file swaps those token values when `html[data-theme=...]` is set and
+   repairs the few remaining hard-coded light colors in components.
+
+   Themes:
+     light   — default (current design), applied when data-theme is absent.
+     dark    — pleasant dark scheme with comfortable contrast.
+     contrast— high-contrast scheme for low-vision users.
+
+   Loaded last (after ui.css / visual-editor.css) so the overrides win at
+   equal specificity. The attribute is set on <html> by an inline script in
+   header.php before CSS loads, so there is no flash of the wrong theme.
+   ========================================================================== */
+
+/* ============================= DARK THEME ============================= */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  scrollbar-color: rgba(46, 201, 160, 0.45) #121b18;
+
+  --crm-bg: #0f1614;
+  --crm-bg-deep: #0a100e;
+  --crm-surface: #16201d;
+  --crm-surface-2: #1c2925;
+  --crm-surface-muted: #121b18;
+  --crm-surface-soft: #131d1a;
+  --crm-control-bg: #1b2622;
+  --crm-control-bg-muted: #121b18;
+
+  --crm-border: #26352f;
+  --crm-border-strong: #3a4d45;
+  --crm-border-soft: #202e29;
+
+  --crm-text: #e6f0ec;
+  --crm-text-muted: #93a59e;
+  --crm-text-soft: #75877f;
+
+  --crm-accent: #2ec9a0;
+  --crm-accent-strong: #26b18b;
+  --crm-primary: #2ec9a0;
+  --crm-primary-hover: #35d8ae;
+  --crm-primary-soft: #10352b;
+  --crm-primary-border: #2a5647;
+
+  --crm-success: #4bd494;
+  --crm-success-soft: #123a28;
+  --crm-warning: #e8b64d;
+  --crm-warning-soft: #3a2d10;
+  --crm-danger: #f07468;
+  --crm-danger-soft: #3a1d19;
+  --crm-info: #57bfd4;
+  --crm-info-soft: #12333c;
+
+  --crm-focus: rgba(46, 201, 160, 0.22);
+  --crm-focus-ring: #2ec9a0;
+
+  --color-primary-50: #0f2e26;
+  --color-primary-100: #173f33;
+  --color-primary-500: #2ec9a0;
+  --color-primary-600: #26b18b;
+  --color-primary-700: #3dd9b1;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #101614;
+  --color-neutral-100: #18211e;
+  --color-neutral-200: #26352f;
+  --color-neutral-300: #3a4d45;
+  --color-neutral-500: #93a59e;
+  --color-neutral-700: #bac9c3;
+  --color-neutral-900: #e6f0ec;
+
+  --color-danger-50: #2b1512;
+  --color-danger-100: #3b1d19;
+  --color-danger-500: #f07468;
+  --color-danger-600: #f28c82;
+
+  --color-warning-50: #2d2310;
+  --color-warning-100: #3d3115;
+  --color-warning-500: #e8b64d;
+  --color-warning-600: #efc46b;
+
+  --color-info-50: #11272e;
+  --color-info-100: #173740;
+  --color-info-500: #57bfd4;
+  --color-info-600: #74cdde;
+
+  --color-success-50: #112b1e;
+  --color-success-100: #183b2a;
+  --color-success-600: #4bd494;
+
+  /* Bootstrap bridge — native BS components follow the dark palette too. */
+  --bs-primary: #2ec9a0;
+  --bs-primary-rgb: 46, 201, 160;
+  --bs-primary-bg-subtle: #10352b;
+  --bs-primary-border-subtle: #2a5647;
+  --bs-primary-text-emphasis: #3dd9b1;
+  --bs-info: #2ec9a0;
+  --bs-info-rgb: 46, 201, 160;
+  --bs-info-bg-subtle: #10352b;
+  --bs-info-border-subtle: #2a5647;
+  --bs-info-text-emphasis: #3dd9b1;
+  --bs-link-color: #3dd9b1;
+  --bs-link-hover-color: #2ec9a0;
+  --bs-link-color-rgb: 61, 217, 177;
+  --bs-link-hover-color-rgb: 46, 201, 160;
+
+  --bs-body-bg: #0f1614;
+  --bs-body-bg-rgb: 15, 22, 20;
+  --bs-body-color: #e6f0ec;
+  --bs-body-color-rgb: 230, 240, 236;
+  --bs-secondary-color: #93a59e;
+  --bs-secondary-color-rgb: 147, 165, 158;
+  --bs-secondary-bg: #1c2925;
+  --bs-tertiary-bg: #121b18;
+  --bs-emphasis-color: #e6f0ec;
+  --bs-emphasis-color-rgb: 230, 240, 236;
+  --bs-border-color: #26352f;
+  --bs-border-color-rgb: 38, 53, 47;
+
+  --bs-dropdown-bg: #1c2925;
+  --bs-dropdown-color: #e6f0ec;
+  --bs-dropdown-border-color: #3a4d45;
+  --bs-dropdown-link-color: #e6f0ec;
+  --bs-dropdown-link-hover-bg: rgba(46, 201, 160, 0.12);
+  --bs-dropdown-link-hover-color: #e6f0ec;
+  --bs-dropdown-link-active-bg: #2ec9a0;
+  --bs-dropdown-link-active-color: #0a100e;
+  --bs-popover-bg: #1c2925;
+  --bs-popover-border-color: #3a4d45;
+  --bs-table-color: #e6f0ec;
+  --bs-table-color-rgb: 230, 240, 236;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #26352f;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+  --bs-table-hover-bg: rgba(46, 201, 160, 0.08);
+
+  /* Shadows become deeper on dark surfaces. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 1px 3px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --crm-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --crm-shadow-card: 0 16px 42px rgba(0, 0, 0, 0.45);
+  --crm-shadow-hover: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .crm-app {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+html[data-theme="dark"] ::selection {
+  background: rgba(46, 201, 160, 0.28);
+  color: #ffffff;
+}
+
+/* Visual editor (rich text) — scoped token set. */
+html[data-theme="dark"] .crm-ve-editor {
+  color-scheme: dark;
+  --crm-ve-accent: #5b8def;
+  --crm-ve-accent-light: rgba(91, 141, 239, 0.16);
+  --crm-ve-surface: #16201d;
+  --crm-ve-surface-soft: #1b2421;
+  --crm-ve-border: #2a3a33;
+  --crm-ve-border-strong: #3b4f46;
+  --crm-ve-text: #e6f0ec;
+  --crm-ve-text-muted: #93a59e;
+  --crm-ve-danger: #f07468;
+  --crm-ve-success: #4bd494;
+}
+
+/* Gantt — scoped token set. */
+html[data-theme="dark"] .crm-gantt-page {
+  --gantt-blue: #10b981;
+  --gantt-blue-2: #34d399;
+  --gantt-green: #22c55e;
+  --gantt-green-2: #4ade80;
+  --gantt-orange: #fb923c;
+  --gantt-orange-2: #fbbf24;
+  --gantt-red: #f87171;
+  --gantt-purple: #a78bfa;
+  --gantt-gray: #94a3b8;
+  --gantt-line: #26352f;
+  --gantt-soft: #131d1a;
+  --gantt-grid-line: #22302a;
+  --gantt-row-line: #1c2925;
+  --gantt-hover-bg: #1a2622;
+  --gantt-color-active: #10b981;
+  --gantt-color-success: #22c55e;
+  --gantt-color-blocked: #fb923c;
+  --gantt-color-review: #a78bfa;
+  --gantt-color-archived: #94a3b8;
+  --gantt-color-overdue: #f87171;
+  --gantt-color-paused: #94a3b8;
+  --gantt-color-new: #3b82f6;
+  --gantt-color-release: #4ade80;
+}
+
+/* ---- Dark: component repairs for hard-coded light colors ---- */
+
+/* Bootstrap surfaces */
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .popover {
+  background-color: var(--crm-surface-2);
+  border-color: var(--crm-border-strong);
+}
+html[data-theme="dark"] .dropdown-item,
+html[data-theme="dark"] .popover-body {
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .popover .popover-header {
+  background-color: var(--crm-bg-deep);
+  border-color: var(--crm-border);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .offcanvas {
+  background-color: var(--crm-surface);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .toast {
+  background-color: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .nav-tabs .nav-link.active {
+  background-color: var(--crm-surface);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .nav-tabs .nav-link {
+  color: var(--crm-text-muted);
+}
+
+/* Page shells with hard-coded white / light-green backgrounds */
+html[data-theme="dark"] .crm-dashboard-page,
+html[data-theme="dark"] .crm-admin-ai-page,
+html[data-theme="dark"] .kb-page,
+html[data-theme="dark"] .kb-toc-card,
+html[data-theme="dark"] .crm-global-search-page .crm-search-list,
+html[data-theme="dark"] .crm-calendar-page .crm-calendar-panel,
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable th,
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable td {
+  background: var(--crm-surface);
+  color: var(--crm-text);
+}
+
+html[data-theme="dark"] .kb-panel,
+html[data-theme="dark"] .kb-side-card,
+html[data-theme="dark"] .kb-toc-card .crm-knowledge-toc a {
+  background: var(--crm-success-soft);
+  color: var(--crm-text);
+}
+
+html[data-theme="dark"] .crm-task-detail-page .crm-task-page-head,
+html[data-theme="dark"] .crm-calendar-shell,
+html[data-theme="dark"] .crm-calendar-more {
+  background: linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-bg-deep) 100%);
+}
+html[data-theme="dark"] .crm-calendar-panel-head {
+  background: linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-bg-deep) 100%);
+}
+
+html[data-theme="dark"] .crm-gantt-page {
+  background: var(--crm-surface);
+}
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-shell {
+  border-color: var(--crm-border-strong);
+  background:
+    radial-gradient(circle at 94% 0%, rgba(46, 201, 160, 0.1), transparent 30%),
+    radial-gradient(circle at 0% 100%, rgba(46, 201, 160, 0.06), transparent 28%),
+    linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-bg-deep) 100%);
+}
+
+/* Cards, agenda rows, lists */
+html[data-theme="dark"] .crm-list-card,
+html[data-theme="dark"] .crm-calendar-agenda-item,
+html[data-theme="dark"] .crm-notifications-page .crm-notification-item,
+html[data-theme="dark"] .crm-gantt-deadline-card,
+html[data-theme="dark"] .crm-comment,
+html[data-theme="dark"] .crm-file-item,
+html[data-theme="dark"] .crm-dashboard-page .crm-week-mini-grid,
+html[data-theme="dark"] .crm-task-detail-page .crm-checklist-card.is-editing {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+/* Badges, dots, segmented controls */
+html[data-theme="dark"] .crm-nav-badge,
+html[data-theme="dark"] .crm-topbar-badge,
+html[data-theme="dark"] .team-save-dot {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .crm-content #votesPeriodBtns,
+html[data-theme="dark"] .crm-content #commentsPeriodBtns,
+html[data-theme="dark"] .crm-content [data-tasks-view-toggle],
+html[data-theme="dark"] .crm-content [data-calendar-view-toggle],
+html[data-theme="dark"] .crm-content #projectsViewToggle,
+html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group,
+html[data-theme="dark"] .crm-content .team-segmented,
+html[data-theme="dark"] .modal .team-segmented {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+/* Nav + dropdown hover states */
+html[data-theme="dark"] .crm-nav .nav-link.active,
+html[data-theme="dark"] .dropdown-item:hover,
+html[data-theme="dark"] .dropdown-item:focus {
+  background-color: rgba(46, 201, 160, 0.14);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .crm-nav .crm-nav-icon {
+  background: var(--crm-primary-soft);
+}
+html[data-theme="dark"] .crm-topbar-notify-popover li {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .crm-topbar-notify-popover li:hover {
+  background: rgba(46, 201, 160, 0.1);
+}
+
+/* Form controls */
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] .crm-input,
+html[data-theme="dark"] .crm-select,
+html[data-theme="dark"] .crm-textarea,
+html[data-theme="dark"] .team-input,
+html[data-theme="dark"] .team-search-input {
+  background-color: var(--crm-control-bg);
+  color: var(--crm-text);
+  border-color: var(--crm-border);
+}
+html[data-theme="dark"] .form-control:hover,
+html[data-theme="dark"] .form-select:hover,
+html[data-theme="dark"] .crm-input:hover,
+html[data-theme="dark"] .crm-select:hover,
+html[data-theme="dark"] .crm-textarea:hover,
+html[data-theme="dark"] .team-input:hover,
+html[data-theme="dark"] .team-search-input:hover {
+  background-color: var(--crm-control-bg);
+}
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .form-select:focus,
+html[data-theme="dark"] .crm-input:focus,
+html[data-theme="dark"] .crm-select:focus,
+html[data-theme="dark"] .crm-textarea:focus,
+html[data-theme="dark"] textarea.form-control:focus,
+html[data-theme="dark"] .team-input:focus,
+html[data-theme="dark"] .team-search-input:focus {
+  background-color: var(--crm-control-bg);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .form-control::placeholder,
+html[data-theme="dark"] .crm-input::placeholder,
+html[data-theme="dark"] .crm-textarea::placeholder {
+  color: var(--crm-text-soft);
+}
+
+/* Alerts */
+html[data-theme="dark"] .alert-warning {
+  background: var(--crm-warning-soft);
+  border-color: var(--crm-border-strong);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] .alert-danger {
+  background: var(--crm-danger-soft);
+  border-color: var(--crm-border-strong);
+  color: var(--crm-text);
+}
+
+/* AI suggestion drawer */
+html[data-theme="dark"] #aiSuggestionDrawer .offcanvas-header {
+  background: linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-bg-deep) 100%);
+}
+html[data-theme="dark"] #aiSuggestionDrawer .crm-metric-tile {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+
+/* Admin AI hint text */
+html[data-theme="dark"] .crm-admin-page #adminAiCreateForm .form-text,
+html[data-theme="dark"] .crm-admin-page #adminAiEditForm .form-text,
+html[data-theme="dark"] .crm-admin-page #adminAiSecretForm .form-text {
+  background: var(--crm-surface-2);
+  color: var(--crm-text-soft);
+}
+
+/* Visual editor floating panels */
+html[data-theme="dark"] .crm-ve-link-popover,
+html[data-theme="dark"] .crm-ve-image-settings-popover,
+html[data-theme="dark"] .crm-ve-image-toolbar,
+html[data-theme="dark"] .crm-ve-toast,
+html[data-theme="dark"] .crm-ve-resize-badge {
+  background-color: var(--crm-ve-surface-soft);
+  border-color: var(--crm-ve-border);
+  color: var(--crm-ve-text);
+}
+html[data-theme="dark"] .crm-ve-link-popover input,
+html[data-theme="dark"] .crm-ve-image-settings-popover input {
+  background-color: var(--crm-ve-surface);
+  color: var(--crm-ve-text);
+}
+
+/* Secondary / light buttons hover */
+html[data-theme="dark"] .crm-btn-secondary:hover,
+html[data-theme="dark"] .btn-light:hover,
+html[data-theme="dark"] .btn-outline-secondary:hover {
+  background: var(--crm-bg-deep);
+  border-color: var(--crm-border-strong);
+  color: var(--crm-text);
+}
+
+/* Login page */
+html[data-theme="dark"] body.crm-login-page .crm-login-panel,
+html[data-theme="dark"] body.crm-login-page .crm-login-panel-inner {
+  background: var(--crm-surface);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] body.crm-login-page .crm-login-preview-top i,
+html[data-theme="dark"] body.crm-login-page .crm-login-preview-table,
+html[data-theme="dark"] body.crm-login-page .crm-login-preview-metric {
+  background: var(--crm-surface-2);
+  color: var(--crm-text);
+}
+html[data-theme="dark"] body.crm-login-page .crm-login-card .form-control,
+html[data-theme="dark"] body.crm-login-page .crm-login-card .form-select {
+  background-color: var(--crm-control-bg);
+  color: var(--crm-text);
+  border-color: var(--crm-border-strong);
+}
+
+/* =========================== CONTRAST THEME =========================== */
+html[data-theme="contrast"] {
+  color-scheme: light;
+
+  --crm-bg: #ffffff;
+  --crm-bg-deep: #f2f2f2;
+  --crm-surface: #ffffff;
+  --crm-surface-2: #ffffff;
+  --crm-surface-muted: #ffffff;
+  --crm-surface-soft: #ffffff;
+  --crm-control-bg: #ffffff;
+  --crm-control-bg-muted: #ffffff;
+
+  --crm-border: #1f1f1f;
+  --crm-border-strong: #000000;
+  --crm-border-soft: #1f1f1f;
+
+  --crm-text: #000000;
+  --crm-text-muted: #1f1f1f;
+  --crm-text-soft: #1f1f1f;
+
+  --crm-accent: #0b3d91;
+  --crm-accent-strong: #082e70;
+  --crm-primary: #0b3d91;
+  --crm-primary-hover: #082e70;
+  --crm-primary-soft: #ffffff;
+  --crm-primary-border: #000000;
+
+  --crm-success: #00602f;
+  --crm-success-soft: #ffffff;
+  --crm-warning: #7a4d00;
+  --crm-warning-soft: #ffffff;
+  --crm-danger: #a40000;
+  --crm-danger-soft: #ffffff;
+  --crm-info: #005a6e;
+  --crm-info-soft: #ffffff;
+
+  --crm-focus: rgba(0, 0, 0, 0.06);
+  --crm-focus-ring: #000000;
+
+  --color-primary-50: #ffffff;
+  --color-primary-100: #ffffff;
+  --color-primary-500: #0b3d91;
+  --color-primary-600: #082e70;
+  --color-primary-700: #000000;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #f2f2f2;
+  --color-neutral-200: #1f1f1f;
+  --color-neutral-300: #000000;
+  --color-neutral-500: #1f1f1f;
+  --color-neutral-700: #000000;
+  --color-neutral-900: #000000;
+
+  --color-danger-50: #ffffff;
+  --color-danger-100: #ffffff;
+  --color-danger-500: #a40000;
+  --color-danger-600: #a40000;
+
+  --color-warning-50: #ffffff;
+  --color-warning-100: #ffffff;
+  --color-warning-500: #7a4d00;
+  --color-warning-600: #7a4d00;
+
+  --color-info-50: #ffffff;
+  --color-info-100: #ffffff;
+  --color-info-500: #005a6e;
+  --color-info-600: #005a6e;
+
+  --color-success-50: #ffffff;
+  --color-success-100: #ffffff;
+  --color-success-600: #00602f;
+
+  --bs-primary: #0b3d91;
+  --bs-primary-rgb: 11, 61, 145;
+  --bs-primary-bg-subtle: #ffffff;
+  --bs-primary-border-subtle: #000000;
+  --bs-primary-text-emphasis: #000000;
+  --bs-info: #0b3d91;
+  --bs-info-rgb: 11, 61, 145;
+  --bs-info-bg-subtle: #ffffff;
+  --bs-info-border-subtle: #000000;
+  --bs-info-text-emphasis: #000000;
+  --bs-link-color: #0b3d91;
+  --bs-link-hover-color: #000000;
+  --bs-link-underline-opacity: 1;
+
+  --bs-body-bg: #ffffff;
+  --bs-body-bg-rgb: 255, 255, 255;
+  --bs-body-color: #000000;
+  --bs-body-color-rgb: 0, 0, 0;
+  --bs-secondary-color: #1f1f1f;
+  --bs-secondary-color-rgb: 31, 31, 31;
+  --bs-secondary-bg: #ffffff;
+  --bs-tertiary-bg: #ffffff;
+  --bs-emphasis-color: #000000;
+  --bs-emphasis-color-rgb: 0, 0, 0;
+  --bs-border-color: #1f1f1f;
+  --bs-border-color-rgb: 31, 31, 31;
+
+  --bs-dropdown-bg: #ffffff;
+  --bs-dropdown-color: #000000;
+  --bs-dropdown-border-color: #000000;
+  --bs-dropdown-link-color: #000000;
+  --bs-dropdown-link-hover-bg: #e6eeff;
+  --bs-dropdown-link-hover-color: #000000;
+  --bs-dropdown-link-active-bg: #0b3d91;
+  --bs-dropdown-link-active-color: #ffffff;
+  --bs-popover-bg: #ffffff;
+  --bs-popover-border-color: #000000;
+  --bs-table-color: #000000;
+  --bs-table-color-rgb: 0, 0, 0;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #1f1f1f;
+  --bs-table-striped-bg: #f2f2f2;
+  --bs-table-hover-bg: #e6eeff;
+
+  /* Depth comes from borders, not shadows, in high-contrast mode. */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --crm-shadow-soft: none;
+  --crm-shadow-card: none;
+  --crm-shadow-hover: none;
+}
+
+html[data-theme="contrast"] ::selection {
+  background: #0b3d91;
+  color: #ffffff;
+}
+
+/* Underlined links and unmistakable focus ring. */
+html[data-theme="contrast"] a {
+  text-decoration: underline;
+}
+html[data-theme="contrast"] a:focus-visible,
+html[data-theme="contrast"] button:focus-visible,
+html[data-theme="contrast"] [tabindex]:focus-visible,
+html[data-theme="contrast"] input:focus-visible,
+html[data-theme="contrast"] select:focus-visible,
+html[data-theme="contrast"] textarea:focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+/* Strong field borders. */
+html[data-theme="contrast"] .form-control,
+html[data-theme="contrast"] .form-select,
+html[data-theme="contrast"] .crm-input,
+html[data-theme="contrast"] .crm-select,
+html[data-theme="contrast"] .crm-textarea,
+html[data-theme="contrast"] .team-input,
+html[data-theme="contrast"] .team-search-input {
+  border-width: 2px;
+  border-color: #000000;
+}
+
+/* Card borders visible on white. */
+html[data-theme="contrast"] .crm-card,
+html[data-theme="contrast"] .crm-section-card,
+html[data-theme="contrast"] .crm-info-panel,
+html[data-theme="contrast"] .crm-list-card,
+html[data-theme="contrast"] .crm-calendar-agenda-item,
+html[data-theme="contrast"] .crm-notifications-page .crm-notification-item,
+html[data-theme="contrast"] .kb-panel,
+html[data-theme="contrast"] .kb-side-card,
+html[data-theme="contrast"] .crm-topbar-notify-popover li {
+  border-color: #000000;
+}
+html[data-theme="contrast"] .table thead th {
+  border-bottom-color: #000000;
+}
+html[data-theme="contrast"] .table tbody td {
+  border-color: #1f1f1f;
+}
+html[data-theme="contrast"] .dropdown-menu,
+html[data-theme="contrast"] .popover {
+  border-width: 2px;
+  border-color: #000000;
+}
+
+/* Active nav / dropdown hover: light-blue fill with black text. */
+html[data-theme="contrast"] .crm-nav .nav-link.active,
+html[data-theme="contrast"] .dropdown-item:hover,
+html[data-theme="contrast"] .dropdown-item:focus {
+  background-color: #e6eeff;
+  color: #000000;
+}
+html[data-theme="contrast"] .crm-nav .nav-link.active {
+  box-shadow: inset 3px 0 0 #0b3d91;
+}
+
+/* Muted helper text stays readable: bootstrap .text-muted consumes
+   --bs-secondary-color, already overridden to a dark gray above. */

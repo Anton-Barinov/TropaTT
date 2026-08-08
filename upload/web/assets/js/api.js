@@ -5,6 +5,53 @@ window.CRM.api = (function () {
   var LEGACY_TOKEN_KEY = 'crm_api_access_token_v1';
   var LEGACY_USER_KEY = 'crm_api_user_v1';
   var LOCALE_KEY = 'crm_api_locale_v1';
+
+  window.CRM.theme = (function () {
+    var STORAGE_KEY = 'crm_theme';
+    var THEMES = ['light', 'dark', 'contrast'];
+
+    function normalize(value) {
+      var candidate = String(value || '').trim().toLowerCase();
+      return THEMES.indexOf(candidate) !== -1 ? candidate : 'light';
+    }
+
+    function get() {
+      var stored = '';
+      try {
+        stored = localStorage.getItem(STORAGE_KEY) || '';
+      } catch (e) {}
+      return normalize(stored);
+    }
+
+    function apply(name) {
+      var theme = normalize(name);
+      document.documentElement.setAttribute('data-theme', theme);
+      try {
+        localStorage.setItem(STORAGE_KEY, theme);
+      } catch (e) {}
+      return theme;
+    }
+
+    function syncFromPreferences(preferences) {
+      if (preferences && typeof preferences.theme === 'string' && preferences.theme !== '') {
+        apply(preferences.theme);
+      }
+    }
+
+    function init() {
+      apply(get());
+    }
+
+    return {
+      THEMES: THEMES,
+      normalize: normalize,
+      get: get,
+      apply: apply,
+      syncFromPreferences: syncFromPreferences,
+      init: init
+    };
+  })();
+  window.CRM.theme.init();
   var IMPERSONATION_TOKEN_KEY = 'crm_impersonation_access_token_v1';
   var IMPERSONATION_ORIGINAL_TOKEN_KEY = 'crm_impersonation_original_token_v1';
   var IMPERSONATION_AUDIT_KEY = 'crm_impersonation_audit_public_id_v1';
