@@ -4222,6 +4222,26 @@ body.modal-open {
   font-weight: 600;
 }
 
+/* Кастомные поля (Доп. поля): чипы ужимаются в ячейке с многоточием,
+   не выходят за пределы колонки и не перекрывают соседние ячейки */
+.crm-extra-chips {
+  min-width: 0;
+}
+
+.crm-extra-chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.crm-counterparties-page #counterpartiesTable th:nth-child(7),
+.crm-counterparties-page #counterpartiesTable td:nth-child(7) {
+  overflow: hidden;
+}
+
 .crm-counterparties-page .crm-compact-table tbody td {
   padding-top: .38rem;
   padding-bottom: .38rem;
