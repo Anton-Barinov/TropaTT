@@ -365,6 +365,7 @@
           ['key' => 'analytics_summary', 'size' => 'crm-col-4', 'title' => 'Аналитика', 'href' => 'index.php?route=analytics'],
           ['key' => 'project_health', 'size' => 'crm-col-6', 'title' => 'Здоровье проектов', 'href' => 'index.php?route=analytics'],
           ['key' => 'team_workload', 'size' => 'crm-col-6', 'title' => 'Загрузка команды', 'href' => 'index.php?route=analytics'],
+          ['key' => 'time_team', 'size' => 'crm-col-6', 'title' => 'Командное время', 'href' => 'index.php?route=time-analytics'],
           ['key' => 'notification_inbox', 'size' => 'crm-col-4', 'title' => 'Центр уведомлений', 'href' => 'index.php?route=notifications'],
           ['key' => 'chat_unread', 'size' => 'crm-col-4', 'title' => 'Непрочитанные чаты', 'href' => 'index.php?route=chat'],
           ['key' => 'client_pipeline', 'size' => 'crm-col-4', 'title' => 'Клиенты', 'href' => 'index.php?route=counterparties'],
