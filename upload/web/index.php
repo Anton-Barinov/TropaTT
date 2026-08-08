@@ -400,10 +400,28 @@ function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, s
     }
 
     $tokenHash = hash('sha256', $sessionToken);
+    $now = gmdate('Y-m-d H:i:s');
 
-    // Root check: root user bypasses all permission checks
+    // Root roles mirror AuthService/UserRepository root detection: users with
+    // any of these roles bypass all permission checks even when the users
+    // is_root flag is stale or missing (self-hosted installs may carry both).
+    $rootRoles = ['admin', 'administrator', 'super_admin', 'super_administrator', 'root'];
+    $rootRolePlaceholders = [];
+    foreach ($rootRoles as $i => $rootRole) {
+        $rootRolePlaceholders[':root_role' . $i] = $rootRole;
+    }
+
+    // Root check: root user (flag or root role) bypasses all permission checks.
+    // All placeholders are named: PDO rejects a mix of named and positional
+    // parameters in a single statement (HY093).
     $sessionStmt = $pdo->prepare(
-        'SELECT u.is_root
+        'SELECT (u.is_root = 1 OR EXISTS (
+                  SELECT 1
+                    FROM user_roles ur
+                    INNER JOIN roles r ON r.id = ur.role_id
+                   WHERE ur.user_id = u.id
+                     AND r.code IN (' . implode(',', array_keys($rootRolePlaceholders)) . ')
+                )) AS is_root
           FROM user_sessions us
           INNER JOIN users u ON u.id = us.user_id
           WHERE us.token_hash = :token_hash
@@ -416,18 +434,22 @@ function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, s
     if ($sessionStmt === false) {
         return false;
     }
-    $sessionStmt->execute([
-        'token_hash' => $tokenHash,
-        'now' => gmdate('Y-m-d H:i:s'),
-    ]);
+    $sessionStmt->execute(array_merge(
+        ['token_hash' => $tokenHash, 'now' => $now],
+        $rootRolePlaceholders
+    ));
 
     if ((bool)$sessionStmt->fetchColumn()) {
         return true;
     }
 
     // Any-listed permission grants access (same semantics as the API
-    // withPermissionAny / MenuController gating).
-    $placeholders = implode(',', array_fill(0, count($permissions), '?'));
+    // withPermissionAny / MenuController gating). Named placeholders only.
+    $permissionPlaceholders = [];
+    foreach ($permissions as $i => $permission) {
+        $permissionPlaceholders[':perm' . $i] = $permission;
+    }
+
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) > 0
           FROM user_sessions us
@@ -441,7 +463,7 @@ function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, s
             AND us.expires_at > :now
             AND u.is_active = 1
             AND u.deleted_at IS NULL
-            AND p.code IN (' . $placeholders . ')
+            AND p.code IN (' . implode(',', array_keys($permissionPlaceholders)) . ')
           LIMIT 1'
     );
     if ($stmt === false) {
@@ -449,8 +471,8 @@ function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, s
     }
 
     $stmt->execute(array_merge(
-        ['token_hash' => $tokenHash, 'now' => gmdate('Y-m-d H:i:s')],
-        $permissions
+        ['token_hash' => $tokenHash, 'now' => $now],
+        $permissionPlaceholders
     ));
 
     return (bool)$stmt->fetchColumn();
