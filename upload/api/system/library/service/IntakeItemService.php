@@ -68,11 +68,9 @@ final class IntakeItemService
      * @param array<string,mixed> $actor
      * @return array<string,mixed>|string
      */
-    public function list(array $filters, array $actor): array|string
+    public function list(array $filters): array|string
     {
-        $isRoot = (bool)($actor['is_root'] ?? false);
-        $actorId = (int)($actor['id'] ?? 0);
-        $result = $this->repository->list($filters, $actorId, $isRoot);
+        $result = $this->repository->list($filters);
 
         return [
             'items' => $result['items'],

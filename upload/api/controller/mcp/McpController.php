@@ -4434,7 +4434,7 @@ MD;
     {
         /** @var IntakeItemService $service */
         $service = $this->container->get('service.intake_item');
-        return $this->publicData($service->list($this->intakeFilters($arguments), $this->actor()));
+        return $this->publicData($service->list($this->intakeFilters($arguments)));
     }
 
     private function crmGetIntakeItem(array $arguments): array

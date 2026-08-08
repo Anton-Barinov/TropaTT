@@ -18,7 +18,7 @@ final class IntakeItemController extends BaseController
         $input = $this->request()->allInput();
         /** @var IntakeItemService $service */
         $service = $this->container->get('service.intake_item');
-        $result = $service->list($input, $authUser['user']);
+        $result = $service->list($input);
 
         if (is_string($result)) {
             return $this->error($result, $this->t('common/messages.error', 'Error'), 422);
