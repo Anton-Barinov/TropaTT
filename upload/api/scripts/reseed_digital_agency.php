@@ -86,36 +86,37 @@ final class Seeder
                     'team.manage', 'department.manage', 'company.manage', 'client.manage', 'contact.manage',
                     'logs.view', 'settings.manage', 'approval.manage', 'recycle_bin.manage',
                     'import.manage', 'export.manage', 'api_client.view', 'api_client.manage',
-                    'webhook.manage', 'feature_flag.manage', 'organization.manage'
+                    'webhook.manage', 'feature_flag.manage', 'organization.manage',
+                    'chat.use', 'idea.view', 'idea.manage'
                 ],
             ],
             'account_manager' => [
                 'title' => 'Аккаунт-менеджер',
-                'permissions' => ['project.manage', 'task.manage', 'client.manage', 'contact.manage', 'company.manage'],
+                'permissions' => ['project.manage', 'task.manage', 'client.manage', 'contact.manage', 'company.manage', 'chat.use', 'idea.view', 'idea.manage'],
             ],
             'project_manager' => [
                 'title' => 'Проектный менеджер',
-                'permissions' => ['project.manage', 'task.manage', 'team.manage', 'department.manage'],
+                'permissions' => ['project.manage', 'task.manage', 'team.manage', 'department.manage', 'chat.use', 'idea.view', 'idea.manage'],
             ],
             'teamlead_dev' => [
                 'title' => 'Тимлид разработки',
-                'permissions' => ['project.manage', 'task.manage', 'team.manage'],
+                'permissions' => ['project.manage', 'task.manage', 'team.manage', 'chat.use', 'idea.view', 'idea.manage'],
             ],
             'developer' => [
                 'title' => 'Разработчик',
-                'permissions' => ['task.manage'],
+                'permissions' => ['task.manage', 'chat.use', 'idea.view', 'idea.manage'],
             ],
             'qa_engineer' => [
                 'title' => 'QA инженер',
-                'permissions' => ['task.manage'],
+                'permissions' => ['task.manage', 'chat.use', 'idea.view'],
             ],
             'designer' => [
                 'title' => 'UI/UX дизайнер',
-                'permissions' => ['task.manage', 'project.manage'],
+                'permissions' => ['task.manage', 'project.manage', 'chat.use', 'idea.view', 'idea.manage'],
             ],
             'support_engineer' => [
                 'title' => 'Инженер поддержки',
-                'permissions' => ['task.manage', 'client.manage'],
+                'permissions' => ['task.manage', 'client.manage', 'chat.use', 'idea.view'],
             ],
         ];
 
