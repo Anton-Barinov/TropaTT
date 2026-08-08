@@ -249,7 +249,7 @@ function webRateLimitCheck(string $route): ?array
 /**
  * Create a PDO connection for the web entry point using the API database config.
  * Extracted to eliminate ~40 lines of duplicated connection logic between
- * crmWebApiSessionCookieIsValid and crmWebApiCheckPermission.
+ * crmWebApiSessionCookieIsValid and crmWebApiCheckAnyPermission.
  */
 function crmWebApiDbConnect(string $webBaseDir): ?PDO
 {
@@ -382,10 +382,15 @@ function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir)
     return (bool)$stmt->fetchColumn();
 }
 
-function crmWebApiCheckPermission(string $sessionToken, string $permission, string $webBaseDir): bool
+function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, string $webBaseDir): bool
 {
     $sessionToken = trim($sessionToken);
-    if ($sessionToken === '' || strlen($sessionToken) > 4096) {
+    $permissions = array_values(array_unique(array_filter(array_map(
+        static fn($permission): string => trim((string)$permission),
+        $permissions
+    ), static fn(string $permission): bool => $permission !== '')));
+
+    if ($sessionToken === '' || strlen($sessionToken) > 4096 || $permissions === []) {
         return false;
     }
 
@@ -420,7 +425,9 @@ function crmWebApiCheckPermission(string $sessionToken, string $permission, stri
         return true;
     }
 
-    // Permission check
+    // Any-listed permission grants access (same semantics as the API
+    // withPermissionAny / MenuController gating).
+    $placeholders = implode(',', array_fill(0, count($permissions), '?'));
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) > 0
           FROM user_sessions us
@@ -434,17 +441,17 @@ function crmWebApiCheckPermission(string $sessionToken, string $permission, stri
             AND us.expires_at > :now
             AND u.is_active = 1
             AND u.deleted_at IS NULL
-            AND p.code = :permission
+            AND p.code IN (' . $placeholders . ')
           LIMIT 1'
     );
     if ($stmt === false) {
         return false;
     }
-    $stmt->execute([
-        'token_hash' => $tokenHash,
-        'permission' => $permission,
-        'now' => gmdate('Y-m-d H:i:s'),
-    ]);
+
+    $stmt->execute(array_merge(
+        ['token_hash' => $tokenHash, 'now' => gmdate('Y-m-d H:i:s')],
+        $permissions
+    ));
 
     return (bool)$stmt->fetchColumn();
 }
@@ -564,11 +571,55 @@ if (!$isPublic) {
     }
 }
 
-// Additional permission check for protected routes
-if ($route === 'admin-ai') {
+// Additional permission check for protected routes.
+// Admin/privileged pages mirror their API routes' required_permissions so that
+// a user without the underlying rights gets a 403 at the page shell instead of
+// an empty page full of API errors. Any-listed permission grants access (like
+// the API withPermissionAny / MenuController gating).
+$adminRoutePermissions = [
+    // Admin hub: it renders the users/roles summary, KPI widgets (logs.view)
+    // and API-keys KPI (api_client.view), so any of those grants the shell.
+    'admin' => ['user.view', 'role.view', 'logs.view', 'api_client.view'],
+    'admin-users' => ['user.view'],
+    'admin-roles' => ['role.view'],
+    'admin-statuses' => ['task.manage'],
+    'admin-priorities' => ['task.manage'],
+    'admin-tags' => ['task.manage'],
+    'admin-logs' => ['logs.view'],
+    'admin-api-clients' => ['api_client.view'],
+    'admin-settings' => ['settings.manage'],
+    // Jobs queue aggregates import/export/AI-job lists plus ops endpoints.
+    'admin-jobs' => ['logs.view', 'import.manage', 'export.manage', 'ai.view_cron_results'],
+    'admin-ai' => ['ai.admin'],
+    'admin-workflow' => ['settings.manage'],
+    'admin-sla' => ['settings.manage'],
+    'admin-custom-fields' => ['settings.manage'],
+    'admin-calendar' => ['settings.manage'],
+    // Knowledge admin pages map to the knowledge.admin permission seeded by
+    // KnowledgeBaseMigration (see KnowledgeController::actorCanManagePermissions).
+    'admin-knowledge' => ['knowledge.admin'],
+    'admin-templates' => ['task.manage', 'project.manage'],
+    'admin-webhooks' => ['webhook.manage'],
+    // Recurring task templates live in the admin hub; their API is task-scoped.
+    'recurring' => ['task.manage'],
+    'admin-modules' => ['settings.manage'],
+    'admin-modules-install' => ['settings.manage'],
+    'admin-module-detail' => ['settings.manage'],
+    'admin-updates' => ['settings.manage'],
+    // Estimate sets/options are project-scoped: /api/v1/estimate-sets etc.
+    // require project.manage (there is no estimate.* permission code).
+    'admin-estimates' => ['project.manage'],
+    'organizations' => ['organization.manage'],
+    'recycle-bin' => ['recycle_bin.manage'],
+    'approvals' => ['approval.manage'],
+    'intake' => ['intake.view'],
+    'project-modules' => ['project.manage'],
+];
+
+if (isset($adminRoutePermissions[$route])) {
     $sessionCookieName = trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session'));
     $sessionToken = trim((string)($_COOKIE[$sessionCookieName] ?? ''));
-    $hasPermission = crmWebApiCheckPermission($sessionToken, 'ai.admin', $baseDir);
+    $hasPermission = crmWebApiCheckAnyPermission($sessionToken, $adminRoutePermissions[$route], $baseDir);
     if (!$hasPermission) {
         http_response_code(403);
         header('Content-Type: text/html; charset=utf-8');

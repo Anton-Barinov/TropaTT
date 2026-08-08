@@ -29,7 +29,6 @@ final class CompanyService
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];
-            $filters['include_unowned'] = true;
         }
 
         $filters['counterparty_type'] = self::COMPANY_COUNTERPARTY_TYPE;
@@ -138,6 +137,12 @@ final class CompanyService
         return $deleted;
     }
 
+    /**
+     * Fail-closed object access: root may access anything; non-root may only
+     * access records created by themselves or by their own hierarchy subtree.
+     * Records without an owner (created_by_user_id IS NULL) belong to nobody
+     * and are therefore root-only (see AGENTS.md object-level authorization).
+     */
     private function canAccess(array $item, array $actor): bool
     {
         if ((int)($actor['is_root'] ?? 0) === 1) {
@@ -146,11 +151,7 @@ final class CompanyService
 
         $actorId = (int)($actor['id'] ?? 0);
         $creatorId = (int)($item['created_by_user_id'] ?? 0);
-        if ($creatorId <= 0) {
-            return true;
-        }
-
-        if ($actorId <= 0) {
+        if ($actorId <= 0 || $creatorId <= 0) {
             return false;
         }
 
