@@ -1419,7 +1419,8 @@ final class App
         ));
         $this->container->factory('service.search', fn(Container $c) => new SearchService(
             $c->get('repository.search'),
-            $c->get('repository.knowledge')
+            $c->get('repository.knowledge'),
+            $c->get('repository.user_management')
         ));
         $this->container->factory('service.setting', fn(Container $c) => new SettingService(
             $c->get('repository.setting')

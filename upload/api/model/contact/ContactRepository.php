@@ -14,8 +14,12 @@ final class ContactRepository
 
     public function list(array $filters): array
     {
+        // Fail-closed scope: keep the -1 sentinel from accessScope() so an actor
+        // without a valid id (id <= 0) matches nothing instead of widening to
+        // "no scope". Empty array = root (no restriction). See applyCreatorScope
+        // in SearchRepository for the same convention.
         $creatorIds = is_array($filters['created_by_user_ids'] ?? null)
-            ? array_values(array_filter(array_map('intval', $filters['created_by_user_ids']), static fn(int $id): bool => $id > 0))
+            ? array_values(array_unique(array_map('intval', $filters['created_by_user_ids'])))
             : [];
 
         $page = max(1, (int)($filters['page'] ?? 1));

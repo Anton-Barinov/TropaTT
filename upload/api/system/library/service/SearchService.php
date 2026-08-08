@@ -5,12 +5,14 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Knowledge\KnowledgeRepository;
 use Api\Model\Search\SearchRepository;
+use Api\Model\User\UserManagementRepository;
 
 final class SearchService
 {
     public function __construct(
         private readonly SearchRepository $search,
-        private readonly KnowledgeRepository $knowledge
+        private readonly KnowledgeRepository $knowledge,
+        private readonly UserManagementRepository $users
     )
     {
     }
@@ -23,8 +25,9 @@ final class SearchService
 
         $tasks = $this->search->searchTasks($normalized, $limit, $actorUserId, $actorIsRoot);
         $projects = $this->search->searchProjects($normalized, $limit, $actorUserId, $actorIsRoot);
-        $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30)), $normalized, $limit);
-        $contacts = $this->search->searchContacts($normalized, $limit);
+        $creatorIds = $this->creatorScope($actor);
+        $counterparties = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30), null, $creatorIds), $normalized, $limit);
+        $contacts = $this->search->searchContacts($normalized, $limit, $creatorIds);
         $knowledge = $this->knowledge->search($normalized, ['limit' => $limit, 'status' => 'published'], $actor);
 
         return [
@@ -72,20 +75,28 @@ final class SearchService
 
     /**
      * Поиск по контрагентам (унифицировано: клиенты + компании).
+     *
+     * $actor defaults to [] on purpose: creatorScope([]) yields the -1 sentinel
+     * (fail-closed, matches nothing). Do NOT change the default to a permissive
+     * value — a forgotten actor must never see every record.
      */
-    public function counterparties(string $query, int $limit, ?array $typeFilter = null): array
+    public function counterparties(string $query, int $limit, ?array $typeFilter = null, array $actor = []): array
     {
         $normalized = $this->normalizeQuery($query);
-        return $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($limit * 3, 30), $typeFilter), $normalized, $limit);
+        return $this->rankCounterpartyRows(
+            $this->search->searchCounterparties($normalized, max($limit * 3, 30), $typeFilter, $this->creatorScope($actor)),
+            $normalized,
+            $limit
+        );
     }
 
     /**
      * Legacy: поиск по клиентам (обратная совместимость).
      * @deprecated Используйте counterparties()
      */
-    public function clients(string $query, int $limit): array
+    public function clients(string $query, int $limit, array $actor = []): array
     {
-        return $this->counterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity']);
+        return $this->counterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity'], $actor);
     }
 
     public function suggestions(string $query, array $actor, int $limit): array
@@ -97,8 +108,9 @@ final class SearchService
 
         $taskRows = $this->search->searchTasks($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
         $projectRows = $this->search->searchProjects($normalized, $perTypeLimit, $actorUserId, $actorIsRoot);
-        $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15)), $normalized, $perTypeLimit);
-        $contactRows = $this->search->searchContacts($normalized, $perTypeLimit);
+        $creatorIds = $this->creatorScope($actor);
+        $counterpartyRows = $this->rankCounterpartyRows($this->search->searchCounterparties($normalized, max($perTypeLimit * 3, 15), null, $creatorIds), $normalized, $perTypeLimit);
+        $contactRows = $this->search->searchContacts($normalized, $perTypeLimit, $creatorIds);
         $knowledgeRows = $this->knowledge->search($normalized, ['limit' => $perTypeLimit, 'status' => 'published'], $actor);
 
         $items = [];
@@ -176,6 +188,33 @@ final class SearchService
                 'knowledge' => count($knowledgeRows),
             ],
         ];
+    }
+
+    /**
+     * Fail-closed creator scope for search, mirroring CounterpartyService and
+     * ContactService: root sees everything (empty list = no scope); non-root is
+     * limited to records created by themselves or their hierarchy subtree.
+     *
+     * @param array<string,mixed> $actor
+     * @return int[]
+     */
+    private function creatorScope(array $actor): array
+    {
+        if ((int)($actor['is_root'] ?? 0) === 1) {
+            return [];
+        }
+
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($actorId <= 0) {
+            return [-1];
+        }
+
+        $descendants = $this->users->descendantIds($actorId);
+        if ($descendants === []) {
+            $descendants = [$actorId];
+        }
+
+        return $descendants;
     }
 
     private function normalizeQuery(string $query): string

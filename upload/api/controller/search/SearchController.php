@@ -108,7 +108,7 @@ final class SearchController extends BaseController
 
         /** @var SearchService $service */
         $service = $this->container->get('service.search');
-        $items = $service->counterparties($query, $limit, $typeFilter);
+        $items = $service->counterparties($query, $limit, $typeFilter, $authUser['user']);
 
         return $this->success('SEARCH_CLIENTS', $this->t('search/messages.clients'), [
             'query' => $query,
@@ -144,7 +144,7 @@ final class SearchController extends BaseController
 
         /** @var SearchService $service */
         $service = $this->container->get('service.search');
-        $items = $service->counterparties($query, $limit, $typeFilter);
+        $items = $service->counterparties($query, $limit, $typeFilter, $authUser['user']);
 
         return $this->success('SEARCH_COUNTERPARTIES', $this->t('search/messages.counterparties'), [
             'query' => $query,
