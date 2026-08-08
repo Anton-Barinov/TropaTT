@@ -25,9 +25,14 @@ final class MenuController extends BaseController
         ['key' => 'knowledge', 'i18n' => 'nav.knowledge', 'label_key' => 'nav.knowledge', 'href' => 'index.php?route=knowledge', 'permissions' => ['knowledge.view']],
         ['key' => 'analytics', 'i18n' => 'nav.analytics', 'label_key' => 'nav.analytics', 'href' => 'index.php?route=analytics', 'permissions' => ['task.manage']],
         ['key' => 'notifications', 'i18n' => 'nav.notifications', 'label_key' => 'nav.notifications', 'href' => 'index.php?route=notifications', 'permissions' => []],
-        ['key' => 'admin', 'i18n' => 'nav.admin', 'label_key' => 'nav.admin', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view']],
-        ['key' => 'admin-estimates', 'i18n' => 'nav.admin_estimates', 'label_key' => 'nav.admin_estimates', 'href' => 'index.php?route=admin-estimates', 'permissions' => ['estimate.view']],
-        ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['role.view']],
+        // Admin entries mirror the server-side route gate in web/index.php
+        // ($adminRoutePermissions): the same permission set that lets a user
+        // load a page shell must also show its menu item, and vice versa.
+        ['key' => 'admin', 'i18n' => 'nav.admin', 'label_key' => 'nav.admin', 'href' => 'index.php?route=admin', 'permissions' => ['user.view', 'role.view', 'logs.view', 'api_client.view']],
+        // admin-estimates is gated by project.manage — there is no estimate.*
+        // permission code (see web/index.php adminRoutePermissions comment).
+        ['key' => 'admin-estimates', 'i18n' => 'nav.admin_estimates', 'label_key' => 'nav.admin_estimates', 'href' => 'index.php?route=admin-estimates', 'permissions' => ['project.manage']],
+        ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['settings.manage']],
         ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.chat', 'href' => 'index.php?route=chat', 'permissions' => []],
         ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];
@@ -852,11 +857,10 @@ final class MenuController extends BaseController
 
     private function canAccess(AuthzService $authz, array $user, array $requiredPermissions): bool
     {
-        if ($requiredPermissions === []) {
-            return true;
-        }
-
-        return $authz->hasPermissions($user, $requiredPermissions);
+        // Any-of semantics: matches the web page-shell gate
+        // (crmWebApiCheckAnyPermission in web/index.php) so a menu item shows
+        // exactly when its page shell can be loaded.
+        return $authz->hasAnyPermissions($user, $requiredPermissions);
     }
 
     private function resolveRolePublicIds(array $roleCodes): array

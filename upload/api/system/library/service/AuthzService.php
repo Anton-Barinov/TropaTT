@@ -50,4 +50,32 @@ final class AuthzService
 
         return true;
     }
+
+    /**
+     * Any-of check: grants access when the user holds AT LEAST ONE of the
+     * required permissions. Mirrors crmWebApiCheckAnyPermission() used by the
+     * web page-shell gate (web/index.php) so menu visibility stays consistent
+     * with page access: an item must show whenever its page can load, and vice
+     * versa. An empty list is always granted (public item).
+     */
+    public function hasAnyPermissions(array $user, array $requiredPermissions): bool
+    {
+        if ($requiredPermissions === []) {
+            return true;
+        }
+
+        if ((bool)($user['is_root'] ?? false) === true) {
+            return true;
+        }
+
+        $actual = $this->permissionsForUser($user);
+
+        foreach ($requiredPermissions as $required) {
+            if (in_array((string)$required, $actual, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
