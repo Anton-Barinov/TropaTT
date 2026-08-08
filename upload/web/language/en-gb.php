@@ -4408,7 +4408,7 @@ return array (
     'extra_time_team_none' => 'No time logged',
     'extra_time_team_leader' => 'Leader',
     'extra_time_team_laggard' => 'Least',
-    'extra_time_team_more' => 'and',
+    'extra_time_team_more' => 'and %s more',
     'extra_time_hour' => 'h',
     'extra_time_min' => 'm',
     'extra_unread_count' => 'unread conversations',

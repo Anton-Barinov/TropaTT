@@ -6782,7 +6782,7 @@ body.modal-open {
   flex: 1 1 60px;
   height: 6px;
   border-radius: 999px;
-  background: var(--crm-surface-muted);
+  background: var(--crm-bg-deep);
   overflow: hidden;
 }
 .crm-dashboard-page .crm-dashboard-time-bar i {
