@@ -27,6 +27,8 @@ final class MilestoneController extends BaseController
 
         if (is_array($projectPublicIds) && $projectPublicIds !== []) {
             $projectPublicIds = array_values(array_filter(array_map('trim', $projectPublicIds)));
+            // SEC: cap the batch size to bound per-project access checks.
+            $projectPublicIds = array_slice(array_values(array_unique($projectPublicIds)), 0, 100);
 
             $cache = $this->cacheApi();
             if ($cache !== null) {

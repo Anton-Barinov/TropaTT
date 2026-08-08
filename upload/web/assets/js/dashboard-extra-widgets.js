@@ -1,28 +1,34 @@
 (function () {
   'use strict';
 
+  // NOTE: widget availability is decided SERVER-SIDE. GET /api/v1/dashboard/widgets
+  // returns an `active` list already filtered by the actor's permissions
+  // (DashboardController::resolveActive -> widgetAllowed), and activeKeys() below
+  // trusts that list. These definitions only map a widget key to its data route
+  // and renderer. Do NOT duplicate permission checks here - they would drift from
+  // the authoritative server catalog.
   var definitions = {
-    analytics_summary: { route: 'api/v1/analytics/summary', permission: 'task.manage', kind: 'summary', link: 'index.php?route=analytics' },
-    project_health: { route: 'api/v1/analytics/projects', permission: 'task.manage', kind: 'projects', link: 'index.php?route=analytics' },
-    team_workload: { route: 'api/v1/analytics/users', permission: 'task.manage', kind: 'workload', query: { limit: 6 }, link: 'index.php?route=analytics' },
-    time_team: { route: 'api/v1/worklogs/matrix', permission: 'task.manage', kind: 'time_team', link: 'index.php?route=time-analytics' },
-    notification_inbox: { route: 'api/v1/notifications', permission: 'task.manage', kind: 'notifications', query: { limit: 5 }, link: 'index.php?route=notifications' },
-    chat_unread: { route: 'api/v1/chats/unread-count', permission: 'chat.use', kind: 'count', link: 'index.php?route=chat' },
-    client_pipeline: { route: 'api/v1/clients', permission: 'client.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
-    company_directory: { route: 'api/v1/companies', permission: 'company.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
-    contact_followups: { route: 'api/v1/contacts', permission: 'contact.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
-    tag_usage: { route: 'api/v1/tags', permission: 'task.manage', kind: 'tags', query: { limit: 6 }, link: 'index.php?route=admin-tags' },
-    saved_views: { route: 'api/v1/views', permission: 'task.manage', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
-    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks', entityLink: true },
-    dependency_watch: { route: 'api/v1/dependencies', permission: 'task.manage', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
-    milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', link: 'index.php?route=projects' },
-    recurring_health: { route: 'api/v1/recurring', permission: 'task.manage', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
-    approval_queue: { route: 'api/v1/approvals', permission: 'approval.manage', kind: 'approvals', query: { limit: 6 }, link: 'index.php?route=approvals' },
-    intake_sla: { route: 'api/v1/intake-items', permission: 'intake.view', kind: 'intake', query: { limit: 6 }, link: 'index.php?route=intake' },
-    webhook_health: { route: 'api/v1/webhooks/deliveries', permission: 'webhook.manage', kind: 'webhooks', query: { limit: 6 }, link: 'index.php?route=admin-webhooks' },
-    workflow_automation: { route: 'api/v1/workflow/rules', permission: 'settings.manage', kind: 'workflows', query: { limit: 6 }, link: 'index.php?route=admin-workflow' },
+    analytics_summary: { route: 'api/v1/analytics/summary', kind: 'summary', link: 'index.php?route=analytics' },
+    project_health: { route: 'api/v1/analytics/projects', kind: 'projects', link: 'index.php?route=analytics' },
+    team_workload: { route: 'api/v1/analytics/users', kind: 'workload', query: { limit: 6 }, link: 'index.php?route=analytics' },
+    time_team: { route: 'api/v1/worklogs/matrix', kind: 'time_team', link: 'index.php?route=time-analytics' },
+    notification_inbox: { route: 'api/v1/notifications', kind: 'notifications', query: { limit: 5 }, link: 'index.php?route=notifications' },
+    chat_unread: { route: 'api/v1/chats/unread-count', kind: 'count', link: 'index.php?route=chat' },
+    client_pipeline: { route: 'api/v1/clients', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    company_directory: { route: 'api/v1/companies', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    contact_followups: { route: 'api/v1/contacts', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
+    tag_usage: { route: 'api/v1/tags', kind: 'tags', query: { limit: 6 }, link: 'index.php?route=admin-tags' },
+    saved_views: { route: 'api/v1/views', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
+    subscriptions: { route: 'api/v1/subscriptions', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks', entityLink: true },
+    dependency_watch: { route: 'api/v1/dependencies', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
+    milestone_watch: { route: 'api/v1/milestones', kind: 'milestones', link: 'index.php?route=projects' },
+    recurring_health: { route: 'api/v1/recurring', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
+    approval_queue: { route: 'api/v1/approvals', kind: 'approvals', query: { limit: 6 }, link: 'index.php?route=approvals' },
+    intake_sla: { route: 'api/v1/intake-items', kind: 'intake', query: { limit: 6 }, link: 'index.php?route=intake' },
+    webhook_health: { route: 'api/v1/webhooks/deliveries', kind: 'webhooks', query: { limit: 6 }, link: 'index.php?route=admin-webhooks' },
+    workflow_automation: { route: 'api/v1/workflow/rules', kind: 'workflows', query: { limit: 6 }, link: 'index.php?route=admin-workflow' },
     system_health: { route: 'api/v1/health/status', kind: 'health', link: 'index.php?route=admin' },
-    active_sessions: { route: 'api/v1/security/sessions', permission: 'logs.view', kind: 'sessions', query: { limit: 6 }, link: 'index.php?route=profile' }
+    active_sessions: { route: 'api/v1/security/sessions', kind: 'sessions', query: { limit: 6 }, link: 'index.php?route=profile' }
   };
 
   function api() {
@@ -39,11 +45,6 @@
     return window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function'
       ? window.CRM.i18n.t(key, fallback)
       : fallback;
-  }
-
-  function hasPermission(permission) {
-    if (!permission) return true;
-    return !!api() && typeof api().hasPermission === 'function' && api().hasPermission(permission);
   }
 
   function items(envelope) {
@@ -392,13 +393,28 @@
   function activeKeys() {
     var config = window.CRM && window.CRM.dashboardWidgetsConfig;
     var active = config && Array.isArray(config.active) ? config.active : [];
-    return active.filter(function (key) { return definitions[key] && hasPermission(definitions[key].permission); });
+    // The server already filtered `active` by the actor's permissions
+    // (DashboardController::resolveActive). Only keep keys this file renders.
+    return active.filter(function (key) { return !!definitions[key]; });
   }
 
   var loaded = false;
+  var loadAttempts = 0;
+  var MAX_LOAD_ATTEMPTS = 20; // ~10s of 500ms retries while the widget config loads
 
   function load() {
     if (loaded || !document.querySelector('[data-page="dashboard"]')) return;
+    var config = window.CRM && window.CRM.dashboardWidgetsConfig;
+    if (!config || !Array.isArray(config.active)) {
+      // The server catalog (GET /api/v1/dashboard/widgets) populates
+      // window.CRM.dashboardWidgetsConfig. Retry briefly until it arrives so
+      // widgets still render when the response is slow.
+      loadAttempts += 1;
+      if (loadAttempts < MAX_LOAD_ATTEMPTS) {
+        window.setTimeout(load, 500);
+      }
+      return;
+    }
     var keys = activeKeys();
     if (!keys.length) return;
     loaded = true;
