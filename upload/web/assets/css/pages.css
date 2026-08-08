@@ -4228,17 +4228,27 @@ body.modal-open {
   min-width: 0;
 }
 
-/* Кастомные поля (Доп. поля): текст виден полностью, при нехватке места
-   переносится внутри чипа (многострочный), не выходит за пределы колонки */
+/* Кастомные поля (Доп. поля): собственный стиль чипа (не Bootstrap .badge,
+   чтобы не конфликтовать с переопределениями в ui.css), текст виден полностью
+   и переносится внутри чипа при нехватке места */
 .crm-extra-chip {
+  display: inline-block;
   max-width: 100%;
   min-width: 0;
-  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid var(--crm-border, #d8dee6);
+  border-radius: 6px;
+  background: var(--crm-surface, #ffffff);
+  color: var(--crm-text, #0f172a);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
   text-align: left;
   white-space: normal;
-  line-height: 1.35;
+  overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
+  vertical-align: top;
 }
 
 .crm-extra-chip-key {
