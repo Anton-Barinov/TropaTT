@@ -14,12 +14,18 @@ window.CRM.text = (function () {
   }
 
   function stripHtml(value) {
-    // Visual-editor fields (e.g. cycle goal) store HTML like
+    // Visual-editor fields (e.g. task/cycle descriptions) store HTML like
     // "<p>text</p>". For compact previews we want plain text: strip tags,
-    // normalize whitespace, then the caller escapes for display.
+    // decode common entities, normalize whitespace, then the caller escapes
+    // for display.
     return String(value || '')
       .replace(/<[^>]*>/g, ' ')
       .replace(/&nbsp;/gi, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#0?39;/g, "'")
+      .replace(/&amp;/g, '&')
       .replace(/\s+/g, ' ')
       .trim();
   }
