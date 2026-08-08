@@ -116,7 +116,7 @@
       var id = value(item, ['public_id'], '');
       var titleFields = definition.titleFields || ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title', 'device_name'];
       var title = value(item, titleFields, '');
-      if (!title) {
+      if (!title || title === '—') {
         // Subscriptions, sessions and similar entities carry no display title;
         // fall back to a humanized entity_type instead of a bare placeholder.
         var etype = String(item.entity_type || '').trim();
