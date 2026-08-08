@@ -109,6 +109,7 @@ final class KnowledgeBaseMigration implements MigrationInterface
             'knowledge.create' => 'Knowledge: create pages',
             'knowledge.edit' => 'Knowledge: edit pages',
             'knowledge.publish' => 'Knowledge: publish pages',
+            'knowledge.review' => 'Knowledge: review pages',
             'knowledge.delete' => 'Knowledge: delete/archive pages',
             'knowledge.comment' => 'Knowledge: comment pages',
             'knowledge.manage' => 'Knowledge: manage spaces',

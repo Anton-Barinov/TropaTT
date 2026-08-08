@@ -638,6 +638,9 @@ $adminRoutePermissions = [
     'approvals' => ['approval.manage'],
     'intake' => ['intake.view'],
     'project-modules' => ['project.manage'],
+    // Core features gated by permissions: shell 403s when the API would deny.
+    'ideas' => ['idea.view'],
+    'chat' => ['chat.use'],
 ];
 
 if (isset($adminRoutePermissions[$route])) {

@@ -10,7 +10,7 @@ final class MenuController extends BaseController
 {
     private const MENU_ITEMS = [
         ['key' => 'dashboard', 'i18n' => 'nav.dashboard', 'label_key' => 'nav.dashboard', 'href' => 'index.php?route=dashboard', 'permissions' => []],
-        ['key' => 'ideas', 'i18n' => 'nav.ideas', 'label_key' => 'nav.ideas', 'href' => 'index.php?route=ideas', 'permissions' => []],
+        ['key' => 'ideas', 'i18n' => 'nav.ideas', 'label_key' => 'nav.ideas', 'href' => 'index.php?route=ideas', 'permissions' => ['idea.view']],
         ['key' => 'tasks', 'i18n' => 'nav.tasks', 'label_key' => 'nav.tasks', 'href' => 'index.php?route=tasks', 'permissions' => ['task.manage']],
         ['key' => 'day', 'i18n' => 'nav.day', 'label_key' => 'nav.day', 'href' => 'index.php?route=my-day', 'permissions' => ['task.manage']],
         ['key' => 'week', 'i18n' => 'nav.week', 'label_key' => 'nav.week', 'href' => 'index.php?route=my-week', 'permissions' => ['task.manage']],
@@ -33,7 +33,7 @@ final class MenuController extends BaseController
         // permission code (see web/index.php adminRoutePermissions comment).
         ['key' => 'admin-estimates', 'i18n' => 'nav.admin_estimates', 'label_key' => 'nav.admin_estimates', 'href' => 'index.php?route=admin-estimates', 'permissions' => ['project.manage']],
         ['key' => 'admin-modules', 'i18n' => 'nav.admin_modules', 'label_key' => 'nav.admin_modules', 'href' => 'index.php?route=admin-modules', 'permissions' => ['settings.manage']],
-        ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.chat', 'href' => 'index.php?route=chat', 'permissions' => []],
+        ['key' => 'chat', 'i18n' => 'nav.chat', 'label_key' => 'nav.chat', 'href' => 'index.php?route=chat', 'permissions' => ['chat.use']],
         ['key' => 'docs', 'i18n' => 'nav.api', 'label_key' => 'nav.api', 'href' => 'index.php?route=docs', 'permissions' => []],
     ];
 

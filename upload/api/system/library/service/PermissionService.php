@@ -63,6 +63,12 @@ final class PermissionService
             'intake.manage' => $this->t('permission/messages.perm_intake_manage', 'Intake: manage items'),
             'intake.accept' => $this->t('permission/messages.perm_intake_accept', 'Intake: accept to task'),
             'intake.delete' => $this->t('permission/messages.perm_intake_delete', 'Intake: soft delete items'),
+            'chat.use' => $this->t('permission/messages.perm_chat_use', 'Chat: use team chat'),
+            'idea.view' => $this->t('permission/messages.perm_idea_view', 'Ideas: view ideas'),
+            'idea.manage' => $this->t('permission/messages.perm_idea_manage', 'Ideas: create and manage ideas'),
+            // Self-healing fallback for installs where KnowledgeBaseMigration
+            // already ran before knowledge.review was added to its seed list.
+            'knowledge.review' => $this->t('permission/messages.perm_knowledge_review', 'Knowledge: review pages'),
         ];
 
         $this->permissions->ensureRegistry($registry);
