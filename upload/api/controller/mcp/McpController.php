@@ -112,6 +112,7 @@ use Api\System\Library\Update\CoreUpdateHistoryRepository;
 use Api\System\Library\Update\CoreUpdateLogRepository;
 use Api\System\Library\Update\CoreUpdatePlanner;
 use Api\System\Library\Update\CoreUpdateSessionService;
+use Api\System\Library\Update\UpdaterBridge;
 use Api\System\Library\Service\ActivityService;
 use Api\System\Library\Service\AdminRoleMatrixService;
 use Api\System\Library\Service\ChatService;
@@ -3980,59 +3981,14 @@ MD;
 
     private function coreUpdateCallUpdater(string $action, array $payload, array $config): array
     {
-        $baseUrl = $this->coreUpdateLocalUpdaterBaseUrl($config);
-        $url = $baseUrl . '/updater/index.php?action=' . rawurlencode($action);
-        $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
-        $timeout = (int)($config['timeouts']['apply_step'] ?? 60);
-        $response = false;
-        // cURL first (allow_url_fopen is disabled on many shared hosts);
-        // stream wrappers as fallback.
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            if ($ch !== false) {
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => $body,
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
-                    CURLOPT_TIMEOUT => $timeout,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 5,
-                ]);
-                $response = curl_exec($ch);
-                // PHP 8.0+ frees handles automatically; curl_close() is deprecated on 8.5.
-                if (PHP_VERSION_ID < 80000) {
-                    curl_close($ch);
-                }
-            }
-        }
-        if ($response === false || $response === '') {
-            $response = @file_get_contents($url, false, stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => "Content-Type: application/json\r\n",
-                    'content' => $body,
-                    'ignore_errors' => true,
-                    'timeout' => $timeout,
-                ],
-            ]));
-        }
-        $decoded = json_decode((string)$response, true);
-        return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
-    }
-
-    private function coreUpdateLocalUpdaterBaseUrl(array $config): string
-    {
-        $configured = trim((string)($config['local_updater_url'] ?? ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/');
+        try {
+            return UpdaterBridge::dispatch(dirname(__DIR__, 3), $action, $payload);
+        } catch (Throwable $e) {
+            error_log('[McpController::coreUpdateCallUpdater] in-process updater failed: ' . $e->getMessage());
         }
 
-        $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'crm.ru'));
-        $isHttps = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
-        $scheme = $isHttps ? 'https' : 'http';
-        return $scheme . '://' . $host;
+        // Legacy fallback for installations where updater/src is unavailable.
+        return UpdaterBridge::dispatchHttpFallback($action, $payload, $config);
     }
 
     private function coreUpdateNormalizeUpdaterResult(array $result): array

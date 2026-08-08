@@ -44,23 +44,36 @@ final class UpdaterKernel
     {
         $action = (string)($_GET['action'] ?? $_POST['action'] ?? 'status');
         $input = $this->input();
+        if (isset($_GET['job_id']) && !isset($input['job_id'])) {
+            $input['job_id'] = (string)$_GET['job_id'];
+        }
+        $response = $this->dispatch($action, $input);
+        $response->send();
+    }
 
+    /**
+     * Dispatch an updater action for either the HTTP entry point or the
+     * in-process API bridge. Keeping one dispatcher prevents the two paths
+     * from drifting on authentication, state handling, or error envelopes.
+     *
+     * @param array<string,mixed> $input
+     */
+    public function dispatch(string $action, array $input): JsonResponse
+    {
         try {
-            $response = match ($action) {
+            return match ($action) {
                 'status' => $this->status(),
                 'preflight' => $this->preflight($input),
                 'download' => $this->download($input),
                 'apply' => $this->apply($input),
                 'resume' => $this->resume($input),
                 'rollback' => $this->rollback($input),
-                'log' => $this->log((string)($_GET['job_id'] ?? $input['job_id'] ?? '')),
+                'log' => $this->log((string)($input['job_id'] ?? '')),
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
         } catch (\Throwable $e) {
-            $response = JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
+            return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
         }
-
-        $response->send();
     }
 
     private function status(): JsonResponse

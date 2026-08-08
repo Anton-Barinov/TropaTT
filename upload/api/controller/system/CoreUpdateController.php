@@ -13,6 +13,7 @@ use Api\System\Library\Update\CoreUpdateSessionService;
 use Api\System\Library\Update\CoreUpdateStatusService;
 use Api\System\Library\Update\CoreVersion;
 use Api\System\Library\Update\UpdateCenterAuditService;
+use Api\System\Library\Update\UpdaterBridge;
 
 final class CoreUpdateController extends BaseController
 {
@@ -180,59 +181,21 @@ final class CoreUpdateController extends BaseController
 
     private function callUpdater(string $action, array $payload, array $config): array
     {
-        $baseUrl = $this->localUpdaterBaseUrl($config);
-        $url = $baseUrl . '/updater/index.php?action=' . rawurlencode($action);
-        $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
-        $timeout = (int)($config['timeouts']['apply_step'] ?? 60);
-        $response = false;
-        // cURL first (allow_url_fopen is disabled on many shared hosts);
-        // stream wrappers as fallback.
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            if ($ch !== false) {
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => $body,
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
-                    CURLOPT_TIMEOUT => $timeout,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 5,
-                ]);
-                $response = curl_exec($ch);
-                // PHP 8.0+ frees handles automatically; curl_close() is deprecated on 8.5.
-                if (PHP_VERSION_ID < 80000) {
-                    curl_close($ch);
-                }
-            }
-        }
-        if ($response === false || $response === '') {
-            $response = @file_get_contents($url, false, stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => "Content-Type: application/json\r\n",
-                    'content' => $body,
-                    'ignore_errors' => true,
-                    'timeout' => $timeout,
-                ],
-            ]));
-        }
-        $decoded = json_decode((string)$response, true);
-        return is_array($decoded) ? $decoded : ['success' => false, 'error' => 'invalid_updater_response'];
-    }
+        $basePath = dirname(__DIR__, 3);
 
-    private function localUpdaterBaseUrl(array $config): string
-    {
-        $configured = trim((string)($config['local_updater_url'] ?? ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/');
+        // The updater is part of this installation. Run it in-process first so
+        // shared hosting never has to hairpin through its own public hostname.
+        // This avoids DNS, TLS, WAF, reverse-proxy and single-worker deadlocks.
+        try {
+            return UpdaterBridge::dispatch($basePath, $action, $payload);
+        } catch (\Throwable $e) {
+            error_log('[CoreUpdateController::callUpdater] in-process updater failed: ' . $e->getMessage());
         }
 
-        $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'crm.ru'));
-        $isHttps = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
-        $scheme = $isHttps ? 'https' : 'http';
-        return $scheme . '://' . $host;
+        // Compatibility fallback for unusual deployments where updater/src is
+        // absent or cannot be loaded. This path retains the old behavior but
+        // uses the proxy-aware scheme resolver and bounded timeouts.
+        return UpdaterBridge::dispatchHttpFallback($action, $payload, $config);
     }
 
     private function normalizeUpdaterResult(array $result): array
