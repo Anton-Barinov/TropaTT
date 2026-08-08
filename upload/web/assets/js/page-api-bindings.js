@@ -1000,7 +1000,7 @@ window.CRM.pageApiBindings = (function () {
         + blockedChip
         + '</div>'
         + '<div class="crm-task-row-meta">' + taskHierarchyLabel(item) + '</div>'
-        + '<p class="crm-task-card-description">' + safeText(item.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
+        + '<p class="crm-task-card-description">' + safeText(stripHtmlText(item.description) || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + taskCardMetaHtml(item)
         + '<div class="crm-task-card-footer">'
         + taskActionsHtml(item)
@@ -1264,7 +1264,7 @@ window.CRM.pageApiBindings = (function () {
 
       var openLink = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(project.public_id || '');
       body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
-        + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
+        + '<p class="text-muted">' + safeText(stripHtmlText(project.description) || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.client', 'Client') + '</small><div>' + safeText(resolveProjectClientLabel(project)) + '</div></div>'
@@ -1944,7 +1944,7 @@ window.CRM.pageApiBindings = (function () {
       var blocked = Number(summary && summary.risks ? summary.risks.blocked_tasks || 0 : 0);
 
       body.innerHTML = '<h6>' + safeText(project.title || project.public_id || window.CRM.i18n.t('js.pab.project', 'Project')) + '</h6>'
-        + '<p class="text-muted">' + safeText(project.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
+        + '<p class="text-muted">' + safeText(stripHtmlText(project.description) || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
         + '<div class="progress mb-3"><div class="progress-bar" style="width:' + safeText(String(progress)) + '%">' + safeText(String(progress)) + '%</div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.status', 'Status') + '</small><div><span class="crm-badge ' + statusClass(project.status_code) + '">' + safeText(projectStatusLabel(project.status_code)) + '</span></div></div>'
         + '<div class="crm-metric-tile mb-2"><small class="text-muted">' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</small><div>' + safeText(priorityLabel(project.priority_code || 'normal')) + '</div></div>'
@@ -4020,7 +4020,7 @@ window.CRM.pageApiBindings = (function () {
 
     var taskLink = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
     body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task')) + '</h6>'
-      + '<p class="text-muted mb-2">' + safeText(task.description || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
+      + '<p class="text-muted mb-2">' + safeText(stripHtmlText(task.description) || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
       + '<div class="mb-2"><span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>'
       + ' <span class="crm-chip">' + safeText(priorityLabel(task.priority_code || 'normal')) + '</span></div>'
       + '<ul class="small ps-3 mb-3">'
@@ -6657,7 +6657,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function eventDescription(item) {
-      return safeText(item.description || item.note || item.comment || item.body || '');
+      return safeText(stripHtmlText(item.description || item.note || item.comment || item.body || ''));
     }
 
     function confirmCalendarAction(options) {
@@ -11795,7 +11795,7 @@ window.CRM.pageApiBindings = (function () {
       commentsWrap.innerHTML = clientTasks.length
         ? clientTasks.slice(0, 3).map(function (item) {
           var text = item.description ? String(item.description) : (tp('client_cabinet.task_updated_prefix', 'Task updated: ') + (item.title || item.public_id || ''));
-          return '<div class="crm-comment mb-2">' + safeText(text) + '</div>';
+          return '<div class="crm-comment mb-2">' + safeText(stripHtmlText(text)) + '</div>';
         }).join('')
         : '<div class="crm-comment text-muted">' + tp('client_cabinet.comments_empty', 'There are no comments for the selected client yet.') + '</div>';
     }
@@ -19070,7 +19070,7 @@ window.CRM.pageApiBindings = (function () {
   function kanbanTaskMatches(task, filters) {
     var q = kanbanNormalizeText(filters.q);
     if (q) {
-      var haystack = kanbanNormalizeText([task.title || '', task.description || '', task.project_title || '', task.public_id || ''].join(' '));
+      var haystack = kanbanNormalizeText([task.title || '', stripHtmlText(task.description) || '', task.project_title || '', task.public_id || ''].join(' '));
       if (haystack.indexOf(q) === -1) return false;
     }
     if (filters.assignees && filters.assignees.length) {
@@ -19154,7 +19154,7 @@ window.CRM.pageApiBindings = (function () {
         }).join('') + (parsedTags.length > 4 ? '<span class="task-tag task-tag--more">+' + (parsedTags.length - 4) + '</span>' : '') + '</span>';
       }
     }
-    var desc = task.description ? safeText(task.description).slice(0, 120) : '';
+    var desc = task.description ? safeText(stripHtmlText(task.description)).slice(0, 120) : '';
     var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
     var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'
@@ -27465,7 +27465,7 @@ window.CRM.pageApiBindings = (function () {
           var publicId = String(item.public_id || '');
           return '<tr data-template-id="' + safeText(publicId) + '">'
             + '<td><a href="#" data-template-edit-task="' + safeText(publicId) + '">' + safeText(title) + '</a></td>'
-            + '<td class="small">' + safeText(description) + '</td>'
+            + '<td class="small">' + safeText(stripHtmlText(description)) + '</td>'
             + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-task="' + safeText(publicId) + '">' + _t('template.btn_delete', 'Удалить') + '</button></td>'
             + '</tr>';
         }).join('');
@@ -27491,7 +27491,7 @@ window.CRM.pageApiBindings = (function () {
           var publicId = String(item.public_id || '');
           return '<tr data-template-id="' + safeText(publicId) + '">'
             + '<td><a href="#" data-template-edit-project="' + safeText(publicId) + '">' + safeText(title) + '</a></td>'
-            + '<td class="small">' + safeText(description) + '</td>'
+            + '<td class="small">' + safeText(stripHtmlText(description)) + '</td>'
             + '<td><button class="btn btn-sm crm-btn-danger crm-btn-compact" data-template-delete-project="' + safeText(publicId) + '">' + _t('template.btn_delete', 'Удалить') + '</button></td>'
             + '</tr>';
         }).join('');
@@ -27644,7 +27644,7 @@ window.CRM.pageApiBindings = (function () {
           return '<tr data-tag-id="' + safeText(publicId) + '">'
             + '<td><span class="crm-chip" style="background:' + safeText(color) + ';color:#fff">' + safeText(name) + '</span></td>'
             + '<td><code>' + safeText(color) + '</code></td>'
-            + '<td class="small">' + safeText(description) + '</td>'
+            + '<td class="small">' + safeText(stripHtmlText(description)) + '</td>'
             + '<td>' + safeText(String(usageCount)) + '</td>'
             + '<td><div class="d-flex gap-1">'
             + '<button class="btn btn-sm crm-btn-secondary crm-btn-compact" data-tag-edit="' + safeText(publicId) + '">' + _t('tag.btn_edit', 'Изменить') + '</button>'
