@@ -19154,7 +19154,7 @@ window.CRM.pageApiBindings = (function () {
         }).join('') + (parsedTags.length > 4 ? '<span class="task-tag task-tag--more">+' + (parsedTags.length - 4) + '</span>' : '') + '</span>';
       }
     }
-    var desc = task.description ? safeText(stripHtmlText(task.description)).slice(0, 120) : '';
+    var desc = task.description ? safeText(stripHtmlText(task.description).slice(0, 120)) : '';
     var knowledgeCount = parseInt(task.knowledge_links_count, 10) || 0;
     var knowledgeBadge = knowledgeCount > 0 ? '<span class="crm-kanban-knowledge" title="' + safeText(kanbanT('kanban.knowledge_count', 'Связанные материалы')) + '"><i class="fa-solid fa-book"></i> ' + knowledgeCount + '</span>' : '';
     return '<div class="crm-kanban-card' + (blockedCount > 0 ? ' crm-kanban-card--blocked' : '') + '" data-public-id="' + safeText(task.public_id) + '" data-row-version="' + safeText(task.row_version || '') + '">'

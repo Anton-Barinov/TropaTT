@@ -25,6 +25,7 @@ window.CRM.text = (function () {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#0?39;/g, "'")
+      .replace(/&apos;/g, "'")
       .replace(/&amp;/g, '&')
       .replace(/\s+/g, ' ')
       .trim();
