@@ -415,25 +415,44 @@ final class WorklogRepository
         return $qb->get();
     }
 
-    /** @return array<int, array{public_id: string, title: string}> */
-    public function listTeams(): array
+    /**
+     * @param string[] $accessibleTeamPublicIds
+     * @return array<int, array{public_id: string, title: string}>
+     */
+    public function listTeams(array $accessibleTeamPublicIds = []): array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('teams')
-            ->select(['public_id', 'title'])
-            ->orderBy('title', 'ASC')
-            ->get();
+            ->select(['public_id', 'title']);
+        if ($accessibleTeamPublicIds !== []) {
+            $qb->whereIn('public_id', $accessibleTeamPublicIds);
+        }
+        return $qb->orderBy('title', 'ASC')->get();
     }
 
-    /** @return array<int, array{public_id: string, title: string}> */
-    public function listProjects(): array
+    /**
+     * @param string[] $accessibleTeamPublicIds
+     * @return array<int, array{public_id: string, title: string}>
+     */
+    public function listProjects(bool $actorIsRoot, int $actorUserId, array $accessibleTeamPublicIds = []): array
     {
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('projects')
             ->select(['public_id', 'title'])
-            ->where('archived_at', 'IS', null)
-            ->orderBy('title', 'ASC')
-            ->get();
+            ->where('archived_at', 'IS', null);
+
+        if (!$actorIsRoot) {
+            $params = [$actorUserId, $actorUserId];
+            $sql = '(created_by_user_id = ? OR manager_user_id = ?';
+            if ($accessibleTeamPublicIds !== []) {
+                $placeholders = implode(', ', array_fill(0, count($accessibleTeamPublicIds), '?'));
+                $sql .= ' OR team_public_id IN (' . $placeholders . ')';
+                $params = array_merge($params, $accessibleTeamPublicIds);
+            }
+            $qb->whereRaw($sql . ')', $params);
+        }
+
+        return $qb->orderBy('title', 'ASC')->get();
     }
 
     public function userInTeam(string $userPublicId, string $teamPublicId): bool
