@@ -73,6 +73,21 @@ if (is_file($jsOverridesPath)) {
       }
     })();
   </script>
+  <script>
+    (function () {
+      // Apply the user's saved theme before CSS paints to avoid a flash.
+      // The canonical per-user value lives in profile preferences and is
+      // mirrored into localStorage (crm_theme) by window.CRM.theme.
+      var theme = 'light';
+      try {
+        var stored = localStorage.getItem('crm_theme');
+        if (stored === 'dark' || stored === 'contrast') {
+          theme = stored;
+        }
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="stylesheet" href="assets/css/bootstrap.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css?v=<?= urlencode($assetsVersion) ?>">
@@ -84,6 +99,7 @@ if (is_file($jsOverridesPath)) {
   <link rel="stylesheet" href="assets/css/responsive.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/ui.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
+  <link rel="stylesheet" href="assets/css/themes.css?v=<?= urlencode($assetsVersion) ?>">
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
   <link rel="stylesheet" href="/<?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
