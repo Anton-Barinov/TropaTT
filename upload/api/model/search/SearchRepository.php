@@ -47,10 +47,12 @@ final class SearchRepository
     /**
      * Поиск по counterparties (унифицировано: клиенты + компании).
      * @param string[]|null $typeFilter Фильтр по counterparty_type
+     * @param int[] $createdByUserIds Scope-фильтр: пустой массив для root (все),
+     *                                иначе — только записи этих создателей (владелец + иерархия).
      */
-    public function searchCounterparties(string $query, int $limit, ?array $typeFilter = null): array
+    public function searchCounterparties(string $query, int $limit, ?array $typeFilter = null, array $createdByUserIds = []): array
     {
-        $qb = $this->buildCounterpartyQuery($query);
+        $qb = $this->buildCounterpartyQuery($query, $createdByUserIds);
 
         if ($typeFilter !== null && $typeFilter !== []) {
             $placeholders = implode(',', array_fill(0, count($typeFilter), '?'));
@@ -77,24 +79,30 @@ final class SearchRepository
     /**
      * Legacy: поиск по clients (теперь ищет в counterparties с type filter).
      * @deprecated Используйте searchCounterparties()
+     * @param int[] $createdByUserIds Scope-фильтр, см. searchCounterparties()
      */
-    public function searchClients(string $query, int $limit): array
+    public function searchClients(string $query, int $limit, array $createdByUserIds = []): array
     {
-        return $this->searchCounterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity']);
+        return $this->searchCounterparties($query, $limit, ['individual', 'sole_proprietor', 'legal_entity'], $createdByUserIds);
     }
 
     /**
      * Legacy: поиск по companies (теперь ищет в counterparties с type filter).
      * @deprecated Используйте searchCounterparties()
+     * @param int[] $createdByUserIds Scope-фильтр, см. searchCounterparties()
      */
-    public function searchCompanies(string $query, int $limit): array
+    public function searchCompanies(string $query, int $limit, array $createdByUserIds = []): array
     {
-        return $this->searchCounterparties($query, $limit, ['organization']);
+        return $this->searchCounterparties($query, $limit, ['organization'], $createdByUserIds);
     }
 
-    public function searchContacts(string $query, int $limit): array
+    /**
+     * @param int[] $createdByUserIds Scope-фильтр: пустой массив для root (все),
+     *                                иначе — только контакты этих создателей.
+     */
+    public function searchContacts(string $query, int $limit, array $createdByUserIds = []): array
     {
-        return $this->buildContactsQuery($query)
+        return $this->buildContactsQuery($query, $createdByUserIds)
             ->select([
                 'ct.public_id',
                 'ct.full_name',
@@ -148,13 +156,18 @@ final class SearchRepository
         return $qb;
     }
 
-    private function buildCounterpartyQuery(string $query): QueryBuilder
+    /** @param int[] $createdByUserIds */
+    private function buildCounterpartyQuery(string $query, array $createdByUserIds = []): QueryBuilder
     {
         $like = '%' . $query . '%';
 
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('counterparties cp')
             ->whereRaw('(cp.title LIKE ? OR cp.legal_name LIKE ? OR cp.tax_inn LIKE ? OR cp.website LIKE ? OR cp.email LIKE ? OR cp.phone LIKE ?)', [$like, $like, $like, $like, $like, $like]);
+
+        $this->applyCreatorScope($qb, 'cp', $createdByUserIds);
+
+        return $qb;
     }
 
     public function searchKnowledge(string $query, int $limit): array
@@ -185,13 +198,41 @@ final class SearchRepository
             ->whereRaw('(kp.title LIKE ? OR kp.content_text LIKE ? OR ks.title LIKE ?)', [$like, $like, $like]);
     }
 
-    private function buildContactsQuery(string $query): QueryBuilder
+    /** @param int[] $createdByUserIds */
+    private function buildContactsQuery(string $query, array $createdByUserIds = []): QueryBuilder
     {
         $like = '%' . $query . '%';
 
-        return (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('contacts ct')
             ->leftJoin('counterparties cp', 'cp.id', '=', 'ct.counterparty_id')
             ->whereRaw('(ct.full_name LIKE ? OR ct.email LIKE ? OR ct.phone LIKE ?)', [$like, $like, $like]);
+
+        $this->applyCreatorScope($qb, 'ct', $createdByUserIds);
+
+        return $qb;
+    }
+
+    /**
+     * Fail-closed object scope for search: an empty list means "no scope"
+     * (used for root users who may see everything). A non-empty list restricts
+     * rows to the given creators, mirroring CounterpartyService/ContactService.
+     *
+     * Important: a non-positive sentinel (e.g. -1 from an anonymous actor) must
+     * NOT be discarded — keeping it makes the IN (...) match nothing, which is
+     * the fail-closed behaviour for users without a valid identity.
+     *
+     * @param int[] $createdByUserIds
+     */
+    private function applyCreatorScope(QueryBuilder $qb, string $tableAlias, array $createdByUserIds): void
+    {
+        $creatorIds = array_values(array_unique(array_map('intval', $createdByUserIds)));
+
+        if ($creatorIds === []) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($creatorIds), '?'));
+        $qb->whereRaw($tableAlias . '.created_by_user_id IN (' . $placeholders . ')', $creatorIds);
     }
 }
