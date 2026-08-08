@@ -402,10 +402,12 @@ function crmWebApiCheckAnyPermission(string $sessionToken, array $permissions, s
     $tokenHash = hash('sha256', $sessionToken);
     $now = gmdate('Y-m-d H:i:s');
 
-    // Root roles mirror AuthService/UserRepository root detection: users with
-    // any of these roles bypass all permission checks even when the users
-    // is_root flag is stale or missing (self-hosted installs may carry both).
-    $rootRoles = ['admin', 'administrator', 'super_admin', 'super_administrator', 'root'];
+    // Root role mirrors AuthService root detection: users with the super_admin
+    // role bypass all permission checks even when the users is_root flag is
+    // stale or missing (self-hosted installs may carry both). Other admin-like
+    // roles must map their permissions through role_permissions — the same
+    // source the API auth layer uses (see the permission query below).
+    $rootRoles = ['super_admin'];
     $rootRolePlaceholders = [];
     foreach ($rootRoles as $i => $rootRole) {
         $rootRolePlaceholders[':root_role' . $i] = $rootRole;
