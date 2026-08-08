@@ -413,6 +413,54 @@ html[data-theme="dark"] .btn-outline-secondary:hover {
   color: var(--crm-text);
 }
 
+/* ---- Dark: hardened overrides ----
+   The ui.css polish layer sets several light colors with !important
+   (topbar glass, table head, KPI cards, nav icons). Mirror that pattern
+   so the dark theme actually wins. */
+html[data-theme="dark"] .crm-topbar {
+  background: rgba(22, 32, 29, 0.92) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45) !important;
+}
+html[data-theme="dark"] .crm-nav .nav-link:not(.active) .crm-nav-icon {
+  background: var(--crm-primary-soft) !important;
+}
+html[data-theme="dark"] .crm-content table.crm-table thead th,
+html[data-theme="dark"] .crm-content .table.crm-table thead th {
+  background: var(--crm-surface-2) !important;
+  color: var(--crm-text-muted) !important;
+}
+html[data-theme="dark"] .crm-content table.crm-table tbody td,
+html[data-theme="dark"] .crm-content .table.crm-table tbody td {
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-dashboard-page .crm-dashboard-kpi {
+  border-color: var(--crm-border-strong) !important;
+  background: var(--crm-surface) !important;
+}
+html[data-theme="dark"] .crm-badge.warning,
+html[data-theme="dark"] .crm-badge.blocked,
+html[data-theme="dark"] .crm-badge-warning {
+  color: var(--crm-warning) !important;
+  background-color: var(--crm-warning-soft) !important;
+}
+html[data-theme="dark"] .crm-card,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .crm-section-card,
+html[data-theme="dark"] .crm-table-card,
+html[data-theme="dark"] .crm-info-panel,
+html[data-theme="dark"] .crm-list-card {
+  border-color: var(--crm-border-strong) !important;
+}
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] .crm-input,
+html[data-theme="dark"] .crm-select,
+html[data-theme="dark"] .crm-textarea,
+html[data-theme="dark"] .team-input,
+html[data-theme="dark"] .team-search-input {
+  background-color: var(--crm-control-bg) !important;
+}
+
 /* Login page */
 html[data-theme="dark"] body.crm-login-page .crm-login-panel,
 html[data-theme="dark"] body.crm-login-page .crm-login-panel-inner {
@@ -613,6 +661,48 @@ html[data-theme="contrast"] .dropdown-menu,
 html[data-theme="contrast"] .popover {
   border-width: 2px;
   border-color: #000000;
+}
+
+/* ---- Contrast: hardened overrides (mirror the !important polish layer) ---- */
+html[data-theme="contrast"] .crm-topbar {
+  border-bottom-color: #000000 !important;
+  box-shadow: none !important;
+}
+html[data-theme="contrast"] .crm-content table.crm-table thead th,
+html[data-theme="contrast"] .crm-content .table.crm-table thead th {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+html[data-theme="contrast"] .crm-content table.crm-table tbody td,
+html[data-theme="contrast"] .crm-content .table.crm-table tbody td {
+  color: #000000 !important;
+}
+html[data-theme="contrast"] .crm-dashboard-page .crm-dashboard-kpi {
+  border-color: #000000 !important;
+  background: #ffffff !important;
+}
+html[data-theme="contrast"] .crm-badge.warning,
+html[data-theme="contrast"] .crm-badge.blocked,
+html[data-theme="contrast"] .crm-badge-warning {
+  color: #7a4d00 !important;
+  background-color: #ffffff !important;
+}
+html[data-theme="contrast"] .crm-card,
+html[data-theme="contrast"] .card,
+html[data-theme="contrast"] .crm-section-card,
+html[data-theme="contrast"] .crm-table-card,
+html[data-theme="contrast"] .crm-info-panel {
+  border-color: #000000 !important;
+}
+html[data-theme="contrast"] .form-control,
+html[data-theme="contrast"] .form-select,
+html[data-theme="contrast"] .crm-input,
+html[data-theme="contrast"] .crm-select,
+html[data-theme="contrast"] .crm-textarea,
+html[data-theme="contrast"] .team-input,
+html[data-theme="contrast"] .team-search-input {
+  background-color: #ffffff !important;
+  border-color: #000000 !important;
 }
 
 /* Active nav / dropdown hover: light-blue fill with black text. */
