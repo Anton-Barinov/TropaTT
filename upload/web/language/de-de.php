@@ -4515,6 +4515,8 @@ return array (
       'stale' => 'veraltet',
       'may_be_stale' => 'kann veraltet sein',
       'ai_digest_not_ready' => 'KI-Digest nicht generiert',
+      'ai_digest_stale_title' => 'KI-Digest ist veraltet',
+      'ai_digest_stale_hint' => 'Die Daten sind älter als 12 Stunden. Klicken Sie auf „KI-Digest aktualisieren“, um aktuelle Daten zu erhalten.',
       'generate_ai_digest_first' => 'Zuerst KI-Tagesdigest generieren',
       'ai_digest_dismissed' => 'KI-Digest als verworfen markiert',
       'failed_dismiss_ai_digest' => 'KI-Digest konnte nicht verworfen werden',

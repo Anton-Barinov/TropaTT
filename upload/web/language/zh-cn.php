@@ -2099,6 +2099,8 @@ return array (
       'stale' => '已过期',
       'may_be_stale' => '可能已过期',
       'ai_digest_not_ready' => 'AI 摘要尚未生成',
+      'ai_digest_stale_title' => 'AI 摘要已过期',
+      'ai_digest_stale_hint' => '数据超过 12 小时。点击「刷新 AI 摘要」以获取最新数据。',
       'generate_ai_digest_first' => '请先生成 AI 每日摘要',
       'ai_digest_dismissed' => 'AI 摘要已标记为忽略',
       'failed_dismiss_ai_digest' => '忽略 AI 摘要失败',
