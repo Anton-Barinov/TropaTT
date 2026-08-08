@@ -4789,8 +4789,10 @@ window.CRM.pageApiBindings = (function () {
       .filter(function (item) { return !!item.due_at; })
       .sort(function (a, b) { return toTimestamp(a.due_at) - toTimestamp(b.due_at); })[0] || null;
 
-    var tableTasks = todayTasks.length ? todayTasks : tasks;
-    var dashboardTasks = tableTasks.slice(0, 8);
+    // Show only tasks due today under the “Tasks for today” header;
+    // fall back to an honest empty state when there are none.
+    var tableTasks = todayTasks.slice(0, 8);
+    var dashboardTasks = tableTasks;
     var tasksLoadError = tasksEnvelope && tasksEnvelope.success === false
       ? window.CRM.i18n.t('js.pab.today_tasks_load_error', 'Failed to load tasks.')
       : '';
@@ -5127,9 +5129,18 @@ window.CRM.pageApiBindings = (function () {
       wlStart.setHours(0, 0, 0, 0);
       var wlEnd = new Date(dayStart.getTime() + 86400000 - 1);
       tryRequest('api/v1/worklogs/summary', { query: { from: dateTimeStr(wlStart), to: dateTimeStr(wlEnd), user_public_id: currentUserPublicId }, silent: true }).then(function (env) {
+        // /worklogs/summary returns per-user per-day rows (items[]);
+        // aggregate them into day_totals/user_totals maps the widget renders.
         var data = env && env.data ? env.data : {};
-        var userTotals = data.user_totals || {};
-        var dayTotals = data.day_totals || {};
+        var dayTotals = {};
+        var userTotals = {};
+        (Array.isArray(data.items) ? data.items : []).forEach(function (row) {
+          if (!row || !row.day) return;
+          var mins = Number(row.total_minutes || 0);
+          dayTotals[row.day] = (dayTotals[row.day] || 0) + mins;
+          var uid = String(row.user_public_id || '');
+          if (uid) userTotals[uid] = (userTotals[uid] || 0) + mins;
+        });
         var myWeekMinutes = currentUserPublicId ? Number(userTotals[currentUserPublicId] || 0) : 0;
         var todayMinutes = Number(dayTotals[dateKey(new Date())] || 0);
         var bars = [];
