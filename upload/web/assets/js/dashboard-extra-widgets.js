@@ -4,7 +4,7 @@
   var definitions = {
     analytics_summary: { route: 'api/v1/analytics/summary', permission: 'task.manage', kind: 'summary', link: 'index.php?route=analytics' },
     project_health: { route: 'api/v1/analytics/projects', permission: 'task.manage', kind: 'projects', link: 'index.php?route=analytics' },
-    team_workload: { route: 'api/v1/analytics/users', permission: 'task.manage', kind: 'users', link: 'index.php?route=analytics' },
+    team_workload: { route: 'api/v1/analytics/users', permission: 'task.manage', kind: 'workload', query: { limit: 6 }, link: 'index.php?route=analytics' },
     time_team: { route: 'api/v1/worklogs/matrix', permission: 'task.manage', kind: 'time_team', link: 'index.php?route=time-analytics' },
     notification_inbox: { route: 'api/v1/notifications', permission: 'task.manage', kind: 'notifications', query: { limit: 5 }, link: 'index.php?route=notifications' },
     chat_unread: { route: 'api/v1/chats/unread-count', permission: 'chat.use', kind: 'count', link: 'index.php?route=chat' },
@@ -114,10 +114,52 @@
     }
     container.innerHTML = list.map(function (item) {
       var id = value(item, ['public_id'], '');
-      var title = value(item, ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title'], translate('dashboard.extra_untitled', 'Без названия'));
+      var title = value(item, ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title', 'device_name'], '');
+      if (!title) {
+        // Subscriptions, sessions and similar entities carry no display title;
+        // fall back to a humanized entity_type instead of a bare placeholder.
+        var etype = String(item.entity_type || '').trim();
+        title = etype
+          ? etype.charAt(0).toUpperCase() + etype.slice(1)
+          : translate('dashboard.extra_untitled', 'Без названия');
+      }
       var meta = value(item, ['status_title', 'status_code', 'priority_title', 'priority_code', 'due_at', 'next_run_at', 'created_at', 'updated_at'], '');
       var href = link(definition, id);
       return '<div class="crm-dashboard-extra-row"><div class="text-truncate"><a href="' + safe(href) + '">' + safe(title) + '</a>' + (meta ? '<small>' + safe(meta) + '</small>' : '') + '</div></div>';
+    }).join('');
+  }
+
+  // Team workload: per-user load (active/overdue tasks + week minutes).
+  function renderWorkload(container, envelope, definition) {
+    if (!envelope || envelope.success === false) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_unavailable', 'Данные недоступны')) + '</div>';
+      return;
+    }
+    var list = items(envelope).slice(0, 6);
+    if (!list.length) {
+      container.innerHTML = '<div class="text-muted small">' + safe(translate('dashboard.extra_empty', 'Пока нет данных')) + '</div>';
+      return;
+    }
+    var maxMinutes = 1;
+    list.forEach(function (u) {
+      var mins = Number(u.worklog_minutes_week || 0);
+      if (mins > maxMinutes) maxMinutes = mins;
+    });
+    container.innerHTML = list.map(function (u) {
+      var name = String(u.full_name || u.login || u.public_id || '');
+      var active = Number(u.assigned_active_tasks || 0);
+      var overdue = Number(u.assigned_overdue_tasks || 0);
+      var mins = Number(u.worklog_minutes_week || 0);
+      var width = Math.min(100, Math.round(mins / maxMinutes * 100));
+      var meta = safe(String(active)) + ' ' + safe(translate('dashboard.extra_team_tasks', 'задач'));
+      if (overdue > 0) meta += ' · <span class="is-overdue">' + safe(String(overdue)) + ' ' + safe(translate('dashboard.extra_team_overdue', 'просрочено')) + '</span>';
+      return '<div class="crm-dashboard-wl-row">'
+        + '<div class="crm-dashboard-wl-head"><span class="text-truncate" title="' + safe(name) + '">' + safe(name) + '</span>'
+        + '<strong>' + safe(formatMinutesCompact(mins)) + '</strong></div>'
+        + '<div class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></div>'
+        + '<div class="crm-dashboard-wl-meta"><span>' + meta + '</span>'
+        + '<span class="text-muted">' + safe(translate('dashboard.extra_team_week', 'за неделю')) + '</span></div>'
+        + '</div>';
     }).join('');
   }
 
@@ -249,6 +291,7 @@
     if (definition.kind === 'health') return renderHealth(container, envelope);
     if (definition.kind === 'tags') return renderTags(container, envelope, definition);
     if (definition.kind === 'time_team') return renderTeamTime(container, envelope, definition);
+    if (definition.kind === 'workload') return renderWorkload(container, envelope, definition);
     return renderList(container, envelope, definition);
   }
 

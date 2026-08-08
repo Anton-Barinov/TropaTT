@@ -6828,6 +6828,48 @@ body.modal-open {
   color: var(--crm-text-muted);
 }
 
+/* Dashboard: team workload widget (per-user task load + week minutes) */
+.crm-dashboard-page .crm-dashboard-wl-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--crm-border);
+}
+.crm-dashboard-page .crm-dashboard-wl-row:last-child {
+  border-bottom: 0;
+}
+.crm-dashboard-page .crm-dashboard-wl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.crm-dashboard-page .crm-dashboard-wl-head > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--crm-text);
+}
+.crm-dashboard-page .crm-dashboard-wl-head strong {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--crm-text);
+}
+.crm-dashboard-page .crm-dashboard-wl-row .crm-dashboard-time-bar {
+  margin: 5px 0 4px;
+}
+.crm-dashboard-page .crm-dashboard-wl-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-xs);
+  color: var(--crm-text-muted);
+}
+.crm-dashboard-page .crm-dashboard-wl-meta .is-overdue {
+  color: var(--crm-danger);
+}
+
 .crm-dashboard-page .crm-dashboard-extra-count {
   display: flex;
   align-items: baseline;
