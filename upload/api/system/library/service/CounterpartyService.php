@@ -51,7 +51,6 @@ final class CounterpartyService
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
             $filters['created_by_user_ids'] = $scope['limit_to_creator_ids'];
-            $filters['include_unowned'] = true;
         }
 
         [$items, $total, $page, $limit] = $this->counterparties->list($filters);
@@ -91,7 +90,7 @@ final class CounterpartyService
         $this->counterparties->create([
             'public_id' => $publicId,
             ...$this->extractCounterpartySet($input, true),
-            'created_by_user_id' => $actor['user']['id'] ?? null,
+            'created_by_user_id' => (int)($actor['id'] ?? 0) ?: null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -131,54 +130,49 @@ final class CounterpartyService
         return $deleted;
     }
 
+    /** @return array{limit_to_creator_ids:int[]|null} */
     private function accessScope(array $actor): array
     {
-        $user = $actor['user'] ?? [];
-        $role = $user['role'] ?? 'user';
-
-        if (in_array($role, ['admin', 'owner'], true)) {
+        if ((int)($actor['is_root'] ?? 0) === 1) {
             return ['limit_to_creator_ids' => null];
-        }
-
-        $creatorId = $user['id'] ?? null;
-        if ($creatorId === null) {
-            return ['limit_to_creator_ids' => []];
-        }
-
-        $teamIds = $this->hierarchy->getTeamIdsForUser((int)$creatorId);
-        if ($teamIds === []) {
-            return ['limit_to_creator_ids' => [$creatorId]];
-        }
-
-        $creatorIds = $this->hierarchy->getUserIdsInTeams($teamIds);
-        $creatorIds[] = $creatorId;
-
-        return ['limit_to_creator_ids' => array_values(array_unique($creatorIds))];
-    }
-
-    private function canAccess(array $item, array $actor): bool
-    {
-        if ((bool)($actor['is_root'] ?? false)) {
-            return true;
         }
 
         $actorId = (int)($actor['id'] ?? 0);
         if ($actorId <= 0) {
+            return ['limit_to_creator_ids' => [-1]];
+        }
+
+        $descendants = $this->users->descendantIds($actorId);
+        if ($descendants === []) {
+            $descendants = [$actorId];
+        }
+
+        return ['limit_to_creator_ids' => $descendants];
+    }
+
+    /**
+     * Fail-closed object access: root may access anything; non-root may only
+     * access records created by themselves or by their own hierarchy subtree.
+     * Records without an owner (created_by_user_id IS NULL) are visible only
+     * to root (they belong to nobody), matching the rest of the CRM.
+     */
+    private function canAccess(array $item, array $actor): bool
+    {
+        if ((int)($actor['is_root'] ?? 0) === 1) {
+            return true;
+        }
+
+        $actorId = (int)($actor['id'] ?? 0);
+        $creatorId = (int)($item['created_by_user_id'] ?? 0);
+        if ($actorId <= 0 || $creatorId <= 0) {
             return false;
         }
 
-        $creatorId = (int)($item['created_by_user_id'] ?? 0);
         if ($creatorId === $actorId) {
             return true;
         }
 
-        $teamIds = $this->hierarchy->getTeamIdsForUser($actorId);
-        if ($teamIds === []) {
-            return false;
-        }
-
-        $creatorTeamIds = $this->hierarchy->getTeamIdsForUser($creatorId);
-        return !empty(array_intersect($teamIds, $creatorTeamIds));
+        return $this->hierarchy->isAncestor($actorId, $creatorId);
     }
 
     private function normalizeCounterparty(array $item): array
