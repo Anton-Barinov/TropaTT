@@ -13,7 +13,7 @@
     contact_followups: { route: 'api/v1/contacts', permission: 'contact.manage', kind: 'entities', query: { limit: 5 }, link: 'index.php?route=counterparties' },
     tag_usage: { route: 'api/v1/tags', permission: 'task.manage', kind: 'tags', query: { limit: 6 }, link: 'index.php?route=admin-tags' },
     saved_views: { route: 'api/v1/views', permission: 'task.manage', kind: 'views', query: { entity_type: 'task', limit: 6 }, link: 'index.php?route=tasks' },
-    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, link: 'index.php?route=tasks' },
+    subscriptions: { route: 'api/v1/subscriptions', permission: 'task.manage', kind: 'subscriptions', query: { limit: 6 }, titleFields: ['entity_title'], link: 'index.php?route=tasks' },
     dependency_watch: { route: 'api/v1/dependencies', permission: 'task.manage', kind: 'dependencies', query: { limit: 6 }, link: 'index.php?route=tasks' },
     milestone_watch: { route: 'api/v1/milestones', permission: 'project.manage', kind: 'milestones', query: { limit: 6 }, link: 'index.php?route=projects' },
     recurring_health: { route: 'api/v1/recurring', permission: 'task.manage', kind: 'recurring', query: { limit: 6 }, link: 'index.php?route=recurring' },
@@ -114,7 +114,8 @@
     }
     container.innerHTML = list.map(function (item) {
       var id = value(item, ['public_id'], '');
-      var title = value(item, ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title', 'device_name'], '');
+      var titleFields = definition.titleFields || ['title', 'name', 'full_name', 'user_full_name', 'user_name', 'login', 'label', 'task_title', 'project_title', 'project_name', 'entity_title', 'device_name'];
+      var title = value(item, titleFields, '');
       if (!title) {
         // Subscriptions, sessions and similar entities carry no display title;
         // fall back to a humanized entity_type instead of a bare placeholder.
