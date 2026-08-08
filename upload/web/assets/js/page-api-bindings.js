@@ -43,12 +43,14 @@ window.CRM.pageApiBindings = (function () {
     }).filter(function (pair) { return pair[1] !== ''; });
     if (!entries.length) return '<span class="text-muted">—</span>';
     var visible = entries.slice(0, 3).map(function (pair) {
-      return '<span class="badge text-bg-light border crm-extra-chip">' + safeText(pair[0]) + ': ' + safeText(pair[1]) + '</span>';
+      var chipText = safeText(pair[0] + ': ' + pair[1]);
+      return '<span class="badge text-bg-light border crm-extra-chip" title="' + chipText + '">' + chipText + '</span>';
     }).join(' ');
     if (entries.length > 3) {
-      visible += ' <span class="badge text-bg-secondary">+' + (entries.length - 3) + '</span>';
+      var moreText = safeText(entries.slice(3).map(function (pair) { return pair[0] + ': ' + pair[1]; }).join(', '));
+      visible += ' <span class="badge text-bg-secondary" title="' + moreText + '">+' + (entries.length - 3) + '</span>';
     }
-    return '<div class="d-flex flex-wrap gap-1">' + visible + '</div>';
+    return '<div class="d-flex flex-wrap gap-1 crm-extra-chips">' + visible + '</div>';
   }
 
   function stripHtmlText(value) {
