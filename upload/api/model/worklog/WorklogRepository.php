@@ -416,11 +416,20 @@ final class WorklogRepository
     }
 
     /**
-     * @param string[] $accessibleTeamPublicIds
+     * @param bool $actorIsRoot Root actors always see every team.
+     * @param string[] $accessibleTeamPublicIds Accessible team public IDs. For
+     *     non-root actors an empty list means "no teams" (fail-closed), NOT
+     *     "all teams".
      * @return array<int, array{public_id: string, title: string}>
      */
-    public function listTeams(array $accessibleTeamPublicIds = []): array
+    public function listTeams(bool $actorIsRoot, array $accessibleTeamPublicIds = []): array
     {
+        // Root sees all teams. For non-root actors an empty accessible list
+        // must mean "no teams", never "all teams" (fail-closed).
+        if (!$actorIsRoot && $accessibleTeamPublicIds === []) {
+            return [];
+        }
+
         $qb = (new QueryBuilder($this->pdo))
             ->from('teams')
             ->select(['public_id', 'title']);

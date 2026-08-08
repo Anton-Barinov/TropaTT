@@ -1340,7 +1340,8 @@ final class App
         ));
         $this->container->factory('service.analytics', fn(Container $c) => new AnalyticsService(
             $c->get('repository.analytics'),
-            $c->get('repository.team')
+            $c->get('repository.team'),
+            $c->get('repository.user_management')
         ));
         $this->container->factory('service.task_activity', fn(Container $c) => new TaskActivityService(
             $c->get('repository.task_activity')

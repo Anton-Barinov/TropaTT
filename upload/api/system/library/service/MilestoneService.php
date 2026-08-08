@@ -26,13 +26,22 @@ final class MilestoneService
     public function listByProjectIds(array $projectPublicIds, array $actor): array
     {
         $grouped = [];
+        $accessible = [];
         $items = $this->milestones->listByProjectPublicIds($projectPublicIds);
         foreach ($items as $item) {
             $projectPub = (string)$item['project_public_id'];
-            if (!isset($grouped[$projectPub])) {
-                $grouped[$projectPub] = [];
+            // Object-level authorization: the batch path must not expose
+            // milestones of projects the actor cannot access. The single-project
+            // list() path already enforces this via ProjectService::get().
+            if (!array_key_exists($projectPub, $accessible)) {
+                $accessible[$projectPub] = (bool)$this->projects->get($projectPub, $actor);
             }
-            $grouped[$projectPub][] = $item;
+            if ($accessible[$projectPub]) {
+                if (!isset($grouped[$projectPub])) {
+                    $grouped[$projectPub] = [];
+                }
+                $grouped[$projectPub][] = $item;
+            }
         }
         return $grouped;
     }

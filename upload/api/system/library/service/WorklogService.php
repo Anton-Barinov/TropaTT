@@ -430,8 +430,14 @@ final class WorklogService
             }
         }
 
-        $teams = $this->worklogs->listTeams();
-        $projects = $this->worklogs->listProjects();
+        // Scope the team/project option lists to the actor's access so the
+        // matrix response never exposes org-wide names to non-root users.
+        $actorId = $this->resolveActorId($actor);
+        $accessibleTeamPublicIds = $actorIsRoot
+            ? []
+            : $this->teamRepo->listAccessiblePublicIdsForUser($actorId);
+        $teams = $this->worklogs->listTeams($actorIsRoot, $accessibleTeamPublicIds);
+        $projects = $this->worklogs->listProjects($actorIsRoot, $actorId, $accessibleTeamPublicIds);
 
         // Filter teams based on active context (user/project selections)
         if (!empty($userPublicId) || !empty($projectPublicId) || $userSetKeys !== []) {
@@ -501,6 +507,12 @@ final class WorklogService
                 if (!empty($teamPublicId)) {
                     $memberPubIds = $teamUserPublicIds ?? [];
                     if ($memberPubIds) $projectQb->join('users u2', 'u2.id', '=', 'w.user_id')->whereIn('u2.public_id', $memberPubIds);
+                }
+                // Object-level authorization: never re-derive projects from
+                // worklogs of users the actor cannot see. The minutes rows are
+                // already visibility-filtered; apply the same scope here.
+                if (!$actorIsRoot && $visibleUserIds !== []) {
+                    $projectQb->join('users u_vis', 'u_vis.id', '=', 'w.user_id')->whereIn('u_vis.id', $visibleUserIds);
                 }
                 $projectQb->orderBy('p.title', 'ASC');
                 $projects = $projectQb->get();

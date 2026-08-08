@@ -5,12 +5,14 @@ namespace Api\System\Library\Service;
 
 use Api\Model\Analytics\AnalyticsRepository;
 use Api\Model\Team\TeamRepository;
+use Api\Model\User\UserManagementRepository;
 
 final class AnalyticsService
 {
     public function __construct(
         private readonly AnalyticsRepository $analytics,
-        private readonly TeamRepository $teams
+        private readonly TeamRepository $teams,
+        private readonly UserManagementRepository $userManagement
     ) {
     }
 
@@ -111,8 +113,12 @@ final class AnalyticsService
             return [-1];
         }
 
+        // Same visibility model as WorklogService::getVisibleUserIds(): actor +
+        // users created by them (hierarchy) + members of teams where the actor
+        // is the manager. Keeps the workload and worklog widget scopes consistent.
         return array_values(array_unique(array_merge(
             [$actorId],
+            $this->userManagement->descendantIds($actorId),
             $this->teams->findMemberIdsByManager($actorId)
         )));
     }
