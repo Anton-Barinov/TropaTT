@@ -4512,10 +4512,11 @@ window.CRM.pageApiBindings = (function () {
         window.CRM.__dashboardRefreshInit = '0';
         return;
       }
-      // Skip while the widget builder is open, the tab is hidden, or a refresh
-      // from a previous tick is still in flight.
+      // Skip while the widget builder is open, the tab is hidden or unfocused,
+      // or a refresh from a previous tick is still in flight.
       if (window.CRM.__dashboardEditMode === '1') return;
       if (typeof document.hidden === 'boolean' && document.hidden) return;
+      if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
       if (window.CRM.__dashboardRefreshing === '1') return;
       window.CRM.__dashboardRefreshing = '1';
       renderDashboardPage()
