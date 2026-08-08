@@ -4229,12 +4229,11 @@ body.modal-open {
 }
 
 .crm-extra-chip {
-  display: inline-block;
   max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: middle;
 }
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(7),

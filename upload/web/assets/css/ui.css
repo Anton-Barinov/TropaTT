@@ -4677,7 +4677,7 @@ body {
 }
 
 .crm-counterparties-page #counterpartiesTable {
-  min-width: 1280px !important;
+  min-width: 1360px !important;
 }
 
 .crm-admin-page .crm-table td,
@@ -4757,7 +4757,7 @@ body {
 }
 
 .crm-counterparties-page #counterpartiesTable {
-  min-width: 1280px !important;
+  min-width: 1360px !important;
   table-layout: fixed !important;
 }
 
@@ -4795,9 +4795,9 @@ body {
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(9),
 .crm-counterparties-page #counterpartiesTable td:nth-child(9) {
-  width: 120px !important;
-  min-width: 120px !important;
-  max-width: 120px !important;
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
