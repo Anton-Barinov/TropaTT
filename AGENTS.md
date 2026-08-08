@@ -107,6 +107,8 @@ If a change touches auth, permissions, files, chat, webhooks, AI, installer, or 
 
 - **Worklog cache invalidation on hierarchy changes**: When modifying teams or users (create, update, delete), always invalidate the `'worklog'` cache namespace via `$this->invalidateCache('worklog')`. Changes to team membership (`manager_user_id`, `member_user_ids`) and user hierarchy (`created_by_user_id`) affect worklog visibility (`getVisibleUserIds()` uses `descendantIds()` + `findMemberIdsByManager()`). Without invalidation, stale worklog reports persist for the cache TTL (60s by default). Both `TeamController` and `UserController` must call `$this->invalidateCache('worklog')` after successful mutations.
 
+- **Fail-closed empty access lists**: Repository methods that take an "accessible IDs" list must distinguish "root → empty means all" from "non-root → empty means nothing". Never pass an empty array into a `whereIn()`-gated helper without an explicit `$actorIsRoot` flag — an empty array falls through the `if ($ids !== [])` check and silently returns the full table (org-wide data leak). See `WorklogRepository::listTeams(bool $actorIsRoot, array $accessibleTeamPublicIds = [])` / `listProjects(...)` and `AnalyticsRepository` for the canonical pattern. When adding a new scoped list helper, mirror this signature and add a fail-closed unit test.
+
 ## API and OpenAPI Rules
 
 - Keep `upload/api/config/routes.php` and API controllers consistent.
