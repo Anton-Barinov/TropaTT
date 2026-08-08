@@ -574,6 +574,19 @@ window.CRM.navigation = (function () {
       profileButton.setAttribute('data-session-user-btn', '1');
     }
 
+    // The topbar is built asynchronously (after the menu fetch), so it can be
+    // created after br1.js already hydrated the session user name. Apply the
+    // cached user name right after the button exists, so it never stays on the
+    // generic default label ("Пользователь"/"User").
+    if (profileButton && window.CRM.br1 && typeof window.CRM.br1.setSessionUiUser === 'function') {
+      var cachedSessionUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
+        ? window.CRM.api.getUser()
+        : null;
+      if (cachedSessionUser) {
+        window.CRM.br1.setSessionUiUser(cachedSessionUser);
+      }
+    }
+
     // Some pages bake the user menu / notifications button into their own
     // header markup, which puts them before the JS-added buttons and makes the
     // topbar order differ from page to page. Normalize the order so every page

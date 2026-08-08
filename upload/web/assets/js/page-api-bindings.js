@@ -5825,10 +5825,20 @@ window.CRM.pageApiBindings = (function () {
         renderDashboardList(aiDigestActionsNode, [], '—');
       } else {
         setDashboardAiState(latestDigestSuggestion ? 'ready' : 'empty');
+        // A stored digest older than 12h is NOT shown as if it were current:
+        // stale AI payloads (often generated in English) look like a
+        // localization bug, when in fact the data just needs a refresh.
+        // Render a localized stale state and fall back to data computed from
+        // the current dashboard (risks/highlights/actions below are localized).
+        var useStalePayload = Boolean(latestDigestSuggestion) && !digestIsStale;
         if (aiDigestSummaryNode) {
-          if (latestDigestSuggestion) {
+          if (digestIsStale) {
+            aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_stale_title', 'AI digest is outdated') + '</strong>'
+              + '<p class="mb-0 mt-1">' + window.CRM.i18n.t('js.pab.ai_digest_stale_hint', 'The data is older than 12 hours. Click "Refresh AI digest" to get current data.') + '</p>'
+              + '<p class="mb-0 mt-1 small text-muted">' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(digestUpdatedAt)) + '</p>';
+          } else if (latestDigestSuggestion) {
             aiDigestSummaryNode.innerHTML = '<strong>' + safeText(digestSummary || window.CRM.i18n.t('js.pab.ai_daily_digest', 'AI daily digest')) + '</strong>'
-              + '<p class="mb-0 mt-1">' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(digestUpdatedAt)) + (digestIsStale ? ' · <span class="crm-badge warning">' + window.CRM.i18n.t('js.pab.stale', 'stale') + '</span>' : '') + '</p>';
+              + '<p class="mb-0 mt-1">' + window.CRM.i18n.t('js.pab.updated_label', 'Updated:') + ' ' + safeText(formatDate(digestUpdatedAt)) + '</p>';
           } else {
             aiDigestSummaryNode.innerHTML = '<strong>' + window.CRM.i18n.t('js.pab.ai_digest_not_ready', 'AI digest not generated') + '</strong>'
               + '<p class="mb-0">' + window.CRM.i18n.t('js.pab.click_refresh_digest', 'Click "Refresh AI digest" to get a recommendation.') + '</p>';
@@ -5836,7 +5846,7 @@ window.CRM.pageApiBindings = (function () {
         }
         renderDashboardList(
           aiDigestRisksNode,
-          digestRisks.length ? digestRisks : fallbackRisks,
+          useStalePayload && digestRisks.length ? digestRisks : fallbackRisks,
           window.CRM.i18n.t('js.pab.no_critical_risks', 'No critical risks found.')
         );
         renderDashboardList(
@@ -5844,7 +5854,7 @@ window.CRM.pageApiBindings = (function () {
           digestHighlights,
           window.CRM.i18n.t('js.pab.highlights_after_load', 'Highlights will appear after data load.')
         );
-        if (digestSections.length > 0 && aiDigestHighlightsNode) {
+        if (useStalePayload && digestSections.length > 0 && aiDigestHighlightsNode) {
           aiDigestHighlightsNode.innerHTML = digestSections.map(function (section) {
             var items = Array.isArray(section.items) ? section.items : [];
             var sectionItems = items.map(function (item) {
@@ -5854,7 +5864,7 @@ window.CRM.pageApiBindings = (function () {
           }).join('');
         }
         if (aiDigestActionsNode) {
-          var aiActions = digestSuggestedActions.length > 0
+          var aiActions = (useStalePayload && digestSuggestedActions.length > 0)
             ? digestSuggestedActions
             : recommendedActions;
           aiDigestActionsNode.innerHTML = aiActions.map(function (action, index) {

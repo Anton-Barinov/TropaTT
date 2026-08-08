@@ -2108,6 +2108,8 @@ return array (
       'stale' => 'устарело',
       'may_be_stale' => 'может устареть',
       'ai_digest_not_ready' => 'AI-сводка не сформирована',
+      'ai_digest_stale_title' => 'AI-сводка устарела',
+      'ai_digest_stale_hint' => 'Данные старше 12 часов. Нажмите «Обновить AI-сводку», чтобы получить актуальные данные.',
       'generate_ai_digest_first' => 'Сначала сформируйте AI-сводку дня',
       'ai_digest_dismissed' => 'AI-сводка отмечена как отклоненная',
       'failed_dismiss_ai_digest' => 'Не удалось отклонить AI-сводку',

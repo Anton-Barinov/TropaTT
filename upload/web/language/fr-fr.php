@@ -4515,6 +4515,8 @@ return array (
       'stale' => 'obsolète',
       'may_be_stale' => 'peut être obsolète',
       'ai_digest_not_ready' => 'Résumé IA non généré',
+      'ai_digest_stale_title' => 'Le résumé IA est obsolète',
+      'ai_digest_stale_hint' => 'Les données datent de plus de 12 heures. Cliquez sur « Actualiser le résumé IA » pour obtenir des données à jour.',
       'generate_ai_digest_first' => 'Générez d\'abord le résumé quotidien IA',
       'ai_digest_dismissed' => 'Résumé IA marqué comme ignoré',
       'failed_dismiss_ai_digest' => 'Échec de l\'ignorance du résumé IA',

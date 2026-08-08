@@ -4515,6 +4515,8 @@ return array (
       'stale' => 'desactualizado',
       'may_be_stale' => 'puede estar desactualizado',
       'ai_digest_not_ready' => 'Resumen AI no generado',
+      'ai_digest_stale_title' => 'El resumen AI está desactualizado',
+      'ai_digest_stale_hint' => 'Los datos tienen más de 12 horas. Haga clic en «Actualizar resumen AI» para obtener datos actualizados.',
       'generate_ai_digest_first' => 'Genere primero el resumen diario AI',
       'ai_digest_dismissed' => 'Resumen AI marcado como descartado',
       'failed_dismiss_ai_digest' => 'Error al descartar el resumen AI',

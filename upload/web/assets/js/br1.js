@@ -1057,7 +1057,16 @@ window.CRM.br1 = (function () {
       el.textContent = publicId;
     });
 
-    document.querySelectorAll('[data-session-user-btn], .crm-topbar [data-global-actions] .dropdown .dropdown-toggle, .crm-btn-ghost.dropdown-toggle').forEach(function (el) {
+    // The profile button is the only element that should carry the session
+    // user's display name. The old selector also matched ANY `.crm-btn-ghost
+    // .dropdown-toggle` on the page, which could overwrite the label of other
+    // dropdown buttons with the user name.
+    document.querySelectorAll('[data-session-user-btn]').forEach(function (el) {
+      el.textContent = fullName;
+    });
+
+    // Fallback for server-rendered topbars that mark the user dropdown toggle.
+    document.querySelectorAll('.crm-topbar [data-profile-dropdown] .dropdown-toggle, .crm-topbar [data-global-actions] .dropdown .dropdown-toggle').forEach(function (el) {
       if (el.textContent && el.textContent.trim()) {
         el.textContent = fullName;
       }
@@ -7771,7 +7780,25 @@ window.CRM.br1 = (function () {
       initQuickClientCreate();
       initQuickProjectCreate();
       if (window.CRM.navigation && typeof window.CRM.navigation.init === 'function') {
-        window.CRM.navigation.init();
+        var navInitPromise = window.CRM.navigation.init();
+        // navigation.init() is async: it fetches the menu and only then builds
+        // the topbar with the profile button. Re-apply the user name after it
+        // resolves, otherwise the button is left with the default label.
+        if (navInitPromise && typeof navInitPromise.finally === 'function') {
+          navInitPromise
+            .finally(function () {
+              var syncedAfterNav = window.CRM.api && typeof window.CRM.api.getUser === 'function'
+                ? window.CRM.api.getUser()
+                : null;
+              if (syncedAfterNav) {
+                setSessionUiUser(syncedAfterNav);
+              }
+            })
+            .catch(function () {
+              // Menu fetch may fail on slow networks; the topbar fallback
+              // labels are acceptable. Never surface an unhandled rejection.
+            });
+        }
       }
       initTopbarTaskTimer();
       var syncedUser = window.CRM.api && typeof window.CRM.api.getUser === 'function'
@@ -7806,6 +7833,7 @@ window.CRM.br1 = (function () {
     escapeHtml: escapeHtml,
     getProjectPublicIdFromUrl: getProjectPublicIdFromUrl,
     getTaskPublicIdFromUrl: getTaskPublicIdFromUrl,
-    bindLogoutButtons: bindLogoutButtons
+    bindLogoutButtons: bindLogoutButtons,
+    setSessionUiUser: setSessionUiUser
   };
 })();

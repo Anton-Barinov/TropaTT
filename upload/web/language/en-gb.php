@@ -2155,6 +2155,8 @@ return array (
       'stale' => 'stale',
       'may_be_stale' => 'may be stale',
       'ai_digest_not_ready' => 'AI digest not generated',
+      'ai_digest_stale_title' => 'AI digest is outdated',
+      'ai_digest_stale_hint' => 'The data is older than 12 hours. Click "Refresh AI digest" to get current data.',
       'generate_ai_digest_first' => 'Generate AI daily digest first',
       'ai_digest_dismissed' => 'AI digest marked as dismissed',
       'failed_dismiss_ai_digest' => 'Failed to dismiss AI digest',
