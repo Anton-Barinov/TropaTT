@@ -140,6 +140,7 @@ $auJs = [
   'errSession' => $au('err_session', 'Сессия истекла. Обновите страницу и войдите в CRM снова.'),
   'errForbidden' => $au('err_forbidden', 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.'),
   'errGeneric' => $au('err_generic', 'Не удалось выполнить действие.'),
+  'errTimeout' => $au('err_timeout', 'Запрос превысил таймаут.'),
   'errPreflightRequired' => $au('err_preflight_required', 'Сначала успешно выполните проверку безопасности.'),
   'errNoPackage' => $au('err_no_package', 'Для этой операции пакет обновления недоступен.'),
   'fieldTarget' => $au('field_target', 'Целевая сборка'),
@@ -515,8 +516,29 @@ $auJs = [
     const csrfToken = (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function') ? window.CRM.api.getCsrfToken() : decodeURIComponent((document.cookie.match(/crm_csrf_token=([^;]+)/) || [])[1] || '');
     const headers = Object.assign({'Content-Type': 'application/json'}, options.headers || {});
     if (csrfToken && !headers['X-CSRF-Token']) headers['X-CSRF-Token'] = csrfToken;
-    const res = await fetch(url, Object.assign({credentials: 'same-origin', headers}, options));
-    const text = await res.text();
+    // Raw fetch for the local updater: enforce an explicit timeout so a
+    // hanging proxy, WAF or dropped connection cannot freeze the update loop
+    // forever. The updater step machine keeps every request short; this only
+    // bounds the client-side wait, and runUpdaterSteps() retries the step.
+    const timeoutMs = Math.max(0, Number(options.timeoutMs || 0));
+    const controller = typeof AbortController !== 'undefined' && timeoutMs > 0 ? new AbortController() : null;
+    const timeoutHandle = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    let res;
+    let text;
+    try {
+      res = await fetch(url, Object.assign({credentials: 'same-origin', headers, signal: controller ? controller.signal : undefined}, options));
+      // The body read is inside the same try: a proxy that resets the
+      // connection mid-body also surfaces as a retryable network error
+      // instead of an unmarked exception that aborts the update loop.
+      text = await res.text();
+    } catch (fetchError) {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      const aborted = controller && fetchError && fetchError.name === 'AbortError';
+      const networkError = new Error(aborted ? tr('errTimeout', 'Запрос превысил таймаут.') : String((fetchError && fetchError.message) || fetchError));
+      networkError.isNetwork = true;
+      throw networkError;
+    }
+    if (timeoutHandle) clearTimeout(timeoutHandle);
     let json;
     try { json = JSON.parse(text); } catch (e) { json = {success: false, code: 'INVALID_JSON', message: text.slice(0, 300)}; }
     if (!res.ok && json.success !== false) json.success = false;
@@ -620,13 +642,25 @@ $auJs = [
     return url.replace(/\/api\/v1\/.*$/, '').replace(/\/$/, '');
   }
 
+  function latestJobIsStaged() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || latest.state !== 'staging_ready' || !latest.can_resume) return false;
+    // Only resume when the staged package still matches the currently
+    // available target. If a newer build was published while the archive was
+    // staged, re-prepare instead of applying an older staged package.
+    const stagedTarget = latest.plan && latest.plan.target_build;
+    const planTarget = state.plan && state.plan.target_build;
+    if (stagedTarget && planTarget && stagedTarget !== planTarget) return false;
+    return true;
+  }
+
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
     if (latest && latest.state === 'failed') return 'danger';
     if (updateCenterUnavailable()) return 'danger';
     if (state.plan && state.plan.update_available !== true) return 'ok';
     if (latest && latest.state === 'applied') return 'ok';
-    if (state.download || state.preflight) return 'warn';
+    if (state.download || latestJobIsStaged() || state.preflight) return 'warn';
     return 'neutral';
   }
 
@@ -635,7 +669,7 @@ $auJs = [
     if (updateCenterUnavailable()) return tr('statusCenterDown', 'Сервер обновлений недоступен');
     if (state.plan && state.plan.update_available !== true) return tr('statusNoUpdates', 'Обновлений нет');
     if (latest && latest.state === 'applied') return tr('statusApplied', 'Обновление установлено');
-    if (state.download) return tr('statusPrepared', 'Архив подготовлен');
+    if (state.download || latestJobIsStaged()) return tr('statusPrepared', 'Архив подготовлен');
     if (state.preflight && state.preflight.ok === true) return tr('preflightOk', 'Проверка пройдена');
     if (state.plan && state.plan.update_available === true) return tr('statusUpdateFound', 'Есть обновление');
     return tr('statusChecking', 'Проверяем...');
@@ -686,7 +720,7 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
       setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
-    } else if (state.download) {
+    } else if (state.download || latestJobIsStaged()) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
       setPrimary('install', tr('primaryApply', 'Установить обновление'));
@@ -988,10 +1022,18 @@ $auJs = [
     let stepBody = Object.assign({}, body);
     const maxTokenRetries = 3;
     let tokenRetries = 0;
+    const maxNetworkRetries = 3;
+    let networkRetries = 0;
     for (let guard = 0; guard < 2000; guard++) {
       let result;
       try {
-        result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody)});
+        // The updater step machine bounds every request (~20s of work), so a
+        // 90s client timeout only protects against a hung proxy/connection.
+        // The download action streams the whole package in one pass; the
+        // server lifts its own limit to 600s, so the client waits up to 10
+        // minutes to never cut off a slow-but-working shared-host download.
+        const stepTimeoutMs = action === 'download' ? 600000 : 90000;
+        result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
       } catch (err) {
         const message = String(err && err.message ? err.message : err || '').toLowerCase();
@@ -1001,10 +1043,24 @@ $auJs = [
           stepBody = Object.assign({}, stepBody, {token: await updaterSession()});
           continue;
         }
+        // A request that never produced a server response (proxy timeout,
+        // WAF reset, dropped connection) is transient. The updater job is
+        // resumable, so re-posting the same step continues from the stored
+        // progress instead of aborting the whole update. Server-side errors
+        // (success:false envelopes) are not retried here.
+        if (err && err.isNetwork === true && networkRetries < maxNetworkRetries) {
+          networkRetries++;
+          await sleep(1200 * networkRetries);
+          continue;
+        }
         throw err;
       }
       const data = result.data || result;
       if (!data.continue) return result;
+      // A completed step resets the network retry budget: a flaky link must
+      // not exhaust all retries on one early step and leave later steps
+      // unprotected.
+      networkRetries = 0;
       renderUpdaterProgress(data.progress);
       await sleep(400);
     }
@@ -1050,6 +1106,16 @@ $auJs = [
     if (!state.plan) await check();
     if (!state.plan || state.plan.update_available !== true) {
       await loadStatus();
+      return;
+    }
+    // Resume a job whose package is already downloaded and staged. This is
+    // the common case after a reload or a network blip mid-flow: the archive
+    // is prepared, so apply continues where the previous session stopped
+    // instead of re-running preflight/download (which on tricky hostings can
+    // fail again and leave the update stuck at 'staging_ready').
+    if (latestJobIsStaged()) {
+      state.lastJobId = String(state.status.latest_job.job_id || '');
+      await applyUpdate();
       return;
     }
     if (!state.preflight || !state.lastJobId) await preflight();
