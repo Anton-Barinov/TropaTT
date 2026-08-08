@@ -4493,6 +4493,39 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  var DASHBOARD_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+  function dashboardRefreshMs() {
+    var override = Number(window.CRM.__dashboardRefreshMs || 0);
+    return (override > 0 && Number.isFinite(override)) ? override : DASHBOARD_REFRESH_INTERVAL;
+  }
+
+  // Periodically re-render the dashboard so counters, tasks and widgets stay fresh.
+  // The timer self-clears when the dashboard page is unmounted (SPA navigation),
+  // so returning to the dashboard re-arms it via renderDashboardPage().
+  function initDashboardAutoRefresh() {
+    if (window.CRM.__dashboardRefreshInit === '1') return;
+    window.CRM.__dashboardRefreshInit = '1';
+    var timer = window.setInterval(function () {
+      if (!document.querySelector('[data-page="dashboard"]')) {
+        window.clearInterval(timer);
+        window.CRM.__dashboardRefreshInit = '0';
+        return;
+      }
+      // Skip while the widget builder is open, the tab is hidden, or a refresh
+      // from a previous tick is still in flight.
+      if (window.CRM.__dashboardEditMode === '1') return;
+      if (typeof document.hidden === 'boolean' && document.hidden) return;
+      if (window.CRM.__dashboardRefreshing === '1') return;
+      window.CRM.__dashboardRefreshing = '1';
+      renderDashboardPage()
+        .catch(function () { /* keep the timer alive on transient failures */ })
+        .finally(function () {
+          window.CRM.__dashboardRefreshing = '0';
+        });
+    }, dashboardRefreshMs());
+  }
+
   async function renderDashboardPage() {
     var canManageTasks = hasPermission('task.manage');
     var canManageProjects = hasPermission('project.manage');
@@ -4515,6 +4548,7 @@ window.CRM.pageApiBindings = (function () {
     var dashboardWidgetConfig = dashWidgetsFromEnvelope(widgetsEnvelope);
     applyDashboardWidgetVisibility(dashboardWidgetConfig);
     bindDashboardWidgetSettings();
+    initDashboardAutoRefresh();
 
     var results = await Promise.all([
       canManageTasks ? tryRequest('api/v1/dashboard/summary') : Promise.resolve(null),
