@@ -1484,6 +1484,7 @@ return array (
     'err_session' => 'Sessão expirada. Atualize a página e entre novamente.',
     'err_forbidden' => 'Este usuário não pode gerenciar atualizações. É necessário root/admin ou permissão de gerenciamento de configurações.',
     'err_generic' => 'Não foi possível executar a ação.',
+    'err_timeout' => 'A solicitação excedeu o tempo limite.',
     'loading_initial' => 'carregando estado',
     'loading_refresh' => 'atualizando status',
     'loading_check' => 'verificando atualizações',

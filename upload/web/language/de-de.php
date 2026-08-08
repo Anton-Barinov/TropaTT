@@ -1484,6 +1484,7 @@ return array (
     'err_session' => 'Sitzung abgelaufen. Aktualisieren Sie die Seite und melden Sie sich erneut an.',
     'err_forbidden' => 'Dieser Benutzer darf Updates nicht verwalten. Root/Admin oder die Berechtigung zur Einstellungsverwaltung ist erforderlich.',
     'err_generic' => 'Aktion konnte nicht ausgeführt werden.',
+    'err_timeout' => 'Die Anfrage hat das Zeitlimit überschritten.',
     'loading_initial' => 'Status wird geladen',
     'loading_refresh' => 'Status wird aktualisiert',
     'loading_check' => 'Updates werden geprüft',

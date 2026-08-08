@@ -1484,6 +1484,7 @@ return array (
     'err_session' => 'La sesión caducó. Actualice la página y vuelva a iniciar sesión.',
     'err_forbidden' => 'Este usuario no puede gestionar actualizaciones. Se requiere root/admin o permiso de gestión de ajustes.',
     'err_generic' => 'No se pudo realizar la acción.',
+    'err_timeout' => 'La solicitud superó el tiempo de espera.',
     'loading_initial' => 'cargando estado',
     'loading_refresh' => 'actualizando estado',
     'loading_check' => 'buscando actualizaciones',

@@ -1484,6 +1484,7 @@ return array (
     'err_session' => 'Session expirée. Actualisez la page et reconnectez-vous.',
     'err_forbidden' => 'Cet utilisateur ne peut pas gérer les mises à jour. Root/admin ou permission de gestion des paramètres requis.',
     'err_generic' => 'Impossible d\'effectuer l\'action.',
+    'err_timeout' => 'La requête a dépassé le délai.',
     'loading_initial' => 'chargement de l\'état',
     'loading_refresh' => 'actualisation du statut',
     'loading_check' => 'recherche de mises à jour',
