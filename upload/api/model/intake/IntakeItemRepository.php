@@ -29,7 +29,11 @@ final class IntakeItemRepository
      * @param array<string,mixed> $filters
      * @return array{items: array<int,array<string,mixed>>, total: int, page: int, limit: int}
      */
-    public function list(array $filters, int $actorUserId, bool $isRoot): array
+    // Intake is a role-gated shared inbox: access is enforced by the route/tool
+    // permission checks (intake.view / intake.manage / ...), not by per-user
+    // ownership scope. All items are listed; users narrow the shared list with
+    // the assignee_user_id / creator_user_id filters.
+    public function list(array $filters): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = max(1, min(100, (int)($filters['limit'] ?? 20)));
