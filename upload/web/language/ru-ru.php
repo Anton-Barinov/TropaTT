@@ -4428,7 +4428,7 @@ return array (
     'extra_time_team_none' => 'Нет учёта времени',
     'extra_time_team_leader' => 'Лидер',
     'extra_time_team_laggard' => 'Меньше всех',
-    'extra_time_team_more' => 'и ещё',
+    'extra_time_team_more' => 'и ещё %s',
     'extra_time_hour' => 'ч',
     'extra_time_min' => 'м',
     'extra_unread_count' => 'непрочитанных диалогов',

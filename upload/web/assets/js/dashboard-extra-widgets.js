@@ -215,7 +215,7 @@
       } else if (row.publicId === laggardId) {
         badge = '<span class="crm-dashboard-time-badge is-laggard">' + safe(translate('dashboard.extra_time_team_laggard', 'Меньше всех')) + '</span>';
       }
-      html += '<div class="crm-dashboard-time-row' + status + '" title="' + safe(row.name + (label ? ' — ' + label : '')) + '">'
+      html += '<div class="crm-dashboard-time-row' + status + '" title="' + safe(label ? row.name + ' — ' + label : row.name) + '">'
         + '<span class="crm-dashboard-time-rank">' + (index + 1) + '</span>'
         + '<span class="crm-dashboard-time-name">' + safe(row.name) + '</span>'
         + '<span class="crm-dashboard-time-bar" aria-hidden="true"><i style="width:' + width + '%"></i></span>'
@@ -225,7 +225,7 @@
     });
     html += '</div>';
     if (hiddenCount > 0) {
-      html += '<div class="crm-dashboard-time-more">' + safe(translate('dashboard.extra_time_team_more', 'и ещё')) + ' ' + hiddenCount + '</div>';
+      html += '<div class="crm-dashboard-time-more">' + safe(translate('dashboard.extra_time_team_more', 'и ещё %s').replace('%s', String(hiddenCount))) + '</div>';
     }
     container.innerHTML = html;
   }
