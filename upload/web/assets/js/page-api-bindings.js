@@ -44,7 +44,9 @@ window.CRM.pageApiBindings = (function () {
     if (!entries.length) return '<span class="text-muted">—</span>';
     var visible = entries.slice(0, 3).map(function (pair) {
       var chipText = safeText(pair[0] + ': ' + pair[1]);
-      return '<span class="badge text-bg-light border crm-extra-chip" title="' + chipText + '">' + chipText + '</span>';
+      return '<span class="badge text-bg-light border crm-extra-chip" title="' + chipText + '">'
+        + '<span class="crm-extra-chip-key">' + safeText(pair[0]) + '</span>: ' + safeText(pair[1])
+        + '</span>';
     }).join(' ');
     if (entries.length > 3) {
       var moreText = safeText(entries.slice(3).map(function (pair) { return pair[0] + ': ' + pair[1]; }).join(', '));

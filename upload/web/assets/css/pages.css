@@ -4228,12 +4228,21 @@ body.modal-open {
   min-width: 0;
 }
 
+/* Кастомные поля (Доп. поля): текст виден полностью, при нехватке места
+   переносится внутри чипа (многострочный), не выходит за пределы колонки */
 .crm-extra-chip {
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.crm-extra-chip-key {
+  font-weight: 650;
 }
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(7),
