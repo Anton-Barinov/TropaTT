@@ -4677,7 +4677,7 @@ body {
 }
 
 .crm-counterparties-page #counterpartiesTable {
-  min-width: 1360px !important;
+  min-width: 1400px !important;
 }
 
 .crm-admin-page .crm-table td,
@@ -4757,7 +4757,7 @@ body {
 }
 
 .crm-counterparties-page #counterpartiesTable {
-  min-width: 1360px !important;
+  min-width: 1400px !important;
   table-layout: fixed !important;
 }
 
@@ -4788,9 +4788,9 @@ body {
 /* Доп. поля: шире, чтобы кастомные чипы помещались и не вылезали в соседнюю колонку */
 .crm-counterparties-page #counterpartiesTable th:nth-child(7),
 .crm-counterparties-page #counterpartiesTable td:nth-child(7) {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 220px !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(9),
