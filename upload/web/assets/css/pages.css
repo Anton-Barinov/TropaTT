@@ -13983,7 +13983,7 @@ a.task-tag:hover {
 }
 
 .crm-knowledge-space-link.is-active {
-  background: rgba(var(--color-primary-rgb), 0.06);
+  background: var(--crm-primary-soft, rgba(15, 143, 114, 0.06));
   color: var(--crm-accent);
 }
 
@@ -14066,7 +14066,7 @@ a.task-tag:hover {
 }
 
 .crm-knowledge-space-add-sub:hover {
-  background: rgba(var(--color-primary-rgb, 15, 143, 114), 0.1);
+  background: var(--crm-primary-soft, rgba(15, 143, 114, 0.1));
   color: var(--crm-accent);
   opacity: 1;
 }
@@ -17206,7 +17206,7 @@ a.task-tag:hover {
 
 .crm-widget-builder-label {
   font-size: 0.6875rem;
-  color: var(--color-text-muted, #6c757d);
+  color: var(--crm-text-soft, #6c757d);
   position: absolute;
   top: -12px;
   left: 0;
@@ -17255,7 +17255,7 @@ a.task-tag:hover {
 
 .crm-dashboard-catalog-desc {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #6c757d);
+  color: var(--crm-text-soft, #6c757d);
   line-height: 1.4;
   margin-bottom: 0;
   overflow-wrap: anywhere;
