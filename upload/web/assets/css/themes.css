@@ -507,9 +507,16 @@ html[data-theme="dark"] .crm-searchable-tags,
 html[data-theme="dark"] .crm-dashboard-ai-summary-panel,
 html[data-theme="dark"] .crm-dashboard-ai-subcard,
 html[data-theme="dark"] .crm-tasks-view-surface {
-  background: var(--crm-surface);
-  background-image: none;
-  box-shadow: none;
+  background: var(--crm-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .crm-content .crm-empty-state,
+html[data-theme="dark"] .crm-content .crm-empty,
+html[data-theme="dark"] .crm-content .crm-error,
+html[data-theme="dark"] .crm-content .crm-no-access {
+  background: var(--crm-surface) !important;
+  background-image: none !important;
 }
 
 /* Kanban + calendar surfaces */
@@ -528,8 +535,8 @@ html[data-theme="dark"] .crm-calendar-time-label,
 html[data-theme="dark"] .crm-calendar-day,
 html[data-theme="dark"] .crm-calendar-time-cell,
 html[data-theme="dark"] .crm-calendar-agenda-empty {
-  background: var(--crm-surface);
-  background-image: none;
+  background: var(--crm-surface) !important;
+  background-image: none !important;
 }
 html[data-theme="dark"] .crm-kanban-page .crm-kanban-col-header {
   background: var(--crm-surface) !important;
@@ -537,59 +544,65 @@ html[data-theme="dark"] .crm-kanban-page .crm-kanban-col-header {
 }
 html[data-theme="dark"] .crm-calendar-day.is-muted,
 html[data-theme="dark"] .crm-calendar-day.is-weekend:not(.is-muted) {
-  background: var(--crm-surface);
+  background: var(--crm-surface) !important;
 }
 html[data-theme="dark"] .crm-calendar-day:hover {
-  background: var(--crm-surface-2);
+  background: var(--crm-surface-2) !important;
 }
 html[data-theme="dark"] .crm-calendar-day.is-today {
-  background: var(--crm-primary-soft);
+  background: var(--crm-primary-soft) !important;
 }
 html[data-theme="dark"] .crm-calendar-day-add {
-  background: var(--crm-surface-2);
-  border-color: var(--crm-primary-border);
-  color: var(--crm-primary);
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-primary-border) !important;
+  color: var(--crm-primary) !important;
 }
 html[data-theme="dark"] .crm-calendar-day-add:hover {
-  background: var(--crm-primary-soft);
+  background: var(--crm-primary-soft) !important;
+}
+html[data-theme="dark"] .crm-calendar-event {
+  background: var(--crm-primary-soft) !important;
+  border-color: var(--crm-primary-border) !important;
+  border-left-color: var(--crm-primary) !important;
+  color: var(--crm-text) !important;
 }
 
 /* Calendar events: hue-preserving dark variants */
-html[data-theme="dark"] .crm-calendar-event {
-  background: var(--crm-primary-soft);
-  border-color: var(--crm-primary-border);
-  border-left-color: var(--crm-primary);
-  color: var(--crm-text);
-}
 html[data-theme="dark"] .crm-calendar-event.is-teal {
-  background: #0f2b28;
-  border-color: #1e4a43;
-  border-left-color: #2ec9a0;
-  color: #bce8e0;
+  background: #0f2b28 !important;
+  border-color: #1e4a43 !important;
+  border-left-color: #2ec9a0 !important;
+  color: #bce8e0 !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-violet {
-  background: #241d3d;
-  border-color: #3d3170;
-  border-left-color: #a78bfa;
-  color: #ddd4ff;
+  background: #241d3d !important;
+  border-color: #3d3170 !important;
+  border-left-color: #a78bfa !important;
+  color: #ddd4ff !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-warning {
-  background: #33270f;
-  border-color: #5e4a1a;
-  border-left-color: #e8b64d;
-  color: #f4d99a;
+  background: #33270f !important;
+  border-color: #5e4a1a !important;
+  border-left-color: #e8b64d !important;
+  color: #f4d99a !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-success {
-  background: #10301f;
-  border-color: #1d5233;
-  border-left-color: #4bd494;
-  color: #c6ecd6;
+  background: #10301f !important;
+  border-color: #1d5233 !important;
+  border-left-color: #4bd494 !important;
+  color: #c6ecd6 !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-danger {
-  background: #361a18;
-  border-color: #63302a;
-  border-left-color: #f07468;
-  color: #f4c4bf;
+  background: #361a18 !important;
+  border-color: #63302a !important;
+  border-left-color: #f07468 !important;
+  color: #f4c4bf !important;
+}
+html[data-theme="dark"] .crm-calendar-event.is-blue {
+  background: var(--crm-primary-soft) !important;
+  border-color: var(--crm-primary-border) !important;
+  border-left-color: var(--crm-primary) !important;
+  color: var(--crm-text) !important;
 }
 
 /* Chips */
