@@ -617,7 +617,10 @@ window.CRM.navigation = (function () {
         right.querySelector('[data-global-chat]'),
         right.querySelector('[data-global-notifications]'),
         right.querySelector('[data-theme-switcher]'),
-        right.querySelector('[data-profile-dropdown]') || right.querySelector('.dropdown [data-bs-toggle="dropdown"]')
+        // Fallback for server-baked user menus; the :not() keeps the theme
+        // switcher (which also carries [data-bs-toggle="dropdown"]) from being
+        // mistaken for the user menu.
+        right.querySelector('[data-profile-dropdown]') || right.querySelector('.dropdown:not([data-theme-switcher]) [data-bs-toggle="dropdown"]')
       ];
       canonicalOrder.forEach(function (el) {
         if (el && el.parentNode === right) {
@@ -658,7 +661,15 @@ window.CRM.navigation = (function () {
         window.CRM.api.request('api/v1/profile/preferences', {
           method: 'PATCH',
           body: { preferences: { theme: name } }
-        }).catch(function () {});
+        }).catch(function () {
+          try {
+            if (window.CRM.br1 && typeof window.CRM.br1.notify === 'function') {
+              window.CRM.br1.notify(window.CRM.i18n.t('topbar.theme_save_error', 'Failed to save theme preference'), 'error');
+            }
+          } catch (e) {
+            void e;
+          }
+        });
       }
       // Keep the profile page select in sync when it is open.
       var profileSelect = document.getElementById('profileThemeSelect');

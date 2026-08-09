@@ -102,6 +102,7 @@ return array (
     'theme_light' => '浅色',
     'theme_dark' => '深色',
     'theme_contrast' => '高对比度',
+    'theme_save_error' => '无法保存主题',
   ),
   'global_search' => 
   array (

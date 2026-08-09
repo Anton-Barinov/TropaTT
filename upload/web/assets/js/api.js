@@ -31,8 +31,13 @@ window.CRM.api = (function () {
       } catch (e) {}
       // Let in-page widgets (e.g. the topbar theme switcher) react to theme
       // changes coming from any source: topbar, profile page, login-time sync.
+      // A throwing listener must never break theme application.
       if (typeof document !== 'undefined' && typeof CustomEvent !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('crm:theme-changed', { detail: { theme: theme } }));
+        try {
+          document.dispatchEvent(new CustomEvent('crm:theme-changed', { detail: { theme: theme } }));
+        } catch (e) {
+          void e;
+        }
       }
       return theme;
     }
