@@ -404,14 +404,277 @@ html[data-theme="dark"] .crm-ve-image-settings-popover input {
   color: var(--crm-ve-text);
 }
 
-/* Secondary / light buttons hover */
-html[data-theme="dark"] .crm-btn-secondary:hover,
+/* ---- Dark: light-only surfaces that the polish layer hard-codes ---- */
+
+/* Secondary / ghost / light buttons: dark glass instead of white */
+html[data-theme="dark"] .btn-light,
+html[data-theme="dark"] .crm-btn-secondary,
+html[data-theme="dark"] .btn-outline-secondary,
+html[data-theme="dark"] .crm-btn-ghost,
+html[data-theme="dark"] .crm-btn-subtle,
+html[data-theme="dark"] .crm-btn-muted {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border);
+  color: var(--crm-text);
+  box-shadow: none;
+}
 html[data-theme="dark"] .btn-light:hover,
-html[data-theme="dark"] .btn-outline-secondary:hover {
-  background: var(--crm-bg-deep);
-  border-color: var(--crm-border-strong);
+html[data-theme="dark"] .crm-btn-secondary:hover,
+html[data-theme="dark"] .btn-outline-secondary:hover,
+html[data-theme="dark"] .crm-btn-ghost:hover,
+html[data-theme="dark"] .crm-btn-subtle:hover,
+html[data-theme="dark"] .crm-btn-muted:hover {
+  background: var(--crm-primary-soft);
+  border-color: var(--crm-primary-border);
+  color: var(--crm-primary-hover);
+}
+
+/* Danger-soft buttons */
+html[data-theme="dark"] .crm-btn-danger-soft,
+html[data-theme="dark"] .btn-outline-danger,
+html[data-theme="dark"] .crm-btn-danger,
+html[data-theme="dark"] .crm-btn-danger-icon,
+html[data-theme="dark"] .crm-icon-button-danger,
+html[data-theme="dark"] .crm-table .btn-outline-danger,
+html[data-theme="dark"] .crm-admin-actions .btn-outline-danger {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-danger-border, var(--crm-border));
+  color: var(--crm-danger);
+}
+html[data-theme="dark"] .crm-btn-danger-soft:hover,
+html[data-theme="dark"] .btn-outline-danger:hover,
+html[data-theme="dark"] .crm-btn-danger:hover,
+html[data-theme="dark"] .crm-btn-danger-icon:hover,
+html[data-theme="dark"] .crm-icon-button-danger:hover {
+  background: var(--crm-danger-soft);
+  color: var(--crm-danger);
+}
+
+/* Sidebar collapse toggle */
+html[data-theme="dark"] .crm-sidebar-toggle {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border);
+  color: var(--crm-text-muted);
+  box-shadow: none;
+}
+html[data-theme="dark"] .crm-sidebar-toggle:hover,
+html[data-theme="dark"] .crm-sidebar-toggle:focus-visible {
+  background: var(--crm-primary-soft);
+  border-color: var(--crm-primary-border);
+  color: var(--crm-primary-hover);
+}
+
+/* Cards & panels: kill the white polish gradient */
+html[data-theme="dark"] .crm-card,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .crm-section-card,
+html[data-theme="dark"] .crm-table-card,
+html[data-theme="dark"] .crm-toolbar-surface,
+html[data-theme="dark"] .crm-soft-panel,
+html[data-theme="dark"] .crm-metric-tile,
+html[data-theme="dark"] .crm-action-card,
+html[data-theme="dark"] .crm-form-panel,
+html[data-theme="dark"] .crm-info-panel,
+html[data-theme="dark"] .crm-dashboard-kpi,
+html[data-theme="dark"] .crm-empty-state,
+html[data-theme="dark"] .crm-empty,
+html[data-theme="dark"] .crm-error,
+html[data-theme="dark"] .crm-no-access,
+html[data-theme="dark"] .crm-counterparty-mobile-card,
+html[data-theme="dark"] .crm-searchable-tags,
+html[data-theme="dark"] .crm-dashboard-ai-summary-panel,
+html[data-theme="dark"] .crm-dashboard-ai-subcard,
+html[data-theme="dark"] .crm-tasks-view-surface {
+  background: var(--crm-surface);
+  background-image: none;
+  box-shadow: none;
+}
+
+/* Kanban + calendar surfaces */
+html[data-theme="dark"] .crm-kanban-col,
+html[data-theme="dark"] .crm-kanban-column,
+html[data-theme="dark"] .crm-kanban-card,
+html[data-theme="dark"] .crm-kanban-col-header,
+html[data-theme="dark"] .crm-calendar-panel,
+html[data-theme="dark"] .crm-calendar-side-card,
+html[data-theme="dark"] .crm-calendar-agenda-item,
+html[data-theme="dark"] .crm-calendar-local-nav,
+html[data-theme="dark"] .crm-calendar-weekday,
+html[data-theme="dark"] .crm-calendar-time-head,
+html[data-theme="dark"] .crm-calendar-time-head-spacer,
+html[data-theme="dark"] .crm-calendar-time-label,
+html[data-theme="dark"] .crm-calendar-day,
+html[data-theme="dark"] .crm-calendar-time-cell,
+html[data-theme="dark"] .crm-calendar-agenda-empty {
+  background: var(--crm-surface);
+  background-image: none;
+}
+html[data-theme="dark"] .crm-calendar-day.is-muted,
+html[data-theme="dark"] .crm-calendar-day.is-weekend:not(.is-muted) {
+  background: var(--crm-surface);
+}
+html[data-theme="dark"] .crm-calendar-day:hover {
+  background: var(--crm-surface-2);
+}
+html[data-theme="dark"] .crm-calendar-day.is-today {
+  background: var(--crm-primary-soft);
+}
+html[data-theme="dark"] .crm-calendar-day-add {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-primary-border);
+  color: var(--crm-primary);
+}
+html[data-theme="dark"] .crm-calendar-day-add:hover {
+  background: var(--crm-primary-soft);
+}
+
+/* Calendar events: hue-preserving dark variants */
+html[data-theme="dark"] .crm-calendar-event {
+  background: var(--crm-primary-soft);
+  border-color: var(--crm-primary-border);
+  border-left-color: var(--crm-primary);
   color: var(--crm-text);
 }
+html[data-theme="dark"] .crm-calendar-event.is-teal {
+  background: #0f2b28;
+  border-color: #1e4a43;
+  border-left-color: #2ec9a0;
+  color: #bce8e0;
+}
+html[data-theme="dark"] .crm-calendar-event.is-violet {
+  background: #241d3d;
+  border-color: #3d3170;
+  border-left-color: #a78bfa;
+  color: #ddd4ff;
+}
+html[data-theme="dark"] .crm-calendar-event.is-warning {
+  background: #33270f;
+  border-color: #5e4a1a;
+  border-left-color: #e8b64d;
+  color: #f4d99a;
+}
+html[data-theme="dark"] .crm-calendar-event.is-success {
+  background: #10301f;
+  border-color: #1d5233;
+  border-left-color: #4bd494;
+  color: #c6ecd6;
+}
+html[data-theme="dark"] .crm-calendar-event.is-danger {
+  background: #361a18;
+  border-color: #63302a;
+  border-left-color: #f07468;
+  color: #f4c4bf;
+}
+
+/* Chips */
+html[data-theme="dark"] .crm-chip {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border);
+  color: var(--crm-text-muted);
+}
+
+/* Searchable dropdown + topbar search field */
+html[data-theme="dark"] .crm-searchable-dropdown {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border-strong);
+}
+html[data-theme="dark"] .crm-topbar .input-group .input-group-text,
+html[data-theme="dark"] .crm-topbar .input-group .form-control {
+  background: var(--crm-control-bg);
+  border-color: var(--crm-border);
+  color: var(--crm-text);
+}
+
+/* Nav hover no longer white */
+html[data-theme="dark"] .crm-nav .nav-link:hover,
+html[data-theme="dark"] .crm-nav .nav-link:focus {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-primary-border);
+  color: var(--crm-text);
+  box-shadow: none;
+}
+
+/* Tables: transparent rows so card bg shows through */
+html[data-theme="dark"] .crm-content table.crm-table tbody tr,
+html[data-theme="dark"] .crm-content .table.crm-table tbody tr,
+html[data-theme="dark"] .crm-content table.crm-table tbody td,
+html[data-theme="dark"] .crm-content .table.crm-table tbody td,
+html[data-theme="dark"] .crm-content table tbody tr,
+html[data-theme="dark"] .crm-content table tbody td,
+html[data-theme="dark"] .crm-content .table tbody tr,
+html[data-theme="dark"] .crm-content .table tbody td {
+  background: transparent !important;
+}
+html[data-theme="dark"] .crm-content table.crm-table tbody tr:hover td,
+html[data-theme="dark"] .crm-content .table.crm-table tbody tr:hover td,
+html[data-theme="dark"] .crm-content table tbody tr:hover td,
+html[data-theme="dark"] .crm-content .table tbody tr:hover td {
+  background: rgba(46, 201, 160, 0.08) !important;
+}
+html[data-theme="dark"] .crm-content table.crm-table tbody tr.is-selected td,
+html[data-theme="dark"] .crm-content .table.crm-table tbody tr.is-selected td,
+html[data-theme="dark"] .crm-content table tbody tr.is-selected td,
+html[data-theme="dark"] .crm-content .table tbody tr.is-selected td {
+  background: rgba(46, 201, 160, 0.14) !important;
+}
+html[data-theme="dark"] .crm-content .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Modals / offcanvas: shorthand kills the white gradient image */
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .offcanvas {
+  background: var(--crm-surface);
+  color: var(--crm-text);
+}
+
+/* Automation + workflow panels */
+html[data-theme="dark"] .crm-automation-brief-item,
+html[data-theme="dark"] .crm-workflow-action-panel {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border-strong);
+}
+html[data-theme="dark"] .crm-check-picker-item:has(input:checked),
+html[data-theme="dark"] .crm-schedule-option.is-active {
+  background: var(--crm-primary-soft);
+  border-color: var(--crm-primary-border);
+}
+
+/* Gantt scale + project rows */
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-scale-months > span,
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-scale-main > span {
+  background: var(--crm-surface-2);
+  color: var(--crm-text-muted);
+}
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-row--project,
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-lane--project {
+  background: var(--crm-primary-soft) !important;
+}
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-row--project .crm-gantt-row-title,
+html[data-theme="dark"] .crm-gantt-page .crm-gantt-row--project strong {
+  color: var(--crm-primary) !important;
+}
+
+/* Visual editor image toolbar keeps dark glass */
+html[data-theme="dark"] .crm-ve-image-toolbar {
+  background: var(--crm-ve-surface-soft) !important;
+  border-color: var(--crm-ve-border);
+}
+
+/* Scroll hint pill */
+html[data-theme="dark"] .table-responsive::after,
+html[data-theme="dark"] .crm-table-wrap::after {
+  background: var(--crm-surface-2);
+  border-color: var(--crm-border-strong);
+  color: var(--crm-text-muted);
+}
+
+/* AI suggestion drawer tiles */
+html[data-theme="dark"] #aiSuggestionDrawer .crm-metric-tile {
+  background: var(--crm-surface-2);
+  background-image: none;
+}
+
 
 /* ---- Dark: hardened overrides ----
    The ui.css polish layer sets several light colors with !important
@@ -501,11 +764,11 @@ html[data-theme="contrast"] {
   --crm-text-muted: #1f1f1f;
   --crm-text-soft: #1f1f1f;
 
-  --crm-accent: #0b3d91;
-  --crm-accent-strong: #082e70;
-  --crm-primary: #0b3d91;
-  --crm-primary-hover: #082e70;
-  --crm-primary-soft: #ffffff;
+  --crm-accent: #005c44;
+  --crm-accent-strong: #00493a;
+  --crm-primary: #005c44;
+  --crm-primary-hover: #00493a;
+  --crm-primary-soft: #e2f2ec;
   --crm-primary-border: #000000;
 
   --crm-success: #00602f;
@@ -520,11 +783,11 @@ html[data-theme="contrast"] {
   --crm-focus: rgba(0, 0, 0, 0.06);
   --crm-focus-ring: #000000;
 
-  --color-primary-50: #ffffff;
-  --color-primary-100: #ffffff;
-  --color-primary-500: #0b3d91;
-  --color-primary-600: #082e70;
-  --color-primary-700: #000000;
+  --color-primary-50: #e2f2ec;
+  --color-primary-100: #cfe8de;
+  --color-primary-500: #005c44;
+  --color-primary-600: #00493a;
+  --color-primary-700: #003d30;
 
   --color-neutral-0: #ffffff;
   --color-neutral-50: #ffffff;
@@ -554,18 +817,18 @@ html[data-theme="contrast"] {
   --color-success-100: #ffffff;
   --color-success-600: #00602f;
 
-  --bs-primary: #0b3d91;
-  --bs-primary-rgb: 11, 61, 145;
-  --bs-primary-bg-subtle: #ffffff;
+  --bs-primary: #005c44;
+  --bs-primary-rgb: 0, 92, 68;
+  --bs-primary-bg-subtle: #e2f2ec;
   --bs-primary-border-subtle: #000000;
-  --bs-primary-text-emphasis: #000000;
-  --bs-info: #0b3d91;
-  --bs-info-rgb: 11, 61, 145;
-  --bs-info-bg-subtle: #ffffff;
+  --bs-primary-text-emphasis: #003d30;
+  --bs-info: #005c44;
+  --bs-info-rgb: 0, 92, 68;
+  --bs-info-bg-subtle: #e2f2ec;
   --bs-info-border-subtle: #000000;
-  --bs-info-text-emphasis: #000000;
-  --bs-link-color: #0b3d91;
-  --bs-link-hover-color: #000000;
+  --bs-info-text-emphasis: #003d30;
+  --bs-link-color: #005c44;
+  --bs-link-hover-color: #003d30;
   --bs-link-underline-opacity: 1;
 
   --bs-body-bg: #ffffff;
@@ -585,9 +848,9 @@ html[data-theme="contrast"] {
   --bs-dropdown-color: #000000;
   --bs-dropdown-border-color: #000000;
   --bs-dropdown-link-color: #000000;
-  --bs-dropdown-link-hover-bg: #e6eeff;
+  --bs-dropdown-link-hover-bg: #e2f2ec;
   --bs-dropdown-link-hover-color: #000000;
-  --bs-dropdown-link-active-bg: #0b3d91;
+  --bs-dropdown-link-active-bg: #005c44;
   --bs-dropdown-link-active-color: #ffffff;
   --bs-popover-bg: #ffffff;
   --bs-popover-border-color: #000000;
@@ -596,7 +859,7 @@ html[data-theme="contrast"] {
   --bs-table-bg: transparent;
   --bs-table-border-color: #1f1f1f;
   --bs-table-striped-bg: #f2f2f2;
-  --bs-table-hover-bg: #e6eeff;
+  --bs-table-hover-bg: #e2f2ec;
 
   /* Depth comes from borders, not shadows, in high-contrast mode. */
   --shadow-sm: none;
@@ -608,7 +871,7 @@ html[data-theme="contrast"] {
 }
 
 html[data-theme="contrast"] ::selection {
-  background: #0b3d91;
+  background: #005c44;
   color: #ffffff;
 }
 
@@ -705,16 +968,50 @@ html[data-theme="contrast"] .team-search-input {
   border-color: #000000 !important;
 }
 
-/* Active nav / dropdown hover: light-blue fill with black text. */
+/* Active nav / dropdown hover: light-green fill with black text. */
 html[data-theme="contrast"] .crm-nav .nav-link.active,
 html[data-theme="contrast"] .dropdown-item:hover,
 html[data-theme="contrast"] .dropdown-item:focus {
-  background-color: #e6eeff;
+  background-color: #e2f2ec;
   color: #000000;
 }
 html[data-theme="contrast"] .crm-nav .nav-link.active {
-  box-shadow: inset 3px 0 0 #0b3d91;
+  box-shadow: inset 3px 0 0 #005c44;
 }
 
 /* Muted helper text stays readable: bootstrap .text-muted consumes
    --bs-secondary-color, already overridden to a dark gray above. */
+
+/* ---- Contrast: brand-green primary buttons ----
+   The ui.css polish layer hard-codes a mid-green gradient for primary
+   buttons; high-contrast needs the dark brand green + white text. */
+html[data-theme="contrast"] .crm-btn-primary,
+html[data-theme="contrast"] .btn.crm-btn-primary {
+  background: #005c44 !important;
+  border-color: #005c44 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+html[data-theme="contrast"] .crm-btn-primary:hover,
+html[data-theme="contrast"] .crm-btn-primary:focus,
+html[data-theme="contrast"] .btn.crm-btn-primary:hover,
+html[data-theme="contrast"] .btn.crm-btn-primary:focus {
+  background: #00493a !important;
+  border-color: #00493a !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Focus rings stay brand green, not blue. */
+html[data-theme="contrast"] .form-control:focus,
+html[data-theme="contrast"] .form-select:focus,
+html[data-theme="contrast"] .crm-input:focus,
+html[data-theme="contrast"] .crm-select:focus,
+html[data-theme="contrast"] .crm-textarea:focus {
+  border-color: #005c44 !important;
+  box-shadow: 0 0 0 4px rgba(0, 92, 68, 0.25) !important;
+}
+html[data-theme="contrast"] .form-check-input:checked {
+  background-color: #005c44 !important;
+  border-color: #005c44 !important;
+}
