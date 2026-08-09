@@ -1236,13 +1236,72 @@ html[data-theme="contrast"] .crm-gantt-page .crm-chip-dot--success {
   background: #005c44 !important;
 }
 
-/* Task tags use user-chosen background colors; force black text + a 2px
-   black ring so any tag stays readable in the low-vision theme. */
+/* Gantt scale headers, KPI captions, deadline tiles, work-mode hint:
+   slate/blue-gray text -> near-black; blue bar/dot hues -> brand green. */
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-scale-months > span {
+  color: #1f1f1f !important;
+  background: #ffffff !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-kpi-card small,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-kpi-button small,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-summary-grid .crm-metric-tile small {
+  color: #1f1f1f !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-deadline-date {
+  color: #005c44 !important;
+  background: #ffffff !important;
+  border-color: #000000 !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-mobile-work-mode-hint {
+  color: #1f1f1f !important;
+  background: #ffffff !important;
+  border-color: #000000 !important;
+}
+/* Gantt bars: the blue "active" / navy "project" hues become brand green. */
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--active,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--project {
+  background: #005c44 !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--new,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--release,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--success {
+  background: #005c44 !important;
+}
+
+/* Task tags use user-chosen background colors; in the low-vision theme
+   they become white chips with black text and a 2px black ring, so any
+   user color stays readable (21:1). */
 html[data-theme="contrast"] .task-tag {
+  background-color: #ffffff !important;
   color: #000000 !important;
   box-shadow: inset 0 0 0 2px #000000 !important;
   text-decoration: none !important;
 }
 html[data-theme="contrast"] .task-tag.task-tag--more {
   color: #000000 !important;
+}
+
+/* API status toast: mid-green bg + white text (4.0:1) -> brand green (7.9:1). */
+html[data-theme="contrast"] #crmApiStatusBar {
+  background: #005c44 !important;
+  color: #ffffff !important;
+}
+
+/* Calendar month grid uses --crm-border as the 1px grid lines; in contrast
+   that is near-black, which is correct, but day cells must stay opaque white
+   so the dark lines do not bleed through the numbers. */
+html[data-theme="contrast"] .crm-calendar-month-grid {
+  background: #000000 !important;
+}
+html[data-theme="contrast"] .crm-calendar-day,
+html[data-theme="contrast"] .crm-calendar-day.is-muted,
+html[data-theme="contrast"] .crm-calendar-day.is-weekend:not(.is-muted),
+html[data-theme="contrast"] .crm-calendar-day.is-today,
+html[data-theme="contrast"] .crm-calendar-day:hover {
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+html[data-theme="contrast"] .crm-calendar-day.is-today .crm-calendar-day-number {
+  background: #005c44 !important;
+  color: #ffffff !important;
 }
