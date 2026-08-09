@@ -1287,6 +1287,32 @@ html[data-theme="contrast"] #crmApiStatusBar {
   color: #ffffff !important;
 }
 
+/* Plain chips and gantt week labels: slate -> near-black (4.7:1 -> 13:1). */
+html[data-theme="contrast"] .crm-chip.crm-chip-plain {
+  color: #1f1f1f !important;
+  border-color: #000000 !important;
+  background: #ffffff !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-scale-main > span {
+  color: #1f1f1f !important;
+}
+
+/* Gantt overdue <em> inside the deadline tile: mid green on pale green
+   (3.6:1) -> dark brand green (7.9:1). */
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-deadline-date em {
+  color: #005c44 !important;
+}
+
+/* Notification counter: gradient red bg reads as transparent to audits;
+   give it a solid dark-red surface so white text is guaranteed AA. */
+html[data-theme="contrast"] .crm-topbar [data-global-notifications] .crm-notification-counter {
+  background: #a40000 !important;
+  background-image: none !important;
+  border-color: #000000 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
 /* Calendar month grid uses --crm-border as the 1px grid lines; in contrast
    that is near-black, which is correct, but day cells must stay opaque white
    so the dark lines do not bleed through the numbers. */
