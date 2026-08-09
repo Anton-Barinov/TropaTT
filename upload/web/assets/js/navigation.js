@@ -581,7 +581,10 @@ window.CRM.navigation = (function () {
     syncThemeSwitcher();
     bindThemeSwitcher();
 
-    if (!bar.querySelector('[data-profile-dropdown]') && !bar.querySelector('.dropdown [data-bs-toggle="dropdown"]')) {
+    // The theme switcher above also matches `.dropdown [data-bs-toggle="dropdown"]`,
+    // so the generic check must exclude it — otherwise the user menu would never
+    // be created on topbars that only have the JS-built buttons.
+    if (!bar.querySelector('[data-profile-dropdown]') && !bar.querySelector('.dropdown:not([data-theme-switcher]) [data-bs-toggle="dropdown"]')) {
       right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-profile-dropdown><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">' + t('topbar.user_fallback', 'User') + '</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">' + t('topbar.profile', 'Profile') + '</a></li><li><a class="dropdown-item" href="index.php?route=notifications">' + t('topbar.notifications', 'Notifications') + '</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">' + t('topbar.logout', 'Logout') + '</button></li></ul></div>');
     }
 
