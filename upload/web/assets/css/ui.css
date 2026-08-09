@@ -106,7 +106,7 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #e63946;
+  background: var(--crm-danger);
   color: #fff;
   border: 2px solid var(--crm-surface, #fff);
   font-size: 10px;
@@ -309,25 +309,25 @@
 
 .crm-table thead th,
 .table.crm-table thead th {
-  background: #f4f6f8 !important;
+  background: var(--crm-surface-2) !important;
   font-size: 12.5px !important;
   font-weight: 600 !important;
-  color: #334155 !important;
+  color: var(--crm-text) !important;
   border-bottom: 1px solid var(--crm-border) !important;
   padding: 8px 10px !important;
 }
 
 .crm-table tbody td,
 .table.crm-table tbody td {
-  border-bottom: 1px solid #e8edf2 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   padding: 8px 10px !important;
   font-size: 13px !important;
-  color: #0f172a !important;
+  color: var(--crm-text) !important;
 }
 
 .crm-table tbody tr:hover td,
 .table.crm-table tbody tr:hover td {
-  background: #f8fafc !important;
+  background: var(--crm-surface-2) !important;
 }
 
 /* controls: tidy and consistent, without harsh flattening */
@@ -699,7 +699,7 @@ textarea.form-control::placeholder {
 .crm-admin-ai-empty-state {
   border: 1px dashed var(--crm-primary-border);
   border-radius: var(--crm-radius-lg);
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--crm-surface) 60%, transparent);
   padding: 28px;
   color: var(--crm-text-muted);
 }
@@ -934,7 +934,7 @@ textarea.form-control::placeholder {
 .crm-kanban-column {
   width: 330px;
   flex: 0 0 330px;
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--crm-surface) 55%, transparent);
   border: 1px solid var(--crm-border);
   border-radius: var(--crm-radius-lg);
   padding: 14px;
@@ -963,7 +963,7 @@ textarea.form-control::placeholder {
 .crm-gantt-bar,
 [data-gantt-bar] {
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--crm-primary), #10B981);
+  background: linear-gradient(90deg, var(--crm-primary), var(--crm-success));
   color: #fff;
   box-shadow: var(--crm-shadow-soft);
 }
@@ -1128,9 +1128,9 @@ textarea:focus-visible,
   top: 0;
   border-right: 1px solid rgba(17, 26, 25, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 250, 0.86)),
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 92%, transparent), color-mix(in srgb, var(--crm-surface) 86%, transparent)),
     var(--crm-surface);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.72);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--crm-surface) 72%, transparent);
   backdrop-filter: blur(18px) saturate(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.05);
 }
@@ -1146,17 +1146,17 @@ textarea:focus-visible,
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0f8f72, #163c34);
+  background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
   box-shadow:
     0 14px 28px rgba(15, 143, 114, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.36);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 36%, transparent);
 }
 
 .crm-sidebar-toggle {
   border-color: rgba(17, 26, 25, 0.1);
   background: var(--crm-surface-2, rgba(255, 255, 255, 0.72));
   color: var(--crm-text-muted);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .crm-sidebar-toggle:hover,
@@ -1188,7 +1188,7 @@ textarea:focus-visible,
 
 .crm-nav .nav-link:hover,
 .crm-nav .nav-link:focus {
-  background: rgba(255, 255, 255, 0.84);
+  background: color-mix(in srgb, var(--crm-surface) 84%, transparent);
   border-color: rgba(15, 143, 114, 0.16);
   color: var(--crm-text);
   transform: none;
@@ -1198,12 +1198,12 @@ textarea:focus-visible,
 .crm-nav .nav-link.active {
   background:
     radial-gradient(circle at 14% 50%, rgba(142, 224, 205, 0.22), transparent 38%),
-    linear-gradient(180deg, #eefaf7, #e4f3ef);
+    linear-gradient(180deg, var(--crm-success-soft), var(--crm-success-soft));
   border-color: rgba(15, 143, 114, 0.26);
   color: var(--crm-primary-hover);
   box-shadow:
     0 14px 28px rgba(15, 143, 114, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 80%, transparent);
 }
 
 .crm-nav .crm-nav-icon {
@@ -1211,16 +1211,16 @@ textarea:focus-visible,
   height: 28px;
   border-radius: 10px;
   border-color: rgba(17, 26, 25, 0.08);
-  background: linear-gradient(180deg, #ffffff, #f2f6f5);
+  background: linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
   color: var(--crm-text-muted);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 92%, transparent);
 }
 
 .crm-nav .nav-link:hover .crm-nav-icon,
 .crm-nav .nav-link:focus .crm-nav-icon,
 .crm-nav .nav-link.active .crm-nav-icon {
   border-color: rgba(15, 143, 114, 0.24);
-  background: linear-gradient(180deg, #effaf7, #e7f5f1);
+  background: linear-gradient(180deg, var(--crm-success-soft), var(--crm-success-soft));
   color: var(--crm-primary);
   transform: none;
 }
@@ -1264,7 +1264,7 @@ textarea:focus-visible,
 
 .crm-main-wrap {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.22), transparent 18rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 22%, transparent), transparent 18rem),
     transparent;
 }
 
@@ -1273,7 +1273,7 @@ textarea:focus-visible,
   top: 0;
   z-index: var(--z-topbar);
   border-bottom: 1px solid rgba(17, 26, 25, 0.08);
-  background: rgba(255, 255, 255, 0.78);
+  background: color-mix(in srgb, var(--crm-surface) 78%, transparent);
   box-shadow: 0 12px 28px rgba(17, 37, 34, 0.05);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
@@ -1292,7 +1292,7 @@ textarea:focus-visible,
 .crm-topbar .input-group .input-group-text,
 .crm-topbar .input-group .form-control {
   border-color: rgba(17, 26, 25, 0.1);
-  background: rgba(255, 255, 255, 0.82);
+  background: color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 .crm-topbar .input-group .input-group-text {
@@ -1368,10 +1368,10 @@ textarea:focus-visible,
   border-color: rgba(17, 26, 25, 0.09);
   border-radius: var(--crm-radius-xl);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 252, 251, 0.9));
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), color-mix(in srgb, var(--crm-surface) 90%, transparent));
   box-shadow:
     var(--crm-shadow-card),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 .crm-card,
@@ -1403,7 +1403,7 @@ textarea:focus-visible,
   border-color: rgba(15, 143, 114, 0.2);
   box-shadow:
     var(--crm-shadow-hover),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 90%, transparent);
 }
 
 .crm-toolbar,
@@ -1457,7 +1457,7 @@ textarea:focus-visible,
 a.btn {
   border-radius: 999px;
   font-weight: 720;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 42%, transparent);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -1480,24 +1480,24 @@ a.btn:active {
 
 .crm-btn-primary,
 .btn.crm-btn-primary {
-  border-color: #0f8f72;
-  background: linear-gradient(135deg, #0f8f72, #0c705b);
+  border-color: var(--crm-accent);
+  background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
   color: #fff;
   box-shadow:
     0 12px 24px rgba(15, 143, 114, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 18%, transparent);
 }
 
 .crm-btn-primary:hover,
 .crm-btn-primary:focus,
 .btn.crm-btn-primary:hover,
 .btn.crm-btn-primary:focus {
-  border-color: #0a6652;
-  background: linear-gradient(135deg, #109779, #0a6652);
+  border-color: var(--crm-accent-strong);
+  background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
   color: #fff;
   box-shadow:
     0 16px 30px rgba(15, 143, 114, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 22%, transparent);
 }
 
 .btn-light,
@@ -1507,7 +1507,7 @@ a.btn:active {
 .crm-btn-subtle,
 .crm-btn-muted {
   border-color: rgba(17, 26, 25, 0.1);
-  background: rgba(255, 255, 255, 0.78);
+  background: color-mix(in srgb, var(--crm-surface) 78%, transparent);
   color: var(--crm-text);
 }
 
@@ -1533,9 +1533,9 @@ a.btn:active {
 .crm-btn-danger-soft:hover,
 .btn-outline-danger:hover,
 .crm-btn-danger:hover {
-  background: #fff0ef;
+  background: var(--crm-danger-soft);
   border-color: rgba(181, 64, 56, 0.42);
-  color: #8f2e28;
+  color: var(--crm-danger);
 }
 
 .btn-group,
@@ -1548,8 +1548,8 @@ a.btn:active {
   overflow: hidden;
   border-color: rgba(17, 26, 25, 0.1);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  background: color-mix(in srgb, var(--crm-surface) 74%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent);
 }
 
 .btn-group .btn,
@@ -1585,10 +1585,10 @@ a.btn:active {
 textarea.form-control {
   border-color: rgba(17, 26, 25, 0.12);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.86);
+  background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
   color: var(--crm-text);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent),
     0 1px 0 rgba(17, 26, 25, 0.02);
   transition:
     border-color 160ms ease,
@@ -1616,7 +1616,7 @@ textarea.form-control:focus {
   background: var(--crm-surface, #fff);
   box-shadow:
     0 0 0 4px var(--crm-focus),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
 }
 
 .mb-2:focus-within .form-label,
@@ -1650,7 +1650,7 @@ textarea.form-control:focus {
 .crm-table th,
 .table.crm-table th {
   background:
-    linear-gradient(180deg, rgba(248, 251, 250, 0.98), rgba(241, 247, 245, 0.98));
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 98%, transparent), color-mix(in srgb, var(--crm-surface) 98%, transparent));
   color: var(--crm-text-muted);
   border-bottom-color: rgba(17, 26, 25, 0.08);
   font-weight: 760;
@@ -1721,7 +1721,7 @@ textarea.form-control:focus {
 .dropdown-menu {
   border-color: rgba(17, 26, 25, 0.1);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
   box-shadow: 0 24px 52px rgba(17, 37, 34, 0.16);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -1769,12 +1769,12 @@ textarea.form-control:focus {
   border-color: rgba(17, 26, 25, 0.09);
   border-radius: 16px !important;
   overflow: hidden;
-  background: rgba(255,255,255,0.86);
+  background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .accordion-button {
   color: var(--crm-text);
-  background: rgba(255,255,255,0.86);
+  background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
   font-weight: 720;
 }
 
@@ -1792,7 +1792,7 @@ textarea.form-control:focus {
   border-style: dashed;
   background:
     radial-gradient(circle at 16% 18%, rgba(15,143,114,.08), transparent 38%),
-    linear-gradient(180deg, #ffffff, #f8fbfa);
+    linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
 .crm-kanban,
@@ -1804,10 +1804,10 @@ textarea.form-control:focus {
 .crm-kanban-col,
 .crm-kanban-column {
   border-radius: 22px;
-  background: rgba(255,255,255,0.58);
+  background: color-mix(in srgb, var(--crm-surface) 58%, transparent);
   box-shadow:
     0 16px 36px rgba(17, 37, 34, 0.07),
-    inset 0 1px 0 rgba(255,255,255,0.82);
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 .crm-kanban-card {
@@ -1825,7 +1825,7 @@ textarea.form-control:focus {
 
 .crm-calendar-day,
 .crm-calendar-time-cell {
-  background: rgba(255,255,255,0.88);
+  background: color-mix(in srgb, var(--crm-surface) 88%, transparent);
 }
 
 .crm-calendar-day:hover {
@@ -1842,8 +1842,8 @@ textarea.form-control:focus {
   border-color: rgba(15, 143, 114, 0.22);
   border-left-color: var(--crm-primary);
   border-radius: 14px;
-  background: #edf9f6;
-  color: #124d42;
+  background: var(--crm-success-soft);
+  color: var(--crm-info);
 }
 
 .crm-gantt,
@@ -1879,15 +1879,15 @@ textarea.form-control:focus {
 
 .crm-login-panel {
   border-right-color: rgba(17, 26, 25, 0.08);
-  background: rgba(255,255,255,.9);
+  background: color-mix(in srgb, var(--crm-surface) 90%, transparent);
   box-shadow: 18px 0 54px rgba(17,37,34,.08);
 }
 
 .crm-login-cover .crm-card {
-  border-color: rgba(255,255,255,.18);
+  border-color: color-mix(in srgb, var(--crm-surface) 18%, transparent);
   background:
     radial-gradient(circle at 18% 18%, rgba(142,224,205,.32), transparent 34%),
-    linear-gradient(145deg, #101918, #174039 55%, #0f8f72);
+    linear-gradient(145deg, #101918, #174039 55%, var(--crm-accent));
   color: #fff;
   box-shadow: 0 34px 90px rgba(17,37,34,.22);
 }
@@ -1984,7 +1984,7 @@ textarea.form-control:focus {
   overflow: hidden;
   border-radius: var(--radius-md);
   background:
-    linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.6), rgba(255,255,255,0)),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--crm-surface) 60%, transparent), transparent),
     linear-gradient(180deg, var(--color-neutral-50), var(--color-neutral-100));
   background-size: 220px 100%, 100% 100%;
   animation: crmSkeletonShimmer 1.4s ease-in-out infinite;
@@ -2006,7 +2006,7 @@ textarea.form-control:focus {
   border: 1px dashed rgba(15, 143, 114, 0.2);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.88), rgba(235,246,243,0.78));
+    linear-gradient(135deg, color-mix(in srgb, var(--crm-surface) 88%, transparent), rgba(235,246,243,0.78));
   color: var(--crm-text-muted);
   font-weight: 700;
 }
@@ -2044,8 +2044,8 @@ textarea.form-control:focus {
   border-radius: 18px;
   background:
     radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 38%),
-    linear-gradient(135deg, #f8fcfb, #edf7f4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    linear-gradient(135deg, var(--crm-surface-2), var(--crm-success-soft));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .crm-dashboard-page .crm-dashboard-ai-subcard {
@@ -2085,7 +2085,7 @@ textarea.form-control:focus {
   padding: 18px 16px;
   border-bottom: 1px solid rgba(17, 26, 25, 0.08);
   background:
-    linear-gradient(180deg, rgba(248, 252, 251, 0.96), rgba(239, 247, 245, 0.92));
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), rgba(239, 247, 245, 0.92));
   color: var(--crm-text-muted);
   font-size: 0.74rem;
   font-weight: 850;
@@ -2108,7 +2108,7 @@ textarea.form-control:focus {
 
 .crm-table tbody tr:hover {
   background:
-    linear-gradient(90deg, rgba(15, 143, 114, 0.055), rgba(255, 255, 255, 0.48));
+    linear-gradient(90deg, rgba(15, 143, 114, 0.055), color-mix(in srgb, var(--crm-surface) 48%, transparent));
   box-shadow: inset 4px 0 0 rgba(15, 143, 114, 0.36);
 }
 
@@ -2214,7 +2214,7 @@ textarea.form-control:focus {
   width: 1.05rem;
   height: 1.05rem;
   border-color: rgba(15, 143, 114, 0.36);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
   cursor: pointer;
 }
 
@@ -2244,7 +2244,7 @@ textarea.form-control:focus {
   inset: 0;
   z-index: -1;
   opacity: 0;
-  background: linear-gradient(120deg, transparent 12%, rgba(255,255,255,0.34) 48%, transparent 82%);
+  background: linear-gradient(120deg, transparent 12%, color-mix(in srgb, var(--crm-surface) 34%, transparent) 48%, transparent 82%);
   transform: translateX(-110%);
   transition: opacity 160ms ease, transform 420ms ease;
 }
@@ -2274,7 +2274,7 @@ textarea.form-control:focus {
 .dropdown-menu {
   border: 1px solid rgba(17, 26, 25, 0.1);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
   box-shadow: 0 24px 52px rgba(17, 37, 34, 0.14);
   backdrop-filter: blur(14px) saturate(1.06);
   -webkit-backdrop-filter: blur(14px) saturate(1.06);
@@ -2334,25 +2334,25 @@ textarea.form-control:focus {
 .alert {
   border-radius: 18px;
   border-width: 1px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 74%, transparent);
 }
 
 .alert-info {
   border-color: rgba(22, 107, 120, 0.18);
-  background: linear-gradient(180deg, #eff9fa, #e6f4f6);
-  color: #155764;
+  background: linear-gradient(180deg, var(--crm-info-soft), var(--crm-info-soft));
+  color: var(--crm-info);
 }
 
 .alert-warning {
   border-color: rgba(154, 101, 0, 0.22);
-  background: linear-gradient(180deg, #fff7e7, #fff1d3);
-  color: #795100;
+  background: linear-gradient(180deg, var(--crm-warning-soft), var(--crm-warning-soft));
+  color: var(--crm-warning);
 }
 
 .alert-danger {
   border-color: rgba(181, 64, 56, 0.22);
-  background: linear-gradient(180deg, #fff0ef, #ffe8e6);
-  color: #8f322c;
+  background: linear-gradient(180deg, var(--crm-danger-soft), var(--crm-danger-soft));
+  color: var(--crm-danger);
 }
 
 .crm-kanban-card,
@@ -2631,7 +2631,7 @@ small.text-muted {
   padding: 16px;
   border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,250,248,0.94));
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), color-mix(in srgb, var(--crm-surface) 94%, transparent));
 }
 
 .crm-info-panel small {
@@ -2666,8 +2666,8 @@ small.text-muted {
   border-radius: 14px;
   border-color: rgba(17, 26, 25, 0.12);
   color: var(--crm-text);
-  background-color: rgba(255, 255, 255, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
+  background-color: color-mix(in srgb, var(--crm-surface) 92%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent);
 }
 
 .input-group > .form-control,
@@ -2684,7 +2684,7 @@ small.text-muted {
 }
 
 .form-control::placeholder {
-  color: #91a09d;
+  color: var(--crm-text-soft);
 }
 
 .btn {
@@ -2704,7 +2704,7 @@ small.text-muted {
 .text-bg-primary {
   border-color: rgba(15, 143, 114, 0.9) !important;
   background:
-    linear-gradient(180deg, #14a985, #08745d) !important;
+    linear-gradient(180deg, var(--crm-accent), var(--crm-accent-strong)) !important;
   color: #fff !important;
   box-shadow: 0 14px 30px rgba(15, 143, 114, 0.22);
 }
@@ -2713,7 +2713,7 @@ small.text-muted {
 .btn-primary:hover {
   border-color: var(--crm-primary-hover) !important;
   background:
-    linear-gradient(180deg, #119a7a, #06634f) !important;
+    linear-gradient(180deg, var(--crm-accent), var(--crm-accent-strong)) !important;
 }
 
 .crm-btn-secondary,
@@ -2721,9 +2721,9 @@ small.text-muted {
 .btn-outline-secondary {
   border-color: rgba(17, 26, 25, 0.12) !important;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,250,248,0.94)) !important;
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 98%, transparent), color-mix(in srgb, var(--crm-surface) 94%, transparent)) !important;
   color: var(--crm-text) !important;
-  box-shadow: 0 8px 20px rgba(17, 37, 34, 0.05), inset 0 1px 0 rgba(255,255,255,0.86);
+  box-shadow: 0 8px 20px rgba(17, 37, 34, 0.05), inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .crm-btn-secondary:hover,
@@ -2732,7 +2732,7 @@ small.text-muted {
   border-color: rgba(15, 143, 114, 0.28) !important;
   color: var(--crm-primary-hover) !important;
   background:
-    linear-gradient(180deg, #ffffff, #eef8f5) !important;
+    linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2)) !important;
 }
 
 .crm-btn-muted {
@@ -2815,9 +2815,9 @@ small.text-muted {
   right: -6px;
   min-width: 20px;
   height: 20px;
-  border: 2px solid rgba(255,255,255,0.96);
+  border: 2px solid color-mix(in srgb, var(--crm-surface) 96%, transparent);
   background:
-    linear-gradient(180deg, #d94a42, #a9322c);
+    linear-gradient(180deg, var(--crm-danger), var(--crm-danger));
   color: #fff;
   font-size: 10px;
   font-weight: 850;
@@ -2863,7 +2863,7 @@ small.text-muted {
   padding: 10px 12px;
   border: 1px solid rgba(17, 26, 25, 0.08);
   border-radius: 16px;
-  background: linear-gradient(180deg, #f8fbfa, #eef6f3);
+  background: linear-gradient(180deg, var(--crm-surface-2), var(--crm-success-soft));
   color: var(--crm-text-muted) !important;
 }
 
@@ -2885,7 +2885,7 @@ small.text-muted {
 
 .crm-topbar-notify-popover li:hover {
   border-color: rgba(15, 143, 114, 0.2);
-  background: linear-gradient(180deg, #ffffff, #f5fbf9);
+  background: linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
 .crm-topbar-notify-popover strong {
@@ -2925,7 +2925,7 @@ small.text-muted {
 .crm-notifications-page .crm-side-stack .crm-card:first-child {
   background:
     radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 38%),
-    linear-gradient(180deg, #ffffff, #f3faf7);
+    linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
 .crm-notifications-page .crm-side-stack .crm-card:first-child .crm-info-panel {
@@ -2964,7 +2964,7 @@ small.text-muted {
   border-color: rgba(15, 143, 114, 0.32) !important;
   background:
     radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 34%),
-    linear-gradient(180deg, #ffffff, #eef9f5) !important;
+    linear-gradient(180deg, var(--crm-surface), var(--crm-success-soft)) !important;
 }
 
 .crm-notifications-page .crm-notification-item.border-primary::before,
@@ -3038,7 +3038,7 @@ small.text-muted {
   padding: 10px 12px;
   border: 1px solid rgba(17, 26, 25, 0.08);
   border-radius: 14px;
-  background: rgba(248, 251, 250, 0.86);
+  background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .crm-notifications-page #notificationsMatrixBody td,
@@ -3083,7 +3083,7 @@ small.text-muted {
 .toast {
   border: 1px solid rgba(17, 26, 25, 0.1) !important;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.96) !important;
+  background: color-mix(in srgb, var(--crm-surface) 96%, transparent) !important;
   color: var(--crm-text) !important;
   box-shadow: 0 24px 60px rgba(17, 37, 34, 0.18);
   backdrop-filter: blur(16px) saturate(1.08);
@@ -3094,7 +3094,7 @@ small.text-muted {
   border-color: rgba(22, 131, 74, 0.22) !important;
   background:
     radial-gradient(circle at 100% 0%, rgba(22, 131, 74, 0.13), transparent 38%),
-    rgba(255, 255, 255, 0.96) !important;
+    color-mix(in srgb, var(--crm-surface) 96%, transparent) !important;
 }
 
 .toast-body {
@@ -3282,14 +3282,14 @@ body {
 }
 
 .crm-topbar {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: color-mix(in srgb, var(--crm-surface) 92%, transparent) !important;
   box-shadow: 0 1px 0 rgba(17, 26, 25, 0.08) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .crm-brand-mark {
-  background: #0f8f72 !important;
+  background: var(--crm-accent) !important;
   box-shadow: 0 8px 18px rgba(15, 143, 114, 0.14) !important;
 }
 
@@ -3389,11 +3389,11 @@ body {
 }
 
 .crm-table thead th {
-  background: #f6faf8 !important;
+  background: var(--crm-surface-2) !important;
 }
 
 .crm-table tbody tr:hover {
-  background: #f7fbf9 !important;
+  background: var(--crm-surface-2) !important;
 }
 
 .alert,
@@ -3445,13 +3445,13 @@ body {
 
 /* 3) Kanban: neutral operational surface */
 .crm-kanban-col {
-  background: #f8fafc !important;
+  background: var(--crm-surface-2) !important;
   border: 1px solid var(--crm-border) !important;
   border-radius: 8px !important;
 }
 
 .crm-kanban-card {
-  border: 1px solid #e4e9ef !important;
+  border: 1px solid var(--crm-border) !important;
   border-radius: 6px !important;
   
 }
@@ -3507,10 +3507,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #f6f7f8 !important;
+  background: var(--crm-surface-2) !important;
   background-image: none !important;
-  color: #475569 !important;
-  border-bottom: 1px solid #d8dee6 !important;
+  color: var(--crm-text) !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 9px 12px !important;
@@ -3535,7 +3535,7 @@ body {
 
 .crm-content table.crm-table tbody tr:hover,
 .crm-content .table.crm-table tbody tr:hover {
-  background: #f8fafc !important;
+  background: var(--crm-surface-2) !important;
   box-shadow: none !important;
 }
 
@@ -3543,7 +3543,7 @@ body {
 .crm-content .table.crm-table tbody td {
   background: transparent !important;
   background-image: none !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 9px 12px !important;
@@ -3585,7 +3585,7 @@ body {
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
@@ -3602,7 +3602,7 @@ body {
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
@@ -3654,13 +3654,13 @@ body {
 .crm-calendar-agenda-item,
 .crm-list-card {
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   padding: 10px 0 !important;
 }
 
 .crm-notifications-page .crm-notification-item {
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
 }
 
 .crm-calendar-agenda-item:hover,
@@ -3670,7 +3670,7 @@ body {
 .crm-gantt-deadline-card:hover {
   transform: none !important;
   box-shadow: none !important;
-  background: #f8fafc !important;
+  background: var(--crm-surface-2) !important;
 }
 
 /* Alerts used as list rows should not look like independent capsules. */
@@ -3683,7 +3683,7 @@ body {
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   color: inherit !important;
@@ -3713,7 +3713,7 @@ body {
   overflow: hidden !important;
   background: var(--crm-surface, #fff) !important;
   background-image: none !important;
-  border: 1px solid #d8dee6 !important;
+  border: 1px solid var(--crm-border) !important;
   border-radius: 8px !important;
   box-shadow: none !important;
 }
@@ -3742,7 +3742,7 @@ body {
   justify-content: center !important;
   gap: 6px !important;
   white-space: nowrap !important;
-  color: #17211f !important;
+  color: var(--crm-text) !important;
   background: var(--crm-surface, #fff) !important;
   background-image: none !important;
   border: 0 !important;
@@ -3770,7 +3770,7 @@ body {
 .crm-content .crm-segmented > .crm-segmented-item:not(:last-child),
 .crm-content .team-segmented > .team-segmented-btn:not(:last-child),
 .modal .team-segmented > .team-segmented-btn:not(:last-child) {
-  border-right: 1px solid #d8dee6 !important;
+  border-right: 1px solid var(--crm-border) !important;
 }
 
 .crm-content #votesPeriodBtns > .btn:first-child,
@@ -3818,8 +3818,8 @@ body {
 .crm-content .crm-segmented > .crm-segmented-item:hover,
 .crm-content .team-segmented > .team-segmented-btn:hover,
 .modal .team-segmented > .team-segmented-btn:hover {
-  color: #0f766e !important;
-  background: #f7fbfa !important;
+  color: var(--crm-accent-strong) !important;
+  background: var(--crm-surface-2) !important;
 }
 
 .crm-content #votesPeriodBtns > .btn.active,
@@ -3839,8 +3839,8 @@ body {
 .crm-content .crm-segmented > .crm-segmented-item.is-active,
 .crm-content .team-segmented > .team-segmented-btn.is-active,
 .modal .team-segmented > .team-segmented-btn.is-active {
-  color: #0f766e !important;
-  background: #e9f6f2 !important;
+  color: var(--crm-accent-strong) !important;
+  background: var(--crm-success-soft) !important;
   box-shadow: none !important;
 }
 
@@ -3912,7 +3912,7 @@ body {
   min-height: 48px;
   padding: 14px 20px !important;
   gap: 12px !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
 }
 
 .crm-idea-detail-page .crm-section-head h2,
@@ -3947,7 +3947,7 @@ body {
 
 .crm-idea-detail-page #ideaDesc {
   max-width: 760px;
-  color: #17211f;
+  color: var(--crm-text);
   line-height: 1.55;
 }
 
@@ -4079,9 +4079,9 @@ body {
   gap: 8px;
   padding: 8px 0 !important;
   border: 0 !important;
-  border-bottom: 1px solid #e5eaf0 !important;
+  border-bottom: 1px solid var(--crm-border) !important;
   background: transparent !important;
-  color: #263634 !important;
+  color: var(--crm-text) !important;
   font-size: 12px;
   line-height: 1.25;
 }
@@ -4091,16 +4091,16 @@ body {
 }
 
 .crm-idea-detail-page #pipelineSteps .pipeline-running {
-  color: #0f766e !important;
+  color: var(--crm-accent-strong) !important;
   font-weight: 650;
 }
 
 .crm-idea-detail-page #pipelineSteps .pipeline-error {
-  color: #9f3430 !important;
+  color: var(--crm-danger) !important;
 }
 
 .crm-idea-detail-page #pipelineSteps .pipeline-success {
-  color: #42605a !important;
+  color: var(--crm-text-muted) !important;
 }
 
 .crm-pipeline-mark {
@@ -4108,18 +4108,18 @@ body {
   height: 8px;
   flex: 0 0 8px;
   border-radius: 50%;
-  border: 1px solid #cfd8df;
-  background: #eef2f4;
+  border: 1px solid var(--crm-border);
+  background: var(--crm-surface-2);
 }
 
 .crm-pipeline-mark-success {
-  border-color: #9fcbbd;
-  background: #0f766e;
+  border-color: var(--crm-primary-border);
+  background: var(--crm-accent-strong);
 }
 
 .crm-pipeline-mark-error {
-  border-color: #d9aaa7;
-  background: #b54038;
+  border-color: var(--crm-danger-border);
+  background: var(--crm-danger);
 }
 
 .crm-idea-detail-page #debugCard {
@@ -4131,8 +4131,8 @@ body {
   max-height: 520px !important;
   padding: 14px 16px !important;
   border-radius: 0 0 8px 8px !important;
-  background: #111817 !important;
-  color: #dce6e2 !important;
+  background: #1e1e1e !important;
+  color: #d4d4d4 !important;
   font-size: 12px !important;
   line-height: 1.45 !important;
 }
@@ -4142,14 +4142,14 @@ body {
   grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(130px, 0.7fr));
   gap: 0;
   margin-bottom: 16px;
-  border-top: 1px solid #e4e9ed;
-  border-bottom: 1px solid #e4e9ed;
+  border-top: 1px solid var(--crm-border);
+  border-bottom: 1px solid var(--crm-border);
 }
 
 .crm-idea-detail-page .crm-final-summary > div {
   min-width: 0;
   padding: 12px 14px;
-  border-right: 1px solid #e4e9ed;
+  border-right: 1px solid var(--crm-border);
 }
 
 .crm-idea-detail-page .crm-final-summary > div:last-child {
@@ -4158,13 +4158,13 @@ body {
 
 .crm-idea-detail-page .crm-final-label {
   margin-bottom: 5px;
-  color: #667773;
+  color: var(--crm-text-muted);
   font-size: 12px;
   font-weight: 650;
 }
 
 .crm-idea-detail-page .crm-final-status {
-  color: #17211f;
+  color: var(--crm-text);
   font-size: 15px;
   font-weight: 750;
   line-height: 1.3;
@@ -4173,21 +4173,21 @@ body {
 
 .crm-idea-detail-page .crm-final-status-reject_current_form,
 .crm-idea-detail-page .crm-final-status-postpone {
-  color: #8a3b36;
+  color: var(--crm-danger);
 }
 
 .crm-idea-detail-page .crm-final-status-refine_first,
 .crm-idea-detail-page .crm-final-status-collect_more_data {
-  color: #7c5b20;
+  color: var(--crm-warning);
 }
 
 .crm-idea-detail-page .crm-final-status-proceed,
 .crm-idea-detail-page .crm-final-status-proceed_with_validation {
-  color: #176558;
+  color: var(--crm-success);
 }
 
 .crm-idea-detail-page .crm-final-score {
-  color: #17211f;
+  color: var(--crm-text);
   font-size: 20px;
   font-weight: 760;
   line-height: 1.2;
@@ -4195,7 +4195,7 @@ body {
 }
 
 .crm-idea-detail-page .crm-final-note {
-  color: #667773;
+  color: var(--crm-text-muted);
   font-size: 12px;
 }
 
@@ -4205,7 +4205,7 @@ body {
   column-gap: 12px;
   row-gap: 8px;
   margin-bottom: 16px;
-  border-bottom: 1px solid #e4e9ed;
+  border-bottom: 1px solid var(--crm-border);
 }
 
 .crm-idea-detail-page .crm-final-metrics > div {
@@ -4217,14 +4217,14 @@ body {
 }
 
 .crm-idea-detail-page .crm-final-metrics span {
-  color: #667773;
+  color: var(--crm-text-muted);
   font-size: 12px;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .crm-idea-detail-page .crm-final-metrics strong {
-  color: #17211f;
+  color: var(--crm-text);
   font-size: 13px;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -4234,7 +4234,7 @@ body {
 .crm-idea-detail-page .crm-final-text {
   max-width: 780px;
   margin-bottom: 12px;
-  color: #263634;
+  color: var(--crm-text);
   line-height: 1.55;
 }
 
@@ -4244,7 +4244,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  scrollbar-color: #cfd9d5 transparent;
+  scrollbar-color: var(--crm-border-strong) transparent;
   scrollbar-width: thin;
 }
 
@@ -4282,8 +4282,8 @@ body {
 
 .crm-idea-detail-page #finalCardBody::-webkit-scrollbar-thumb,
 .crm-idea-detail-page #tasksCardBody::-webkit-scrollbar-thumb {
-  background: #cfd9d5;
-  border: 3px solid #fff;
+  background: var(--crm-border-strong);
+  border: 3px solid var(--crm-surface);
   border-radius: 999px;
 }
 
@@ -4299,14 +4299,14 @@ body {
 
 .crm-idea-detail-page #finalCardBody li {
   margin-bottom: 2px;
-  color: #263634;
+  color: var(--crm-text);
   line-height: 1.45;
 }
 
 .crm-idea-detail-page .crm-task-project {
   padding: 0 0 14px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #e4e9ed;
+  border-bottom: 1px solid var(--crm-border);
 }
 
 .crm-idea-detail-page .crm-task-project:last-child {
@@ -4317,7 +4317,7 @@ body {
 
 .crm-idea-detail-page .crm-task-project h6 {
   margin: 0 0 6px;
-  color: #17211f;
+  color: var(--crm-text);
   font-size: 16px;
   font-weight: 760;
 }
@@ -4325,13 +4325,13 @@ body {
 .crm-idea-detail-page .crm-task-project > p {
   max-width: 780px;
   margin: 0 0 12px;
-  color: #667773;
+  color: var(--crm-text-muted);
   line-height: 1.5;
 }
 
 .crm-idea-detail-page .crm-suggested-task {
   padding: 10px 0 10px 16px;
-  border-top: 1px solid #edf1f3;
+  border-top: 1px solid var(--crm-border-soft);
 }
 
 .crm-idea-detail-page .crm-suggested-task-level-0 {
@@ -4356,13 +4356,13 @@ body {
 }
 
 .crm-idea-detail-page .crm-suggested-task-head strong {
-  color: #17211f;
+  color: var(--crm-text);
   font-size: 14px;
   line-height: 1.35;
 }
 
 .crm-idea-detail-page .crm-task-meta {
-  color: #667773;
+  color: var(--crm-text-muted);
   font-size: 12px;
   font-weight: 600;
 }
@@ -4370,20 +4370,20 @@ body {
 .crm-idea-detail-page .crm-suggested-task-text,
 .crm-idea-detail-page .crm-suggested-task-note {
   max-width: 820px;
-  color: #3f504c;
+  color: var(--crm-text-muted);
   font-size: 13px;
   line-height: 1.45;
 }
 
 .crm-idea-detail-page .crm-suggested-task-note {
   margin-top: 4px;
-  color: #667773;
+  color: var(--crm-text-muted);
 }
 
 .crm-idea-detail-page .crm-suggested-task-note code {
   padding: 0;
   background: transparent;
-  color: #667773;
+  color: var(--crm-text-muted);
   font-family: inherit;
   font-size: inherit;
   font-weight: 650;
@@ -4431,7 +4431,7 @@ body {
 
   .crm-idea-detail-page .crm-final-summary > div {
     border-right: 0;
-    border-bottom: 1px solid #e4e9ed;
+    border-bottom: 1px solid var(--crm-border);
   }
 
   .crm-idea-detail-page .crm-final-summary > div:last-child {
@@ -4456,7 +4456,7 @@ body {
 .crm-content .card,
 .crm-content .crm-section-card,
 .crm-content .crm-table-card {
-  border-color: #d8dee6 !important;
+  border-color: var(--crm-border) !important;
   border-radius: 8px !important;
   box-shadow: none !important;
   background-image: none !important;
@@ -4547,8 +4547,8 @@ body {
 .crm-content table.crm-table thead th,
 .crm-content .table.crm-table thead th {
   padding: 10px 12px !important;
-  background: #f7f8f9 !important;
-  color: #465854 !important;
+  background: var(--crm-surface-2) !important;
+  color: var(--crm-text) !important;
   font-weight: 650 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -4557,7 +4557,7 @@ body {
 .crm-content table.crm-table tbody td,
 .crm-content .table.crm-table tbody td {
   padding: 10px 12px !important;
-  color: #17211f;
+  color: var(--crm-text);
   text-align: left;
 }
 
@@ -4574,12 +4574,12 @@ body {
 
 .crm-content table.crm-table tbody tr:hover,
 .crm-content .table.crm-table tbody tr:hover {
-  background: #f8faf9 !important;
+  background: var(--crm-surface-2) !important;
 }
 
 .crm-content table.crm-table a,
 .crm-content .table.crm-table a {
-  color: #17211f !important;
+  color: var(--crm-text) !important;
   font-weight: 650 !important;
 }
 
@@ -4589,7 +4589,7 @@ body {
 .crm-content .crm-gantt-summary-grid .crm-metric-tile,
 .crm-content .crm-gantt-deadline-card {
   border-radius: 8px !important;
-  border-color: #d8dee6 !important;
+  border-color: var(--crm-border) !important;
   background: var(--crm-surface, #fff) !important;
   box-shadow: none !important;
   transform: none !important;
@@ -4598,8 +4598,8 @@ body {
 .crm-content .crm-dashboard-kpi:hover,
 .crm-content .crm-gantt-kpi-card:hover,
 .crm-content .crm-gantt-kpi-button:hover {
-  border-color: #c8d2cf !important;
-  background: #f8faf9 !important;
+  border-color: var(--crm-border) !important;
+  background: var(--crm-surface-2) !important;
 }
 
 .crm-content .crm-empty-state,
@@ -4831,7 +4831,7 @@ body.crm-login-page .crm-login-wrap {
 
 body.crm-login-page .crm-login-panel {
   padding: clamp(32px, 5vw, 64px);
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
   border-right: 1px solid rgba(17, 26, 25, 0.08);
   box-shadow: 18px 0 54px rgba(17, 37, 34, 0.07);
   display: flex;
@@ -4926,7 +4926,7 @@ body.crm-login-page .crm-login-card .form-select {
 }
 
 body.crm-login-page .crm-login-card .form-control::placeholder {
-  color: #8b9996;
+  color: var(--crm-text-soft);
   font-weight: 500;
 }
 
@@ -5000,7 +5000,7 @@ body.crm-login-page .crm-login-product-preview {
   overflow: hidden;
   border: 1px solid rgba(17, 26, 25, 0.12);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  background: color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 body.crm-login-page .crm-login-preview-sidebar {
@@ -5014,7 +5014,7 @@ body.crm-login-page .crm-login-preview-sidebar span {
   height: 34px;
   margin-bottom: 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--crm-surface) 10%, transparent);
 }
 
 body.crm-login-page .crm-login-preview-sidebar span:first-child {
@@ -5138,7 +5138,7 @@ body.crm-login-page .crm-login-proof-grid {
 
 body.crm-login-page .crm-login-proof-grid div {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.86);
+  background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 body.crm-login-page .crm-login-proof-grid strong,
@@ -5237,7 +5237,7 @@ body.crm-login-page .crm-login-proof-grid span {
 
 .crm-sticky-edit-textarea {
   background: transparent;
-  border: 1px dashed #666;
+  border: 1px dashed var(--crm-text-muted);
   width: 100%;
   resize: vertical;
   font-size: 13px;
@@ -5365,25 +5365,25 @@ body.crm-login-page .crm-login-proof-grid span {
   cursor: pointer;
   border-radius: 3px;
   line-height: 1;
-  color: #666;
+  color: var(--crm-text-muted);
   transition: color 0.1s ease, background 0.1s ease;
 }
 
 .crm-sv-action:hover {
   background: rgba(0,0,0,0.06);
-  color: #222;
+  color: var(--crm-text);
 }
 
 .crm-sv-action-pin {
-  color: #d4a017;
+  color: var(--crm-warning);
 }
 
 .crm-sv-action-pin:hover {
-  color: #b8860b;
+  color: var(--crm-warning);
 }
 
 .crm-sv-action-archive:hover {
-  color: #dc3545;
+  color: var(--crm-danger);
 }
 
 .crm-sv-badge {
@@ -5400,17 +5400,17 @@ body.crm-login-page .crm-login-proof-grid span {
 }
 
 .crm-sv-badge-private {
-  border: 1px solid #adb5bd;
+  border: 1px solid var(--crm-border-strong);
   background: transparent;
 }
 
 .crm-sv-badge-public {
-  background: #0f8f72;
+  background: var(--crm-accent);
   color: #fff;
 }
 
 .crm-sv-badge-system {
-  background: #6c757d;
+  background: var(--crm-text-muted);
   color: #fff;
 }
 

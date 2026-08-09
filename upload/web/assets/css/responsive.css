@@ -273,9 +273,9 @@
   }
 
   .crm-mobile-work-mode-hint {
-    border: 1px solid #d9e7fb;
+    border: 1px solid var(--crm-border-strong);
     border-radius: var(--radius-lg);
-    background: #f5f9ff;
+    background: var(--crm-surface-2);
     color: var(--crm-text);
     padding: 0.75rem 0.9rem;
     margin: 0 0 0.85rem;
@@ -523,9 +523,9 @@
     display: flex;
     align-items: center;
     height: 46px;
-    border: 1px solid #d8dee6;
+    border: 1px solid var(--crm-border);
     border-radius: 8px;
-    background: #fff;
+    background: var(--crm-surface);
   }
 
   .crm-cycles-page .crm-cycles-search-icon {
@@ -557,7 +557,7 @@
 
   .crm-cycles-page .crm-cycles-search-clear {
     background: transparent;
-    color: #6d7976;
+    color: var(--crm-text-soft);
   }
 
   .crm-cycles-page .crm-cycles-search-submit {
