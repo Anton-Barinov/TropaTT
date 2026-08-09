@@ -29,6 +29,11 @@ window.CRM.api = (function () {
       try {
         localStorage.setItem(STORAGE_KEY, theme);
       } catch (e) {}
+      // Let in-page widgets (e.g. the topbar theme switcher) react to theme
+      // changes coming from any source: topbar, profile page, login-time sync.
+      if (typeof document !== 'undefined' && typeof CustomEvent !== 'undefined') {
+        document.dispatchEvent(new CustomEvent('crm:theme-changed', { detail: { theme: theme } }));
+      }
       return theme;
     }
 

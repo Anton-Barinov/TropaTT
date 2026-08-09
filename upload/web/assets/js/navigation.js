@@ -14,7 +14,8 @@ window.CRM.navigation = (function () {
       bell: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>',
       chat: '<span class="crm-icon" aria-hidden="true"><i class="fa-regular fa-comments"></i></span>',
       chevronLeft: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-left"></i></span>',
-      chevronRight: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></span>'
+      chevronRight: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></span>',
+      palette: '<span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-palette"></i></span>'
     };
     return icons[name] || '';
   }
@@ -563,6 +564,23 @@ window.CRM.navigation = (function () {
       existingNotify.innerHTML = icon('bell');
     }
 
+    // Per-user color theme switcher (light / dark / contrast). The theme is
+    // applied instantly via window.CRM.theme (data-theme + localStorage) and
+    // persisted to the profile preferences so the choice follows the user
+    // across devices.
+    if (!bar.querySelector('[data-theme-switcher]')) {
+      right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-theme-switcher>'
+        + '<button class="btn crm-btn-ghost crm-btn-icon" type="button" data-bs-toggle="dropdown" data-theme-switch-btn aria-label="' + t('topbar.theme', 'Theme') + '" title="' + t('topbar.theme', 'Theme') + '" aria-haspopup="true">' + icon('palette') + '</button>'
+        + '<ul class="dropdown-menu dropdown-menu-end" data-theme-menu>'
+        + '<li><h6 class="dropdown-header">' + t('topbar.theme', 'Theme') + '</h6></li>'
+        + '<li><button class="dropdown-item crm-theme-option" type="button" data-theme-option="light"><i class="fa-solid fa-check crm-theme-check" aria-hidden="true"></i><span>' + t('topbar.theme_light', 'Light') + '</span></button></li>'
+        + '<li><button class="dropdown-item crm-theme-option" type="button" data-theme-option="dark"><i class="fa-solid fa-check crm-theme-check" aria-hidden="true"></i><span>' + t('topbar.theme_dark', 'Dark') + '</span></button></li>'
+        + '<li><button class="dropdown-item crm-theme-option" type="button" data-theme-option="contrast"><i class="fa-solid fa-check crm-theme-check" aria-hidden="true"></i><span>' + t('topbar.theme_contrast', 'High contrast') + '</span></button></li>'
+        + '</ul></div>');
+    }
+    syncThemeSwitcher();
+    bindThemeSwitcher();
+
     if (!bar.querySelector('[data-profile-dropdown]') && !bar.querySelector('.dropdown [data-bs-toggle="dropdown"]')) {
       right.insertAdjacentHTML('beforeend', '<div class="dropdown" data-profile-dropdown><button class="btn crm-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">' + t('topbar.user_fallback', 'User') + '</button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="index.php?route=profile">' + t('topbar.profile', 'Profile') + '</a></li><li><a class="dropdown-item" href="index.php?route=notifications">' + t('topbar.notifications', 'Notifications') + '</a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" type="button" data-action="logout">' + t('topbar.logout', 'Logout') + '</button></li></ul></div>');
     }
@@ -598,7 +616,8 @@ window.CRM.navigation = (function () {
         right.querySelector('[data-search-toggle]'),
         right.querySelector('[data-global-chat]'),
         right.querySelector('[data-global-notifications]'),
-        right.querySelector('[data-profile-dropdown], .dropdown [data-bs-toggle="dropdown"]')
+        right.querySelector('[data-theme-switcher]'),
+        right.querySelector('[data-profile-dropdown]') || right.querySelector('.dropdown [data-bs-toggle="dropdown"]')
       ];
       canonicalOrder.forEach(function (el) {
         if (el && el.parentNode === right) {
@@ -606,6 +625,50 @@ window.CRM.navigation = (function () {
         }
       });
     }
+  }
+
+  var themeSwitcherBound = false;
+
+  function syncThemeSwitcher() {
+    var current = window.CRM.theme && typeof window.CRM.theme.get === 'function'
+      ? window.CRM.theme.get()
+      : 'light';
+    document.querySelectorAll('[data-theme-option]').forEach(function (btn) {
+      var active = btn.getAttribute('data-theme-option') === current;
+      btn.classList.toggle('is-active', active);
+    });
+  }
+
+  function bindThemeSwitcher() {
+    if (themeSwitcherBound) return;
+    themeSwitcherBound = true;
+    // Event delegation: works no matter when/whether the dropdown markup is
+    // present (topbar is built asynchronously after the menu fetch).
+    document.addEventListener('click', function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest('[data-theme-option]') : null;
+      if (!btn) return;
+      var name = btn.getAttribute('data-theme-option');
+      if (!name) return;
+      if (window.CRM.theme && typeof window.CRM.theme.apply === 'function') {
+        window.CRM.theme.apply(name);
+      }
+      // Persist the choice server-side (same endpoint as the profile page) so
+      // it follows the user across devices. CSRF is attached by api.js.
+      if (window.CRM.api && typeof window.CRM.api.request === 'function') {
+        window.CRM.api.request('api/v1/profile/preferences', {
+          method: 'PATCH',
+          body: { preferences: { theme: name } }
+        }).catch(function () {});
+      }
+      // Keep the profile page select in sync when it is open.
+      var profileSelect = document.getElementById('profileThemeSelect');
+      if (profileSelect && profileSelect.value !== name) {
+        profileSelect.value = name;
+      }
+    });
+    document.addEventListener('crm:theme-changed', function () {
+      syncThemeSwitcher();
+    });
   }
 
   function markActive() {

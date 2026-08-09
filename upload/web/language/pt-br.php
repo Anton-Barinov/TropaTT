@@ -8369,6 +8369,10 @@ return array (
     'profile' => 'Meu perfil',
     'logout' => 'Sair',
     'user_fallback' => 'Usuário',
+    'theme' => 'Tema',
+    'theme_light' => 'Claro',
+    'theme_dark' => 'Escuro',
+    'theme_contrast' => 'Alto contraste',
   ),
   'webhook' => 
   array (
