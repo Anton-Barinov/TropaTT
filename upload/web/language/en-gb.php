@@ -98,11 +98,6 @@ return array (
     'profile' => 'My profile',
     'logout' => 'Logout',
     'user_fallback' => 'User',
-    'theme' => 'Theme',
-    'theme_light' => 'Light',
-    'theme_dark' => 'Dark',
-    'theme_contrast' => 'High contrast',
-    'theme_save_error' => 'Failed to save theme preference',
   ),
   'global_search' => 
   array (

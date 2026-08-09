@@ -8369,11 +8369,6 @@ return array (
     'profile' => 'Mi perfil',
     'logout' => 'Cerrar sesión',
     'user_fallback' => 'Usuario',
-    'theme' => 'Tema',
-    'theme_light' => 'Claro',
-    'theme_dark' => 'Oscuro',
-    'theme_contrast' => 'Alto contraste',
-    'theme_save_error' => 'No se pudo guardar el tema',
   ),
   'webhook' => 
   array (
