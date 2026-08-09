@@ -296,11 +296,63 @@ html[data-theme="dark"] .crm-content #commentsPeriodBtns,
 html[data-theme="dark"] .crm-content [data-tasks-view-toggle],
 html[data-theme="dark"] .crm-content [data-calendar-view-toggle],
 html[data-theme="dark"] .crm-content #projectsViewToggle,
+html[data-theme="dark"] .crm-content #tasksViewToggle,
+html[data-theme="dark"] .crm-content .crm-tasks-view-toggle,
 html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group,
 html[data-theme="dark"] .crm-content .team-segmented,
 html[data-theme="dark"] .modal .team-segmented {
-  background: var(--crm-surface-2);
-  color: var(--crm-text);
+  background: var(--crm-surface-2) !important;
+  background-image: none !important;
+  border-color: var(--crm-border) !important;
+  box-shadow: none !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-content [data-tasks-view-toggle] > .btn,
+html[data-theme="dark"] .crm-content [data-calendar-view-toggle] > .btn,
+html[data-theme="dark"] .crm-content [data-view-toggle] > .btn,
+html[data-theme="dark"] .crm-content #projectsViewToggle > .btn,
+html[data-theme="dark"] .crm-content #tasksViewToggle > .btn,
+html[data-theme="dark"] .crm-content .crm-tasks-view-toggle > .btn,
+html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group > .btn,
+html[data-theme="dark"] .crm-content #votesPeriodBtns > .btn,
+html[data-theme="dark"] .crm-content #commentsPeriodBtns > .btn,
+html[data-theme="dark"] .crm-content .crm-segmented > .crm-segmented-item,
+html[data-theme="dark"] .crm-content .team-segmented > .team-segmented-btn,
+html[data-theme="dark"] .modal .team-segmented > .team-segmented-btn {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .crm-content [data-tasks-view-toggle] > .btn:hover,
+html[data-theme="dark"] .crm-content [data-calendar-view-toggle] > .btn:hover,
+html[data-theme="dark"] .crm-content [data-view-toggle] > .btn:hover,
+html[data-theme="dark"] .crm-content #projectsViewToggle > .btn:hover,
+html[data-theme="dark"] .crm-content #tasksViewToggle > .btn:hover,
+html[data-theme="dark"] .crm-content .crm-tasks-view-toggle > .btn:hover,
+html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group > .btn:hover,
+html[data-theme="dark"] .crm-content .crm-segmented > .crm-segmented-item:hover,
+html[data-theme="dark"] .crm-content .team-segmented > .team-segmented-btn:hover,
+html[data-theme="dark"] .modal .team-segmented > .team-segmented-btn:hover {
+  background: rgba(46, 201, 160, 0.12) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-content [data-tasks-view-toggle] > .btn.active,
+html[data-theme="dark"] .crm-content [data-calendar-view-toggle] > .btn.active,
+html[data-theme="dark"] .crm-content [data-view-toggle] > .btn.active,
+html[data-theme="dark"] .crm-content #projectsViewToggle > .btn.active,
+html[data-theme="dark"] .crm-content #tasksViewToggle > .btn.active,
+html[data-theme="dark"] .crm-content .crm-tasks-view-toggle > .btn.active,
+html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group > .btn.active,
+html[data-theme="dark"] .crm-content [data-tasks-view-toggle] > .btn[aria-pressed="true"],
+html[data-theme="dark"] .crm-content [data-calendar-view-toggle] > .btn[aria-pressed="true"],
+html[data-theme="dark"] .crm-content .crm-segmented > .crm-segmented-item.is-active,
+html[data-theme="dark"] .crm-content .team-segmented > .team-segmented-btn.is-active,
+html[data-theme="dark"] .modal .team-segmented > .team-segmented-btn.is-active {
+  background: var(--crm-primary) !important;
+  background-image: none !important;
+  color: #fff !important;
 }
 
 /* Nav + dropdown hover states */
@@ -617,11 +669,17 @@ html[data-theme="dark"] .crm-searchable-dropdown {
   background: var(--crm-surface-2);
   border-color: var(--crm-border-strong);
 }
+html[data-theme="dark"] .input-group-text,
 html[data-theme="dark"] .crm-topbar .input-group .input-group-text,
 html[data-theme="dark"] .crm-topbar .input-group .form-control {
-  background: var(--crm-control-bg);
-  border-color: var(--crm-border);
-  color: var(--crm-text);
+  background: var(--crm-control-bg) !important;
+  background-image: none !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .input-group-text.bg-transparent,
+html[data-theme="dark"] .crm-topbar .input-group .input-group-text.bg-transparent {
+  background: transparent !important;
 }
 
 /* Nav hover no longer white */
@@ -736,6 +794,24 @@ html[data-theme="dark"] .crm-content table.crm-table thead th,
 html[data-theme="dark"] .crm-content .table.crm-table thead th {
   background: var(--crm-surface-2) !important;
   color: var(--crm-text-muted) !important;
+}
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable th:last-child,
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable td:last-child {
+  background: var(--crm-surface) !important;
+  box-shadow: -10px 0 16px rgba(0, 0, 0, 0.35) !important;
+}
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable tbody tr:hover td:last-child {
+  background: rgba(46, 201, 160, 0.08) !important;
+}
+html[data-theme="dark"] .crm-analytics-row-stats span {
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-analytics-row-stats span.is-alert {
+  background: rgba(240, 116, 104, 0.14) !important;
+  border-color: rgba(240, 116, 104, 0.4) !important;
+  color: #f07468 !important;
 }
 html[data-theme="dark"] .crm-content table.crm-table tbody td,
 html[data-theme="dark"] .crm-content .table.crm-table tbody td {
