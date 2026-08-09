@@ -528,7 +528,7 @@
 
 .crm-table .btn-outline-danger:hover,
 .crm-admin-actions .btn-outline-danger:hover {
-  background: #fff4f5;
+  background: var(--crm-danger-soft, #fff4f5);
   border-color: #e59aa4;
   color: #a92c37;
 }
