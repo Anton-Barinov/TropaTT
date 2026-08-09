@@ -56,8 +56,10 @@ html[data-theme="dark"] {
   --crm-success-soft: #123a28;
   --crm-warning: #e8b64d;
   --crm-warning-soft: #3a2d10;
+  --crm-warning-border: #5c481e;
   --crm-danger: #f07468;
   --crm-danger-soft: #3a1d19;
+  --crm-danger-border: #5f2c26;
   --crm-info: #57bfd4;
   --crm-info-soft: #12333c;
 
@@ -203,6 +205,7 @@ html[data-theme="dark"] .crm-gantt-page {
   --gantt-color-paused: #94a3b8;
   --gantt-color-new: #3b82f6;
   --gantt-color-release: #4ade80;
+  --gantt-color-project: #60a5fa;
 }
 
 /* ---- Dark: component repairs for hard-coded light colors ---- */
@@ -802,6 +805,9 @@ html[data-theme="dark"] .crm-content table.crm-table thead th,
 html[data-theme="dark"] .crm-content .table.crm-table thead th {
   background: var(--crm-surface-2) !important;
   color: var(--crm-text-muted) !important;
+}
+html[data-theme="dark"] .crm-content table.crm-table a, html[data-theme="dark"] .crm-content .table.crm-table a{
+      color: var(--crm-text) !important;
 }
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable th:last-child,
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable td:last-child {

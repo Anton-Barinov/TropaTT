@@ -13,6 +13,9 @@
   --crm-success: #16834a;
   --crm-warning: #9a6500;
   --crm-danger: #b54038;
+  --crm-danger-border: #fecaca;
+  --crm-warning-border: #fde68a;
+  --crm-primary-border: #a7d8cc;
   --crm-info: #166b78;
   --crm-focus: rgba(15, 143, 114, 0.18);
   --crm-focus-ring: #0f8f72;
