@@ -1332,6 +1332,20 @@ html[data-theme="contrast"] .crm-calendar-day.is-today .crm-calendar-day-number 
   color: #ffffff !important;
 }
 
+/* Bootstrap text-bg-light badges (notifications page) hard-code a light
+   background via --bs-light-rgb with !important; swap it for theme tokens. */
+html[data-theme="dark"] .badge.text-bg-light,
+html[data-theme="dark"] span.badge.text-bg-light {
+  background-color: var(--crm-surface-2) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="contrast"] .badge.text-bg-light,
+html[data-theme="contrast"] span.badge.text-bg-light {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+}
+
 /* ---- Footer ----
    layout.css hard-codes the footer glass as white (rgba(255,255,255,0.9)),
    a blue hover tint and a pale-yellow update badge. Repair those for the
