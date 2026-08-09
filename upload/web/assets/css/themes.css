@@ -413,10 +413,10 @@ html[data-theme="dark"] .btn-outline-secondary,
 html[data-theme="dark"] .crm-btn-ghost,
 html[data-theme="dark"] .crm-btn-subtle,
 html[data-theme="dark"] .crm-btn-muted {
-  background: var(--crm-surface-2);
-  border-color: var(--crm-border);
-  color: var(--crm-text);
-  box-shadow: none;
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+  box-shadow: none !important;
 }
 html[data-theme="dark"] .btn-light:hover,
 html[data-theme="dark"] .crm-btn-secondary:hover,
@@ -424,9 +424,20 @@ html[data-theme="dark"] .btn-outline-secondary:hover,
 html[data-theme="dark"] .crm-btn-ghost:hover,
 html[data-theme="dark"] .crm-btn-subtle:hover,
 html[data-theme="dark"] .crm-btn-muted:hover {
-  background: var(--crm-primary-soft);
-  border-color: var(--crm-primary-border);
-  color: var(--crm-primary-hover);
+  background: var(--crm-primary-soft) !important;
+  border-color: var(--crm-primary-border) !important;
+  color: var(--crm-primary-hover) !important;
+}
+html[data-theme="dark"] .crm-dashboard-page #dashboardAiDigestActions .crm-dashboard-ai-action-btn,
+html[data-theme="dark"] .crm-dashboard-page #dashboardAiDigestActions .crm-dashboard-ai-action-open {
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-counterparties-page #counterpartiesBulkActionsBar {
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border-strong) !important;
+  color: var(--crm-text) !important;
 }
 
 /* Danger-soft buttons */
@@ -508,6 +519,10 @@ html[data-theme="dark"] .crm-calendar-time-cell,
 html[data-theme="dark"] .crm-calendar-agenda-empty {
   background: var(--crm-surface);
   background-image: none;
+}
+html[data-theme="dark"] .crm-kanban-page .crm-kanban-col-header {
+  background: var(--crm-surface) !important;
+  border-color: var(--crm-border) !important;
 }
 html[data-theme="dark"] .crm-calendar-day.is-muted,
 html[data-theme="dark"] .crm-calendar-day.is-weekend:not(.is-muted) {
