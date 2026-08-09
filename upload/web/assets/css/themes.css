@@ -1141,3 +1141,108 @@ html[data-theme="contrast"] .form-check-input:checked {
   background-color: #005c44 !important;
   border-color: #005c44 !important;
 }
+
+/* ---- Contrast: no blue accents; every interactive surface is brand green;
+   muted slate-grays become near-black so small text meets WCAG AA. ---- */
+
+/* Links and link-colored text: light green -> dark brand green (7.9:1). */
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-main strong a,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-main a,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-title:hover,
+html[data-theme="contrast"] .kb-tabs .nav-link.active,
+html[data-theme="contrast"] .crm-type-badge.badge-team,
+html[data-theme="contrast"] .crm-type-badge.badge-department {
+  color: #005c44 !important;
+}
+html[data-theme="contrast"] .kb-tabs .nav-link.active {
+  border-bottom-color: #005c44 !important;
+}
+
+/* Brand icon tints: the --crm-blue/--crm-green fallbacks were mid-green;
+   in contrast they resolve to the dark brand green. */
+html[data-theme="contrast"] .crm-icon-team,
+html[data-theme="contrast"] .crm-icon-department {
+  color: #005c44 !important;
+}
+
+/* Knowledge-base draft badge: blue -> green-tinted. */
+html[data-theme="contrast"] .kb-status-draft {
+  background-color: #e2f2ec !important;
+  color: #005c44 !important;
+}
+
+/* Checkboxes: black border instead of bluish-gray. */
+html[data-theme="contrast"] .form-check-input {
+  border-color: #000000 !important;
+}
+
+/* Topbar icon buttons (bell, search): slate -> near-black. */
+html[data-theme="contrast"] .crm-topbar [data-global-notifications],
+html[data-theme="contrast"] .crm-topbar [data-search-toggle],
+html[data-theme="contrast"] .crm-topbar .crm-btn-icon,
+html[data-theme="contrast"] .crm-topbar [data-profile-dropdown] .dropdown-toggle {
+  color: #1f1f1f !important;
+}
+
+/* Muted helper texts and icons that hard-code slate/blue-gray -> near-black. */
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-meta,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-search-icon,
+html[data-theme="contrast"] .crm-tree-members-badge,
+html[data-theme="contrast"] .crm-gantt-page .crm-gantt-empty-icon {
+  color: #1f1f1f !important;
+}
+
+/* Calendar muted days: light slate -> dark gray (2.4:1 -> 13:1). */
+html[data-theme="contrast"] .crm-calendar-day.is-muted,
+html[data-theme="contrast"] .crm-calendar-day.is-muted .crm-calendar-day-number {
+  color: #1f1f1f !important;
+}
+html[data-theme="contrast"] .crm-calendar-event-time {
+  color: #005c44 !important;
+}
+
+/* Kanban avatars: white-on-pale-green (1.1:1) -> white-on-brand-green (7.9:1). */
+html[data-theme="contrast"] .crm-kanban-avatar {
+  background: #005c44 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+/* Kanban overdue date: mid red -> contrast red (7.2:1). */
+html[data-theme="contrast"] .crm-kanban-date-danger {
+  color: #a40000 !important;
+}
+
+/* Knowledge badges: gray on gray (4.39:1) -> near-black (13:1). */
+html[data-theme="contrast"] .kb-type-badge,
+html[data-theme="contrast"] .kb-status-archived {
+  color: #1f1f1f !important;
+}
+
+/* Gantt status chips: slate text -> near-black; active dot blue -> green. */
+html[data-theme="contrast"] .crm-gantt-page .crm-chip-status {
+  color: #1f1f1f !important;
+  background: #ffffff !important;
+  border-color: #000000 !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-chip-status[aria-pressed="true"],
+html[data-theme="contrast"] .crm-gantt-page .crm-chip-status.is-active {
+  color: #005c44 !important;
+  background: #e2f2ec !important;
+  border-color: #005c44 !important;
+}
+html[data-theme="contrast"] .crm-gantt-page .crm-chip-dot--active,
+html[data-theme="contrast"] .crm-gantt-page .crm-chip-dot--success {
+  background: #005c44 !important;
+}
+
+/* Task tags use user-chosen background colors; force black text + a 2px
+   black ring so any tag stays readable in the low-vision theme. */
+html[data-theme="contrast"] .task-tag {
+  color: #000000 !important;
+  box-shadow: inset 0 0 0 2px #000000 !important;
+  text-decoration: none !important;
+}
+html[data-theme="contrast"] .task-tag.task-tag--more {
+  color: #000000 !important;
+}
