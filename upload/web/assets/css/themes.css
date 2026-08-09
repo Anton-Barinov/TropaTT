@@ -439,6 +439,17 @@ html[data-theme="dark"] .crm-counterparties-page #counterpartiesBulkActionsBar {
   border-color: var(--crm-border-strong) !important;
   color: var(--crm-text) !important;
 }
+html[data-theme="dark"] .crm-tasks-page .crm-task-row-actions-wrap .btn {
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+}
+html[data-theme="dark"] .crm-my-day-page .crm-task-row-actions-wrap .btn,
+html[data-theme="dark"] .crm-my-week-page .crm-task-row-actions-wrap .btn {
+  background: var(--crm-surface-2) !important;
+  border-color: var(--crm-border) !important;
+  color: var(--crm-text) !important;
+}
 
 /* Danger-soft buttons */
 html[data-theme="dark"] .crm-btn-danger-soft,
@@ -610,6 +621,12 @@ html[data-theme="dark"] .crm-nav .nav-link:focus {
 }
 
 /* Tables: transparent rows so card bg shows through */
+html[data-theme="dark"] .crm-content table.crm-table,
+html[data-theme="dark"] .crm-content .table.crm-table,
+html[data-theme="dark"] .crm-content table,
+html[data-theme="dark"] .crm-content .table {
+  background: transparent !important;
+}
 html[data-theme="dark"] .crm-content table.crm-table tbody tr,
 html[data-theme="dark"] .crm-content .table.crm-table tbody tr,
 html[data-theme="dark"] .crm-content table.crm-table tbody td,
