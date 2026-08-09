@@ -8369,11 +8369,6 @@ return array (
     'profile' => 'Mon profil',
     'logout' => 'Déconnexion',
     'user_fallback' => 'Utilisateur',
-    'theme' => 'Thème',
-    'theme_light' => 'Clair',
-    'theme_dark' => 'Sombre',
-    'theme_contrast' => 'Contraste élevé',
-    'theme_save_error' => 'Impossible d\'enregistrer le thème',
   ),
   'webhook' => 
   array (

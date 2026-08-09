@@ -811,21 +811,6 @@
   background: #ECFDF5;
 }
 
-/* Topbar color-theme switcher */
-.crm-theme-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.crm-theme-option .crm-theme-check {
-  display: none;
-  width: 1rem;
-  color: var(--crm-accent);
-}
-.crm-theme-option.is-active .crm-theme-check {
-  display: inline-flex;
-}
-
 .crm-gantt {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
