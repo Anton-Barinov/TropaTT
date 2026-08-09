@@ -332,7 +332,7 @@ button.crm-cycle-command-metric:hover {
   color: var(--crm-primary-hover, #0b7a62);
 }
 .crm-cycle-page-btn.is-active {
-  background: #0b7a62;
+  background: var(--crm-primary, #0b7a62);
   color: #fff;
 }
 .crm-cycle-title {
@@ -363,7 +363,7 @@ button.crm-cycle-command-metric:hover {
 .crm-cycle-progress-bar {
   height: 100%;
   border-radius: 3px;
-  background: #0b7a62;
+  background: var(--crm-primary, #0b7a62);
   transition: width 0.3s ease;
 }
 .crm-cycle-next-step {

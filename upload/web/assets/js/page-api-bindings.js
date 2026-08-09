@@ -308,7 +308,7 @@ window.CRM.pageApiBindings = (function () {
     bar.style.maxWidth = '360px';
     bar.innerHTML = '<div class="small fw-semibold mb-1">' + safeText(label || window.CRM.i18n.t('js.pab.in_progress', 'In progress...')) + '</div>'
       + '<div class="progress" style="height:6px;background:#334155;border-radius:3px;overflow:hidden">'
-      + '<div id="crmBulkProgressFill" style="width:0%;height:100%;background:#3b82f6;transition:width 0.2s"></div>'
+      + '<div id="crmBulkProgressFill" style="width:0%;height:100%;background:var(--crm-primary,#3b82f6);transition:width 0.2s"></div>'
       + '</div>'
       + '<div id="crmBulkProgressText" class="small text-muted mt-1">0 / ' + safeText(String(total)) + '</div>';
     document.body.appendChild(bar);
@@ -5052,7 +5052,7 @@ window.CRM.pageApiBindings = (function () {
                     var progress = cycle.progress_percent || 0;
                     var progressColor = progress >= 80 ? '#4caf50' : progress >= 40 ? '#ff9800' : progress > 0 ? '#f44336' : '#e0e0e0';
                     var taskInfo = (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0);
-                    html += '<div class="mb-2 pb-2" style="border-bottom:1px solid #f0f0f0;">'
+                    html += '<div class="mb-2 pb-2" style="border-bottom:1px solid var(--crm-border,#f0f0f0);"'>
                         + '<div class="d-flex justify-content-between align-items-start gap-2">'
                         + '<div class="small fw-semibold text-truncate">'
                         + '<a href="index.php?route=cycles" class="text-reset text-decoration-none">' + safeText(cycle.title) + '</a>'
@@ -5060,7 +5060,7 @@ window.CRM.pageApiBindings = (function () {
                         + '<span class="small text-muted flex-shrink-0">' + taskInfo + '</span>'
                         + '</div>'
                         + '<div class="d-flex align-items-center gap-2 mt-1">'
-                        + '<div style="height:4px;background:#e9ecef;border-radius:3px;overflow:hidden;flex:1;"><div style="width:' + progress + '%;background:' + progressColor + ';height:100%;border-radius:3px;transition:width 0.3s ease;"></div></div>'
+                        + '<div style="height:4px;background:var(--crm-surface-2,#e9ecef);border-radius:3px;overflow:hidden;flex:1;"><div style="width:' + progress + '%;background:' + progressColor + ';height:100%;border-radius:3px;transition:width 0.3s ease;"></div></div>'
                         + '<small class="text-muted flex-shrink-0" style="font-size:11px;">' + progress + '%</small>'
                         + '</div>'
                         + (cycle.goal ? '<div class="small text-muted mt-1 text-truncate" style="font-size:11px;">' + safeText(stripHtmlText(cycle.goal).substring(0, 80)) + '</div>' : '')
@@ -5199,8 +5199,8 @@ window.CRM.pageApiBindings = (function () {
           + '<div class="d-flex align-items-end gap-1" style="height:44px;">'
           + bars.map(function (b) {
             return '<div class="flex-grow-1 d-flex flex-column align-items-center justify-content-end" title="' + safeText(b.label) + ' · ' + safeText(minsLabel(b.mins)) + '">'
-              + '<div style="width:65%;height:' + Math.max(2, Math.round(b.mins / maxMins * 32)) + 'px;background:' + (b.isToday ? '#2563eb' : '#94a3b8') + ';border-radius:2px;"></div>'
-              + '<small style="font-size:9px;color:#6c757d;">' + safeText(b.label) + '</small>'
+              + '<div style="width:65%;height:' + Math.max(2, Math.round(b.mins / maxMins * 32)) + 'px;background:' + (b.isToday ? 'var(--crm-primary,#2563eb)' : 'var(--crm-text-soft,#94a3b8)') + ';border-radius:2px;"></div>'
+              + '<small style="font-size:9px;color:var(--crm-text-soft,#6c757d);">' + safeText(b.label) + '</small>'
               + '</div>';
           }).join('')
           + '</div>'
@@ -12073,6 +12073,19 @@ window.CRM.pageApiBindings = (function () {
           if (window.CRM.theme) {
             window.CRM.theme.apply(themeSelect.value);
           }
+          // Persist the theme choice server-side immediately (like the old
+          // header switcher): survives reloads and syncs across devices.
+          try {
+            if (window.CRM.api && typeof window.CRM.api.request === 'function') {
+              window.CRM.api.request('api/v1/profile/preferences', {
+                method: 'PATCH',
+                body: { theme: themeSelect.value },
+                silent: true
+              });
+            }
+          } catch (e) {
+            // ignore persistence errors
+          }
         });
         themeSelect.dataset.bound = '1';
       }
@@ -17636,7 +17649,7 @@ window.CRM.pageApiBindings = (function () {
       .slice(0, 6);
 
     if (!upcoming.length) {
-      milestonesEl.innerHTML = '<div class="crm-gantt-deadline-card" style="justify-content:center;color:#64748b;font-size:0.82rem;">' + safeText(tp('gantt.no_upcoming_deadlines', 'No upcoming deadlines')) + '</div>';
+      milestonesEl.innerHTML = '<div class="crm-gantt-deadline-card" style="justify-content:center;color:var(--crm-text-soft,#64748b);font-size:0.82rem;">' + safeText(tp('gantt.no_upcoming_deadlines', 'No upcoming deadlines')) + '</div>';
       return;
     }
 
@@ -18316,7 +18329,7 @@ window.CRM.pageApiBindings = (function () {
 
       var marker = document.createElement('div');
       marker.className = 'gantt-dep-marker';
-      marker.style.cssText = 'position:absolute;left:' + (tgtPos.left + 10) + 'px;top:' + (tgtPos.top + 4) + 'px;width:16px;height:16px;border-radius:50%;background:white;border:1.5px solid #ea580c;cursor:pointer;z-index:11;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ea580c;';
+      marker.style.cssText = 'position:absolute;left:' + (tgtPos.left + 10) + 'px;top:' + (tgtPos.top + 4) + 'px;width:16px;height:16px;border-radius:50%;background:var(--crm-surface,#fff);border:1.5px solid #ea580c;cursor:pointer;z-index:11;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ea580c;';
       marker.textContent = '!';
       marker.title = tp('gantt.dependency_violated', 'Dependency violated') + ' — ' + (info.sourceTitles ? info.sourceTitles.join(', ') : '') + ' → ' + (tgtPos.title || '');
       marker.setAttribute('data-conflict-idx', k);
@@ -18790,7 +18803,8 @@ window.CRM.pageApiBindings = (function () {
       // Use html2canvas if available, otherwise fallback to simple approach
       if (typeof html2canvas !== 'undefined') {
         html2canvas(board, {
-          backgroundColor: '#ffffff',
+          // Export background follows the active theme (dark boards export dark).
+          backgroundColor: (function () { try { return getComputedStyle(document.documentElement).getPropertyValue('--crm-bg').trim() || '#ffffff'; } catch (e) { return '#ffffff'; } })(),
           scale: 2,
           useCORS: true,
           logging: false
