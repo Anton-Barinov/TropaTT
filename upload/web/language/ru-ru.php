@@ -98,6 +98,10 @@ return array (
     'profile' => 'Мой профиль',
     'logout' => 'Выйти',
     'user_fallback' => 'Пользователь',
+    'theme' => 'Тема оформления',
+    'theme_light' => 'Светлая',
+    'theme_dark' => 'Тёмная',
+    'theme_contrast' => 'Контрастная',
   ),
   'global_search' => 
   array (

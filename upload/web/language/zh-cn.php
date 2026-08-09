@@ -98,6 +98,10 @@ return array (
     'profile' => '我的资料',
     'logout' => '退出登录',
     'user_fallback' => '用户',
+    'theme' => '主题',
+    'theme_light' => '浅色',
+    'theme_dark' => '深色',
+    'theme_contrast' => '高对比度',
   ),
   'global_search' => 
   array (
