@@ -33,6 +33,14 @@ html[data-theme="dark"] {
   --crm-border-strong: #3a4d45;
   --crm-border-soft: #202e29;
 
+  /* Modal/offcanvas/drawer/popover surfaces */
+  --crm-modal-bg-top: rgba(22, 32, 29, 0.97);
+  --crm-modal-bg-bottom: rgba(18, 27, 24, 0.98);
+  --crm-modal-accent: rgba(46, 201, 160, 0.14);
+  --crm-modal-border: rgba(74, 96, 87, 0.55);
+  --crm-popover-bg: rgba(22, 32, 29, 0.97);
+  --crm-popover-border: rgba(74, 96, 87, 0.55);
+
   --crm-text: #e6f0ec;
   --crm-text-muted: #93a59e;
   --crm-text-soft: #80928a;
@@ -885,6 +893,14 @@ html[data-theme="contrast"] {
   --crm-border: #1f1f1f;
   --crm-border-strong: #000000;
   --crm-border-soft: #1f1f1f;
+
+  /* Modal/offcanvas/drawer/popover surfaces: solid white + black borders */
+  --crm-modal-bg-top: #ffffff;
+  --crm-modal-bg-bottom: #ffffff;
+  --crm-modal-accent: transparent;
+  --crm-modal-border: #000000;
+  --crm-popover-bg: #ffffff;
+  --crm-popover-border: #000000;
 
   --crm-text: #000000;
   --crm-text-muted: #1f1f1f;
