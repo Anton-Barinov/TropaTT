@@ -1331,3 +1331,35 @@ html[data-theme="contrast"] .crm-calendar-day.is-today .crm-calendar-day-number 
   background: #005c44 !important;
   color: #ffffff !important;
 }
+
+/* ---- Footer ----
+   layout.css hard-codes the footer glass as white (rgba(255,255,255,0.9)),
+   a blue hover tint and a pale-yellow update badge. Repair those for the
+   dark and contrast themes so the footer matches the rest of the page. */
+html[data-theme="dark"] .crm-footer {
+  background: rgba(22, 32, 29, 0.92) !important;
+  border-top-color: var(--crm-border-strong) !important;
+}
+html[data-theme="dark"] .crm-footer a:hover {
+  color: var(--crm-primary-hover) !important;
+  background: var(--crm-primary-soft) !important;
+}
+html[data-theme="dark"] .crm-footer-update-badge {
+  background: var(--crm-warning-soft) !important;
+  border-color: var(--crm-border-strong) !important;
+  color: var(--crm-warning) !important;
+}
+
+html[data-theme="contrast"] .crm-footer {
+  border-top-width: 2px;
+  border-top-color: #000000 !important;
+}
+html[data-theme="contrast"] .crm-footer a:hover {
+  color: #00493a !important;
+  background: #e2f2ec !important;
+}
+html[data-theme="contrast"] .crm-footer-update-badge {
+  border-color: #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
