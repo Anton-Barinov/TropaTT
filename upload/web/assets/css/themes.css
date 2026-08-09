@@ -803,6 +803,11 @@ html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable td:last-ch
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable tbody tr:hover td:last-child {
   background: rgba(46, 201, 160, 0.08) !important;
 }
+html[data-theme="dark"] .crm-dashboard-table-wrap,
+html[data-theme="dark"] .crm-content .crm-dashboard-table-wrap .crm-table,
+html[data-theme="dark"] .crm-content .crm-dashboard-table-wrap tbody td {
+  background: transparent !important;
+}
 html[data-theme="dark"] .crm-analytics-row-stats span {
   background: var(--crm-surface-2) !important;
   border-color: var(--crm-border) !important;
