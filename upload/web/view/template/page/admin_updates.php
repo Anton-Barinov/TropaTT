@@ -235,7 +235,7 @@ $auJs = [
     .updates-dot.ok { background:var(--update-ok); }
     .updates-dot.warn { background:var(--update-warn); }
     .updates-dot.danger { background:var(--update-danger); }
-    .updates-info { border-radius:16px; border:1px solid var(--crm-info-soft,#dbeafe); background:var(--crm-info-soft,#f8fbff); color:var(--crm-info,#334155); padding:13px 14px; margin:0 0 16px; line-height:1.55; }
+    .updates-info { border-radius:16px; border:1px solid var(--crm-info-soft,#dbeafe); background:var(--crm-info-soft,#f8fbff); color:var(--crm-text-soft,#334155); padding:13px 14px; margin:0 0 16px; line-height:1.55; }
     .updates-info strong { color:var(--crm-text,#101828); }
     .updates-card { padding:20px; margin-bottom:14px; }
     .updates-card-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; margin-bottom:14px; }
