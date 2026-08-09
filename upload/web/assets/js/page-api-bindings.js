@@ -12075,16 +12075,14 @@ window.CRM.pageApiBindings = (function () {
           }
           // Persist the theme choice server-side immediately (like the old
           // header switcher): survives reloads and syncs across devices.
-          try {
-            if (window.CRM.api && typeof window.CRM.api.request === 'function') {
-              window.CRM.api.request('api/v1/profile/preferences', {
-                method: 'PATCH',
-                body: { theme: themeSelect.value },
-                silent: true
-              });
-            }
-          } catch (e) {
-            // ignore persistence errors
+          if (window.CRM.api && typeof window.CRM.api.request === 'function') {
+            window.CRM.api.request('api/v1/profile/preferences', {
+              method: 'PATCH',
+              body: { theme: themeSelect.value },
+              silent: true
+            }).catch(function () {
+              // ignore persistence errors
+            });
           }
         });
         themeSelect.dataset.bound = '1';
@@ -18803,8 +18801,9 @@ window.CRM.pageApiBindings = (function () {
       // Use html2canvas if available, otherwise fallback to simple approach
       if (typeof html2canvas !== 'undefined') {
         html2canvas(board, {
-          // Export background follows the active theme (dark boards export dark).
-          backgroundColor: (function () { try { return getComputedStyle(document.documentElement).getPropertyValue('--crm-bg').trim() || '#ffffff'; } catch (e) { return '#ffffff'; } })(),
+          // Export background follows the active theme (dark boards export dark);
+          // --crm-surface is #ffffff in light, so light exports stay unchanged.
+          backgroundColor: (function () { try { return getComputedStyle(document.documentElement).getPropertyValue('--crm-surface').trim() || '#ffffff'; } catch (e) { return '#ffffff'; } })(),
           scale: 2,
           useCORS: true,
           logging: false
