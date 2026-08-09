@@ -119,7 +119,7 @@
 }
 
 .crm-btn-danger-soft {
-  background: #fff;
+  background: var(--crm-surface, #fff);
   border: 1px solid var(--color-danger-100);
   color: var(--color-danger-600);
 }
@@ -162,7 +162,7 @@
   padding: 0;
   border: 1px solid var(--color-danger-100);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   color: var(--color-danger-500);
 }
 
@@ -175,7 +175,7 @@
 
 .crm-btn-ghost {
   border: 1px solid var(--color-neutral-200);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   font-size: 0.8125rem;
 }
 
@@ -242,7 +242,7 @@
   border-radius: 999px;
   border: 1px solid var(--color-neutral-200);
   padding: 0.2rem 0.6rem;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   font-size: var(--text-xs);
   color: var(--crm-text-muted);
 }
@@ -523,7 +523,7 @@
 .crm-admin-actions .btn-outline-danger {
   border-color: #f0b0b6;
   color: #ba3a45;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 .crm-table .btn-outline-danger:hover,
@@ -553,7 +553,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid var(--crm-surface, #fff);
   box-shadow: var(--shadow-sm);
   background: linear-gradient(135deg, #10B981, #D1FAE5);
 }
@@ -573,7 +573,7 @@
   text-align: center;
   border: 1px dashed var(--crm-border-strong);
   border-radius: var(--radius-lg);
-  background: #FFFFFF;
+  background: var(--crm-surface, #FFFFFF);
   padding: var(--space-6) var(--space-4);
 }
 
@@ -644,10 +644,10 @@
 }
 
 #aiSuggestionDrawer .form-check {
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--crm-border, #E2E8F0);
   border-radius: 12px;
   padding: 0.55rem 0.65rem 0.55rem 2rem;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 #aiSuggestionDrawer .form-check-input {
@@ -676,7 +676,7 @@
   border: 1px solid var(--crm-border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 .crm-kpi-card {
@@ -808,13 +808,13 @@
 
 .dropdown-item:hover,
 .dropdown-item:focus {
-  background: #ECFDF5;
+  background: var(--crm-success-soft, #ECFDF5);
 }
 
 .crm-gantt {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--crm-border, #E2E8F0);
   border-radius: 24px;
   overflow: hidden;
   background:
@@ -875,8 +875,8 @@
 .crm-endpoint {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.78rem;
-  background: #F8FAF9;
-  border: 1px solid #E2E8F0;
+  background: var(--crm-surface-2, #F8FAF9);
+  border: 1px solid var(--crm-border, #E2E8F0);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
   display: inline-block;
@@ -912,7 +912,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-primary-500);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.15);
 }
 
@@ -943,7 +943,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--color-primary-700);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   border-color: var(--color-neutral-200) var(--color-neutral-200) #fff;
 }
 
@@ -997,7 +997,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-primary-500);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow: 0 0 0 0.2rem rgba(5, 150, 105, 0.15);
 }
 
@@ -1028,7 +1028,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--color-primary-700);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   border-color: var(--color-neutral-200) var(--color-neutral-200) #fff;
 }
 
@@ -1053,7 +1053,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: #9db7e6;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow: 0 0 0 0.2rem var(--crm-focus);
 }
 
@@ -1083,7 +1083,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--crm-accent-strong);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   border-color: var(--crm-border) var(--crm-border) #fff;
 }
 
@@ -1308,7 +1308,7 @@
   border-color: var(--crm-primary);
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.10);
   outline: none;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 .team-input::placeholder {
@@ -1435,7 +1435,7 @@
   border-color: var(--crm-primary);
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.10);
   outline: none;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 .team-search-input::placeholder {
@@ -1782,7 +1782,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   display: inline-block;
   animation: teamDotPulse 1.5s ease-in-out infinite;
 }

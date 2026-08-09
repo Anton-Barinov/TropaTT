@@ -67,7 +67,7 @@
 }
 
 .crm-nav .nav-link.active {
-  background: #ECFDF5;
+  background: var(--crm-success-soft, #ECFDF5);
   border-color: #D1FAE5;
   color: var(--crm-primary);
   font-weight: 600;
@@ -108,7 +108,7 @@
   border-radius: 999px;
   background: #e63946;
   color: #fff;
-  border: 2px solid #fff;
+  border: 2px solid var(--crm-surface, #fff);
   font-size: 10px;
   font-weight: 700;
   line-height: 14px;
@@ -614,7 +614,7 @@ textarea.form-control::placeholder {
 
 .crm-table tbody tr:hover,
 .table.crm-table tbody tr:hover {
-  background: #F8FAF9;
+  background: var(--crm-surface-2, #F8FAF9);
 }
 
 .crm-badge,
@@ -641,7 +641,7 @@ textarea.form-control::placeholder {
 .crm-badge.danger,
 .crm-badge-danger { color: var(--crm-danger); background: var(--crm-danger-soft); }
 .crm-badge.archived,
-.crm-badge-muted { color: var(--crm-text-muted); background: #F1F5F9; }
+.crm-badge-muted { color: var(--crm-text-muted); background: var(--crm-surface-2, #F1F5F9); }
 .crm-badge-info { color: var(--crm-info); background: var(--crm-info-soft); }
 
 .btn-group,
@@ -1603,7 +1603,7 @@ textarea.form-control {
 .crm-select:hover,
 .crm-textarea:hover {
   border-color: rgba(15, 143, 114, 0.28);
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 .form-control:focus,
@@ -1613,7 +1613,7 @@ textarea.form-control {
 .crm-textarea:focus,
 textarea.form-control:focus {
   border-color: var(--crm-primary);
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow:
     0 0 0 4px var(--crm-focus),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
@@ -1814,7 +1814,7 @@ textarea.form-control:focus {
   border-color: rgba(17, 26, 25, 0.1);
   border-left-width: 4px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow: 0 8px 18px rgba(17, 37, 34, 0.06);
 }
 
@@ -2207,7 +2207,7 @@ textarea.form-control:focus {
 .crm-filters-card .form-control:hover,
 .crm-filters-card .form-select:hover {
   border-color: rgba(15, 143, 114, 0.32);
-  background-color: #fff;
+  background-color: var(--crm-surface, #fff);
 }
 
 .form-check-input {
@@ -2327,7 +2327,7 @@ textarea.form-control:focus {
 .crm-badge.archived,
 .badge.bg-secondary,
 .badge.text-bg-secondary {
-  background: linear-gradient(180deg, #eef3f2, #e5ecea) !important;
+  background: var(--crm-surface-2, #eef3f2) !important;
   color: var(--crm-text-muted) !important;
 }
 
@@ -2760,7 +2760,7 @@ small.text-muted {
 .crm-badge-success {
   background: var(--crm-success-soft) !important;
   border-color: rgba(22, 131, 74, 0.22) !important;
-  color: #11683b !important;
+  color: var(--crm-success, #11683b) !important;
 }
 
 .badge.text-bg-warning,
@@ -2768,7 +2768,7 @@ small.text-muted {
 .crm-badge-warning {
   background: var(--crm-warning-soft) !important;
   border-color: rgba(154, 101, 0, 0.24) !important;
-  color: #7c5100 !important;
+  color: var(--crm-warning, #7c5100) !important;
 }
 
 .badge.text-bg-danger,
@@ -2777,13 +2777,13 @@ small.text-muted {
 .crm-badge-danger {
   background: var(--crm-danger-soft) !important;
   border-color: rgba(181, 64, 56, 0.24) !important;
-  color: #94332d !important;
+  color: var(--crm-danger, #94332d) !important;
 }
 
 .badge.text-bg-secondary,
 .crm-badge.archived,
 .crm-badge-muted {
-  background: #edf3f1 !important;
+  background: var(--crm-surface-2, #edf3f1) !important;
   border-color: rgba(17, 26, 25, 0.09) !important;
   color: var(--crm-text-muted) !important;
 }
@@ -2879,7 +2879,7 @@ small.text-muted {
   padding: 12px;
   border: 1px solid rgba(17, 26, 25, 0.08);
   border-radius: 16px;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   box-shadow: 0 8px 18px rgba(17, 37, 34, 0.055);
 }
 
@@ -3305,7 +3305,7 @@ body {
 }
 
 .crm-nav .nav-link:not(.active) .crm-nav-icon {
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
 }
 
 .crm-nav .nav-link:not(.active) {
@@ -3374,7 +3374,7 @@ body {
 .form-control,
 .form-select,
 .input-group-text {
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   box-shadow: none !important;
 }
 
@@ -3499,7 +3499,7 @@ body {
   width: 100%;
   border-collapse: collapse !important;
   border-spacing: 0 !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
 }
 
 .crm-content table.crm-table thead th,
@@ -3528,7 +3528,7 @@ body {
 }
 .crm-content table.crm-table tbody tr,
 .crm-content .table.crm-table tbody tr {
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -3647,7 +3647,7 @@ body {
 .crm-gantt-deadline-card {
   border-radius: 0 !important;
   box-shadow: none !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   background-image: none !important;
 }
 
@@ -3711,7 +3711,7 @@ body {
   max-width: 100% !important;
   padding: 0 !important;
   overflow: hidden !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   background-image: none !important;
   border: 1px solid #d8dee6 !important;
   border-radius: 8px !important;
@@ -3743,7 +3743,7 @@ body {
   gap: 6px !important;
   white-space: nowrap !important;
   color: #17211f !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -4590,7 +4590,7 @@ body {
 .crm-content .crm-gantt-deadline-card {
   border-radius: 8px !important;
   border-color: #d8dee6 !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -4609,7 +4609,7 @@ body {
   border-style: solid !important;
   border-radius: 8px !important;
   box-shadow: none !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
 }
 
 .crm-content .crm-page-head {
@@ -4737,7 +4737,7 @@ body {
   width: 84px !important;
   min-width: 84px !important;
   max-width: 84px !important;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:last-child,
@@ -4748,7 +4748,7 @@ body {
   position: sticky !important;
   right: 0 !important;
   z-index: 4;
-  background: #fff !important;
+  background: var(--crm-surface, #fff) !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:last-child {
@@ -4920,7 +4920,7 @@ body.crm-login-page .crm-login-card .form-select {
   min-height: 48px;
   border-color: var(--crm-border);
   border-radius: 10px;
-  background-color: #fff;
+  background-color: var(--crm-surface, #fff);
   color: var(--crm-text);
   font-weight: 650;
 }
@@ -5050,7 +5050,7 @@ body.crm-login-page .crm-login-preview-top i {
   height: 34px;
   border: 1px solid var(--crm-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 body.crm-login-page .crm-login-preview-grid {
@@ -5064,7 +5064,7 @@ body.crm-login-page .crm-login-preview-metric {
   padding: 14px;
   border: 1px solid var(--crm-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 body.crm-login-page .crm-login-preview-metric strong {
@@ -5085,7 +5085,7 @@ body.crm-login-page .crm-login-preview-metric span {
 body.crm-login-page .crm-login-preview-table {
   border: 1px solid var(--crm-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--crm-surface, #fff);
 }
 
 body.crm-login-page .crm-login-preview-table div {
@@ -5421,7 +5421,7 @@ body.crm-login-page .crm-login-proof-grid span {
 
 #projectModulesBody .progress {
   border-radius: 3px;
-  background: #e9ecef;
+  background: var(--crm-surface-2, #e9ecef);
 }
 
 #projectModulesBody .progress-bar {
