@@ -61,14 +61,22 @@
         await window.CRM.api.login(login, password, locale);
         await window.CRM.api.me();
         // Pull the per-user color theme into localStorage so the next page
-        // load renders with it immediately (no flash). Non-blocking on purpose.
+        // load renders with it immediately (no flash). Wait for the sync
+        // before redirecting: the navigation would otherwise abort this fetch
+        // on a fresh browser (no cached theme yet), leaving the user on the
+        // wrong theme until they open the profile page. Capped at 1500ms so a
+        // slow network can never delay login noticeably.
         if (window.CRM.theme) {
-          window.CRM.api.request('api/v1/profile/preferences', { silent: true })
+          var themeSync = window.CRM.api.request('api/v1/profile/preferences', { silent: true })
             .then(function (env) {
               var prefs = env && env.data && env.data.preferences ? env.data.preferences : {};
               window.CRM.theme.syncFromPreferences(prefs);
             })
             .catch(function () {});
+          await Promise.race([
+            themeSync,
+            new Promise(function (resolve) { window.setTimeout(resolve, 1500); })
+          ]);
         }
         var query = new URLSearchParams(window.location.search || '');
         var returnRoute = query.get('return_route') || query.get('redirect') || 'dashboard';
