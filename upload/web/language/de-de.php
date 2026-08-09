@@ -8373,6 +8373,7 @@ return array (
     'theme_light' => 'Hell',
     'theme_dark' => 'Dunkel',
     'theme_contrast' => 'Hoher Kontrast',
+    'theme_save_error' => 'Farbschema konnte nicht gespeichert werden',
   ),
   'webhook' => 
   array (

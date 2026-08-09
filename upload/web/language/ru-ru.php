@@ -102,6 +102,7 @@ return array (
     'theme_light' => 'Светлая',
     'theme_dark' => 'Тёмная',
     'theme_contrast' => 'Контрастная',
+    'theme_save_error' => 'Не удалось сохранить тему',
   ),
   'global_search' => 
   array (

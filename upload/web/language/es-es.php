@@ -8373,6 +8373,7 @@ return array (
     'theme_light' => 'Claro',
     'theme_dark' => 'Oscuro',
     'theme_contrast' => 'Alto contraste',
+    'theme_save_error' => 'No se pudo guardar el tema',
   ),
   'webhook' => 
   array (

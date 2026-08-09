@@ -41,6 +41,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - Projects: admin statuses page now shows two independent tables — task statuses and project statuses (split by scope).
 - Projects: the project workflow edit form loads statuses from the admin dictionary, so «Планирование»/«Активный» and any custom project statuses are available as transitions.
 - Projects: completing a project that still has open tasks is blocked with a choice modal — «Close all tasks» (paged bulk close) or «Move to another project» (paged per-task reassignment); `open_task_count` is returned in the `PROJECT_HAS_OPEN_TASKS` error meta.
+- UI: user-selectable color themes — dark and high-contrast (low-vision) schemes in addition to the default light theme; per-user choice on the profile page and a quick switcher in the topbar, applied instantly without flash and persisted across devices (profile preferences).
 
 ### Changed
 
