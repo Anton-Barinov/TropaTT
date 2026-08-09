@@ -488,7 +488,7 @@ a:focus-visible {
 }
 
 .crm-topbar [data-global-notifications] {
-  color: #64748B;
+  color: var(--crm-text-muted, #64748B);
 }
 
 .crm-topbar [data-global-notifications] .crm-icon {
@@ -497,7 +497,7 @@ a:focus-visible {
 }
 
 .crm-topbar [data-search-toggle] {
-  color: #64748B;
+  color: var(--crm-text-muted, #64748B);
 }
 
 .crm-topbar [data-search-toggle] .crm-icon,
@@ -549,7 +549,7 @@ a:focus-visible {
 }
 
 .crm-topbar .input-group .input-group-text {
-  background: #fff;
+  background: var(--crm-surface, #fff);
   border-color: var(--crm-border);
 }
 
@@ -744,7 +744,7 @@ a:focus-visible {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--crm-surface, #fff);
   top: 2px;
   left: 2px;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
@@ -948,7 +948,7 @@ a:focus-visible {
   border-radius: 999px;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  color: #92400e;
+  color: var(--crm-warning, #92400e);
   font-weight: 800;
   font-size: 0.7rem;
   white-space: nowrap;
