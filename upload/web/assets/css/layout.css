@@ -893,7 +893,7 @@ a:focus-visible {
   z-index: var(--z-topbar, 1030);
   font-size: 0.76rem;
   color: var(--crm-text-muted, #6b7280);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--crm-surface, rgba(255, 255, 255, 0.9));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--crm-border, #e5e7eb);

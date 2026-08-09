@@ -383,7 +383,7 @@ button.crm-cycle-command-metric:hover {
 }
 .crm-cycle-badge-planned { background: var(--crm-info-soft, #e3f2fd); color: var(--crm-info, #1565c0); }
 .crm-cycle-badge-active { background: var(--crm-success-soft, #e8f5e9); color: var(--crm-success, #2e7d32); }
-.crm-cycle-badge-completed { background: var(--crm-info-soft, #f3e5f5); color: #7b1fa2; }
+.crm-cycle-badge-completed { background: var(--crm-info-soft, #f3e5f5); color: var(--crm-info, #7b1fa2); }
 .crm-cycle-badge-archived { background: var(--crm-surface-2, #f5f5f5); color: var(--crm-text-muted, #616161); }
 .crm-cycle-detail-callout,
 .crm-cycle-board-link {
