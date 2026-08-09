@@ -1108,6 +1108,21 @@ html[data-theme="contrast"] .crm-nav .nav-link.active {
 /* Muted helper text stays readable: bootstrap .text-muted consumes
    --bs-secondary-color, already overridden to a dark gray above. */
 
+/* Bootstrap .text-danger/.text-success/.text-warning: the stock reds/greens
+   are too dark for WCAG AA on dark surfaces, so map them to theme tokens. */
+html[data-theme="dark"] .text-danger,
+html[data-theme="contrast"] .text-danger {
+  color: var(--crm-danger, #dc3545);
+}
+html[data-theme="dark"] .text-success,
+html[data-theme="contrast"] .text-success {
+  color: var(--crm-success, #198754);
+}
+html[data-theme="dark"] .text-warning,
+html[data-theme="contrast"] .text-warning {
+  color: var(--crm-warning, #ffc107);
+}
+
 /* ---- Contrast: brand-green primary buttons ----
    The ui.css polish layer hard-codes a mid-green gradient for primary
    buttons; high-contrast needs the dark brand green + white text. */
