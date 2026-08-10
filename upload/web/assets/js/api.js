@@ -462,7 +462,30 @@ window.CRM.api = (function () {
     // Transient failures only: rate limit, gateway errors, internal server
     // errors. One automatic retry usually recovers from these; a page reload
     // should not be required just because a request hit a momentary hiccup.
-    return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+    // 425 Too Early is nginx's TLS 1.3 0-RTT anti-replay answer: the request
+    // must simply be re-sent without early data (RFC 8470), so a single
+    // automatic retry recovers it on hosts with ssl_early_data enabled.
+    return status === 425 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+  }
+
+  // Report a client-side transport failure (network drop, timeout, unexpected
+  // HTML answer) that survived its automatic retries. Envelope-based API errors
+  // already send telemetry on the final throw; these paths never produce an
+  // envelope, so without this the very errors users see as "network error"
+  // would stay invisible in the frontend-telemetry logs.
+  function reportTransportFailure(code, route, method, meta) {
+    if (String(route || '').indexOf('api/v1/telemetry/frontend-event') !== -1) {
+      return;
+    }
+    var m = meta && typeof meta === 'object' ? meta : {};
+    sendFrontendTelemetry('api_error', {
+      route: String(route || ''),
+      method: String(method || 'GET'),
+      code: String(code || 'NETWORK_ERROR'),
+      status: String(m.status || 0),
+      attempts: String(m.attempts || 0),
+      request_id: String(m.request_id || '')
+    });
   }
 
   function applyResponseMeta(envelope, response) {
@@ -882,6 +905,7 @@ window.CRM.api = (function () {
             await sleep(retryDelayMs * attempts);
             continue;
           }
+          reportTransportFailure('NETWORK_TIMEOUT', route, method, { attempts: attempts, status: 0 });
           throw tError;
         }
 
@@ -900,6 +924,7 @@ window.CRM.api = (function () {
           errors: [String(networkError)],
           meta: { attempts: attempts }
         };
+        reportTransportFailure('NETWORK_ERROR', route, method, { attempts: attempts, status: 0 });
         throw nError;
       } finally {
         if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -941,6 +966,10 @@ window.CRM.api = (function () {
           await sleep(retryDelayMs * attempts);
           continue;
         }
+        reportTransportFailure('INVALID_API_RESPONSE', route, method, {
+          attempts: attempts,
+          status: Number(response.status || 0) || 0
+        });
         throw invalidApiResponseError;
       }
 
