@@ -59,7 +59,7 @@
 
 #migrationSteps .nav-link.active .step-number {
     background: var(--color-primary-600, #0b725c);
-    color: #fff;
+    color: var(--crm-on-accent);
 }
 
 #migrationSteps .nav-link:not(.disabled):hover .step-number {
@@ -89,23 +89,23 @@
 }
 
 #jobLog .log-error {
-    color: #f87171;
+    color: var(--crm-danger);
 }
 
 #jobLog .log-warning {
-    color: #fbbf24;
+    color: var(--gantt-orange-2);
 }
 
 #jobLog .log-info {
-    color: #93c5fd;
+    color: var(--crm-info);
 }
 
 #jobLog .log-success {
-    color: #6ee7b7;
+    color: var(--crm-success);
 }
 
 #jobLog .log-debug {
-    color: #9ca3af;
+    color: var(--crm-text-soft);
 }
 
 #previewContent .preview-section {

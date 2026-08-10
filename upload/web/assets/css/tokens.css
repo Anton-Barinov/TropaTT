@@ -17,11 +17,37 @@
   --crm-warning-border: #fde68a;
   --crm-primary-border: #a7d8cc;
   --crm-info: #166b78;
+  /* Deep task-tree nesting accents (levels 3+; decorative hierarchy tints) */
+  --crm-tree-level-3: #c4b5fd;
+  --crm-tree-level-deep: #f0abfc;
   --crm-focus: rgba(15, 143, 114, 0.18);
   --crm-focus-ring: #0f8f72;
   --crm-control-bg: #ffffff;
   --crm-control-bg-muted: #f5faf8;
   --crm-control-height: 44px;
+
+  /* Universal ink (shadows, hairline tints) - dark in every theme */
+  --crm-ink: #0f172a;
+  /* Text on accent-colored surfaces - white in every theme */
+  --crm-on-accent: #ffffff;
+  /* High priority badge - orange with white text in every theme */
+  --crm-priority-high: #ea580c;
+
+  /* Legacy semantic aliases used across pages (kept for backward compat) */
+  --crm-muted: #596966;
+  --crm-bg-hover: #eef4f1;
+  --crm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --crm-accent-bg: rgba(15, 143, 114, 0.08);
+  --crm-bg-inverse: #1e293b;
+  --crm-text-inverse: #ffffff;
+  --crm-bg-secondary: #f1f5f9;
+  --crm-bg-subtle: #f9fafb;
+  --crm-border-light: rgba(0, 0, 0, 0.04);
+  --crm-green: #1a9d6b;
+  --crm-text-secondary: #475569;
+
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
 
   --color-primary-50: #e8f4f0;
   --color-primary-100: #d0eae1;

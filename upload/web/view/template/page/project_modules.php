@@ -89,7 +89,7 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="projectModuleColor" data-i18n="project_modules.field_color"><?= htmlspecialchars($t('project_modules.field_color', 'Цвет'), ENT_QUOTES, 'UTF-8') ?></label>
-              <input class="form-control" id="projectModuleColor" type="color" value="#2563eb" style="height:38px;padding:3px">
+              <input class="form-control" id="projectModuleColor" type="color" value="#0f8f72" style="height:38px;padding:3px">
             </div>
             <div class="col-md-6">
               <label class="form-label" for="projectModuleStartAt" data-i18n="project_modules.field_start_at"><?= htmlspecialchars($t('project_modules.field_start_at', 'Дата начала'), ENT_QUOTES, 'UTF-8') ?></label>

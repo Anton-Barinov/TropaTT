@@ -59,7 +59,7 @@
     z-index: 1050;
     flex: 0 0 auto;
     transition: left 0.2s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    box-shadow: 4px 0 24px color-mix(in srgb, var(--crm-ink) 12%, transparent);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -116,7 +116,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.3);
+    background: color-mix(in srgb, var(--crm-ink) 30%, transparent);
     z-index: 1049;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -562,7 +562,7 @@
 
   .crm-cycles-page .crm-cycles-search-submit {
     background: var(--crm-primary);
-    color: #fff;
+    color: var(--crm-on-accent);
   }
 }
 

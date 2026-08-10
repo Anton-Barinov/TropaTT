@@ -1,6 +1,6 @@
 .crm-ve-editor {
-  --crm-ve-accent: #2563eb;
-  --crm-ve-accent-light: rgba(37, 99, 235, 0.12);
+  --crm-ve-accent: #0b7a60;
+  --crm-ve-accent-light: rgba(11, 122, 96, 0.12);
   --crm-ve-surface: #ffffff;
   --crm-ve-surface-soft: #f6f8fb;
   --crm-ve-border: #d9e1ec;
@@ -28,12 +28,12 @@
 
 .crm-ve-editor.is-focused {
   border-color: var(--crm-ve-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-info) 15%, transparent);
 }
 
 .crm-ve-editor.is-dragover {
   border-color: var(--crm-ve-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-info) 15%, transparent);
   background: var(--crm-ve-surface-soft);
 }
 
@@ -77,7 +77,7 @@ details.crm-ve-spoiler summary {
 }
 
 details.crm-ve-spoiler summary:focus-visible {
-  outline: 2px solid rgba(13, 110, 253, 0.4);
+  outline: 2px solid color-mix(in srgb, var(--crm-info) 40%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -400,7 +400,7 @@ details.crm-ve-spoiler[open] > summary {
   border-radius: 10px;
   pointer-events: none;
   z-index: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--crm-surface) 50%, transparent), 0 0 0 3px rgba(37,99,235,0.15);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--crm-surface) 50%, transparent), 0 0 0 3px color-mix(in srgb, var(--crm-info) 15%, transparent);
 }
 
 .crm-ve-image {
@@ -483,7 +483,7 @@ details.crm-ve-spoiler[open] > summary {
   position: absolute;
   width: 12px;
   height: 12px;
-  border: 2px solid #fff;
+  border: 2px solid var(--crm-on-accent);
   background: var(--crm-ve-accent);
   border-radius: 4px;
   pointer-events: auto;
@@ -491,7 +491,7 @@ details.crm-ve-spoiler[open] > summary {
   cursor: ew-resize;
   padding: 0;
   margin: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-ink) 15%, transparent);
   touch-action: none;
 }
 
@@ -501,7 +501,7 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-resize-handle.is-active {
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16), 0 2px 8px rgba(15,23,42,0.24);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--crm-info) 16%, transparent), 0 2px 8px color-mix(in srgb, var(--crm-ink) 24%, transparent);
 }
 
 .crm-ve-resize-left:hover,
@@ -552,7 +552,7 @@ details.crm-ve-spoiler[open] > summary {
   background: var(--crm-ve-surface) !important;
   border: 1px solid var(--crm-ve-border);
   border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--crm-ink) 16%, transparent);
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.12s ease;
@@ -614,7 +614,7 @@ details.crm-ve-spoiler[open] > summary {
   font-weight: 600;
   border-radius: 6px;
   border: 1px solid var(--crm-ve-border);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--crm-ink) 14%, transparent);
   pointer-events: none;
   z-index: 1001;
   white-space: nowrap;
@@ -708,7 +708,7 @@ details.crm-ve-spoiler[open] > summary {
   font-size: 13px;
   border-radius: 10px;
   border: 1px solid var(--crm-ve-border);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--crm-ink) 16%, transparent);
   z-index: 9999;
   opacity: 0;
   transform: translateY(12px);
@@ -754,7 +754,7 @@ details.crm-ve-spoiler[open] > summary {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(37, 99, 235, 0.05);
+  background: color-mix(in srgb, var(--crm-info) 5%, transparent);
   border: 2px dashed var(--crm-ve-accent);
   border-radius: var(--crm-ve-radius);
   z-index: 10;
@@ -786,7 +786,7 @@ details.crm-ve-spoiler[open] > summary {
   background: var(--crm-ve-surface) !important;
   border: 1px solid var(--crm-ve-border);
   border-radius: 12px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--crm-ink) 16%, transparent);
   z-index: 1002;
   padding: 16px;
   min-width: 240px;
@@ -824,7 +824,7 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-image-settings-popover input:focus {
   border-color: var(--crm-ve-accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--crm-info) 25%, transparent);
 }
 
 .crm-ve-image-settings-actions {
@@ -856,7 +856,7 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-image-settings-apply {
   background: var(--crm-ve-accent);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .crm-ve-image-settings-apply:hover {
@@ -868,7 +868,7 @@ details.crm-ve-spoiler[open] > summary {
   background: var(--crm-ve-surface) !important;
   border: 1px solid var(--crm-ve-border);
   border-radius: 12px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--crm-ink) 16%, transparent);
   z-index: 1002;
   padding: 16px;
   min-width: 280px;
@@ -906,7 +906,7 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-link-popover input:focus {
   border-color: var(--crm-ve-accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--crm-info) 25%, transparent);
 }
 
 .crm-ve-link-popover-actions {
