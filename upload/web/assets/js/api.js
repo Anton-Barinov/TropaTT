@@ -824,6 +824,10 @@ window.CRM.api = (function () {
       || (opts.retry !== false && (method === 'GET' || method === 'HEAD'));
     var maxRetries = Math.max(0, Math.floor(toNumber(opts.maxRetries, 1)));
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
+    // TLS 0-RTT anti-replay rejections get an extra retry beyond the generic cap
+    // (the re-sent request opens a fresh connection which may carry early data
+    // once more); maxRetries: 0 still means "no retries at all".
+    var antiReplayCap = maxRetries > 0 ? Math.max(maxRetries, 2) : 0;
     // AI generation can legitimately take several minutes. Keep regular API calls
     // responsive, but never abort a long-running assistant request prematurely.
     // 30s default gives slow shared hosts (ondemand PHP-FPM pools, cold starts)
@@ -955,8 +959,9 @@ window.CRM.api = (function () {
       // instead of the raw 307 — cover both shapes so every browser recovers.
       // The re-sent request opens a fresh connection, which may carry early
       // data again once, so allow a second attempt beyond the generic cap.
+      // (With redirect:'manual' any redirect, e.g. a moved API endpoint, also
+      // surfaces here and is retried — bounded by antiReplayCap.)
       var isOpaqueRedirect = response && response.type === 'opaqueredirect';
-      var antiReplayCap = Math.max(maxRetries, 2);
       if (response && (response.status === 425 || response.status === 307 || isOpaqueRedirect)
           && opts.retry !== false && attempts <= antiReplayCap) {
         notifyApiRetrying(route, attempts, antiReplayCap);
