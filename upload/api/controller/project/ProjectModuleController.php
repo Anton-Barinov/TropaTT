@@ -113,6 +113,7 @@ final class ProjectModuleController extends BaseController
         // Invalidate cache
         $this->invalidateCache('task');
         $this->invalidateCache('project');
+        $this->invalidateCache('page');
 
         return $this->success('PROJECT_MODULE_TASKS_ADDED', $this->t('project_module/api_tasks_added', 'Tasks added to module'), $result, 200);
     }
@@ -130,6 +131,7 @@ final class ProjectModuleController extends BaseController
         // Invalidate cache
         $this->invalidateCache('task');
         $this->invalidateCache('project');
+        $this->invalidateCache('page');
 
         return $this->success('PROJECT_MODULE_TASK_REMOVED', $this->t('project_module/api_task_removed', 'Task removed from module'), [], 200);
     }

@@ -120,7 +120,16 @@ final class ApiFileCache
             return $callback();
         }
 
-        $ttl = $this->defaultTtl > 0 ? $this->defaultTtl : max(1, $ttl);
+        // The per-call TTL wins, capped by the global default so admins can
+        // still force shorter caching globally. Previously the global value
+        // silently replaced the per-call TTL, which left short-lived page
+        // caches (kanban board, dashboard) stale for the whole default TTL
+        // (e.g. 3600s) instead of their intended 30-45s freshness.
+        if ($this->defaultTtl > 0) {
+            $ttl = max(1, min($this->defaultTtl, $ttl));
+        } else {
+            $ttl = max(1, $ttl);
+        }
         $this->maybeGc();
 
         $version = $this->getNamespaceVersion($namespace);

@@ -144,7 +144,7 @@ final class TaskController extends BaseController
 
             $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
 
-            $this->invalidateCache('task');
+            $this->invalidateTaskCaches();
 
             return $this->success('TASK_CREATED', $this->t('task/messages.created'), [
                 'task' => $item,
@@ -280,7 +280,7 @@ final class TaskController extends BaseController
         }
         $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
 
-        $this->invalidateCache('task');
+        $this->invalidateTaskCaches();
 
         return $this->success('TASK_UPDATED', $this->t('task/messages.updated'), [
             'task' => $item,
@@ -332,7 +332,7 @@ final class TaskController extends BaseController
             ]);
         }
 
-        $this->invalidateCache('task');
+        $this->invalidateTaskCaches();
 
         return $this->success('TASK_DELETED', $this->t('task/messages.deleted'));
     }
@@ -472,7 +472,7 @@ final class TaskController extends BaseController
             ]);
         }
 
-        $this->invalidateCache('task');
+        $this->invalidateTaskCaches();
 
         return $this->success('TASK_BULK_UPDATED', $this->t('task/messages.bulk_updated'), [
             'summary' => $result['summary'],
@@ -520,7 +520,7 @@ final class TaskController extends BaseController
             return $this->error('WIP_LIMIT_EXCEEDED', $this->t('task/messages.wip_limit_exceeded', 'WIP limit exceeded for this column'), 422);
         }
 
-        $this->invalidateCache('task');
+        $this->invalidateTaskCaches();
 
         return $this->success('TASK_MOVED', $this->t('task/messages.moved'), [
             'task' => $item,
@@ -597,5 +597,16 @@ final class TaskController extends BaseController
         }
 
         return null;
+    }
+
+    /**
+     * Invalidate every cache that reflects task data: the task list itself and
+     * the page payloads (kanban board, dashboard) that render task lists and
+     * per-status counters — so the UI never stays stale after a mutation.
+     */
+    private function invalidateTaskCaches(): void
+    {
+        $this->invalidateCache('task');
+        $this->invalidateCache('page');
     }
 }
