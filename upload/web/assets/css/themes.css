@@ -1751,3 +1751,33 @@ html[data-theme="sepia"] {
   --crm-shadow-card: 0 16px 42px rgba(61, 49, 32, 0.1);
   --crm-shadow-hover: 0 24px 56px rgba(61, 49, 32, 0.14);
 }
+
+/* Gantt — scoped warm token set. The base light palette uses a blue "active"
+   (#0369a1) and navy "project" (#1e3a5f); sepia swaps those for warm tones so
+   no cold/blue accents remain on the warm parchment (bars, dots, badges). */
+html[data-theme="sepia"] .crm-gantt-page {
+  --gantt-blue: #4d7a26;
+  --gantt-blue-2: #5c8a2e;
+  --gantt-green: #3f8a4e;
+  --gantt-green-2: #4d9a5a;
+  --gantt-orange: #b45309;
+  --gantt-orange-2: #c9761a;
+  --gantt-red: #b03e28;
+  --gantt-purple: #7c3aed;
+  --gantt-gray: #8a7a58;
+  --gantt-line: #e6dcc0;
+  --gantt-soft: #f6efdd;
+  --gantt-grid-line: #eadfc4;
+  --gantt-row-line: #f0e8d4;
+  --gantt-hover-bg: rgba(154, 91, 30, 0.06);
+  --gantt-color-active: #9a5b1e;
+  --gantt-color-success: #4d7a26;
+  --gantt-color-blocked: #b45309;
+  --gantt-color-review: #7c3aed;
+  --gantt-color-archived: #6d5f43;
+  --gantt-color-overdue: #b03e28;
+  --gantt-color-paused: #8a7a58;
+  --gantt-color-new: #3f8a4e;
+  --gantt-color-release: #1e6b5e;
+  --gantt-color-project: #6b4a1f;
+}
