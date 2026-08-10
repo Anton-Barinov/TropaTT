@@ -19718,25 +19718,29 @@ window.CRM.pageApiBindings = (function () {
     window.addEventListener('resize', updateScrollButtons);
 
     // Edge hover zones: approaching the left/right edge of the board reveals
-    // the matching scroll button with a fade-in animation.
-    var lastEdge = '';
-    function setEdge(edge) {
-      if (edge === lastEdge) return;
-      lastEdge = edge;
-      wrap.classList.toggle('edge-left', edge === 'left');
-      wrap.classList.toggle('edge-right', edge === 'right');
+    // the matching scroll button with a fade-in animation. Bound once per
+    // page (init re-runs on every board re-render).
+    if (!wrap.getAttribute('data-edge-bound')) {
+      wrap.setAttribute('data-edge-bound', '1');
+      var lastEdge = '';
+      function setEdge(edge) {
+        if (edge === lastEdge) return;
+        lastEdge = edge;
+        wrap.classList.toggle('edge-left', edge === 'left');
+        wrap.classList.toggle('edge-right', edge === 'right');
+      }
+      wrap.addEventListener('mousemove', function (event) {
+        var rect = wrap.getBoundingClientRect();
+        var zone = Math.min(140, Math.max(64, rect.width * 0.16));
+        var edge = '';
+        if (event.clientX - rect.left <= zone) edge = 'left';
+        else if (rect.right - event.clientX <= zone) edge = 'right';
+        setEdge(edge);
+      });
+      wrap.addEventListener('mouseleave', function () {
+        setEdge('');
+      });
     }
-    wrap.addEventListener('mousemove', function (event) {
-      var rect = wrap.getBoundingClientRect();
-      var zone = Math.min(140, Math.max(64, rect.width * 0.16));
-      var edge = '';
-      if (event.clientX - rect.left <= zone) edge = 'left';
-      else if (rect.right - event.clientX <= zone) edge = 'right';
-      setEdge(edge);
-    });
-    wrap.addEventListener('mouseleave', function () {
-      setEdge('');
-    });
 
     // Keyboard navigation: Left/Right arrows scroll the board by one column.
     function isScrollable() {
