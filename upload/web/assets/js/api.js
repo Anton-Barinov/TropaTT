@@ -953,10 +953,13 @@ window.CRM.api = (function () {
       // With redirect:'manual', some engines surface the same-URL 307 as an
       // opaque-redirect response (status 0, type 'opaqueredirect', no body)
       // instead of the raw 307 — cover both shapes so every browser recovers.
+      // The re-sent request opens a fresh connection, which may carry early
+      // data again once, so allow a second attempt beyond the generic cap.
       var isOpaqueRedirect = response && response.type === 'opaqueredirect';
+      var antiReplayCap = Math.max(maxRetries, 2);
       if (response && (response.status === 425 || response.status === 307 || isOpaqueRedirect)
-          && opts.retry !== false && attempts <= maxRetries) {
-        notifyApiRetrying(route, attempts, maxRetries);
+          && opts.retry !== false && attempts <= antiReplayCap) {
+        notifyApiRetrying(route, attempts, antiReplayCap);
         await sleep(retryDelayMs * attempts);
         continue;
       }
