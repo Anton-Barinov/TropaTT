@@ -6781,7 +6781,7 @@ return array (
     'setting_max_requests' => 'Requests per minute limit',
     'setting_api_cache_enabled' => 'API cache (enabled/disabled)',
     'setting_api_cache_ttl' => 'Cache TTL (sec)',
-    'setting_kanban_max_cards' => 'Kanban max cards (0 = show all)',
+    'setting_kanban_max_cards' => 'Kanban: cards loaded per batch (0 = default 100)',
     'setting_gantt_max_tasks' => 'Gantt max tasks (0 = show all)',
     'retention_request_logs' => 'Request logs',
     'retention_security_logs' => 'Security logs',

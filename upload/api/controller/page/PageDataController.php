@@ -166,8 +166,11 @@ final class PageDataController extends BaseController
         /** @var StatusService $statusService */
         $statusService = $this->container->get('service.status');
 
-        // Global setting kanban_max_cards (scope 'system'): 0 (default) = load every task
-        // the actor can see at once; > 0 = chunked pages with automatic client-side load-more.
+        // Global setting kanban_max_cards (scope 'system') tunes the streaming
+        // chunk size: 0 (default) = built-in chunk (100); N = N cards per request.
+        // The page endpoint ALWAYS returns one chunk — never the whole dataset in
+        // a single request — so even a huge board paints fast on any install.
+        // Keep 100 in sync with KANBAN_LOAD_CHUNK in page-api-bindings.js.
         $kanbanLimit = 0;
         if ($this->container->has('service.setting')) {
             $kanbanSetting = $this->container->get('service.setting')->get('system', 'kanban_max_cards');
@@ -175,9 +178,10 @@ final class PageDataController extends BaseController
                 $kanbanLimit = max(0, (int)($kanbanSetting['value'] ?? 0));
             }
         }
+        $kanbanChunk = $kanbanLimit > 0 ? $kanbanLimit : 100;
 
         $tasks = $taskService->list([
-            'limit' => $kanbanLimit,
+            'limit' => $kanbanChunk,
             'with_status_counts' => '1',
         ], $actor);
         $statuses = $statusService->list([

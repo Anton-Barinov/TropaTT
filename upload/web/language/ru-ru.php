@@ -6884,7 +6884,7 @@ return array (
     'setting_max_requests' => 'Лимит запросов в минуту',
     'setting_api_cache_enabled' => 'Кэш API (включён/выключен)',
     'setting_api_cache_ttl' => 'Время хранения кэша (сек)',
-    'setting_kanban_max_cards' => 'Канбан: макс. карточек (0 = показывать все)',
+    'setting_kanban_max_cards' => 'Канбан: порция карточек за загрузку (0 = по умолчанию 100)',
     'setting_gantt_max_tasks' => 'Гант: макс. задач (0 = показывать все)',
     'retention_request_logs' => 'Журнал запросов',
     'retention_security_logs' => 'Журнал безопасности',

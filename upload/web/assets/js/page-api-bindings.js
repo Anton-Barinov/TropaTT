@@ -19482,10 +19482,17 @@ window.CRM.pageApiBindings = (function () {
     return null;
   }
 
+  // Fixed streaming chunk for the kanban board: cards always load portion by
+  // portion (never the whole dataset in a single request) on every install.
+  // The kanban_max_cards setting only tunes the portion size; 0 means default.
+  // Keep in sync with PageDataController::buildKanbanPayload (same 100).
+  var KANBAN_LOAD_CHUNK = 100;
+
   function kanbanBuildTaskQuery(filters) {
-    // 0 = load all matching tasks (default); otherwise the configured global kanban_max_cards limit.
-    var configuredLimit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
-    var query = { limit: configuredLimit, with_status_counts: '1' };
+    // window.CRM.kanbanLimit is the server-reported first-chunk size; fall back
+    // to the built-in chunk so the board streams even when the setting is 0.
+    var chunk = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : KANBAN_LOAD_CHUNK;
+    var query = { limit: chunk, with_status_counts: '1' };
     // Every filter is applied server-side so the loaded chunks and the column
     // counters always reflect the FULL dataset, not just the cards in memory.
     if (filters.q) query.search = filters.q;
@@ -19541,6 +19548,9 @@ window.CRM.pageApiBindings = (function () {
       if (envelope && envelope.success !== false) {
         var tasks = mapItems(envelope);
         window.CRM.kanbanTasks = tasks;
+        // A fresh filtered dataset starts from page 1 again — never carry the
+        // consumed load-more page over, or the next chunk would skip pages.
+        window.CRM.kanbanNextLoadMorePage = 0;
         var meta = envelope.meta || {};
         window.CRM.kanbanTotal = (meta.pagination && meta.pagination.total != null) ? Number(meta.pagination.total) : tasks.length;
         window.CRM.kanbanLimit = (meta.pagination && meta.pagination.limit != null) ? Number(meta.pagination.limit) : 0;
@@ -19569,6 +19579,7 @@ window.CRM.pageApiBindings = (function () {
       var pageData = pageEnvelope.data || {};
       var pageTasks = pageData.tasks && Array.isArray(pageData.tasks.items) ? pageData.tasks.items : [];
       window.CRM.kanbanTasks = pageTasks;
+      window.CRM.kanbanNextLoadMorePage = 0;
       var pageTasksMeta = (pageData.tasks && pageData.tasks.meta) ? pageData.tasks.meta : null;
       window.CRM.kanbanTotal = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.total != null) ? Number(pageTasksMeta.pagination.total) : pageTasks.length;
       window.CRM.kanbanLimit = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.limit != null) ? Number(pageTasksMeta.pagination.limit) : 0;
@@ -19618,15 +19629,14 @@ window.CRM.pageApiBindings = (function () {
     return Math.max(200, Math.round((cardHeight || 100) * 5));
   }
 
-  // When a global kanban_max_cards limit is configured and more tasks remain,
-  // load the next chunk as soon as the user scrolls close to the bottom of any
-  // column. A capture-phase scroll listener on the board survives column
-  // re-renders (columns are recreated on every updateKanbanColumns call).
+  // While more tasks remain than are currently loaded, load the next chunk as
+  // soon as the user scrolls close to the bottom of any column. A capture-phase
+  // scroll listener on the board survives column re-renders (columns are
+  // recreated on every updateKanbanColumns call).
   function kanbanEnsureLoadMore() {
-    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
     var loaded = (window.CRM.kanbanTasks || []).length;
     var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
-    if (limit <= 0 || loaded >= total) return;
+    if (loaded >= total) return;
 
     var board = document.querySelector('.crm-kanban');
     if (!board || board.__kanbanLoadMoreBound) return;
@@ -19645,10 +19655,9 @@ window.CRM.pageApiBindings = (function () {
   // client-side filter is active so a tiny filtered view doesn't drain every
   // page just to filter a few cards.
   function kanbanMaybeAutoFill() {
-    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
     var loaded = (window.CRM.kanbanTasks || []).length;
     var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
-    if (limit <= 0 || loaded >= total || window.CRM.kanbanLoadingMore) return;
+    if (loaded >= total || window.CRM.kanbanLoadingMore) return;
     if (kanbanFilterActive(window.CRM.kanbanFilters || kanbanReadFiltersFromQuery())) return;
     if (document.body.classList.contains('sortable-drag') || document.querySelector('.sortable-drag')) return;
 
@@ -19669,10 +19678,10 @@ window.CRM.pageApiBindings = (function () {
 
   async function kanbanLoadMore() {
     if (window.CRM.kanbanLoadingMore) return;
-    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
+    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : KANBAN_LOAD_CHUNK;
     var loaded = (window.CRM.kanbanTasks || []).length;
     var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
-    if (limit <= 0 || loaded >= total) return;
+    if (loaded >= total) return;
     window.CRM.kanbanLoadingMore = true;
     try {
       var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
@@ -24076,7 +24085,7 @@ window.CRM.pageApiBindings = (function () {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
       api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)'),
-      kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban max cards (0 = show all)'),
+      kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban: cards loaded per batch (0 = default 100)'),
       gantt_max_tasks: tp('admin_settings.setting_gantt_max_tasks', 'Gantt max tasks (0 = show all)')
     };
     var retentionLabels = {

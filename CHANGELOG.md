@@ -9,8 +9,11 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 ### Added
 - Admin → Logs: hourly histogram of frontend API errors (`frontend_api_error`) with a transport-vs-HTTP breakdown, so transport errors that survived automatic retries can be monitored in the UI without SQL. Ranges: 24h / 48h / 7 days. Backed by a new root-only endpoint `GET /api/v1/logs/frontend-errors/chart`.
 
+### Changed
+- Kanban tasks always load in portions: the board page endpoint and the client now use a fixed chunk of 100 cards per request instead of loading the whole visible dataset at once when `kanban_max_cards = 0` (the default on fresh installs). The `kanban_max_cards` setting now tunes the portion size (0 = default 100, N = N cards per request); column counters still show full totals from the first response. Large boards paint fast on any hosting with no server configuration required.
+
 ### Fixed
-- Kanban load-more no longer rebuilds the whole board, so scrolling one column to load more tasks no longer resets every column's scroll position to the top. Newly fetched cards are appended into their own column only; a full re-render (with scroll restoration, both vertical column position and horizontal board position) happens solely when a brand-new status column appears. A fully-deduplicated load-more chunk (data shifted server-side between requests) now advances to the next page instead of re-requesting the same one.
+- Kanban load-more no longer rebuilds the whole board, so scrolling one column to load more tasks no longer resets every column's scroll position to the top. Newly fetched cards are appended into their own column only; a full re-render (with scroll restoration, both vertical column position and horizontal board position) happens solely when a brand-new status column appears. A fully-deduplicated load-more chunk (data shifted server-side between requests) now advances to the next page instead of re-requesting the same one. Changing a filter resets the load-more page cursor, so the next chunk starts from page 1 of the new filtered dataset instead of skipping pages.
 
 ### Added
 - Migration `20260810_000001_tags_description`: adds the `description` column to the `tags` table for installs created before the column existed. Previously the column was only defined in the fresh-install schema (`CREATE TABLE IF NOT EXISTS` never alters an existing table), so tag create/read on upgraded databases failed with SQLSTATE 42S22 (`Unknown column 'description'`).
