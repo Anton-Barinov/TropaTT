@@ -5489,10 +5489,6 @@ body.modal-open {
   position: static;
 }
 
-.crm-task-detail-page .crm-metric-tile {
-  border-radius: 16px;
-  padding: 0.8rem 0.9rem;
-}
 
 .crm-task-detail-page .crm-metric-tile > div:last-child,
 .crm-task-detail-page .crm-metric-tile a {
