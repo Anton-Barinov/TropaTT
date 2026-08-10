@@ -986,16 +986,33 @@ textarea.form-control::placeholder {
 
 .crm-kanban-scroll-left {
   left: -6px;
+  --crm-kanban-slide: 12px;
 }
 
 .crm-kanban-scroll-right {
   right: -6px;
+  --crm-kanban-slide: -12px;
 }
 
-.crm-kanban-scroll-wrap:hover .crm-kanban-scroll-btn,
+/* Hovering the left/right edge of the board reveals the matching
+   scroll button with a fade-in + slide animation. */
+.crm-kanban-scroll-wrap.edge-left .crm-kanban-scroll-left,
+.crm-kanban-scroll-wrap.edge-right .crm-kanban-scroll-right,
 .crm-kanban-scroll-btn.is-visible {
   opacity: 1;
   pointer-events: auto;
+  animation: crm-kanban-scroll-btn-in 0.3s cubic-bezier(0.22, 0.9, 0.32, 1);
+}
+
+@keyframes crm-kanban-scroll-btn-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(var(--crm-kanban-slide, 0)) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
 }
 
 .crm-kanban-scroll-btn:hover {
@@ -2056,7 +2073,8 @@ textarea.form-control:focus {
   .crm-kanban-card,
   .crm-table tbody tr,
   .btn,
-  .crm-nav .nav-link {
+  .crm-nav .nav-link,
+  .crm-kanban-scroll-btn {
     animation: none !important;
     transition: none !important;
   }
