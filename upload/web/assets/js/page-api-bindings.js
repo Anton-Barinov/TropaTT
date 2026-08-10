@@ -3116,7 +3116,7 @@ window.CRM.pageApiBindings = (function () {
       ? tryRequest('api/v1/cycles', { query: { limit: 100, archived: '1' }, silent: true })
       : Promise.resolve(null);
     var tagOptionsPromise = tasksTagSelect
-      ? tryRequest('api/v1/tags', { query: { limit: 100 }, silent: true })
+      ? tryRequest('api/v1/tags', { query: { limit: 200 }, silent: true })
       : Promise.resolve(null);
 
     var envelope = await tasksPromise;

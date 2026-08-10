@@ -64,7 +64,6 @@
     <button class="btn crm-btn-secondary" type="button" id="tasksFiltersResetBtn" disabled data-i18n="tasks.filter_reset"><?= htmlspecialchars($t('tasks.filter_reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
 </section>
-<div style="display:none" id="tasksTagChipFilter"></div>
 
 <div id="bulkActionsBar" class="alert alert-primary d-none d-flex justify-content-between align-items-center" role="region" aria-label="<?= htmlspecialchars($t('tasks.bulk_aria', 'Bulk actions'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="tasks.bulk_aria">
   <div data-i18n="tasks.bulk_selected"><?= htmlspecialchars($t('tasks.bulk_selected', 'Выбрано задач: '), ENT_QUOTES, 'UTF-8') ?><strong data-selected-count>0</strong> <span class="small ms-2" id="tasksBulkResult" aria-live="polite"></span></div>

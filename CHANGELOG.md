@@ -10,6 +10,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 - Kanban: tag filter dropdown in the board filter bar (in addition to tag chips on cards). Tag options load from the full tags catalog, and the filter is resolved server-side over the whole dataset, exactly like the other kanban filters. The card-tag chip click and the dropdown stay in sync.
 - Tasks page: visible tag filter in the filter bar (was only reachable via the URL). Supports the "Без тегов" (no tags) option.
 - Tag filters now support the `__none` marker (tasks without any tag), with `tag_public_id=id1,__none` unions, matching the assignee/project/cycle filters.
+- Saved views now read/write the tag filter through the tasks-page tag select (was a hidden chip element).
 
 ## [Unreleased]
 

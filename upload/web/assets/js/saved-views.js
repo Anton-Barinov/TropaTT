@@ -86,10 +86,10 @@ window.CRM.savedViews = (function () {
       else if (dueVal === 'week') filters.due_at = 'week';
     }
 
-    // Tag chip filter
-    var tagEl = document.getElementById('tasksTagChipFilter');
-    if (tagEl && tagEl.getAttribute('data-tag-public-id')) {
-      filters.tag_public_id = tagEl.getAttribute('data-tag-public-id');
+    // Tag filter (the visible #tasksTagFilter select is the source of truth)
+    var tagEl = document.getElementById('tasksTagFilter');
+    if (tagEl && tagEl.value !== '') {
+      filters.tag_public_id = tagEl.value;
     }
 
     return filters;
@@ -131,16 +131,12 @@ window.CRM.savedViews = (function () {
       btn.classList.toggle('active', isActive);
     });
 
-    // Tag chip
-    var tagEl = document.getElementById('tasksTagChipFilter');
-    if (tagEl) {
-      if (filters.tag_public_id) {
-        tagEl.style.display = '';
-        tagEl.setAttribute('data-tag-public-id', filters.tag_public_id);
-      } else {
-        tagEl.style.display = 'none';
-        tagEl.removeAttribute('data-tag-public-id');
-      }
+    // Tag filter (select fires change -> route query reload; the searchable
+    // wrapper syncs its visible input on the change event)
+    var tagEl = document.getElementById('tasksTagFilter');
+    if (tagEl && filters.tag_public_id != null) {
+      tagEl.value = filters.tag_public_id;
+      tagEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     // Trigger search
