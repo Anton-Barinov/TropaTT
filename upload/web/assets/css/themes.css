@@ -9,6 +9,13 @@
      light   — default (current design), applied when data-theme is absent.
      dark    — pleasant dark scheme with comfortable contrast.
      contrast— high-contrast scheme for low-vision users.
+     sepia   — warm parchment scheme with warm brown accents (light).
+
+   Sepia is the proof-of-concept that the token architecture allows adding a
+   full theme with a single block of CSS custom properties: because every base
+   component reads its colors from tokens, a light-variant theme like sepia
+   needs no component repairs — only new token values. To add another theme,
+   copy the sepia block, rename the selector and swap the palette.
 
    Loaded last (after ui.css / visual-editor.css) so the overrides win at
    equal specificity. The attribute is set on <html> by an inline script in
@@ -1565,4 +1572,169 @@ html[data-theme="contrast"] .crm-footer-update-badge {
   border-color: var(--crm-border-strong) !important;
   background: var(--crm-surface) !important;
   color: var(--crm-text) !important;
+}
+
+/* ============================== SEPIA THEME ==============================
+   Warm parchment palette. A light theme, so it overrides ONLY token values:
+   the token architecture means zero component repairs are required for a
+   light-variant theme (contrast to dark/contrast, which need overrides). */
+html[data-theme="sepia"] {
+  color-scheme: light;
+  scrollbar-color: color-mix(in srgb, var(--crm-accent) 45%, transparent) var(--crm-surface-muted);
+
+  --crm-ink: #3d3120;
+  --crm-on-accent: #ffffff;
+  --crm-priority-high: #ea580c;
+  /* Deep task-tree nesting accents - keep the light decorative tints */
+  --crm-tree-level-3: #c4b5fd;
+  --crm-tree-level-deep: #f0abfc;
+
+  /* Legacy semantic aliases - warm equivalents */
+  --crm-muted: #6d5f43;
+  --crm-bg-hover: #f0e7d1;
+  --crm-shadow-sm: 0 1px 2px rgba(61, 49, 32, 0.05);
+  --crm-accent-bg: rgba(154, 91, 30, 0.08);
+  --crm-bg-inverse: #4a3d28;
+  --crm-text-inverse: #fdfaf2;
+  --crm-bg-secondary: #efe6d0;
+  --crm-bg-subtle: #f6efdd;
+  --crm-border-light: rgba(61, 49, 32, 0.05);
+  --crm-green: #6b8f3a;
+  --crm-text-secondary: #6d5f43;
+  --color-primary-200: #e5d3a8;
+  --color-primary-300: #d9c08e;
+
+  --crm-bg: #f4edde;
+  --crm-bg-deep: #ece2cc;
+  --crm-surface: #fbf7ec;
+  --crm-surface-2: #f6efdd;
+  --crm-surface-muted: #f4eddb;
+  --crm-surface-soft: #f6efdd;
+  --crm-control-bg: #fdfaf2;
+  --crm-control-bg-muted: #f3ead5;
+
+  --crm-border: #dccdab;
+  --crm-border-strong: #c8b68a;
+  --crm-border-soft: #e6dcc0;
+
+  /* Modal/offcanvas/drawer/popover surfaces - warm glass */
+  --crm-modal-bg-top: rgba(251, 247, 236, 0.98);
+  --crm-modal-bg-bottom: rgba(246, 239, 221, 0.97);
+  --crm-modal-accent: rgba(154, 91, 30, 0.1);
+  --crm-modal-border: rgba(61, 49, 32, 0.12);
+  --crm-popover-bg: rgba(251, 247, 236, 0.97);
+  --crm-popover-border: rgba(61, 49, 32, 0.12);
+
+  --crm-text: #3d3120;
+  --crm-text-muted: #6d5f43;
+  --crm-text-soft: #8d7c5c;
+
+  --crm-accent: #9a5b1e;
+  --crm-accent-strong: #854d14;
+  --crm-primary: #9a5b1e;
+  --crm-primary-hover: #854d14;
+  --crm-primary-soft: #f3e6cd;
+  --crm-primary-border: #d9c08e;
+
+  --crm-success: #4d7a26;
+  --crm-success-soft: #e9f0da;
+  --crm-warning: #8a5c00;
+  --crm-warning-soft: #f7ecd2;
+  --crm-warning-border: #e6d3a3;
+  --crm-danger: #b03e28;
+  --crm-danger-soft: #f8e6de;
+  --crm-danger-border: #ecc3b4;
+  --crm-info: #1e6b5e;
+  --crm-info-soft: #dcebe2;
+
+  --crm-focus: rgba(154, 91, 30, 0.16);
+  --crm-focus-ring: #9a5b1e;
+
+  --color-primary-50: #f7ecd9;
+  --color-primary-100: #eedfc2;
+  --color-primary-500: #9a5b1e;
+  --color-primary-600: #854d14;
+  --color-primary-700: #6f3f0d;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f4edde;
+  --color-neutral-100: #ece2cc;
+  --color-neutral-200: #dccdab;
+  --color-neutral-300: #c8b68a;
+  --color-neutral-500: #6d5f43;
+  --color-neutral-700: #54472e;
+  --color-neutral-900: #3d3120;
+
+  --color-danger-50: #f8e6de;
+  --color-danger-100: #f2d2c3;
+  --color-danger-500: #b03e28;
+  --color-danger-600: #993524;
+
+  --color-warning-50: #f7ecd2;
+  --color-warning-100: #f0ddb0;
+  --color-warning-500: #8a5c00;
+  --color-warning-600: #744c00;
+
+  --color-info-50: #dcebe2;
+  --color-info-100: #c4ddd0;
+  --color-info-500: #1e6b5e;
+  --color-info-600: #17594e;
+
+  --color-success-50: #e9f0da;
+  --color-success-100: #d5e3bb;
+  --color-success-600: #4d7a26;
+
+  /* Bootstrap bridge - native BS components follow the warm palette. */
+  --bs-primary: #9a5b1e;
+  --bs-primary-rgb: 154, 91, 30;
+  --bs-primary-bg-subtle: #eedfc2;
+  --bs-primary-border-subtle: #d9c08e;
+  --bs-primary-text-emphasis: #6f3f0d;
+  --bs-info: #9a5b1e;
+  --bs-info-rgb: 154, 91, 30;
+  --bs-info-bg-subtle: #eedfc2;
+  --bs-info-border-subtle: #d9c08e;
+  --bs-info-text-emphasis: #6f3f0d;
+  --bs-link-color: #9a5b1e;
+  --bs-link-hover-color: #854d14;
+  --bs-link-color-rgb: 154, 91, 30;
+  --bs-link-hover-color-rgb: 133, 77, 20;
+
+  --bs-body-bg: #f4edde;
+  --bs-body-bg-rgb: 244, 237, 222;
+  --bs-body-color: #3d3120;
+  --bs-body-color-rgb: 61, 49, 32;
+  --bs-secondary-color: #6d5f43;
+  --bs-secondary-color-rgb: 109, 95, 67;
+  --bs-secondary-bg: #f6efdd;
+  --bs-tertiary-bg: #f3ead5;
+  --bs-emphasis-color: #3d3120;
+  --bs-emphasis-color-rgb: 61, 49, 32;
+  --bs-border-color: #dccdab;
+  --bs-border-color-rgb: 220, 205, 171;
+
+  --bs-dropdown-bg: #fbf7ec;
+  --bs-dropdown-color: #3d3120;
+  --bs-dropdown-border-color: #c8b68a;
+  --bs-dropdown-link-color: #3d3120;
+  --bs-dropdown-link-hover-bg: rgba(154, 91, 30, 0.1);
+  --bs-dropdown-link-hover-color: #3d3120;
+  --bs-dropdown-link-active-bg: #9a5b1e;
+  --bs-dropdown-link-active-color: #ffffff;
+  --bs-popover-bg: #fbf7ec;
+  --bs-popover-border-color: #c8b68a;
+  --bs-table-color: #3d3120;
+  --bs-table-color-rgb: 61, 49, 32;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #dccdab;
+  --bs-table-striped-bg: rgba(61, 49, 32, 0.03);
+  --bs-table-hover-bg: rgba(154, 91, 30, 0.07);
+
+  /* Shadows take a warm dark tint. */
+  --shadow-sm: 0 1px 2px rgba(61, 49, 32, 0.05);
+  --shadow-md: 0 1px 3px rgba(61, 49, 32, 0.07), 0 4px 12px rgba(61, 49, 32, 0.05);
+  --shadow-lg: 0 1px 3px rgba(61, 49, 32, 0.09), 0 8px 24px rgba(61, 49, 32, 0.07);
+  --crm-shadow-soft: 0 10px 24px rgba(61, 49, 32, 0.08);
+  --crm-shadow-card: 0 16px 42px rgba(61, 49, 32, 0.1);
+  --crm-shadow-hover: 0 24px 56px rgba(61, 49, 32, 0.14);
 }
