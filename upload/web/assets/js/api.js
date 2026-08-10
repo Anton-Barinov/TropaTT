@@ -792,10 +792,13 @@ window.CRM.api = (function () {
     }
 
     var isIdempotent = method === 'GET' || method === 'HEAD' || opts.idempotent === true;
-    // Automatic retry: idempotent requests retry once by default so a transient
+    // Automatic retry: GET/HEAD data loads retry once by default so a transient
     // failure (network blip, 5xx, timeout) recovers without a manual page reload.
-    // Opt out explicitly with { retry: false } or tune with maxRetries/retryDelayMs.
-    var allowRetry = opts.retry !== false && isIdempotent;
+    // Idempotent POSTs (AI with idempotency keys, jobs, webhooks) may already run
+    // their own retry loops, so they opt in explicitly with { retry: true }.
+    // Opt out of the default with { retry: false }; tune with maxRetries/retryDelayMs.
+    var allowRetry = opts.retry === true
+      || (opts.retry !== false && (method === 'GET' || method === 'HEAD'));
     var maxRetries = Math.max(0, Math.floor(toNumber(opts.maxRetries, 1)));
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
     // AI generation can legitimately take several minutes. Keep regular API calls
@@ -849,6 +852,21 @@ window.CRM.api = (function () {
           opts.signal.removeEventListener('abort', abortListener);
         }
 
+        // A caller-initiated abort always wins — never retry a cancelled request,
+        // even if it happened to coincide with the timeout tick.
+        if (abortedByCaller || (opts.signal && opts.signal.aborted)) {
+          var aError = new Error('REQUEST_ABORTED');
+          aError.envelope = {
+            success: false,
+            code: 'REQUEST_ABORTED',
+            message: translateMessage('js.api.aborted', 'Request cancelled'),
+            data: null,
+            errors: [String(networkError)],
+            meta: { attempts: attempts }
+          };
+          throw aError;
+        }
+
         if (timedOut) {
           var tError = new Error('NETWORK_TIMEOUT');
           tError.envelope = {
@@ -865,19 +883,6 @@ window.CRM.api = (function () {
             continue;
           }
           throw tError;
-        }
-
-        if (abortedByCaller || (opts.signal && opts.signal.aborted)) {
-          var aError = new Error('REQUEST_ABORTED');
-          aError.envelope = {
-            success: false,
-            code: 'REQUEST_ABORTED',
-            message: translateMessage('js.api.aborted', 'Request cancelled'),
-            data: null,
-            errors: [String(networkError)],
-            meta: { attempts: attempts }
-          };
-          throw aError;
         }
 
         if (allowRetry && isIdempotent && attempts <= maxRetries) {

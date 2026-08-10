@@ -304,12 +304,14 @@ window.CRM.pageApiBindings = (function () {
     node.style.display = 'block';
     node.style.background = 'var(--crm-status-bg)';
     node.textContent = window.CRM.i18n.t('js.pab.retrying_data', 'Retrying data load...');
+    // Safety net only: a timeout retry can legitimately run 15s + backoff + 15s.
+    // The normal hide path is setLoadingState(false) / setErrorState().
     window.setTimeout(function () {
       if (node && node.dataset && node.dataset.retrying === '1') {
         node.dataset.retrying = '0';
         node.style.display = 'none';
       }
-    }, 10000);
+    }, 30000);
   });
 
   function showBulkProgress(total, label) {
