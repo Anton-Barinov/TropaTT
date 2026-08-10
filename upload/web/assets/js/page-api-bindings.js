@@ -262,6 +262,7 @@ window.CRM.pageApiBindings = (function () {
 
     if (isLoading) {
       node.dataset.error = '0';
+      node.dataset.retrying = '0';
       node.style.display = 'block';
       node.style.background = 'var(--crm-status-bg)';
       node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
@@ -269,6 +270,7 @@ window.CRM.pageApiBindings = (function () {
     }
 
     if (node.dataset.error === '1') return;
+    node.dataset.retrying = '0';
     node.style.display = 'none';
     node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
   }
@@ -278,16 +280,37 @@ window.CRM.pageApiBindings = (function () {
     if (!node) return;
 
     node.dataset.error = '1';
+    node.dataset.retrying = '0';
     node.style.display = 'block';
     node.style.background = 'var(--crm-error-bg)';
     node.textContent = message || window.CRM.i18n.t('js.pab.api_load_error', 'API data load error');
 
     window.setTimeout(function () {
       node.dataset.error = '0';
+      node.dataset.retrying = '0';
       node.style.display = 'none';
       node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
     }, 5000);
   }
+
+  // When the API layer is about to retry a failed request, tell the user the
+  // page is recovering automatically instead of staring at a dead loading state.
+  window.addEventListener('crm:api-retrying', function () {
+    var node = ensureStatusNode();
+    if (!node) return;
+    // Only surface the message while a page load is actually in progress.
+    if (node.dataset.error === '1' || node.style.display === 'none') return;
+    node.dataset.retrying = '1';
+    node.style.display = 'block';
+    node.style.background = 'var(--crm-status-bg)';
+    node.textContent = window.CRM.i18n.t('js.pab.retrying_data', 'Retrying data load...');
+    window.setTimeout(function () {
+      if (node && node.dataset && node.dataset.retrying === '1') {
+        node.dataset.retrying = '0';
+        node.style.display = 'none';
+      }
+    }, 10000);
+  });
 
   function showBulkProgress(total, label) {
     var existing = document.getElementById('crmBulkProgress');
@@ -17863,7 +17886,13 @@ window.CRM.pageApiBindings = (function () {
 
   async function renderGanttPage() {
     var state = crmGanttEnsureState();
-    var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: 200 } });
+    // Global setting gantt_max_tasks (Admin > Settings): 0 = every accessible task, N = latest N.
+    var ganttMaxTasks = 0;
+    var ganttAttr = document.body ? document.body.getAttribute('data-gantt-max-tasks') : null;
+    if (ganttAttr !== null && ganttAttr !== '') {
+      ganttMaxTasks = Number(ganttAttr) || 0;
+    }
+    var tasksEnvelope = await tryRequest('api/v1/tasks', { query: { limit: ganttMaxTasks } });
 
     var legendEl    = document.getElementById('ganttLegend');
     var tilesEl     = document.getElementById('ganttSummaryTiles');
@@ -23807,12 +23836,13 @@ window.CRM.pageApiBindings = (function () {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards'];
+    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards', 'gantt_max_tasks'];
     var settingLabels = {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
       api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)'),
-      kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban max cards (0 = show all)')
+      kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban max cards (0 = show all)'),
+      gantt_max_tasks: tp('admin_settings.setting_gantt_max_tasks', 'Gantt max tasks (0 = show all)')
     };
     var retentionLabels = {
       request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
@@ -23887,6 +23917,9 @@ window.CRM.pageApiBindings = (function () {
         });
         if (!settingsItems.some(function (item) { return String(item.name || '') === 'kanban_max_cards'; })) {
           settingsItems.push({ scope: 'system', name: 'kanban_max_cards', value: 0 });
+        }
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'gantt_max_tasks'; })) {
+          settingsItems.push({ scope: 'system', name: 'gantt_max_tasks', value: 0 });
         }
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');

@@ -4191,6 +4191,7 @@ return array (
     'gantt_load_error' => 'Не удалось загрузить диаграмму Ганта',
     'api_load_error' => 'Ошибка загрузки данных API',
     'api_partial_load_error' => 'Часть данных не удалось загрузить',
+    'retrying_data' => 'Повторная попытка загрузки данных…',
   ),
   'modals' => 
   array (
@@ -6884,6 +6885,7 @@ return array (
     'setting_api_cache_enabled' => 'Кэш API (включён/выключен)',
     'setting_api_cache_ttl' => 'Время хранения кэша (сек)',
     'setting_kanban_max_cards' => 'Канбан: макс. карточек (0 = показывать все)',
+    'setting_gantt_max_tasks' => 'Гант: макс. задач (0 = показывать все)',
     'retention_request_logs' => 'Журнал запросов',
     'retention_security_logs' => 'Журнал безопасности',
     'retention_audit_logs' => 'Журнал аудита',

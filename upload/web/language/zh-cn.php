@@ -4146,6 +4146,7 @@ return array (
     'gantt_load_error' => '加载甘特图失败',
     'api_load_error' => 'API 数据加载失败',
     'api_partial_load_error' => '部分数据加载失败',
+    'retrying_data' => '正在重新加载数据…',
   ),
   'modals' => 
   array (
@@ -6740,6 +6741,7 @@ return array (
     'setting_api_cache_enabled' => 'API 缓存（开启/关闭）',
     'setting_api_cache_ttl' => '缓存存储时间（秒）',
     'setting_kanban_max_cards' => '看板最大卡片数（0 = 全部显示）',
+    'setting_gantt_max_tasks' => '甘特图最大任务数（0 = 全部显示）',
     'retention_request_logs' => '请求日志',
     'retention_security_logs' => '安全日志',
     'retention_audit_logs' => '审计日志',

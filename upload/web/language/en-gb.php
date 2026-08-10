@@ -4169,6 +4169,7 @@ return array (
     'gantt_load_error' => 'Failed to load Gantt chart',
     'api_load_error' => 'Failed to load API data',
     'api_partial_load_error' => 'Some data could not be loaded',
+    'retrying_data' => 'Retrying data load…',
   ),
   'modals' => 
   array (
@@ -6781,6 +6782,7 @@ return array (
     'setting_api_cache_enabled' => 'API cache (enabled/disabled)',
     'setting_api_cache_ttl' => 'Cache TTL (sec)',
     'setting_kanban_max_cards' => 'Kanban max cards (0 = show all)',
+    'setting_gantt_max_tasks' => 'Gantt max tasks (0 = show all)',
     'retention_request_logs' => 'Request logs',
     'retention_security_logs' => 'Security logs',
     'retention_audit_logs' => 'Audit log',

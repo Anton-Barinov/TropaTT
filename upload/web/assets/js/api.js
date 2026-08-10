@@ -440,8 +440,29 @@ window.CRM.api = (function () {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  // Inform the UI (status bar) that the API layer is about to retry a failed
+  // request, so the user sees the page recovering instead of a dead loading state.
+  function notifyApiRetrying(route, attempt, maxRetries) {
+    try {
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('crm:api-retrying', {
+          detail: {
+            route: String(route || ''),
+            attempt: Number(attempt) || 1,
+            max_retries: Number(maxRetries) || 1
+          }
+        }));
+      }
+    } catch (e) {
+      // ignore — the event is purely informational
+    }
+  }
+
   function retryableStatus(status) {
-    return status === 429 || status === 502 || status === 503 || status === 504;
+    // Transient failures only: rate limit, gateway errors, internal server
+    // errors. One automatic retry usually recovers from these; a page reload
+    // should not be required just because a request hit a momentary hiccup.
+    return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
   }
 
   function applyResponseMeta(envelope, response) {
@@ -770,8 +791,11 @@ window.CRM.api = (function () {
       }
     }
 
-    var allowRetry = opts.retry === true;
     var isIdempotent = method === 'GET' || method === 'HEAD' || opts.idempotent === true;
+    // Automatic retry: idempotent requests retry once by default so a transient
+    // failure (network blip, 5xx, timeout) recovers without a manual page reload.
+    // Opt out explicitly with { retry: false } or tune with maxRetries/retryDelayMs.
+    var allowRetry = opts.retry !== false && isIdempotent;
     var maxRetries = Math.max(0, Math.floor(toNumber(opts.maxRetries, 1)));
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
     // AI generation can legitimately take several minutes. Keep regular API calls
@@ -836,6 +860,7 @@ window.CRM.api = (function () {
             meta: { timeout_ms: timeoutMs, attempts: attempts }
           };
           if (allowRetry && isIdempotent && attempts <= maxRetries) {
+            notifyApiRetrying(route, attempts, maxRetries);
             await sleep(retryDelayMs * attempts);
             continue;
           }
@@ -856,6 +881,7 @@ window.CRM.api = (function () {
         }
 
         if (allowRetry && isIdempotent && attempts <= maxRetries) {
+          notifyApiRetrying(route, attempts, maxRetries);
           await sleep(retryDelayMs * attempts);
           continue;
         }
@@ -903,6 +929,13 @@ window.CRM.api = (function () {
             content_type: contentType
           }
         };
+        // The API occasionally answers with an HTML error page (php-fpm hiccup,
+        // maintenance page). One retry usually gets the real JSON response.
+        if (allowRetry && isIdempotent && attempts <= maxRetries) {
+          notifyApiRetrying(route, attempts, maxRetries);
+          await sleep(retryDelayMs * attempts);
+          continue;
+        }
         throw invalidApiResponseError;
       }
 
@@ -917,7 +950,13 @@ window.CRM.api = (function () {
       }
 
       if (allowRetry && isIdempotent && retryableStatus(response.status) && attempts <= maxRetries) {
-        await sleep(retryDelayMs * attempts);
+        notifyApiRetrying(route, attempts, maxRetries);
+        // Respect the server's Retry-After hint (rate limiting) when present.
+        var retryAfterSeconds = envelope && envelope.meta && envelope.meta.retry_after
+          ? Math.max(0, Math.floor(Number(envelope.meta.retry_after) || 0))
+          : 0;
+        var backoffMs = retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : (retryDelayMs * attempts);
+        await sleep(backoffMs);
         continue;
       }
 

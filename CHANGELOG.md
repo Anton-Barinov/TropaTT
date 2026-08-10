@@ -8,9 +8,13 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 
+- API resilience: idempotent requests (all GET/HEAD and explicitly idempotent calls) now **automatically retry once** on transient failures — network errors, timeouts, 429/5xx responses and unexpected HTML answers — so intermittent data-load errors recover without a manual page reload. Can be disabled per call with `retry: false`; respects the server `Retry-After` header for rate limits; tuned via `maxRetries` / `retryDelayMs`.
+- Status bar: while the automatic retry is in progress the page shows "Повторная попытка загрузки данных…" instead of a dead loading state.
 - Kanban: global setting **`kanban_max_cards`** (Admin → System settings). `0` (default) loads every task the user can see at once — the board is no longer capped at 100 cards; a positive value renders that many cards first and then **auto-loads more on scroll** (IntersectionObserver) until everything is loaded.
 - Kanban: the result summary now shows the real total ("Shown X of Y tasks") plus a hint when only a chunk is loaded yet, instead of the misleading "100 of 100".
-- Task list API: `limit=0` now means "unlimited" (offset mode), used by the kanban board endpoint.
+- Gantt: global setting **`gantt_max_tasks`** (Admin → System settings). `0` (default) shows every accessible task — the chart is no longer capped at 200; a positive value shows only the latest N tasks.
+- Task list API: `limit=0` now means "unlimited" (offset mode), used by the kanban board endpoint and the Gantt chart.
+- Settings: changing `kanban_max_cards` / `gantt_max_tasks` now invalidates the cached board/chart payloads, so the new limit applies on the very next page load.
 
 ### Fixed
 

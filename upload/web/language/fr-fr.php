@@ -1204,6 +1204,7 @@ return array (
     'setting_api_cache_enabled' => 'Cache API (activé/désactivé)',
     'setting_api_cache_ttl' => 'TTL du cache (sec)',
     'setting_kanban_max_cards' => 'Kanban : cartes max (0 = tout afficher)',
+    'setting_gantt_max_tasks' => 'Gantt : tâches max (0 = tout afficher)',
     'retention_request_logs' => 'Journaux de requêtes',
     'retention_security_logs' => 'Journaux de sécurité',
     'retention_audit_logs' => 'Journal d\'audit',
@@ -7409,6 +7410,7 @@ return array (
     'gantt_load_error' => 'Échec du chargement du diagramme de Gantt',
     'api_load_error' => 'Échec du chargement des données API',
     'api_partial_load_error' => 'Certaines données n\'ont pas pu être chargées',
+    'retrying_data' => 'Nouvelle tentative de chargement des données…',
   ),
   'password_reset_confirm' => 
   array (

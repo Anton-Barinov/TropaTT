@@ -125,6 +125,11 @@ final class SettingController extends BaseController
                 if ($scope === 'system' && in_array($name, ['api_file_cache_enabled', 'api_file_cache_ttl'], true)) {
                     $cache->clearAll();
                 }
+                // Board/chart payloads are cached in the 'page' namespace; drop them
+                // so a limit change takes effect on the very next page load.
+                if ($scope === 'system' && in_array($name, ['kanban_max_cards', 'gantt_max_tasks'], true)) {
+                    $cache->invalidateNamespace('page');
+                }
             }
         }
     }

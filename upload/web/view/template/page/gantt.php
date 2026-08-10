@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('gantt.title', 'TropaTT — Гант'); ?>
-<body data-page="gantt" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
+<body data-page="gantt" data-protected="1" data-gantt-max-tasks="<?= (int)($gantt_max_tasks ?? 0) ?>"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-gantt-page"><div class="crm-page-head"><div><h1 class="crm-page-title" data-i18n="gantt.page_title"><?= htmlspecialchars($t('gantt.page_title', 'Гант'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="gantt.subtitle"><?= htmlspecialchars($t('gantt.subtitle', 'План-график задач и проектов по датам.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><button class="btn crm-btn-primary" type="button" data-open-modal="createTaskModal" data-i18n="gantt.btn_create_task"><?= htmlspecialchars($t('gantt.btn_create_task', 'Создать задачу'), ENT_QUOTES, 'UTF-8') ?></button></div></div>
 <section class="crm-gantt-shell crm-card crm-section-card">
