@@ -60,8 +60,10 @@
   --crm-sticky-dash: #666666;
   /* Gantt dependency obstacle stroke - warning amber in every theme */
   --crm-gantt-obstacle: #f59e0b;
-  /* Loading/status overlay toast - fixed readable brand green + deep red in every theme
-     (theme-relative --crm-primary/--crm-danger would be light mint/red in dark, breaking AA) */
+  /* Loading/status overlay toast - light defaults (brand green / deep red).
+     Theme blocks override these with their own accent colors: dark keeps a
+     readable mid-green (theme-relative mint would break AA with white text),
+     contrast uses its dark brand green, sepia uses its warm brown. */
   --crm-status-bg: #0f8f72;
   --crm-error-bg: #b54038;
   /* Ideas page AI pipeline step accents - fixed purple (clarify) / pink (gap) */
