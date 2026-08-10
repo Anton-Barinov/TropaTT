@@ -95,7 +95,7 @@ window.CRM.stickyNotes = (function () {
         + '<div class="crm-sticky-note' + pinnedClass + '" style="background:' + esc(color) + ';border-radius:8px;padding:12px;position:relative;min-height:80px;box-shadow:0 1px 3px rgba(0,0,0,0.12)">'
         + (note.is_pinned ? '<span class="crm-sticky-pin-badge" style="position:absolute;top:4px;right:4px;font-size:10px;opacity:0.6">&#128204;</span>' : '')
         + (isEditing
-          ? '<textarea class="form-control form-control-sm crm-sticky-edit-textarea" data-note-id="' + esc(note.public_id) + '" rows="3" style="background:transparent;border:1px dashed var(--crm-sticky-dash,#666);width:100%;resize:vertical;font-size:13px">' + esc(note.content) + '</textarea>'
+          ? '<textarea class="form-control form-control-sm crm-sticky-edit-textarea" data-note-id="' + esc(note.public_id) + '" rows="3" style="background:transparent;border:1px dashed var(--crm-sticky-dash);width:100%;resize:vertical;font-size:13px">' + esc(note.content) + '</textarea>'
           : '<div class="crm-sticky-content" data-note-id="' + esc(note.public_id) + '" style="cursor:text;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;min-height:40px">' + esc(note.content || '') + '</div>')
         + '<div class="crm-sticky-actions mt-2" style="display:flex;gap:4px;flex-wrap:wrap;opacity:0.7">'
         + (isEditing

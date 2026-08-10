@@ -193,7 +193,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--crm-text, #17211f);
+    color: var(--crm-text);
     font-size: 0.9rem;
     font-weight: 800;
   }

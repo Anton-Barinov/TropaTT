@@ -16,6 +16,13 @@
   --crm-danger-border: #fecaca;
   --crm-warning-border: #fde68a;
   --crm-primary-border: #a7d8cc;
+  /* Modal/offcanvas/drawer/popover surfaces - light defaults (themes override per-theme) */
+  --crm-modal-bg-top: rgba(255, 255, 255, 0.98);
+  --crm-modal-bg-bottom: rgba(250, 252, 251, 0.96);
+  --crm-modal-accent: rgba(15, 143, 114, 0.1);
+  --crm-modal-border: rgba(17, 26, 25, 0.1);
+  --crm-popover-bg: rgba(255, 255, 255, 0.96);
+  --crm-popover-border: rgba(17, 26, 25, 0.1);
   --crm-info: #166b78;
   /* Deep task-tree nesting accents (levels 3+; decorative hierarchy tints) */
   --crm-tree-level-3: #c4b5fd;

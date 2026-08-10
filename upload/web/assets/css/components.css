@@ -5,9 +5,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--color-primary-700, #047857);
-  background: var(--color-primary-50, #ECFDF5);
-  border: 1px solid var(--color-primary-100, #D1FAE5);
+  color: var(--color-primary-700);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
   border-radius: 6px;
   padding: 0.15rem 0.45rem;
   white-space: nowrap;
@@ -15,8 +15,8 @@
 }
 
 .crm-task-key-badge:hover {
-  background: var(--color-primary-100, #D1FAE5);
-  border-color: var(--color-primary-300, #A7F3D0);
+  background: var(--color-primary-100);
+  border-color: var(--color-primary-300);
 }
 
 .card,
@@ -119,7 +119,7 @@
 }
 
 .crm-btn-danger-soft {
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   border: 1px solid var(--color-danger-100);
   color: var(--color-danger-600);
 }
@@ -162,7 +162,7 @@
   padding: 0;
   border: 1px solid var(--color-danger-100);
   border-radius: var(--radius-md);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   color: var(--color-danger-500);
 }
 
@@ -175,7 +175,7 @@
 
 .crm-btn-ghost {
   border: 1px solid var(--color-neutral-200);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   font-size: 0.8125rem;
 }
 
@@ -242,7 +242,7 @@
   border-radius: 999px;
   border: 1px solid var(--color-neutral-200);
   padding: 0.2rem 0.6rem;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   font-size: var(--text-xs);
   color: var(--crm-text-muted);
 }
@@ -523,12 +523,12 @@
 .crm-admin-actions .btn-outline-danger {
   border-color: var(--crm-danger-border);
   color: var(--crm-danger);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 .crm-table .btn-outline-danger:hover,
 .crm-admin-actions .btn-outline-danger:hover {
-  background: var(--crm-danger-soft, #fff4f5);
+  background: var(--crm-danger-soft);
   border-color: var(--crm-danger-border);
   color: var(--crm-danger);
 }
@@ -553,7 +553,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 2px solid var(--crm-surface, #fff);
+  border: 2px solid var(--crm-surface);
   box-shadow: var(--shadow-sm);
   background: linear-gradient(135deg, var(--crm-success), var(--crm-success-soft));
 }
@@ -573,7 +573,7 @@
   text-align: center;
   border: 1px dashed var(--crm-border-strong);
   border-radius: var(--radius-lg);
-  background: var(--crm-surface, #FFFFFF);
+  background: var(--crm-surface);
   padding: var(--space-6) var(--space-4);
 }
 
@@ -644,10 +644,10 @@
 }
 
 #aiSuggestionDrawer .form-check {
-  border: 1px solid var(--crm-border, #E2E8F0);
+  border: 1px solid var(--crm-border);
   border-radius: 12px;
   padding: 0.55rem 0.65rem 0.55rem 2rem;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 #aiSuggestionDrawer .form-check-input {
@@ -676,7 +676,7 @@
   border: 1px solid var(--crm-border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 .crm-kpi-card {
@@ -808,13 +808,13 @@
 
 .dropdown-item:hover,
 .dropdown-item:focus {
-  background: var(--crm-success-soft, #ECFDF5);
+  background: var(--crm-success-soft);
 }
 
 .crm-gantt {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  border: 1px solid var(--crm-border, #E2E8F0);
+  border: 1px solid var(--crm-border);
   border-radius: 24px;
   overflow: hidden;
   background:
@@ -875,8 +875,8 @@
 .crm-endpoint {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.78rem;
-  background: var(--crm-surface-2, #F8FAF9);
-  border: 1px solid var(--crm-border, #E2E8F0);
+  background: var(--crm-surface-2);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
   display: inline-block;
@@ -912,7 +912,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-primary-500);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
 }
 
@@ -943,7 +943,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--color-primary-700);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   border-color: var(--color-neutral-200) var(--color-neutral-200) var(--crm-surface);
 }
 
@@ -997,7 +997,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-primary-500);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
 }
 
@@ -1028,7 +1028,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--color-primary-700);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   border-color: var(--color-neutral-200) var(--color-neutral-200) var(--crm-surface);
 }
 
@@ -1053,7 +1053,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--crm-border-strong);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow: 0 0 0 0.2rem var(--crm-focus);
 }
 
@@ -1083,7 +1083,7 @@
 
 .nav-tabs .nav-link.active {
   color: var(--crm-accent-strong);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   border-color: var(--crm-border) var(--crm-border) var(--crm-surface);
 }
 
@@ -1308,7 +1308,7 @@
   border-color: var(--crm-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--crm-success) 10%, transparent);
   outline: none;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 .team-input::placeholder {
@@ -1435,7 +1435,7 @@
   border-color: var(--crm-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--crm-success) 10%, transparent);
   outline: none;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 .team-search-input::placeholder {
@@ -1782,7 +1782,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   display: inline-block;
   animation: teamDotPulse 1.5s ease-in-out infinite;
 }
