@@ -44,6 +44,7 @@ final class ProjectRepository
                 'mu.public_id AS manager_user_public_id',
                 'mu.full_name AS manager_user_name',
                 't.title AS team_title',
+                'c.title AS client_title',
             ])
             ->orderBy('p.' . $sort, $order)
             ->orderBy('p.public_id', $order);
@@ -244,7 +245,8 @@ final class ProjectRepository
         $qb = (new QueryBuilder($this->pdo))
             ->from('projects p')
             ->leftJoin('users mu', 'mu.id', '=', 'p.manager_user_id')
-            ->leftJoin('teams t', 't.public_id', '=', 'p.team_public_id');
+            ->leftJoin('teams t', 't.public_id', '=', 'p.team_public_id')
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id');
 
         if (($filters['archived'] ?? '0') !== '1') {
             $qb->whereNull('p.archived_at');
@@ -252,11 +254,26 @@ final class ProjectRepository
 
         if (!empty($filters['search'])) {
             $term = '%' . (string)$filters['search'] . '%';
-            $qb->whereRaw('(p.title LIKE ? OR p.description LIKE ? OR t.title LIKE ?)', [$term, $term, $term]);
+            $qb->whereRaw('(p.title LIKE ? OR p.description LIKE ? OR t.title LIKE ? OR c.title LIKE ?)', [$term, $term, $term, $term]);
         }
 
         if (!empty($filters['status'])) {
             $qb->where('p.status_code', '=', (string)$filters['status']);
+        }
+
+        if (!empty($filters['priority'])) {
+            $qb->where('p.priority_code', '=', (string)$filters['priority']);
+        }
+
+        if (!empty($filters['client_public_id'])) {
+            $qb->where('p.client_public_id', '=', (string)$filters['client_public_id']);
+        }
+
+        if (!empty($filters['manager_user_public_id'])) {
+            $qb->whereRaw(
+                'EXISTS (SELECT 1 FROM users pmu WHERE pmu.id = p.manager_user_id AND pmu.public_id = ?)',
+                [(string)$filters['manager_user_public_id']]
+            );
         }
 
         if (!empty($filters['team_public_id'])) {

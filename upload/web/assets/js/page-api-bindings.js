@@ -1152,10 +1152,16 @@ window.CRM.pageApiBindings = (function () {
     state.view = normalizeView(state.view);
     window.CRM.__projectsPageState = state;
 
-    var projectsQuery = { limit: 100 };
-    if (state.teamPublicId) {
-      projectsQuery.team_public_id = state.teamPublicId;
-    }
+    var projectsPageNum = Math.max(1, Number.parseInt(String(query.get('page') || '1'), 10) || 1);
+    // Серверная пагинация: фильтры и разбиение по страницам выполняются на сервере,
+    // чтобы при сотнях/тысячах проектов пользователь видел все данные, а не первые 100.
+    var projectsQuery = { limit: 30, page: projectsPageNum };
+    if (state.search) projectsQuery.search = state.search;
+    if (state.status) projectsQuery.status = state.status;
+    if (state.priority) projectsQuery.priority = state.priority;
+    if (state.clientPublicId) projectsQuery.client_public_id = state.clientPublicId;
+    if (state.managerPublicId) projectsQuery.manager_user_public_id = state.managerPublicId;
+    if (state.teamPublicId) projectsQuery.team_public_id = state.teamPublicId;
 
     var pageRequests = await Promise.all([
       tryRequest('api/v1/projects', { query: projectsQuery }),
@@ -1720,7 +1726,7 @@ window.CRM.pageApiBindings = (function () {
       if (!filtered.length) {
         list.innerHTML = '<div class="col-12"><div class="crm-card"><div class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</div></div></div>';
       } else {
-        list.innerHTML = filtered.slice(0, 9).map(function (item) {
+        list.innerHTML = filtered.map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
         var projectMetaParts = [];
         var clientLabel = resolveProjectClientLabel(item);
@@ -1747,7 +1753,7 @@ window.CRM.pageApiBindings = (function () {
       if (!filtered.length) {
         table.innerHTML = '<tr><td colspan="7" class="text-muted">' + window.CRM.i18n.t('js.pab.no_projects_for_filters', 'No projects found for selected filters.') + '</td></tr>';
       } else {
-        table.innerHTML = filtered.slice(0, 30).map(function (item) {
+        table.innerHTML = filtered.map(function (item) {
         var link = 'index.php?route=project-detail&project_public_id=' + encodeURIComponent(item.public_id);
         return '<tr>'
           + '<td><input class="form-check-input" type="checkbox" data-project-bulk-id="' + safeText(item.public_id || '') + '"></td>'
@@ -1764,7 +1770,68 @@ window.CRM.pageApiBindings = (function () {
 
     var summary = document.getElementById('projectsResultSummary');
     if (summary) {
-      summary.textContent = window.CRM.i18n.t('js.pab.showing_projects', 'Showing') + ' ' + filtered.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.projects', 'projects');
+      var projectsMetaTotal = (envelope && envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total)
+        ? Number(envelope.meta.pagination.total)
+        : items.length;
+      summary.textContent = window.CRM.i18n.t('js.pab.showing_projects', 'Showing') + ' ' + filtered.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + projectsMetaTotal + ' ' + window.CRM.i18n.t('js.pab.projects', 'projects');
+    }
+
+    // Пагинатор проектов (серверная пагинация)
+    var projectsPagerNode = document.getElementById('projectsPager');
+    if (projectsPagerNode) {
+      var projectsTotal = (envelope && envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total)
+        ? Number(envelope.meta.pagination.total)
+        : items.length;
+      var projectsTotalPages = Math.max(1, Math.ceil(projectsTotal / 30));
+      var projectsCurrentPage = Math.min(projectsPageNum, projectsTotalPages);
+      if (projectsTotalPages <= 1 || projectsTotal === 0) {
+        projectsPagerNode.classList.add('d-none');
+        projectsPagerNode.innerHTML = '';
+      } else {
+        projectsPagerNode.classList.remove('d-none');
+        projectsPagerNode.innerHTML = '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.showing', 'Showing') + ' '
+          + safeText(String((projectsCurrentPage - 1) * 30 + 1)) + '–' + safeText(String(Math.min(projectsCurrentPage * 30, projectsTotal)))
+          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(projectsTotal)) + '</div>'
+          + '<div class="crm-table-pager-controls">'
+          + '<button class="btn crm-btn-secondary" type="button" data-projects-page-prev' + (projectsCurrentPage <= 1 ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.back', 'Back') + '</button>'
+          + '<span class="small">' + window.CRM.i18n.t('js.pab.page', 'Page') + ' ' + safeText(String(projectsCurrentPage)) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(projectsTotalPages)) + '</span>'
+          + '<button class="btn crm-btn-secondary" type="button" data-projects-page-next' + (projectsCurrentPage >= projectsTotalPages ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.forward', 'Forward') + '</button>'
+          + '</div>';
+        var projectsPrevBtn = projectsPagerNode.querySelector('[data-projects-page-prev]');
+        var projectsNextBtn = projectsPagerNode.querySelector('[data-projects-page-next]');
+        if (projectsPrevBtn && projectsPrevBtn.dataset.bound !== '1') {
+          projectsPrevBtn.dataset.bound = '1';
+          projectsPrevBtn.addEventListener('click', function () {
+            if (projectsCurrentPage <= 1) return;
+            applyProjectsRouteQuery({
+              search: state.search,
+              status: state.status,
+              priority: state.priority,
+              client: state.clientPublicId,
+              manager: state.managerPublicId,
+              team: state.teamPublicId,
+              page: projectsCurrentPage - 1
+            });
+            renderProjectsPage();
+          });
+        }
+        if (projectsNextBtn && projectsNextBtn.dataset.bound !== '1') {
+          projectsNextBtn.dataset.bound = '1';
+          projectsNextBtn.addEventListener('click', function () {
+            if (projectsCurrentPage >= projectsTotalPages) return;
+            applyProjectsRouteQuery({
+              search: state.search,
+              status: state.status,
+              priority: state.priority,
+              client: state.clientPublicId,
+              manager: state.managerPublicId,
+              team: state.teamPublicId,
+              page: projectsCurrentPage + 1
+            });
+            renderProjectsPage();
+          });
+        }
+      }
     }
 
     var projectBulkBar = document.getElementById('projectsBulkActionsBar');
@@ -2972,9 +3039,20 @@ window.CRM.pageApiBindings = (function () {
     var tasksAiPriorityResetBtn = document.getElementById('tasksAiPriorityResetBtn');
     var tasksAiPriorityStateNode = document.getElementById('tasksAiPriorityState');
 
-    var apiQuery = { limit: 200 };
+    // Серверная пагинация и серверные фильтры: при большом объёме данных (5000+ задач)
+    // фильтровать и резать страницы нужно на сервере, а не на клиенте по первым 200 записям.
+    var apiQuery = { limit: 50, page: pageFilter };
     if (statusFilter) apiQuery.status = statusFilter;
     if (priorityFilter) apiQuery.priority = priorityFilter;
+    if (searchFilter) apiQuery.search = searchFilter;
+    if (assigneeFilter) {
+      apiQuery.assignee_user_public_id = (assigneeFilter === 'none' || assigneeFilter === 'unassigned') ? 'none' : assigneeFilter;
+    }
+    if (managerFilter) apiQuery.manager_user_public_id = managerFilter;
+    if (projectFilter) apiQuery.project_public_id = projectFilter;
+    if (clientFilter) apiQuery.client_public_id = clientFilter;
+    if (cycleFilter && cycleFilter !== '__none') apiQuery.cycle_public_id = cycleFilter;
+    if (tagFilter) apiQuery.tag_public_id = tagFilter;
     if (['title', 'due_at', 'status_code', 'priority_code', 'updated_at', 'created_at'].indexOf(sortFilter) >= 0) {
       apiQuery.sort = sortFilter;
       apiQuery.order = orderFilter;
@@ -3050,48 +3128,12 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
-    if (searchFilter) {
+    // Примечание: search/assignee/client/manager/project/tag фильтруются на сервере
+    // (серверная пагинация), поэтому клиентской фильтрации для них больше нет.
+    // Остаются только специальные случаи: цикл '__none' (нет цикла) и фильтры по сроку.
+    if (cycleFilter === '__none') {
       items = items.filter(function (item) {
-        var haystack = [
-          item.title || '',
-          item.description || '',
-          item.project_title || '',
-          item.public_id || ''
-        ].join(' ').toLowerCase();
-        return haystack.indexOf(searchFilter) !== -1;
-      });
-    }
-
-    if (assigneeFilter) {
-      if (assigneeFilter === 'none' || assigneeFilter === 'unassigned') {
-        items = items.filter(function (item) { return !String(item.assignee_user_public_id || ''); });
-      } else {
-        items = items.filter(function (item) { return String(item.assignee_user_public_id || '') === assigneeFilter; });
-      }
-    }
-    if (clientFilter) {
-      items = items.filter(function (item) { return String(item.client_public_id || '') === clientFilter || String(item.task_client_public_id || '') === clientFilter; });
-    }
-    if (managerFilter) {
-      items = items.filter(function (item) { return String(item.project_manager_user_public_id || '') === managerFilter; });
-    }
-    if (projectFilter) {
-      items = items.filter(function (item) { return String(item.project_public_id || '') === projectFilter; });
-    }
-    if (cycleFilter) {
-      items = items.filter(function (item) {
-        var cycleKey = String(item.cycle_public_id || '').trim();
-        if (cycleFilter === '__none') return !cycleKey;
-        return cycleKey === cycleFilter;
-      });
-    }
-    if (tagFilter) {
-      items = items.filter(function (item) {
-        if (!item.tags) return false;
-        try {
-          var parsed = typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags;
-          return Array.isArray(parsed) && parsed.some(function (t) { return t.public_id === tagFilter; });
-        } catch(e) { return false; }
+        return !String(item.cycle_public_id || '').trim();
       });
     }
 
@@ -3407,7 +3449,10 @@ window.CRM.pageApiBindings = (function () {
 
       // Summary
       if (summary) {
-        summary.textContent = window.CRM.i18n.t('js.pab.showing', 'Showing') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks');
+        var summaryTotal = (envelope && envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total)
+          ? Number(envelope.meta.pagination.total)
+          : items.length;
+        summary.textContent = window.CRM.i18n.t('js.pab.showing', 'Showing') + ' ' + items.length + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + summaryTotal + ' ' + window.CRM.i18n.t('js.pab.tasks', 'tasks');
       }
 
       // Reset button
@@ -3698,11 +3743,13 @@ window.CRM.pageApiBindings = (function () {
       return;
     }
 
-    var pageSize = currentView === 'cards' ? 18 : 30;
-    var totalPages = Math.max(1, Math.ceil(displayItems.length / pageSize));
-    var currentPage = Math.min(pageFilter, totalPages);
-    var pageStart = (currentPage - 1) * pageSize;
-    var pagedItems = displayItems.slice(pageStart, pageStart + pageSize);
+    // Серверная пагинация: страница уже загружена целиком (limit=50 с сервера).
+    var metaPagination = (envelope && envelope.meta && envelope.meta.pagination) ? envelope.meta.pagination : null;
+    var totalTasks = metaPagination ? (Number(metaPagination.total) || displayItems.length) : displayItems.length;
+    var totalPages = metaPagination ? (Number(metaPagination.pages) || 1) : Math.max(1, Math.ceil(displayItems.length / 30));
+    var currentPage = Math.min(Math.max(1, pageFilter), Math.max(1, totalPages));
+    var pageStart = (currentPage - 1) * 50;
+    var pagedItems = displayItems;
 
     document.querySelectorAll('#tasksStates [data-state-item]').forEach(function (node) {
       node.classList.toggle('d-none', node.getAttribute('data-state-item') !== 'default');
@@ -3733,8 +3780,8 @@ window.CRM.pageApiBindings = (function () {
       } else {
         pagerNode.classList.remove('d-none');
         pagerNode.innerHTML = '<div class="small text-muted">' + window.CRM.i18n.t('js.pab.showing', 'Showing') + ' '
-          + safeText(String(pageStart + 1)) + '–' + safeText(String(pageStart + pagedItems.length))
-          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(displayItems.length)) + '</div>'
+          + safeText(String(pageStart + 1)) + '–' + safeText(String(Math.min(pageStart + pagedItems.length, totalTasks)))
+          + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalTasks)) + '</div>'
           + '<div class="crm-table-pager-controls">'
           + '<button class="btn crm-btn-secondary" type="button" data-tasks-page-prev' + (currentPage <= 1 ? ' disabled' : '') + '>' + window.CRM.i18n.t('js.pab.back', 'Back') + '</button>'
           + '<span class="small">' + window.CRM.i18n.t('js.pab.page', 'Page') + ' ' + safeText(String(currentPage)) + ' ' + window.CRM.i18n.t('js.pab.of', 'of') + ' ' + safeText(String(totalPages)) + '</span>'
@@ -3750,6 +3797,13 @@ window.CRM.pageApiBindings = (function () {
               search: searchFilter,
               status: statusFilter,
               priority: priorityFilter,
+              assignee: assigneeFilter,
+              manager: managerFilter,
+              project: projectFilter,
+              client: clientFilter,
+              cycle: cycleFilter,
+              tag: tagFilter,
+              due: dueFilter,
               sort: sortFilter,
               order: orderFilter,
               page: currentPage - 1,
@@ -3765,6 +3819,13 @@ window.CRM.pageApiBindings = (function () {
               search: searchFilter,
               status: statusFilter,
               priority: priorityFilter,
+              assignee: assigneeFilter,
+              manager: managerFilter,
+              project: projectFilter,
+              client: clientFilter,
+              cycle: cycleFilter,
+              tag: tagFilter,
+              due: dueFilter,
               sort: sortFilter,
               order: orderFilter,
               page: currentPage + 1,

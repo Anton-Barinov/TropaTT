@@ -626,6 +626,13 @@ final class TaskRepository
             }
         }
 
+        if (!empty($filters['manager_user_public_id'])) {
+            $qb->whereRaw(
+                'EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id = ?)',
+                [(string)$filters['manager_user_public_id']]
+            );
+        }
+
         if (!empty($filters['cycle_public_id'])) {
             $qb->whereRaw(
                 'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id = ? AND wc.deleted_at IS NULL)',
