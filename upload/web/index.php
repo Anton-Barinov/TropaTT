@@ -138,10 +138,22 @@ if ($route === null || $route === '') {
 }
 
 $route = trim((string)$route, '/');
-// Path-derived routes may carry a trailing '.php' (e.g. the root entry
-// redirects to /web/index.php). Map such entry-point requests to the
-// 'index' route (Dashboard) instead of failing with 404 on an unknown
-// 'index.php' route. Explicit ?route=index.php stays unknown on purpose.
+// Canonical entry-point redirect: a path-derived request that resolves to
+// 'index.php' (e.g. the root entry redirects to /web/index.php, or the user
+// types /web/index.php by hand) is redirected to the clean base path
+// (/web/), preserving any query string. Explicit ?route=index.php stays
+// unknown on purpose (still 404). Other path-derived '.php' files (e.g.
+// install.php) are served directly by the web server and never reach the
+// router; if one does, strip the extension rather than 404 on the raw name.
+if ($route === 'index.php' && $isPathDerived) {
+    $query = $_SERVER['QUERY_STRING'] ?? '';
+    $target = $basePath !== '' ? $basePath . '/' : '/';
+    if ($query !== '') {
+        $target .= '?' . $query;
+    }
+    header('Location: ' . $target, true, 302);
+    exit;
+}
 if ($route !== '' && $isPathDerived && str_ends_with($route, '.php')) {
     $route = substr($route, 0, -4);
 }
