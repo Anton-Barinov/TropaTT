@@ -1015,6 +1015,7 @@
   }
 }
 
+@media (max-width: 767.98px) {
   .crm-automation-page .crm-section-head {
     display: flex;
     flex-direction: column;
