@@ -296,6 +296,45 @@ foreach ($routes as $route) {
             $op['responses']['204'] = ['description' => 'No content'];
         }
 
+        // Document the task list query filters (GET /api/v1/tasks). All values
+        // resolve server-side over the full dataset; list filters accept
+        // comma-separated values and the "__none" marker (no value).
+        if ($httpMethod === 'get' && $path === '/api/v1/tasks') {
+            $queryParams = [
+                'search' => 'Text search across title, description and task key.',
+                'status' => 'Single status code filter.',
+                'priority' => 'Single priority code filter.',
+                'exclude_statuses' => 'Comma-separated status codes to exclude.',
+                'assignee_user_public_id' => 'Comma-separated assignee user public ids, or "none"/"__none" for tasks without an assignee.',
+                'manager_user_public_id' => 'Comma-separated project-manager user public ids, or "none"/"__none" for tasks without a project manager.',
+                'project_public_id' => 'Comma-separated project public ids, or "none"/"__none" for tasks without a project.',
+                'cycle_public_id' => 'Comma-separated cycle public ids, or "none"/"__none" for tasks without a cycle.',
+                'tag_public_id' => 'Comma-separated tag public ids (any match).',
+                'client_public_id' => 'Single client public id.',
+                'team_public_id' => 'Single team public id.',
+                'due' => 'Due preset: "overdue", "today" or "week".',
+                'due_at' => 'Single due date (YYYY-MM-DD).',
+                'due_at_from' => 'Due date range start: YYYY-MM-DD or full timestamp YYYY-MM-DD HH:MM:SS.',
+                'due_at_to' => 'Due date range end: YYYY-MM-DD or full timestamp YYYY-MM-DD HH:MM:SS.',
+                'archived' => 'Set to "1" to include archived tasks.',
+                'sort' => 'Sort column: title, due_at, created_at, updated_at, status_code, priority_code.',
+                'order' => 'Sort direction: ASC or DESC.',
+                'limit' => 'Page size (0 = unlimited, default 20, max 500).',
+                'page' => 'Page number (offset pagination).',
+                'cursor' => 'Opaque cursor for cursor pagination.',
+                'with_status_counts' => 'Set to "1" to include per-status counts in meta for the full filtered set.',
+            ];
+            foreach ($queryParams as $paramName => $paramDescription) {
+                $op['parameters'][] = [
+                    'name' => $paramName,
+                    'in' => 'query',
+                    'required' => false,
+                    'schema' => ['type' => 'string'],
+                    'description' => $paramDescription,
+                ];
+            }
+        }
+
         $spec['paths'][$path][$httpMethod] = $op;
     }
 }
