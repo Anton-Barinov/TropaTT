@@ -193,7 +193,7 @@ API endpoints:
 - `GET /api/v1/tasks/{task_public_id}/tags` — tags for a task
 - `POST /api/v1/tasks/{task_public_id}/tags/{tag_public_id}` — attach tag to task
 - `DELETE /api/v1/tasks/{task_public_id}/tags/{tag_public_id}` — detach tag from task
-- `GET /api/v1/tasks?tag_public_id=x` — filter tasks by tag
+- `GET /api/v1/tasks?tag_public_id=x` — filter tasks by tag (comma-separated multi-select `tag1,tag2` = any of the listed tags; the `__none` marker = tasks without any tag, e.g. `tag1,__none` unions tagged + untagged). The kanban board and tasks page expose this filter in the filter bar (searchable selects with a "Без тегов" option).
 
 The task list/board/detail API responses now include a `tags` field — a JSON array of `{public_id, code, title, color}` objects via `JSON_ARRAYAGG` subquery.
 
