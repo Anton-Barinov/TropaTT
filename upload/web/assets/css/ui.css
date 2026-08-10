@@ -233,7 +233,8 @@
 .crm-section-card,
 .crm-toolbar-surface,
 .crm-soft-panel,
-.crm-action-card {
+.crm-action-card,
+.crm-metric-tile {
   padding: 16px;
 }
 
@@ -3581,7 +3582,7 @@ body {
 #projectSummaryManager.crm-info-panel {
   display: block !important;
   margin: 0 !important;
-  padding: 10px 0 !important;
+  padding: 10px 16px !important;
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
@@ -3598,7 +3599,7 @@ body {
 .crm-project-detail-page .crm-metric-tile,
 .crm-project-detail-page .crm-info-panel {
   margin: 0 !important;
-  padding: 10px 0 !important;
+  padding: 10px 16px !important;
   background: transparent !important;
   background-image: none !important;
   border: 0 !important;
