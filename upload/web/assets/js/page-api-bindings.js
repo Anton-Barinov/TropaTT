@@ -19583,7 +19583,6 @@ window.CRM.pageApiBindings = (function () {
     var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
     if (limit <= 0 || loaded >= total) return;
     window.CRM.kanbanLoadingMore = true;
-    updateKanbanColumns();
     try {
       var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
       var query = kanbanBuildTaskQuery(filters);
@@ -19597,10 +19596,12 @@ window.CRM.pageApiBindings = (function () {
         var existing = window.CRM.kanbanTasks || [];
         var seen = {};
         existing.forEach(function (task) { if (task && task.public_id) seen[task.public_id] = true; });
+        var added = [];
         moreItems.forEach(function (task) {
           if (task && task.public_id && !seen[task.public_id]) {
             seen[task.public_id] = true;
             existing.push(task);
+            added.push(task);
           }
         });
         window.CRM.kanbanTasks = existing;
@@ -19610,13 +19611,124 @@ window.CRM.pageApiBindings = (function () {
         if (envelope.meta && envelope.meta.status_counts && typeof envelope.meta.status_counts === 'object') {
           window.CRM.kanbanStatusCounts = envelope.meta.status_counts;
         }
+        // Append only the newly fetched cards into their columns instead of
+        // rebuilding the whole board, so every column keeps its scroll position.
+        kanbanAppendTasks(added);
       }
     } catch (e) {
       // transient error — the scroll trigger will retry on the next scroll
     }
     window.CRM.kanbanLoadingMore = false;
-    updateKanbanColumns();
     initKanbanSortable();
+  }
+
+  // Appends newly loaded cards into their existing columns without touching
+  // the rest of the DOM, preserving each column's scroll position while more
+  // tasks stream in. Falls back to a full re-render only when a brand-new
+  // status column (not present in the DOM yet) needs to be created.
+  function kanbanAppendTasks(addedTasks) {
+    if (!addedTasks || !addedTasks.length) return;
+    var container = document.querySelector('.crm-kanban');
+    if (!container) return;
+
+    var byStatus = {};
+    addedTasks.forEach(function (task) {
+      var status = task.status_code || 'new';
+      if (!byStatus[status]) byStatus[status] = [];
+      byStatus[status].push(task);
+    });
+
+    // If a status with no existing column appeared, fall back to a full
+    // re-render — updateKanbanColumns(true) restores scroll positions.
+    var columns = container.querySelectorAll('.crm-kanban-col');
+    var knownStatuses = {};
+    Array.prototype.forEach.call(columns, function (col) {
+      knownStatuses[col.getAttribute('data-status-code') || ''] = true;
+    });
+    var needsFullRender = Object.keys(byStatus).some(function (status) {
+      return !knownStatuses[status];
+    });
+    if (needsFullRender) {
+      updateKanbanColumns(true);
+      initKanbanSortable();
+      return;
+    }
+
+    Object.keys(byStatus).forEach(function (statusCode) {
+      var col = null;
+      Array.prototype.forEach.call(columns, function (c) {
+        if (c.getAttribute('data-status-code') === statusCode) col = c;
+      });
+      if (!col) return;
+      var article = col.querySelector('article');
+      if (!article) return;
+      // Drop the "no tasks yet" placeholder once the column receives cards.
+      var empty = article.querySelector('.crm-kanban-col-empty');
+      if (empty && empty.parentNode) empty.parentNode.removeChild(empty);
+      article.insertAdjacentHTML('beforeend', byStatus[statusCode].map(renderKanbanCard).join(''));
+      // Refresh the column counter (uses full server counts when available).
+      var chip = col.querySelector('.crm-chip');
+      if (chip) {
+        var colTasks = (window.CRM.kanbanTasks || []).filter(function (t) {
+          return (t.status_code || 'new') === statusCode;
+        });
+        chip.textContent = kanbanColumnCount(statusCode, colTasks);
+      }
+    });
+
+    // Keep the mobile status tabs counters in sync.
+    var mobileTabs = document.getElementById('kanbanMobileStatusTabs');
+    if (mobileTabs) {
+      var allTasks = window.CRM.kanbanTasks || [];
+      var allByStatus = {};
+      allTasks.forEach(function (task) {
+        var status = task.status_code || 'new';
+        if (!allByStatus[status]) allByStatus[status] = [];
+        allByStatus[status].push(task);
+      });
+      kanbanRenderMobileTabs(mobileTabs, {
+        isMobile: !!(window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches),
+        finalOrder: window.CRM.kanbanFinalOrder || ['new', 'in_progress', 'done'],
+        statusMap: window.CRM.kanbanStatusMap || {},
+        hardcodedTitles: window.CRM.kanbanHardcodedTitles || {},
+        activeMobileStatus: String(window.CRM.kanbanMobileStatus || '').trim(),
+        byStatus: allByStatus
+      });
+    }
+
+    // Keep auto-filling while no column can be scrolled yet.
+    kanbanMaybeAutoFill();
+  }
+
+  function kanbanRenderMobileTabs(mobileTabs, ctx) {
+    if (!mobileTabs) return;
+    var isMobile = !!(ctx && ctx.isMobile);
+    var finalOrder = (ctx && ctx.finalOrder) || window.CRM.kanbanFinalOrder || ['new', 'in_progress', 'done'];
+    var statusMap = (ctx && ctx.statusMap) || window.CRM.kanbanStatusMap || {};
+    var hardcodedTitles = (ctx && ctx.hardcodedTitles) || window.CRM.kanbanHardcodedTitles || {};
+    var byStatus = (ctx && ctx.byStatus) || {};
+    var activeMobileStatus = String((ctx && ctx.activeMobileStatus) || window.CRM.kanbanMobileStatus || '').trim();
+    if (!isMobile) {
+      mobileTabs.innerHTML = '';
+      return;
+    }
+    mobileTabs.innerHTML = finalOrder.map(function (statusCode) {
+      var title = statusMap[statusCode] || hardcodedTitles[statusCode] || statusCode;
+      var count = kanbanColumnCount(statusCode, byStatus[statusCode] || []);
+      var activeClass = statusCode === activeMobileStatus ? ' is-active' : '';
+      return '<button type="button" class="btn crm-btn-secondary' + activeClass + '" data-kanban-mobile-status="' + safeText(statusCode) + '">' + safeText(title) + ' (' + safeText(String(count)) + ')</button>';
+    }).join('');
+    Array.prototype.slice.call(mobileTabs.querySelectorAll('[data-kanban-mobile-status]')).forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function () {
+        var next = String(btn.getAttribute('data-kanban-mobile-status') || '').trim();
+        if (!next || window.CRM.kanbanMobileStatus === next) return;
+        window.CRM.kanbanMobileStatus = next;
+        updateKanbanColumns();
+        initKanbanSortable();
+      });
+    });
   }
 
   function saveKanbanOrder(statusCode, container) {
@@ -19698,7 +19810,7 @@ window.CRM.pageApiBindings = (function () {
                       if (newRowVersion && item && item.setAttribute) {
                         item.setAttribute('data-row-version', String(newRowVersion));
                       }
-                      updateKanbanColumns();
+                      updateKanbanColumns(true);
                       // Re-init sortable bindings for newly rendered columns
                       initKanbanSortable();
                     } else {
@@ -19727,7 +19839,7 @@ window.CRM.pageApiBindings = (function () {
     });
   }
 
-  function updateKanbanColumns() {
+  function updateKanbanColumns(keepScroll) {
     var tasks = window.CRM.kanbanTasks || [];
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     bindKanbanFilters();
@@ -19748,6 +19860,17 @@ window.CRM.pageApiBindings = (function () {
     var container = document.querySelector('.crm-kanban');
     var mobileTabs = document.getElementById('kanbanMobileStatusTabs');
     if (!container) return;
+
+    // Remember each column's scroll position so a re-render (load-more or
+    // drag-n-drop) does not yank every column back to the top.
+    var savedScrollTops = {};
+    if (keepScroll) {
+      var currentCols = container.querySelectorAll('.crm-kanban-col');
+      Array.prototype.forEach.call(currentCols, function (col) {
+        var code = col.getAttribute('data-status-code') || '';
+        if (code) savedScrollTops[code] = col.scrollTop;
+      });
+    }
 
     // Build final status list.
     // Preserve the first computed order across re-renders to avoid columns jumping around.
@@ -19787,6 +19910,8 @@ window.CRM.pageApiBindings = (function () {
       'on_hold': kanbanT('kanban.status.on_hold', 'На паузе'),
       'archived': kanbanT('kanban.status.archived', 'Архив')
     };
+    // Expose for incremental load-more rendering (mobile tabs + counters).
+    window.CRM.kanbanHardcodedTitles = hardcodedTitles;
 
     // Rebuild columns to avoid duplicates and support dynamic statuses
     container.innerHTML = '';
@@ -19817,29 +19942,14 @@ window.CRM.pageApiBindings = (function () {
       container.appendChild(section);
     });
 
-    if (mobileTabs) {
-      if (!isMobile) {
-        mobileTabs.innerHTML = '';
-      } else {
-        mobileTabs.innerHTML = finalOrder.map(function (statusCode) {
-          var title = statusMap[statusCode] || hardcodedTitles[statusCode] || statusCode;
-          var count = kanbanColumnCount(statusCode, byStatus[statusCode] || []);
-          var activeClass = statusCode === activeMobileStatus ? ' is-active' : '';
-          return '<button type="button" class="btn crm-btn-secondary' + activeClass + '" data-kanban-mobile-status="' + safeText(statusCode) + '">' + safeText(title) + ' (' + safeText(String(count)) + ')</button>';
-        }).join('');
-        Array.prototype.slice.call(mobileTabs.querySelectorAll('[data-kanban-mobile-status]')).forEach(function (btn) {
-          if (btn.dataset.bound === '1') return;
-          btn.dataset.bound = '1';
-          btn.addEventListener('click', function () {
-            var next = String(btn.getAttribute('data-kanban-mobile-status') || '').trim();
-            if (!next || window.CRM.kanbanMobileStatus === next) return;
-            window.CRM.kanbanMobileStatus = next;
-            updateKanbanColumns();
-            initKanbanSortable();
-          });
-        });
-      }
-    }
+    kanbanRenderMobileTabs(mobileTabs, {
+      isMobile: isMobile,
+      finalOrder: finalOrder,
+      statusMap: statusMap,
+      hardcodedTitles: hardcodedTitles,
+      activeMobileStatus: activeMobileStatus,
+      byStatus: byStatus
+    });
 
     // Populate columns
     var columns = container.querySelectorAll('.crm-kanban-col');
@@ -19875,6 +19985,14 @@ window.CRM.pageApiBindings = (function () {
         }
       }
     });
+    // Restore saved scroll positions now that the columns are repopulated.
+    if (keepScroll) {
+      var repopulatedCols = container.querySelectorAll('.crm-kanban-col');
+      Array.prototype.forEach.call(repopulatedCols, function (col) {
+        var code = col.getAttribute('data-status-code') || '';
+        if (savedScrollTops[code] != null) col.scrollTop = savedScrollTops[code];
+      });
+    }
     initKanbanScrollButtons();
     kanbanEnsureLoadMore();
     kanbanMaybeAutoFill();
