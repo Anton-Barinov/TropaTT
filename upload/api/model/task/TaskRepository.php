@@ -642,14 +642,29 @@ final class TaskRepository
         }
 
         if (!empty($filters['tag_public_id'])) {
-            $tagPublicIds = $this->splitFilterList($filters['tag_public_id']);
-            if ($tagPublicIds !== []) {
-                $placeholders = implode(', ', array_fill(0, count($tagPublicIds), '?'));
+            $tagParts = $this->splitFilterList($filters['tag_public_id']);
+            $wantsNone = $this->listWantsNone($tagParts);
+            $ids = $this->listWithoutNone($tagParts);
+            if ($wantsNone && $ids === []) {
+                $qb->whereRaw(
+                    'NOT EXISTS (SELECT 1 FROM entity_tags etn WHERE etn.entity_type = ? AND etn.entity_public_id = t.public_id)',
+                    ['task']
+                );
+            } elseif ($wantsNone) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    '(NOT EXISTS (SELECT 1 FROM entity_tags etn WHERE etn.entity_type = ? AND etn.entity_public_id = t.public_id)'
+                    . ' OR EXISTS (SELECT 1 FROM entity_tags et INNER JOIN tags tg ON tg.id = et.tag_id WHERE et.entity_type = ? AND et.entity_public_id = t.public_id AND tg.public_id IN (' . $placeholders . ')))',
+                    array_merge(['task', 'task'], $ids)
+                );
+            } elseif ($ids !== []) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
                     'EXISTS (SELECT 1 FROM entity_tags et INNER JOIN tags tg ON tg.id = et.tag_id WHERE et.entity_type = ? AND et.entity_public_id = t.public_id AND tg.public_id IN (' . $placeholders . '))',
-                    array_merge(['task'], $tagPublicIds)
+                    array_merge(['task'], $ids)
                 );
             }
+            // else: only commas/whitespace were given — nothing to filter by.
         }
 
         if (!empty($filters['project_public_id'])) {

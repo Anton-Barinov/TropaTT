@@ -3688,6 +3688,12 @@ window.CRM.pageApiBindings = (function () {
       var tagEnv = await tagOptionsPromise;
       var tagItems = mapItems(tagEnv);
       fillSelect(tasksTagSelect, tagItems, 'public_id', function (t) { return t.title || t.code || t.public_id; });
+      // Add "no tags" option
+      var noTagOpt = document.createElement('option');
+      noTagOpt.value = '__none';
+      noTagOpt.textContent = window.CRM.i18n.t('tasks.filter_no_tags', 'Без тегов');
+      tasksTagSelect.insertBefore(noTagOpt, tasksTagSelect.options[tasksTagSelect.options.length - 1] || null);
+      if (tagFilter) tasksTagSelect.value = tagFilter;
     }
 
     bindTasksFilters();
@@ -19052,6 +19058,7 @@ window.CRM.pageApiBindings = (function () {
       if (kind === 'manager') return kanbanT('kanban.filters.no_manager', 'Без менеджера');
       if (kind === 'project') return kanbanT('kanban.filters.no_project', 'Без проекта');
       if (kind === 'cycle') return kanbanT('kanban.filters.no_cycle', 'Без цикла');
+      if (kind === 'tag') return kanbanT('kanban.filters.no_tag', 'Без тегов');
     }
     return String(fallback || value || '').trim();
   }
@@ -19102,6 +19109,7 @@ window.CRM.pageApiBindings = (function () {
       buckets.manager.__none = kanbanT('kanban.filters.no_manager', 'Без менеджера');
       buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
       buckets.cycle.__none = kanbanT('kanban.filters.no_cycle', 'Без цикла');
+      buckets.tag.__none = kanbanT('kanban.filters.no_tag', 'Без тегов');
       window.CRM.kanbanFilterOptions = buckets;
       // Only cache once at least one catalog actually loaded — otherwise a
       // transient failure would leave the filter selects permanently empty.

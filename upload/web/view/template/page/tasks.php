@@ -50,6 +50,10 @@
     <label class="crm-filter-label" for="tasksCycleFilter" data-i18n="tasks.filter_cycle"><?= htmlspecialchars($t('tasks.filter_cycle', 'Цикл'), ENT_QUOTES, 'UTF-8') ?></label>
     <select id="tasksCycleFilter" class="form-select"><option value="" data-i18n="tasks.filter_all_cycles"><?= htmlspecialchars($t('tasks.filter_all_cycles', 'Все циклы'), ENT_QUOTES, 'UTF-8') ?></option></select>
   </div>
+  <div>
+    <label class="crm-filter-label" for="tasksTagFilter" data-i18n="tasks.filter_tag"><?= htmlspecialchars($t('tasks.filter_tag', 'Тег'), ENT_QUOTES, 'UTF-8') ?></label>
+    <select id="tasksTagFilter" class="form-select"><option value="" data-i18n="tasks.filter_all_tags"><?= htmlspecialchars($t('tasks.filter_all_tags', 'Все теги'), ENT_QUOTES, 'UTF-8') ?></option></select>
+  </div>
   <div class="crm-kanban-due-filters" role="group">
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue" data-i18n="tasks.filter_overdue"><?= htmlspecialchars($t('tasks.filter_overdue', 'Просроченные'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today" data-i18n="tasks.filter_today"><?= htmlspecialchars($t('tasks.filter_today', 'Сегодня'), ENT_QUOTES, 'UTF-8') ?></button>
