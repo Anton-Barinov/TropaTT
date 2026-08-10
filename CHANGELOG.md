@@ -6,6 +6,34 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## [Unreleased]
 
+## [0.2.0.1] - 2026-08-10
+
+### Added
+
+- Color themes: new **sepia** (warm parchment) theme as a pure token block in `themes.css` — added a theme without touching any component styles, proving the token architecture. Registered in the header allowlist, `api.js` THEMES, the profile theme select and all 7 locale files.
+- Kanban: horizontal scroll navigation — always-visible scrollbar, floating left/right scroll buttons, and a keyboard fallback (Left/Right arrows scroll the board by one column; typing contexts and open modals/offcanvas are ignored).
+- Kanban: scroll buttons fade-in animation when hovering the board edge (reduced-motion safe).
+- Theme architecture: all colors unified into CSS variables — zero hardcoded colors in base CSS/JS/PHP templates; themes only swap token sets, so adding a new theme means defining variables only.
+
+### Changed
+
+- Profile theme select order: light, sepia, dark, contrast.
+- Footer is no longer sticky — it flows naturally at the page bottom, freeing vertical space.
+- `.crm-metric-tile` gets explicit padding and aligns with the system card visual style; my-day/my-week tiles use `box-shadow: none !important` and `min-width: 105px`.
+- Status/error toast tokens are now per-theme (sepia loading popup uses warm brown instead of fixed green).
+- Switches: enabled toggles no longer show the hover/focus glow ring (`box-shadow: none`).
+- All `var(--token, #hex)` fallbacks removed — no raw hex colors remain outside token definitions.
+- Visual-editor tokens (`--crm-ve-*`) moved to `:root`/theme scope so rendered content (comments, descriptions, ideas) keeps spoiler styling outside the editor.
+
+### Fixed
+
+- Dark theme: remaining light artifacts and unreadable dark-on-dark text eliminated — modal/offcanvas/drawer/popover surfaces, buttons, tables, calendar, gantt, chat, knowledge, dashboard builder, badges and bootstrap `box-shadow` glows now follow theme tokens.
+- Contrast theme: no blue accents remain — links/checks/avatars/gantt/calendar/buttons use brand dark green, plain chips and labels stay readable, button surfaces are white with black borders (WCAG AA).
+- Sepia theme: gantt uses warm brown tints instead of blue accents.
+- Visual editor spoiler: `<details class="crm-ve-spoiler">` in saved content (comments, descriptions, ideas) now renders styled and collapsible in every theme.
+- Projects page: missing project status translations for Russian locale (and all 7 locales) — statuses no longer fall back to English.
+- pages.css: restored the missing `@media` wrapper around `.crm-automation-page .crm-section-head` mobile rules (orphan closing brace since an earlier commit; braces balanced again).
+
 ## [0.2.0] - 2026-08-09
 
 ### Added
