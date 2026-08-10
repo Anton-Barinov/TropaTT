@@ -922,7 +922,7 @@ window._renderClarifications=function(data){
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
-    h+='<div class="mb-3 p-2 border rounded" style="border-left:3px solid #6f42c1 !important" data-qid="'+qid+'">';
+    h+='<div class="mb-3 p-2 border rounded" style="border-left:3px solid var(--crm-idea-clarify) !important" data-qid="'+qid+'">';
     h+='<strong>'+(i+1)+'. '+window.CRM.text.escapeHtml(q.question||'')+'</strong>';
     if(q.why)h+='<div class="text-muted small mb-2">'+window.CRM.text.escapeHtml(q.why)+'</div>';
     h+=renderAnswerChoices(qid,q.answers||[],true);
@@ -1093,7 +1093,7 @@ window._renderGaps=function(data){
   var h='';
   questions.forEach(function(q,i){
     var qid=q.public_id;
-    h+='<div class="mb-3 p-2 border rounded" style="border-left:3px solid #d63384 !important" data-qid="'+qid+'">';
+    h+='<div class="mb-3 p-2 border rounded" style="border-left:3px solid var(--crm-idea-gap) !important" data-qid="'+qid+'">';
     h+='<strong>'+(i+1)+'. '+window.CRM.text.escapeHtml(q.question||'')+'</strong>';
     if(q.why)h+='<div class="text-muted small mb-2">'+window.CRM.text.escapeHtml(q.why)+'</div>';
     h+=renderAnswerChoices(qid,q.answers||[],true);
