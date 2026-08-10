@@ -25,6 +25,10 @@
     <label class="crm-filter-label" for="kanbanCycleFilter" data-i18n="kanban.filters.cycle"><?= htmlspecialchars($t('kanban.filters.cycle', 'Цикл'), ENT_QUOTES, 'UTF-8') ?></label>
     <select class="form-select" id="kanbanCycleFilter" aria-label="<?= htmlspecialchars($t('kanban.filters.cycle_aria', 'Фильтр по циклам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.cycle_aria"></select>
   </div>
+  <div>
+    <label class="crm-filter-label" for="kanbanTagFilter" data-i18n="kanban.filters.tag"><?= htmlspecialchars($t('kanban.filters.tag', 'Тег'), ENT_QUOTES, 'UTF-8') ?></label>
+    <select class="form-select" id="kanbanTagFilter" aria-label="<?= htmlspecialchars($t('kanban.filters.tag_aria', 'Фильтр по тегам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.tag_aria"></select>
+  </div>
   <div class="crm-kanban-due-filters" role="group" aria-label="<?= htmlspecialchars($t('kanban.filters.due_aria', 'Фильтры по срокам'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="kanban.filters.due_aria">
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="overdue" data-i18n="kanban.filters.overdue"><?= htmlspecialchars($t('kanban.filters.overdue', 'Просроченные'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today" data-i18n="kanban.filters.today"><?= htmlspecialchars($t('kanban.filters.today', 'Сегодня'), ENT_QUOTES, 'UTF-8') ?></button>

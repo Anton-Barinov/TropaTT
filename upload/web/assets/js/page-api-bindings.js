@@ -19136,7 +19136,8 @@ window.CRM.pageApiBindings = (function () {
       assignee: kanbanT('kanban.filters.all_assignees', 'Все исполнители'),
       manager: kanbanT('kanban.filters.all_managers', 'Все менеджеры'),
       project: kanbanT('kanban.filters.all_projects', 'Все проекты'),
-      cycle: kanbanT('kanban.filters.all_cycles', 'Все циклы')
+      cycle: kanbanT('kanban.filters.all_cycles', 'Все циклы'),
+      tag: kanbanT('kanban.filters.all_tags', 'Все теги')
     };
     var entries = [{ value: '', label: allLabels[kind] || kanbanT('kanban.filters.all', 'Все') }];
     var others = Object.keys(map || {}).map(function (key) {
@@ -19192,10 +19193,15 @@ window.CRM.pageApiBindings = (function () {
       cycles: kanbanSelectedValues(document.getElementById('kanbanCycleFilter')),
       due: String((document.querySelector('[data-kanban-due].is-active')?.getAttribute('data-kanban-due') || '')).trim()
     };
-    // Tag filter is toggled by clicking a tag chip on a card (there is no
-    // kanban tag <select>), so carry the active tag filter over from state.
-    var currentFilters = window.CRM.kanbanFilters || {};
-    result.tags = (currentFilters.tags || []).slice();
+    // Tag filter reads from the tag <select> when present; the card-tag chip
+    // click keeps the select in sync, so both paths stay consistent.
+    var tagSelect = document.getElementById('kanbanTagFilter');
+    if (tagSelect) {
+      result.tags = kanbanSelectedValues(tagSelect);
+    } else {
+      var currentFilters = window.CRM.kanbanFilters || {};
+      result.tags = (currentFilters.tags || []).slice();
+    }
     // Preserve dueFrom/dueTo from URL if not currently active (they come from URL only)
     if (!result.due) {
       var q = pageQuery();
@@ -19273,6 +19279,7 @@ window.CRM.pageApiBindings = (function () {
     var manager = document.getElementById('kanbanManagerFilter');
     var project = document.getElementById('kanbanProjectFilter');
     var cycle = document.getElementById('kanbanCycleFilter');
+    var tag = document.getElementById('kanbanTagFilter');
     var reset = document.getElementById('kanbanFiltersResetBtn');
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     var options = window.CRM.kanbanFilterOptions || {};
@@ -19285,10 +19292,10 @@ window.CRM.pageApiBindings = (function () {
       kanbanReloadTasks();
     };
     window.CRM.kanbanApplyFilters = apply;
-    [assignee, manager, project, cycle].forEach(function (select) {
+    [assignee, manager, project, cycle, tag].forEach(function (select) {
       if (!select) return;
       var kind = select.id.replace('kanban', '').replace('Filter', '').toLowerCase();
-      var selected = kind === 'assignee' ? filters.assignees : kind === 'manager' ? filters.managers : kind === 'project' ? filters.projects : kind === 'cycle' ? filters.cycles : [];
+      var selected = kind === 'assignee' ? filters.assignees : kind === 'manager' ? filters.managers : kind === 'project' ? filters.projects : kind === 'cycle' ? filters.cycles : kind === 'tag' ? filters.tags : [];
       kanbanPopulateSelect(select, options[kind] || {}, selected, kind);
     });
     // Restore filter values after populate
@@ -19296,6 +19303,7 @@ window.CRM.pageApiBindings = (function () {
     if (manager && filters.managers && filters.managers.length) kanbanSetMultiValue(manager, filters.managers);
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
     if (cycle && filters.cycles && filters.cycles.length) kanbanSetMultiValue(cycle, filters.cycles);
+    if (tag && filters.tags && filters.tags.length) kanbanSetMultiValue(tag, filters.tags);
     // Active tag chip display in filter area
     var tagChipContainer = document.getElementById('kanbanTagChipFilter');
     if (tagChipContainer) {
@@ -19312,7 +19320,7 @@ window.CRM.pageApiBindings = (function () {
         tagChipContainer.innerHTML = '';
       }
     }
-    [assignee, manager, project, cycle].forEach(function (select) {
+    [assignee, manager, project, cycle, tag].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
       select.dataset.bound = '1';
@@ -19350,6 +19358,7 @@ window.CRM.pageApiBindings = (function () {
           if (manager) { manager.value = ''; }
           if (project) { project.value = ''; }
           if (cycle) { cycle.value = ''; }
+          if (tag) { tag.value = ''; }
           // Clear searchable inputs and clear buttons
           document.querySelectorAll('.crm-kanban-filters .crm-searchable-input, .crm-filters-card .crm-searchable-input').forEach(function (inp) { inp.value = ''; });
           document.querySelectorAll('.crm-kanban-filters .crm-searchable-clear, .crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
@@ -29421,6 +29430,7 @@ window.CRM.pageApiBindings = (function () {
       '#kanbanAssigneeFilter',
       '#kanbanManagerFilter',
       '#kanbanCycleFilter',
+      '#kanbanTagFilter',
       '#timeAnalyticsUserFilter',
       '#timeAnalyticsEarningsUserFilter',
       '#timeAnalyticsMatrixUserFilter',
@@ -29446,7 +29456,6 @@ window.CRM.pageApiBindings = (function () {
       '#taskProjectInlineSelect',
       '#tasksProjectFilter'
     ];
-    // Remove kanbanTagFilter from selectors
     selectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     projectSelectors.forEach(function (sel) { try { var el = root.querySelector(sel); if (el) makeSelectSearchable(el); } catch (e) {} });
     // Dynamic project selects in modals (create/edit task)
@@ -29541,6 +29550,12 @@ window.CRM.pageApiBindings = (function () {
           // Toggle: if already active, remove; else set
           filters.tags = (currentTags.indexOf(tagId) >= 0) ? [] : [tagId];
           window.CRM.kanbanFilters = filters;
+          // Keep the tag <select> in sync so later filter changes don't drop it
+          var tagSelect = document.getElementById('kanbanTagFilter');
+          if (tagSelect) {
+            kanbanSetMultiValue(tagSelect, filters.tags);
+            syncSearchableSingleSelect(tagSelect);
+          }
           if (window.CRM.kanbanApplyFilters) {
             window.CRM.kanbanApplyFilters(filters, true);
           } else {
@@ -29559,6 +29574,11 @@ window.CRM.pageApiBindings = (function () {
         var f = window.CRM.kanbanFilters || {};
         f.tags = [];
         window.CRM.kanbanFilters = f;
+        var tagSelect = document.getElementById('kanbanTagFilter');
+        if (tagSelect) {
+          tagSelect.value = '';
+          syncSearchableSingleSelect(tagSelect);
+        }
         if (window.CRM.kanbanApplyFilters) {
           window.CRM.kanbanApplyFilters(f, true);
         }
