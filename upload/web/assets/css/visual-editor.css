@@ -1,4 +1,7 @@
-.crm-ve-editor {
+/* The visual-editor token set lives on :root so that content rendered from
+   the editor (comments, task descriptions, ideas, knowledge pages) keeps its
+   styling outside the editor container as well. */
+:root {
   --crm-ve-accent: #0b7a60;
   --crm-ve-accent-light: rgba(11, 122, 96, 0.12);
   --crm-ve-surface: #ffffff;
@@ -14,7 +17,9 @@
   --crm-ve-btn-size: 30px;
   --crm-ve-btn-radius: 8px;
   --crm-ve-min-height: 160px;
+}
 
+.crm-ve-editor {
   position: relative;
   width: 100%;
   flex: 1 1 auto;
