@@ -518,6 +518,7 @@ html[data-theme="dark"] .crm-dashboard-page #dashboardAiDigestActions .crm-dashb
   background: var(--crm-surface-2) !important;
   border-color: var(--crm-border) !important;
   color: var(--crm-text) !important;
+  box-shadow: none;
 }
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesBulkActionsBar {
   background: var(--crm-surface-2) !important;
@@ -547,6 +548,7 @@ html[data-theme="dark"] .crm-admin-actions .btn-outline-danger {
   background: var(--crm-surface-2);
   border-color: var(--crm-danger-border, var(--crm-border));
   color: var(--crm-danger);
+  box-shadow: none;
 }
 html[data-theme="dark"] .crm-btn-danger-soft:hover,
 html[data-theme="dark"] .btn-outline-danger:hover,
@@ -555,6 +557,26 @@ html[data-theme="dark"] .crm-btn-danger-icon:hover,
 html[data-theme="dark"] .crm-icon-button-danger:hover {
   background: var(--crm-danger-soft);
   color: var(--crm-danger);
+}
+
+/* Badges, chips and buttons inside .crm-content: no bootstrap focus/active
+   box-shadows (blue/white glows look like artifacts on dark surfaces).
+   The :focus-visible ring (ui.css, !important) still applies for keyboard. */
+html[data-theme="dark"] .crm-content .crm-badge,
+html[data-theme="dark"] .crm-content .badge,
+html[data-theme="dark"] .crm-content .crm-chip,
+html[data-theme="dark"] .crm-content .btn,
+html[data-theme="dark"] .crm-content .crm-table .btn,
+html[data-theme="dark"] .crm-content .crm-table .crm-badge,
+html[data-theme="dark"] .crm-content .crm-table .badge,
+html[data-theme="dark"] .crm-content .crm-table .crm-chip {
+  box-shadow: none;
+}
+
+/* Task table select-all + row checkboxes: kill bootstrap inset/glow shadows. */
+html[data-theme="dark"] .crm-tasks-page .crm-table-check-cell .form-check-input,
+html[data-theme="dark"] .crm-tasks-page .crm-table thead .form-check-input {
+  box-shadow: none;
 }
 
 /* Sidebar collapse toggle */
