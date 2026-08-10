@@ -3078,11 +3078,22 @@ window.CRM.pageApiBindings = (function () {
     if (clientFilter) apiQuery.client_public_id = clientFilter;
     if (cycleFilter) apiQuery.cycle_public_id = cycleFilter;
     if (tagFilter) apiQuery.tag_public_id = tagFilter;
-    if (dueFilter) apiQuery.due = dueFilter;
+    if (dueFilter) {
+      // Resolve the due preset in the user's local timezone so the filter
+      // matches what the user sees (server presets would use the app timezone).
+      var dueBounds = kanbanDueBounds(dueFilter);
+      if (dueBounds && dueBounds.from) apiQuery.due_at_from = dueBounds.from;
+      if (dueBounds && dueBounds.to) apiQuery.due_at_to = dueBounds.to;
+      if (dueBounds && dueBounds.exclude) apiQuery.exclude_statuses = dueBounds.exclude;
+    }
     // KPI quick views are resolved server-side too, so they cover the whole
     // dataset instead of just the current page of 50 tasks.
     if (kpi === 'active') apiQuery.exclude_statuses = 'done,completed,archived';
-    if (kpi === 'overdue') apiQuery.due = 'overdue';
+    if (kpi === 'overdue') {
+      var overdueBounds = kanbanDueBounds('overdue');
+      if (overdueBounds) apiQuery.due_at_to = overdueBounds.to;
+      if (overdueBounds && overdueBounds.exclude) apiQuery.exclude_statuses = overdueBounds.exclude;
+    }
     if (kpi === 'sla_week') apiQuery.search = 'sla';
     if (['title', 'due_at', 'status_code', 'priority_code', 'updated_at', 'created_at'].indexOf(sortFilter) >= 0) {
       apiQuery.sort = sortFilter;
@@ -19349,6 +19360,36 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  // Resolves the due-date preset in the USER's local timezone and returns
+  // explicit bounds. "today"/"week" become date ranges; "overdue" becomes
+  // due_at_to = now plus exclude_statuses so finished tasks are dropped.
+  function kanbanDueBounds(due) {
+    if (!due) return null;
+    var now = new Date();
+    var localDay = function (d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    };
+    var localNow = function (d) {
+      return localDay(d) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+    };
+    var today = localDay(now);
+    if (due === 'today') {
+      return { from: today, to: today };
+    }
+    if (due === 'week') {
+      var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 6);
+      return { from: today, to: localDay(weekEnd) };
+    }
+    if (due === 'overdue') {
+      // Finished tasks are excluded (matches the old client-side logic).
+      return { to: localNow(now), exclude: 'done,completed,closed,archived' };
+    }
+    return null;
+  }
+
   function kanbanBuildTaskQuery(filters) {
     // 0 = load all matching tasks (default); otherwise the configured global kanban_max_cards limit.
     var configuredLimit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
@@ -19361,9 +19402,14 @@ window.CRM.pageApiBindings = (function () {
     if (filters.projects && filters.projects.length) query.project_public_id = filters.projects.join(',');
     if (filters.cycles && filters.cycles.length) query.cycle_public_id = filters.cycles.join(',');
     if (filters.tags && filters.tags.length) query.tag_public_id = filters.tags.join(',');
-    if (filters.due) query.due = filters.due;
+    // Explicit URL bounds win over presets; otherwise resolve the preset in the
+    // user's local timezone so the filter matches what the user sees.
+    var dueBounds = kanbanDueBounds(filters.due);
     if (filters.dueFrom) query.due_at_from = filters.dueFrom;
+    else if (dueBounds && dueBounds.from) query.due_at_from = dueBounds.from;
     if (filters.dueTo) query.due_at_to = filters.dueTo;
+    else if (dueBounds && dueBounds.to) query.due_at_to = dueBounds.to;
+    if (dueBounds && dueBounds.exclude) query.exclude_statuses = dueBounds.exclude;
     return query;
   }
 

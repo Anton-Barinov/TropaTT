@@ -772,11 +772,16 @@ final class TaskRepository
         }
 
         if (!empty($filters['due_at_from'])) {
-            $qb->where('t.due_at', '>=', (string)$filters['due_at_from'] . ' 00:00:00');
+            // A plain date ('Y-m-d') means the start of that day; a full
+            // timestamp ('Y-m-d H:i:s') is used as-is (client-computed, e.g.
+            // for the overdue preset resolved in the user's own timezone).
+            $dueFrom = trim((string)$filters['due_at_from']);
+            $qb->where('t.due_at', '>=', strpos($dueFrom, ':') !== false ? $dueFrom : $dueFrom . ' 00:00:00');
         }
 
         if (!empty($filters['due_at_to'])) {
-            $qb->where('t.due_at', '<=', (string)$filters['due_at_to'] . ' 23:59:59');
+            $dueTo = trim((string)$filters['due_at_to']);
+            $qb->where('t.due_at', '<=', strpos($dueTo, ':') !== false ? $dueTo : $dueTo . ' 23:59:59');
         }
 
         if (!empty($filters['due'])) {
