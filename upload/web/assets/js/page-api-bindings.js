@@ -5113,7 +5113,7 @@ window.CRM.pageApiBindings = (function () {
                     var progress = cycle.progress_percent || 0;
                     var progressColor = progress >= 80 ? '#4caf50' : progress >= 40 ? '#ff9800' : progress > 0 ? '#f44336' : '#e0e0e0';
                     var taskInfo = (cycle.completed_tasks_count || 0) + '/' + (cycle.tasks_count || 0);
-                    html += '<div class="mb-2 pb-2" style="border-bottom:1px solid var(--crm-border);"'>
+                    html += '<div class="mb-2 pb-2" style="border-bottom:1px solid var(--crm-border);">'
                         + '<div class="d-flex justify-content-between align-items-start gap-2">'
                         + '<div class="small fw-semibold text-truncate">'
                         + '<a href="index.php?route=cycles" class="text-reset text-decoration-none">' + safeText(cycle.title) + '</a>'
