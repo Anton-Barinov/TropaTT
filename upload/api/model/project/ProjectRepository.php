@@ -118,6 +118,7 @@ final class ProjectRepository
             ->leftJoin('users mu', 'mu.id', '=', 'p.manager_user_id')
             ->leftJoin('users cu', 'cu.id', '=', 'p.created_by_user_id')
             ->leftJoin('teams t', 't.public_id', '=', 'p.team_public_id')
+            ->leftJoin('counterparties c', 'c.public_id', '=', 'p.client_public_id')
             ->select([
                 'p.*',
                 'p.task_key_prefix',
@@ -129,6 +130,7 @@ final class ProjectRepository
                 't.title AS team_title',
                 't.manager_user_id AS team_manager_user_id',
                 't.member_user_ids AS team_member_user_ids',
+                'c.title AS client_title',
             ])
             ->where('p.public_id', '=', $publicId)
             ->first();
