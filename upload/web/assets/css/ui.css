@@ -924,6 +924,12 @@ textarea.form-control::placeholder {
   position: relative;
 }
 
+.crm-kanban-scroll-wrap:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 4px var(--crm-focus) !important;
+  border-radius: 22px;
+}
+
 .crm-kanban {
   overflow-x: auto;
   overflow-y: hidden;
