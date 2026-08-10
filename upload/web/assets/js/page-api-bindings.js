@@ -19092,7 +19092,13 @@ window.CRM.pageApiBindings = (function () {
       buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
       buckets.cycle.__none = kanbanT('kanban.filters.no_cycle', 'Без цикла');
       window.CRM.kanbanFilterOptions = buckets;
-      window.CRM.kanbanFilterOptionsLoaded = true;
+      // Only cache once at least one catalog actually loaded — otherwise a
+      // transient failure would leave the filter selects permanently empty.
+      if (Object.keys(buckets.assignee).length > 1
+        || Object.keys(buckets.project).length > 1
+        || Object.keys(buckets.tag).length > 1) {
+        window.CRM.kanbanFilterOptionsLoaded = true;
+      }
       return buckets;
     });
   }
@@ -19386,10 +19392,14 @@ window.CRM.pageApiBindings = (function () {
   async function kanbanReloadTasks() {
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     var query = kanbanBuildTaskQuery(filters);
+    // Guard against out-of-order responses when the user changes filters
+    // quickly: only the newest request may apply its result.
+    var seq = (window.CRM.kanbanReloadSeq = (window.CRM.kanbanReloadSeq || 0) + 1);
     window.CRM.kanbanLoadingMore = true;
     updateKanbanColumns();
     try {
       var envelope = await tryRequest('api/v1/tasks', { query: query, silent: true });
+      if (seq !== window.CRM.kanbanReloadSeq) return; // a newer filter won
       if (envelope && envelope.success !== false) {
         var tasks = mapItems(envelope);
         window.CRM.kanbanTasks = tasks;
@@ -19401,6 +19411,7 @@ window.CRM.pageApiBindings = (function () {
     } catch (e) {
       // transient error — keep previous data; the next filter change retries
     }
+    if (seq !== window.CRM.kanbanReloadSeq) return;
     window.CRM.kanbanLoadingMore = false;
     updateKanbanColumns();
     initKanbanSortable();

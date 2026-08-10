@@ -661,9 +661,10 @@ final class TaskRepository
             } elseif ($wantsNone) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw('(p.public_id IS NULL OR p.public_id IN (' . $placeholders . '))', $ids);
-            } else {
+            } elseif ($ids !== []) {
                 $qb->whereIn('p.public_id', $ids);
             }
+            // else: only commas/whitespace were given — nothing to filter by.
         }
 
         if (!empty($filters['assignee_user_public_id'])) {
@@ -678,7 +679,7 @@ final class TaskRepository
                     '(t.assignee_user_id IS NULL OR EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id IN (' . $placeholders . ')))',
                     $ids
                 );
-            } else {
+            } elseif ($ids !== []) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
                     'EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id IN (' . $placeholders . '))',
@@ -699,7 +700,7 @@ final class TaskRepository
                     '(p.manager_user_id IS NULL OR EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . ')))',
                     $ids
                 );
-            } else {
+            } elseif ($ids !== []) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
                     'EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . '))',
@@ -722,7 +723,7 @@ final class TaskRepository
                     '(NOT EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN (\'planned\',\'active\')) OR EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id IN (' . $placeholders . ') AND wc.deleted_at IS NULL))',
                     $ids
                 );
-            } else {
+            } elseif ($ids !== []) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
                     'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id IN (' . $placeholders . ') AND wc.deleted_at IS NULL)',
@@ -779,20 +780,22 @@ final class TaskRepository
         }
 
         if (!empty($filters['due'])) {
+            // Presets resolve in the app timezone (APP_TIMEZONE, default
+            // Europe/Moscow) so they match what users see in the browser.
             $duePreset = strtolower(trim((string)$filters['due']));
             if ($duePreset === 'overdue') {
                 // Due in the past and not finished (matches the old client-side logic).
                 $qb->whereNotNull('t.due_at')
-                    ->where('t.due_at', '<', gmdate('Y-m-d H:i:s'))
+                    ->where('t.due_at', '<', date('Y-m-d H:i:s'))
                     ->whereRaw("t.status_code NOT IN ('done','completed','closed','archived')");
             } elseif ($duePreset === 'today') {
-                $day = gmdate('Y-m-d');
+                $day = date('Y-m-d');
                 $qb->whereNotNull('t.due_at')
                     ->where('t.due_at', '>=', $day . ' 00:00:00')
                     ->where('t.due_at', '<=', $day . ' 23:59:59');
             } elseif ($duePreset === 'week') {
-                $day = gmdate('Y-m-d');
-                $weekEnd = gmdate('Y-m-d', strtotime($day . ' +6 days'));
+                $day = date('Y-m-d');
+                $weekEnd = date('Y-m-d', strtotime($day . ' +6 days'));
                 $qb->whereNotNull('t.due_at')
                     ->where('t.due_at', '>=', $day . ' 00:00:00')
                     ->where('t.due_at', '<=', $weekEnd . ' 23:59:59');
