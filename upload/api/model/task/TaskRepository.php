@@ -633,41 +633,102 @@ final class TaskRepository
             $qb->where('t.priority_code', '=', (string)$filters['priority']);
         }
 
+        if (!empty($filters['exclude_statuses'])) {
+            $excludeStatuses = $this->splitFilterList($filters['exclude_statuses']);
+            if ($excludeStatuses !== []) {
+                $placeholders = implode(', ', array_fill(0, count($excludeStatuses), '?'));
+                $qb->whereRaw('t.status_code NOT IN (' . $placeholders . ')', $excludeStatuses);
+            }
+        }
+
         if (!empty($filters['tag_public_id'])) {
-            $qb->whereRaw(
-                'EXISTS (SELECT 1 FROM entity_tags et INNER JOIN tags tg ON tg.id = et.tag_id WHERE et.entity_type = ? AND et.entity_public_id = t.public_id AND tg.public_id = ?)',
-                ['task', (string)$filters['tag_public_id']]
-            );
+            $tagPublicIds = $this->splitFilterList($filters['tag_public_id']);
+            if ($tagPublicIds !== []) {
+                $placeholders = implode(', ', array_fill(0, count($tagPublicIds), '?'));
+                $qb->whereRaw(
+                    'EXISTS (SELECT 1 FROM entity_tags et INNER JOIN tags tg ON tg.id = et.tag_id WHERE et.entity_type = ? AND et.entity_public_id = t.public_id AND tg.public_id IN (' . $placeholders . '))',
+                    array_merge(['task'], $tagPublicIds)
+                );
+            }
         }
 
         if (!empty($filters['project_public_id'])) {
-            $qb->where('p.public_id', '=', (string)$filters['project_public_id']);
+            $projectParts = $this->splitFilterList($filters['project_public_id']);
+            $wantsNone = $this->listWantsNone($projectParts);
+            $ids = $this->listWithoutNone($projectParts);
+            if ($wantsNone && $ids === []) {
+                $qb->whereNull('p.public_id');
+            } elseif ($wantsNone) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw('(p.public_id IS NULL OR p.public_id IN (' . $placeholders . '))', $ids);
+            } else {
+                $qb->whereIn('p.public_id', $ids);
+            }
         }
 
         if (!empty($filters['assignee_user_public_id'])) {
-            $assigneeFilter = strtolower(trim((string)$filters['assignee_user_public_id']));
-            if (in_array($assigneeFilter, ['none', 'unassigned', 'empty'], true)) {
+            $assigneeParts = $this->splitFilterList($filters['assignee_user_public_id']);
+            $wantsNone = $this->listWantsNone($assigneeParts);
+            $ids = $this->listWithoutNone($assigneeParts);
+            if ($wantsNone && $ids === []) {
                 $qb->whereNull('t.assignee_user_id');
-            } else {
+            } elseif ($wantsNone) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
                 $qb->whereRaw(
-                    'EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id = ?)',
-                    [(string)$filters['assignee_user_public_id']]
+                    '(t.assignee_user_id IS NULL OR EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id IN (' . $placeholders . ')))',
+                    $ids
+                );
+            } else {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    'EXISTS (SELECT 1 FROM users au2 WHERE au2.id = t.assignee_user_id AND au2.public_id IN (' . $placeholders . '))',
+                    $ids
                 );
             }
         }
 
         if (!empty($filters['manager_user_public_id'])) {
-            $qb->whereRaw(
-                'EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id = ?)',
-                [(string)$filters['manager_user_public_id']]
-            );
+            $managerParts = $this->splitFilterList($filters['manager_user_public_id']);
+            $wantsNone = $this->listWantsNone($managerParts);
+            $ids = $this->listWithoutNone($managerParts);
+            if ($wantsNone && $ids === []) {
+                $qb->whereNull('p.manager_user_id');
+            } elseif ($wantsNone) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    '(p.manager_user_id IS NULL OR EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . ')))',
+                    $ids
+                );
+            } else {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    'EXISTS (SELECT 1 FROM projects pm2 JOIN users pmu ON pmu.id = pm2.manager_user_id WHERE pm2.id = t.project_id AND pmu.public_id IN (' . $placeholders . '))',
+                    $ids
+                );
+            }
         }
 
         if (!empty($filters['cycle_public_id'])) {
-            $qb->whereRaw(
-                'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id = ? AND wc.deleted_at IS NULL)',
-                [(string)$filters['cycle_public_id']]
-            );
+            $cycleParts = $this->splitFilterList($filters['cycle_public_id']);
+            $wantsNone = $this->listWantsNone($cycleParts);
+            $ids = $this->listWithoutNone($cycleParts);
+            if ($wantsNone && $ids === []) {
+                $qb->whereRaw(
+                    'NOT EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN (\'planned\',\'active\'))'
+                );
+            } elseif ($wantsNone) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    '(NOT EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.deleted_at IS NULL AND wc.status IN (\'planned\',\'active\')) OR EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id IN (' . $placeholders . ') AND wc.deleted_at IS NULL))',
+                    $ids
+                );
+            } else {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $qb->whereRaw(
+                    'EXISTS (SELECT 1 FROM cycle_tasks ct INNER JOIN work_cycles wc ON wc.id = ct.cycle_id WHERE ct.task_id = t.id AND ct.deleted_at IS NULL AND wc.public_id IN (' . $placeholders . ') AND wc.deleted_at IS NULL)',
+                    $ids
+                );
+            }
         }
 
         if (!empty($filters['module_public_id'])) {
@@ -717,6 +778,27 @@ final class TaskRepository
             $qb->where('t.due_at', '<=', (string)$filters['due_at_to'] . ' 23:59:59');
         }
 
+        if (!empty($filters['due'])) {
+            $duePreset = strtolower(trim((string)$filters['due']));
+            if ($duePreset === 'overdue') {
+                // Due in the past and not finished (matches the old client-side logic).
+                $qb->whereNotNull('t.due_at')
+                    ->where('t.due_at', '<', gmdate('Y-m-d H:i:s'))
+                    ->whereRaw("t.status_code NOT IN ('done','completed','closed','archived')");
+            } elseif ($duePreset === 'today') {
+                $day = gmdate('Y-m-d');
+                $qb->whereNotNull('t.due_at')
+                    ->where('t.due_at', '>=', $day . ' 00:00:00')
+                    ->where('t.due_at', '<=', $day . ' 23:59:59');
+            } elseif ($duePreset === 'week') {
+                $day = gmdate('Y-m-d');
+                $weekEnd = gmdate('Y-m-d', strtotime($day . ' +6 days'));
+                $qb->whereNotNull('t.due_at')
+                    ->where('t.due_at', '>=', $day . ' 00:00:00')
+                    ->where('t.due_at', '<=', $weekEnd . ' 23:59:59');
+            }
+        }
+
         $cursor = $this->cursorCodec->decode((string)($filters['cursor'] ?? ''));
         if (is_array($cursor)) {
             $cursorUpdatedAt = (string)($cursor['updated_at'] ?? '');
@@ -749,5 +831,53 @@ final class TaskRepository
         }
 
         return $qb;
+    }
+
+    /**
+     * Splits a comma-separated filter value into a trimmed, non-empty list.
+     * Supports both single values ('p1') and multi-select lists ('p1,p2').
+     *
+     * @return list<string>
+     */
+    private function splitFilterList(mixed $value): array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+        $parts = array_values(array_filter(
+            array_map('trim', explode(',', $value)),
+            static fn(string $part): bool => $part !== ''
+        ));
+        return $parts;
+    }
+
+    /**
+     * True when a filter list contains a '__none'/'none' marker meaning "items
+     * without a value" (e.g. tasks without an assignee/project/cycle/manager).
+     *
+     * @param list<string> $parts
+     */
+    private function listWantsNone(array $parts): bool
+    {
+        foreach ($parts as $part) {
+            if (in_array(strtolower($part), ['none', 'unassigned', 'empty', '__none'], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Filter list without the '__none'/'none' markers, keeping only real ids.
+     *
+     * @param list<string> $parts
+     * @return list<string>
+     */
+    private function listWithoutNone(array $parts): array
+    {
+        return array_values(array_filter(
+            $parts,
+            static fn(string $part): bool => !in_array(strtolower($part), ['none', 'unassigned', 'empty', '__none'], true)
+        ));
     }
 }

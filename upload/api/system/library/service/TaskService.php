@@ -29,7 +29,15 @@ final class TaskService
 
     public function list(array $filters, array $actor): array
     {
-        if (!empty($filters['project_public_id']) && !$this->projects->get((string)$filters['project_public_id'], $actor)) {
+        // Strict per-project access check only for a single project filter; a
+        // comma-separated multi-project list goes straight to the repository,
+        // which scopes results by the actor's own access rules anyway.
+        $projectFilter = trim((string)($filters['project_public_id'] ?? ''));
+        if ($projectFilter !== ''
+            && strpos($projectFilter, ',') === false
+            && !in_array(strtolower($projectFilter), ['none', 'unassigned', 'empty', '__none'], true)
+            && !$this->projects->get($projectFilter, $actor)
+        ) {
             return [
                 'items' => [],
                 'meta' => [

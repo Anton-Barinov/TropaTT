@@ -3076,8 +3076,14 @@ window.CRM.pageApiBindings = (function () {
     if (managerFilter) apiQuery.manager_user_public_id = managerFilter;
     if (projectFilter) apiQuery.project_public_id = projectFilter;
     if (clientFilter) apiQuery.client_public_id = clientFilter;
-    if (cycleFilter && cycleFilter !== '__none') apiQuery.cycle_public_id = cycleFilter;
+    if (cycleFilter) apiQuery.cycle_public_id = cycleFilter;
     if (tagFilter) apiQuery.tag_public_id = tagFilter;
+    if (dueFilter) apiQuery.due = dueFilter;
+    // KPI quick views are resolved server-side too, so they cover the whole
+    // dataset instead of just the current page of 50 tasks.
+    if (kpi === 'active') apiQuery.exclude_statuses = 'done,completed,archived';
+    if (kpi === 'overdue') apiQuery.due = 'overdue';
+    if (kpi === 'sla_week') apiQuery.search = 'sla';
     if (['title', 'due_at', 'status_code', 'priority_code', 'updated_at', 'created_at'].indexOf(sortFilter) >= 0) {
       apiQuery.sort = sortFilter;
       apiQuery.order = orderFilter;
@@ -3122,71 +3128,9 @@ window.CRM.pageApiBindings = (function () {
     }
 
     var items = mapItems(envelope);
-
-    if (kpi === 'active') {
-      items = items.filter(function (item) {
-        var code = String(item.status_code || '').toLowerCase();
-        return code !== 'done' && code !== 'completed' && code !== 'archived';
-      });
-    }
-
-    if (kpi === 'overdue') {
-      var nowMs = Date.now();
-      items = items.filter(function (item) {
-        var code = String(item.status_code || '').toLowerCase();
-        if (code === 'done' || code === 'completed') return false;
-        if (!item.due_at) return false;
-        var dueMs = Date.parse(String(item.due_at));
-        return Number.isFinite(dueMs) && dueMs < nowMs;
-      });
-    }
-
-    if (kpi === 'sla_week') {
-      items = items.filter(function (item) {
-        var haystack = [
-          item.title || '',
-          item.description || '',
-          item.project_title || '',
-          item.public_id || ''
-        ].join(' ').toLowerCase();
-        return haystack.indexOf('sla') !== -1;
-      });
-    }
-
-    // Примечание: search/assignee/client/manager/project/tag фильтруются на сервере
-    // (серверная пагинация), поэтому клиентской фильтрации для них больше нет.
-    // Остаются только специальные случаи: цикл '__none' (нет цикла) и фильтры по сроку.
-    if (cycleFilter === '__none') {
-      items = items.filter(function (item) {
-        return !String(item.cycle_public_id || '').trim();
-      });
-    }
-
-    if (dueFilter) {
-      var nowMs = Date.now();
-      var todayStart = new Date(); todayStart.setHours(0,0,0,0);
-      var weekEnd = new Date(todayStart); weekEnd.setDate(weekEnd.getDate() + 6);
-      items = items.filter(function (item) {
-        var code = String(item.status_code || '').toLowerCase();
-        if (dueFilter === 'overdue') {
-          if (code === 'done' || code === 'completed') return false;
-          if (!item.due_at) return false;
-          var dueMs = Date.parse(String(item.due_at));
-          return Number.isFinite(dueMs) && dueMs < nowMs;
-        }
-        if (dueFilter === 'today') {
-          if (!item.due_at) return false;
-          var d = Date.parse(String(item.due_at));
-          return Number.isFinite(d) && d >= todayStart.getTime() && d < todayStart.getTime() + 86400000;
-        }
-        if (dueFilter === 'week') {
-          if (!item.due_at) return false;
-          var wd = Date.parse(String(item.due_at));
-          return Number.isFinite(wd) && wd >= todayStart.getTime() && wd <= weekEnd.getTime() + 86400000;
-        }
-        return true;
-      });
-    }
+    // Все фильтры (search/assignee/client/manager/project/cycle/tag/due, KPI-режимы
+    // и '__none'-значения) применяются на сервере, поэтому клиентской фильтрации
+    // по загруженной странице больше нет — результаты и счётчики всегда полные.
 
     var filterSnapshot = {
       search: searchFilter,
@@ -19101,62 +19045,56 @@ window.CRM.pageApiBindings = (function () {
     return String(fallback || value || '').trim();
   }
 
-  function kanbanBuildFilterOptions(tasks) {
+  // Builds the filter dropdown options from the FULL catalogs (users, projects,
+  // cycles, tags) instead of the currently loaded cards, so every possible
+  // filter value is always available regardless of pagination/loading state.
+  function kanbanLoadFilterOptions() {
+    if (window.CRM.kanbanFilterOptionsLoaded) {
+      return Promise.resolve(window.CRM.kanbanFilterOptions || {});
+    }
     var buckets = { assignee: {}, manager: {}, project: {}, cycle: {}, tag: {} };
-    var hasNoAssignee = false;
-    var hasNoManager = false;
-    var hasNoProject = false;
-    var hasNoCycle = false;
-    tasks.forEach(function (task) {
-      var assignees = kanbanTaskAssignees(task);
-      if (assignees.length) {
-        assignees.forEach(function (user) {
-          var key = user.id || user.name;
-          if (key) buckets.assignee[key] = user.name || key;
+    var usersPromise = tryRequest('api/v1/users', { query: { limit: 500, is_active: 1 }, silent: true });
+    var projectsPromise = tryRequest('api/v1/projects', { query: { limit: 200, archived: '1' }, silent: true });
+    var tagsPromise = tryRequest('api/v1/tags', { query: { limit: 200 }, silent: true });
+    return Promise.all([usersPromise, projectsPromise, tagsPromise]).then(function (results) {
+      var usersEnv = results[0];
+      var projectsEnv = results[1];
+      var tagsEnv = results[2];
+      if (usersEnv && usersEnv.success !== false) {
+        mapItems(usersEnv).forEach(function (user) {
+          var id = String(user && (user.public_id || user.id) || '').trim();
+          if (!id) return;
+          var label = String(user.full_name || user.name || user.login || id).trim();
+          buckets.assignee[id] = label;
+          buckets.manager[id] = label;
         });
-      } else {
-        hasNoAssignee = true;
       }
-      var manager = kanbanTaskManager(task);
-      if (manager) {
-        var managerKey = manager.id || manager.name;
-        if (managerKey) buckets.manager[managerKey] = manager.name || managerKey;
-      } else {
-        hasNoManager = true;
+      if (projectsEnv && projectsEnv.success !== false) {
+        mapItems(projectsEnv).forEach(function (project) {
+          var id = String(project && project.public_id || '').trim();
+          if (!id) return;
+          buckets.project[id] = String(project.title || id).trim();
+        });
       }
-      var projectId = String(task.project_public_id || '').trim();
-      var projectTitle = String(task.project_title || '').trim();
-      if (projectId || projectTitle) {
-        buckets.project[projectId || projectTitle] = projectTitle || projectId;
-      } else {
-        hasNoProject = true;
+      Object.keys(window.CRM.kanbanCycleOptions || {}).forEach(function (key) {
+        buckets.cycle[key] = window.CRM.kanbanCycleOptions[key];
+      });
+      if (tagsEnv && tagsEnv.success !== false) {
+        mapItems(tagsEnv).forEach(function (tag) {
+          var id = String(tag && tag.public_id || '').trim();
+          if (!id) return;
+          buckets.tag[id] = String(tag.title || tag.code || id).trim();
+        });
       }
-      var cycleId = String(task.cycle_public_id || '').trim();
-      var cycleTitle = String(task.cycle_title || '').trim();
-      if (cycleId || cycleTitle) {
-        buckets.cycle[cycleId || cycleTitle] = cycleTitle || cycleId;
-      } else {
-        hasNoCycle = true;
-      }
-      // Collect tags
-      if (task.tags) {
-        try { var parsed = typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags; }
-        catch(e) { var parsed = []; }
-        if (Array.isArray(parsed)) {
-          parsed.forEach(function (tag) {
-            if (tag && tag.public_id) buckets.tag[tag.public_id] = tag.title || tag.code || tag.public_id;
-          });
-        }
-      }
+      // "No value" options are always offered — the server resolves them.
+      buckets.assignee.__none = kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
+      buckets.manager.__none = kanbanT('kanban.filters.no_manager', 'Без менеджера');
+      buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
+      buckets.cycle.__none = kanbanT('kanban.filters.no_cycle', 'Без цикла');
+      window.CRM.kanbanFilterOptions = buckets;
+      window.CRM.kanbanFilterOptionsLoaded = true;
+      return buckets;
     });
-    if (hasNoAssignee) buckets.assignee.__none = kanbanT('kanban.filters.no_assignee', 'Без исполнителя');
-    if (hasNoManager) buckets.manager.__none = kanbanT('kanban.filters.no_manager', 'Без менеджера');
-    if (hasNoProject) buckets.project.__none = kanbanT('kanban.filters.no_project', 'Без проекта');
-    if (hasNoCycle) buckets.cycle.__none = kanbanT('kanban.filters.no_cycle', 'Без цикла');
-    Object.keys(window.CRM.kanbanCycleOptions || {}).forEach(function (key) {
-      buckets.cycle[key] = window.CRM.kanbanCycleOptions[key];
-    });
-    return buckets;
   }
 
   function kanbanSetMultiValue(select, values) {
@@ -19235,9 +19173,12 @@ window.CRM.pageApiBindings = (function () {
       managers: kanbanSelectedValues(document.getElementById('kanbanManagerFilter')),
       projects: kanbanSelectedValues(document.getElementById('kanbanProjectFilter')),
       cycles: kanbanSelectedValues(document.getElementById('kanbanCycleFilter')),
-      tags: kanbanSelectedValues(document.getElementById('kanbanTagFilter')),
       due: String((document.querySelector('[data-kanban-due].is-active')?.getAttribute('data-kanban-due') || '')).trim()
     };
+    // Tag filter is toggled by clicking a tag chip on a card (there is no
+    // kanban tag <select>), so carry the active tag filter over from state.
+    var currentFilters = window.CRM.kanbanFilters || {};
+    result.tags = (currentFilters.tags || []).slice();
     // Preserve dueFrom/dueTo from URL if not currently active (they come from URL only)
     if (!result.due) {
       var q = pageQuery();
@@ -19251,85 +19192,15 @@ window.CRM.pageApiBindings = (function () {
     return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || (filters.cycles && filters.cycles.length) || (filters.tags && filters.tags.length) || filters.due || filters.dueFrom || filters.dueTo);
   }
 
-  // Server counters (meta.status_counts) are exact only while the active filter
-  // set matches what the server actually applied on the last fetch. Client-side
-  // filters (assignees/managers/due, '__none' values, multi-selects of
-  // project/cycle/tag) break that match, so the board falls back to counting
-  // the loaded cards.
-  function kanbanCountsMatchFilters(filters) {
-    if (!filters) return true;
-    if (filters.assignees && filters.assignees.length) return false;
-    if (filters.managers && filters.managers.length) return false;
-    if (filters.due || filters.dueFrom || filters.dueTo) return false;
-    if ((filters.projects || []).length > 1 || (filters.projects || []).indexOf('__none') !== -1) return false;
-    if ((filters.cycles || []).length > 1 || (filters.cycles || []).indexOf('__none') !== -1) return false;
-    if ((filters.tags || []).length > 1 || (filters.tags || []).indexOf('__none') !== -1) return false;
-    return true;
-  }
-
-  // Count shown in a column chip / mobile tab. Prefers the real server total;
-  // falls back to the loaded cards when a client-side filter is active.
-  // Rendered with a thousands separator ("3 606") so big boards read easily.
+  // Count shown in a column chip / mobile tab. All filters are applied
+  // server-side, so meta.status_counts always reflect the full filtered set;
+  // the loaded-cards fallback only guards the brief moment before the first
+  // response arrives. Rendered with a thousands separator ("3 606").
   function kanbanColumnCount(statusCode, loadedTasks) {
-    var useFull = !window.CRM.kanbanStatusCountsDirty
-      && kanbanCountsMatchFilters(window.CRM.kanbanFilters || kanbanReadFiltersFromQuery())
-      && window.CRM.kanbanStatusCounts
+    var useFull = window.CRM.kanbanStatusCounts
       && window.CRM.kanbanStatusCounts[statusCode] != null;
     var value = useFull ? window.CRM.kanbanStatusCounts[statusCode] : (loadedTasks || []).length;
     return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  }
-
-  function kanbanTaskMatches(task, filters) {
-    var q = kanbanNormalizeText(filters.q);
-    if (q) {
-      var haystack = kanbanNormalizeText([task.title || '', stripHtmlText(task.description) || '', task.project_title || '', task.public_id || ''].join(' '));
-      if (haystack.indexOf(q) === -1) return false;
-    }
-    if (filters.assignees && filters.assignees.length) {
-      var assignees = kanbanTaskAssignees(task);
-      if (!(filters.assignees.indexOf('__none') >= 0 && assignees.length === 0)) {
-        var assigneeKeys = assignees.map(function (user) { return user.id || user.name; });
-        if (!assigneeKeys.some(function (key) { return filters.assignees.indexOf(key) >= 0; })) return false;
-      }
-    }
-    if (filters.managers && filters.managers.length) {
-      var manager = kanbanTaskManager(task);
-      if (!(filters.managers.indexOf('__none') >= 0 && !manager)) {
-        var managerKey = manager ? (manager.id || manager.name) : '';
-        if (!managerKey || filters.managers.indexOf(managerKey) === -1) return false;
-      }
-    }
-    if (filters.projects && filters.projects.length) {
-      var projectKey = String(task.project_public_id || task.project_title || '').trim();
-      if (!(filters.projects.indexOf('__none') >= 0 && !projectKey) && (!projectKey || filters.projects.indexOf(projectKey) === -1)) return false;
-    }
-    if (filters.cycles && filters.cycles.length) {
-      var cycleKey = String(task.cycle_public_id || task.cycle_title || '').trim();
-      if (!(filters.cycles.indexOf('__none') >= 0 && !cycleKey) && (!cycleKey || filters.cycles.indexOf(cycleKey) === -1)) return false;
-    }
-    if (filters.due) {
-      var state = kanbanDueState(task);
-      var today = kanbanToday();
-      var weekEnd = new Date(today.getTime() + 6 * 86400000);
-      if (filters.due === 'overdue' && (!state || state.tone !== 'danger')) return false;
-      if (filters.due === 'today' && (!state || state.timestamp !== today.getTime())) return false;
-      if (filters.due === 'week' && (!state || state.timestamp < today.getTime() || state.timestamp > weekEnd.getTime())) return false;
-    }
-    if (filters.tags && filters.tags.length) {
-      var taskTags = [];
-      if (task.tags) {
-        try { taskTags = typeof task.tags === 'string' ? JSON.parse(task.tags) : task.tags; }
-        catch(e) { taskTags = []; }
-      }
-      if (!Array.isArray(taskTags) || !taskTags.some(function (t) { return t && t.public_id && filters.tags.indexOf(t.public_id) >= 0; })) return false;
-    }
-    return true;
-  }
-
-  function kanbanFilteredTasks() {
-    var allTasks = window.CRM.kanbanTasks || [];
-    var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
-    return allTasks.filter(function (task) { return kanbanTaskMatches(task, filters); });
   }
 
   function renderKanbanCard(task) {
@@ -19387,13 +19258,14 @@ window.CRM.pageApiBindings = (function () {
     var cycle = document.getElementById('kanbanCycleFilter');
     var reset = document.getElementById('kanbanFiltersResetBtn');
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
-    var options = kanbanBuildFilterOptions(window.CRM.kanbanTasks || []);
+    var options = window.CRM.kanbanFilterOptions || {};
+    // Filters are resolved server-side over the full dataset: changing a
+    // filter reloads the board (and the exact column counters) from the API.
     var apply = window.CRM.kanbanApplyFilters || function (f, u) {
       window.CRM.kanbanFilters = f;
-      // Filters changed client-side: the full server counters no longer match the view.
-      window.CRM.kanbanStatusCountsDirty = kanbanFilterActive(f);
       if (u) kanbanUpdateUrl(f);
       updateKanbanColumns();
+      kanbanReloadTasks();
     };
     window.CRM.kanbanApplyFilters = apply;
     [assignee, manager, project, cycle].forEach(function (select) {
@@ -19475,20 +19347,23 @@ window.CRM.pageApiBindings = (function () {
     // 0 = load all matching tasks (default); otherwise the configured global kanban_max_cards limit.
     var configuredLimit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
     var query = { limit: configuredLimit, with_status_counts: '1' };
+    // Every filter is applied server-side so the loaded chunks and the column
+    // counters always reflect the FULL dataset, not just the cards in memory.
     if (filters.q) query.search = filters.q;
-    if (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none') query.project_public_id = filters.projects[0];
-    if (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none') query.cycle_public_id = filters.cycles[0];
-    if (filters.tags && filters.tags.length) query.tag_public_id = filters.tags[0];
+    if (filters.assignees && filters.assignees.length) query.assignee_user_public_id = filters.assignees.join(',');
+    if (filters.managers && filters.managers.length) query.manager_user_public_id = filters.managers.join(',');
+    if (filters.projects && filters.projects.length) query.project_public_id = filters.projects.join(',');
+    if (filters.cycles && filters.cycles.length) query.cycle_public_id = filters.cycles.join(',');
+    if (filters.tags && filters.tags.length) query.tag_public_id = filters.tags.join(',');
+    if (filters.due) query.due = filters.due;
+    if (filters.dueFrom) query.due_at_from = filters.dueFrom;
+    if (filters.dueTo) query.due_at_to = filters.dueTo;
     return query;
   }
 
   function kanbanNeedsFilteredTaskFetch(filters) {
-    return Boolean(
-      filters.q
-      || (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none')
-      || (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none')
-      || (filters.tags && filters.tags.length)
-    );
+    // Any active filter must be resolved server-side over the whole dataset.
+    return kanbanFilterActive(filters);
   }
 
   async function kanbanLoadCycleOptions() {
@@ -19504,11 +19379,38 @@ window.CRM.pageApiBindings = (function () {
     });
   }
 
+  // Reloads the board from the API applying the current filters. Used on first
+  // render when filters are active and on every filter change. All filters are
+  // resolved server-side, so the returned tasks AND meta.status_counts reflect
+  // the full filtered dataset, not just the loaded chunks.
+  async function kanbanReloadTasks() {
+    var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
+    var query = kanbanBuildTaskQuery(filters);
+    window.CRM.kanbanLoadingMore = true;
+    updateKanbanColumns();
+    try {
+      var envelope = await tryRequest('api/v1/tasks', { query: query, silent: true });
+      if (envelope && envelope.success !== false) {
+        var tasks = mapItems(envelope);
+        window.CRM.kanbanTasks = tasks;
+        var meta = envelope.meta || {};
+        window.CRM.kanbanTotal = (meta.pagination && meta.pagination.total != null) ? Number(meta.pagination.total) : tasks.length;
+        window.CRM.kanbanLimit = (meta.pagination && meta.pagination.limit != null) ? Number(meta.pagination.limit) : 0;
+        window.CRM.kanbanStatusCounts = (meta.status_counts && typeof meta.status_counts === 'object') ? meta.status_counts : null;
+      }
+    } catch (e) {
+      // transient error — keep previous data; the next filter change retries
+    }
+    window.CRM.kanbanLoadingMore = false;
+    updateKanbanColumns();
+    initKanbanSortable();
+  }
+
   async function renderKanbanPage() {
     window.CRM.kanbanFilters = kanbanReadFiltersFromQuery();
     window.CRM.kanbanStatusCounts = null;
-    window.CRM.kanbanStatusCountsDirty = false;
     await kanbanLoadCycleOptions();
+    await kanbanLoadFilterOptions();
     // Try to load configured statuses (order) from API; fall back to sensible defaults
     var statusOrder = ['new', 'in_progress', 'done'];
     var statusesEnvelope = null;
@@ -19524,17 +19426,7 @@ window.CRM.pageApiBindings = (function () {
       window.CRM.kanbanStatusCounts = (pageData.status_counts && typeof pageData.status_counts === 'object') ? pageData.status_counts : null;
       statusesEnvelope = pageData.statuses ? { success: true, data: pageData.statuses } : null;
     } else {
-      var tasksEnvelope = await tryRequest('api/v1/tasks', { query: kanbanBuildTaskQuery(window.CRM.kanbanFilters) });
-      if (tasksEnvelope && tasksEnvelope.success !== false) {
-        var tasks = mapItems(tasksEnvelope);
-        window.CRM.kanbanTasks = tasks;
-        var tasksMeta = tasksEnvelope && tasksEnvelope.meta ? tasksEnvelope.meta : null;
-        window.CRM.kanbanTotal = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.total != null) ? Number(tasksMeta.pagination.total) : tasks.length;
-        window.CRM.kanbanLimit = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.limit != null) ? Number(tasksMeta.pagination.limit) : 0;
-        if (tasksMeta && tasksMeta.status_counts && typeof tasksMeta.status_counts === 'object') {
-          window.CRM.kanbanStatusCounts = tasksMeta.status_counts;
-        }
-      }
+      await kanbanReloadTasks();
     }
     try {
       // fetch global statuses in admin order, then pick those with scope 'task'
@@ -19778,8 +19670,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function updateKanbanColumns() {
-    var allTasks = window.CRM.kanbanTasks || [];
-    var tasks = kanbanFilteredTasks();
+    var tasks = window.CRM.kanbanTasks || [];
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     bindKanbanFilters();
     var resetBtn = document.getElementById('kanbanFiltersResetBtn');
