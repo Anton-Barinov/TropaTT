@@ -946,8 +946,12 @@ window.CRM.api = (function () {
       // The request was never processed, so re-sending it — body intact, since
       // the body object is re-serialised on every attempt — is safe for ANY
       // method (GET/PATCH/POST/DELETE) and needs no server configuration.
+      // Unlike the generic retry below, this must NOT be gated by allowRetry:
+      // plain PATCH/POST calls (profile save, task create, ...) are exactly the
+      // ones that hit anti-replay, and a 425/307 can never duplicate work.
+      // Only an explicit { retry: false } opts out.
       if (response && (response.status === 425 || response.status === 307)
-          && allowRetry && attempts <= maxRetries) {
+          && opts.retry !== false && attempts <= maxRetries) {
         notifyApiRetrying(route, attempts, maxRetries);
         await sleep(retryDelayMs * attempts);
         continue;
