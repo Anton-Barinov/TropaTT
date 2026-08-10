@@ -221,11 +221,12 @@ html[data-theme="dark"] ::selection {
   color: var(--crm-on-accent);
 }
 
-/* Visual editor (rich text) — scoped token set. */
-html[data-theme="dark"] .crm-ve-editor {
-  color-scheme: dark;
-  --crm-ve-accent: #5b8def;
-  --crm-ve-accent-light: rgba(91, 141, 239, 0.16);
+/* Visual editor (rich text) — global token set so that content rendered
+   from the editor (comments, descriptions, ideas) follows the dark theme
+   outside the editor container as well. */
+html[data-theme="dark"] {
+  --crm-ve-accent: var(--crm-primary);
+  --crm-ve-accent-light: color-mix(in srgb, var(--crm-primary) 16%, transparent);
   --crm-ve-surface: #16201d;
   --crm-ve-surface-soft: #1b2421;
   --crm-ve-border: #2a3a33;
@@ -234,6 +235,19 @@ html[data-theme="dark"] .crm-ve-editor {
   --crm-ve-text-muted: #93a59e;
   --crm-ve-danger: #f07468;
   --crm-ve-success: #4bd494;
+}
+
+html[data-theme="contrast"] {
+  --crm-ve-accent: var(--crm-primary);
+  --crm-ve-accent-light: color-mix(in srgb, var(--crm-primary) 20%, transparent);
+  --crm-ve-surface: #ffffff;
+  --crm-ve-surface-soft: #ffffff;
+  --crm-ve-border: #000000;
+  --crm-ve-border-strong: #000000;
+  --crm-ve-text: #000000;
+  --crm-ve-text-muted: #1f1f1f;
+  --crm-ve-danger: var(--crm-danger);
+  --crm-ve-success: var(--crm-success);
 }
 
 /* Gantt — scoped token set. */
