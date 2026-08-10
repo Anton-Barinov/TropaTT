@@ -19717,6 +19717,48 @@ window.CRM.pageApiBindings = (function () {
     kanban.addEventListener('scroll', updateScrollButtons);
     window.addEventListener('resize', updateScrollButtons);
 
+    // Keyboard navigation: Left/Right arrows scroll the board by one column.
+    function isScrollable() {
+      return kanban.scrollWidth > kanban.clientWidth + 2;
+    }
+
+    function isTypingContext(node) {
+      if (!node) return false;
+      var tag = String(node.tagName || '').toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      return !!node.isContentEditable;
+    }
+
+    function scrollByKey(event) {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return false;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return false;
+      if (!isScrollable()) return false;
+      event.preventDefault();
+      scrollBy(event.key === 'ArrowLeft' ? -1 : 1);
+      return true;
+    }
+
+    // The board wrapper is focusable, so Tab + arrows work like in Jira.
+    if (!wrap.getAttribute('data-kbd-bound')) {
+      wrap.setAttribute('data-kbd-bound', '1');
+      wrap.tabIndex = 0;
+      wrap.addEventListener('keydown', function (event) {
+        if (scrollByKey(event)) updateScrollButtons();
+      });
+    }
+
+    // Fallback: arrows anywhere on the kanban page scroll the board, unless
+    // the user is typing or a modal/offcanvas is open. Bound once per page.
+    if (!document.documentElement.getAttribute('data-kanban-kbd-bound')) {
+      document.documentElement.setAttribute('data-kanban-kbd-bound', '1');
+      document.addEventListener('keydown', function (event) {
+        if (event.defaultPrevented) return;
+        if (isTypingContext(event.target)) return;
+        if (document.querySelector('.modal.show, .offcanvas.show')) return;
+        if (scrollByKey(event)) updateScrollButtons();
+      });
+    }
+
     // Initial state after a short delay to let layout settle
     setTimeout(updateScrollButtons, 100);
   }
