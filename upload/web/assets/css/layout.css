@@ -445,7 +445,7 @@ a:focus-visible {
 }
 
 .crm-topbar-timer-menu-item:hover {
-  background: var(--crm-surface-soft, #f1f5f9);
+  background: var(--crm-surface-soft);
 }
 
 .crm-topbar-timer-menu-id {
@@ -488,7 +488,7 @@ a:focus-visible {
 }
 
 .crm-topbar [data-global-notifications] {
-  color: var(--crm-text-muted, #64748B);
+  color: var(--crm-text-muted);
 }
 
 .crm-topbar [data-global-notifications] .crm-icon {
@@ -497,7 +497,7 @@ a:focus-visible {
 }
 
 .crm-topbar [data-search-toggle] {
-  color: var(--crm-text-muted, #64748B);
+  color: var(--crm-text-muted);
 }
 
 .crm-topbar [data-search-toggle] .crm-icon,
@@ -549,7 +549,7 @@ a:focus-visible {
 }
 
 .crm-topbar .input-group .input-group-text {
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   border-color: var(--crm-border);
 }
 
@@ -665,7 +665,7 @@ a:focus-visible {
 }
 
 .crm-menu-customize-item:hover {
-  background: var(--color-neutral-50, #f9fafb);
+  background: var(--color-neutral-50);
   border-color: var(--crm-border);
 }
 
@@ -744,7 +744,7 @@ a:focus-visible {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   top: 2px;
   left: 2px;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
@@ -774,7 +774,7 @@ a:focus-visible {
 
 .crm-menu-customize-chosen {
   background: var(--color-primary-50) !important;
-  border-color: var(--color-primary-200, #a7f3d0) !important;
+  border-color: var(--color-primary-200) !important;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--crm-accent) 12%, transparent);
 }
 
@@ -836,7 +836,7 @@ a:focus-visible {
   padding: 0.75rem;
   border: 1px solid var(--crm-border);
   border-radius: var(--radius-md);
-  background: var(--color-neutral-50, #f9fafb);
+  background: var(--color-neutral-50);
 }
 
 .crm-menu-customize-add-form .form-label {
@@ -847,11 +847,11 @@ a:focus-visible {
 
 /* Custom item styling */
 .crm-menu-customize-item--custom {
-  background: var(--color-primary-50, #ecfdf5);
+  background: var(--color-primary-50);
 }
 
 .crm-menu-customize-item--custom:hover {
-  background: var(--color-primary-100, #d1fae5) !important;
+  background: var(--color-primary-100) !important;
 }
 
 .crm-menu-customize-item--custom .crm-menu-customize-icon {
@@ -892,11 +892,11 @@ a:focus-visible {
   bottom: 0;
   z-index: var(--z-topbar, 1030);
   font-size: 0.76rem;
-  color: var(--crm-text-muted, #6b7280);
-  background: var(--crm-surface, rgba(255, 255, 255, 0.9));
+  color: var(--crm-text-muted);
+  background: var(--crm-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--crm-border, #e5e7eb);
+  border-top: 1px solid var(--crm-border);
   padding: 6px 18px;
 }
 
@@ -918,7 +918,7 @@ a:focus-visible {
 }
 
 .crm-footer-product strong {
-  color: var(--crm-text, #111827);
+  color: var(--crm-text);
   font-weight: 800;
 }
 
@@ -930,14 +930,14 @@ a:focus-visible {
 }
 
 .crm-footer a {
-  color: var(--crm-text-muted, #6b7280);
+  color: var(--crm-text-muted);
   text-decoration: none;
   border-radius: 999px;
   padding: 2px 8px;
 }
 
 .crm-footer a:hover {
-  color: var(--color-primary-600, #2563eb);
+  color: var(--color-primary-600);
   background: color-mix(in srgb, var(--crm-info) 8%, transparent);
   text-decoration: none;
 }
@@ -948,7 +948,7 @@ a:focus-visible {
   border-radius: 999px;
   background: var(--crm-warning-soft);
   border: 1px solid var(--crm-warning-border);
-  color: var(--crm-warning, #92400e);
+  color: var(--crm-warning);
   font-weight: 800;
   font-size: 0.7rem;
   white-space: nowrap;

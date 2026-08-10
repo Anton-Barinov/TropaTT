@@ -1221,15 +1221,15 @@ html[data-theme="contrast"] .crm-nav .nav-link.active {
    are too dark for WCAG AA on dark surfaces, so map them to theme tokens. */
 html[data-theme="dark"] .text-danger,
 html[data-theme="contrast"] .text-danger {
-  color: var(--crm-danger, #dc3545);
+  color: var(--crm-danger);
 }
 html[data-theme="dark"] .text-success,
 html[data-theme="contrast"] .text-success {
-  color: var(--crm-success, #198754);
+  color: var(--crm-success);
 }
 html[data-theme="dark"] .text-warning,
 html[data-theme="contrast"] .text-warning {
-  color: var(--crm-warning, #ffc107);
+  color: var(--crm-warning);
 }
 
 /* ---- Contrast: brand-green primary buttons ----

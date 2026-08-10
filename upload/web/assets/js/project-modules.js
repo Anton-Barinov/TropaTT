@@ -200,7 +200,7 @@ window.CRM.projectModules = (function () {
         + '<td>' + esc(projectTitle) + '</td>'
         + '<td>' + statusBadgeHtml(m.status || 'planned') + '</td>'
         + '<td>' + esc(leadName || t('project_modules.no_lead', '—')) + '</td>'
-        + '<td style="min-width:100px"><div class="progress" style="height:6px"><div class="progress-bar" style="width:' + progress + '%;background:var(--crm-primary,#0f8f72)"></div></div><small class="text-muted">' + progress + '%</small></td>'
+        + '<td style="min-width:100px"><div class="progress" style="height:6px"><div class="progress-bar" style="width:' + progress + '%;background:var(--crm-primary)"></div></div><small class="text-muted">' + progress + '%</small></td>'
         + '<td>' + esc(tasksCount) + '</td>'
         + '<td><small>' + esc(targetStr || t('project_modules.no_target', '—')) + '</small></td>'
         + '<td class="text-end" style="white-space:nowrap">'

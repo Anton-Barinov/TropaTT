@@ -67,8 +67,8 @@
 }
 
 .crm-nav .nav-link.active {
-  background: var(--crm-success-soft, #ECFDF5);
-  border-color: var(--crm-success-soft, #D1FAE5);
+  background: var(--crm-success-soft);
+  border-color: var(--crm-success-soft);
   color: var(--crm-primary);
   font-weight: 600;
 }
@@ -108,7 +108,7 @@
   border-radius: 999px;
   background: var(--crm-danger);
   color: var(--crm-on-accent);
-  border: 2px solid var(--crm-surface, #fff);
+  border: 2px solid var(--crm-surface);
   font-size: 10px;
   font-weight: 700;
   line-height: 14px;
@@ -614,7 +614,7 @@ textarea.form-control::placeholder {
 
 .crm-table tbody tr:hover,
 .table.crm-table tbody tr:hover {
-  background: var(--crm-surface-2, #F8FAF9);
+  background: var(--crm-surface-2);
 }
 
 .crm-badge,
@@ -641,7 +641,7 @@ textarea.form-control::placeholder {
 .crm-badge.danger,
 .crm-badge-danger { color: var(--crm-danger); background: var(--crm-danger-soft); }
 .crm-badge.archived,
-.crm-badge-muted { color: var(--crm-text-muted); background: var(--crm-surface-2, #F1F5F9); }
+.crm-badge-muted { color: var(--crm-text-muted); background: var(--crm-surface-2); }
 .crm-badge-info { color: var(--crm-info); background: var(--crm-info-soft); }
 
 .btn-group,
@@ -850,8 +850,8 @@ textarea.form-control::placeholder {
 }
 
 .crm-diff-panel-new {
-  border-color: var(--crm-success, #22c55e);
-  background: color-mix(in srgb, var(--crm-success, #22c55e) 6%, var(--crm-surface));
+  border-color: var(--crm-success);
+  background: color-mix(in srgb, var(--crm-success) 6%, var(--crm-surface));
 }
 
 .crm-diff-card {
@@ -1154,7 +1154,7 @@ textarea:focus-visible,
 
 .crm-sidebar-toggle {
   border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
-  background: var(--crm-surface-2, rgba(255, 255, 255, 0.72));
+  background: var(--crm-surface-2);
   color: var(--crm-text-muted);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
@@ -1603,7 +1603,7 @@ textarea.form-control {
 .crm-select:hover,
 .crm-textarea:hover {
   border-color: color-mix(in srgb, var(--crm-accent) 28%, transparent);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 .form-control:focus,
@@ -1613,7 +1613,7 @@ textarea.form-control {
 .crm-textarea:focus,
 textarea.form-control:focus {
   border-color: var(--crm-primary);
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow:
     0 0 0 4px var(--crm-focus),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
@@ -1740,10 +1740,10 @@ textarea.form-control:focus {
 
 .modal-content,
 .offcanvas {
-  border: 1px solid var(--crm-modal-border, rgba(17, 26, 25, 0.1));
+  border: 1px solid var(--crm-modal-border);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, var(--crm-modal-bg-top, rgba(255,255,255,0.98)), var(--crm-modal-bg-bottom, rgba(250,252,251,0.96)));
+    linear-gradient(180deg, var(--crm-modal-bg-top), var(--crm-modal-bg-bottom));
   box-shadow: 0 34px 80px color-mix(in srgb, var(--crm-ink) 20%, transparent);
 }
 
@@ -1757,12 +1757,12 @@ textarea.form-control:focus {
 
 .modal-header,
 .offcanvas-header {
-  border-bottom-color: var(--crm-modal-border, rgba(17, 26, 25, 0.08));
+  border-bottom-color: var(--crm-modal-border);
 }
 
 .modal-footer,
 .offcanvas-footer {
-  border-top-color: var(--crm-modal-border, rgba(17, 26, 25, 0.08));
+  border-top-color: var(--crm-modal-border);
 }
 
 .accordion-item {
@@ -1814,7 +1814,7 @@ textarea.form-control:focus {
   border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   border-left-width: 4px;
   border-radius: 16px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-ink) 6%, transparent);
 }
 
@@ -2207,7 +2207,7 @@ textarea.form-control:focus {
 .crm-filters-card .form-control:hover,
 .crm-filters-card .form-select:hover {
   border-color: color-mix(in srgb, var(--crm-accent) 32%, transparent);
-  background-color: var(--crm-surface, #fff);
+  background-color: var(--crm-surface);
 }
 
 .form-check-input {
@@ -2296,11 +2296,11 @@ textarea.form-control:focus {
 .offcanvas,
 .crm-drawer,
 .crm-quick-preview-drawer {
-  border: 1px solid var(--crm-modal-border, rgba(17, 26, 25, 0.1));
+  border: 1px solid var(--crm-modal-border);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 100% 0%, var(--crm-modal-accent, rgba(15, 143, 114, 0.1)), transparent 28%),
-    linear-gradient(180deg, var(--crm-modal-bg-top, rgba(255, 255, 255, 0.98)), var(--crm-modal-bg-bottom, rgba(248, 251, 250, 0.96)));
+    radial-gradient(circle at 100% 0%, var(--crm-modal-accent), transparent 28%),
+    linear-gradient(180deg, var(--crm-modal-bg-top), var(--crm-modal-bg-bottom));
   box-shadow: 0 30px 80px color-mix(in srgb, var(--crm-ink) 22%, transparent);
 }
 
@@ -2308,7 +2308,7 @@ textarea.form-control:focus {
 .offcanvas-header,
 .modal-footer,
 .offcanvas-footer {
-  border-color: var(--crm-modal-border, rgba(17, 26, 25, 0.08));
+  border-color: var(--crm-modal-border);
 }
 
 .crm-badge,
@@ -2327,7 +2327,7 @@ textarea.form-control:focus {
 .crm-badge.archived,
 .badge.bg-secondary,
 .badge.text-bg-secondary {
-  background: var(--crm-surface-2, #eef3f2) !important;
+  background: var(--crm-surface-2) !important;
   color: var(--crm-text-muted) !important;
 }
 
@@ -2600,7 +2600,7 @@ small.text-muted {
 .offcanvas,
 .dropdown-menu,
 .popover {
-  border-color: var(--crm-modal-border, rgba(17, 26, 25, 0.09));
+  border-color: var(--crm-modal-border);
 }
 
 .crm-card,
@@ -2760,7 +2760,7 @@ small.text-muted {
 .crm-badge-success {
   background: var(--crm-success-soft) !important;
   border-color: color-mix(in srgb, var(--crm-success) 22%, transparent) !important;
-  color: var(--crm-success, #11683b) !important;
+  color: var(--crm-success) !important;
 }
 
 .badge.text-bg-warning,
@@ -2768,7 +2768,7 @@ small.text-muted {
 .crm-badge-warning {
   background: var(--crm-warning-soft) !important;
   border-color: color-mix(in srgb, var(--crm-warning) 24%, transparent) !important;
-  color: var(--crm-warning, #7c5100) !important;
+  color: var(--crm-warning) !important;
 }
 
 .badge.text-bg-danger,
@@ -2777,13 +2777,13 @@ small.text-muted {
 .crm-badge-danger {
   background: var(--crm-danger-soft) !important;
   border-color: color-mix(in srgb, var(--crm-danger) 24%, transparent) !important;
-  color: var(--crm-danger, #94332d) !important;
+  color: var(--crm-danger) !important;
 }
 
 .badge.text-bg-secondary,
 .crm-badge.archived,
 .crm-badge-muted {
-  background: var(--crm-surface-2, #edf3f1) !important;
+  background: var(--crm-surface-2) !important;
   border-color: color-mix(in srgb, var(--crm-ink) 9%, transparent) !important;
   color: var(--crm-text-muted) !important;
 }
@@ -2842,8 +2842,8 @@ small.text-muted {
 .popover {
   --bs-popover-max-width: min(420px, calc(100vw - 28px));
   --bs-popover-border-radius: 22px;
-  --bs-popover-border-color: var(--crm-popover-border, rgba(17, 26, 25, 0.1));
-  --bs-popover-bg: var(--crm-popover-bg, rgba(255, 255, 255, 0.96));
+  --bs-popover-border-color: var(--crm-popover-border);
+  --bs-popover-bg: var(--crm-popover-bg);
   box-shadow: 0 26px 72px color-mix(in srgb, var(--crm-ink) 20%, transparent);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
@@ -2879,7 +2879,7 @@ small.text-muted {
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 16px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
   box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-ink) 6%, transparent);
 }
 
@@ -3004,7 +3004,7 @@ small.text-muted {
 
 .crm-notifications-page .crm-notification-item .badge {
   border-radius: 999px !important;
-  background: var(--crm-surface-2, #eef4f2) !important;
+  background: var(--crm-surface-2) !important;
   color: var(--crm-text-muted) !important;
 }
 
@@ -3024,7 +3024,7 @@ small.text-muted {
   padding: 8px 10px 8px 34px;
   border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 14px;
-  background: var(--crm-surface-2, rgba(255,255,255,0.72));
+  background: var(--crm-surface-2);
 }
 
 .crm-notifications-page .form-check .form-check-input {
@@ -3305,7 +3305,7 @@ body {
 }
 
 .crm-nav .nav-link:not(.active) .crm-nav-icon {
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
 }
 
 .crm-nav .nav-link:not(.active) {
@@ -3374,7 +3374,7 @@ body {
 .form-control,
 .form-select,
 .input-group-text {
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   box-shadow: none !important;
 }
 
@@ -3499,7 +3499,7 @@ body {
   width: 100%;
   border-collapse: collapse !important;
   border-spacing: 0 !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
 }
 
 .crm-content table.crm-table thead th,
@@ -3528,7 +3528,7 @@ body {
 }
 .crm-content table.crm-table tbody tr,
 .crm-content .table.crm-table tbody tr {
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -3647,7 +3647,7 @@ body {
 .crm-gantt-deadline-card {
   border-radius: 0 !important;
   box-shadow: none !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   background-image: none !important;
 }
 
@@ -3711,7 +3711,7 @@ body {
   max-width: 100% !important;
   padding: 0 !important;
   overflow: hidden !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   background-image: none !important;
   border: 1px solid var(--crm-border) !important;
   border-radius: 8px !important;
@@ -3743,7 +3743,7 @@ body {
   gap: 6px !important;
   white-space: nowrap !important;
   color: var(--crm-text) !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -4590,7 +4590,7 @@ body {
 .crm-content .crm-gantt-deadline-card {
   border-radius: 8px !important;
   border-color: var(--crm-border) !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -4609,7 +4609,7 @@ body {
   border-style: solid !important;
   border-radius: 8px !important;
   box-shadow: none !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
 }
 
 .crm-content .crm-page-head {
@@ -4737,7 +4737,7 @@ body {
   width: 84px !important;
   min-width: 84px !important;
   max-width: 84px !important;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:last-child,
@@ -4748,7 +4748,7 @@ body {
   position: sticky !important;
   right: 0 !important;
   z-index: 4;
-  background: var(--crm-surface, #fff) !important;
+  background: var(--crm-surface) !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:last-child {
@@ -4920,7 +4920,7 @@ body.crm-login-page .crm-login-card .form-select {
   min-height: 48px;
   border-color: var(--crm-border);
   border-radius: 10px;
-  background-color: var(--crm-surface, #fff);
+  background-color: var(--crm-surface);
   color: var(--crm-text);
   font-weight: 650;
 }
@@ -5050,7 +5050,7 @@ body.crm-login-page .crm-login-preview-top i {
   height: 34px;
   border: 1px solid var(--crm-border);
   border-radius: 10px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 body.crm-login-page .crm-login-preview-grid {
@@ -5064,7 +5064,7 @@ body.crm-login-page .crm-login-preview-metric {
   padding: 14px;
   border: 1px solid var(--crm-border);
   border-radius: 12px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 body.crm-login-page .crm-login-preview-metric strong {
@@ -5085,7 +5085,7 @@ body.crm-login-page .crm-login-preview-metric span {
 body.crm-login-page .crm-login-preview-table {
   border: 1px solid var(--crm-border);
   border-radius: 12px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 
 body.crm-login-page .crm-login-preview-table div {
@@ -5335,7 +5335,7 @@ body.crm-login-page .crm-login-proof-grid span {
 
 .crm-saved-views-menu .dropdown-item.active {
   background: color-mix(in srgb, var(--crm-accent) 8%, transparent);
-  color: var(--crm-primary, #0f8f72);
+  color: var(--crm-primary);
   font-weight: 500;
 }
 
@@ -5345,7 +5345,7 @@ body.crm-login-page .crm-login-proof-grid span {
 
 .crm-sv-save-btn {
   font-weight: 500;
-  color: var(--crm-primary, #0f8f72) !important;
+  color: var(--crm-primary) !important;
 }
 
 .crm-sv-save-btn:hover {
@@ -5421,7 +5421,7 @@ body.crm-login-page .crm-login-proof-grid span {
 
 #projectModulesBody .progress {
   border-radius: 3px;
-  background: var(--crm-surface-2, #e9ecef);
+  background: var(--crm-surface-2);
 }
 
 #projectModulesBody .progress-bar {

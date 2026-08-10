@@ -243,8 +243,8 @@ if ($cyclesAssetsVersion === '') {
 <script src="assets/js/work-cycles.js?v=<?= urlencode($cyclesAssetsVersion) ?>"></script>
 <style nonce="<?= $csp_nonce ?>">
 .crm-cycle-card {
-  background: var(--crm-surface, #fff);
-  border: 1px solid var(--crm-border, #e0e0e0);
+  background: var(--crm-surface);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 12px;
@@ -252,7 +252,7 @@ if ($cyclesAssetsVersion === '') {
 }
 .crm-cycle-card:hover {
   border-color: color-mix(in srgb, var(--crm-primary) 28%, transparent);
-  background: var(--crm-surface-2, #fbfefd);
+  background: var(--crm-surface-2);
 }
 .crm-cycle-card-grid {
   display: grid;
@@ -265,9 +265,9 @@ if ($cyclesAssetsVersion === '') {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--crm-border, #dbe8e4);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
-  background: var(--crm-surface-2, #f8fcfb);
+  background: var(--crm-surface-2);
 }
 .crm-cycle-command-text {
   display: grid;
@@ -275,7 +275,7 @@ if ($cyclesAssetsVersion === '') {
   min-width: 0;
 }
 .crm-cycle-command-text span {
-  color: var(--crm-text-muted, #58716b);
+  color: var(--crm-text-muted);
   font-size: 13px;
 }
 .crm-cycle-command-metrics {
@@ -288,10 +288,10 @@ if ($cyclesAssetsVersion === '') {
   display: grid;
   min-width: 92px;
   padding: 8px 10px;
-  border: 1px solid var(--crm-border, #d7e4e0);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
-  background: var(--crm-surface, #fff);
-  color: var(--crm-text, #13201d);
+  background: var(--crm-surface);
+  color: var(--crm-text);
   text-align: left;
   text-decoration: none;
 }
@@ -306,7 +306,7 @@ button.crm-cycle-command-metric:hover {
   line-height: 1;
 }
 .crm-cycle-command-metric span {
-  color: var(--crm-text-muted, #6d7f7a);
+  color: var(--crm-text-muted);
   font-size: 12px;
 }
 .crm-cycle-pagination {
@@ -314,9 +314,9 @@ button.crm-cycle-command-metric:hover {
   align-items: center;
   gap: 6px;
   padding: 4px;
-  border: 1px solid var(--crm-border, #dbe8e4);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-surface);
 }
 .crm-cycle-page-btn {
   min-width: 34px;
@@ -324,15 +324,15 @@ button.crm-cycle-command-metric:hover {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--crm-text-muted, #3f5550);
+  color: var(--crm-text-muted);
   font-weight: 700;
 }
 .crm-cycle-page-btn:hover {
-  background: var(--crm-surface-2, #eef8f5);
-  color: var(--crm-primary-hover, #0b7a62);
+  background: var(--crm-surface-2);
+  color: var(--crm-primary-hover);
 }
 .crm-cycle-page-btn.is-active {
-  background: var(--crm-primary, #0b7a62);
+  background: var(--crm-primary);
   color: var(--crm-on-accent);
 }
 .crm-cycle-title {
@@ -340,14 +340,14 @@ button.crm-cycle-command-metric:hover {
   border: 0;
   background: transparent;
   padding: 0;
-  color: var(--crm-text, #13201d);
+  color: var(--crm-text);
   font: inherit;
   font-weight: 700;
   text-align: left;
 }
 .crm-cycle-title:hover,
 .crm-cycle-title:focus {
-  color: var(--crm-primary-hover, #0b7a62);
+  color: var(--crm-primary-hover);
   outline: none;
 }
 .crm-cycle-progress-panel {
@@ -358,12 +358,12 @@ button.crm-cycle-command-metric:hover {
 .crm-cycle-progress {
   height: 6px;
   border-radius: 3px;
-  background: var(--crm-surface-2, #e9ecef);
+  background: var(--crm-surface-2);
 }
 .crm-cycle-progress-bar {
   height: 100%;
   border-radius: 3px;
-  background: var(--crm-primary, #0b7a62);
+  background: var(--crm-primary);
   transition: width 0.3s ease;
 }
 .crm-cycle-next-step {
@@ -371,7 +371,7 @@ button.crm-cycle-command-metric:hover {
   flex-wrap: wrap;
   gap: 8px 14px;
   margin-top: 8px;
-  color: var(--crm-text-muted, #58716b);
+  color: var(--crm-text-muted);
   font-size: 13px;
 }
 .crm-cycle-badge {
@@ -381,10 +381,10 @@ button.crm-cycle-command-metric:hover {
   font-size: 11px;
   font-weight: 500;
 }
-.crm-cycle-badge-planned { background: var(--crm-info-soft, #e3f2fd); color: var(--crm-info, #1565c0); }
-.crm-cycle-badge-active { background: var(--crm-success-soft, #e8f5e9); color: var(--crm-success, #2e7d32); }
-.crm-cycle-badge-completed { background: var(--crm-info-soft, #f3e5f5); color: var(--crm-info, #7b1fa2); }
-.crm-cycle-badge-archived { background: var(--crm-surface-2, #f5f5f5); color: var(--crm-text-muted, #616161); }
+.crm-cycle-badge-planned { background: var(--crm-info-soft); color: var(--crm-info); }
+.crm-cycle-badge-active { background: var(--crm-success-soft); color: var(--crm-success); }
+.crm-cycle-badge-completed { background: var(--crm-info-soft); color: var(--crm-info); }
+.crm-cycle-badge-archived { background: var(--crm-surface-2); color: var(--crm-text-muted); }
 .crm-cycle-detail-callout,
 .crm-cycle-board-link {
   display: flex;
@@ -392,9 +392,9 @@ button.crm-cycle-command-metric:hover {
   align-items: center;
   gap: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--crm-border, #dbe8e4);
+  border: 1px solid var(--crm-border);
   border-radius: 8px;
-  background: var(--crm-surface-2, #f8fcfb);
+  background: var(--crm-surface-2);
 }
 @media (max-width: 767.98px) {
   .crm-cycle-card-grid,
