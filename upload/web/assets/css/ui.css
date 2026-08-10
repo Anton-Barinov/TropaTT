@@ -2326,6 +2326,12 @@ textarea.form-control:focus {
   background-color: var(--crm-primary);
 }
 
+/* Switches: never glow when enabled — kill hover/focus rings on the
+   checked state so an on-switch renders as a clean filled track. */
+.form-switch .form-check-input:checked {
+  box-shadow: none;
+}
+
 .form-check-input:hover {
   border-color: var(--crm-primary-hover);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--crm-accent) 10%, transparent);
