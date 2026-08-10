@@ -22,7 +22,9 @@ final class TaskRepository
         $sort = in_array(($filters['sort'] ?? ''), ['title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
         $paginationMode = (($filters['pagination_mode'] ?? '') === 'cursor' || !empty($filters['cursor'])) ? 'cursor' : 'offset';
-        $limit = min(500, max(1, (int)($filters['limit'] ?? 20)));
+        $requestedLimit = (int)($filters['limit'] ?? 20);
+        // 0 = unlimited (offset mode only; cursor mode always keeps a positive page size).
+        $limit = $requestedLimit === 0 && $paginationMode !== 'cursor' ? 0 : min(500, max(1, $requestedLimit));
 
         $builder = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)
             ->leftJoin('users au', 'au.id', '=', 't.assignee_user_id')
@@ -143,10 +145,10 @@ final class TaskRepository
         $page = max(1, (int)($filters['page'] ?? 1));
         $offset = ($page - 1) * $limit;
 
-        $items = $builder
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
+        if ($limit > 0) {
+            $builder->limit($limit);
+        }
+        $items = $builder->offset($offset)->get();
 
         $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)->count();
 

@@ -166,8 +166,18 @@ final class PageDataController extends BaseController
         /** @var StatusService $statusService */
         $statusService = $this->container->get('service.status');
 
+        // Global setting kanban_max_cards (scope 'system'): 0 (default) = load every task
+        // the actor can see at once; > 0 = chunked pages with automatic client-side load-more.
+        $kanbanLimit = 0;
+        if ($this->container->has('service.setting')) {
+            $kanbanSetting = $this->container->get('service.setting')->get('system', 'kanban_max_cards');
+            if ($kanbanSetting !== null) {
+                $kanbanLimit = max(0, (int)($kanbanSetting['value'] ?? 0));
+            }
+        }
+
         $tasks = $taskService->list([
-            'limit' => 100,
+            'limit' => $kanbanLimit,
         ], $actor);
         $statuses = $statusService->list([
             'limit' => 200,

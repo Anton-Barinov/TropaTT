@@ -36,7 +36,7 @@ final class TaskService
                     'pagination_mode' => 'offset',
                     'pagination' => [
                         'page' => 1,
-                        'limit' => min(100, max(1, (int)($filters['limit'] ?? 20))),
+                        'limit' => (int)($filters['limit'] ?? 20) === 0 ? 0 : min(100, max(1, (int)($filters['limit'] ?? 20))),
                         'total' => 0,
                         'pages' => 0,
                     ],
@@ -74,7 +74,7 @@ final class TaskService
                 'page' => $page,
                 'limit' => $limit,
                 'total' => $total,
-                'pages' => (int)ceil((int)$total / max(1, $limit)),
+                'pages' => $limit > 0 ? (int)ceil((int)$total / $limit) : 1,
             ];
         }
 

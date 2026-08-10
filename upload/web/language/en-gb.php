@@ -1281,6 +1281,9 @@ return array (
       'shown_prefix' => 'Showing',
       'of' => 'of',
       'tasks' => 'tasks',
+      'loading_more' => 'loading more…',
+      'loaded' => 'loaded',
+      'auto_more' => 'auto-loads on scroll',
     ),
     'due' => 
     array (
@@ -6777,6 +6780,7 @@ return array (
     'setting_max_requests' => 'Requests per minute limit',
     'setting_api_cache_enabled' => 'API cache (enabled/disabled)',
     'setting_api_cache_ttl' => 'Cache TTL (sec)',
+    'setting_kanban_max_cards' => 'Kanban max cards (0 = show all)',
     'retention_request_logs' => 'Request logs',
     'retention_security_logs' => 'Security logs',
     'retention_audit_logs' => 'Audit log',

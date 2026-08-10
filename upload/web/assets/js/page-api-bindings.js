@@ -19407,7 +19407,9 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function kanbanBuildTaskQuery(filters) {
-    var query = { limit: 500 };
+    // 0 = load all matching tasks (default); otherwise the configured global kanban_max_cards limit.
+    var configuredLimit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
+    var query = { limit: configuredLimit };
     if (filters.q) query.search = filters.q;
     if (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none') query.project_public_id = filters.projects[0];
     if (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none') query.cycle_public_id = filters.cycles[0];
@@ -19449,12 +19451,18 @@ window.CRM.pageApiBindings = (function () {
       var pageData = pageEnvelope.data || {};
       var pageTasks = pageData.tasks && Array.isArray(pageData.tasks.items) ? pageData.tasks.items : [];
       window.CRM.kanbanTasks = pageTasks;
+      var pageTasksMeta = (pageData.tasks && pageData.tasks.meta) ? pageData.tasks.meta : null;
+      window.CRM.kanbanTotal = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.total != null) ? Number(pageTasksMeta.pagination.total) : pageTasks.length;
+      window.CRM.kanbanLimit = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.limit != null) ? Number(pageTasksMeta.pagination.limit) : 0;
       statusesEnvelope = pageData.statuses ? { success: true, data: pageData.statuses } : null;
     } else {
       var tasksEnvelope = await tryRequest('api/v1/tasks', { query: kanbanBuildTaskQuery(window.CRM.kanbanFilters) });
       if (tasksEnvelope && tasksEnvelope.success !== false) {
         var tasks = mapItems(tasksEnvelope);
         window.CRM.kanbanTasks = tasks;
+        var tasksMeta = tasksEnvelope && tasksEnvelope.meta ? tasksEnvelope.meta : null;
+        window.CRM.kanbanTotal = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.total != null) ? Number(tasksMeta.pagination.total) : tasks.length;
+        window.CRM.kanbanLimit = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.limit != null) ? Number(tasksMeta.pagination.limit) : 0;
       }
     }
     try {
@@ -19484,8 +19492,81 @@ window.CRM.pageApiBindings = (function () {
     applySearchableSelects();
     updateKanbanColumns();
     initKanbanSortable();
+    kanbanEnsureLoadMore();
   }
-  
+
+  // When a global kanban_max_cards limit is configured and more tasks remain,
+  // watch a sentinel below the board and automatically load the next chunk.
+  function kanbanEnsureLoadMore() {
+    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
+    var loaded = (window.CRM.kanbanTasks || []).length;
+    var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
+    if (limit <= 0 || loaded >= total) {
+      if (window.CRM.kanbanLoadMoreObserver) {
+        window.CRM.kanbanLoadMoreObserver.disconnect();
+        window.CRM.kanbanLoadMoreObserver = null;
+      }
+      var oldSentinel = document.getElementById('kanbanLoadMoreSentinel');
+      if (oldSentinel) oldSentinel.remove();
+      return;
+    }
+    var board = document.querySelector('.crm-kanban');
+    if (!board || !board.parentNode) return;
+    var sentinel = document.getElementById('kanbanLoadMoreSentinel');
+    if (!sentinel) {
+      sentinel = document.createElement('div');
+      sentinel.id = 'kanbanLoadMoreSentinel';
+      sentinel.className = 'text-center small text-muted py-1';
+      sentinel.setAttribute('aria-hidden', 'true');
+      board.parentNode.insertBefore(sentinel, board.nextSibling);
+    }
+    if (!window.CRM.kanbanLoadMoreObserver && typeof IntersectionObserver !== 'undefined') {
+      window.CRM.kanbanLoadMoreObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) kanbanLoadMore();
+        });
+      }, { root: null, rootMargin: '800px 0px 800px 0px' });
+      window.CRM.kanbanLoadMoreObserver.observe(sentinel);
+    }
+  }
+
+  async function kanbanLoadMore() {
+    if (window.CRM.kanbanLoadingMore) return;
+    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
+    var loaded = (window.CRM.kanbanTasks || []).length;
+    var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
+    if (limit <= 0 || loaded >= total) return;
+    window.CRM.kanbanLoadingMore = true;
+    updateKanbanColumns();
+    try {
+      var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
+      var query = kanbanBuildTaskQuery(filters);
+      query.page = Math.floor(loaded / limit) + 1;
+      var envelope = await tryRequest('api/v1/tasks', { query: query, silent: true });
+      if (envelope && envelope.success !== false) {
+        var moreItems = mapItems(envelope);
+        var existing = window.CRM.kanbanTasks || [];
+        var seen = {};
+        existing.forEach(function (task) { if (task && task.public_id) seen[task.public_id] = true; });
+        moreItems.forEach(function (task) {
+          if (task && task.public_id && !seen[task.public_id]) {
+            seen[task.public_id] = true;
+            existing.push(task);
+          }
+        });
+        window.CRM.kanbanTasks = existing;
+        if (envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total != null) {
+          window.CRM.kanbanTotal = Number(envelope.meta.pagination.total);
+        }
+      }
+    } catch (e) {
+      // transient error — the observer will retry on the next scroll into view
+    }
+    window.CRM.kanbanLoadingMore = false;
+    updateKanbanColumns();
+    initKanbanSortable();
+    kanbanEnsureLoadMore();
+  }
 
   function saveKanbanOrder(statusCode, container) {
     var cards = container.querySelectorAll('.crm-kanban-card');
@@ -19602,7 +19683,14 @@ window.CRM.pageApiBindings = (function () {
     bindKanbanFilters();
     var summary = document.getElementById('kanbanResultSummary');
     if (summary) {
-      summary.textContent = kanbanT('kanban.summary.shown_prefix', 'Показано') + ' ' + String(tasks.length) + ' ' + kanbanT('kanban.summary.of', 'из') + ' ' + String(allTasks.length) + ' ' + kanbanT('kanban.summary.tasks', 'задач');
+      var realTotal = (window.CRM.kanbanTotal != null && Number(window.CRM.kanbanTotal) >= allTasks.length) ? Number(window.CRM.kanbanTotal) : allTasks.length;
+      var summaryText = kanbanT('kanban.summary.shown_prefix', 'Показано') + ' ' + String(tasks.length) + ' ' + kanbanT('kanban.summary.of', 'из') + ' ' + String(realTotal) + ' ' + kanbanT('kanban.summary.tasks', 'задач');
+      if (window.CRM.kanbanLoadingMore) {
+        summaryText += ' (' + kanbanT('kanban.summary.loading_more', 'загружается ещё…') + ')';
+      } else if (Number(window.CRM.kanbanLimit || 0) > 0 && allTasks.length < realTotal) {
+        summaryText += ' (' + kanbanT('kanban.summary.loaded', 'загружено') + ' ' + String(allTasks.length) + ' — ' + kanbanT('kanban.summary.auto_more', 'дозагрузка при прокрутке') + ')';
+      }
+      summary.textContent = summaryText;
     }
     var resetBtn = document.getElementById('kanbanFiltersResetBtn');
     if (resetBtn) {
@@ -23719,11 +23807,12 @@ window.CRM.pageApiBindings = (function () {
     var refreshBtn = document.getElementById('adminSettingsRefreshBtn');
     if (!userPrefsState && !systemBody && !retentionBody) return;
 
-    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl'];
+    var editableSettingNames = ['max_requests_per_minute', 'api_file_cache_enabled', 'api_file_cache_ttl', 'kanban_max_cards'];
     var settingLabels = {
       max_requests_per_minute: tp('admin_settings.setting_max_requests', 'Requests per minute limit'),
       api_file_cache_enabled: tp('admin_settings.setting_api_cache_enabled', 'API cache (enabled/disabled)'),
-      api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)')
+      api_file_cache_ttl: tp('admin_settings.setting_api_cache_ttl', 'Cache TTL (sec)'),
+      kanban_max_cards: tp('admin_settings.setting_kanban_max_cards', 'Kanban max cards (0 = show all)')
     };
     var retentionLabels = {
       request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
@@ -23796,6 +23885,9 @@ window.CRM.pageApiBindings = (function () {
         var settingsItems = mapItems(settingsEnvelope).filter(function (item) {
           return String(item.scope || 'system') === 'system';
         });
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'kanban_max_cards'; })) {
+          settingsItems.push({ scope: 'system', name: 'kanban_max_cards', value: 0 });
+        }
         if (!settingsItems.length) {
           var emptyRow = document.createElement('tr');
           var emptyCol = document.createElement('td');

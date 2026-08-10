@@ -1203,6 +1203,7 @@ return array (
     'setting_max_requests' => 'Anfragen pro Minute Limit',
     'setting_api_cache_enabled' => 'API-Cache (aktiviert/deaktiviert)',
     'setting_api_cache_ttl' => 'Cache-TTL (Sek)',
+    'setting_kanban_max_cards' => 'Kanban: max. Karten (0 = alle anzeigen)',
     'retention_request_logs' => 'Anfrage-Logs',
     'retention_security_logs' => 'Sicherheitslogs',
     'retention_audit_logs' => 'Audit-Log',
@@ -6499,6 +6500,9 @@ return array (
       'shown_prefix' => 'Zeige',
       'of' => 'von',
       'tasks' => 'Aufgaben',
+      'loading_more' => 'wird geladen…',
+      'loaded' => 'geladen',
+      'auto_more' => 'Auto-Nachladen beim Scrollen',
     ),
     'due' => 
     array (

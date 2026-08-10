@@ -6,6 +6,12 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## [Unreleased]
 
+### Added
+
+- Kanban: global setting **`kanban_max_cards`** (Admin → System settings). `0` (default) loads every task the user can see at once — the board is no longer capped at 100 cards; a positive value renders that many cards first and then **auto-loads more on scroll** (IntersectionObserver) until everything is loaded.
+- Kanban: the result summary now shows the real total ("Shown X of Y tasks") plus a hint when only a chunk is loaded yet, instead of the misleading "100 of 100".
+- Task list API: `limit=0` now means "unlimited" (offset mode), used by the kanban board endpoint.
+
 ### Fixed
 
 - Dashboard "Active Cycles" widget: rendered the literal text `false` whenever at least one active cycle existed — a misplaced closing quote turned the widget's HTML string concatenation into a relational comparison (`html += ... > ...`), so the whole widget body collapsed to `"false"`. The cycle cards, progress bars and task counters now render correctly.

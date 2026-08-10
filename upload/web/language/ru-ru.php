@@ -1281,6 +1281,9 @@ return array (
       'shown_prefix' => 'Показано',
       'of' => 'из',
       'tasks' => 'задач',
+      'loading_more' => 'загружается ещё…',
+      'loaded' => 'загружено',
+      'auto_more' => 'дозагрузка при прокрутке',
     ),
     'due' => 
     array (
@@ -6880,6 +6883,7 @@ return array (
     'setting_max_requests' => 'Лимит запросов в минуту',
     'setting_api_cache_enabled' => 'Кэш API (включён/выключен)',
     'setting_api_cache_ttl' => 'Время хранения кэша (сек)',
+    'setting_kanban_max_cards' => 'Канбан: макс. карточек (0 = показывать все)',
     'retention_request_logs' => 'Журнал запросов',
     'retention_security_logs' => 'Журнал безопасности',
     'retention_audit_logs' => 'Журнал аудита',

@@ -1260,6 +1260,9 @@ return array (
       'shown_prefix' => '显示',
       'of' => '/',
       'tasks' => '个任务',
+      'loading_more' => '正在加载更多…',
+      'loaded' => '已加载',
+      'auto_more' => '滚动时自动加载',
     ),
     'due' => 
     array (
@@ -6736,6 +6739,7 @@ return array (
     'setting_max_requests' => '每分钟请求限制',
     'setting_api_cache_enabled' => 'API 缓存（开启/关闭）',
     'setting_api_cache_ttl' => '缓存存储时间（秒）',
+    'setting_kanban_max_cards' => '看板最大卡片数（0 = 全部显示）',
     'retention_request_logs' => '请求日志',
     'retention_security_logs' => '安全日志',
     'retention_audit_logs' => '审计日志',

@@ -1203,6 +1203,7 @@ return array (
     'setting_max_requests' => 'Limite de requisições por minuto',
     'setting_api_cache_enabled' => 'Cache da API (ativado/desativado)',
     'setting_api_cache_ttl' => 'TTL do cache (seg)',
+    'setting_kanban_max_cards' => 'Kanban: máx. de cartões (0 = mostrar todos)',
     'retention_request_logs' => 'Logs de requisições',
     'retention_security_logs' => 'Logs de segurança',
     'retention_audit_logs' => 'Log de auditoria',
@@ -6499,6 +6500,9 @@ return array (
       'shown_prefix' => 'Mostrando',
       'of' => 'de',
       'tasks' => 'tarefas',
+      'loading_more' => 'carregando mais…',
+      'loaded' => 'carregado',
+      'auto_more' => 'carregamento automático ao rolar',
     ),
     'due' => 
     array (
