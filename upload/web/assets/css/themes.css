@@ -20,6 +20,28 @@ html[data-theme="dark"] {
   color-scheme: dark;
   scrollbar-color: rgba(46, 201, 160, 0.45) #121b18;
 
+  --crm-ink: #000000;
+  --crm-on-accent: #ffffff;
+  --crm-priority-high: #ea580c;
+  /* Deep task-tree nesting accents - brighter in dark for legibility */
+  --crm-tree-level-3: #a78bfa;
+  --crm-tree-level-deep: #e879f9;
+
+  /* Legacy semantic aliases - dark equivalents */
+  --crm-muted: #93a59e;
+  --crm-bg-hover: #1f2d28;
+  --crm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --crm-accent-bg: rgba(46, 201, 160, 0.08);
+  --crm-bg-inverse: #1e293b;
+  --crm-text-inverse: #f8fafc;
+  --crm-bg-secondary: #1f2d28;
+  --crm-bg-subtle: #131d1a;
+  --crm-border-light: rgba(255, 255, 255, 0.06);
+  --crm-green: #4bd494;
+  --crm-text-secondary: #93a59e;
+  --color-primary-200: #134e3e;
+  --color-primary-300: #1c6650;
+
   --crm-bg: #0f1614;
   --crm-bg-deep: #0a100e;
   --crm-surface: #16201d;
@@ -887,6 +909,27 @@ html[data-theme="dark"] body.crm-login-page .crm-login-card .form-select {
 html[data-theme="contrast"] {
   color-scheme: light;
 
+  --crm-ink: #000000;
+  --crm-on-accent: #ffffff;
+  --crm-priority-high: #c2410c;
+  --crm-tree-level-3: #8b5cf6;
+  --crm-tree-level-deep: #d946ef;
+
+  /* Legacy semantic aliases - high-contrast equivalents */
+  --crm-muted: #1f1f1f;
+  --crm-bg-hover: #e8e8e8;
+  --crm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --crm-accent-bg: rgba(0, 92, 68, 0.08);
+  --crm-bg-inverse: #000000;
+  --crm-text-inverse: #ffffff;
+  --crm-bg-secondary: #e8e8e8;
+  --crm-bg-subtle: #f2f2f2;
+  --crm-border-light: rgba(0, 0, 0, 0.15);
+  --crm-green: #005c44;
+  --crm-text-secondary: #1f1f1f;
+  --color-primary-200: #0a3b2e;
+  --color-primary-300: #005c44;
+
   --crm-bg: #ffffff;
   --crm-bg-deep: #f2f2f2;
   --crm-surface: #ffffff;
@@ -1303,6 +1346,45 @@ html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--new,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--release,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--success {
   background: #005c44 !important;
+}
+
+/* Gantt status tokens: swap the blue "active" (#0369a1) / navy "project"
+   (#1e3a5f) base hues for brand green and darken the light grid lines, so
+   every gantt surface (bars, badges, dots, progress, hover) is green-driven
+   and AA-safe — bar labels are white on these fills. */
+html[data-theme="contrast"] .crm-gantt-page {
+  --gantt-blue: #005c44;
+  --gantt-blue-2: #006b4d;
+  --gantt-green: #00602f;
+  --gantt-green-2: #00734f;
+  --gantt-orange: #b45309;
+  --gantt-orange-2: #d97706;
+  --gantt-red: #b91c1c;
+  --gantt-purple: #7c3aed;
+  --gantt-gray: #4b5563;
+  --gantt-line: #000000;
+  --gantt-soft: #ffffff;
+  --gantt-grid-line: #000000;
+  --gantt-row-line: #1f1f1f;
+  --gantt-hover-bg: rgba(0, 92, 68, 0.08);
+  --gantt-color-new: #006b4d;
+  --gantt-color-active: #005c44;
+  --gantt-color-review: #7c3aed;
+  --gantt-color-release: #006b4d;
+  --gantt-color-success: #00602f;
+  --gantt-color-blocked: #b45309;
+  --gantt-color-paused: #4b5563;
+  --gantt-color-archived: #475569;
+  --gantt-color-overdue: #b91c1c;
+  --gantt-color-project: #005c44;
+}
+
+/* Visual editor (rich text): blue accent -> brand green; muted text
+   near-black so helper labels meet WCAG AA. */
+html[data-theme="contrast"] .crm-ve-editor {
+  --crm-ve-accent: #005c44;
+  --crm-ve-accent-light: rgba(0, 92, 68, 0.12);
+  --crm-ve-text-muted: #1f1f1f;
 }
 
 /* Task tags use user-chosen background colors; in the low-vision theme

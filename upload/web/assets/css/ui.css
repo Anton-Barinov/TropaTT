@@ -107,7 +107,7 @@
   padding: 0 5px;
   border-radius: 999px;
   background: var(--crm-danger);
-  color: #fff;
+  color: var(--crm-on-accent);
   border: 2px solid var(--crm-surface, #fff);
   font-size: 10px;
   font-weight: 700;
@@ -117,7 +117,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  box-shadow: 0 4px 10px rgba(230, 57, 70, 0.35);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--crm-danger) 35%, transparent);
 }
 
 .crm-topbar [data-global-notifications] .crm-notification-counter.is-visible {
@@ -269,7 +269,7 @@
 .crm-soft-panel,
 .crm-action-card {
   border-radius: 8px !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-ink) 5%, transparent) !important;
 }
 
 /* remove AI-like decorative top strips/accents */
@@ -372,7 +372,7 @@ a.btn {
 .btn.crm-btn-primary {
   background: var(--crm-primary);
   border-color: var(--crm-primary);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .crm-btn-primary:hover,
@@ -381,7 +381,7 @@ a.btn {
 .btn.crm-btn-primary:focus {
   background: var(--crm-primary-hover);
   border-color: var(--crm-primary-hover);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .btn-light,
@@ -418,14 +418,14 @@ a.btn {
 .crm-btn-muted.is-active {
   background: var(--crm-primary-soft);
   color: var(--crm-primary);
-  border-color: rgba(13, 110, 253, 0.35);
+  border-color: color-mix(in srgb, var(--crm-info) 35%, transparent);
 }
 
 /* ТЗ 6.6: активное состояние «Компактного вида» — читаемый контраст (не зелёное на зелёном) */
 .crm-clients-page #clientsCompactToggle.is-active {
   background: var(--crm-primary);
   border-color: transparent;
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .crm-btn-danger-soft,
@@ -691,7 +691,7 @@ textarea.form-control::placeholder {
 #projectsViewToggle .btn.active,
 #tasksViewToggle .btn.active {
   background: var(--crm-primary);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .crm-empty-state,
@@ -964,7 +964,7 @@ textarea.form-control::placeholder {
 [data-gantt-bar] {
   border-radius: 999px;
   background: linear-gradient(90deg, var(--crm-primary), var(--crm-success));
-  color: #fff;
+  color: var(--crm-on-accent);
   box-shadow: var(--crm-shadow-soft);
 }
 
@@ -998,7 +998,7 @@ select:focus-visible,
 textarea:focus-visible,
 .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-success) 18%, transparent);
 }
 
 @media (max-width: 1280px) {
@@ -1076,12 +1076,12 @@ textarea:focus-visible,
 }
 
 ::selection {
-  background: rgba(15, 143, 114, 0.2);
+  background: color-mix(in srgb, var(--crm-accent) 20%, transparent);
   color: var(--crm-text);
 }
 
 html {
-  scrollbar-color: rgba(15, 143, 114, 0.38) rgba(17, 26, 25, 0.08);
+  scrollbar-color: color-mix(in srgb, var(--crm-accent) 38%, transparent) color-mix(in srgb, var(--crm-ink) 8%, transparent);
 }
 
 body {
@@ -1098,12 +1098,12 @@ h1, h2, h3, h4, h5, h6,
 
 a {
   color: var(--crm-primary);
-  text-decoration-color: rgba(15, 143, 114, 0.32);
+  text-decoration-color: color-mix(in srgb, var(--crm-accent) 32%, transparent);
 }
 
 a:hover {
   color: var(--crm-primary-hover);
-  text-decoration-color: rgba(15, 143, 114, 0.58);
+  text-decoration-color: color-mix(in srgb, var(--crm-accent) 58%, transparent);
 }
 
 a:focus-visible,
@@ -1126,7 +1126,7 @@ textarea:focus-visible,
 .crm-sidebar {
   position: sticky;
   top: 0;
-  border-right: 1px solid rgba(17, 26, 25, 0.08);
+  border-right: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 92%, transparent), color-mix(in srgb, var(--crm-surface) 86%, transparent)),
     var(--crm-surface);
@@ -1148,12 +1148,12 @@ textarea:focus-visible,
   border-radius: 12px;
   background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
   box-shadow:
-    0 14px 28px rgba(15, 143, 114, 0.24),
+    0 14px 28px color-mix(in srgb, var(--crm-accent) 24%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 36%, transparent);
 }
 
 .crm-sidebar-toggle {
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   background: var(--crm-surface-2, rgba(255, 255, 255, 0.72));
   color: var(--crm-text-muted);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
@@ -1189,20 +1189,20 @@ textarea:focus-visible,
 .crm-nav .nav-link:hover,
 .crm-nav .nav-link:focus {
   background: color-mix(in srgb, var(--crm-surface) 84%, transparent);
-  border-color: rgba(15, 143, 114, 0.16);
+  border-color: color-mix(in srgb, var(--crm-accent) 16%, transparent);
   color: var(--crm-text);
   transform: none;
-  box-shadow: 0 10px 22px rgba(17, 37, 34, 0.06);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--crm-ink) 6%, transparent);
 }
 
 .crm-nav .nav-link.active {
   background:
-    radial-gradient(circle at 14% 50%, rgba(142, 224, 205, 0.22), transparent 38%),
+    radial-gradient(circle at 14% 50%, color-mix(in srgb, var(--crm-accent) 22%, transparent), transparent 38%),
     linear-gradient(180deg, var(--crm-success-soft), var(--crm-success-soft));
-  border-color: rgba(15, 143, 114, 0.26);
+  border-color: color-mix(in srgb, var(--crm-accent) 26%, transparent);
   color: var(--crm-primary-hover);
   box-shadow:
-    0 14px 28px rgba(15, 143, 114, 0.1),
+    0 14px 28px color-mix(in srgb, var(--crm-accent) 10%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 80%, transparent);
 }
 
@@ -1210,7 +1210,7 @@ textarea:focus-visible,
   width: 28px;
   height: 28px;
   border-radius: 10px;
-  border-color: rgba(17, 26, 25, 0.08);
+  border-color: color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background: linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
   color: var(--crm-text-muted);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 92%, transparent);
@@ -1219,7 +1219,7 @@ textarea:focus-visible,
 .crm-nav .nav-link:hover .crm-nav-icon,
 .crm-nav .nav-link:focus .crm-nav-icon,
 .crm-nav .nav-link.active .crm-nav-icon {
-  border-color: rgba(15, 143, 114, 0.24);
+  border-color: color-mix(in srgb, var(--crm-accent) 24%, transparent);
   background: linear-gradient(180deg, var(--crm-success-soft), var(--crm-success-soft));
   color: var(--crm-primary);
   transform: none;
@@ -1272,9 +1272,9 @@ textarea:focus-visible,
   position: sticky;
   top: 0;
   z-index: var(--z-topbar);
-  border-bottom: 1px solid rgba(17, 26, 25, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background: color-mix(in srgb, var(--crm-surface) 78%, transparent);
-  box-shadow: 0 12px 28px rgba(17, 37, 34, 0.05);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crm-ink) 5%, transparent);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
@@ -1291,7 +1291,7 @@ textarea:focus-visible,
 
 .crm-topbar .input-group .input-group-text,
 .crm-topbar .input-group .form-control {
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   background: color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
@@ -1365,7 +1365,7 @@ textarea:focus-visible,
 .crm-empty,
 .crm-error,
 .crm-no-access {
-  border-color: rgba(17, 26, 25, 0.09);
+  border-color: color-mix(in srgb, var(--crm-ink) 9%, transparent);
   border-radius: var(--crm-radius-xl);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), color-mix(in srgb, var(--crm-surface) 90%, transparent));
@@ -1400,7 +1400,7 @@ textarea:focus-visible,
 .crm-info-panel:hover,
 .crm-list-card:hover,
 .crm-metric-tile:hover {
-  border-color: rgba(15, 143, 114, 0.2);
+  border-color: color-mix(in srgb, var(--crm-accent) 20%, transparent);
   box-shadow:
     var(--crm-shadow-hover),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 90%, transparent);
@@ -1437,7 +1437,7 @@ textarea:focus-visible,
 .crm-calendar-event:hover,
 .crm-calendar-agenda-item:hover {
   transform: translateY(-3px);
-  border-color: rgba(15, 143, 114, 0.24);
+  border-color: color-mix(in srgb, var(--crm-accent) 24%, transparent);
   box-shadow: var(--crm-shadow-hover);
 }
 
@@ -1482,9 +1482,9 @@ a.btn:active {
 .btn.crm-btn-primary {
   border-color: var(--crm-accent);
   background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
-  color: #fff;
+  color: var(--crm-on-accent);
   box-shadow:
-    0 12px 24px rgba(15, 143, 114, 0.22),
+    0 12px 24px color-mix(in srgb, var(--crm-accent) 22%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 18%, transparent);
 }
 
@@ -1494,9 +1494,9 @@ a.btn:active {
 .btn.crm-btn-primary:focus {
   border-color: var(--crm-accent-strong);
   background: linear-gradient(135deg, var(--crm-accent), var(--crm-accent-strong));
-  color: #fff;
+  color: var(--crm-on-accent);
   box-shadow:
-    0 16px 30px rgba(15, 143, 114, 0.28),
+    0 16px 30px color-mix(in srgb, var(--crm-accent) 28%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 22%, transparent);
 }
 
@@ -1506,7 +1506,7 @@ a.btn:active {
 .crm-btn-ghost,
 .crm-btn-subtle,
 .crm-btn-muted {
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   background: color-mix(in srgb, var(--crm-surface) 78%, transparent);
   color: var(--crm-text);
 }
@@ -1520,13 +1520,13 @@ a.btn:active {
   border-color: var(--crm-primary-border);
   background: var(--crm-primary-soft);
   color: var(--crm-primary-hover);
-  box-shadow: 0 10px 22px rgba(17, 37, 34, 0.08);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--crm-ink) 8%, transparent);
 }
 
 .crm-btn-danger-soft,
 .btn-outline-danger,
 .crm-btn-danger {
-  border-color: rgba(181, 64, 56, 0.28);
+  border-color: color-mix(in srgb, var(--crm-danger) 28%, transparent);
   color: var(--crm-danger);
 }
 
@@ -1534,7 +1534,7 @@ a.btn:active {
 .btn-outline-danger:hover,
 .crm-btn-danger:hover {
   background: var(--crm-danger-soft);
-  border-color: rgba(181, 64, 56, 0.42);
+  border-color: color-mix(in srgb, var(--crm-danger) 42%, transparent);
   color: var(--crm-danger);
 }
 
@@ -1546,7 +1546,7 @@ a.btn:active {
 #tasksViewToggle,
 .crm-tasks-view-toggle {
   overflow: hidden;
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--crm-surface) 74%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent);
@@ -1561,7 +1561,7 @@ a.btn:active {
 .crm-tasks-view-toggle .btn {
   border-radius: 0;
   background: transparent;
-  border-color: rgba(17, 26, 25, 0.08);
+  border-color: color-mix(in srgb, var(--crm-ink) 8%, transparent);
   box-shadow: none;
 }
 
@@ -1574,7 +1574,7 @@ a.btn:active {
 #tasksViewToggle .btn.active,
 .crm-tasks-view-toggle .btn.active {
   background: var(--crm-primary);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .form-control,
@@ -1583,13 +1583,13 @@ a.btn:active {
 .crm-select,
 .crm-textarea,
 textarea.form-control {
-  border-color: rgba(17, 26, 25, 0.12);
+  border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
   color: var(--crm-text);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent),
-    0 1px 0 rgba(17, 26, 25, 0.02);
+    0 1px 0 color-mix(in srgb, var(--crm-ink) 2%, transparent);
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -1602,7 +1602,7 @@ textarea.form-control {
 .crm-input:hover,
 .crm-select:hover,
 .crm-textarea:hover {
-  border-color: rgba(15, 143, 114, 0.28);
+  border-color: color-mix(in srgb, var(--crm-accent) 28%, transparent);
   background: var(--crm-surface, #fff);
 }
 
@@ -1631,7 +1631,7 @@ textarea.form-control:focus {
 }
 
 .input-group-text {
-  border-color: rgba(17, 26, 25, 0.12);
+  border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent);
   color: var(--crm-text-muted);
 }
 
@@ -1652,13 +1652,13 @@ textarea.form-control:focus {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 98%, transparent), color-mix(in srgb, var(--crm-surface) 98%, transparent));
   color: var(--crm-text-muted);
-  border-bottom-color: rgba(17, 26, 25, 0.08);
+  border-bottom-color: color-mix(in srgb, var(--crm-ink) 8%, transparent);
   font-weight: 760;
 }
 
 .crm-table td,
 .table.crm-table td {
-  border-bottom-color: rgba(17, 26, 25, 0.07);
+  border-bottom-color: color-mix(in srgb, var(--crm-ink) 7%, transparent);
 }
 
 .crm-table tbody tr,
@@ -1668,17 +1668,17 @@ textarea.form-control:focus {
 
 .crm-table tbody tr:hover,
 .table.crm-table tbody tr:hover {
-  background: rgba(231, 246, 242, 0.62);
+  background: color-mix(in srgb, var(--crm-accent) 9%, var(--crm-surface));
 }
 
 .crm-table tbody tr.is-selected,
 .table.crm-table tbody tr.is-selected {
-  background: rgba(15, 143, 114, 0.1);
+  background: color-mix(in srgb, var(--crm-accent) 10%, transparent);
   box-shadow: inset 4px 0 0 var(--crm-primary);
 }
 
 .form-check-input {
-  border-color: rgba(17, 26, 25, 0.22);
+  border-color: color-mix(in srgb, var(--crm-ink) 22%, transparent);
   cursor: pointer;
 }
 
@@ -1696,33 +1696,33 @@ textarea.form-control:focus {
 
 .crm-badge.active,
 .crm-badge-primary {
-  border-color: rgba(15, 143, 114, 0.2);
+  border-color: color-mix(in srgb, var(--crm-accent) 20%, transparent);
   color: var(--crm-primary-hover);
   background: var(--crm-primary-soft);
 }
 
 .crm-badge.success,
 .crm-badge-success {
-  border-color: rgba(22, 131, 74, 0.18);
+  border-color: color-mix(in srgb, var(--crm-success) 18%, transparent);
 }
 
 .crm-badge.blocked,
 .crm-badge.warning,
 .crm-badge-warning {
-  border-color: rgba(154, 101, 0, 0.18);
+  border-color: color-mix(in srgb, var(--crm-warning) 18%, transparent);
 }
 
 .crm-badge.overdue,
 .crm-badge.danger,
 .crm-badge-danger {
-  border-color: rgba(181, 64, 56, 0.18);
+  border-color: color-mix(in srgb, var(--crm-danger) 18%, transparent);
 }
 
 .dropdown-menu {
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   border-radius: 16px;
   background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
-  box-shadow: 0 24px 52px rgba(17, 37, 34, 0.16);
+  box-shadow: 0 24px 52px color-mix(in srgb, var(--crm-ink) 16%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -1744,7 +1744,7 @@ textarea.form-control:focus {
   border-radius: 24px;
   background:
     linear-gradient(180deg, var(--crm-modal-bg-top, rgba(255,255,255,0.98)), var(--crm-modal-bg-bottom, rgba(250,252,251,0.96)));
-  box-shadow: 0 34px 80px rgba(17, 37, 34, 0.2);
+  box-shadow: 0 34px 80px color-mix(in srgb, var(--crm-ink) 20%, transparent);
 }
 
 .modal-backdrop {
@@ -1766,7 +1766,7 @@ textarea.form-control:focus {
 }
 
 .accordion-item {
-  border-color: rgba(17, 26, 25, 0.09);
+  border-color: color-mix(in srgb, var(--crm-ink) 9%, transparent);
   border-radius: 16px !important;
   overflow: hidden;
   background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
@@ -1781,7 +1781,7 @@ textarea.form-control:focus {
 .accordion-button:not(.collapsed) {
   color: var(--crm-primary-hover);
   background: var(--crm-primary-soft);
-  box-shadow: inset 0 -1px 0 rgba(15, 143, 114, 0.12);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--crm-accent) 12%, transparent);
 }
 
 .crm-empty-state,
@@ -1791,7 +1791,7 @@ textarea.form-control:focus {
   padding: 28px;
   border-style: dashed;
   background:
-    radial-gradient(circle at 16% 18%, rgba(15,143,114,.08), transparent 38%),
+    radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--crm-accent) 8%, transparent), transparent 38%),
     linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
@@ -1806,16 +1806,16 @@ textarea.form-control:focus {
   border-radius: 22px;
   background: color-mix(in srgb, var(--crm-surface) 58%, transparent);
   box-shadow:
-    0 16px 36px rgba(17, 37, 34, 0.07),
+    0 16px 36px color-mix(in srgb, var(--crm-ink) 7%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 .crm-kanban-card {
-  border-color: rgba(17, 26, 25, 0.1);
+  border-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   border-left-width: 4px;
   border-radius: 16px;
   background: var(--crm-surface, #fff);
-  box-shadow: 0 8px 18px rgba(17, 37, 34, 0.06);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-ink) 6%, transparent);
 }
 
 .crm-kanban-card:active {
@@ -1830,16 +1830,16 @@ textarea.form-control:focus {
 
 .crm-calendar-day:hover {
   background: var(--crm-primary-soft);
-  box-shadow: inset 0 0 0 1px rgba(15, 143, 114, 0.24);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--crm-accent) 24%, transparent);
 }
 
 .crm-calendar-day.is-today .crm-calendar-day-number {
   background: var(--crm-primary);
-  box-shadow: 0 8px 18px rgba(15,143,114,.18);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-accent) 18%, transparent);
 }
 
 .crm-calendar-event {
-  border-color: rgba(15, 143, 114, 0.22);
+  border-color: color-mix(in srgb, var(--crm-accent) 22%, transparent);
   border-left-color: var(--crm-primary);
   border-radius: 14px;
   background: var(--crm-success-soft);
@@ -1855,32 +1855,32 @@ textarea.form-control:focus {
 
 .crm-gantt-bar,
 [data-gantt-bar] {
-  background: linear-gradient(90deg, var(--crm-primary), #57b89f);
-  box-shadow: 0 10px 22px rgba(15, 143, 114, 0.2);
+  background: linear-gradient(90deg, var(--crm-primary), color-mix(in srgb, var(--crm-primary) 78%, var(--crm-on-accent)));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--crm-accent) 20%, transparent);
 }
 
 .crm-timeline {
-  border-left-color: rgba(15,143,114,.2);
+  border-left-color: color-mix(in srgb, var(--crm-accent) 20%, transparent);
 }
 
 .crm-timeline-item::before {
   background: var(--crm-primary);
-  box-shadow: 0 0 0 5px rgba(15,143,114,.1);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--crm-accent) 10%, transparent);
 }
 
 .crm-login-wrap {
   background:
-    radial-gradient(760px 460px at 82% 18%, rgba(15,143,114,.16), transparent 62%),
-    linear-gradient(90deg, rgba(17,26,25,.035) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(17,26,25,.028) 1px, transparent 1px),
+    radial-gradient(760px 460px at 82% 18%, color-mix(in srgb, var(--crm-accent) 16%, transparent), transparent 62%),
+    linear-gradient(90deg, color-mix(in srgb, var(--crm-ink) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--crm-ink) 3%, transparent) 1px, transparent 1px),
     var(--crm-bg);
   background-size: auto, 56px 56px, 56px 56px, auto;
 }
 
 .crm-login-panel {
-  border-right-color: rgba(17, 26, 25, 0.08);
+  border-right-color: color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background: color-mix(in srgb, var(--crm-surface) 90%, transparent);
-  box-shadow: 18px 0 54px rgba(17,37,34,.08);
+  box-shadow: 18px 0 54px color-mix(in srgb, var(--crm-ink) 8%, transparent);
 }
 
 .crm-login-cover .crm-card {
@@ -1888,13 +1888,13 @@ textarea.form-control:focus {
   background:
     radial-gradient(circle at 18% 18%, rgba(142,224,205,.32), transparent 34%),
     linear-gradient(145deg, #101918, #174039 55%, var(--crm-accent));
-  color: #fff;
-  box-shadow: 0 34px 90px rgba(17,37,34,.22);
+  color: var(--crm-on-accent);
+  box-shadow: 0 34px 90px color-mix(in srgb, var(--crm-ink) 22%, transparent);
 }
 
 @media (max-width: 1199px) {
   .crm-sidebar {
-    box-shadow: 24px 0 70px rgba(17, 37, 34, 0.18);
+    box-shadow: 24px 0 70px color-mix(in srgb, var(--crm-ink) 18%, transparent);
   }
 
   body.sidebar-open::before {
@@ -1902,7 +1902,7 @@ textarea.form-control:focus {
     position: fixed;
     inset: 0;
     z-index: calc(var(--z-sidebar) - 1);
-    background: rgba(17, 26, 25, 0.26);
+    background: color-mix(in srgb, var(--crm-ink) 26%, transparent);
     backdrop-filter: blur(4px);
   }
 }
@@ -2003,10 +2003,10 @@ textarea.form-control:focus {
 .crm-timeline-item:first-child:last-child {
   min-height: 56px;
   padding: 18px 20px;
-  border: 1px dashed rgba(15, 143, 114, 0.2);
+  border: 1px dashed color-mix(in srgb, var(--crm-accent) 20%, transparent);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--crm-surface) 88%, transparent), rgba(235,246,243,0.78));
+    linear-gradient(135deg, color-mix(in srgb, var(--crm-surface) 88%, transparent), color-mix(in srgb, var(--crm-surface) 78%, transparent));
   color: var(--crm-text-muted);
   font-weight: 700;
 }
@@ -2040,10 +2040,10 @@ textarea.form-control:focus {
 }
 
 .crm-dashboard-page .crm-dashboard-ai-summary-panel {
-  border: 1px solid rgba(15, 143, 114, 0.16);
+  border: 1px solid color-mix(in srgb, var(--crm-accent) 16%, transparent);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 38%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--crm-accent) 12%, transparent), transparent 38%),
     linear-gradient(135deg, var(--crm-surface-2), var(--crm-success-soft));
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
@@ -2083,9 +2083,9 @@ textarea.form-control:focus {
   top: 0;
   z-index: 1;
   padding: 18px 16px;
-  border-bottom: 1px solid rgba(17, 26, 25, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), rgba(239, 247, 245, 0.92));
+    linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 96%, transparent), color-mix(in srgb, var(--crm-surface) 92%, transparent));
   color: var(--crm-text-muted);
   font-size: 0.74rem;
   font-weight: 850;
@@ -2096,7 +2096,7 @@ textarea.form-control:focus {
 .crm-table tbody td {
   padding: 16px;
   vertical-align: middle;
-  border-bottom: 1px solid rgba(17, 26, 25, 0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--crm-ink) 7%, transparent);
 }
 
 .crm-table tbody tr {
@@ -2108,12 +2108,12 @@ textarea.form-control:focus {
 
 .crm-table tbody tr:hover {
   background:
-    linear-gradient(90deg, rgba(15, 143, 114, 0.055), color-mix(in srgb, var(--crm-surface) 48%, transparent));
-  box-shadow: inset 4px 0 0 rgba(15, 143, 114, 0.36);
+    linear-gradient(90deg, color-mix(in srgb, var(--crm-accent) 6%, transparent), color-mix(in srgb, var(--crm-surface) 48%, transparent));
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--crm-accent) 36%, transparent);
 }
 
 .crm-table tbody tr:has(input:checked) {
-  background: rgba(15, 143, 114, 0.075);
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent);
   box-shadow: inset 4px 0 0 var(--crm-primary);
 }
 
@@ -2206,14 +2206,14 @@ textarea.form-control:focus {
 .crm-filters .form-select:hover,
 .crm-filters-card .form-control:hover,
 .crm-filters-card .form-select:hover {
-  border-color: rgba(15, 143, 114, 0.32);
+  border-color: color-mix(in srgb, var(--crm-accent) 32%, transparent);
   background-color: var(--crm-surface, #fff);
 }
 
 .form-check-input {
   width: 1.05rem;
   height: 1.05rem;
-  border-color: rgba(15, 143, 114, 0.36);
+  border-color: color-mix(in srgb, var(--crm-accent) 36%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
   cursor: pointer;
 }
@@ -2225,7 +2225,7 @@ textarea.form-control:focus {
 
 .form-check-input:hover {
   border-color: var(--crm-primary-hover);
-  box-shadow: 0 0 0 4px rgba(15, 143, 114, 0.1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--crm-accent) 10%, transparent);
 }
 
 .btn,
@@ -2272,10 +2272,10 @@ textarea.form-control:focus {
 }
 
 .dropdown-menu {
-  border: 1px solid rgba(17, 26, 25, 0.1);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 10%, transparent);
   border-radius: 18px;
   background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
-  box-shadow: 0 24px 52px rgba(17, 37, 34, 0.14);
+  box-shadow: 0 24px 52px color-mix(in srgb, var(--crm-ink) 14%, transparent);
   backdrop-filter: blur(14px) saturate(1.06);
   -webkit-backdrop-filter: blur(14px) saturate(1.06);
 }
@@ -2301,7 +2301,7 @@ textarea.form-control:focus {
   background:
     radial-gradient(circle at 100% 0%, var(--crm-modal-accent, rgba(15, 143, 114, 0.1)), transparent 28%),
     linear-gradient(180deg, var(--crm-modal-bg-top, rgba(255, 255, 255, 0.98)), var(--crm-modal-bg-bottom, rgba(248, 251, 250, 0.96)));
-  box-shadow: 0 30px 80px rgba(17, 37, 34, 0.22);
+  box-shadow: 0 30px 80px color-mix(in srgb, var(--crm-ink) 22%, transparent);
 }
 
 .modal-header,
@@ -2319,7 +2319,7 @@ textarea.form-control:focus {
   gap: 6px;
   border-radius: 999px;
   padding: 4px 10px;
-  border: 1px solid rgba(17, 26, 25, 0.08);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -2338,19 +2338,19 @@ textarea.form-control:focus {
 }
 
 .alert-info {
-  border-color: rgba(22, 107, 120, 0.18);
+  border-color: color-mix(in srgb, var(--crm-info) 18%, transparent);
   background: linear-gradient(180deg, var(--crm-info-soft), var(--crm-info-soft));
   color: var(--crm-info);
 }
 
 .alert-warning {
-  border-color: rgba(154, 101, 0, 0.22);
+  border-color: color-mix(in srgb, var(--crm-warning) 22%, transparent);
   background: linear-gradient(180deg, var(--crm-warning-soft), var(--crm-warning-soft));
   color: var(--crm-warning);
 }
 
 .alert-danger {
-  border-color: rgba(181, 64, 56, 0.22);
+  border-color: color-mix(in srgb, var(--crm-danger) 22%, transparent);
   background: linear-gradient(180deg, var(--crm-danger-soft), var(--crm-danger-soft));
   color: var(--crm-danger);
 }
@@ -2616,7 +2616,7 @@ small.text-muted {
 .crm-section-head {
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(17, 26, 25, 0.07);
+  border-bottom: 1px solid color-mix(in srgb, var(--crm-ink) 7%, transparent);
 }
 
 .crm-section-head h2,
@@ -2664,7 +2664,7 @@ small.text-muted {
 .input-group-text {
   min-height: var(--crm-control-height);
   border-radius: 14px;
-  border-color: rgba(17, 26, 25, 0.12);
+  border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent);
   color: var(--crm-text);
   background-color: color-mix(in srgb, var(--crm-surface) 92%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent);
@@ -2702,11 +2702,11 @@ small.text-muted {
 .crm-btn-primary,
 .btn-primary,
 .text-bg-primary {
-  border-color: rgba(15, 143, 114, 0.9) !important;
+  border-color: color-mix(in srgb, var(--crm-accent) 90%, transparent) !important;
   background:
     linear-gradient(180deg, var(--crm-accent), var(--crm-accent-strong)) !important;
-  color: #fff !important;
-  box-shadow: 0 14px 30px rgba(15, 143, 114, 0.22);
+  color: var(--crm-on-accent) !important;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--crm-accent) 22%, transparent);
 }
 
 .crm-btn-primary:hover,
@@ -2719,17 +2719,17 @@ small.text-muted {
 .crm-btn-secondary,
 .btn-light,
 .btn-outline-secondary {
-  border-color: rgba(17, 26, 25, 0.12) !important;
+  border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent) !important;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--crm-surface) 98%, transparent), color-mix(in srgb, var(--crm-surface) 94%, transparent)) !important;
   color: var(--crm-text) !important;
-  box-shadow: 0 8px 20px rgba(17, 37, 34, 0.05), inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--crm-ink) 5%, transparent), inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
 
 .crm-btn-secondary:hover,
 .btn-light:hover,
 .btn-outline-secondary:hover {
-  border-color: rgba(15, 143, 114, 0.28) !important;
+  border-color: color-mix(in srgb, var(--crm-accent) 28%, transparent) !important;
   color: var(--crm-primary-hover) !important;
   background:
     linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2)) !important;
@@ -2737,7 +2737,7 @@ small.text-muted {
 
 .crm-btn-muted {
   border-color: transparent !important;
-  background: rgba(17, 26, 25, 0.055) !important;
+  background: color-mix(in srgb, var(--crm-ink) 6%, transparent) !important;
   color: var(--crm-text-muted) !important;
 }
 
@@ -2751,7 +2751,7 @@ small.text-muted {
 .crm-badge.active,
 .crm-badge-primary {
   background: var(--crm-primary-soft) !important;
-  border-color: rgba(15, 143, 114, 0.24) !important;
+  border-color: color-mix(in srgb, var(--crm-accent) 24%, transparent) !important;
   color: var(--crm-primary-hover) !important;
 }
 
@@ -2759,7 +2759,7 @@ small.text-muted {
 .crm-badge.success,
 .crm-badge-success {
   background: var(--crm-success-soft) !important;
-  border-color: rgba(22, 131, 74, 0.22) !important;
+  border-color: color-mix(in srgb, var(--crm-success) 22%, transparent) !important;
   color: var(--crm-success, #11683b) !important;
 }
 
@@ -2767,7 +2767,7 @@ small.text-muted {
 .crm-badge.warning,
 .crm-badge-warning {
   background: var(--crm-warning-soft) !important;
-  border-color: rgba(154, 101, 0, 0.24) !important;
+  border-color: color-mix(in srgb, var(--crm-warning) 24%, transparent) !important;
   color: var(--crm-warning, #7c5100) !important;
 }
 
@@ -2776,7 +2776,7 @@ small.text-muted {
 .crm-badge.overdue,
 .crm-badge-danger {
   background: var(--crm-danger-soft) !important;
-  border-color: rgba(181, 64, 56, 0.24) !important;
+  border-color: color-mix(in srgb, var(--crm-danger) 24%, transparent) !important;
   color: var(--crm-danger, #94332d) !important;
 }
 
@@ -2784,7 +2784,7 @@ small.text-muted {
 .crm-badge.archived,
 .crm-badge-muted {
   background: var(--crm-surface-2, #edf3f1) !important;
-  border-color: rgba(17, 26, 25, 0.09) !important;
+  border-color: color-mix(in srgb, var(--crm-ink) 9%, transparent) !important;
   color: var(--crm-text-muted) !important;
 }
 
@@ -2798,7 +2798,7 @@ small.text-muted {
   position: absolute;
   inset: 7px;
   border-radius: inherit;
-  background: rgba(15, 143, 114, 0.08);
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent);
   transform: scale(0.5);
   opacity: 0;
   transition: opacity 180ms ease, transform 180ms ease;
@@ -2818,13 +2818,13 @@ small.text-muted {
   border: 2px solid color-mix(in srgb, var(--crm-surface) 96%, transparent);
   background:
     linear-gradient(180deg, var(--crm-danger), var(--crm-danger));
-  color: #fff;
+  color: var(--crm-on-accent);
   font-size: 10px;
   font-weight: 850;
   line-height: 16px;
   box-shadow:
-    0 9px 18px rgba(181, 64, 56, 0.25),
-    0 0 0 4px rgba(181, 64, 56, 0.09);
+    0 9px 18px color-mix(in srgb, var(--crm-danger) 25%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--crm-danger) 9%, transparent);
 }
 
 [data-nav-notification-badge] {
@@ -2834,7 +2834,7 @@ small.text-muted {
   border-radius: 999px;
   background: var(--crm-primary-soft) !important;
   color: var(--crm-primary-hover) !important;
-  border: 1px solid rgba(15, 143, 114, 0.22);
+  border: 1px solid color-mix(in srgb, var(--crm-accent) 22%, transparent);
   font-size: 0.72rem;
   font-weight: 850;
 }
@@ -2844,7 +2844,7 @@ small.text-muted {
   --bs-popover-border-radius: 22px;
   --bs-popover-border-color: var(--crm-popover-border, rgba(17, 26, 25, 0.1));
   --bs-popover-bg: var(--crm-popover-bg, rgba(255, 255, 255, 0.96));
-  box-shadow: 0 26px 72px rgba(17, 37, 34, 0.2);
+  box-shadow: 0 26px 72px color-mix(in srgb, var(--crm-ink) 20%, transparent);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
@@ -2861,7 +2861,7 @@ small.text-muted {
 
 .crm-topbar-notify-popover > .small:first-child {
   padding: 10px 12px;
-  border: 1px solid rgba(17, 26, 25, 0.08);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 16px;
   background: linear-gradient(180deg, var(--crm-surface-2), var(--crm-success-soft));
   color: var(--crm-text-muted) !important;
@@ -2877,14 +2877,14 @@ small.text-muted {
 .crm-topbar-notify-popover li {
   margin: 0 0 8px !important;
   padding: 12px;
-  border: 1px solid rgba(17, 26, 25, 0.08);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 16px;
   background: var(--crm-surface, #fff);
-  box-shadow: 0 8px 18px rgba(17, 37, 34, 0.055);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-ink) 6%, transparent);
 }
 
 .crm-topbar-notify-popover li:hover {
-  border-color: rgba(15, 143, 114, 0.2);
+  border-color: color-mix(in srgb, var(--crm-accent) 20%, transparent);
   background: linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
@@ -2924,7 +2924,7 @@ small.text-muted {
 
 .crm-notifications-page .crm-side-stack .crm-card:first-child {
   background:
-    radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 38%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--crm-accent) 12%, transparent), transparent 38%),
     linear-gradient(180deg, var(--crm-surface), var(--crm-surface-2));
 }
 
@@ -2956,21 +2956,21 @@ small.text-muted {
   inset: 14px auto 14px 0;
   width: 4px;
   border-radius: 0 999px 999px 0;
-  background: rgba(17, 26, 25, 0.12);
+  background: color-mix(in srgb, var(--crm-ink) 12%, transparent);
 }
 
 .crm-notifications-page .crm-notification-item.border-primary,
 .crm-notifications-page .crm-notification-item.bg-primary-subtle {
-  border-color: rgba(15, 143, 114, 0.32) !important;
+  border-color: color-mix(in srgb, var(--crm-accent) 32%, transparent) !important;
   background:
-    radial-gradient(circle at 100% 0%, rgba(15, 143, 114, 0.12), transparent 34%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--crm-accent) 12%, transparent), transparent 34%),
     linear-gradient(180deg, var(--crm-surface), var(--crm-success-soft)) !important;
 }
 
 .crm-notifications-page .crm-notification-item.border-primary::before,
 .crm-notifications-page .crm-notification-item.bg-primary-subtle::before {
   background: var(--crm-primary);
-  box-shadow: 0 0 0 6px rgba(15, 143, 114, 0.09);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--crm-accent) 9%, transparent);
 }
 
 .crm-notifications-page .crm-notification-item:hover {
@@ -3022,7 +3022,7 @@ small.text-muted {
   align-items: center;
   gap: 10px;
   padding: 8px 10px 8px 34px;
-  border: 1px solid rgba(17, 26, 25, 0.08);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 14px;
   background: var(--crm-surface-2, rgba(255,255,255,0.72));
 }
@@ -3036,7 +3036,7 @@ small.text-muted {
 .crm-notifications-page #notificationsSoundStatus,
 .crm-notifications-page #notificationsPushDevices {
   padding: 10px 12px;
-  border: 1px solid rgba(17, 26, 25, 0.08);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--crm-surface) 86%, transparent);
 }
@@ -3081,19 +3081,19 @@ small.text-muted {
 }
 
 .toast {
-  border: 1px solid rgba(17, 26, 25, 0.1) !important;
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 10%, transparent) !important;
   border-radius: 18px;
   background: color-mix(in srgb, var(--crm-surface) 96%, transparent) !important;
   color: var(--crm-text) !important;
-  box-shadow: 0 24px 60px rgba(17, 37, 34, 0.18);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--crm-ink) 18%, transparent);
   backdrop-filter: blur(16px) saturate(1.08);
   -webkit-backdrop-filter: blur(16px) saturate(1.08);
 }
 
 .toast.text-bg-success {
-  border-color: rgba(22, 131, 74, 0.22) !important;
+  border-color: color-mix(in srgb, var(--crm-success) 22%, transparent) !important;
   background:
-    radial-gradient(circle at 100% 0%, rgba(22, 131, 74, 0.13), transparent 38%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--crm-success) 13%, transparent), transparent 38%),
     color-mix(in srgb, var(--crm-surface) 96%, transparent) !important;
 }
 
@@ -3276,21 +3276,21 @@ body {
 }
 
 .crm-sidebar {
-  border-right-color: rgba(17, 26, 25, 0.1);
+  border-right-color: color-mix(in srgb, var(--crm-ink) 10%, transparent);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .crm-topbar {
   background: color-mix(in srgb, var(--crm-surface) 92%, transparent) !important;
-  box-shadow: 0 1px 0 rgba(17, 26, 25, 0.08) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--crm-ink) 8%, transparent) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .crm-brand-mark {
   background: var(--crm-accent) !important;
-  box-shadow: 0 8px 18px rgba(15, 143, 114, 0.14) !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-accent) 14%, transparent) !important;
 }
 
 .crm-nav .nav-link.active,
@@ -3317,7 +3317,7 @@ body {
 .crm-nav .nav-link:not(.active):hover,
 .crm-nav .nav-link:not(.active):focus {
   background: transparent !important;
-  border-color: rgba(15, 143, 114, 0.12) !important;
+  border-color: color-mix(in srgb, var(--crm-accent) 12%, transparent) !important;
 }
 
 .crm-card:hover,
@@ -3360,7 +3360,7 @@ body {
 .btn-primary,
 .text-bg-primary {
   background: var(--crm-primary) !important;
-  box-shadow: 0 8px 18px rgba(15, 143, 114, 0.12) !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-accent) 12%, transparent) !important;
 }
 
 .crm-btn-primary:hover,
@@ -3411,7 +3411,7 @@ body {
 }
 
 .crm-topbar [data-global-notifications] .crm-notification-counter {
-  box-shadow: 0 0 0 3px rgba(181, 64, 56, 0.08) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-danger) 8%, transparent) !important;
 }
 
 /* ------------------------------------------------------------
@@ -3854,7 +3854,7 @@ body {
 .crm-content .team-segmented > .team-segmented-btn:focus-visible,
 .modal .team-segmented > .team-segmented-btn:focus-visible {
   z-index: 1 !important;
-  outline: 2px solid rgba(15, 118, 110, 0.28) !important;
+  outline: 2px solid color-mix(in srgb, var(--crm-accent) 28%, transparent) !important;
   outline-offset: -2px !important;
 }
 
@@ -4814,9 +4814,9 @@ body {
 body.crm-login-page {
   min-height: 100dvh;
   background:
-    radial-gradient(880px 520px at 82% 12%, rgba(15, 143, 114, 0.13), transparent 64%),
-    linear-gradient(90deg, rgba(17, 26, 25, 0.04) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(17, 26, 25, 0.035) 1px, transparent 1px),
+    radial-gradient(880px 520px at 82% 12%, color-mix(in srgb, var(--crm-accent) 13%, transparent), transparent 64%),
+    linear-gradient(90deg, color-mix(in srgb, var(--crm-ink) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--crm-ink) 4%, transparent) 1px, transparent 1px),
     var(--crm-bg);
   background-size: auto, 56px 56px, 56px 56px, auto;
   color: var(--crm-text);
@@ -4832,8 +4832,8 @@ body.crm-login-page .crm-login-wrap {
 body.crm-login-page .crm-login-panel {
   padding: clamp(32px, 5vw, 64px);
   background: color-mix(in srgb, var(--crm-surface) 94%, transparent);
-  border-right: 1px solid rgba(17, 26, 25, 0.08);
-  box-shadow: 18px 0 54px rgba(17, 37, 34, 0.07);
+  border-right: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
+  box-shadow: 18px 0 54px color-mix(in srgb, var(--crm-ink) 7%, transparent);
   display: flex;
   align-items: center;
 }
@@ -4862,15 +4862,15 @@ body.crm-login-page .crm-login-brand .crm-brand-mark {
   width: 20px;
   height: 20px;
   border-radius: 7px;
-  box-shadow: 6px 6px 0 rgba(15, 143, 114, 0.22) !important;
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--crm-accent) 22%, transparent) !important;
 }
 
 body.crm-login-page .crm-login-kicker {
   margin-bottom: 12px;
   padding: 5px 10px;
-  border: 1px solid rgba(15, 143, 114, 0.15);
+  border: 1px solid color-mix(in srgb, var(--crm-accent) 15%, transparent);
   border-radius: 999px;
-  background: rgba(15, 143, 114, 0.08);
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent);
   color: var(--crm-accent-strong);
   font-size: 12px;
   font-weight: 800;
@@ -4933,7 +4933,7 @@ body.crm-login-page .crm-login-card .form-control::placeholder {
 body.crm-login-page .crm-login-card .form-control:focus,
 body.crm-login-page .crm-login-card .form-select:focus {
   border-color: var(--crm-accent);
-  box-shadow: 0 0 0 4px rgba(15, 143, 114, 0.13);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--crm-accent) 13%, transparent);
 }
 
 body.crm-login-page .crm-login-card .crm-btn-primary {
@@ -4998,14 +4998,14 @@ body.crm-login-page .crm-login-product-preview {
   grid-template-columns: 92px 1fr;
   min-height: 350px;
   overflow: hidden;
-  border: 1px solid rgba(17, 26, 25, 0.12);
+  border: 1px solid color-mix(in srgb, var(--crm-ink) 12%, transparent);
   border-radius: 18px;
   background: color-mix(in srgb, var(--crm-surface) 82%, transparent);
 }
 
 body.crm-login-page .crm-login-preview-sidebar {
   padding: 22px 16px;
-  border-right: 1px solid rgba(17, 26, 25, 0.08);
+  border-right: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
   background: #10211e;
 }
 
@@ -5018,7 +5018,7 @@ body.crm-login-page .crm-login-preview-sidebar span {
 }
 
 body.crm-login-page .crm-login-preview-sidebar span:first-child {
-  background: rgba(15, 143, 114, 0.9);
+  background: color-mix(in srgb, var(--crm-accent) 90%, transparent);
 }
 
 body.crm-login-page .crm-login-preview-main {
@@ -5204,17 +5204,17 @@ body.crm-login-page .crm-login-proof-grid span {
   border-radius: 8px;
   padding: 12px;
   min-height: 80px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-ink) 12%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .crm-sticky-note:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--crm-ink) 15%, transparent);
 }
 
 .crm-sticky-note.crm-sticky-pinned {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18), inset 0 0 0 2px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--crm-ink) 18%, transparent), inset 0 0 0 2px color-mix(in srgb, var(--crm-ink) 8%, transparent);
 }
 
 .crm-sticky-pin-badge {
@@ -5283,7 +5283,7 @@ body.crm-login-page .crm-login-proof-grid span {
 }
 
 .crm-estimate-item:hover {
-  background: rgba(15, 143, 114, 0.04);
+  background: color-mix(in srgb, var(--crm-accent) 4%, transparent);
 }
 
 .crm-estimate-option-row input {
@@ -5334,7 +5334,7 @@ body.crm-login-page .crm-login-proof-grid span {
 }
 
 .crm-saved-views-menu .dropdown-item.active {
-  background: rgba(15, 143, 114, 0.08);
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent);
   color: var(--crm-primary, #0f8f72);
   font-weight: 500;
 }
@@ -5349,7 +5349,7 @@ body.crm-login-page .crm-login-proof-grid span {
 }
 
 .crm-sv-save-btn:hover {
-  background: rgba(15, 143, 114, 0.06) !important;
+  background: color-mix(in srgb, var(--crm-accent) 6%, transparent) !important;
 }
 
 .crm-sv-actions {
@@ -5370,7 +5370,7 @@ body.crm-login-page .crm-login-proof-grid span {
 }
 
 .crm-sv-action:hover {
-  background: rgba(0,0,0,0.06);
+  background: color-mix(in srgb, var(--crm-ink) 6%, transparent);
   color: var(--crm-text);
 }
 
@@ -5406,12 +5406,12 @@ body.crm-login-page .crm-login-proof-grid span {
 
 .crm-sv-badge-public {
   background: var(--crm-accent);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 .crm-sv-badge-system {
   background: var(--crm-text-muted);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 /* ===== Project Modules ===== */

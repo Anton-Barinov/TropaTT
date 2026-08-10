@@ -33,13 +33,13 @@ small,
 
 a {
   color: var(--crm-accent);
-  text-decoration-color: rgba(5, 150, 105, 0.32);
+  text-decoration-color: color-mix(in srgb, var(--crm-success) 32%, transparent);
   text-underline-offset: 0.2em;
 }
 
 a:hover {
   color: var(--crm-accent-strong);
-  text-decoration-color: rgba(4, 120, 87, 0.52);
+  text-decoration-color: color-mix(in srgb, var(--crm-success) 52%, transparent);
 }
 
 a:focus-visible {
@@ -399,7 +399,7 @@ a:focus-visible {
   padding: 0 5px;
   border-radius: 999px;
   background: var(--crm-accent);
-  color: #fff;
+  color: var(--crm-on-accent);
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
@@ -416,7 +416,7 @@ a:focus-visible {
   background: var(--crm-surface);
   border: 1px solid var(--crm-border);
   border-radius: 12px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--crm-ink) 14%, transparent);
   padding: 6px;
   max-height: 320px;
   overflow-y: auto;
@@ -748,7 +748,7 @@ a:focus-visible {
   top: 2px;
   left: 2px;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-ink) 15%, transparent);
 }
 
 .crm-menu-customize-toggle input:checked + .crm-toggle-slider {
@@ -757,7 +757,7 @@ a:focus-visible {
 
 .crm-menu-customize-toggle input:checked + .crm-toggle-slider::before {
   transform: translateX(16px);
-  box-shadow: 0 1px 3px rgba(15, 143, 114, 0.3);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--crm-accent) 30%, transparent);
 }
 
 .crm-menu-customize-toggle input:focus-visible + .crm-toggle-slider {
@@ -775,11 +775,11 @@ a:focus-visible {
 .crm-menu-customize-chosen {
   background: var(--color-primary-50) !important;
   border-color: var(--color-primary-200, #a7f3d0) !important;
-  box-shadow: 0 4px 12px rgba(15, 143, 114, 0.12);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--crm-accent) 12%, transparent);
 }
 
 .crm-menu-customize-dragging {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--crm-ink) 12%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -883,7 +883,7 @@ a:focus-visible {
 .crm-login-cover .crm-card {
   width: 100%;
   background: linear-gradient(150deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 
 /* Site-wide footer */
@@ -938,7 +938,7 @@ a:focus-visible {
 
 .crm-footer a:hover {
   color: var(--color-primary-600, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
+  background: color-mix(in srgb, var(--crm-info) 8%, transparent);
   text-decoration: none;
 }
 
