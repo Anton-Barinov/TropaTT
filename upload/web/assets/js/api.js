@@ -826,7 +826,10 @@ window.CRM.api = (function () {
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
     // AI generation can legitimately take several minutes. Keep regular API calls
     // responsive, but never abort a long-running assistant request prematurely.
-    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, route.indexOf('api/v1/ai/') === 0 ? 300000 : 15000)));
+    // 30s default gives slow shared hosts (ondemand PHP-FPM pools, cold starts)
+    // enough room to answer instead of surfacing a "network error"; the retry
+    // loop below then recovers the rare genuine timeout without a page reload.
+    var timeoutMs = Math.max(0, Math.floor(toNumber(opts.timeoutMs, route.indexOf('api/v1/ai/') === 0 ? 300000 : 30000)));
     var attempts = 0;
 
     while (true) {
@@ -865,6 +868,11 @@ window.CRM.api = (function () {
           headers: headers,
           credentials: 'same-origin',
           signal: controller ? controller.signal : undefined,
+          // Never let the browser auto-follow a 307/301/302 from the API: hosts
+          // with TLS 1.3 0-RTT anti-replay answer with a same-URL 307, and the
+          // browser's automatic redirect handling is what used to drop the
+          // request body (PATCH/POST) — the app re-sends it itself below.
+          redirect: 'manual',
           body: body !== undefined && body !== null
             ? (isFormData || isUrlParams || isBlob ? body : JSON.stringify(body))
             : undefined
@@ -931,6 +939,18 @@ window.CRM.api = (function () {
         if (abortListener && opts.signal && typeof opts.signal.removeEventListener === 'function') {
           opts.signal.removeEventListener('abort', abortListener);
         }
+      }
+
+      // TLS 1.3 0-RTT anti-replay (RFC 8470): nginx rejects early-data requests
+      // with 425 (or a same-URL 307 on some configs) BEFORE they reach the app.
+      // The request was never processed, so re-sending it — body intact, since
+      // the body object is re-serialised on every attempt — is safe for ANY
+      // method (GET/PATCH/POST/DELETE) and needs no server configuration.
+      if (response && (response.status === 425 || response.status === 307)
+          && allowRetry && attempts <= maxRetries) {
+        notifyApiRetrying(route, attempts, maxRetries);
+        await sleep(retryDelayMs * attempts);
+        continue;
       }
 
       var payload = null;
