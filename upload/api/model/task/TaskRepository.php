@@ -146,9 +146,11 @@ final class TaskRepository
         $offset = ($page - 1) * $limit;
 
         if ($limit > 0) {
-            $builder->limit($limit);
+            // QueryBuilder always emits LIMIT + OFFSET together; a bare OFFSET without
+            // LIMIT is invalid MySQL, so both are skipped for unlimited (limit=0) lists.
+            $builder->limit($limit)->offset($offset);
         }
-        $items = $builder->offset($offset)->get();
+        $items = $builder->get();
 
         $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $order)->count();
 
