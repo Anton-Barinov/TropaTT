@@ -1556,7 +1556,7 @@ html[data-theme="contrast"] span.badge.text-bg-light {
    a blue hover tint and a pale-yellow update badge. Repair those for the
    dark and contrast themes so the footer matches the rest of the page. */
 html[data-theme="dark"] .crm-footer {
-  background: color-mix(in srgb, var(--crm-surface) 92%, transparent) !important;
+  background: var(--crm-surface) !important;
   border-top-color: var(--crm-border-strong) !important;
 }
 html[data-theme="dark"] .crm-footer a:hover {
