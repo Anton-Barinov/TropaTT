@@ -19587,6 +19587,11 @@ window.CRM.pageApiBindings = (function () {
       var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
       var query = kanbanBuildTaskQuery(filters);
       query.page = Math.floor(loaded / limit) + 1;
+      // If the previous chunk was entirely deduplicated (server data shifted
+      // between requests), skip past it instead of re-requesting the same page.
+      if (window.CRM.kanbanNextLoadMorePage && query.page <= window.CRM.kanbanNextLoadMorePage) {
+        query.page = window.CRM.kanbanNextLoadMorePage + 1;
+      }
       // Counters were fetched once on the first page — don't re-run the server
       // count query on every chunk.
       delete query.with_status_counts;
@@ -19611,6 +19616,9 @@ window.CRM.pageApiBindings = (function () {
         if (envelope.meta && envelope.meta.status_counts && typeof envelope.meta.status_counts === 'object') {
           window.CRM.kanbanStatusCounts = envelope.meta.status_counts;
         }
+        // Remember the highest page we have consumed so a fully-deduplicated
+        // chunk does not make us re-request the same page forever.
+        window.CRM.kanbanNextLoadMorePage = query.page;
         // Append only the newly fetched cards into their columns instead of
         // rebuilding the whole board, so every column keeps its scroll position.
         kanbanAppendTasks(added);
@@ -19649,8 +19657,8 @@ window.CRM.pageApiBindings = (function () {
       return !knownStatuses[status];
     });
     if (needsFullRender) {
+      // kanbanLoadMore re-inits sortable right after this returns.
       updateKanbanColumns(true);
-      initKanbanSortable();
       return;
     }
 
@@ -19861,9 +19869,12 @@ window.CRM.pageApiBindings = (function () {
     var mobileTabs = document.getElementById('kanbanMobileStatusTabs');
     if (!container) return;
 
-    // Remember each column's scroll position so a re-render (load-more or
-    // drag-n-drop) does not yank every column back to the top.
+    // Remember each column's scroll position (and the board's horizontal
+    // scroll) so a re-render (drag-n-drop status change, mobile tab switch,
+    // new status column) does not yank the board or its columns back to the
+    // top/left.
     var savedScrollTops = {};
+    var savedScrollLeft = keepScroll ? container.scrollLeft : 0;
     if (keepScroll) {
       var currentCols = container.querySelectorAll('.crm-kanban-col');
       Array.prototype.forEach.call(currentCols, function (col) {
@@ -19992,6 +20003,9 @@ window.CRM.pageApiBindings = (function () {
         var code = col.getAttribute('data-status-code') || '';
         if (savedScrollTops[code] != null) col.scrollTop = savedScrollTops[code];
       });
+      if (savedScrollLeft > 0 && container.scrollWidth > container.clientWidth) {
+        container.scrollLeft = savedScrollLeft;
+      }
     }
     initKanbanScrollButtons();
     kanbanEnsureLoadMore();
