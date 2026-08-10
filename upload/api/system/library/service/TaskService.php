@@ -84,6 +84,17 @@ final class TaskService
             ];
         }
 
+        if (!empty($filters['with_status_counts'])) {
+            // Real per-status totals for the filtered/visible set (ignores the
+            // page limit). Kanban uses this to show full column counters while
+            // cards are still being loaded in chunks.
+            $meta['status_counts'] = $this->tasks->countByStatus(
+                $filters,
+                (int)($actor['id'] ?? 0),
+                (bool)($actor['is_root'] ?? false)
+            );
+        }
+
         return [
             'items' => array_map(fn(array $item): array => $this->sanitizeTask($item), $items),
             'meta' => $meta,

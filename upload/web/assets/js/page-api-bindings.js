@@ -19251,6 +19251,32 @@ window.CRM.pageApiBindings = (function () {
     return Boolean(filters.q || (filters.assignees && filters.assignees.length) || (filters.managers && filters.managers.length) || (filters.projects && filters.projects.length) || (filters.cycles && filters.cycles.length) || (filters.tags && filters.tags.length) || filters.due || filters.dueFrom || filters.dueTo);
   }
 
+  // Server counters (meta.status_counts) are exact only while the active filter
+  // set matches what the server actually applied on the last fetch. Client-side
+  // filters (assignees/managers/due, '__none' values, multi-selects of
+  // project/cycle/tag) break that match, so the board falls back to counting
+  // the loaded cards.
+  function kanbanCountsMatchFilters(filters) {
+    if (!filters) return true;
+    if (filters.assignees && filters.assignees.length) return false;
+    if (filters.managers && filters.managers.length) return false;
+    if (filters.due || filters.dueFrom || filters.dueTo) return false;
+    if ((filters.projects || []).length > 1 || (filters.projects || []).indexOf('__none') !== -1) return false;
+    if ((filters.cycles || []).length > 1 || (filters.cycles || []).indexOf('__none') !== -1) return false;
+    if ((filters.tags || []).length > 1 || (filters.tags || []).indexOf('__none') !== -1) return false;
+    return true;
+  }
+
+  // Count shown in a column chip / mobile tab. Prefers the real server total;
+  // falls back to the loaded cards when a client-side filter is active.
+  function kanbanColumnCount(statusCode, loadedTasks) {
+    var useFull = !window.CRM.kanbanStatusCountsDirty
+      && kanbanCountsMatchFilters(window.CRM.kanbanFilters || kanbanReadFiltersFromQuery())
+      && window.CRM.kanbanStatusCounts
+      && window.CRM.kanbanStatusCounts[statusCode] != null;
+    return useFull ? window.CRM.kanbanStatusCounts[statusCode] : (loadedTasks || []).length;
+  }
+
   function kanbanTaskMatches(task, filters) {
     var q = kanbanNormalizeText(filters.q);
     if (q) {
@@ -19360,7 +19386,13 @@ window.CRM.pageApiBindings = (function () {
     var reset = document.getElementById('kanbanFiltersResetBtn');
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     var options = kanbanBuildFilterOptions(window.CRM.kanbanTasks || []);
-    var apply = window.CRM.kanbanApplyFilters || function (f, u) { window.CRM.kanbanFilters = f; if (u) kanbanUpdateUrl(f); updateKanbanColumns(); };
+    var apply = window.CRM.kanbanApplyFilters || function (f, u) {
+      window.CRM.kanbanFilters = f;
+      // Filters changed client-side: the full server counters no longer match the view.
+      window.CRM.kanbanStatusCountsDirty = kanbanFilterActive(f);
+      if (u) kanbanUpdateUrl(f);
+      updateKanbanColumns();
+    };
     window.CRM.kanbanApplyFilters = apply;
     [assignee, manager, project, cycle].forEach(function (select) {
       if (!select) return;
@@ -19440,7 +19472,7 @@ window.CRM.pageApiBindings = (function () {
   function kanbanBuildTaskQuery(filters) {
     // 0 = load all matching tasks (default); otherwise the configured global kanban_max_cards limit.
     var configuredLimit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
-    var query = { limit: configuredLimit };
+    var query = { limit: configuredLimit, with_status_counts: '1' };
     if (filters.q) query.search = filters.q;
     if (filters.projects && filters.projects.length === 1 && filters.projects[0] !== '__none') query.project_public_id = filters.projects[0];
     if (filters.cycles && filters.cycles.length === 1 && filters.cycles[0] !== '__none') query.cycle_public_id = filters.cycles[0];
@@ -19472,6 +19504,8 @@ window.CRM.pageApiBindings = (function () {
 
   async function renderKanbanPage() {
     window.CRM.kanbanFilters = kanbanReadFiltersFromQuery();
+    window.CRM.kanbanStatusCounts = null;
+    window.CRM.kanbanStatusCountsDirty = false;
     await kanbanLoadCycleOptions();
     // Try to load configured statuses (order) from API; fall back to sensible defaults
     var statusOrder = ['new', 'in_progress', 'done'];
@@ -19485,6 +19519,7 @@ window.CRM.pageApiBindings = (function () {
       var pageTasksMeta = (pageData.tasks && pageData.tasks.meta) ? pageData.tasks.meta : null;
       window.CRM.kanbanTotal = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.total != null) ? Number(pageTasksMeta.pagination.total) : pageTasks.length;
       window.CRM.kanbanLimit = (pageTasksMeta && pageTasksMeta.pagination && pageTasksMeta.pagination.limit != null) ? Number(pageTasksMeta.pagination.limit) : 0;
+      window.CRM.kanbanStatusCounts = (pageData.status_counts && typeof pageData.status_counts === 'object') ? pageData.status_counts : null;
       statusesEnvelope = pageData.statuses ? { success: true, data: pageData.statuses } : null;
     } else {
       var tasksEnvelope = await tryRequest('api/v1/tasks', { query: kanbanBuildTaskQuery(window.CRM.kanbanFilters) });
@@ -19494,6 +19529,9 @@ window.CRM.pageApiBindings = (function () {
         var tasksMeta = tasksEnvelope && tasksEnvelope.meta ? tasksEnvelope.meta : null;
         window.CRM.kanbanTotal = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.total != null) ? Number(tasksMeta.pagination.total) : tasks.length;
         window.CRM.kanbanLimit = (tasksMeta && tasksMeta.pagination && tasksMeta.pagination.limit != null) ? Number(tasksMeta.pagination.limit) : 0;
+        if (tasksMeta && tasksMeta.status_counts && typeof tasksMeta.status_counts === 'object') {
+          window.CRM.kanbanStatusCounts = tasksMeta.status_counts;
+        }
       }
     }
     try {
@@ -19523,42 +19561,67 @@ window.CRM.pageApiBindings = (function () {
     applySearchableSelects();
     updateKanbanColumns();
     initKanbanSortable();
-    kanbanEnsureLoadMore();
+  }
+
+  // True when the user scrolled the column close to its bottom (within ~5 cards).
+  function kanbanNearBottom(el, thresholdPx) {
+    if (!el) return false;
+    return el.scrollTop + el.clientHeight >= el.scrollHeight - thresholdPx;
+  }
+
+  function kanbanColumnScrollThreshold() {
+    var card = document.querySelector('.crm-kanban-card');
+    var cardHeight = card ? card.offsetHeight : 0;
+    return Math.max(200, Math.round((cardHeight || 100) * 5));
   }
 
   // When a global kanban_max_cards limit is configured and more tasks remain,
-  // watch a sentinel below the board and automatically load the next chunk.
+  // load the next chunk as soon as the user scrolls close to the bottom of any
+  // column. A capture-phase scroll listener on the board survives column
+  // re-renders (columns are recreated on every updateKanbanColumns call).
   function kanbanEnsureLoadMore() {
     var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
     var loaded = (window.CRM.kanbanTasks || []).length;
     var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
-    if (limit <= 0 || loaded >= total) {
-      if (window.CRM.kanbanLoadMoreObserver) {
-        window.CRM.kanbanLoadMoreObserver.disconnect();
-        window.CRM.kanbanLoadMoreObserver = null;
-      }
-      var oldSentinel = document.getElementById('kanbanLoadMoreSentinel');
-      if (oldSentinel) oldSentinel.remove();
-      return;
-    }
+    if (limit <= 0 || loaded >= total) return;
+
     var board = document.querySelector('.crm-kanban');
-    if (!board || !board.parentNode) return;
-    var sentinel = document.getElementById('kanbanLoadMoreSentinel');
-    if (!sentinel) {
-      sentinel = document.createElement('div');
-      sentinel.id = 'kanbanLoadMoreSentinel';
-      sentinel.className = 'text-center small text-muted py-1';
-      sentinel.setAttribute('aria-hidden', 'true');
-      board.parentNode.insertBefore(sentinel, board.nextSibling);
-    }
-    if (!window.CRM.kanbanLoadMoreObserver && typeof IntersectionObserver !== 'undefined') {
-      window.CRM.kanbanLoadMoreObserver = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) kanbanLoadMore();
-        });
-      }, { root: null, rootMargin: '800px 0px 800px 0px' });
-      window.CRM.kanbanLoadMoreObserver.observe(sentinel);
-    }
+    if (!board || board.__kanbanLoadMoreBound) return;
+    board.__kanbanLoadMoreBound = true;
+    board.addEventListener('scroll', function (e) {
+      var col = e.target && e.target.classList && e.target.classList.contains('crm-kanban-col') ? e.target : null;
+      if (col && kanbanNearBottom(col, kanbanColumnScrollThreshold())) {
+        kanbanLoadMore();
+      }
+    }, true);
+  }
+
+  // If no column can be scrolled yet (the whole board fits on screen), keep
+  // pulling chunks automatically until at least one column overflows and the
+  // user can scroll — then the scroll trigger takes over. Skipped while a
+  // client-side filter is active so a tiny filtered view doesn't drain every
+  // page just to filter a few cards.
+  function kanbanMaybeAutoFill() {
+    var limit = window.CRM.kanbanLimit && Number(window.CRM.kanbanLimit) > 0 ? Number(window.CRM.kanbanLimit) : 0;
+    var loaded = (window.CRM.kanbanTasks || []).length;
+    var total = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : loaded;
+    if (limit <= 0 || loaded >= total || window.CRM.kanbanLoadingMore) return;
+    if (kanbanFilterActive(window.CRM.kanbanFilters || kanbanReadFiltersFromQuery())) return;
+    if (document.body.classList.contains('sortable-drag') || document.querySelector('.sortable-drag')) return;
+
+    var cols = document.querySelectorAll('.crm-kanban-col');
+    var anyScrollable = false;
+    Array.prototype.forEach.call(cols, function (col) {
+      if (col.scrollHeight > col.clientHeight + 10) anyScrollable = true;
+    });
+    if (anyScrollable) return;
+
+    window.setTimeout(function () {
+      if (window.CRM.kanbanLoadingMore) return;
+      var nowLoaded = (window.CRM.kanbanTasks || []).length;
+      var nowTotal = window.CRM.kanbanTotal != null ? Number(window.CRM.kanbanTotal) : nowLoaded;
+      if (nowLoaded < nowTotal) kanbanLoadMore();
+    }, 250);
   }
 
   async function kanbanLoadMore() {
@@ -19589,14 +19652,16 @@ window.CRM.pageApiBindings = (function () {
         if (envelope.meta && envelope.meta.pagination && envelope.meta.pagination.total != null) {
           window.CRM.kanbanTotal = Number(envelope.meta.pagination.total);
         }
+        if (envelope.meta && envelope.meta.status_counts && typeof envelope.meta.status_counts === 'object') {
+          window.CRM.kanbanStatusCounts = envelope.meta.status_counts;
+        }
       }
     } catch (e) {
-      // transient error — the observer will retry on the next scroll into view
+      // transient error — the scroll trigger will retry on the next scroll
     }
     window.CRM.kanbanLoadingMore = false;
     updateKanbanColumns();
     initKanbanSortable();
-    kanbanEnsureLoadMore();
   }
 
   function saveKanbanOrder(statusCode, container) {
@@ -19712,17 +19777,6 @@ window.CRM.pageApiBindings = (function () {
     var tasks = kanbanFilteredTasks();
     var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
     bindKanbanFilters();
-    var summary = document.getElementById('kanbanResultSummary');
-    if (summary) {
-      var realTotal = (window.CRM.kanbanTotal != null && Number(window.CRM.kanbanTotal) >= allTasks.length) ? Number(window.CRM.kanbanTotal) : allTasks.length;
-      var summaryText = kanbanT('kanban.summary.shown_prefix', 'Показано') + ' ' + String(tasks.length) + ' ' + kanbanT('kanban.summary.of', 'из') + ' ' + String(realTotal) + ' ' + kanbanT('kanban.summary.tasks', 'задач');
-      if (window.CRM.kanbanLoadingMore) {
-        summaryText += ' (' + kanbanT('kanban.summary.loading_more', 'загружается ещё…') + ')';
-      } else if (Number(window.CRM.kanbanLimit || 0) > 0 && allTasks.length < realTotal) {
-        summaryText += ' (' + kanbanT('kanban.summary.loaded', 'загружено') + ' ' + String(allTasks.length) + ' — ' + kanbanT('kanban.summary.auto_more', 'дозагрузка при прокрутке') + ')';
-      }
-      summary.textContent = summaryText;
-    }
     var resetBtn = document.getElementById('kanbanFiltersResetBtn');
     if (resetBtn) {
       resetBtn.disabled = !kanbanFilterActive(filters);
@@ -19815,7 +19869,7 @@ window.CRM.pageApiBindings = (function () {
       } else {
         mobileTabs.innerHTML = finalOrder.map(function (statusCode) {
           var title = statusMap[statusCode] || hardcodedTitles[statusCode] || statusCode;
-          var count = (byStatus[statusCode] || []).length;
+          var count = kanbanColumnCount(statusCode, byStatus[statusCode] || []);
           var activeClass = statusCode === activeMobileStatus ? ' is-active' : '';
           return '<button type="button" class="btn crm-btn-secondary' + activeClass + '" data-kanban-mobile-status="' + safeText(statusCode) + '">' + safeText(title) + ' (' + safeText(String(count)) + ')</button>';
         }).join('');
@@ -19854,7 +19908,7 @@ window.CRM.pageApiBindings = (function () {
       }
 
       var countSpan = col.querySelector('.crm-chip');
-      if (countSpan) countSpan.textContent = statusTasks.length;
+      if (countSpan) countSpan.textContent = kanbanColumnCount(statusCode, statusTasks);
 
       var article = col.querySelector('article');
       if (article) {
@@ -19868,6 +19922,8 @@ window.CRM.pageApiBindings = (function () {
       }
     });
     initKanbanScrollButtons();
+    kanbanEnsureLoadMore();
+    kanbanMaybeAutoFill();
   }
   // renderGanttPage duplicate removed — using the implementation above (crmGanttNormalizeTask-based version)
 

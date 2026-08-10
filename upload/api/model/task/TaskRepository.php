@@ -165,6 +165,32 @@ final class TaskRepository
         ];
     }
 
+    /**
+     * Full per-status counts for the task set visible to the actor under $filters.
+     * Ignores pagination/limit — used by the kanban board to render real column
+     * counters while tasks are still being chunk-loaded in the background.
+     * Reuses buildListQuery(), so access scoping is identical to list().
+     *
+     * @return array<string,int> status_code => count
+     */
+    public function countByStatus(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    {
+        $rows = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+            ->select([
+                't.status_code AS status_code',
+                'COUNT(*) AS task_count',
+            ])
+            ->groupBy(['t.status_code'])
+            ->get();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string)($row['status_code'] ?? '')] = (int)($row['task_count'] ?? 0);
+        }
+
+        return $counts;
+    }
+
     public function findByPublicId(string $publicId): ?array
     {
         return (new QueryBuilder($this->pdo))

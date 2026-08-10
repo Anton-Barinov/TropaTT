@@ -178,6 +178,7 @@ final class PageDataController extends BaseController
 
         $tasks = $taskService->list([
             'limit' => $kanbanLimit,
+            'with_status_counts' => '1',
         ], $actor);
         $statuses = $statusService->list([
             'limit' => 200,
@@ -188,6 +189,9 @@ final class PageDataController extends BaseController
                 'items' => (array)($tasks['items'] ?? []),
                 'meta' => (array)($tasks['meta'] ?? []),
             ],
+            // Full per-status counts for the whole visible set — the board can
+            // show real column counters immediately while cards load in chunks.
+            'status_counts' => (array)($tasks['meta']['status_counts'] ?? []),
             'statuses' => [
                 'items' => (array)($statuses['items'] ?? []),
                 'meta' => (array)($statuses['meta'] ?? []),

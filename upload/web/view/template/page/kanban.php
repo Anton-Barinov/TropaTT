@@ -32,7 +32,6 @@
   </div>
   <div class="crm-kanban-tag-filter-area" id="kanbanTagChipFilter"></div>
   <div class="crm-kanban-filter-summary">
-    <span id="kanbanResultSummary"><?= htmlspecialchars($t('kanban.summary.empty', 'Показано 0 из 0 задач'), ENT_QUOTES, 'UTF-8') ?></span>
     <button class="btn crm-btn-secondary" type="button" id="kanbanFiltersResetBtn" disabled data-i18n="kanban.filters.reset"><?= htmlspecialchars($t('kanban.filters.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
 </section>
