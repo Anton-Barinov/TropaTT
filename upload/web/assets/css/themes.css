@@ -117,6 +117,11 @@ html[data-theme="dark"] {
   --crm-focus: rgba(46, 201, 160, 0.22);
   --crm-focus-ring: #2ec9a0;
 
+  /* Loading/status overlay toast - keep the readable mid-green (white text needs
+     a dark enough green; theme-relative mint would drop below 4.5:1) */
+  --crm-status-bg: #0f8f72;
+  --crm-error-bg: #b54038;
+
   --color-primary-50: #0f2e26;
   --color-primary-100: #173f33;
   --color-primary-500: #2ec9a0;
@@ -1025,6 +1030,10 @@ html[data-theme="contrast"] {
   --crm-focus: rgba(0, 0, 0, 0.06);
   --crm-focus-ring: #000000;
 
+  /* Loading/status overlay toast - brand dark green / deep red for AA */
+  --crm-status-bg: #005c44;
+  --crm-error-bg: #a40000;
+
   --color-primary-50: #e2f2ec;
   --color-primary-100: #cfe8de;
   --color-primary-500: #005c44;
@@ -1649,6 +1658,10 @@ html[data-theme="sepia"] {
 
   --crm-focus: rgba(154, 91, 30, 0.16);
   --crm-focus-ring: #9a5b1e;
+
+  /* Loading/status overlay toast - warm brown / brick red match the palette */
+  --crm-status-bg: #9a5b1e;
+  --crm-error-bg: #b03e28;
 
   --color-primary-50: #f7ecd9;
   --color-primary-100: #eedfc2;
