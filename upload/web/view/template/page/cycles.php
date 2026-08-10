@@ -251,7 +251,7 @@ if ($cyclesAssetsVersion === '') {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .crm-cycle-card:hover {
-  border-color: rgba(11, 122, 98, 0.28);
+  border-color: color-mix(in srgb, var(--crm-primary) 28%, transparent);
   background: var(--crm-surface-2, #fbfefd);
 }
 .crm-cycle-card-grid {
@@ -299,7 +299,7 @@ button.crm-cycle-command-metric {
   cursor: pointer;
 }
 button.crm-cycle-command-metric:hover {
-  border-color: rgba(11, 122, 98, 0.34);
+  border-color: color-mix(in srgb, var(--crm-primary) 34%, transparent);
 }
 .crm-cycle-command-metric strong {
   font-size: 18px;
@@ -333,7 +333,7 @@ button.crm-cycle-command-metric:hover {
 }
 .crm-cycle-page-btn.is-active {
   background: var(--crm-primary, #0b7a62);
-  color: #fff;
+  color: var(--crm-on-accent);
 }
 .crm-cycle-title {
   appearance: none;

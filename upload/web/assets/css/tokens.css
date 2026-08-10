@@ -57,6 +57,9 @@
      (theme-relative --crm-primary/--crm-danger would be light mint/red in dark, breaking AA) */
   --crm-status-bg: #0f8f72;
   --crm-error-bg: #b54038;
+  /* Ideas page AI pipeline step accents - fixed purple (clarify) / pink (gap) */
+  --crm-idea-clarify: #6f42c1;
+  --crm-idea-gap: #d63384;
 
   /* Legacy semantic aliases used across pages (kept for backward compat) */
   --crm-muted: #596966;

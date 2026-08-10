@@ -255,11 +255,11 @@ $auJs = [
     .updates-file-table th { color:var(--crm-text-soft,#667085); font-size:.73rem; letter-spacing:.04em; text-transform:uppercase; }
     .updates-file-table td:first-child { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
     .updates-empty { border:1px dashed var(--crm-border-strong,#d0d5dd); border-radius:14px; padding:14px; color:var(--crm-text-soft,#667085); background:var(--crm-surface-2,#f9fafb); }
-    .updates-recovery-key { margin:12px 0 0; border:1px solid var(--crm-border-strong,#cbd5e1); border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85rem; letter-spacing:.03em; user-select:all; }
+    .updates-recovery-key { margin:12px 0 0; border:1px solid var(--crm-border-strong,#cbd5e1); border-radius:12px; background:var(--crm-code-bg); color:var(--crm-code-text); padding:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85rem; letter-spacing:.03em; user-select:all; }
     .updates-recovery-warn { margin-top:10px; padding:10px 14px; border:1px solid var(--crm-warning-soft,#fcd34d); border-radius:12px; background:var(--crm-warning-soft,#fffbeb); color:var(--crm-warning,#92400e); font-size:.85rem; }
     .updates-raw { margin-top:12px; border-top:1px solid var(--crm-border,#eaecf0); padding-top:10px; }
     .updates-raw summary { cursor:pointer; color:var(--crm-text-soft,#475467); font-weight:800; font-size:.84rem; }
-    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:#111827; color:#d1e9ff; padding:12px; font-size:.78rem; }
+    .updates-raw pre { margin:10px 0 0; max-height:320px; overflow:auto; border-radius:12px; background:var(--crm-code-bg); color:var(--crm-code-text); padding:12px; font-size:.78rem; }
     .updates-danger-zone { border-color:var(--crm-danger-soft,#fecdca); background:linear-gradient(180deg,var(--crm-surface,#fff),var(--crm-danger-soft,#fffbfa)); }
     .updates-danger-zone h2 { color:var(--crm-danger,#b42318); }
     .crm-admin-updates-page .crm-subtitle,
