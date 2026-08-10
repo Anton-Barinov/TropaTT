@@ -19269,12 +19269,14 @@ window.CRM.pageApiBindings = (function () {
 
   // Count shown in a column chip / mobile tab. Prefers the real server total;
   // falls back to the loaded cards when a client-side filter is active.
+  // Rendered with a thousands separator ("3 606") so big boards read easily.
   function kanbanColumnCount(statusCode, loadedTasks) {
     var useFull = !window.CRM.kanbanStatusCountsDirty
       && kanbanCountsMatchFilters(window.CRM.kanbanFilters || kanbanReadFiltersFromQuery())
       && window.CRM.kanbanStatusCounts
       && window.CRM.kanbanStatusCounts[statusCode] != null;
-    return useFull ? window.CRM.kanbanStatusCounts[statusCode] : (loadedTasks || []).length;
+    var value = useFull ? window.CRM.kanbanStatusCounts[statusCode] : (loadedTasks || []).length;
+    return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   }
 
   function kanbanTaskMatches(task, filters) {
@@ -19636,6 +19638,9 @@ window.CRM.pageApiBindings = (function () {
       var filters = window.CRM.kanbanFilters || kanbanReadFiltersFromQuery();
       var query = kanbanBuildTaskQuery(filters);
       query.page = Math.floor(loaded / limit) + 1;
+      // Counters were fetched once on the first page — don't re-run the server
+      // count query on every chunk.
+      delete query.with_status_counts;
       var envelope = await tryRequest('api/v1/tasks', { query: query, silent: true });
       if (envelope && envelope.success !== false) {
         var moreItems = mapItems(envelope);
