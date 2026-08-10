@@ -18,7 +18,7 @@
 /* ============================= DARK THEME ============================= */
 html[data-theme="dark"] {
   color-scheme: dark;
-  scrollbar-color: rgba(46, 201, 160, 0.45) #121b18;
+  scrollbar-color: color-mix(in srgb, var(--crm-accent) 45%, transparent) var(--crm-surface-muted);
 
   --crm-ink: #000000;
   --crm-on-accent: #ffffff;
@@ -84,6 +84,28 @@ html[data-theme="dark"] {
   --crm-danger-border: #5f2c26;
   --crm-info: #57bfd4;
   --crm-info-soft: #12333c;
+
+  /* Calendar event hue-preserving dark variants */
+  --crm-cal-teal-bg: #0f2b28;
+  --crm-cal-teal-border: #1e4a43;
+  --crm-cal-teal-accent: #2ec9a0;
+  --crm-cal-teal-text: #bce8e0;
+  --crm-cal-violet-bg: #241d3d;
+  --crm-cal-violet-border: #3d3170;
+  --crm-cal-violet-accent: #a78bfa;
+  --crm-cal-violet-text: #ddd4ff;
+  --crm-cal-warning-bg: #33270f;
+  --crm-cal-warning-border: #5e4a1a;
+  --crm-cal-warning-accent: #e8b64d;
+  --crm-cal-warning-text: #f4d99a;
+  --crm-cal-success-bg: #10301f;
+  --crm-cal-success-border: #1d5233;
+  --crm-cal-success-accent: #4bd494;
+  --crm-cal-success-text: #c6ecd6;
+  --crm-cal-danger-bg: #361a18;
+  --crm-cal-danger-border: #63302a;
+  --crm-cal-danger-accent: #f07468;
+  --crm-cal-danger-text: #f4c4bf;
 
   --crm-focus: rgba(46, 201, 160, 0.22);
   --crm-focus-ring: #2ec9a0;
@@ -183,8 +205,8 @@ html[data-theme="dark"] .crm-app {
 }
 
 html[data-theme="dark"] ::selection {
-  background: rgba(46, 201, 160, 0.28);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--crm-accent) 28%, transparent);
+  color: var(--crm-on-accent);
 }
 
 /* Visual editor (rich text) — scoped token set. */
@@ -299,8 +321,8 @@ html[data-theme="dark"] .crm-gantt-page {
 html[data-theme="dark"] .crm-gantt-page .crm-gantt-shell {
   border-color: var(--crm-border-strong);
   background:
-    radial-gradient(circle at 94% 0%, rgba(46, 201, 160, 0.1), transparent 30%),
-    radial-gradient(circle at 0% 100%, rgba(46, 201, 160, 0.06), transparent 28%),
+    radial-gradient(circle at 94% 0%, color-mix(in srgb, var(--crm-accent) 10%, transparent), transparent 30%),
+    radial-gradient(circle at 0% 100%, color-mix(in srgb, var(--crm-accent) 6%, transparent), transparent 28%),
     linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-bg-deep) 100%);
 }
 
@@ -368,7 +390,7 @@ html[data-theme="dark"] .crm-content .crm-gantt-controls .btn-group > .btn:hover
 html[data-theme="dark"] .crm-content .crm-segmented > .crm-segmented-item:hover,
 html[data-theme="dark"] .crm-content .team-segmented > .team-segmented-btn:hover,
 html[data-theme="dark"] .modal .team-segmented > .team-segmented-btn:hover {
-  background: rgba(46, 201, 160, 0.12) !important;
+  background: color-mix(in srgb, var(--crm-accent) 12%, transparent) !important;
   color: var(--crm-text) !important;
 }
 html[data-theme="dark"] .crm-content [data-tasks-view-toggle] > .btn.active,
@@ -385,14 +407,14 @@ html[data-theme="dark"] .crm-content .team-segmented > .team-segmented-btn.is-ac
 html[data-theme="dark"] .modal .team-segmented > .team-segmented-btn.is-active {
   background: var(--crm-primary) !important;
   background-image: none !important;
-  color: #fff !important;
+  color: var(--crm-on-accent) !important;
 }
 
 /* Nav + dropdown hover states */
 html[data-theme="dark"] .crm-nav .nav-link.active,
 html[data-theme="dark"] .dropdown-item:hover,
 html[data-theme="dark"] .dropdown-item:focus {
-  background-color: rgba(46, 201, 160, 0.14);
+  background-color: color-mix(in srgb, var(--crm-accent) 14%, transparent);
   color: var(--crm-text);
 }
 html[data-theme="dark"] .crm-nav .crm-nav-icon {
@@ -403,7 +425,7 @@ html[data-theme="dark"] .crm-topbar-notify-popover li {
   color: var(--crm-text);
 }
 html[data-theme="dark"] .crm-topbar-notify-popover li:hover {
-  background: rgba(46, 201, 160, 0.1);
+  background: color-mix(in srgb, var(--crm-accent) 10%, transparent);
 }
 
 /* Form controls */
@@ -676,34 +698,34 @@ html[data-theme="dark"] .crm-calendar-event {
 
 /* Calendar events: hue-preserving dark variants */
 html[data-theme="dark"] .crm-calendar-event.is-teal {
-  background: #0f2b28 !important;
-  border-color: #1e4a43 !important;
-  border-left-color: #2ec9a0 !important;
-  color: #bce8e0 !important;
+  background: var(--crm-cal-teal-bg) !important;
+  border-color: var(--crm-cal-teal-border) !important;
+  border-left-color: var(--crm-cal-teal-accent) !important;
+  color: var(--crm-cal-teal-text) !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-violet {
-  background: #241d3d !important;
-  border-color: #3d3170 !important;
-  border-left-color: #a78bfa !important;
-  color: #ddd4ff !important;
+  background: var(--crm-cal-violet-bg) !important;
+  border-color: var(--crm-cal-violet-border) !important;
+  border-left-color: var(--crm-cal-violet-accent) !important;
+  color: var(--crm-cal-violet-text) !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-warning {
-  background: #33270f !important;
-  border-color: #5e4a1a !important;
-  border-left-color: #e8b64d !important;
-  color: #f4d99a !important;
+  background: var(--crm-cal-warning-bg) !important;
+  border-color: var(--crm-cal-warning-border) !important;
+  border-left-color: var(--crm-cal-warning-accent) !important;
+  color: var(--crm-cal-warning-text) !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-success {
-  background: #10301f !important;
-  border-color: #1d5233 !important;
-  border-left-color: #4bd494 !important;
-  color: #c6ecd6 !important;
+  background: var(--crm-cal-success-bg) !important;
+  border-color: var(--crm-cal-success-border) !important;
+  border-left-color: var(--crm-cal-success-accent) !important;
+  color: var(--crm-cal-success-text) !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-danger {
-  background: #361a18 !important;
-  border-color: #63302a !important;
-  border-left-color: #f07468 !important;
-  color: #f4c4bf !important;
+  background: var(--crm-cal-danger-bg) !important;
+  border-color: var(--crm-cal-danger-border) !important;
+  border-left-color: var(--crm-cal-danger-accent) !important;
+  color: var(--crm-cal-danger-text) !important;
 }
 html[data-theme="dark"] .crm-calendar-event.is-blue {
   background: var(--crm-primary-soft) !important;
@@ -767,16 +789,16 @@ html[data-theme="dark"] .crm-content table.crm-table tbody tr:hover td,
 html[data-theme="dark"] .crm-content .table.crm-table tbody tr:hover td,
 html[data-theme="dark"] .crm-content table tbody tr:hover td,
 html[data-theme="dark"] .crm-content .table tbody tr:hover td {
-  background: rgba(46, 201, 160, 0.08) !important;
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent) !important;
 }
 html[data-theme="dark"] .crm-content table.crm-table tbody tr.is-selected td,
 html[data-theme="dark"] .crm-content .table.crm-table tbody tr.is-selected td,
 html[data-theme="dark"] .crm-content table tbody tr.is-selected td,
 html[data-theme="dark"] .crm-content .table tbody tr.is-selected td {
-  background: rgba(46, 201, 160, 0.14) !important;
+  background: color-mix(in srgb, var(--crm-accent) 14%, transparent) !important;
 }
 html[data-theme="dark"] .crm-content .table-striped > tbody > tr:nth-of-type(odd) > * {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: color-mix(in srgb, var(--crm-on-accent) 2%, transparent) !important;
 }
 
 /* Modals / offcanvas: shorthand kills the white gradient image */
@@ -839,8 +861,8 @@ html[data-theme="dark"] #aiSuggestionDrawer .crm-metric-tile {
    (topbar glass, table head, KPI cards, nav icons). Mirror that pattern
    so the dark theme actually wins. */
 html[data-theme="dark"] .crm-topbar {
-  background: rgba(22, 32, 29, 0.92) !important;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45) !important;
+  background: color-mix(in srgb, var(--crm-surface) 92%, transparent) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--crm-ink) 45%, transparent) !important;
 }
 html[data-theme="dark"] .crm-nav .nav-link:not(.active) .crm-nav-icon {
   background: var(--crm-primary-soft) !important;
@@ -856,10 +878,10 @@ html[data-theme="dark"] .crm-content table.crm-table a, html[data-theme="dark"] 
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable th:last-child,
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable td:last-child {
   background: var(--crm-surface) !important;
-  box-shadow: -10px 0 16px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: -10px 0 16px color-mix(in srgb, var(--crm-ink) 35%, transparent) !important;
 }
 html[data-theme="dark"] .crm-counterparties-page #counterpartiesTable tbody tr:hover td:last-child {
-  background: rgba(46, 201, 160, 0.08) !important;
+  background: color-mix(in srgb, var(--crm-accent) 8%, transparent) !important;
 }
 html[data-theme="dark"] .crm-dashboard-table-wrap,
 html[data-theme="dark"] .crm-content .crm-dashboard-table-wrap .crm-table,
@@ -872,9 +894,9 @@ html[data-theme="dark"] .crm-analytics-row-stats span {
   color: var(--crm-text) !important;
 }
 html[data-theme="dark"] .crm-analytics-row-stats span.is-alert {
-  background: rgba(240, 116, 104, 0.14) !important;
-  border-color: rgba(240, 116, 104, 0.4) !important;
-  color: #f07468 !important;
+  background: color-mix(in srgb, var(--crm-danger) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--crm-danger) 40%, transparent) !important;
+  color: var(--crm-danger) !important;
 }
 html[data-theme="dark"] .crm-content table.crm-table tbody td,
 html[data-theme="dark"] .crm-content .table.crm-table tbody td {
@@ -1084,8 +1106,8 @@ html[data-theme="contrast"] {
 }
 
 html[data-theme="contrast"] ::selection {
-  background: #005c44;
-  color: #ffffff;
+  background: var(--crm-primary);
+  color: var(--crm-on-accent);
 }
 
 /* Underlined links and unmistakable focus ring. */
@@ -1098,7 +1120,7 @@ html[data-theme="contrast"] [tabindex]:focus-visible,
 html[data-theme="contrast"] input:focus-visible,
 html[data-theme="contrast"] select:focus-visible,
 html[data-theme="contrast"] textarea:focus-visible {
-  outline: 3px solid #000000;
+  outline: 3px solid var(--crm-ink);
   outline-offset: 2px;
   box-shadow: none !important;
 }
@@ -1112,7 +1134,7 @@ html[data-theme="contrast"] .crm-textarea,
 html[data-theme="contrast"] .team-input,
 html[data-theme="contrast"] .team-search-input {
   border-width: 2px;
-  border-color: #000000;
+  border-color: var(--crm-border-strong);
 }
 
 /* Card borders visible on white. */
@@ -1125,50 +1147,50 @@ html[data-theme="contrast"] .crm-notifications-page .crm-notification-item,
 html[data-theme="contrast"] .kb-panel,
 html[data-theme="contrast"] .kb-side-card,
 html[data-theme="contrast"] .crm-topbar-notify-popover li {
-  border-color: #000000;
+  border-color: var(--crm-border-strong);
 }
 html[data-theme="contrast"] .table thead th {
-  border-bottom-color: #000000;
+  border-bottom-color: var(--crm-border-strong);
 }
 html[data-theme="contrast"] .table tbody td {
-  border-color: #1f1f1f;
+  border-color: var(--crm-text-muted);
 }
 html[data-theme="contrast"] .dropdown-menu,
 html[data-theme="contrast"] .popover {
   border-width: 2px;
-  border-color: #000000;
+  border-color: var(--crm-border-strong);
 }
 
 /* ---- Contrast: hardened overrides (mirror the !important polish layer) ---- */
 html[data-theme="contrast"] .crm-topbar {
-  border-bottom-color: #000000 !important;
+  border-bottom-color: var(--crm-border-strong) !important;
   box-shadow: none !important;
 }
 html[data-theme="contrast"] .crm-content table.crm-table thead th,
 html[data-theme="contrast"] .crm-content .table.crm-table thead th {
-  background: #ffffff !important;
-  color: #000000 !important;
+  background: var(--crm-surface) !important;
+  color: var(--crm-text) !important;
 }
 html[data-theme="contrast"] .crm-content table.crm-table tbody td,
 html[data-theme="contrast"] .crm-content .table.crm-table tbody td {
-  color: #000000 !important;
+  color: var(--crm-text) !important;
 }
 html[data-theme="contrast"] .crm-dashboard-page .crm-dashboard-kpi {
-  border-color: #000000 !important;
-  background: #ffffff !important;
+  border-color: var(--crm-border-strong) !important;
+  background: var(--crm-surface) !important;
 }
 html[data-theme="contrast"] .crm-badge.warning,
 html[data-theme="contrast"] .crm-badge.blocked,
 html[data-theme="contrast"] .crm-badge-warning {
-  color: #7a4d00 !important;
-  background-color: #ffffff !important;
+  color: var(--crm-warning) !important;
+  background-color: var(--crm-surface) !important;
 }
 html[data-theme="contrast"] .crm-card,
 html[data-theme="contrast"] .card,
 html[data-theme="contrast"] .crm-section-card,
 html[data-theme="contrast"] .crm-table-card,
 html[data-theme="contrast"] .crm-info-panel {
-  border-color: #000000 !important;
+  border-color: var(--crm-border-strong) !important;
 }
 html[data-theme="contrast"] .form-control,
 html[data-theme="contrast"] .form-select,
@@ -1177,19 +1199,19 @@ html[data-theme="contrast"] .crm-select,
 html[data-theme="contrast"] .crm-textarea,
 html[data-theme="contrast"] .team-input,
 html[data-theme="contrast"] .team-search-input {
-  background-color: #ffffff !important;
-  border-color: #000000 !important;
+  background-color: var(--crm-surface) !important;
+  border-color: var(--crm-border-strong) !important;
 }
 
 /* Active nav / dropdown hover: light-green fill with black text. */
 html[data-theme="contrast"] .crm-nav .nav-link.active,
 html[data-theme="contrast"] .dropdown-item:hover,
 html[data-theme="contrast"] .dropdown-item:focus {
-  background-color: #e2f2ec;
-  color: #000000;
+  background-color: var(--crm-primary-soft);
+  color: var(--crm-text);
 }
 html[data-theme="contrast"] .crm-nav .nav-link.active {
-  box-shadow: inset 3px 0 0 #005c44;
+  box-shadow: inset 3px 0 0 var(--crm-primary);
 }
 
 /* Muted helper text stays readable: bootstrap .text-muted consumes
@@ -1215,18 +1237,18 @@ html[data-theme="contrast"] .text-warning {
    buttons; high-contrast needs the dark brand green + white text. */
 html[data-theme="contrast"] .crm-btn-primary,
 html[data-theme="contrast"] .btn.crm-btn-primary {
-  background: #005c44 !important;
-  border-color: #005c44 !important;
-  color: #ffffff !important;
+  background: var(--crm-primary) !important;
+  border-color: var(--crm-primary) !important;
+  color: var(--crm-on-accent) !important;
   box-shadow: none !important;
 }
 html[data-theme="contrast"] .crm-btn-primary:hover,
 html[data-theme="contrast"] .crm-btn-primary:focus,
 html[data-theme="contrast"] .btn.crm-btn-primary:hover,
 html[data-theme="contrast"] .btn.crm-btn-primary:focus {
-  background: #00493a !important;
-  border-color: #00493a !important;
-  color: #ffffff !important;
+  background: var(--crm-primary-hover) !important;
+  border-color: var(--crm-primary-hover) !important;
+  color: var(--crm-on-accent) !important;
   box-shadow: none !important;
 }
 
@@ -1236,12 +1258,12 @@ html[data-theme="contrast"] .form-select:focus,
 html[data-theme="contrast"] .crm-input:focus,
 html[data-theme="contrast"] .crm-select:focus,
 html[data-theme="contrast"] .crm-textarea:focus {
-  border-color: #005c44 !important;
-  box-shadow: 0 0 0 4px rgba(0, 92, 68, 0.25) !important;
+  border-color: var(--crm-primary) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--crm-primary) 25%, transparent) !important;
 }
 html[data-theme="contrast"] .form-check-input:checked {
-  background-color: #005c44 !important;
-  border-color: #005c44 !important;
+  background-color: var(--crm-primary) !important;
+  border-color: var(--crm-primary) !important;
 }
 
 /* ---- Contrast: no blue accents; every interactive surface is brand green;
@@ -1254,28 +1276,28 @@ html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-title:hover,
 html[data-theme="contrast"] .kb-tabs .nav-link.active,
 html[data-theme="contrast"] .crm-type-badge.badge-team,
 html[data-theme="contrast"] .crm-type-badge.badge-department {
-  color: #005c44 !important;
+  color: var(--crm-primary) !important;
 }
 html[data-theme="contrast"] .kb-tabs .nav-link.active {
-  border-bottom-color: #005c44 !important;
+  border-bottom-color: var(--crm-primary) !important;
 }
 
 /* Brand icon tints: the --crm-blue/--crm-green fallbacks were mid-green;
    in contrast they resolve to the dark brand green. */
 html[data-theme="contrast"] .crm-icon-team,
 html[data-theme="contrast"] .crm-icon-department {
-  color: #005c44 !important;
+  color: var(--crm-primary) !important;
 }
 
 /* Knowledge-base draft badge: blue -> green-tinted. */
 html[data-theme="contrast"] .kb-status-draft {
-  background-color: #e2f2ec !important;
-  color: #005c44 !important;
+  background-color: var(--crm-primary-soft) !important;
+  color: var(--crm-primary) !important;
 }
 
 /* Checkboxes: black border instead of bluish-gray. */
 html[data-theme="contrast"] .form-check-input {
-  border-color: #000000 !important;
+  border-color: var(--crm-border-strong) !important;
 }
 
 /* Topbar icon buttons (bell, search): slate -> near-black. */
@@ -1283,7 +1305,7 @@ html[data-theme="contrast"] .crm-topbar [data-global-notifications],
 html[data-theme="contrast"] .crm-topbar [data-search-toggle],
 html[data-theme="contrast"] .crm-topbar .crm-btn-icon,
 html[data-theme="contrast"] .crm-topbar [data-profile-dropdown] .dropdown-toggle {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 
 /* Muted helper texts and icons that hard-code slate/blue-gray -> near-black. */
@@ -1291,83 +1313,83 @@ html[data-theme="contrast"] .crm-gantt-page .crm-gantt-row-meta,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-search-icon,
 html[data-theme="contrast"] .crm-tree-members-badge,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-empty-icon {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 
 /* Calendar muted days: light slate -> dark gray (2.4:1 -> 13:1). */
 html[data-theme="contrast"] .crm-calendar-day.is-muted,
 html[data-theme="contrast"] .crm-calendar-day.is-muted .crm-calendar-day-number {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 html[data-theme="contrast"] .crm-calendar-event-time {
-  color: #005c44 !important;
+  color: var(--crm-primary) !important;
 }
 
 /* Kanban avatars: white-on-pale-green (1.1:1) -> white-on-brand-green (7.9:1). */
 html[data-theme="contrast"] .crm-kanban-avatar {
-  background: #005c44 !important;
-  color: #ffffff !important;
-  border-color: #000000 !important;
+  background: var(--crm-primary) !important;
+  color: var(--crm-on-accent) !important;
+  border-color: var(--crm-border-strong) !important;
 }
 
 /* Kanban overdue date: mid red -> contrast red (7.2:1). */
 html[data-theme="contrast"] .crm-kanban-date-danger {
-  color: #a40000 !important;
+  color: var(--crm-danger) !important;
 }
 
 /* Knowledge badges: gray on gray (4.39:1) -> near-black (13:1). */
 html[data-theme="contrast"] .kb-type-badge,
 html[data-theme="contrast"] .kb-status-archived {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 
 /* Gantt status chips: slate text -> near-black; active dot blue -> green. */
 html[data-theme="contrast"] .crm-gantt-page .crm-chip-status {
-  color: #1f1f1f !important;
-  background: #ffffff !important;
-  border-color: #000000 !important;
+  color: var(--crm-text-muted) !important;
+  background: var(--crm-surface) !important;
+  border-color: var(--crm-border-strong) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-chip-status[aria-pressed="true"],
 html[data-theme="contrast"] .crm-gantt-page .crm-chip-status.is-active {
-  color: #005c44 !important;
-  background: #e2f2ec !important;
-  border-color: #005c44 !important;
+  color: var(--crm-primary) !important;
+  background: var(--crm-primary-soft) !important;
+  border-color: var(--crm-primary) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-chip-dot--active,
 html[data-theme="contrast"] .crm-gantt-page .crm-chip-dot--success {
-  background: #005c44 !important;
+  background: var(--crm-primary) !important;
 }
 
 /* Gantt scale headers, KPI captions, deadline tiles, work-mode hint:
    slate/blue-gray text -> near-black; blue bar/dot hues -> brand green. */
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-scale-months > span {
-  color: #1f1f1f !important;
-  background: #ffffff !important;
+  color: var(--crm-text-muted) !important;
+  background: var(--crm-surface) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-kpi-card small,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-kpi-button small,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-summary-grid .crm-metric-tile small {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-deadline-date {
-  color: #005c44 !important;
-  background: #ffffff !important;
-  border-color: #000000 !important;
+  color: var(--crm-primary) !important;
+  background: var(--crm-surface) !important;
+  border-color: var(--crm-border-strong) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-mobile-work-mode-hint {
-  color: #1f1f1f !important;
-  background: #ffffff !important;
-  border-color: #000000 !important;
+  color: var(--crm-text-muted) !important;
+  background: var(--crm-surface) !important;
+  border-color: var(--crm-border-strong) !important;
 }
 /* Gantt bars: the blue "active" / navy "project" hues become brand green. */
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--active,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--project {
-  background: #005c44 !important;
+  background: var(--crm-primary) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--new,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--release,
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-bar--success {
-  background: #005c44 !important;
+  background: var(--crm-primary) !important;
 }
 
 /* Gantt status tokens: swap the blue "active" (#0369a1) / navy "project"
@@ -1413,44 +1435,44 @@ html[data-theme="contrast"] .crm-ve-editor {
    they become white chips with black text and a 2px black ring, so any
    user color stays readable (21:1). */
 html[data-theme="contrast"] .task-tag {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  box-shadow: inset 0 0 0 2px #000000 !important;
+  background-color: var(--crm-surface) !important;
+  color: var(--crm-text) !important;
+  box-shadow: inset 0 0 0 2px var(--crm-ink) !important;
   text-decoration: none !important;
 }
 html[data-theme="contrast"] .task-tag.task-tag--more {
-  color: #000000 !important;
+  color: var(--crm-text) !important;
 }
 
 /* API status toast: mid-green bg + white text (4.0:1) -> brand green (7.9:1). */
 html[data-theme="contrast"] #crmApiStatusBar {
-  background: #005c44 !important;
-  color: #ffffff !important;
+  background: var(--crm-primary) !important;
+  color: var(--crm-on-accent) !important;
 }
 
 /* Plain chips and gantt week labels: slate -> near-black (4.7:1 -> 13:1). */
 html[data-theme="contrast"] .crm-chip.crm-chip-plain {
-  color: #1f1f1f !important;
-  border-color: #000000 !important;
-  background: #ffffff !important;
+  color: var(--crm-text-muted) !important;
+  border-color: var(--crm-border-strong) !important;
+  background: var(--crm-surface) !important;
 }
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-scale-main > span {
-  color: #1f1f1f !important;
+  color: var(--crm-text-muted) !important;
 }
 
 /* Gantt overdue <em> inside the deadline tile: mid green on pale green
    (3.6:1) -> dark brand green (7.9:1). */
 html[data-theme="contrast"] .crm-gantt-page .crm-gantt-deadline-date em {
-  color: #005c44 !important;
+  color: var(--crm-primary) !important;
 }
 
 /* Notification counter: gradient red bg reads as transparent to audits;
    give it a solid dark-red surface so white text is guaranteed AA. */
 html[data-theme="contrast"] .crm-topbar [data-global-notifications] .crm-notification-counter {
-  background: #a40000 !important;
+  background: var(--crm-danger) !important;
   background-image: none !important;
-  border-color: #000000 !important;
-  color: #ffffff !important;
+  border-color: var(--crm-border-strong) !important;
+  color: var(--crm-on-accent) !important;
   box-shadow: none !important;
 }
 
@@ -1458,19 +1480,19 @@ html[data-theme="contrast"] .crm-topbar [data-global-notifications] .crm-notific
    that is near-black, which is correct, but day cells must stay opaque white
    so the dark lines do not bleed through the numbers. */
 html[data-theme="contrast"] .crm-calendar-month-grid {
-  background: #000000 !important;
+  background: var(--crm-ink) !important;
 }
 html[data-theme="contrast"] .crm-calendar-day,
 html[data-theme="contrast"] .crm-calendar-day.is-muted,
 html[data-theme="contrast"] .crm-calendar-day.is-weekend:not(.is-muted),
 html[data-theme="contrast"] .crm-calendar-day.is-today,
 html[data-theme="contrast"] .crm-calendar-day:hover {
-  background: #ffffff !important;
+  background: var(--crm-surface) !important;
   box-shadow: none !important;
 }
 html[data-theme="contrast"] .crm-calendar-day.is-today .crm-calendar-day-number {
-  background: #005c44 !important;
-  color: #ffffff !important;
+  background: var(--crm-primary) !important;
+  color: var(--crm-on-accent) !important;
 }
 
 /* Bootstrap text-bg-light badges (notifications page) hard-code a light
@@ -1482,9 +1504,9 @@ html[data-theme="dark"] span.badge.text-bg-light {
 }
 html[data-theme="contrast"] .badge.text-bg-light,
 html[data-theme="contrast"] span.badge.text-bg-light {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  border: 1px solid #000000 !important;
+  background-color: var(--crm-surface) !important;
+  color: var(--crm-text) !important;
+  border: 1px solid var(--crm-border-strong) !important;
 }
 
 /* ---- Footer ----
@@ -1492,7 +1514,7 @@ html[data-theme="contrast"] span.badge.text-bg-light {
    a blue hover tint and a pale-yellow update badge. Repair those for the
    dark and contrast themes so the footer matches the rest of the page. */
 html[data-theme="dark"] .crm-footer {
-  background: rgba(22, 32, 29, 0.92) !important;
+  background: color-mix(in srgb, var(--crm-surface) 92%, transparent) !important;
   border-top-color: var(--crm-border-strong) !important;
 }
 html[data-theme="dark"] .crm-footer a:hover {
@@ -1507,14 +1529,14 @@ html[data-theme="dark"] .crm-footer-update-badge {
 
 html[data-theme="contrast"] .crm-footer {
   border-top-width: 2px;
-  border-top-color: #000000 !important;
+  border-top-color: var(--crm-border-strong) !important;
 }
 html[data-theme="contrast"] .crm-footer a:hover {
-  color: #00493a !important;
-  background: #e2f2ec !important;
+  color: var(--crm-primary-hover) !important;
+  background: var(--crm-primary-soft) !important;
 }
 html[data-theme="contrast"] .crm-footer-update-badge {
-  border-color: #000000 !important;
-  background: #ffffff !important;
-  color: #000000 !important;
+  border-color: var(--crm-border-strong) !important;
+  background: var(--crm-surface) !important;
+  color: var(--crm-text) !important;
 }

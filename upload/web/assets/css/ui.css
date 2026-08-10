@@ -1886,8 +1886,8 @@ textarea.form-control:focus {
 .crm-login-cover .crm-card {
   border-color: color-mix(in srgb, var(--crm-surface) 18%, transparent);
   background:
-    radial-gradient(circle at 18% 18%, rgba(142,224,205,.32), transparent 34%),
-    linear-gradient(145deg, #101918, #174039 55%, var(--crm-accent));
+    radial-gradient(circle at 18% 18%, var(--crm-login-cover-glow), transparent 34%),
+    linear-gradient(145deg, var(--crm-login-cover-a), var(--crm-login-cover-b) 55%, var(--crm-accent));
   color: var(--crm-on-accent);
   box-shadow: 0 34px 90px color-mix(in srgb, var(--crm-ink) 22%, transparent);
 }
@@ -4131,8 +4131,8 @@ body {
   max-height: 520px !important;
   padding: 14px 16px !important;
   border-radius: 0 0 8px 8px !important;
-  background: #1e1e1e !important;
-  color: #d4d4d4 !important;
+  background: var(--crm-terminal-bg) !important;
+  color: var(--crm-terminal-text) !important;
   font-size: 12px !important;
   line-height: 1.45 !important;
 }
@@ -5006,7 +5006,7 @@ body.crm-login-page .crm-login-product-preview {
 body.crm-login-page .crm-login-preview-sidebar {
   padding: 22px 16px;
   border-right: 1px solid color-mix(in srgb, var(--crm-ink) 8%, transparent);
-  background: #10211e;
+  background: var(--crm-login-sidebar-bg);
 }
 
 body.crm-login-page .crm-login-preview-sidebar span {

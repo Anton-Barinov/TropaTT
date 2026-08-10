@@ -33,6 +33,31 @@
   /* High priority badge - orange with white text in every theme */
   --crm-priority-high: #ea580c;
 
+  /* Code blocks (knowledge articles, markdown) - fixed dark in every theme */
+  --crm-code-bg: #1e293b;
+  --crm-code-text: #e2e8f0;
+  /* Debug / AI-log terminal - fixed dark in every theme */
+  --crm-terminal-bg: #1e1e1e;
+  --crm-terminal-text: #d4d4d4;
+  /* Login cover gradient - fixed dark brand gradient in every theme */
+  --crm-login-cover-glow: rgba(142, 224, 205, 0.32);
+  --crm-login-cover-a: #101918;
+  --crm-login-cover-b: #174039;
+  --crm-login-sidebar-bg: #10211e;
+  /* Gantt blocked-task stripe - warning amber, same in every theme */
+  --crm-stripe-a: #ffc107;
+  --crm-stripe-b: #ffecb3;
+  /* Inline bulk-progress track - fixed slate in every theme */
+  --crm-progress-track: #334155;
+  /* Sticky-note editor dashed border - fixed mid-gray in every theme */
+  --crm-sticky-dash: #666666;
+  /* Gantt dependency obstacle stroke - warning amber in every theme */
+  --crm-gantt-obstacle: #f59e0b;
+  /* Loading/status overlay toast - fixed readable brand green + deep red in every theme
+     (theme-relative --crm-primary/--crm-danger would be light mint/red in dark, breaking AA) */
+  --crm-status-bg: #0f8f72;
+  --crm-error-bg: #b54038;
+
   /* Legacy semantic aliases used across pages (kept for backward compat) */
   --crm-muted: #596966;
   --crm-bg-hover: #eef4f1;
