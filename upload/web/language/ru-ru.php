@@ -6505,6 +6505,7 @@ return array (
     'opt_theme_light' => 'Стандартная (светлая)',
     'opt_theme_dark' => 'Тёмная',
     'opt_theme_contrast' => 'Контрастная (для слабовидящих)',
+    'opt_theme_sepia' => 'Сепия (тёплая)',
     'note_theme' => 'Цветовая схема интерфейса применяется сразу после выбора.',
     'section_notifications' => 'Уведомления',
     'note_notifications' => 'Каналы оповещений и частота служебных уведомлений.',

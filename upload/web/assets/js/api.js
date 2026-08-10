@@ -8,7 +8,7 @@ window.CRM.api = (function () {
 
   window.CRM.theme = (function () {
     var STORAGE_KEY = 'crm_theme';
-    var THEMES = ['light', 'dark', 'contrast'];
+    var THEMES = ['light', 'dark', 'contrast', 'sepia'];
 
     function normalize(value) {
       var candidate = String(value || '').trim().toLowerCase();

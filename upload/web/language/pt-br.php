@@ -7510,6 +7510,7 @@ return array (
     'opt_theme_light' => 'Padrão (claro)',
     'opt_theme_dark' => 'Escuro',
     'opt_theme_contrast' => 'Alto contraste (baixa visão)',
+    'opt_theme_sepia' => 'Sépia (quente)',
     'note_theme' => 'Aplicado imediatamente após a seleção.',
     'section_notifications' => 'Notificações',
     'note_notifications' => 'Canais de alerta e frequência das notificações do serviço.',

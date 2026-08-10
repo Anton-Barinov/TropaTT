@@ -6361,6 +6361,7 @@ return array (
     'opt_theme_light' => '标准（浅色）',
     'opt_theme_dark' => '深色',
     'opt_theme_contrast' => '高对比度（弱视）',
+    'opt_theme_sepia' => '棕褐色（暖色调）',
     'note_theme' => '选择后立即应用。',
     'section_notifications' => '通知',
     'note_notifications' => '通知渠道和频率设置。',

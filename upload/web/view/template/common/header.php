@@ -81,7 +81,7 @@ if (is_file($jsOverridesPath)) {
       var theme = 'light';
       try {
         var stored = localStorage.getItem('crm_theme');
-        if (stored === 'dark' || stored === 'contrast') {
+        if (stored === 'dark' || stored === 'contrast' || stored === 'sepia') {
           theme = stored;
         }
       } catch (e) {}

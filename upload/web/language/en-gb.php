@@ -6402,6 +6402,7 @@ return array (
     'opt_theme_light' => 'Standard (light)',
     'opt_theme_dark' => 'Dark',
     'opt_theme_contrast' => 'High contrast (low vision)',
+    'opt_theme_sepia' => 'Sepia (warm)',
     'note_theme' => 'Applies immediately after selection.',
     'section_notifications' => 'Notifications',
     'note_notifications' => 'Alert channels and frequency of service notifications.',
