@@ -250,6 +250,19 @@ html[data-theme="contrast"] {
   --crm-ve-success: var(--crm-success);
 }
 
+html[data-theme="sepia"] {
+  --crm-ve-accent: var(--crm-primary);
+  --crm-ve-accent-light: color-mix(in srgb, var(--crm-primary) 16%, transparent);
+  --crm-ve-surface: var(--crm-surface);
+  --crm-ve-surface-soft: #f6efe0;
+  --crm-ve-border: var(--crm-border);
+  --crm-ve-border-strong: #c9b489;
+  --crm-ve-text: var(--crm-text);
+  --crm-ve-text-muted: #8a7657;
+  --crm-ve-danger: var(--crm-danger);
+  --crm-ve-success: var(--crm-success);
+}
+
 /* Gantt — scoped token set. */
 html[data-theme="dark"] .crm-gantt-page {
   --gantt-blue: #10b981;
