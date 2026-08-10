@@ -11441,31 +11441,6 @@ a.task-tag:hover {
     margin: 4px 0;
 }
 
-/* Active tag chip filter in kanban bar */
-.crm-kanban-tag-chip-filter {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 999px;
-    background: var(--color-primary-50);
-    color: var(--color-primary-700);
-    vertical-align: middle;
-}
-
-.crm-kanban-tag-chip-filter .task-tag-remove {
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    opacity: 0.6;
-}
-
-.crm-kanban-tag-chip-filter .task-tag-remove:hover {
-    opacity: 1;
-}
-
 .crm-kanban-col-empty {
     border: 1px dashed var(--crm-border);
     border-radius: var(--radius-md);

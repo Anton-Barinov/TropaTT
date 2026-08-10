@@ -34,7 +34,6 @@
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="today" data-i18n="kanban.filters.today"><?= htmlspecialchars($t('kanban.filters.today', 'Сегодня'), ENT_QUOTES, 'UTF-8') ?></button>
     <button class="btn crm-btn-secondary" type="button" data-kanban-due="week" data-i18n="kanban.filters.week"><?= htmlspecialchars($t('kanban.filters.week', 'На неделе'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>
-  <div class="crm-kanban-tag-filter-area" id="kanbanTagChipFilter"></div>
   <div class="crm-kanban-filter-summary">
     <button class="btn crm-btn-secondary" type="button" id="kanbanFiltersResetBtn" disabled data-i18n="kanban.filters.reset"><?= htmlspecialchars($t('kanban.filters.reset', 'Сбросить'), ENT_QUOTES, 'UTF-8') ?></button>
   </div>

@@ -19304,22 +19304,6 @@ window.CRM.pageApiBindings = (function () {
     if (project && filters.projects && filters.projects.length) kanbanSetMultiValue(project, filters.projects);
     if (cycle && filters.cycles && filters.cycles.length) kanbanSetMultiValue(cycle, filters.cycles);
     if (tag && filters.tags && filters.tags.length) kanbanSetMultiValue(tag, filters.tags);
-    // Active tag chip display in filter area
-    var tagChipContainer = document.getElementById('kanbanTagChipFilter');
-    if (tagChipContainer) {
-      if (filters.tags && filters.tags.length) {
-        var activeTagId = filters.tags[0];
-        // Find tag name from options
-        var tagName = '';
-        if (options && options.tag) {
-          tagName = options.tag[activeTagId] || activeTagId;
-        }
-        tagChipContainer.innerHTML = '<span class="crm-kanban-tag-chip-filter">' + safeText(kanbanT('kanban.filters.tag_prefix', 'Tag: ')) + safeText(tagName)
-          + '<span class="task-tag-remove" data-clear-tag-filter>×</span></span>';
-      } else {
-        tagChipContainer.innerHTML = '';
-      }
-    }
     [assignee, manager, project, cycle, tag].forEach(function (select) {
       if (!select || select.dataset.bound === '1') return;
       select.addEventListener('change', function () { apply(kanbanCurrentFiltersFromControls(), true); });
@@ -29567,21 +29551,6 @@ window.CRM.pageApiBindings = (function () {
         e.preventDefault();
         e.stopPropagation();
         window.location.href = 'index.php?route=tasks&tag=' + encodeURIComponent(tagId);
-      }
-      // Clear tag filter chip
-      var clearTag = e.target.closest('[data-clear-tag-filter]');
-      if (clearTag) {
-        var f = window.CRM.kanbanFilters || {};
-        f.tags = [];
-        window.CRM.kanbanFilters = f;
-        var tagSelect = document.getElementById('kanbanTagFilter');
-        if (tagSelect) {
-          tagSelect.value = '';
-          syncSearchableSingleSelect(tagSelect);
-        }
-        if (window.CRM.kanbanApplyFilters) {
-          window.CRM.kanbanApplyFilters(f, true);
-        }
       }
     });
   });
