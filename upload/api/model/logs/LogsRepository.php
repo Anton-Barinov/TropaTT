@@ -172,7 +172,8 @@ final class LogsRepository
             return 'UNKNOWN';
         }
 
-        $payload = $decoded['details']['payload'] ?? null;
+        $nested = $decoded['details'] ?? null;
+        $payload = is_array($nested) ? ($nested['payload'] ?? null) : null;
         if (is_array($payload)) {
             $code = trim((string)($payload['code'] ?? ''));
             if ($code !== '') {
