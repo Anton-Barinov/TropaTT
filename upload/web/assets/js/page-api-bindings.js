@@ -19743,6 +19743,7 @@ window.CRM.pageApiBindings = (function () {
       wrap.setAttribute('data-kbd-bound', '1');
       wrap.tabIndex = 0;
       wrap.addEventListener('keydown', function (event) {
+        if (isTypingContext(event.target)) return;
         if (scrollByKey(event)) updateScrollButtons();
       });
     }
