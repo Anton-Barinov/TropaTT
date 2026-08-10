@@ -19687,8 +19687,39 @@ window.CRM.pageApiBindings = (function () {
         }
       }
     });
+    initKanbanScrollButtons();
   }
   // renderGanttPage duplicate removed — using the implementation above (crmGanttNormalizeTask-based version)
+
+  function initKanbanScrollButtons() {
+    var wrap = document.querySelector('.crm-kanban-scroll-wrap');
+    var kanban = document.querySelector('.crm-kanban');
+    var leftBtn = wrap && wrap.querySelector('.crm-kanban-scroll-left');
+    var rightBtn = wrap && wrap.querySelector('.crm-kanban-scroll-right');
+    if (!kanban || !leftBtn || !rightBtn) return;
+
+    function updateScrollButtons() {
+      var atStart = kanban.scrollLeft <= 2;
+      var atEnd = kanban.scrollLeft + kanban.clientWidth >= kanban.scrollWidth - 2;
+      leftBtn.classList.toggle('is-visible', !atStart);
+      rightBtn.classList.toggle('is-visible', !atEnd);
+    }
+
+    function scrollBy(direction) {
+      var col = kanban.querySelector('.crm-kanban-col');
+      var step = col ? col.offsetWidth + 16 : 340;
+      kanban.scrollBy({ left: direction * step, behavior: 'smooth' });
+    }
+
+    leftBtn.addEventListener('click', function () { scrollBy(-1); });
+    rightBtn.addEventListener('click', function () { scrollBy(1); });
+
+    kanban.addEventListener('scroll', updateScrollButtons);
+    window.addEventListener('resize', updateScrollButtons);
+
+    // Initial state after a short delay to let layout settle
+    setTimeout(updateScrollButtons, 100);
+  }
 
 
 
