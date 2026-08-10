@@ -31,6 +31,27 @@
   <div id="adminUserActivitySummary" class="text-muted mt-2" data-i18n="admin_logs.activity_hint"><?= htmlspecialchars($t('admin_logs.activity_hint', 'Введите ID пользователя, чтобы увидеть активность в журналах запросов, безопасности и аудита.'), ENT_QUOTES, 'UTF-8') ?></div>
 </div>
 
+<div class="crm-card crm-section-card mb-3" id="adminLogsErrorChartCard">
+  <div class="crm-section-head">
+    <div>
+      <h2 class="h6 mb-0" data-i18n="admin_logs.chart_title"><?= htmlspecialchars($t('admin_logs.chart_title', 'Ошибки фронтенда (API) по часам'), ENT_QUOTES, 'UTF-8') ?></h2>
+      <div class="crm-section-note" id="adminLogsErrorChartNote" data-i18n="admin_logs.chart_note"><?= htmlspecialchars($t('admin_logs.chart_note', 'Транспортные ошибки (сеть, таймаут, ответ) после исчерпания автоматических повторных попыток.'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
+    <select id="adminLogsErrorChartRange" class="form-select crm-field-w-140">
+      <option value="24" data-i18n="admin_logs.chart_24h"><?= htmlspecialchars($t('admin_logs.chart_24h', '24 часа'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="48" selected data-i18n="admin_logs.chart_48h"><?= htmlspecialchars($t('admin_logs.chart_48h', '48 часов'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="168" data-i18n="admin_logs.chart_7d"><?= htmlspecialchars($t('admin_logs.chart_7d', '7 дней'), ENT_QUOTES, 'UTF-8') ?></option>
+    </select>
+  </div>
+  <div class="crm-error-chart-wrap">
+    <div id="adminLogsErrorChart" class="crm-error-chart"><div class="text-muted p-3" data-i18n="admin_logs.loading"><?= htmlspecialchars($t('admin_logs.loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></div></div>
+    <div class="crm-error-chart-legend">
+      <span class="crm-legend-item"><i class="crm-legend-dot crm-legend-transport"></i><span data-i18n="admin_logs.chart_transport"><?= htmlspecialchars($t('admin_logs.chart_transport', 'Транспортные'), ENT_QUOTES, 'UTF-8') ?></span></span>
+      <span class="crm-legend-item"><i class="crm-legend-dot crm-legend-other"></i><span data-i18n="admin_logs.chart_other"><?= htmlspecialchars($t('admin_logs.chart_other', 'HTTP/бизнес'), ENT_QUOTES, 'UTF-8') ?></span></span>
+    </div>
+  </div>
+</div>
+
 <div class="crm-card crm-section-card p-0 table-responsive mb-3"><table class="table crm-table mb-0"><thead><tr><th data-i18n="admin_logs.th_time"><?= htmlspecialchars($t('admin_logs.th_time', 'Время'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_user"><?= htmlspecialchars($t('admin_logs.th_user', 'Пользователь'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_source_event"><?= htmlspecialchars($t('admin_logs.th_source_event', 'Источник/событие'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_object_route"><?= htmlspecialchars($t('admin_logs.th_object_route', 'Объект/маршрут'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="admin_logs.th_ip_status"><?= htmlspecialchars($t('admin_logs.th_ip_status', 'IP/Статус'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:130px" data-i18n="admin_logs.th_details"><?= htmlspecialchars($t('admin_logs.th_details', 'Детали'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="adminLogsTableBody">
 <tr><td colspan="6" class="text-muted" data-i18n="admin_logs.loading_logs"><?= htmlspecialchars($t('admin_logs.loading_logs', 'Загрузка логов...'), ENT_QUOTES, 'UTF-8') ?></td></tr>
 </tbody></table></div>

@@ -14473,6 +14473,96 @@ window.CRM.pageApiBindings = (function () {
     }
   }
 
+  // ── Admin → Logs: frontend API error histogram (hourly) ─────────────
+  // Renders a pure-CSS stacked bar chart (no chart library): each bar is one
+  // hour, red segment = transport errors (network/timeout/bad response) that
+  // survived automatic retries, grey segment = HTTP/business errors.
+  function tpFmt(key, fallback, params) {
+    var text = tp(key, fallback);
+    if (params && typeof params === 'object') {
+      Object.keys(params).forEach(function (name) {
+        text = text.split('{' + name + '}').join(String(params[name]));
+      });
+    }
+    return text;
+  }
+
+  async function renderAdminLogsErrorChart() {
+    var chartEl = document.getElementById('adminLogsErrorChart');
+    var rangeEl = document.getElementById('adminLogsErrorChartRange');
+    var noteEl = document.getElementById('adminLogsErrorChartNote');
+    var cardEl = document.getElementById('adminLogsErrorChartCard');
+    if (!chartEl) return;
+
+    async function load() {
+      var hours = rangeEl ? Number(rangeEl.value || 48) : 48;
+      chartEl.innerHTML = '<div class="text-muted p-3">' + safeText(tp('admin.logs_chart_loading', 'Загрузка...')) + '</div>';
+      var envelope = await tryRequest('api/v1/logs/frontend-errors/chart', { query: { hours: hours }, silent: true });
+      if (!envelope || envelope.success === false || !envelope.data) {
+        chartEl.innerHTML = '<div class="text-danger p-3">' + safeText(tp('admin.logs_load_error', 'Failed to load logs.')) + '</div>';
+        return;
+      }
+
+      var items = Array.isArray(envelope.data.items) ? envelope.data.items : [];
+      var meta = envelope.meta || {};
+      var total = Number(meta.total || 0);
+      var transport = Number(meta.transport || 0);
+
+      if (noteEl) {
+        var rangeLabel = hours === 24 ? tp('admin.logs_chart_last_24h', 'последние 24 часа')
+          : hours === 168 ? tp('admin.logs_chart_last_7d', 'последние 7 дней')
+          : tp('admin.logs_chart_last_48h', 'последние 48 часов');
+        noteEl.textContent = tpFmt('admin.logs_chart_summary', 'Всего за {range}: {total} ({transport} транспортных)', { range: rangeLabel, total: total, transport: transport });
+      }
+
+      if (!items.length) {
+        chartEl.innerHTML = '<div class="crm-error-chart-empty">' + safeText(tp('admin.logs_chart_empty', 'Ошибок за выбранный период нет')) + '</div>';
+        return;
+      }
+
+      var maxTotal = 1;
+      items.forEach(function (item) { maxTotal = Math.max(maxTotal, Number(item.total || 0)); });
+
+      var labelEvery = items.length > 60 ? 12 : (items.length > 30 ? 6 : 3);
+      var bars = items.map(function (item, index) {
+        var hour = String(item.hour || '');
+        var shortHour = hour.slice(0, 13).replace('T', ' ');
+        var totalN = Number(item.total || 0);
+        var transportN = Number(item.transport || 0);
+        var otherN = Math.max(0, Number(item.other || 0));
+        var codes = item.codes && typeof item.codes === 'object' ? item.codes : {};
+        var codesText = Object.keys(codes).map(function (code) { return code + ': ' + codes[code]; }).join(', ');
+
+        var segOther = otherN > 0
+          ? '<span class="crm-error-bar-seg crm-error-bar-other" style="height:' + (otherN / maxTotal * 100).toFixed(1) + '%"></span>'
+          : '';
+        var segTransport = transportN > 0
+          ? '<span class="crm-error-bar-seg crm-error-bar-transport" style="height:' + (transportN / maxTotal * 100).toFixed(1) + '%"></span>'
+          : '';
+        var label = (index % labelEvery === 0) ? '<span class="crm-error-bar-label">' + safeText(shortHour) + '</span>' : '';
+        var title = shortHour + ' — ' + tpFmt('admin.logs_chart_total_tip', 'всего: {total}, транспортных: {transport}', { total: totalN, transport: transportN })
+          + (codesText ? ' (' + codesText + ')' : '');
+
+        return '<div class="crm-error-bar" title="' + safeText(title) + '">'
+          + '<div class="crm-error-bar-track">' + segOther + segTransport + '</div>'
+          + label
+          + '</div>';
+      }).join('');
+
+      chartEl.innerHTML = bars;
+      if (cardEl) {
+        cardEl.classList.toggle('has-transport', transport > 0);
+        cardEl.classList.toggle('has-errors', total > 0);
+      }
+    }
+
+    if (rangeEl && rangeEl.dataset.chartBound !== '1') {
+      rangeEl.addEventListener('change', load);
+      rangeEl.dataset.chartBound = '1';
+    }
+    await load();
+  }
+
   async function renderAdminLogsPage() {
     var sourceFilter = document.getElementById('adminLogsSourceFilter');
     var userFilter = document.getElementById('adminLogsUserFilter');
@@ -14689,6 +14779,7 @@ window.CRM.pageApiBindings = (function () {
 
     bindDrawer();
     await loadLogs();
+    await renderAdminLogsErrorChart();
   }
 
   async function renderAdminMainPage() {

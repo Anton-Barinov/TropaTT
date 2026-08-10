@@ -92,6 +92,102 @@ final class LogsRepository
         );
     }
 
+    /**
+     * Hourly histogram of frontend_api_error events for transport-error
+     * monitoring (Admin → Logs). Rows are bucketed in PHP so the same code
+     * runs on MySQL and SQLite. Only created_at + details are fetched.
+     *
+     * @param array<string,mixed> $filters accepts from / to (Y-m-d H:i:s)
+     * @return array<int,array{hour:string,total:int,transport:int,other:int,codes:array<string,int>}>
+     */
+    public function frontendErrorChart(array $filters): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('security_logs')
+            ->select(['created_at', 'details'])
+            ->where('event_type', '=', 'frontend_api_error');
+
+        if (!empty($filters['from'])) {
+            $qb->where('created_at', '>=', (string)$filters['from']);
+        }
+        if (!empty($filters['to'])) {
+            $qb->where('created_at', '<=', (string)$filters['to']);
+        }
+
+        $rows = $qb
+            ->orderBy('created_at', 'ASC')
+            ->limit(50000)
+            ->get();
+
+        $buckets = [];
+        $order = [];
+        foreach ($rows as $row) {
+            $created = (string)($row['created_at'] ?? '');
+            $hour = mb_substr($created, 0, 13) . ':00:00';
+            if ($hour === ':00:00') {
+                continue;
+            }
+            if (!isset($buckets[$hour])) {
+                $buckets[$hour] = ['hour' => $hour, 'total' => 0, 'transport' => 0, 'other' => 0, 'codes' => []];
+                $order[] = $hour;
+            }
+
+            $code = $this->extractErrorCode((string)($row['details'] ?? ''));
+            $buckets[$hour]['total']++;
+            $buckets[$hour]['codes'][$code] = ($buckets[$hour]['codes'][$code] ?? 0) + 1;
+            if (in_array($code, self::TRANSPORT_ERROR_CODES, true)) {
+                $buckets[$hour]['transport']++;
+            } else {
+                $buckets[$hour]['other']++;
+            }
+        }
+
+        $result = [];
+        foreach ($order as $hour) {
+            $result[] = $buckets[$hour];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Error codes that indicate transport-level failures (network drops,
+     * timeouts, unparseable responses). They are the ones the frontend retry
+     * layer tries to hide; everything else is an HTTP/business error.
+     */
+    private const TRANSPORT_ERROR_CODES = [
+        'NETWORK_ERROR',
+        'NETWORK_TIMEOUT',
+        'INVALID_API_RESPONSE',
+    ];
+
+    /**
+     * Pulls payload.code from the JSON details blob written by
+     * TelemetryController. Falls back to UNKNOWN when absent.
+     */
+    private function extractErrorCode(string $details): string
+    {
+        $decoded = json_decode($details, true);
+        if (!is_array($decoded)) {
+            return 'UNKNOWN';
+        }
+
+        $payload = $decoded['details']['payload'] ?? null;
+        if (is_array($payload)) {
+            $code = trim((string)($payload['code'] ?? ''));
+            if ($code !== '') {
+                return strtoupper($code);
+            }
+        }
+
+        $event = $decoded['event_type'] ?? '';
+        if (is_string($event) && $event !== '') {
+            return strtoupper($event);
+        }
+
+        return 'UNKNOWN';
+    }
+
     private function listWithPagination(QueryBuilder $listQuery, callable $countQueryFactory, array $filters): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));

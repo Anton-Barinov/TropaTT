@@ -59,6 +59,38 @@ final class LogsService
         ];
     }
 
+    public function frontendErrorChart(array $filters): array
+    {
+        $hours = max(1, min(168, (int)($filters['hours'] ?? 48)));
+        $from = (string)($filters['from'] ?? '');
+        if ($from === '') {
+            $from = gmdate('Y-m-d H:i:s', time() - $hours * 3600);
+        }
+
+        $items = $this->logs->frontendErrorChart([
+            'from' => $from,
+            'to' => (string)($filters['to'] ?? ''),
+        ]);
+
+        $total = 0;
+        $transport = 0;
+        foreach ($items as $bucket) {
+            $total += (int)$bucket['total'];
+            $transport += (int)$bucket['transport'];
+        }
+
+        return [
+            'items' => $items,
+            'meta' => [
+                'from' => $from,
+                'hours' => $hours,
+                'total' => $total,
+                'transport' => $transport,
+                'other' => $total - $transport,
+            ],
+        ];
+    }
+
     /**
      * Mask the last octet of an IP address in log items.
      */

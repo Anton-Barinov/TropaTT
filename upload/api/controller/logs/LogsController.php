@@ -55,4 +55,20 @@ final class LogsController extends BaseController
             'items' => $result['items'],
         ], meta: $result['meta']);
     }
+
+    public function frontendErrorChart(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
+        }
+
+        /** @var LogsService $service */
+        $service = $this->container->get('service.logs');
+        $result = $service->frontendErrorChart($this->request()->allInput());
+
+        return $this->success('FRONTEND_ERROR_CHART', $this->t('logs/messages.frontend_error_chart'), [
+            'items' => $result['items'],
+        ], meta: $result['meta']);
+    }
 }

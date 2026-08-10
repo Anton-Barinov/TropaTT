@@ -2766,6 +2766,128 @@ font-size: 0.72rem;
   word-break: break-word;
 }
 
+/* Admin → Logs: frontend API error histogram (pure CSS, no chart library) */
+.crm-admin-page #adminLogsErrorChartCard {
+  overflow: hidden;
+}
+
+.crm-admin-page #adminLogsErrorChartCard .crm-section-head {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.crm-admin-page #adminLogsErrorChartCard .crm-section-note {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.crm-error-chart-wrap {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.crm-error-chart {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 150px;
+  padding-top: var(--space-2);
+  border-bottom: 1px solid var(--crm-border-strong, rgba(127, 127, 127, 0.25));
+  overflow-x: auto;
+}
+
+.crm-error-bar {
+  flex: 1 1 0;
+  min-width: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  position: relative;
+}
+
+.crm-error-bar-track {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+  background: rgba(127, 127, 127, 0.08);
+  transition: opacity 0.15s ease;
+}
+
+.crm-error-bar:hover .crm-error-bar-track {
+  opacity: 0.85;
+}
+
+.crm-error-bar-seg {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+}
+
+.crm-error-bar-transport {
+  background: var(--crm-danger, #dc3545);
+}
+
+.crm-error-bar-other {
+  background: var(--crm-muted, #8a93a3);
+}
+
+.crm-error-bar-label {
+  font-size: 0.68rem;
+  line-height: 1.1;
+  color: var(--crm-muted, #8a93a3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.crm-error-chart-empty {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--crm-muted, #8a93a3);
+  font-size: 0.92rem;
+}
+
+.crm-error-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.crm-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.crm-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.crm-legend-transport {
+  background: var(--crm-danger, #dc3545);
+}
+
+.crm-legend-other {
+  background: var(--crm-muted, #8a93a3);
+}
+
+.crm-admin-page #adminLogsErrorChartCard.has-transport {
+  box-shadow: inset 0 2px 0 var(--crm-danger, #dc3545);
+}
+
 .crm-dashboard-page .crm-dashboard-kpi strong {
   font-size: clamp(1.78rem, 2vw, 2.24rem);
 }
