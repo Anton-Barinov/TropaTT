@@ -1252,6 +1252,32 @@ html[data-theme="contrast"] .btn.crm-btn-primary:focus {
   box-shadow: none !important;
 }
 
+/* Secondary / ghost / outline buttons: white chips with black borders.
+   The base polish rule uses a 10% ink tint border that is nearly
+   invisible on white in high-contrast mode. */
+html[data-theme="contrast"] .btn-light,
+html[data-theme="contrast"] .crm-btn-secondary,
+html[data-theme="contrast"] .btn-outline-secondary,
+html[data-theme="contrast"] .crm-btn-ghost,
+html[data-theme="contrast"] .crm-btn-subtle,
+html[data-theme="contrast"] .crm-btn-muted {
+  background: var(--crm-surface) !important;
+  border-color: var(--crm-border-strong) !important;
+  color: var(--crm-text) !important;
+  box-shadow: none !important;
+}
+html[data-theme="contrast"] .btn-light:hover,
+html[data-theme="contrast"] .crm-btn-secondary:hover,
+html[data-theme="contrast"] .btn-outline-secondary:hover,
+html[data-theme="contrast"] .crm-btn-ghost:hover,
+html[data-theme="contrast"] .crm-btn-subtle:hover,
+html[data-theme="contrast"] .crm-btn-muted:hover {
+  background: var(--crm-primary-soft) !important;
+  border-color: var(--crm-primary-border) !important;
+  color: var(--crm-text) !important;
+  box-shadow: none !important;
+}
+
 /* Focus rings stay brand green, not blue. */
 html[data-theme="contrast"] .form-control:focus,
 html[data-theme="contrast"] .form-select:focus,
