@@ -9953,7 +9953,7 @@ body.modal-open {
 }
 
 .crm-gantt-page .crm-gantt-task-bar.is-blocked {
-  background: repeating-linear-gradient(45deg, #ffc107, #ffc107 5px, #ffecb3 5px, #ffecb3 10px);
+  background: repeating-linear-gradient(45deg, var(--crm-stripe-a), var(--crm-stripe-a) 5px, var(--crm-stripe-b) 5px, var(--crm-stripe-b) 10px);
 }
 
 .crm-gantt-page .crm-gantt-bar-active {
@@ -14586,8 +14586,8 @@ a.task-tag:hover {
 .crm-knowledge-content pre {
   padding: 1rem;
   border-radius: var(--radius-md);
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--crm-code-bg);
+  color: var(--crm-code-text);
   overflow-x: auto;
   font-size: 0.85rem;
   line-height: 1.5;
@@ -16162,8 +16162,8 @@ a.task-tag:hover {
 .article-content pre {
   padding: 1rem;
   border-radius: 8px;
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--crm-code-bg);
+  color: var(--crm-code-text);
   overflow-x: auto;
   font-size: 0.85rem;
   line-height: 1.5;

@@ -248,8 +248,8 @@ window.CRM.pageApiBindings = (function () {
     statusNode.style.fontWeight = '600';
     statusNode.style.display = 'none';
     statusNode.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)';
-    statusNode.style.color = '#fff';
-    statusNode.style.background = '#0f8f72';
+    statusNode.style.color = 'var(--crm-on-accent)';
+    statusNode.style.background = 'var(--crm-status-bg)';
     statusNode.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
 
     document.body.appendChild(statusNode);
@@ -263,7 +263,7 @@ window.CRM.pageApiBindings = (function () {
     if (isLoading) {
       node.dataset.error = '0';
       node.style.display = 'block';
-      node.style.background = '#0f8f72';
+      node.style.background = 'var(--crm-status-bg)';
       node.textContent = window.CRM.i18n.t('js.pab.loading_data', 'Loading data...');
       return;
     }
@@ -279,7 +279,7 @@ window.CRM.pageApiBindings = (function () {
 
     node.dataset.error = '1';
     node.style.display = 'block';
-    node.style.background = '#dc2626';
+    node.style.background = 'var(--crm-error-bg)';
     node.textContent = message || window.CRM.i18n.t('js.pab.api_load_error', 'API data load error');
 
     window.setTimeout(function () {
@@ -299,16 +299,16 @@ window.CRM.pageApiBindings = (function () {
     bar.style.bottom = '20px';
     bar.style.right = '20px';
     bar.style.zIndex = '1090';
-    bar.style.background = '#1e293b';
-    bar.style.color = '#fff';
+    bar.style.background = 'var(--crm-code-bg)';
+    bar.style.color = 'var(--crm-code-text)';
     bar.style.padding = '12px 16px';
     bar.style.borderRadius = '8px';
     bar.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
     bar.style.minWidth = '280px';
     bar.style.maxWidth = '360px';
     bar.innerHTML = '<div class="small fw-semibold mb-1">' + safeText(label || window.CRM.i18n.t('js.pab.in_progress', 'In progress...')) + '</div>'
-      + '<div class="progress" style="height:6px;background:#334155;border-radius:3px;overflow:hidden">'
-      + '<div id="crmBulkProgressFill" style="width:0%;height:100%;background:var(--crm-primary,#3b82f6);transition:width 0.2s"></div>'
+      + '<div class="progress" style="height:6px;background:var(--crm-progress-track,#334155);border-radius:3px;overflow:hidden">'
+      + '<div id="crmBulkProgressFill" style="width:0%;height:100%;background:var(--crm-primary,#0f8f72);transition:width 0.2s"></div>'
       + '</div>'
       + '<div id="crmBulkProgressText" class="small text-muted mt-1">0 / ' + safeText(String(total)) + '</div>';
     document.body.appendChild(bar);
@@ -18598,7 +18598,7 @@ window.CRM.pageApiBindings = (function () {
         if (crmGanttSegmentHitsObstacle(seg, obstacles)) {
           svgParts[i] = svgParts[i]
             .replace('stroke-linejoin="round"', 'stroke-linejoin="round" stroke-dasharray="8,4"')
-            .replace(/stroke="[^"]+"/, 'stroke="#f59e0b"');
+            .replace(/stroke="[^"]+"/, 'style="stroke:var(--crm-gantt-obstacle)"');
           break;
         }
       }
