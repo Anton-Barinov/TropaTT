@@ -127,15 +127,24 @@ $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = rtrim(str_replace('index.php', '', $scriptName), '/');
 
 $route = $_GET['route'] ?? null;
+$isPathDerived = false;
 if ($route === null || $route === '') {
     $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
     if ($basePath !== '' && str_starts_with($path, $basePath)) {
         $path = substr($path, strlen($basePath));
     }
     $route = trim($path, '/');
+    $isPathDerived = true;
 }
 
 $route = trim((string)$route, '/');
+// Path-derived routes may carry a trailing '.php' (e.g. the root entry
+// redirects to /web/index.php). Map such entry-point requests to the
+// 'index' route (Dashboard) instead of failing with 404 on an unknown
+// 'index.php' route. Explicit ?route=index.php stays unknown on purpose.
+if ($route !== '' && $isPathDerived && str_ends_with($route, '.php')) {
+    $route = substr($route, 0, -4);
+}
 if ($route === '') {
     $route = 'dashboard';
 }
