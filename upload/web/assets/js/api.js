@@ -950,7 +950,11 @@ window.CRM.api = (function () {
       // plain PATCH/POST calls (profile save, task create, ...) are exactly the
       // ones that hit anti-replay, and a 425/307 can never duplicate work.
       // Only an explicit { retry: false } opts out.
-      if (response && (response.status === 425 || response.status === 307)
+      // With redirect:'manual', some engines surface the same-URL 307 as an
+      // opaque-redirect response (status 0, type 'opaqueredirect', no body)
+      // instead of the raw 307 — cover both shapes so every browser recovers.
+      var isOpaqueRedirect = response && response.type === 'opaqueredirect';
+      if (response && (response.status === 425 || response.status === 307 || isOpaqueRedirect)
           && opts.retry !== false && attempts <= maxRetries) {
         notifyApiRetrying(route, attempts, maxRetries);
         await sleep(retryDelayMs * attempts);
