@@ -12122,12 +12122,12 @@ a.task-tag:hover {
     border: 0;
     border-radius: 0;
     background: transparent;
-    box-shadow: none;
+    box-shadow: none !important;
 }
 
 .crm-my-day-page #myDayFocusSummary .crm-metric-tile,
 .crm-my-week-page #myWeekMetrics .crm-metric-tile {
-    min-width: 118px;
+    min-width: 105px;
     padding: 0.55rem 0;
 }
 
