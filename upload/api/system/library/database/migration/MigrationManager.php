@@ -59,6 +59,7 @@ final class MigrationManager
             new RateLimitsMigration(),
             new CounterpartyAddressActualMigration(),
             new TaskDirectClientMigration(),
+            new TagDescriptionMigration(),
         ];
     }
 
