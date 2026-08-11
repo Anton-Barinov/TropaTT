@@ -4173,6 +4173,21 @@ body.modal-open {
   white-space: nowrap;
 }
 
+/* The 10-column clients table must fit the ~875px content area without an
+   internal horizontal scroll: cap the name, contacts and extra-fields
+   columns (ellipsis + native hover tooltip shows the full value). */
+.crm-clients-page #clientsTable td:first-child .fw-semibold {
+  max-width: 170px;
+}
+
+.crm-clients-page #clientsTable td:nth-child(4) {
+  max-width: 130px;
+}
+
+.crm-clients-page #clientsTable td:nth-child(6) {
+  max-width: 115px;
+}
+
 .crm-clients-page #clientsTable .crm-client-name-link {
   color: var(--crm-text);
   font-weight: 700;
@@ -4207,11 +4222,11 @@ body.modal-open {
    Caps + ellipsis keep the table inside the content area; the full value
    stays readable via the native title tooltip on truncation. */
 .crm-clients-page #clientsTable td:nth-child(5) {
-  max-width: 190px;
+  max-width: 170px;
 }
 
 .crm-clients-page #clientsTable td:nth-child(6) {
-  max-width: 160px;
+  max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
