@@ -1003,7 +1003,7 @@ html[data-theme="contrast"] {
   /* Legacy semantic aliases - high-contrast equivalents */
   --crm-muted: #1f1f1f;
   --crm-bg-hover: #e8e8e8;
-  --crm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --crm-shadow-sm: none;
   --crm-accent-bg: rgba(0, 92, 68, 0.08);
   --crm-bg-inverse: #000000;
   --crm-text-inverse: #ffffff;
@@ -1158,6 +1158,41 @@ html[data-theme="contrast"] {
   --crm-shadow-soft: none;
   --crm-shadow-card: none;
   --crm-shadow-hover: none;
+
+  /* Flat UI: zero every Bootstrap shadow token too (buttons, cards, modals,
+     dropdowns, popovers, toasts, offcanvas, accordion/pagination focus
+     glows). Focus stays visible via the theme's outline-based focus ring. */
+  --bs-box-shadow: none;
+  --bs-box-shadow-sm: none;
+  --bs-box-shadow-lg: none;
+  --bs-box-shadow-inset: none;
+  --bs-btn-box-shadow: none;
+  --bs-btn-active-shadow: none;
+  --bs-btn-focus-box-shadow: none;
+  --bs-card-box-shadow: none;
+  --bs-dropdown-box-shadow: none;
+  --bs-modal-box-shadow: none;
+  --bs-offcanvas-box-shadow: none;
+  --bs-popover-box-shadow: none;
+  --bs-toast-box-shadow: none;
+  --bs-accordion-btn-focus-box-shadow: none;
+  --bs-pagination-focus-box-shadow: none;
+  --bs-btn-close-focus-shadow: none;
+  --bs-progress-box-shadow: none;
+}
+
+/* Flat UI: kill every hard-coded component shadow as well. The only
+   exception is Bootstrap's table-cell background mechanism (an inset
+   9999px spread that paints striped/hover row backgrounds) - that is not a
+   visual shadow, so it is restored for the table cells right below. */
+html[data-theme="contrast"] *,
+html[data-theme="contrast"] *::before,
+html[data-theme="contrast"] *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-theme="contrast"] .table > :not(caption) > * > * {
+  box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg))) !important;
 }
 
 html[data-theme="contrast"] ::selection {
