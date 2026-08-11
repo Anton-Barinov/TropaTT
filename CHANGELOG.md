@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- My Day page: the "Срок", "Статус" and "Приоритет" columns are merged into one stacked state column (due date line, status badge, priority chip), matching the tasks list treatment. Both tables (today + overdue) now have 3 columns instead of 5; header reads "Срок / Статус / Приоритет".
+
 - Tasks list (list view) table: the task column header now offers a second sort button "Проект" (`sort=project_title`), since the project lives in the task column after the recent merge. The API accepts `project_title` in the tasks sort allowlist and orders by the joined projects title.
 
 - Tasks list (list view) table: the "Проект" (project) column is merged into the task column — the project now renders as a muted folder link right after the parent link under the task title. The tasks table now has 6 columns instead of 7 (checkbox, key, task, people, state, actions).

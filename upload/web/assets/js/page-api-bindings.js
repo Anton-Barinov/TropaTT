@@ -15964,10 +15964,13 @@ window.CRM.pageApiBindings = (function () {
       var rowCls = mode === 'overdue' ? ' class="crm-task-row-overdue"' : '';
       var actions = '<div class="crm-task-row-actions-wrap">' + doneBtn + openLink + '</div>';
       if (mode === 'day' || mode === 'overdue') {
+        // The three state columns (due/status/priority) are merged into one.
         return '<tr' + rowCls + '><td>' + taskTitle + '</td>'
-          + '<td>' + safeText(formatDate(task.due_at)) + '</td>'
-          + '<td>' + pBadge + '</td>'
-          + '<td>' + statusBadge + '</td>'
+          + '<td class="crm-cell-state">'
+          + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(task.due_at)) + '</span></div>'
+          + '<div class="crm-state-line">' + statusBadge + '</div>'
+          + '<div class="crm-state-line">' + pBadge + '</div>'
+          + '</td>'
           + '<td>' + actions + '</td></tr>';
       }
       var assignee = task.assignee_name ? safeText(task.assignee_name) : _t('my_week.assignee_none', 'Не назначен');
@@ -15997,7 +16000,7 @@ window.CRM.pageApiBindings = (function () {
     if (overdueTbody) {
       overdueTbody.innerHTML = overdueTasks.length > 0
         ? overdueTasks.map(function (t) { return renderTaskRow(t, 'overdue'); }).join('')
-        : '<tr><td colspan="5" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
+        : '<tr><td colspan="3" class="text-muted">' + _t('my_day.overdue_empty', 'Нет просроченных задач') + '</td></tr>';
     }
 
     // Render today's tasks
@@ -16005,7 +16008,7 @@ window.CRM.pageApiBindings = (function () {
     if (tbody) {
       tbody.innerHTML = tasks.length > 0
         ? tasks.map(function (t) { return renderTaskRow(t, 'day'); }).join('')
-        : '<tr><td colspan="5" class="text-muted">' + _t('my_day.today_empty', 'Нет задач на сегодня') + '</td></tr>';
+        : '<tr><td colspan="3" class="text-muted">' + _t('my_day.today_empty', 'Нет задач на сегодня') + '</td></tr>';
     }
 
     // Attach event delegation for done buttons on both tables

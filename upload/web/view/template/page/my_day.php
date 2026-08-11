@@ -36,9 +36,25 @@
 </div>
 
 <div class="crm-my-day-stack">
-  <div class="crm-card crm-section-card crm-my-day-today-section"><div class="crm-section-head"><div><h2 class="h6 mb-0"><?= htmlspecialchars($t('my_day.today_title', 'Задачи на сегодня'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note"><?= htmlspecialchars($t('my_day.today_note', 'Ключевые задачи, требующие внимания в течение дня.'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="table-responsive crm-table-wrap"><table class="table table-hover align-middle mb-0 crm-table" data-my-day-table><thead><tr><th style="min-width:240px"><?= htmlspecialchars($t('my_day.th_task', 'Задача'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:120px"><?= htmlspecialchars($t('my_day.th_date', 'Срок'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:120px"><?= htmlspecialchars($t('my_day.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:130px"><?= htmlspecialchars($t('my_day.th_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:200px"><?= htmlspecialchars($t('my_day.th_action', 'Действие'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="myDayTasksTableBody"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('my_day.today_loading', 'Загрузка задач дня...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div></div>
+  <div class="crm-card crm-section-card crm-my-day-today-section"><div class="crm-section-head"><div><h2 class="h6 mb-0"><?= htmlspecialchars($t('my_day.today_title', 'Задачи на сегодня'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note"><?= htmlspecialchars($t('my_day.today_note', 'Ключевые задачи, требующие внимания в течение дня.'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="table-responsive crm-table-wrap"><table class="table table-hover align-middle mb-0 crm-table" data-my-day-table><thead><tr><th style="min-width:240px">
+<?= htmlspecialchars($t('my_day.th_task', 'Задача'), ENT_QUOTES, 'UTF-8') ?>
+</th>
+<th style="width:160px">
+<?= htmlspecialchars($t('my_day.th_date', 'Срок') . ' / ' . $t('my_day.th_status', 'Статус') . ' / ' . $t('my_day.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?>
+</th>
+<th style="width:200px">
+<?= htmlspecialchars($t('my_day.th_action', 'Действие'), ENT_QUOTES, 'UTF-8') ?>
+</th></tr></thead><tbody id="myDayTasksTableBody"><tr><td colspan="3" class="text-muted"><?= htmlspecialchars($t('my_day.today_loading', 'Загрузка задач дня...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div></div>
 
-  <div class="crm-card crm-section-card crm-overdue-section"><div class="crm-section-head"><div><h2 class="h6 mb-0"><?= htmlspecialchars($t('my_day.overdue_title', 'Просроченные задачи'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note"><?= htmlspecialchars($t('my_day.overdue_note', 'Задачи с истекшим сроком, требующие внимания.'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="table-responsive crm-table-wrap crm-overdue-table-wrap"><table class="table table-hover align-middle mb-0 crm-table" data-my-day-table><thead><tr><th style="min-width:240px"><?= htmlspecialchars($t('my_day.th_task', 'Задача'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:120px"><?= htmlspecialchars($t('my_day.th_date', 'Срок'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:120px"><?= htmlspecialchars($t('my_day.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:130px"><?= htmlspecialchars($t('my_day.th_status', 'Статус'), ENT_QUOTES, 'UTF-8') ?></th><th style="width:200px"><?= htmlspecialchars($t('my_day.th_action', 'Действие'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="myDayOverdueTableBody"><tr><td colspan="5" class="text-muted"><?= htmlspecialchars($t('my_day.overdue_checking', 'Проверка просроченных задач...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div></div>
+  <div class="crm-card crm-section-card crm-overdue-section"><div class="crm-section-head"><div><h2 class="h6 mb-0"><?= htmlspecialchars($t('my_day.overdue_title', 'Просроченные задачи'), ENT_QUOTES, 'UTF-8') ?></h2><div class="crm-section-note"><?= htmlspecialchars($t('my_day.overdue_note', 'Задачи с истекшим сроком, требующие внимания.'), ENT_QUOTES, 'UTF-8') ?></div></div></div><div class="table-responsive crm-table-wrap crm-overdue-table-wrap"><table class="table table-hover align-middle mb-0 crm-table" data-my-day-table><thead><tr><th style="min-width:240px">
+<?= htmlspecialchars($t('my_day.th_task', 'Задача'), ENT_QUOTES, 'UTF-8') ?>
+</th>
+<th style="width:160px">
+<?= htmlspecialchars($t('my_day.th_date', 'Срок') . ' / ' . $t('my_day.th_status', 'Статус') . ' / ' . $t('my_day.th_priority', 'Приоритет'), ENT_QUOTES, 'UTF-8') ?>
+</th>
+<th style="width:200px">
+<?= htmlspecialchars($t('my_day.th_action', 'Действие'), ENT_QUOTES, 'UTF-8') ?>
+</th></tr></thead><tbody id="myDayOverdueTableBody"><tr><td colspan="3" class="text-muted"><?= htmlspecialchars($t('my_day.overdue_checking', 'Проверка просроченных задач...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table></div></div>
 </div>
 
 </main></div></div>
