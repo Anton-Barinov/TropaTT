@@ -4174,18 +4174,78 @@ body.modal-open {
 }
 
 /* The 10-column clients table must fit the ~875px content area without an
-   internal horizontal scroll: cap the name, contacts and extra-fields
-   columns (ellipsis + native hover tooltip shows the full value). */
-.crm-clients-page #clientsTable td:first-child .fw-semibold {
-  max-width: 170px;
+   internal horizontal scroll. Auto layout stubbornly stretches columns to
+   the widest content (email/phone/extra chips), so the table is pinned to
+   fixed layout with explicit widths, like the tasks list table: long values
+   ellipsize and the native hover tooltip shows the full text. */
+.crm-clients-page #clientsTable {
+  table-layout: fixed !important;
 }
 
+.crm-clients-page #clientsTable th,
+.crm-clients-page #clientsTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-clients-page #clientsTable th:nth-child(1),
+.crm-clients-page #clientsTable td:nth-child(1) {
+  width: 40px !important;
+  max-width: 40px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(2),
+.crm-clients-page #clientsTable td:nth-child(2) {
+  width: 19% !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(3),
+.crm-clients-page #clientsTable td:nth-child(3) {
+  width: 90px !important;
+  max-width: 90px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(4),
 .crm-clients-page #clientsTable td:nth-child(4) {
-  max-width: 130px;
+  width: 110px !important;
+  max-width: 110px !important;
 }
 
+.crm-clients-page #clientsTable th:nth-child(5),
+.crm-clients-page #clientsTable td:nth-child(5) {
+  width: 150px !important;
+  max-width: 150px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(6),
 .crm-clients-page #clientsTable td:nth-child(6) {
-  max-width: 115px;
+  width: 120px !important;
+  max-width: 120px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(7),
+.crm-clients-page #clientsTable td:nth-child(7) {
+  width: 110px !important;
+  max-width: 110px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(8),
+.crm-clients-page #clientsTable td:nth-child(8) {
+  width: 100px !important;
+  max-width: 100px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(9),
+.crm-clients-page #clientsTable td:nth-child(9) {
+  width: 100px !important;
+  max-width: 100px !important;
+}
+
+.crm-clients-page #clientsTable th:nth-child(10),
+.crm-clients-page #clientsTable td:nth-child(10) {
+  width: 90px !important;
+  max-width: 90px !important;
 }
 
 .crm-clients-page #clientsTable .crm-client-name-link {
