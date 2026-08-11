@@ -14,7 +14,13 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
   `api.js` / `notifications-realtime.js` derive the same URL from `webBase` when
   no preset is present. Previously a CRM copy in a subdirectory silently called
   the domain-root install's `/api/index.php` — cross-install data leak. Module
-  CSS links in the header are now web-base-relative as well.
+  CSS  links in the header are now web-base-relative as well.
+- **PWA cache names are scoped to the install path.** Two CRM copies on the
+  same domain (e.g. `/crm/` and `/`) previously shared one cache namespace
+  (`crm-pwa-runtime-<version>`), so the activate handler of one install could
+  delete the other's cache once asset versions diverged. Cache names now
+  include the web root (`crm-pwa-runtime/web/-<v>`, `crm-pwa-runtime/crm/web/-<v>`)
+  and pruning only touches this install's caches (plus the legacy format).
 
 ### Changed
 
