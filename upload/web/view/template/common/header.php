@@ -53,6 +53,17 @@ if ($webScriptName !== '') {
   $webBaseDir = rtrim(str_replace('index.php', '', $webScriptName), '/');
   $webBase = ($webBaseDir !== '' ? $webBaseDir : '') . '/';
 }
+// URL of the API entry point relative to the site root. The API lives one
+// directory above the web app ('/api/index.php' at the domain root,
+// '/crm/api/index.php' in a subdirectory install). Exposed to the JS client
+// (window.CRM.config.apiBaseUrl) so every install talks to ITS OWN API —
+// without this a subdirectory copy would silently call the domain-root
+// install's /api/index.php instead of its own.
+$apiBase = '/api/index.php';
+if ($webScriptName !== '') {
+  $apiBaseDir = rtrim(dirname($webScriptName), '/');
+  $apiBase = rtrim(dirname($apiBaseDir), '/') . '/api/index.php';
+}
 $jsOverridesPath = dirname(__DIR__, 3) . '/language/js_overrides.php';
 if (is_file($jsOverridesPath)) {
   $jsOverrides = require $jsOverridesPath;
@@ -119,7 +130,7 @@ if (is_file($jsOverridesPath)) {
   <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/themes.css?v=<?= urlencode($assetsVersion) ?>">
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
-  <link rel="stylesheet" href="/<?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars($webBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
   <script>
     window.CRM = window.CRM || {};
@@ -153,5 +164,6 @@ if (is_file($jsOverridesPath)) {
     window.CRM.config.pushVapidPublicKey = <?= json_encode($vapidPublicKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.realtimeTransport = <?= json_encode($realtimeTransport, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.webBase = <?= json_encode($webBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.apiBaseUrl = <?= json_encode($apiBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
 </head>

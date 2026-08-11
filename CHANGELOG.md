@@ -6,6 +6,16 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Fixed
+
+- **Subdirectory installs now talk to their own API.** The web header computes
+  `window.CRM.config.apiBaseUrl` from the install path (`/api/index.php` at the
+  domain root, `/crm/api/index.php` in a subdirectory), and the JS fallbacks in
+  `api.js` / `notifications-realtime.js` derive the same URL from `webBase` when
+  no preset is present. Previously a CRM copy in a subdirectory silently called
+  the domain-root install's `/api/index.php` — cross-install data leak. Module
+  CSS links in the header are now web-base-relative as well.
+
 ### Changed
 
 - Tasks list (list view) table: the «Клиент / Менеджер / Исполнитель» column is widened (110px → 170px → 230px → 260px, cap 280px) so long client names like «ТОО АлматыСтройМонтаж» and assignee names are no longer ellipsized; the key column is narrowed to 62px (still fits the badge and the «Ключ ▲» sort header) and the task column yields the space (36% → 31% → 25% → 22%), so the table still fits without horizontal scrolling.

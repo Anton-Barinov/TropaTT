@@ -105,7 +105,19 @@ window.CRM.api = (function () {
   function getBaseUrl() {
     var preset = window.CRM && window.CRM.config && window.CRM.config.apiBaseUrl;
     if (preset) return preset;
-    return window.location.protocol + '//' + window.location.host + '/api/index.php';
+    // No preset (e.g. pages rendered without the standard header): derive the
+    // API location from the web base. The API lives one directory above the
+    // web app — '/web/' -> '/api/index.php', '/crm/web/' -> '/crm/api/index.php'
+    // — so a subdirectory install reaches its own API, never the domain-root
+    // install's /api/index.php.
+    var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    var webBase = String((cfg.webBase || '') || '').trim();
+    var apiBase = '/api/index.php';
+    if (webBase !== '') {
+      var wb = webBase.replace(/\/+$/, '').replace(/\/web$/, '');
+      apiBase = (wb !== '' ? wb : '') + '/api/index.php';
+    }
+    return window.location.protocol + '//' + window.location.host + apiBase;
   }
 
   function buildUrl(route, query) {

@@ -26,10 +26,24 @@ window.CRM.notificationsRealtime = (function () {
     return !!(body && body.getAttribute('data-protected') === '1');
   }
 
+  // Same derivation as api.js: without an explicit apiBaseUrl preset the API
+  // location is derived from the web base (one directory above the web app),
+  // so subdirectory installs reach their own /<prefix>/api/index.php.
+  function apiBaseFallback() {
+    var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    var webBase = String((cfg.webBase || '') || '').trim();
+    var apiBase = '/api/index.php';
+    if (webBase !== '') {
+      var wb = webBase.replace(/\/+$/, '').replace(/\/web$/, '');
+      apiBase = (wb !== '' ? wb : '') + '/api/index.php';
+    }
+    return window.location.protocol + '//' + window.location.host + apiBase;
+  }
+
   function streamUrl() {
     var base = window.CRM && window.CRM.config && window.CRM.config.apiBaseUrl
       ? String(window.CRM.config.apiBaseUrl)
-      : (window.location.protocol + '//' + window.location.host + '/api/index.php');
+      : apiBaseFallback();
     var url = new URL(base, window.location.origin);
     url.searchParams.set('route', 'api/v1/events/stream');
     if (lastEventId > 0) {
