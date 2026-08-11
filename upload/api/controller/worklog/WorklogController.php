@@ -53,6 +53,8 @@ final class WorklogController extends BaseController
         $v = new Validator();
         $v->require($input, 'minutes_spent', $this->t('common/messages.field_required'))
             ->date($input, 'logged_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'started_at', $this->t('worklog/messages.invalid_interval_time'))
+            ->date($input, 'ended_at', $this->t('worklog/messages.invalid_interval_time'))
             ->maxLen($input, 'note', 8000, $this->t('worklog/messages.max_8000'));
 
         if ($v->fails()) {
@@ -64,6 +66,11 @@ final class WorklogController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'minutes_spent' => [$this->t('worklog/messages.minutes_positive')],
             ]);
+        }
+
+        $intervalError = $this->validateIntervalPair($input);
+        if ($intervalError !== null) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $intervalError);
         }
 
         /** @var WorklogService $service */
@@ -83,6 +90,32 @@ final class WorklogController extends BaseController
         $this->invalidateCache('worklog');
 
         return $this->success('WORKLOG_CREATED', $this->t('worklog/messages.created'), ['worklog' => $item], 201);
+    }
+
+    /**
+     * Exact timer intervals must arrive as a pair (started_at + ended_at) and
+     * the end must be strictly after the start. Returns the error map to send
+     * back or null when the pair is valid / absent.
+     *
+     * @return array<string, array<int, string>>|null
+     */
+    private function validateIntervalPair(array $input): ?array
+    {
+        $hasStart = isset($input['started_at']) && $input['started_at'] !== '' && $input['started_at'] !== null;
+        $hasEnd = isset($input['ended_at']) && $input['ended_at'] !== '' && $input['ended_at'] !== null;
+        if ($hasStart !== $hasEnd) {
+            return [
+                'started_at' => [$this->t('worklog/messages.interval_pair_required')],
+                'ended_at' => [$this->t('worklog/messages.interval_pair_required')],
+            ];
+        }
+        if ($hasStart && strtotime((string)$input['ended_at']) <= strtotime((string)$input['started_at'])) {
+            return [
+                'ended_at' => [$this->t('worklog/messages.interval_end_after_start')],
+            ];
+        }
+
+        return null;
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
@@ -114,9 +147,15 @@ final class WorklogController extends BaseController
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->date($input, 'logged_at', $this->t('common/messages.invalid_date'))
+            ->date($input, 'started_at', $this->t('worklog/messages.invalid_interval_time'))
+            ->date($input, 'ended_at', $this->t('worklog/messages.invalid_interval_time'))
             ->maxLen($input, 'note', 8000, $this->t('worklog/messages.max_8000'));
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
+        }
+        $intervalError = $this->validateIntervalPair($input);
+        if ($intervalError !== null) {
+            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $intervalError);
         }
         if (array_key_exists('minutes_spent', $input) && (int)$input['minutes_spent'] <= 0) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [

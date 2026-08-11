@@ -2903,9 +2903,12 @@ CREATE TABLE `work_logs` (
   `minutes_spent` int(11) DEFAULT NULL,
   `note` text DEFAULT NULL,
   `logged_at` datetime DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `ended_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  KEY `idx_work_logs_interval` (`user_id`,`started_at`,`ended_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=360 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

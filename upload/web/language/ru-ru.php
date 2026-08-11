@@ -3730,6 +3730,7 @@ return array (
       'quick_project_btn_aria' => 'Создать проект',
       'quick_project_no_perm' => 'Недостаточно прав для создания проекта',
       'taymer_tochnoe_vremya' => 'Точное время: ',
+      'interval_label' => 'Интервал: ',
       'vvedite_nazvanie_klienta' => 'Введите название клиента',
       'komanda' => 'Команда',
       'kommentariy_k_smene_statusa_dolzhen_byt_podrobnee' => 'Комментарий к смене статуса должен быть подробнее',
@@ -6612,6 +6613,15 @@ return array (
   'time_analytics' => 
   array (
     'title' => 'TropaTT — Учет времени',
+    'th_recorded' => 'Записано',
+    'th_unique' => 'Уникально',
+    'th_overlap' => 'Пересечения',
+    'unique_hint' => 'Без повторного учёта одновременных таймеров',
+    'detail_recorded_total' => 'Записано: ',
+    'detail_unique_total' => 'Уникально: ',
+    'detail_overlap_total' => 'Пересечения: ',
+    'detail_th_interval' => 'Интервал',
+    'segments_title' => 'Пересечения интервалов',
     'page_title' => 'Учет времени',
     'subtitle' => 'Статистика трудозатрат и заработка по пользователям.',
     'tab_time' => 'Затраченное время',

@@ -9,6 +9,7 @@ use Api\Model\User\UserManagementRepository;
 use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Database\Builder\QueryBuilder;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Support\TimeOverlapMath;
 use Api\System\Library\Support\Ulid;
 
 final class WorklogService
@@ -122,6 +123,8 @@ final class WorklogService
             'minutes_spent' => (int)$input['minutes_spent'],
             'note' => trim((string)($input['note'] ?? '')),
             'logged_at' => (string)($input['logged_at'] ?? $now),
+            'started_at' => $this->parseIntervalTime($input['started_at'] ?? null),
+            'ended_at' => $this->parseIntervalTime($input['ended_at'] ?? null),
             'created_at' => $now,
         ]);
 
@@ -169,6 +172,10 @@ final class WorklogService
         }
         if (array_key_exists('logged_at', $input)) {
             $set['logged_at'] = (string)$input['logged_at'];
+        }
+        if (array_key_exists('started_at', $input) || array_key_exists('ended_at', $input)) {
+            $set['started_at'] = $this->parseIntervalTime($input['started_at'] ?? null);
+            $set['ended_at'] = $this->parseIntervalTime($input['ended_at'] ?? null);
         }
         if (array_key_exists('task_public_id', $input)) {
             if ($input['task_public_id'] === null || $input['task_public_id'] === '') {
@@ -267,13 +274,123 @@ final class WorklogService
         return array_values(array_unique(array_filter(array_map('intval', $decoded), static fn(int $value): bool => $value > 0)));
     }
 
+    /**
+     * Parse an ISO-8601 / MySQL timestamp into a normalized UTC string
+     * ('Y-m-d H:i:s'). Returns null for empty values.
+     */
+    private function parseIntervalTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $ts = strtotime((string)$value);
+        if ($ts === false) {
+            return null;
+        }
+
+        return gmdate('Y-m-d H:i:s', $ts);
+    }
+
+    /** Convert a stored UTC 'Y-m-d H:i:s' value to Unix seconds. */
+    private function toEpoch(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $raw = trim((string)$value);
+        if ($raw === '') {
+            return null;
+        }
+        if (preg_match('/[zZ]$/', $raw) || preg_match('/[+-]\d{2}:?\d{2}$/', $raw)) {
+            $ts = strtotime($raw);
+        } else {
+            $ts = strtotime($raw . ' UTC');
+        }
+
+        return $ts === false ? null : $ts;
+    }
+
+    /**
+     * Aggregate raw worklog rows into per user+day recorded/unique/overlap
+     * minutes. Entries without a usable interval (legacy timers and manual
+     * entries) cannot be de-duplicated and simply count as both recorded and
+     * unique.
+     *
+     * @param array<int, array> $rows rows with user_public_id, day, minutes_spent, started_at, ended_at
+     * @return array<string, array{recorded: int, unique: int, overlap: int, has_intervals: bool}> keyed by "user_public_id|day"
+     */
+    private function aggregateIntervals(array $rows): array
+    {
+        $byKey = [];
+        foreach ($rows as $row) {
+            $key = (string)($row['user_public_id'] ?? '') . '|' . (string)($row['day'] ?? '');
+            $minutes = max(0, (int)($row['minutes_spent'] ?? 0));
+            $start = $this->toEpoch($row['started_at'] ?? null);
+            $end = $this->toEpoch($row['ended_at'] ?? null);
+            if (!isset($byKey[$key])) {
+                $byKey[$key] = ['recorded' => 0, 'unique' => 0, 'overlap' => 0, 'has_intervals' => false, 'intervals' => []];
+            }
+            $byKey[$key]['recorded'] += $minutes;
+            if ($start !== null && $end !== null && $end > $start) {
+                $byKey[$key]['has_intervals'] = true;
+                $byKey[$key]['intervals'][] = ['start' => $start, 'end' => $end];
+            } else {
+                $byKey[$key]['unique'] += $minutes;
+            }
+        }
+
+        $result = [];
+        foreach ($byKey as $key => $data) {
+            $analysis = $data['intervals'] !== []
+                ? TimeOverlapMath::analyze($data['intervals'])
+                : ['union_seconds' => 0, 'overlap_seconds' => 0];
+            $result[$key] = [
+                'recorded' => $data['recorded'],
+                'unique' => $data['unique'] + (int)round($analysis['union_seconds'] / 60),
+                'overlap' => (int)round($analysis['overlap_seconds'] / 60),
+                'has_intervals' => $data['has_intervals'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Merge the overlap-aware aggregates into SQL aggregate rows. Rows without
+     * any interval data keep unique == recorded (legacy behaviour preserved).
+     */
+    private function mergeIntervalAggregation(array $sqlRows, array $aggregates): array
+    {
+        foreach ($sqlRows as &$row) {
+            $key = (string)($row['user_public_id'] ?? '') . '|' . (string)($row['day'] ?? '');
+            $row['recorded_minutes'] = (int)($row['total_minutes'] ?? 0);
+            $over = $aggregates[$key] ?? null;
+            if ($over !== null) {
+                $row['unique_minutes'] = $over['unique'];
+                $row['overlap_minutes'] = $over['overlap'];
+                $row['has_intervals'] = $over['has_intervals'];
+            } else {
+                $row['unique_minutes'] = (int)($row['total_minutes'] ?? 0);
+                $row['overlap_minutes'] = 0;
+                $row['has_intervals'] = false;
+            }
+        }
+        unset($row);
+
+        return $sqlRows;
+    }
+
     public function summary(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $rows = $this->worklogs->summaryByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
-        return ['items' => $rows];
+        $aggregates = $this->aggregateIntervals(
+            $this->worklogs->rowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null)
+        );
+
+        return ['items' => $this->mergeIntervalAggregation($rows, $aggregates)];
     }
 
     public function earnings(array $filters, array $actor): array
@@ -282,6 +399,20 @@ final class WorklogService
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $rows = $this->worklogs->earningsByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
+        $aggregates = $this->aggregateIntervals(
+            $this->worklogs->rowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null)
+        );
+        $rows = $this->mergeIntervalAggregation($rows, $aggregates);
+
+        // Earnings are computed from the overlap-free unique time so parallel
+        // timers never pay twice for the same wall-clock interval.
+        foreach ($rows as &$row) {
+            $uniqueMinutes = (int)($row['unique_minutes'] ?? 0);
+            $row['cost_amount'] = round($uniqueMinutes / 60 * (float)($row['cost_rate'] ?? 0), 2);
+            $row['bill_amount'] = round($uniqueMinutes / 60 * (float)($row['bill_rate'] ?? 0), 2);
+        }
+        unset($row);
+
         return ['items' => $rows];
     }
 
@@ -362,6 +493,36 @@ final class WorklogService
             $dayTotals[$day] = ($dayTotals[$day] ?? 0) + $mins;
         }
         $userSetKeys = array_keys($userSet);
+
+        // Overlap-aware unique time: replace each cell with the union of the
+        // user's exact timer intervals for that day. Entries without an
+        // interval (legacy timers, manual entries) keep their recorded minutes
+        // — they cannot be de-duplicated.
+        $aggregates = $this->aggregateIntervals($this->worklogs->rowsForMatrixPeriod(
+            $from,
+            $to,
+            $userPublicId ?: null,
+            $projectPublicId ?: null,
+            $teamUserPublicIds,
+            $visibleUserIds,
+            $actorIsRoot
+        ));
+        foreach ($matrix as $day => $dayData) {
+            foreach ($dayData as $uid => $mins) {
+                $key = $uid . '|' . $day;
+                if (isset($aggregates[$key])) {
+                    $matrix[$day][$uid] = $aggregates[$key]['unique'];
+                }
+            }
+        }
+        $dayTotals = [];
+        foreach ($matrix as $day => $dayData) {
+            $total = 0;
+            foreach ($dayData as $mins) {
+                $total += $mins;
+            }
+            $dayTotals[$day] = $total;
+        }
 
         // Generate date range
         $dates = [];
@@ -538,14 +699,59 @@ final class WorklogService
         $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $visibleUserIds, $actorIsRoot);
 
-        $totalMinutes = 0;
-        foreach ($rows as $row) {
-            $totalMinutes += (int)$row['minutes_spent'];
+        $recorded = 0;
+        $legacy = 0;
+        $intervals = [];
+        $entryTitles = [];
+        foreach ($rows as $index => $row) {
+            $minutes = max(0, (int)$row['minutes_spent']);
+            $recorded += $minutes;
+            $start = $this->toEpoch($row['started_at'] ?? null);
+            $end = $this->toEpoch($row['ended_at'] ?? null);
+            if ($start !== null && $end !== null && $end > $start) {
+                $entryTitles[(string)$index] = (string)($row['task_title'] ?? '');
+                $intervals[] = ['key' => (string)$index, 'start' => $start, 'end' => $end];
+            } else {
+                $legacy += $minutes;
+            }
+        }
+
+        $analysis = $intervals !== []
+            ? TimeOverlapMath::analyze($intervals)
+            : ['union_seconds' => 0, 'overlap_seconds' => 0, 'segments' => []];
+        $unique = $legacy + (int)round($analysis['union_seconds'] / 60);
+        $overlap = (int)round($analysis['overlap_seconds'] / 60);
+
+        $segments = [];
+        foreach ($analysis['segments'] as $segment) {
+            // Only genuinely overlapping slices are reported (count > 1).
+            if (($segment['count'] ?? 0) <= 1) {
+                continue;
+            }
+            $tasks = [];
+            foreach ($segment['entries'] ?? [] as $entryIndex) {
+                $title = $entryTitles[$entryIndex] ?? '';
+                if ($title !== '' && !in_array($title, $tasks, true)) {
+                    $tasks[] = $title;
+                }
+            }
+            $segments[] = [
+                'from' => gmdate('Y-m-d H:i:s', (int)$segment['from']),
+                'to' => gmdate('Y-m-d H:i:s', (int)$segment['to']),
+                'seconds' => (int)$segment['seconds'],
+                'count' => (int)$segment['count'],
+                'tasks' => $tasks,
+            ];
         }
 
         return [
             'items' => $rows,
-            'total_minutes' => $totalMinutes,
+            'total_minutes' => $recorded,
+            'recorded_minutes' => $recorded,
+            'unique_minutes' => $unique,
+            'overlap_minutes' => $overlap,
+            'has_intervals' => $intervals !== [],
+            'segments' => $segments,
             'day' => $day,
             'user_public_id' => $userPublicId,
         ];

@@ -6210,6 +6210,20 @@ body.modal-open {
   gap: 0.3rem;
 }
 
+.crm-worklog-entry-interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--crm-text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.crm-worklog-entry-interval i {
+  font-size: 1em;
+  line-height: 1;
+}
+
 .crm-task-detail-page .crm-worklog-view-actions {
   display: inline-flex;
   align-items: center;
@@ -13371,6 +13385,20 @@ a.task-tag:hover {
     color: var(--crm-text-muted);
 }
 
+.crm-matrix-cell-empty {
+    color: var(--crm-text-muted);
+}
+
+.crm-matrix-cell-overlap {
+    color: var(--crm-warning);
+    font-weight: 600;
+    background: var(--color-warning-50);
+}
+
+.crm-matrix-table .crm-col-hover.crm-matrix-cell-overlap {
+    background-color: var(--color-warning-50) !important;
+}
+
 .crm-matrix-footer-row td {
     border-top: 2px solid var(--crm-border) !important;
     font-weight: 700;
@@ -13392,6 +13420,44 @@ a.task-tag:hover {
 .crm-detail-note-cell {
     max-width: 250px;
     white-space: normal;
+    word-break: break-word;
+}
+
+.crm-detail-stat {
+    white-space: nowrap;
+}
+
+.crm-detail-stat-overlap {
+    color: var(--crm-warning);
+}
+
+.crm-time-overlap-block {
+    border: 1px solid var(--crm-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: var(--crm-surface);
+}
+
+.crm-time-overlap-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.crm-time-overlap-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.crm-time-overlap-range {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.crm-time-overlap-tasks {
+    min-width: 0;
     word-break: break-word;
 }
 

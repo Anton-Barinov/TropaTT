@@ -29183,7 +29183,7 @@ window.CRM.pageApiBindings = (function () {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var tbody = document.getElementById('timeAnalyticsTimeBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
@@ -29192,7 +29192,7 @@ window.CRM.pageApiBindings = (function () {
       var env = await window.CRM.api.request('api/v1/worklogs/summary', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         return;
       }
       var rows = [];
@@ -29205,11 +29205,22 @@ window.CRM.pageApiBindings = (function () {
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
         var dayNames = [_t('page.day_sun', 'Вс'), _t('page.day_mon', 'Пн'), _t('page.day_tue', 'Вт'), _t('page.day_wed', 'Ср'), _t('page.day_thu', 'Чт'), _t('page.day_fri', 'Пт'), _t('page.day_sat', 'Сб')];
         formattedDay += ', ' + dayNames[dayOfWeek];
-        var mins = Number(row.total_minutes || 0);
-        var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
-        var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
-        var tr = '<tr' + rowClass + '><td class="crm-matrix-date-col">' + formattedDay + '</td><td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td><td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td></tr>';
+        var recorded = Number(row.recorded_minutes != null ? row.recorded_minutes : (row.total_minutes || 0));
+        var unique = Number(row.unique_minutes != null ? row.unique_minutes : recorded);
+        var overlap = Number(row.overlap_minutes || 0);
+        var hasOverlap = overlap > 0;
+        var timeStr = (recorded > 0) ? formatMinutesShort(recorded) : '0';
+        var cellCls = (recorded > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var clickAttr = (recorded > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        var uniqueStr = (unique > 0) ? formatMinutesShort(unique) : '0';
+        var uniqueCellCls = (unique > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var uniqueTitle = hasOverlap ? (' title="' + _t('time_analytics.unique_hint', 'Без повторного учёта одновременных таймеров') + '"') : '';
+        var overlapCls = hasOverlap ? 'crm-matrix-cell crm-matrix-cell-overlap' : 'crm-matrix-cell crm-matrix-cell-empty';
+        var tr = '<tr' + rowClass + '><td class="crm-matrix-date-col">' + formattedDay + '</td>'
+          + '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>'
+          + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
+          + '<td class="' + uniqueCellCls + '"' + clickAttr + uniqueTitle + '>' + uniqueStr + '</td>'
+          + '<td class="' + overlapCls + '">' + (hasOverlap ? formatMinutesShort(overlap) : '—') + '</td></tr>';
         rows.push(tr);
       });
       var htmlContent = rows.join('');
@@ -29220,7 +29231,7 @@ window.CRM.pageApiBindings = (function () {
       });
       bindTimeCells(tbody);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
     }
   }
 
@@ -29228,7 +29239,7 @@ window.CRM.pageApiBindings = (function () {
     var _t = window.CRM.i18n ? window.CRM.i18n.t.bind(window.CRM.i18n) : function (k, f) { return f; };
     var tbody = document.getElementById('timeAnalyticsEarningsBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + _t('page.loading', 'Загрузка...') + '</td></tr>';
     try {
       var q = { from: from, to: to };
       if (userPublicId) q.user_public_id = userPublicId;
@@ -29237,7 +29248,7 @@ window.CRM.pageApiBindings = (function () {
       var env = await window.CRM.api.request('api/v1/worklogs/earnings', { query: q });
       var items = (env && env.data && env.data.items) || [];
       if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">' + _t('page.no_data_period', 'Нет данных за выбранный период') + '</td></tr>';
         return;
       }
       var html = '';
@@ -29250,14 +29261,21 @@ window.CRM.pageApiBindings = (function () {
         var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
         var dayNames = [_t('page.day_sun', 'Вс'), _t('page.day_mon', 'Пн'), _t('page.day_tue', 'Вт'), _t('page.day_wed', 'Ср'), _t('page.day_thu', 'Чт'), _t('page.day_fri', 'Пт'), _t('page.day_sat', 'Сб')];
         formattedDay += ', ' + dayNames[dayOfWeek];
-        var mins = Number(row.total_minutes || 0);
-        var timeStr = (mins > 0) ? formatMinutesShort(mins) : '0';
-        var cellCls = (mins > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
-        var clickAttr = (mins > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        var recorded = Number(row.recorded_minutes != null ? row.recorded_minutes : (row.total_minutes || 0));
+        var unique = Number(row.unique_minutes != null ? row.unique_minutes : recorded);
+        var overlap = Number(row.overlap_minutes || 0);
+        var hasOverlap = overlap > 0;
+        var timeStr = (recorded > 0) ? formatMinutesShort(recorded) : '0';
+        var cellCls = (recorded > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var clickAttr = (recorded > 0) ? (' data-day="' + day + '" data-uid="' + safeText(row.user_public_id) + '"') : '';
+        var uniqueStr = (unique > 0) ? formatMinutesShort(unique) : '0';
+        var uniqueCellCls = (unique > 0) ? 'crm-matrix-cell crm-matrix-cell-has' : 'crm-matrix-cell';
+        var uniqueTitle = hasOverlap ? (' title="' + _t('time_analytics.unique_hint', 'Без повторного учёта одновременных таймеров') + '"') : '';
         html += '<tr' + rowClass + '>'
           + '<td class="crm-matrix-date-col">' + formattedDay + '</td>'
           + '<td data-uname="' + safeText(row.user_full_name || row.user_login) + '">' + safeText(row.user_full_name || row.user_login) + '</td>'
           + '<td class="' + cellCls + '"' + clickAttr + '>' + timeStr + '</td>'
+          + '<td class="' + uniqueCellCls + '"' + clickAttr + uniqueTitle + '>' + uniqueStr + '</td>'
           + '<td>' + (row.cost_rate != null ? Number(row.cost_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + (row.bill_rate != null ? Number(row.bill_rate).toFixed(2) : '—') + '</td>'
           + '<td>' + Number(row.cost_amount).toFixed(2) + '</td>'
@@ -29271,7 +29289,7 @@ window.CRM.pageApiBindings = (function () {
       });
       bindTimeCells(tbody);
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-danger">' + _t('page.load_error', 'Ошибка загрузки') + '</td></tr>';
     }
   }
 
@@ -29456,25 +29474,45 @@ window.CRM.pageApiBindings = (function () {
       var env = await window.CRM.api.request('api/v1/worklogs/detail', { query: q });
       var data = env && env.data ? env.data : {};
       var items = data.items || [];
-      var totalMinutes = data.total_minutes || 0;
+      var recordedMinutes = Number(data.recorded_minutes != null ? data.recorded_minutes : (data.total_minutes || 0));
+      var uniqueMinutes = Number(data.unique_minutes != null ? data.unique_minutes : recordedMinutes);
+      var overlapMinutes = Number(data.overlap_minutes || 0);
       var formattedDay = day.slice(8, 10) + '.' + day.slice(5, 7) + '.' + day.slice(0, 4);
 
       var html = '<p class="mb-2"><strong>' + safeText(userName) + '</strong> · <span class="text-muted">' + formattedDay + '</span></p>'
-        + '<p class="mb-3"><strong>' + _t('page.detail_total', 'Всего: ') + formatMinutesShort(totalMinutes) + '</strong></p>';
+        + '<p class="mb-3"><span class="crm-detail-stat"><strong>' + _t('time_analytics.detail_recorded_total', 'Записано: ') + '</strong>' + formatMinutesShort(recordedMinutes) + '</span>'
+        + ' <span class="text-muted">·</span> <span class="crm-detail-stat"><strong>' + _t('time_analytics.detail_unique_total', 'Уникально: ') + '</strong>' + formatMinutesShort(uniqueMinutes) + '</span>'
+        + (overlapMinutes > 0 ? ' <span class="text-muted">·</span> <span class="crm-detail-stat crm-detail-stat-overlap"><strong>' + _t('time_analytics.detail_overlap_total', 'Пересечения: ') + '</strong>' + formatMinutesShort(overlapMinutes) + '</span>' : '')
+        + '</p>';
 
       if (items.length === 0) {
         html += '<p class="text-muted">' + _t('page.detail_no_records', 'Нет записей.') + '</p>';
       } else {
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0 crm-table"><thead><tr><th>' + _t('page.detail_th_task', 'Задача') + '</th><th>' + _t('page.detail_th_time', 'Время') + '</th><th>' + _t('page.detail_th_comment', 'Комментарий') + '</th></tr></thead><tbody>';
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0 crm-table"><thead><tr><th>' + _t('page.detail_th_task', 'Задача') + '</th><th>' + _t('page.detail_th_time', 'Время') + '</th><th>' + _t('time_analytics.detail_th_interval', 'Интервал') + '</th><th>' + _t('page.detail_th_comment', 'Комментарий') + '</th></tr></thead><tbody>';
         items.forEach(function (item) {
           var taskTitle = item.task_title ? safeText(item.task_title) : _t('page.detail_task_unavailable', 'Задача недоступна');
           var taskLink = item.task_public_id
             ? '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.task_public_id) + '" target="_blank" rel="noopener noreferrer">' + safeText(taskTitle) + '</a>'
             : safeText(taskTitle);
           var note = item.note ? safeText(item.note) : '—';
-          html += '<tr><td>' + taskLink + '</td><td class="text-nowrap">' + formatMinutesShort(Number(item.minutes_spent || 0)) + '</td><td class="crm-detail-note-cell">' + note + '</td></tr>';
+          var intervalText = (item.started_at && item.ended_at)
+            ? formatDate(item.started_at) + ' — ' + formatDate(item.ended_at)
+            : '—';
+          html += '<tr><td>' + taskLink + '</td><td class="text-nowrap">' + formatMinutesShort(Number(item.minutes_spent || 0)) + '</td><td class="text-nowrap">' + intervalText + '</td><td class="crm-detail-note-cell">' + note + '</td></tr>';
         });
         html += '</tbody></table></div>';
+      }
+
+      if (data.segments && data.segments.length) {
+        html += '<div class="crm-time-overlap-block mt-3"><h6 class="crm-time-overlap-title">' + _t('time_analytics.segments_title', 'Пересечения интервалов') + '</h6><div class="vstack gap-2">';
+        data.segments.forEach(function (seg) {
+          var segMinutes = Math.max(1, Math.round(Number(seg.seconds || 0) / 60));
+          var tasks = (seg.tasks && seg.tasks.length) ? seg.tasks.map(function (t) { return safeText(t); }).join(', ') : '—';
+          html += '<div class="crm-time-overlap-row"><span class="text-nowrap crm-time-overlap-range">' + formatDate(seg.from) + ' — ' + formatDate(seg.to) + '</span>'
+            + '<span class="crm-chip">' + formatMinutesShort(segMinutes) + '</span>'
+            + '<span class="text-muted crm-time-overlap-tasks">' + tasks + '</span></div>';
+        });
+        html += '</div></div>';
       }
 
       body.innerHTML = html;

@@ -3729,6 +3729,7 @@ return array (
       'quick_project_btn_aria' => 'Create project',
       'quick_project_no_perm' => 'You do not have permission to create projects',
       'taymer_tochnoe_vremya' => 'Exact time: ',
+      'interval_label' => 'Interval: ',
       'vvedite_nazvanie_klienta' => 'Enter client name',
       'komanda' => 'Team',
       'kommentariy_k_smene_statusa_dolzhen_byt_podrobnee' => 'The comment for the status change must be more detailed',
@@ -6509,6 +6510,15 @@ return array (
   'time_analytics' => 
   array (
     'title' => 'TropaTT — Time tracking',
+    'th_recorded' => 'Recorded',
+    'th_unique' => 'Unique',
+    'th_overlap' => 'Overlaps',
+    'unique_hint' => 'Without double-counting parallel timers',
+    'detail_recorded_total' => 'Recorded: ',
+    'detail_unique_total' => 'Unique: ',
+    'detail_overlap_total' => 'Overlaps: ',
+    'detail_th_interval' => 'Interval',
+    'segments_title' => 'Overlapping intervals',
     'page_title' => 'Time tracking',
     'subtitle' => 'Statistics on labor costs and earnings by user.',
     'tab_time' => 'Time spent',

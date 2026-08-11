@@ -3685,6 +3685,7 @@ return array (
       'quick_project_btn_aria' => 'Create project',
       'quick_project_no_perm' => 'You do not have permission to create projects',
       'taymer_tochnoe_vremya' => '准确时间：',
+      'interval_label' => '时间段：',
       'vvedite_nazvanie_klienta' => '请输入客户名称',
       'komanda' => 'Team',
       'kommentariy_k_smene_statusa_dolzhen_byt_podrobnee' => 'The comment for the status change must be more detailed',
@@ -6471,6 +6472,15 @@ return array (
   'time_analytics' => 
   array (
     'title' => 'TropaTT — 工时统计',
+    'th_recorded' => '已记录',
+    'th_unique' => '去重后',
+    'th_overlap' => '重叠',
+    'unique_hint' => '不重复计算并行计时器',
+    'detail_recorded_total' => '已记录：',
+    'detail_unique_total' => '去重后：',
+    'detail_overlap_total' => '重叠：',
+    'detail_th_interval' => '时间段',
+    'segments_title' => '重叠的时间段',
     'page_title' => '工时统计',
     'subtitle' => '用户的工作量和收入统计。',
     'tab_time' => '工时',

@@ -25,6 +25,8 @@ final class WorklogRepository
                 'w.minutes_spent',
                 'w.note',
                 'w.logged_at',
+                'w.started_at',
+                'w.ended_at',
                 'w.created_at',
                 'u.public_id AS user_public_id',
                 'u.login AS user_login',
@@ -88,6 +90,8 @@ final class WorklogRepository
                 'w.minutes_spent',
                 'w.note',
                 'w.logged_at',
+                'w.started_at',
+                'w.ended_at',
                 'w.created_at',
                 'w.user_id',
                 'u.public_id AS user_public_id',
@@ -141,24 +145,11 @@ final class WorklogRepository
     }
 
     /**
-     * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, day: string}>
+     * Apply the common worklog scope (visibility, date range, user/project/
+     * team filters) to a query builder that already joins `users u`.
      */
-    public function summaryByDay(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
+    private function applyCommonFilters(QueryBuilder $qb, array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId): void
     {
-        $qb = (new QueryBuilder($this->pdo))
-            ->from('work_logs w')
-            ->join('users u', 'u.id', '=', 'w.user_id')
-            ->select([
-                'u.public_id AS user_public_id',
-                'u.login AS user_login',
-                'u.full_name AS user_full_name',
-                'DATE(w.logged_at) AS day',
-                'SUM(w.minutes_spent) AS total_minutes',
-            ])
-            ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'DATE(w.logged_at)'])
-            ->orderBy('day', 'DESC')
-            ->orderBy('u.full_name', 'ASC');
-
         if (!$actorIsRoot && $visibleUserIds !== []) {
             $qb->whereIn('w.user_id', $visibleUserIds);
         }
@@ -212,6 +203,96 @@ final class WorklogRepository
                 }
             }
         }
+    }
+
+    /**
+     * Fetch the raw worklog rows of a period (with their exact timer intervals
+     * when present) so the service can compute overlap-free unique time.
+     *
+     * @return array<int, array{user_public_id: string, day: string, minutes_spent: int, started_at: ?string, ended_at: ?string}>
+     */
+    public function rowsForPeriod(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'DATE(w.logged_at) AS day',
+                'w.minutes_spent',
+                'w.started_at',
+                'w.ended_at',
+            ]);
+        $this->applyCommonFilters($qb, $filters, $visibleUserIds, $actorIsRoot, $teamPublicId);
+
+        return $qb->get();
+    }
+
+    /**
+     * Same as rowsForPeriod() but with the matrix filter shape (plain date
+     * range, optional user/project public ids and team member id list).
+     *
+     * @param string[]|null $teamUserPublicIds
+     * @return array<int, array{user_public_id: string, day: string, minutes_spent: int, started_at: ?string, ended_at: ?string}>
+     */
+    public function rowsForMatrixPeriod(string $dateFrom, string $dateTo, ?string $userPublicId, ?string $projectPublicId, ?array $teamUserPublicIds, array $visibleUserIds, bool $actorIsRoot): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->join('tasks t', 't.id', '=', 'w.task_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'DATE(w.logged_at) AS day',
+                'w.minutes_spent',
+                'w.started_at',
+                'w.ended_at',
+            ])
+            ->where('w.logged_at', '>=', $dateFrom)
+            ->where('w.logged_at', '<', date('Y-m-d', strtotime($dateTo . ' +1 day')));
+
+        if (!$actorIsRoot && $visibleUserIds !== []) {
+            $qb->whereIn('w.user_id', $visibleUserIds);
+        }
+        if (!empty($userPublicId)) {
+            $qb->where('u.public_id', '=', $userPublicId);
+        }
+        if (!empty($projectPublicId)) {
+            $project = (new QueryBuilder($this->pdo))
+                ->from('projects')
+                ->select(['id'])
+                ->where('public_id', '=', $projectPublicId)
+                ->first();
+            if ($project) {
+                $qb->where('t.project_id', '=', (int)$project['id']);
+            }
+        }
+        if (!empty($teamUserPublicIds)) {
+            $qb->whereIn('u.public_id', $teamUserPublicIds);
+        }
+
+        return $qb->get();
+    }
+
+    /**
+     * @return array<int, array{user_public_id: string, user_login: string, user_full_name: string, total_minutes: int, day: string}>
+     */
+    public function summaryByDay(array $filters, array $visibleUserIds, bool $actorIsRoot, ?string $teamPublicId = null): array
+    {
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs w')
+            ->join('users u', 'u.id', '=', 'w.user_id')
+            ->select([
+                'u.public_id AS user_public_id',
+                'u.login AS user_login',
+                'u.full_name AS user_full_name',
+                'DATE(w.logged_at) AS day',
+                'SUM(w.minutes_spent) AS total_minutes',
+            ]);
+        $this->applyCommonFilters($qb, $filters, $visibleUserIds, $actorIsRoot, $teamPublicId);
+        $qb->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'DATE(w.logged_at)'])
+            ->orderBy('day', 'DESC')
+            ->orderBy('u.full_name', 'ASC');
 
         return $qb->get();
     }
@@ -234,64 +315,11 @@ final class WorklogRepository
                 'u.bill_rate',
                 'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.cost_rate, 0), 2) AS cost_amount',
                 'ROUND(SUM(w.minutes_spent) / 60 * COALESCE(u.bill_rate, 0), 2) AS bill_amount',
-            ])
-            ->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.cost_rate', 'u.bill_rate', 'DATE(w.logged_at)'])
+            ]);
+        $this->applyCommonFilters($qb, $filters, $visibleUserIds, $actorIsRoot, $teamPublicId);
+        $qb->groupBy(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.cost_rate', 'u.bill_rate', 'DATE(w.logged_at)'])
             ->orderBy('day', 'DESC')
             ->orderBy('u.full_name', 'ASC');
-
-        if (!$actorIsRoot && $visibleUserIds !== []) {
-            $qb->whereIn('w.user_id', $visibleUserIds);
-        }
-
-        if (!empty($filters['from'])) {
-            $qb->where('w.logged_at', '>=', (string)$filters['from']);
-        }
-        if (!empty($filters['to'])) {
-            $qb->where('w.logged_at', '<=', (string)$filters['to']);
-        }
-        if (!empty($filters['user_public_id'])) {
-            $qb->where('u.public_id', '=', (string)$filters['user_public_id']);
-        }
-        if (!empty($filters['project_public_id'])) {
-            $qb->join('tasks t', 't.id', '=', 'w.task_id');
-            $project = (new QueryBuilder($this->pdo))
-                ->from('projects')
-                ->select(['id'])
-                ->where('public_id', '=', (string)$filters['project_public_id'])
-                ->first();
-            if ($project) {
-                $qb->where('t.project_id', '=', (int)$project['id']);
-            }
-        }
-        if (!empty($teamPublicId)) {
-            $team = (new QueryBuilder($this->pdo))
-                ->from('teams')
-                ->select(['member_user_ids'])
-                ->where('public_id', '=', $teamPublicId)
-                ->first();
-            if ($team && isset($team['member_user_ids'])) {
-                $raw = $team['member_user_ids'];
-                $memberIds = [];
-                if (is_string($raw) && $raw !== '') {
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        foreach ($decoded as $v) {
-                            $iv = (int)$v;
-                            if ($iv > 0) $memberIds[] = $iv;
-                        }
-                    }
-                } elseif (is_array($raw)) {
-                    foreach ($raw as $v) {
-                        $iv = (int)$v;
-                        if ($iv > 0) $memberIds[] = $iv;
-                    }
-                }
-                if ($memberIds !== []) {
-                    $memberIds = array_values(array_unique($memberIds));
-                    $qb->whereIn('u.id', $memberIds);
-                }
-            }
-        }
 
         return $qb->get();
     }
@@ -392,6 +420,8 @@ final class WorklogRepository
                 'w.minutes_spent',
                 'w.note',
                 'w.logged_at',
+                'w.started_at',
+                'w.ended_at',
             ])
             ->where('DATE(w.logged_at)', '=', $day)
             ->where('u.public_id', '=', $userPublicId)

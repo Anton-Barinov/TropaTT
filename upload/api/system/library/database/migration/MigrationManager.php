@@ -61,6 +61,7 @@ final class MigrationManager
             new TaskDirectClientMigration(),
             new TagDescriptionMigration(),
             new TaskChatSourceMigration(),
+            new WorklogIntervalMigration(),
         ];
     }
 

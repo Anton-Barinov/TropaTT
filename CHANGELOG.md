@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Added
+
+- **Parallel time trackers no longer double-count the same wall-clock time.** The task timer now saves the exact `[started_at, ended_at]` interval to `work_logs` when a timer is stopped (new `WorklogIntervalMigration`; legacy entries stay untouched). The time analytics page (`route=time-analytics`) shows both numbers for every user/day: **Записано** (the sum of all worklogs) and **Уникально** (the overlap-free union of exact intervals, plus legacy minutes that cannot be de-duplicated), with a **Пересечения** column and tooltips. Earnings are computed from the unique time, so parallel timers never pay twice for the same interval. The per-day detail modal lists the start/end interval of every entry and a concrete breakdown of every overlapping slice (which tasks covered each slice and for how long). The worklog summary, earnings and matrix API responses gain `recorded_minutes` / `unique_minutes` / `overlap_minutes` / `has_intervals` (the matrix and `total_minutes` keep backward compatibility). The overlap math lives in a pure, unit-tested class (`TimeOverlapMath`, invariant: overlap == recorded − union); validation requires `started_at`/`ended_at` as a pair with end strictly after start (all 7 locales).
+
 ### Fixed
 
 - **Subdirectory installs now talk to their own API.** The web header computes
