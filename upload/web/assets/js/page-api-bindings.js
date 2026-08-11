@@ -758,7 +758,7 @@ window.CRM.pageApiBindings = (function () {
       var label = String(entries[i][0] || '').trim();
       var value = String(entries[i][1] || '').trim();
       if (!value) continue;
-      html += '<div class="crm-people-line" title="' + safeText(label) + ': ' + safeText(value) + '">'
+      html += '<div class="crm-people-line" data-people-title="' + safeText(label) + ': ' + safeText(value) + '">'
         + '<span class="crm-people-role">' + safeText(label) + ':</span> ' + safeText(value)
         + '</div>';
     }
@@ -3554,6 +3554,31 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    function bindTasksPeopleTooltips() {
+      // Hover tooltips on the «Клиент / Менеджер / Исполнитель» lines: the
+      // title attribute is added ONLY when the line is actually truncated
+      // (text-overflow: ellipsis), so fully visible lines stay clean and
+      // clipped ones reveal the full «Клиент: …» text on hover. The full text
+      // lives in data-people-title; a delegated listener covers rows that are
+      // re-rendered on filter/sort/pagination.
+      var container = document.querySelector('[data-tasks-list-view]');
+      if (!container || container.dataset.peopleTooltipsBound === '1') return;
+      container.dataset.peopleTooltipsBound = '1';
+      container.addEventListener('mouseover', function (e) {
+        var line = e.target && e.target.closest ? e.target.closest('.crm-people-line') : null;
+        if (!line) return;
+        if (line.scrollWidth > line.clientWidth && !line.getAttribute('title')) {
+          line.setAttribute('title', line.getAttribute('data-people-title') || line.textContent.trim());
+        }
+      });
+      container.addEventListener('mouseout', function (e) {
+        var line = e.target && e.target.closest ? e.target.closest('.crm-people-line') : null;
+        if (!line) return;
+        var to = e.relatedTarget;
+        if (!to || !line.contains(to)) line.removeAttribute('title');
+      });
+    }
+
     function bindTasksViewToggle() {
       document.querySelectorAll('[data-tasks-view]').forEach(function (btn) {
         var view = normalizeTasksView(btn.getAttribute('data-tasks-view'));
@@ -3643,6 +3668,7 @@ window.CRM.pageApiBindings = (function () {
 
     bindTasksFilters();
     bindTasksSorting();
+    bindTasksPeopleTooltips();
     bindTasksViewToggle();
     bindAiPriorityActions();
 

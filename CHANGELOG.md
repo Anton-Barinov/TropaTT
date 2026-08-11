@@ -10,6 +10,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 - Tasks list (list view) table: the «Клиент / Менеджер / Исполнитель» column is widened (110px → 170px → 230px, cap 240px) so long client names like «ТОО АлматыСтройМонтаж» and assignee names are no longer ellipsized; the key column is narrowed to 72px (still fits the badge and the «Ключ ▲» sort header) and the task column yields the space (36% → 31% → 25%), so the table still fits without horizontal scrolling.
 
+### Added
+
+- Tasks list (list view) table: hover tooltips on the «Клиент / Менеджер / Исполнитель» lines — when a line is clipped by `text-overflow: ellipsis` (narrow window), hovering it shows the full «Клиент: …» text in a native tooltip. The full text is kept in `data-people-title`, and a delegated listener sets the `title` attribute only for actually truncated lines (fully visible lines stay clean). Works after re-renders (filter/sort/pagination) and on any viewport width.
+
 ### Fixed
 
 - Tasks list (list view) table: the «Ключ» column is now truly content-sized — the generic table cell padding (14px 12px) was added on top of the fixed 96px width in fixed table layout, so the column rendered ~105px against ~58px key badges. The column is narrowed to 88px with 4px side padding and `white-space: nowrap`, so it fits the badge with a few px of air instead of a 47px dead zone.
