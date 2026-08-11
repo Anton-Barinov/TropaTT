@@ -1,0 +1,30 @@
+name: Web Frontend Tests CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web-tests:
+    name: Web frontend unit tests (api-retry, tasks-render, tables-render)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run web frontend unit tests
+        working-directory: upload/web
+        run: |
+          npm run test:api-retry
+          npm run test:tasks-render
+          npm run test:tables-render

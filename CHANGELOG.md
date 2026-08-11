@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Added
+
+- GitHub Actions workflow `.github/workflows/web-tests-ci.yml`: runs the dependency-free web frontend unit tests (`npm run test:api-retry`, `test:tasks-render`, `test:tables-render`) on every push and pull request. The npm scripts now use an `if [ -f ... ]` guard: when the local-only test files are absent (they stay git-ignored per project convention) the job exits green with a SKIP message, and if the tests are ever published the job becomes a real gate that fails on regressions. Also fixes the previous `|| echo` fallback, which would have masked real test failures with a green exit code.
+
 ### Removed
 
 - Dead `tasks.views_*` localization keys from the web language files (12 keys × 7 locales: `views_access_label`, `views_access_private`, `views_access_public`, `views_aria`, `views_btn`, `views_desc_label`, `views_desc_placeholder`, `views_modal_title`, `views_name_label`, `views_name_placeholder`, `views_save_btn`, `views_save_current`). Leftovers of the removed saved-views UI on the tasks page; nothing in the web code references them anymore.

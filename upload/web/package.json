@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "CRM web frontend assets",
   "scripts": {
-    "test:api-retry": "node --test tests/api_retry_unit.test.js || echo \"test file not present (upload/web/tests/ is local-only, git-ignored)\"",
-    "test:tasks-render": "node --test tests/tasks_list_render.test.js || echo \"test file not present (upload/web/tests/ is local-only, git-ignored)\"",
-    "test:tables-render": "node --test tests/tables_compact_render.test.js || echo \"test file not present (upload/web/tests/ is local-only, git-ignored)\"",
+    "test:api-retry": "if [ -f tests/api_retry_unit.test.js ]; then node --test tests/api_retry_unit.test.js; else echo \"SKIP: test file not present (upload/web/tests/ is local-only, git-ignored)\"; fi",
+    "test:tasks-render": "if [ -f tests/tasks_list_render.test.js ]; then node --test tests/tasks_list_render.test.js; else echo \"SKIP: test file not present (upload/web/tests/ is local-only, git-ignored)\"; fi",
+    "test:tables-render": "if [ -f tests/tables_compact_render.test.js ]; then node --test tests/tables_compact_render.test.js; else echo \"SKIP: test file not present (upload/web/tests/ is local-only, git-ignored)\"; fi",
     "lint": "echo 'Linting: check for console.log with sensitive data' && grep -rn 'console\\.log.*\\(token\\|secret\\|password\\|plain_key\\)' assets/js/ || echo 'No sensitive data in console.log'",
     "check-size": "echo 'JS file sizes:' && wc -l assets/js/*.js | sort -rn | head -10",
     "check-domains": "echo 'Domain modules:' && ls -la assets/js/domains/"
