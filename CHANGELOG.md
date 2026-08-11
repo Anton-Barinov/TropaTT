@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Added
+
+- Local regression test for the compact tasks-list rendering (`upload/web/tests/tasks_list_render.test.js`, run via `npm run test:tasks-render`): asserts 8 table columns with the merged people/state headers, the de-emphasized parent link (weight 400 / 0.75rem), the absence of the AI-priority idle hint, and no leftover saved-views dead code. Test file stays local-only (git-ignored) per project convention.
+
 ### Fixed
 - High-contrast theme renamed to describe the theme itself instead of its audience (was "Контрастная (для слабовидящих)" / "High contrast (low vision)"): the option is now simply "Контрастная" / "High contrast" (and the equivalents in the other six locales). The label describes the color scheme, which is what the option actually is, and no longer refers to people.
 - Profile theme select now shows a short explanation under the selector while the high-contrast scheme is active ("Высокий контраст для комфортного чтения" / "High contrast for comfortable reading"), so users see what the scheme gives them.
