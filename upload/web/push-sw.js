@@ -69,9 +69,55 @@ function pageRetryIsServerError(status) {
   return code >= 500 && code <= 599;
 }
 
+function pageRetryReadCookie(request, name) {
+  var header = request && request.headers ? String(request.headers.get('Cookie') || '') : '';
+  var parts = header.split(';');
+  for (var i = 0; i < parts.length; i += 1) {
+    var eq = parts[i].indexOf('=');
+    if (eq <= 0) continue;
+    if (parts[i].slice(0, eq).trim().toLowerCase() === name) {
+      try {
+        return decodeURIComponent(parts[i].slice(eq + 1).trim());
+      } catch (e) {
+        return parts[i].slice(eq + 1).trim();
+      }
+    }
+  }
+  return '';
+}
+
 function pageRetryPickLanguage(request) {
+  // The CRM stores the user's explicitly chosen locale in the crm_locale
+  // cookie (set by api.js setPreferredLocale / the login language switch).
+  // The intercepted navigation request carries that cookie, so the user's
+  // choice wins over the browser's Accept-Language: a Russian CRM user whose
+  // browser is English-first must still see the retry page in Russian.
+  var cookie = pageRetryReadCookie(request, 'crm_locale').toLowerCase().replace(/_/g, '-');
+  if (cookie.indexOf('ru') === 0) return 'ru';
+  if (cookie.indexOf('en') === 0) return 'en';
+
+  // Fallback: the browser's Accept-Language, honoured by q-priority so that
+  // "en-US,en;q=0.9,ru;q=0.8" resolves to 'en' while "ru,en;q=0.8" → 'ru'.
   var header = request && request.headers ? String(request.headers.get('Accept-Language') || '') : '';
-  return header.toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en';
+  var parts = header.split(',');
+  var best = '';
+  var bestQ = -1;
+  for (var i = 0; i < parts.length; i += 1) {
+    var tokens = parts[i].split(';');
+    var tag = tokens[0].trim().toLowerCase();
+    if (!tag) continue;
+    var q = 1;
+    if (tokens[1]) {
+      var m = /q\s*=\s*([0-9.]+)/.exec(tokens[1]);
+      q = m ? parseFloat(m[1]) : NaN;
+      if (isNaN(q)) q = 0;
+    }
+    if (q > bestQ) {
+      bestQ = q;
+      best = tag;
+    }
+  }
+  return best.indexOf('ru') === 0 ? 'ru' : 'en';
 }
 
 function pageRetryFallbackHtml(request) {

@@ -6,6 +6,9 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Fixed
+- Service-worker retry page (shown after automatic page re-requests fail on a network-level error) now follows the CRM locale the user chose (the `crm_locale` cookie) instead of only the browser's Accept-Language, so Russian users with an English-first browser see the retry page in Russian. Accept-Language is now also parsed by q-priority as a fallback.
+
 ### Added
 - Admin → Logs: hourly histogram of frontend API errors (`frontend_api_error`) with a transport-vs-HTTP breakdown, so transport errors that survived automatic retries can be monitored in the UI without SQL. Ranges: 24h / 48h / 7 days. Backed by a new root-only endpoint `GET /api/v1/logs/frontend-errors/chart`.
 - Idempotency for the remaining create endpoints: `POST /api/v1/contacts`, `/api/v1/clients`, `/api/v1/counterparties`, `/api/v1/companies` and `/api/v1/tasks/{public_id}/subtasks` are now wrapped in `withIdempotency`, and the web UI sends an `X-Idempotency-Key` on every such create (submit buttons are disabled while the request is in flight to prevent double-click duplicates). A repeated request with the same key returns the stored response instead of creating a duplicate row.
