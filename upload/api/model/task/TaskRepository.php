@@ -17,12 +17,58 @@ final class TaskRepository
         $this->cursorCodec = new CursorCodec();
     }
 
+    // Keep in sync with TASK_SORT_KEYS in page-api-bindings.js (web side).
+    private const SORT_ALLOWLIST = ['title', 'task_key', 'project_title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'];
+    private const SORT_MAX_LEVELS = 4;
+
+    /**
+     * Parse a multi-level sort spec into an ordered list of [key, direction]
+     * pairs. Accepts "key:DIR,key2:DIR2" chains (up to 4 levels) and the legacy
+     * single "key" form combined with $fallbackOrder. Unknown keys are skipped.
+     *
+     * @return array<int, array{0: string, 1: string}>
+     */
+    private function parseSortPairs(string $raw, string $fallbackOrder): array
+    {
+        $pairs = [];
+        $raw = trim($raw);
+        if ($raw === '') {
+            return $pairs;
+        }
+        if (str_contains($raw, ':') || str_contains($raw, ',')) {
+            foreach (explode(',', $raw) as $part) {
+                $part = trim($part);
+                if ($part === '') {
+                    continue;
+                }
+                [$key, $dir] = array_pad(explode(':', $part, 2), 2, 'ASC');
+                $key = trim($key);
+                $dir = strtoupper(trim($dir)) === 'DESC' ? 'DESC' : 'ASC';
+                if ($key !== '' && in_array($key, self::SORT_ALLOWLIST, true)) {
+                    $pairs[] = [$key, $dir];
+                    if (count($pairs) >= self::SORT_MAX_LEVELS) {
+                        break;
+                    }
+                }
+            }
+            return $pairs;
+        }
+        // Legacy single-key form: "sort=title" + "order=ASC|DESC".
+        if (in_array($raw, self::SORT_ALLOWLIST, true)) {
+            return [[$raw, $fallbackOrder]];
+        }
+        return $pairs;
+    }
+
     public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
     {
-        $sort = in_array(($filters['sort'] ?? ''), ['title', 'project_title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'], true) ? (string)$filters['sort'] : 'updated_at';
-        // project_title lives on the joined projects row, not on tasks.
-        $sortColumn = $sort === 'project_title' ? 'p.title' : 't.' . $sort;
+        // Multi-level sort: filters['sort'] accepts a comma-separated chain of
+        // "key:DIR" pairs (e.g. "title:ASC,priority_code:DESC"), up to 4 levels.
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+        $sortPairs = $this->parseSortPairs((string)($filters['sort'] ?? ''), $order);
+        if ($sortPairs === []) {
+            $sortPairs = [['updated_at', 'DESC']];
+        }
         $paginationMode = (($filters['pagination_mode'] ?? '') === 'cursor' || !empty($filters['cursor'])) ? 'cursor' : 'offset';
         $requestedLimit = (int)($filters['limit'] ?? 20);
         // 0 = unlimited (offset mode only; cursor mode always keeps a positive page size).
@@ -107,9 +153,17 @@ final class TaskRepository
                   INNER JOIN project_modules pm ON pm.id = pmt.module_id
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
                 ) AS modules",
-            ])
-            ->orderBy($sortColumn, $order)
-            ->orderBy('t.public_id', $order);
+            ]);
+
+        // Each sort level becomes its own ORDER BY term so the chain reads exactly
+        // as the user built it (e.g. title ASC, priority DESC). project_title
+        // lives on the joined projects row, not on tasks.
+        foreach ($sortPairs as [$sortKey, $sortDir]) {
+            $sortColumn = $sortKey === 'project_title' ? 'p.title' : 't.' . $sortKey;
+            $builder->orderBy($sortColumn, $sortDir);
+        }
+        // Deterministic tiebreaker keeps pagination stable across pages.
+        $builder->orderBy('t.public_id', $sortPairs[0][1] ?? 'DESC');
 
         if ($paginationMode === 'cursor') {
             $items = $builder

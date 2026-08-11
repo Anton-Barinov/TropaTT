@@ -3076,8 +3076,35 @@ window.CRM.pageApiBindings = (function () {
     var cycleFilter = String(query.get('cycle_public_id') || '').trim();
     var tagFilter = String(query.get('tag') || '').trim();
     var dueFilter = String(query.get('due') || '').trim();
-    var sortFilter = String(query.get('sort') || '');
-    var orderFilter = String(query.get('order') || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    // Многоуровневая сортировка: уровни хранятся как массив {key, dir} и в URL
+    // кодируются одним параметром sort=key1:ASC,key2:DESC (до 4 уровней).
+    // Старый формат sort=key&order=ASC тоже читается (совместимость со ссылками).
+    // Keep in sync with TaskRepository::SORT_ALLOWLIST (PHP side).
+    var TASK_SORT_KEYS = ['title', 'task_key', 'project_title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'];
+    var TASK_SORT_MAX = 4;
+    function parseTaskSort(rawSort, rawOrder) {
+      var levels = [];
+      var raw = String(rawSort || '').trim();
+      if (raw === '') return levels;
+      if (raw.indexOf(':') >= 0 || raw.indexOf(',') >= 0) {
+        raw.split(',').forEach(function (pair) {
+          var parts = String(pair).split(':');
+          var key = String(parts[0] || '').trim();
+          var dir = String(parts[1] || 'ASC').trim().toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+          if (key !== '' && TASK_SORT_KEYS.indexOf(key) >= 0 && levels.length < TASK_SORT_MAX) {
+            levels.push({ key: key, dir: dir });
+          }
+        });
+      } else if (TASK_SORT_KEYS.indexOf(raw) >= 0) {
+        var legacyDir = String(rawOrder || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        levels.push({ key: raw, dir: legacyDir });
+      }
+      return levels;
+    }
+    function encodeTaskSort(levels) {
+      return levels.map(function (l) { return l.key + ':' + l.dir; }).join(',');
+    }
+    var sortLevels = parseTaskSort(query.get('sort'), query.get('order'));
     var pageFilter = Math.max(1, Number.parseInt(String(query.get('page') || '1'), 10) || 1);
     var currentView = normalizeTasksView(readCookie(VIEW_COOKIE));
     if (window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches && currentView === 'list') {
@@ -3120,9 +3147,8 @@ window.CRM.pageApiBindings = (function () {
       if (overdueBounds && overdueBounds.exclude) apiQuery.exclude_statuses = overdueBounds.exclude;
     }
     if (kpi === 'sla_week') apiQuery.search = 'sla';
-    if (['title', 'due_at', 'status_code', 'priority_code', 'updated_at', 'created_at'].indexOf(sortFilter) >= 0) {
-      apiQuery.sort = sortFilter;
-      apiQuery.order = orderFilter;
+    if (sortLevels.length > 0) {
+      apiQuery.sort = encodeTaskSort(sortLevels);
     }
 
     var tasksProjectSelect = document.getElementById('tasksProjectFilter');
@@ -3171,8 +3197,7 @@ window.CRM.pageApiBindings = (function () {
       search: searchFilter,
       status: statusFilter,
       priority: priorityFilter,
-      sort: sortFilter,
-      order: orderFilter
+      sort: encodeTaskSort(sortLevels)
     };
     var selectionKey = tasksSelectionKey(items, currentView, filterSnapshot);
 
@@ -3412,8 +3437,7 @@ window.CRM.pageApiBindings = (function () {
           cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
           tag: tagSelect ? tagSelect.value : '',
           due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
-          sort: sortFilter,
-          order: orderFilter
+          sort: encodeTaskSort(sortLevels)
         };
       }
 
@@ -3475,7 +3499,7 @@ window.CRM.pageApiBindings = (function () {
           document.querySelectorAll('.crm-filters-card .crm-searchable-clear').forEach(function (cb) { cb.style.display = 'none'; });
           // Clear due-date buttons
           dueBtns.forEach(function (b) { b.classList.remove('is-active'); });
-          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', sort: '', order: '' });
+          applyTaskRouteQuery({ search: '', status: '', priority: '', assignee: '', manager: '', project: '', client: '', cycle: '', tag: '', due: '', sort: '' });
         });
         resetBtn.dataset.bound = '1';
       }
@@ -3492,27 +3516,38 @@ window.CRM.pageApiBindings = (function () {
       document.querySelectorAll('[data-tasks-sort]').forEach(function (btn) {
         var sortKey = String(btn.getAttribute('data-tasks-sort') || '').trim();
         if (!sortKey) return;
-        var isActive = sortKey === sortFilter;
-        var arrow = isActive ? (orderFilter === 'ASC' ? ' ▲' : ' ▼') : '';
-        btn.textContent = btn.textContent.replace(/\s[▲▼]$/, '') + arrow;
+        var levelIndex = -1;
+        sortLevels.forEach(function (l, i) { if (l.key === sortKey) levelIndex = i; });
+        var arrow = levelIndex >= 0 ? (sortLevels[levelIndex].dir === 'ASC' ? ' ▲' : ' ▼') : '';
+        var rank = levelIndex >= 0 ? String(levelIndex + 1) : '';
+        btn.textContent = btn.textContent.replace(/\s[▲▼]\d*$/, '') + arrow + rank;
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', function () {
-          // Циклическая сортировка: ASC -> DESC -> по умолчанию (сброс)
-          var nextSort = sortKey;
-          var nextOrder = 'ASC';
-          if (sortKey === sortFilter && orderFilter === 'ASC') {
-            nextSort = sortKey;
-            nextOrder = 'DESC';
-          } else if (sortKey === sortFilter) {
-            nextSort = '';
-            nextOrder = '';
+          // Многоуровневая сортировка: клик добавляет уровень (ASC), повторный
+          // клик разворачивает направление (DESC), третий клик убирает уровень.
+          // Клик по другому заголовку добавляет следующий уровень (двойная/тройная).
+          var next = sortLevels.slice();
+          var i = -1;
+          next.forEach(function (l, j) { if (l.key === sortKey) i = j; });
+          if (i === -1) {
+            if (next.length < TASK_SORT_MAX) next.push({ key: sortKey, dir: 'ASC' });
+          } else if (next[i].dir === 'ASC') {
+            next[i].dir = 'DESC';
+          } else {
+            next.splice(i, 1);
           }
           applyTaskRouteQuery({
             search: searchFilter,
             status: statusFilter,
             priority: priorityFilter,
-            sort: nextSort,
-            order: nextOrder
+            assignee: assigneeFilter,
+            manager: managerFilter,
+            project: projectFilter,
+            client: clientFilter,
+            cycle: cycleFilter,
+            tag: tagFilter,
+            due: dueFilter,
+            sort: encodeTaskSort(next)
           });
         });
         btn.dataset.bound = '1';
@@ -3699,8 +3734,7 @@ window.CRM.pageApiBindings = (function () {
               cycle: cycleFilter,
               tag: tagFilter,
               due: dueFilter,
-              sort: sortFilter,
-              order: orderFilter,
+              sort: encodeTaskSort(sortLevels),
               page: currentPage - 1,
               keepViewPublicId: true
             });
@@ -3721,8 +3755,7 @@ window.CRM.pageApiBindings = (function () {
               cycle: cycleFilter,
               tag: tagFilter,
               due: dueFilter,
-              sort: sortFilter,
-              order: orderFilter,
+              sort: encodeTaskSort(sortLevels),
               page: currentPage + 1,
               keepViewPublicId: true
             });

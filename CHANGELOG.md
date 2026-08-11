@@ -8,6 +8,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- Tasks list (list view) table: **multi-level sorting**. Every sortable header button (Задача, Проект, Ключ, Срок, Статус, Приоритет) is independently clickable; a click adds the parameter as the next sort level, a second click on the same header reverses its direction, a third click removes the level, and clicking another header appends another level (double/triple sort, up to 4). Active headers show the direction arrow plus the level rank (`▲1`, `▼2`). The sort chain is encoded in the URL as a single `sort=key1:ASC,key2:DESC` parameter; the legacy `sort=key&order=ASC` form is still accepted by both the page and the API. The tasks list API now builds the `ORDER BY` from the whole chain (project sorting maps to the joined projects title).
+
+- Tasks list (list view) table: the "Ключ" (key) header is now a sort button (`sort=task_key`).
+
 - Tasks list (list view) header: sortable column buttons (`.crm-th-sort`) no longer use uppercase/extra-bold small type — they now inherit the plain header style, so all thead cells render with the same font, size and weight. Hover accent and the active-sort arrow are preserved.
 
 - My Day page: the "Срок", "Статус" and "Приоритет" columns are merged into one stacked state column (due date line, status badge, priority chip), matching the tasks list treatment. Both tables (today + overdue) now have 3 columns instead of 5; header reads "Срок / Статус / Приоритет".
