@@ -994,7 +994,9 @@ html[data-theme="contrast"] {
 
   --crm-ink: #000000;
   --crm-on-accent: #ffffff;
-  --crm-priority-high: #c2410c;
+  /* Orange priority badge: #c2410c gave only 5.18:1 with white text; the
+     darker #9a3412 reaches 7.3:1 (WCAG AAA for text, 1.4.11 for the fill). */
+  --crm-priority-high: #9a3412;
   --crm-tree-level-3: #8b5cf6;
   --crm-tree-level-deep: #d946ef;
 
@@ -1049,8 +1051,13 @@ html[data-theme="contrast"] {
   --crm-success-soft: #ffffff;
   --crm-warning: #7a4d00;
   --crm-warning-soft: #ffffff;
+  /* Danger/warning button and badge borders inherit the pale base tints
+     (#fecaca / #fde68a, ~1.4:1 on white) — far below the WCAG 1.4.11 3:1
+     non-text minimum. Pin them to the strong theme colors. */
+  --crm-warning-border: #7a4d00;
   --crm-danger: #a40000;
   --crm-danger-soft: #ffffff;
+  --crm-danger-border: #a40000;
   --crm-info: #005a6e;
   --crm-info-soft: #ffffff;
 
@@ -1060,6 +1067,11 @@ html[data-theme="contrast"] {
   /* Loading/status overlay toast - brand dark green / deep red for AA */
   --crm-status-bg: #005c44;
   --crm-error-bg: #a40000;
+
+  /* Gantt dependency-obstacle stroke: the fixed amber #f59e0b is only ~2.15:1
+     on white, below the WCAG 1.4.11 3:1 minimum for informative graphics;
+     the darker amber #9a5b00 reaches ~5.4:1. */
+  --crm-gantt-obstacle: #9a5b00;
 
   --color-primary-50: #e2f2ec;
   --color-primary-100: #cfe8de;
@@ -1244,6 +1256,21 @@ html[data-theme="contrast"] .team-input,
 html[data-theme="contrast"] .team-search-input {
   background-color: var(--crm-surface) !important;
   border-color: var(--crm-border-strong) !important;
+}
+
+/* Component boundaries that fall back to the pale --color-primary-100 tint
+   (~1.3:1 on white): task-key badges, icon-button hover states, the sidebar
+   toggle and KPI-card hover. WCAG 1.4.11 needs >= 3:1; the dark brand green
+   gives 8:1 so every boundary is unmistakable in high-contrast mode. */
+html[data-theme="contrast"] .crm-task-key-badge,
+html[data-theme="contrast"] .crm-inline-icon-btn:hover,
+html[data-theme="contrast"] .crm-inline-icon-btn:focus,
+html[data-theme="contrast"] .crm-sidebar-toggle:hover,
+html[data-theme="contrast"] .crm-sidebar-toggle:focus-visible,
+html[data-theme="contrast"] .crm-sidebar-collapsed .crm-sidebar-toggle,
+html[data-theme="contrast"] .crm-dashboard-kpi:hover,
+html[data-theme="contrast"] .crm-topbar #sidebarToggle:hover {
+  border-color: var(--crm-primary) !important;
 }
 
 /* Active nav / dropdown hover: light-green fill with black text. */
@@ -1470,8 +1497,10 @@ html[data-theme="contrast"] .crm-gantt-page {
   --gantt-blue-2: #006b4d;
   --gantt-green: #00602f;
   --gantt-green-2: #00734f;
+  /* Milestone gradient light end: #d97706 is only 3.19:1 on white; use the
+     darker orange so the whole diamond stays >= 5:1 against the page. */
   --gantt-orange: #b45309;
-  --gantt-orange-2: #d97706;
+  --gantt-orange-2: #b45309;
   --gantt-red: #b91c1c;
   --gantt-purple: #7c3aed;
   --gantt-gray: #4b5563;
