@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\Model\Feature_flag;
 
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Database\IndexHelper;
 use Api\System\Library\Support\Ulid;
 use PDO;
 
@@ -11,6 +12,34 @@ final class FeatureFlagRepository
 {
     public function __construct(private readonly PDO $pdo)
     {
+    }
+
+    /**
+     * Self-healing schema guard: collapse duplicate codes left by legacy
+     * per-request ensure-registrations and protect future writes with a
+     * UNIQUE index on code. Idempotent; safe to run on every request.
+     */
+    public function ensureSchema(): void
+    {
+        try {
+            // Portable duplicate detection: COUNT(DISTINCT a, b) is not
+            // supported on SQLite, so count groups with more than one row.
+            $stmt = $this->pdo->query('SELECT COUNT(*) FROM (SELECT 1 FROM feature_flags GROUP BY code HAVING COUNT(*) > 1) AS dupes');
+            $duplicates = (int)$stmt->fetchColumn();
+            if ($duplicates > 0) {
+                $keep = $this->pdo->query('SELECT MIN(id) FROM feature_flags GROUP BY code');
+                $ids = $keep->fetchAll(PDO::FETCH_COLUMN);
+                if ($ids !== []) {
+                    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                    $del = $this->pdo->prepare("DELETE FROM feature_flags WHERE id NOT IN ({$placeholders})");
+                    $del->execute($ids);
+                }
+            }
+
+            IndexHelper::createIndexIfNotExists($this->pdo, 'feature_flags', 'uq_feature_flags_code', 'code', true);
+        } catch (\Throwable $e) {
+            error_log('[FeatureFlagRepository::ensureSchema] ' . $e->getMessage());
+        }
     }
 
     public function list(array $filters): array

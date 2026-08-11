@@ -29,6 +29,9 @@ final class AiIntentSettingService
         $this->lang = $lang ?? new LanguageManager(__DIR__ . '/../../language');
     }
 
+    /** Once per service instance (== once per request): ensureBaseline() is idempotent. */
+    private bool $baselineEnsured = false;
+
     public function list(array $filters): array
     {
         $this->ensureBaseline();
@@ -118,6 +121,11 @@ final class AiIntentSettingService
 
     private function ensureBaseline(): void
     {
+        if ($this->baselineEnsured) {
+            return;
+        }
+        $this->baselineEnsured = true;
+
         $now = gmdate('Y-m-d H:i:s');
         foreach ($this->allowedIntents() as $intent) {
             $existing = $this->repo->findByIntentCode($intent);
@@ -147,22 +155,33 @@ final class AiIntentSettingService
                 continue;
             }
 
-            $this->repo->create([
-                'intent_code' => $intent,
-                'provider_id' => null,
-                'model' => '',
-                'feature_flag' => $this->defaultFeatureFlagByIntent($intent),
-                'required_permission' => $this->defaultRequiredPermissionByIntent($intent),
-                'allow_sensitive_context' => 0,
-                'max_tokens' => 2000,
-                'temperature' => '0.2',
-                'is_enabled' => 1,
-                'intent_payload' => '{}',
-                'created_by_user_id' => null,
-                'updated_by_user_id' => null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            try {
+                $this->repo->create([
+                    'intent_code' => $intent,
+                    'provider_id' => null,
+                    'model' => '',
+                    'feature_flag' => $this->defaultFeatureFlagByIntent($intent),
+                    'required_permission' => $this->defaultRequiredPermissionByIntent($intent),
+                    'allow_sensitive_context' => 0,
+                    'max_tokens' => 2000,
+                    'temperature' => '0.2',
+                    'is_enabled' => 1,
+                    'intent_payload' => '{}',
+                    'created_by_user_id' => null,
+                    'updated_by_user_id' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            } catch (\Throwable $e) {
+                // Duplicate intent_code under concurrency: another request
+                // already created this baseline row (unique index holds).
+                // Any other error is a real failure and must propagate.
+                $code = (string)$e->getCode();
+                if (!in_array($code, ['23000', '23505', '1062'], true)) {
+                    throw $e;
+                }
+                error_log('[AiIntentSettingService::ensureBaseline] create raced for intent "' . $intent . '": ' . $e->getMessage());
+            }
 
             $this->ensureDefaultActiveSchema($intent, $now);
             $this->ensureDefaultActivePrompt($intent, $now);

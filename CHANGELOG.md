@@ -7,6 +7,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 ## Unreleased
 
 ### Fixed
+- Feature flags are no longer at risk of duplicate rows under concurrency: `feature_flags` now gets a self-healing UNIQUE index on `code` (created automatically with a de-duplication pass over rows duplicated by older builds), and `FeatureFlagService::ensureDefaults()` runs once per request instead of on every `isEnabled()`/`list()`/`update()` call. Previously every feature-flag lookup performed one SELECT per configured default (38 defaults) and its SELECT-then-INSERT seeding had a race window on installs without the unique index.
+- AI intent settings seeding (`AiIntentSettingService::ensureBaseline()`) now runs once per request instead of on every `list()`/`update()` call, and a concurrent duplicate `intent_code` create is handled gracefully instead of surfacing as an error.
 - Module scheduler no longer duplicates scheduled tasks on every API request: `ModuleCronScheduler::registerTask()` is now idempotent (updates the existing row instead of inserting a new one) and a UNIQUE index on `(module_name, task_name)` plus an automatic de-duplication step in `ensureTables()` collapse rows already duplicated by older builds. Previously `module_scheduled_tasks` grew by 4 rows per request (hundreds of thousands of rows on active installs).
 - Service-worker retry page (shown after automatic page re-requests fail on a network-level error) now follows the CRM locale the user chose (the `crm_locale` cookie) instead of only the browser's Accept-Language, so Russian users with an English-first browser see the retry page in Russian. Accept-Language is now also parsed by q-priority as a fallback.
 
