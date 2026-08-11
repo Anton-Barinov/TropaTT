@@ -4851,6 +4851,13 @@ body {
   }
 }
 
+/* The clients table uses fixed layout with explicit per-column widths, so it
+   must be allowed to shrink to the content area; the 760px floor kept it
+   25-35px wider than the wrapper and caused a tiny internal scroll. */
+.crm-clients-page #clientsTable {
+  min-width: 0 !important;
+}
+
 @media (max-width: 767.98px) {
   .crm-counterparties-page #counterpartiesTable,
   .crm-clients-page .crm-table,
