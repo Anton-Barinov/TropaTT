@@ -687,6 +687,27 @@ window.CRM.pageApiBindings = (function () {
       + (reason ? ('<span class="' + (denseMode ? 'crm-ai-priority-reason-dense' : 'crm-ai-priority-reason') + '">' + safeText(reason) + '</span>') : '');
   }
 
+  // Многоуровневая сортировка задач: клик по заголовку добавляет уровень
+  // (ASC), повторный клик разворачивает направление (DESC), каждый следующий
+  // клик чередует ASC/DESC. Клик по другому заголовку добавляет следующий
+  // уровень (до TASK_SORT_MAX). Чистая функция — покрыта локальными тестами
+  // на чередование ASC/DESC.
+  function toggleTaskSortLevel(levels, sortKey, maxLevels) {
+    var next = (Array.isArray(levels) ? levels : []).slice();
+    var i = -1;
+    next.forEach(function (l, j) {
+      if (String(l.key || '') === String(sortKey || '')) i = j;
+    });
+    if (i === -1) {
+      if (next.length < maxLevels) next.push({ key: sortKey, dir: 'ASC' });
+    } else if (next[i].dir === 'ASC') {
+      next[i].dir = 'DESC';
+    } else {
+      next[i].dir = 'ASC';
+    }
+    return next;
+  }
+
   function mapTaskRow(item) {
     var taskId = item.public_id || '';
     var taskLink = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(taskId);
@@ -3436,6 +3457,34 @@ window.CRM.pageApiBindings = (function () {
       }
     }
 
+    // Актуальный снапшот фильтров на момент вызова: значения читаются из DOM
+    // (поиск, селекты, кнопки «Срок»), а сортировка — из текущего URL. Хендлеры
+    // привязываются один раз, а состояние пересоздаётся на каждом рендере,
+    // поэтому устаревшее замыкание (sortLevels/фильтры из первого рендера)
+    // ломало чередование сортировки ASC -> DESC при повторном клике.
+    function tasksFiltersFromDom() {
+      var searchInput = document.getElementById('tasksSearchInput');
+      var assigneeSelect = document.getElementById('tasksAssigneeFilter');
+      var managerSelect = document.getElementById('tasksManagerFilter');
+      var projectSelect = document.getElementById('tasksProjectFilter');
+      var clientSelect = document.getElementById('tasksClientFilter');
+      var tagSelect = document.getElementById('tasksTagFilter');
+      var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
+      return {
+        search: searchInput ? searchInput.value.trim() : '',
+        status: '',
+        priority: '',
+        assignee: assigneeSelect ? assigneeSelect.value : '',
+        manager: managerSelect ? managerSelect.value : '',
+        project: projectSelect ? projectSelect.value : '',
+        client: clientSelect ? clientSelect.value : '',
+        cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
+        tag: tagSelect ? tagSelect.value : '',
+        due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
+        sort: encodeTaskSort(parseTaskSort(pageQuery().get('sort'), pageQuery().get('order')))
+      };
+    }
+
     function bindTasksFilters() {
       var searchInput = document.getElementById('tasksSearchInput');
       var assigneeSelect = document.getElementById('tasksAssigneeFilter');
@@ -3459,23 +3508,6 @@ window.CRM.pageApiBindings = (function () {
       [assigneeSelect, managerSelect, projectSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
         if (sel && sel.dataset && sel.dataset.searchable === '1') syncSearchableSingleSelect(sel);
       });
-
-      function tasksFiltersFromDom() {
-        var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
-        return {
-          search: searchInput ? searchInput.value.trim() : '',
-          status: '',
-          priority: '',
-          assignee: assigneeSelect ? assigneeSelect.value : '',
-          manager: managerSelect ? managerSelect.value : '',
-          project: projectSelect ? projectSelect.value : '',
-          client: clientSelect ? clientSelect.value : '',
-          cycle: tasksCycleSelect ? tasksCycleSelect.value : '',
-          tag: tagSelect ? tagSelect.value : '',
-          due: activeDueBtn ? String(activeDueBtn.getAttribute('data-kanban-due') || '') : '',
-          sort: encodeTaskSort(sortLevels)
-        };
-      }
 
       if (searchInput) {
         searchInput.value = searchFilter;
@@ -3560,31 +3592,20 @@ window.CRM.pageApiBindings = (function () {
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', function () {
           // Многоуровневая сортировка: клик добавляет уровень (ASC), повторный
-          // клик разворачивает направление (DESC), третий клик убирает уровень.
-          // Клик по другому заголовку добавляет следующий уровень (двойная/тройная).
-          var next = sortLevels.slice();
-          var i = -1;
-          next.forEach(function (l, j) { if (l.key === sortKey) i = j; });
-          if (i === -1) {
-            if (next.length < TASK_SORT_MAX) next.push({ key: sortKey, dir: 'ASC' });
-          } else if (next[i].dir === 'ASC') {
-            next[i].dir = 'DESC';
-          } else {
-            next.splice(i, 1);
-          }
-          applyTaskRouteQuery({
-            search: searchFilter,
-            status: statusFilter,
-            priority: priorityFilter,
-            assignee: assigneeFilter,
-            manager: managerFilter,
-            project: projectFilter,
-            client: clientFilter,
-            cycle: cycleFilter,
-            tag: tagFilter,
-            due: dueFilter,
-            sort: encodeTaskSort(next)
-          });
+          // клик разворачивает направление (DESC), каждый следующий клик
+          // чередует ASC/DESC. Клик по другому заголовку добавляет следующий
+          // уровень (двойная/тройная).
+          // Уровни читаем из текущего URL, а фильтры — из текущего DOM: обработчик
+          // привязан один раз, а sortLevels/фильтры пересоздаются на каждом рендере,
+          // поэтому устаревшее замыкание ломало чередование ASC -> DESC.
+          var next = toggleTaskSortLevel(
+            parseTaskSort(pageQuery().get('sort'), pageQuery().get('order')),
+            sortKey,
+            TASK_SORT_MAX
+          );
+          var snapshot = tasksFiltersFromDom();
+          snapshot.sort = encodeTaskSort(next);
+          applyTaskRouteQuery(snapshot);
         });
         btn.dataset.bound = '1';
       });
