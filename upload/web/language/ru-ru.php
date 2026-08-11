@@ -4558,6 +4558,7 @@ return array (
     'th_client' => 'Клиент',
     'th_manager' => 'Менеджер',
     'th_assignee' => 'Исполнитель',
+    'th_people' => 'Клиент / Менеджер / Исполнитель',
     'filter_client' => 'Клиент',
     'filter_all_clients' => 'Все клиенты',
     'title' => 'TropaTT — Задачи',

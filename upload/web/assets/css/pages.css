@@ -3046,11 +3046,11 @@ font-size: 0.72rem;
 }
 
 .crm-tasks-page .crm-table tbody td:nth-child(2) {
-  min-width: 320px;
+  min-width: 70px;
 }
 
 .crm-tasks-page .crm-table tbody td:nth-child(3) {
-  min-width: 280px;
+  min-width: 300px;
       padding-top: 0px;
 }
 
@@ -3097,8 +3097,8 @@ font-size: 0.72rem;
 }
 
 .crm-tasks-page .crm-task-parent-link {
-  font-size: 0.81rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 400;
   color: var(--crm-text-muted);
   text-decoration: none;
 }
@@ -3107,9 +3107,44 @@ font-size: 0.72rem;
   color: var(--crm-accent-strong);
 }
 
+.crm-tasks-page .crm-cell-project a {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.crm-tasks-page .crm-cell-people {
+  min-width: 190px;
+}
+
+.crm-tasks-page .crm-people-line {
+  max-width: 260px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-tasks-page .crm-people-role {
+  color: var(--crm-text-muted);
+  font-size: 0.72rem;
+}
+
+.crm-tasks-page .crm-cell-state {
+  min-width: 120px;
+}
+
+.crm-tasks-page .crm-cell-state .crm-state-line + .crm-state-line {
+  margin-top: 0.3rem;
+}
+
 .crm-tasks-page .crm-task-row-actions-wrap {
   display: grid;
-  grid-template-columns: repeat(2, minmax(96px, 96px));
+  grid-template-columns: repeat(2, minmax(74px, 74px));
   gap: 0.45rem;
   justify-content: end;
   align-items: center;
@@ -3117,8 +3152,8 @@ font-size: 0.72rem;
 
 .crm-tasks-page .crm-table thead th:last-child,
 .crm-tasks-page .crm-table tbody td:last-child {
-  width: 230px;
-  min-width: 230px;
+  width: 170px;
+  min-width: 170px;
 }
 
 .crm-tasks-page .crm-task-row-actions-wrap .btn {

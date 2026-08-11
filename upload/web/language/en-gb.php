@@ -4536,6 +4536,7 @@ return array (
     'th_client' => 'Client',
     'th_manager' => 'Manager',
     'th_assignee' => 'Assignee',
+    'th_people' => 'Client / Manager / Assignee',
     'filter_client' => 'Client',
     'filter_all_clients' => 'All clients',
     'title' => 'TropaTT — Tasks',

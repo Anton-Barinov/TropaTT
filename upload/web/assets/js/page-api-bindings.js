@@ -716,8 +716,8 @@ window.CRM.pageApiBindings = (function () {
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
-    // NOTE: thead has 8 columns (checkbox, key, task, project, due, status,
-    // priority, actions). Key must be its own <td> so columns do not shift.
+    // NOTE: thead has 8 columns (checkbox, key, task, project, people
+    // [client/manager/assignee], due, state [status/priority], actions).
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="' + window.CRM.i18n.t('js.pab.select_task', 'Select task') + ' ' + safeText(item.title || taskId || '') + '"></td>'
       + '<td>' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
@@ -725,13 +725,13 @@ window.CRM.pageApiBindings = (function () {
       + '<div class="crm-task-row-main">' + '<a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
       + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
       + '</td>'
-      + '<td><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
-      + '<td>' + safeText(item.task_client_title || item.client_title || '—') + '</td>'
-      + '<td>' + safeText(item.project_manager_name || item.project_manager_login || '—') + '</td>'
-      + '<td>' + safeText(item.assignee_name || item.assignee_login || '—') + '</td>'
+      + '<td class="crm-cell-project"><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
+      + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
-      + '<td><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></td>'
-      + '<td><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></td>'
+      + '<td class="crm-cell-state">'
+      + '<div class="crm-state-line"><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
+      + '<div class="crm-state-line"><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
+      + '</td>'
       + '<td>'
       + '<div class="crm-task-row-actions-wrap">'
       + '<a class="btn btn-sm crm-btn-subtle crm-btn-compact" href="' + taskLink + '">' + window.CRM.i18n.t('js.pab.open', 'Open') + '</a>'
@@ -739,6 +739,24 @@ window.CRM.pageApiBindings = (function () {
       + '</div>'
       + '</td>'
       + '</tr>';
+  }
+
+  function taskPeopleColumnHtml(item) {
+    var entries = [
+      [window.CRM.i18n.t('tasks.th_client', 'Client'), item.task_client_title || item.client_title],
+      [window.CRM.i18n.t('tasks.th_manager', 'Manager'), item.project_manager_name || item.project_manager_login],
+      [window.CRM.i18n.t('tasks.th_assignee', 'Assignee'), item.assignee_name || item.assignee_login]
+    ];
+    var html = '';
+    for (var i = 0; i < entries.length; i++) {
+      var label = String(entries[i][0] || '').trim();
+      var value = String(entries[i][1] || '').trim();
+      if (!value) continue;
+      html += '<div class="crm-people-line" title="' + safeText(label) + ': ' + safeText(value) + '">'
+        + '<span class="crm-people-role">' + safeText(label) + ':</span> ' + safeText(value)
+        + '</div>';
+    }
+    return html || '<span class="text-muted">—</span>';
   }
 
   function taskTagHtml(tag, active) {
@@ -3186,7 +3204,12 @@ window.CRM.pageApiBindings = (function () {
     }
 
     function setTasksAiState(stateCode, message) {
-      setAiUiState(tasksAiPriorityCard, tasksAiPriorityStateNode, stateCode, message);
+      var show = typeof message === 'string' && message.trim() !== '';
+      setAiUiState(tasksAiPriorityCard, tasksAiPriorityStateNode, stateCode, show ? message : '');
+      if (tasksAiPriorityStateNode) {
+        tasksAiPriorityStateNode.classList.toggle('d-none', !show);
+        if (!show) tasksAiPriorityStateNode.textContent = '';
+      }
     }
 
     function updateAiPriorityUi() {
@@ -3203,7 +3226,9 @@ window.CRM.pageApiBindings = (function () {
       if (enabled && String(aiPriorityState.summary || '').trim() !== '') {
         setTasksAiState('ready', String(aiPriorityState.summary || window.CRM.i18n.t('js.pab.ai_priority_calculated', 'AI priority calculated.')));
       } else if (canUseAi) {
-        setTasksAiState('idle', window.CRM.i18n.t('js.pab.ai_priority_available', 'AI priority available for current task selection.'));
+        // Keep the page clean: no idle hint such as
+        // "AI priority available for current task selection."
+        setTasksAiState('idle', '');
       } else {
         setTasksAiState('hidden', window.CRM.i18n.t('js.pab.ai_priority_unavailable', 'AI priority unavailable: requires ai.use permission.'));
       }
