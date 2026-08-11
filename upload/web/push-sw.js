@@ -292,7 +292,11 @@ function pwaSiteRoot() {
 
 function pwaCacheName(version) {
   var v = String(version || '') || pwaVersionFromUrl();
-  return v === '' ? PWA_CACHE_PREFIX : PWA_CACHE_PREFIX + '-' + v;
+  // The name includes this install's web root ('/web/' at the domain root,
+  // '/pr/crm/web/' in a subdirectory), so two CRM copies on the SAME origin
+  // never share or delete each other's caches — even when their asset
+  // versions collide. Different domains are separate origins anyway.
+  return PWA_CACHE_PREFIX + pwaWebRoot() + (v === '' ? '' : '-' + v);
 }
 
 function pwaPrecachePaths() {
@@ -399,12 +403,22 @@ self.addEventListener('activate', function (event) {
   var tasks = [self.clients.claim()];
   if (self.caches) {
     var keep = pwaCacheName();
+    // Prune only THIS install's caches (prefix + this web root) plus the
+    // legacy pre-path format (crm-pwa-runtime-<version> with no path
+    // segment). Never another install's caches on the same origin.
+    var installPrefix = PWA_CACHE_PREFIX + pwaWebRoot();
     tasks.push(
       caches.keys().then(function (names) {
         return Promise.all(names.map(function (name) {
-          if (name.indexOf(PWA_CACHE_PREFIX) === 0 && name !== keep) {
+          if (name === keep) return null;
+          if (name.indexOf(installPrefix) === 0) {
             return caches.delete(name);
           }
+          if (name.indexOf(PWA_CACHE_PREFIX) === 0
+              && name.indexOf('/', PWA_CACHE_PREFIX.length) === -1) {
+            return caches.delete(name); // legacy format without install path
+          }
+          return null;
         }));
       })
     );
