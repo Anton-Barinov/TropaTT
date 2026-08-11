@@ -748,18 +748,47 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function taskPeopleColumnHtml(item) {
+    // Каждая строка «Клиент / Менеджер / Исполнитель» кликабельна: клик ставит
+    // соответствующий фильтр на странице нативно (через существующие селекты
+    // фильтров). Для этого строка несёт роль и public_id сущности — именно тот
+    // id, что лежит в опциях фильтра. Без public_id (устаревшие/служебные
+    // данные) строка остаётся просто текстом.
     var entries = [
-      [window.CRM.i18n.t('tasks.th_client', 'Client'), item.task_client_title || item.client_title],
-      [window.CRM.i18n.t('tasks.th_manager', 'Manager'), item.project_manager_name || item.project_manager_login],
-      [window.CRM.i18n.t('tasks.th_assignee', 'Assignee'), item.assignee_name || item.assignee_login]
+      {
+        role: 'client',
+        label: window.CRM.i18n.t('tasks.th_client', 'Client'),
+        value: item.task_client_title || item.client_title,
+        publicId: item.task_client_public_id || item.client_public_id
+      },
+      {
+        role: 'manager',
+        label: window.CRM.i18n.t('tasks.th_manager', 'Manager'),
+        value: item.project_manager_name || item.project_manager_login,
+        publicId: item.project_manager_user_public_id
+      },
+      {
+        role: 'assignee',
+        label: window.CRM.i18n.t('tasks.th_assignee', 'Assignee'),
+        value: item.assignee_name || item.assignee_login,
+        publicId: item.assignee_user_public_id
+      }
     ];
     var html = '';
     for (var i = 0; i < entries.length; i++) {
-      var label = String(entries[i][0] || '').trim();
-      var value = String(entries[i][1] || '').trim();
+      var entry = entries[i];
+      var label = String(entry.label || '').trim();
+      var value = String(entry.value || '').trim();
       if (!value) continue;
-      html += '<div class="crm-people-line" data-people-title="' + safeText(label) + ': ' + safeText(value) + '">'
+      var publicId = String(entry.publicId || '').trim();
+      var clickable = publicId !== '' ? ' crm-people-line--filter' : '';
+      var filterAttrs = publicId !== ''
+        ? ' data-people-role="' + entry.role + '" data-people-value="' + safeText(publicId) + '"'
+        : '';
+      // role=button + tabindex делают строку доступной с клавиатуры (Enter/Space).
+      html += '<div class="crm-people-line' + clickable + '" data-people-title="' + safeText(label) + ': ' + safeText(value) + '"' + filterAttrs
+        + (publicId !== '' ? ' role="button" tabindex="0"' : '') + '>'
         + '<span class="crm-people-role">' + safeText(label) + ':</span> ' + safeText(value)
+        + (publicId !== '' ? '<i class="fa-solid fa-filter crm-people-filter-icon" aria-hidden="true"></i>' : '')
         + '</div>';
     }
     return html || '<span class="text-muted">—</span>';
@@ -3424,6 +3453,13 @@ window.CRM.pageApiBindings = (function () {
       if (clientSelect) clientSelect.value = clientFilter;
       if (tagSelect) tagSelect.value = tagFilter;
 
+      // Searchable-селекты (заменённые на инпут с дропдауном) должны показывать
+      // выбранное значение и после программной установки value (первая
+      // загрузка, перерисовка после фильтра/сортировки/клика по строке людей).
+      [assigneeSelect, managerSelect, projectSelect, tasksCycleSelect, tagSelect].forEach(function (sel) {
+        if (sel && sel.dataset && sel.dataset.searchable === '1') syncSearchableSingleSelect(sel);
+      });
+
       function tasksFiltersFromDom() {
         var activeDueBtn = document.querySelector('.crm-kanban-due-filters .is-active');
         return {
@@ -3579,6 +3615,51 @@ window.CRM.pageApiBindings = (function () {
       });
     }
 
+    function bindTasksPeopleFilterClicks() {
+      // Клик по строке «Клиент / Менеджер / Исполнитель» выставляет
+      // соответствующий фильтр на странице нативно — через существующие
+      // селекты фильтров (tasksClientFilter / tasksManagerFilter /
+      // tasksAssigneeFilter). Установка значения + change → applyTaskRouteQuery
+      // → серверная перезагрузка. Повторный клик по активной строке сбрасывает
+      // фильтр. Делегированный слушатель переживает перерисовки таблицы
+      // (фильтр/сортировка/пагинация).
+      var container = document.querySelector('[data-tasks-list-view]');
+      if (!container || container.dataset.peopleFilterBound === '1') return;
+      container.dataset.peopleFilterBound = '1';
+      function applyPeopleLineFilter(line) {
+        var role = line.getAttribute('data-people-role');
+        var value = line.getAttribute('data-people-value');
+        if (!role || !value) return;
+        var selectId = role === 'client' ? 'tasksClientFilter'
+          : role === 'manager' ? 'tasksManagerFilter'
+          : role === 'assignee' ? 'tasksAssigneeFilter' : '';
+        if (!selectId) return;
+        var select = document.getElementById(selectId);
+        if (!select) return;
+        // Фильтруем только тем id, что реально есть в опциях фильтра, — иначе
+        // селект не сможет показать выбранное значение (несогласованное состояние).
+        if (!select.querySelector('option[value="' + value.replace(/"/g, '&quot;') + '"]')) return;
+        select.value = (select.value === value) ? '' : value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      container.addEventListener('click', function (e) {
+        var line = e.target && e.target.closest ? e.target.closest('.crm-people-line--filter') : null;
+        if (!line) return;
+        e.preventDefault();
+        e.stopPropagation();
+        applyPeopleLineFilter(line);
+      });
+      // Клавиатура: Enter/Space на строке (role=button) фильтрует так же.
+      container.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var line = e.target && e.target.closest ? e.target.closest('.crm-people-line--filter') : null;
+        if (!line) return;
+        e.preventDefault();
+        e.stopPropagation();
+        applyPeopleLineFilter(line);
+      });
+    }
+
     function bindTasksViewToggle() {
       document.querySelectorAll('[data-tasks-view]').forEach(function (btn) {
         var view = normalizeTasksView(btn.getAttribute('data-tasks-view'));
@@ -3669,6 +3750,7 @@ window.CRM.pageApiBindings = (function () {
     bindTasksFilters();
     bindTasksSorting();
     bindTasksPeopleTooltips();
+    bindTasksPeopleFilterClicks();
     bindTasksViewToggle();
     bindAiPriorityActions();
 

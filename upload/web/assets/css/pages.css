@@ -3143,6 +3143,38 @@ font-size: 0.72rem;
   font-size: 0.72rem;
 }
 
+/* Кликабельные строки «Клиент / Менеджер / Исполнитель»: клик ставит фильтр */
+.crm-tasks-page .crm-people-line--filter {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.crm-tasks-page .crm-people-line--filter:hover {
+  color: var(--crm-accent-strong);
+  text-decoration: underline;
+}
+
+.crm-tasks-page .crm-people-line--filter .crm-people-filter-icon {
+  font-size: 0.62rem;
+  margin-left: 4px;
+  color: var(--crm-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  vertical-align: middle;
+}
+
+.crm-tasks-page .crm-people-line--filter:hover .crm-people-filter-icon {
+  opacity: 1;
+}
+
+/* На тач-устройствах нет hover — иконку фильтра показываем всегда */
+@media (hover: none) {
+  .crm-tasks-page .crm-people-line--filter .crm-people-filter-icon {
+    opacity: 1;
+  }
+}
+
 .crm-tasks-page .crm-cell-state {
   min-width: 130px;
 }
