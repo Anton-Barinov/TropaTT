@@ -4179,6 +4179,7 @@ body.modal-open {
    fixed layout with explicit widths, like the tasks list table: long values
    ellipsize and the native hover tooltip shows the full text. */
 .crm-clients-page #clientsTable {
+  width: 100% !important;
   table-layout: fixed !important;
 }
 
@@ -4197,7 +4198,8 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(2),
 .crm-clients-page #clientsTable td:nth-child(2) {
-  width: 12% !important;
+  width: 150px !important;
+  min-width: 100px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(3),
