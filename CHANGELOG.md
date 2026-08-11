@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Changed
+
+- Tasks list (list view) table: the «Клиент / Менеджер / Исполнитель» column is widened (110px → 170px, cap 200px) so long client names like «ТОО АлматыСтройМонтаж» are no longer ellipsized; the task column yields the space (36% → 31%) and the state column is trimmed 160px → 150px, so the table still fits without horizontal scrolling.
+
 ### Fixed
 
 - Tasks list (list view) table: the «Ключ» column is now truly content-sized — the generic table cell padding (14px 12px) was added on top of the fixed 96px width in fixed table layout, so the column rendered ~105px against ~58px key badges. The column is narrowed to 88px with 4px side padding and `white-space: nowrap`, so it fits the badge with a few px of air instead of a 47px dead zone.

@@ -2271,18 +2271,18 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(3),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(3) {
-  width: 36%;
+  width: 31%;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
-  width: 110px !important;
-  max-width: 150px !important;
+  width: 170px !important;
+  max-width: 200px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
-  width: 160px !important;
+  width: 150px !important;
   max-width: 180px !important;
 }
 

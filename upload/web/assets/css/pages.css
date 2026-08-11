@@ -3129,10 +3129,6 @@ font-size: 0.72rem;
   color: var(--crm-accent-strong) !important;
 }
 
-.crm-tasks-page .crm-cell-people {
-  min-width: 190px;
-}
-
 .crm-tasks-page .crm-people-line {
   max-width: 260px;
   font-size: 0.85rem;
