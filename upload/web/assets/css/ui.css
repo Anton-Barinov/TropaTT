@@ -2243,32 +2243,29 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table {
   min-width: 980px;
-  table-layout: fixed;
 }
 
+/* Auto layout lets every column size itself to its content: the narrow
+   columns (checkbox, key) stay narrow and the wide task column absorbs the
+   remaining space. Fixed layout used to inflate all columns equally. */
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(1),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(1) {
-  width: 52px;
+  width: 40px;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(2),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(2) {
-  width: 32%;
+  width: 96px;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(3),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(3) {
-  width: 27%;
+  width: 36%;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
-  width: 72px;
-}
-
-.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
-  width: 100px;
+  width: 110px;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),

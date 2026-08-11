@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- Tasks list (list view) table: the «Ключ» (key) column no longer stretches to a leftover 32% width — the table now uses auto layout so every column sizes to its content. The key column is a narrow 96px (fits the key badge and the sort button with its rank arrow), the task column takes the freed space (36%), and the people column gets a bit more room (110px). The dead duplicate width rule was removed.
+
 - Tasks list (list view) table: **multi-level sorting**. Every sortable header button (Задача, Проект, Ключ, Срок, Статус, Приоритет) is independently clickable; a click adds the parameter as the next sort level, a second click on the same header reverses its direction, a third click removes the level, and clicking another header appends another level (double/triple sort, up to 4). Active headers show the direction arrow plus the level rank (`▲1`, `▼2`). The sort chain is encoded in the URL as a single `sort=key1:ASC,key2:DESC` parameter; the legacy `sort=key&order=ASC` form is still accepted by both the page and the API. The tasks list API now builds the `ORDER BY` from the whole chain (project sorting maps to the joined projects title).
 
 - Tasks list (list view) table: the "Ключ" (key) header is now a sort button (`sort=task_key`).
