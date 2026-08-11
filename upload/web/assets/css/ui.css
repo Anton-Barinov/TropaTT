@@ -4944,7 +4944,7 @@ body {
 }
 
 .crm-counterparties-page #counterpartiesTable {
-  min-width: 1400px !important;
+  width: 100% !important;
   table-layout: fixed !important;
 }
 
@@ -4960,7 +4960,7 @@ body {
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(2),
 .crm-counterparties-page #counterpartiesTable td:nth-child(2) {
-  width: 240px !important;
+  width: 200px !important;
 }
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(3),
@@ -4969,22 +4969,25 @@ body {
 .crm-counterparties-page #counterpartiesTable td:nth-child(6),
 .crm-counterparties-page #counterpartiesTable th:nth-child(8),
 .crm-counterparties-page #counterpartiesTable td:nth-child(8) {
-  width: 120px !important;
+  width: 105px !important;
 }
 
-/* Доп. поля: шире, чтобы кастомные чипы помещались и не вылезали в соседнюю колонку */
+/* Доп. поля: чипы с эллипсисом, колонка компактная, полный текст в title */
 .crm-counterparties-page #counterpartiesTable th:nth-child(7),
 .crm-counterparties-page #counterpartiesTable td:nth-child(7) {
-  width: 220px !important;
-  min-width: 220px !important;
-  max-width: 220px !important;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .crm-counterparties-page #counterpartiesTable th:nth-child(9),
 .crm-counterparties-page #counterpartiesTable td:nth-child(9) {
-  width: 160px !important;
-  min-width: 160px !important;
-  max-width: 160px !important;
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4994,7 +4997,7 @@ body {
 .crm-counterparties-page #counterpartiesTable td:nth-child(4),
 .crm-counterparties-page #counterpartiesTable th:nth-child(5),
 .crm-counterparties-page #counterpartiesTable td:nth-child(5) {
-  width: 160px !important;
+  width: 130px !important;
 }
 
 /* Login screen: product-grade entry point aligned with the main CRM identity. */
