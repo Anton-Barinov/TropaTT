@@ -3096,15 +3096,18 @@ font-size: 0.72rem;
   max-width: 220px;
 }
 
-.crm-tasks-page .crm-task-parent-link {
+/* Must beat the generic table-link rule in ui.css
+   (.crm-content .table.crm-table a, font-weight:650 !important). */
+.crm-tasks-page .crm-table tbody a.crm-task-parent-link,
+.crm-tasks-page .crm-table tbody a.crm-task-parent-link:hover {
   font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--crm-text-muted);
+  font-weight: 400 !important;
+  color: var(--crm-text-muted) !important;
   text-decoration: none;
 }
 
-.crm-tasks-page .crm-task-parent-link:hover {
-  color: var(--crm-accent-strong);
+.crm-tasks-page .crm-table tbody a.crm-task-parent-link:hover {
+  color: var(--crm-accent-strong) !important;
 }
 
 .crm-tasks-page .crm-cell-project a {
