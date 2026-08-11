@@ -14607,10 +14607,10 @@ window.CRM.pageApiBindings = (function () {
 
     async function load() {
       var hours = rangeEl ? Number(rangeEl.value || 48) : 48;
-      chartEl.innerHTML = '<div class="text-muted p-3">' + safeText(tp('admin.logs_chart_loading', 'Загрузка...')) + '</div>';
+      chartEl.innerHTML = '<div class="text-muted p-3">' + safeText(tp('admin_logs.chart_loading', 'Загрузка...')) + '</div>';
       var envelope = await tryRequest('api/v1/logs/frontend-errors/chart', { query: { hours: hours }, silent: true });
       if (!envelope || envelope.success === false || !envelope.data) {
-        chartEl.innerHTML = '<div class="text-danger p-3">' + safeText(tp('admin.logs_load_error', 'Failed to load logs.')) + '</div>';
+        chartEl.innerHTML = '<div class="text-danger p-3">' + safeText(tp('admin_logs.load_error', 'Не удалось загрузить логи.')) + '</div>';
         return;
       }
 
@@ -14620,14 +14620,14 @@ window.CRM.pageApiBindings = (function () {
       var transport = Number(meta.transport || 0);
 
       if (noteEl) {
-        var rangeLabel = hours === 24 ? tp('admin.logs_chart_last_24h', 'последние 24 часа')
-          : hours === 168 ? tp('admin.logs_chart_last_7d', 'последние 7 дней')
-          : tp('admin.logs_chart_last_48h', 'последние 48 часов');
-        noteEl.textContent = tpFmt('admin.logs_chart_summary', 'Всего за {range}: {total} ({transport} транспортных)', { range: rangeLabel, total: total, transport: transport });
+        var rangeLabel = hours === 24 ? tp('admin_logs.chart_last_24h', 'последние 24 часа')
+          : hours === 168 ? tp('admin_logs.chart_last_7d', 'последние 7 дней')
+          : tp('admin_logs.chart_last_48h', 'последние 48 часов');
+        noteEl.textContent = tpFmt('admin_logs.chart_summary', 'Всего за {range}: {total} ({transport} транспортных)', { range: rangeLabel, total: total, transport: transport });
       }
 
       if (!items.length) {
-        chartEl.innerHTML = '<div class="crm-error-chart-empty">' + safeText(tp('admin.logs_chart_empty', 'Ошибок за выбранный период нет')) + '</div>';
+        chartEl.innerHTML = '<div class="crm-error-chart-empty">' + safeText(tp('admin_logs.chart_empty', 'Ошибок за выбранный период нет')) + '</div>';
         return;
       }
 
@@ -14651,7 +14651,7 @@ window.CRM.pageApiBindings = (function () {
           ? '<span class="crm-error-bar-seg crm-error-bar-transport" style="height:' + (transportN / maxTotal * 100).toFixed(1) + '%"></span>'
           : '';
         var label = (index % labelEvery === 0) ? '<span class="crm-error-bar-label">' + safeText(shortHour) + '</span>' : '';
-        var title = shortHour + ' — ' + tpFmt('admin.logs_chart_total_tip', 'всего: {total}, транспортных: {transport}', { total: totalN, transport: transportN })
+        var title = shortHour + ' — ' + tpFmt('admin_logs.chart_total_tip', 'всего: {total}, транспортных: {transport}', { total: totalN, transport: transportN })
           + (codesText ? ' (' + codesText + ')' : '');
 
         return '<div class="crm-error-bar" title="' + safeText(title) + '">'
@@ -14783,14 +14783,14 @@ window.CRM.pageApiBindings = (function () {
       var envelope = await tryRequest(endpoint, { query: buildQueryBySource(source) });
       if (envelope && envelope.success === false) {
         // Show a real error instead of the misleading "No logs found" empty row.
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('admin.logs_load_error', 'Failed to load logs.')) + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('admin_logs.load_error', 'Не удалось загрузить логи.')) + '</td></tr>';
         return;
       }
       var items = mapItems(envelope);
       currentRows = items.map(function (item) { return toRowModel(source, item); });
 
       if (!currentRows.length) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin.logs_empty', 'No logs found for selected filters.')) + '</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(tp('admin_logs.empty', 'По выбранным фильтрам логи не найдены.')) + '</td></tr>';
       } else {
         tableBody.innerHTML = currentRows.slice(0, 120).map(function (row) {
           return '<tr>'

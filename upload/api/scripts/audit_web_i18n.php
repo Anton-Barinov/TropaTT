@@ -38,7 +38,9 @@ $collect = static function (string $file) use (&$references, $projectRoot): void
             ];
         }
 
-        preg_match_all('/data-i18n(?:-placeholder|-title|-aria-label)?="([^"]+)"/', $source, $attributeMatches, PREG_OFFSET_CAPTURE);
+        // Skip attribute values that embed PHP code (dynamic keys) — they are not
+        // literal translation keys, so exclude any value containing '<'.
+        preg_match_all('/data-i18n(?:-placeholder|-title|-aria-label)?="([^"<]+)"/', $source, $attributeMatches, PREG_OFFSET_CAPTURE);
         foreach ($attributeMatches[1] ?? [] as $keyMatch) {
             $key = (string)$keyMatch[0];
             $references[$key] ??= [];
@@ -52,7 +54,7 @@ $collect = static function (string $file) use (&$references, $projectRoot): void
 
     if (str_ends_with($file, '.js')) {
         preg_match_all(
-            '/(?:window\.CRM\.i18n\.t|\b(?:tp|_t|t))\(\s*([\'\"])([^\'\"]+)\1\s*,\s*([\'\"])((?:\\\\.|(?!\3).)*)\3/s',
+            '/(?:window\.CRM\.i18n\.t|\b(?:tpFmt|tp|_t|t|translate))\(\s*([\'\"])([^\'\"]+)\1\s*,\s*([\'\"])((?:\\\\.|(?!\3).)*)\3/s',
             $source,
             $matches,
             PREG_OFFSET_CAPTURE
@@ -95,8 +97,12 @@ $flatten = static function (mixed $value, string $prefix = '') use (&$flatten): 
 
 $failed = false;
 foreach (glob($languageRoot . '/*.php') ?: [] as $languageFile) {
-    $locale = basename($languageFile, '.php');
-    if (in_array($locale, ['overrides', 'js_overrides'], true)) {
+    // NOTE: never name this variable `$locale` — required language files
+    // (js_overrides.php) run top-level `foreach (... as $locale => ...)` loops
+    // that would silently clobber it and mislabel every failure as the last
+    // locale in the file.
+    $localeName = basename($languageFile, '.php');
+    if (in_array($localeName, ['overrides', 'js_overrides'], true)) {
         continue;
     }
     $messages = require $languageFile;
@@ -115,19 +121,19 @@ foreach (glob($languageRoot . '/*.php') ?: [] as $languageFile) {
         if (is_array($supplemental['ru-ru'] ?? null)) {
             $messages = array_replace_recursive($messages, $supplemental['ru-ru']);
         }
-        if ($locale !== 'ru-ru' && is_array($supplemental[$locale] ?? null)) {
-            $messages = array_replace_recursive($messages, $supplemental[$locale]);
+        if ($localeName !== 'ru-ru' && is_array($supplemental[$localeName] ?? null)) {
+            $messages = array_replace_recursive($messages, $supplemental[$localeName]);
         }
     }
     $available = array_fill_keys($flatten($messages), true);
     $missing = array_diff(array_keys($references), array_keys($available));
     if ($missing === []) {
-        echo "[OK] {$locale}: all " . count($references) . " referenced keys are present\n";
+        echo "[OK] {$localeName}: all " . count($references) . " referenced keys are present\n";
         continue;
     }
 
     $failed = true;
-    echo "[FAIL] {$locale}: missing " . count($missing) . " key(s)\n";
+    echo "[FAIL] {$localeName}: missing " . count($missing) . " key(s)\n";
     foreach ($missing as $key) {
         $reference = $references[$key][0] ?? ['file' => '', 'line' => 0, 'fallback' => ''];
         printf("  - %s (%s:%d)\n", $key, $reference['file'], $reference['line']);
