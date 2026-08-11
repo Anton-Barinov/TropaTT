@@ -6408,7 +6408,7 @@ return array (
     'opt_theme_contrast' => 'High contrast',
     'hint_theme_contrast' => 'High contrast for comfortable reading',
     'opt_theme_sepia' => 'Sepia (warm)',
-    'note_theme' => 'Applies immediately after selection.',
+    'note_theme' => 'After choosing a theme, don\'t forget to press "Save changes".',
     'section_notifications' => 'Notifications',
     'note_notifications' => 'Alert channels and frequency of service notifications.',
     'setting_email_critical' => 'Email for critical tasks',

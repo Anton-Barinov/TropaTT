@@ -7518,7 +7518,7 @@ return array (
     'opt_theme_contrast' => 'Contraste élevé',
     'hint_theme_contrast' => 'Contraste élevé pour une lecture confortable',
     'opt_theme_sepia' => 'Sépia (chaude)',
-    'note_theme' => 'Appliqué immédiatement après la sélection.',
+    'note_theme' => 'Après avoir choisi le thème, n\'oubliez pas de cliquer sur « Enregistrer les modifications ».',
     'section_notifications' => 'Notifications',
     'note_notifications' => 'Canaux d\'alerte et fréquence des notifications de service.',
     'setting_email_critical' => 'E-mail pour les tâches critiques',
