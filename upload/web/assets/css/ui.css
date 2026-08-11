@@ -2277,8 +2277,8 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(2),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(2) {
-  width: 72px !important;
-  max-width: 72px !important;
+  width: 62px !important;
+  max-width: 62px !important;
   /* In fixed layout the generic .crm-table cell padding (14px 12px) is
      added to the column width and pushes the key badge into whitespace
      (105px for a ~58px badge). Slash the side padding so the column is
@@ -2289,18 +2289,18 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(3),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(3) {
-  width: 25%;
+  width: 22%;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
-  width: 230px !important;
-  max-width: 240px !important;
+  width: 260px !important;
+  max-width: 280px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
-  width: 150px !important;
+  width: 145px !important;
   max-width: 180px !important;
 }
 
