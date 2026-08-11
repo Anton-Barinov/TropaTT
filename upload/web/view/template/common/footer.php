@@ -6,6 +6,12 @@ $assetsVersion = isset($assetsVersion) ? (string)$assetsVersion : '';
 if ($assetsVersion === '') {
   $assetsVersion = trim((string)getenv('CRM_WEB_ASSETS_VERSION'));
 }
+// URL base of the install root that holds modules/ (sibling of the web app).
+// Fallback keeps the footer usable standalone (e.g. cron/CLI contexts) with
+// the domain-root default; in the normal page flow header.php derives it
+// from SCRIPT_NAME so subdirectory installs point at their own modules/
+// directory. Module asset paths already start with 'modules/'.
+$modulesBase = isset($modulesBase) && $modulesBase !== '' ? $modulesBase : '/';
 if ($assetsVersion === '') {
   $deployHashFile = dirname(__DIR__, 3) . '/DEPLOY_HASH';
   if (is_file($deployHashFile)) {
@@ -169,7 +175,7 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <script defer src="assets/js/app.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php foreach (($module_js_files ?? []) as $jsFile): ?>
-<script defer src="/<?= htmlspecialchars($jsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($jsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endforeach; ?>
 <?php
 $currentModuleJsFile = '';
@@ -178,7 +184,7 @@ if (isset($module_js_routes) && is_array($module_js_routes) && isset($module_js_
 }
 ?>
 <?php if ($currentModuleJsFile !== ''): ?>
-<script defer src="/<?= htmlspecialchars($currentModuleJsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
+<script defer src="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($currentModuleJsFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if (isset($module_js_routes) && $module_js_routes !== []): ?>
 <script>

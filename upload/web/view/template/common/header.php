@@ -53,6 +53,19 @@ if ($webScriptName !== '') {
   $webBaseDir = rtrim(str_replace('index.php', '', $webScriptName), '/');
   $webBase = ($webBaseDir !== '' ? $webBaseDir : '') . '/';
 }
+// URL base of the install root that holds modules/. Modules live one
+// directory above the web app, so the base is '/' at the domain root and
+// '/crm/' in a subdirectory install — the same sibling relationship the API
+// entry point has with the web app. Module asset paths already start with
+// 'modules/', so prepending this base yields '/modules/...' or
+// '/crm/modules/...'. Deriving it from SCRIPT_NAME keeps every install
+// (domain root or any sub-path) pointing at its own modules/ directory
+// instead of hardcoding '/modules/' (which silently breaks subdirectory
+// installs).
+$modulesBase = '/';
+if (isset($webBaseDir) && $webBaseDir !== '') {
+  $modulesBase = rtrim(dirname($webBaseDir), '/') . '/';
+}
 // URL of the API entry point relative to the site root. The API lives one
 // directory above the web app ('/api/index.php' at the domain root,
 // '/crm/api/index.php' in a subdirectory install). Exposed to the JS client
@@ -130,7 +143,7 @@ if (is_file($jsOverridesPath)) {
   <link rel="stylesheet" href="assets/css/visual-editor.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/themes.css?v=<?= urlencode($assetsVersion) ?>">
   <?php foreach (($module_css_files ?? []) as $cssFile): ?>
-  <link rel="stylesheet" href="<?= htmlspecialchars($webBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars($modulesBase, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>?v=<?= urlencode($assetsVersion) ?>">
   <?php endforeach; ?>
   <script>
     window.CRM = window.CRM || {};
