@@ -374,6 +374,13 @@ function pwaTrimRuntimeCache(cache) {
 }
 
 self.addEventListener('install', function (event) {
+  // Skip the waiting state: a freshly installed worker activates right away
+  // (instead of waiting for the old worker to be released on the next page
+  // load), so the update applies immediately and the activate handler prunes
+  // the previous version's cache at once instead of leaving it behind.
+  if (self.skipWaiting) {
+    self.skipWaiting();
+  }
   if (!self.caches) return;
   var version = pwaVersionFromUrl();
   event.waitUntil(

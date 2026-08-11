@@ -22,6 +22,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- PWA updates now apply immediately: the service worker calls `skipWaiting()` on install, so a freshly deployed worker activates right away and prunes the previous version's cache instead of leaving it behind until the user's next page load (three stale version caches were observed in the wild after three deploys).
+
 - PWA offline navigations now show the «Вы офлайн» page immediately instead of burning the whole retry budget (3+5+8 s of waiting) on a connection that the browser already reports as missing.
 
 - PWA install button: the `beforeinstallprompt` event is consumed on the first click, so a second click can no longer call `prompt()` on an already-used prompt (which throws `InvalidStateError`); any `userChoice` rejection is swallowed.
