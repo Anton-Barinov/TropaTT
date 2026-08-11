@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- Tasks list (list view) table: the task column header now offers a second sort button "Проект" (`sort=project_title`), since the project lives in the task column after the recent merge. The API accepts `project_title` in the tasks sort allowlist and orders by the joined projects title.
+
 - Tasks list (list view) table: the "Проект" (project) column is merged into the task column — the project now renders as a muted folder link right after the parent link under the task title. The tasks table now has 6 columns instead of 7 (checkbox, key, task, people, state, actions).
 
 - Tasks list (list view) table: the "Срок" (due) column is merged into the status/priority column, forming one "Срок / Статус / Приоритет" header with three sort buttons. The tasks table now has 7 columns instead of 8; the due date renders as a muted line above the status badge and priority chip.

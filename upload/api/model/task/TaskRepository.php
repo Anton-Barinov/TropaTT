@@ -19,7 +19,9 @@ final class TaskRepository
 
     public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
     {
-        $sort = in_array(($filters['sort'] ?? ''), ['title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'], true) ? (string)$filters['sort'] : 'updated_at';
+        $sort = in_array(($filters['sort'] ?? ''), ['title', 'project_title', 'due_at', 'created_at', 'updated_at', 'status_code', 'priority_code'], true) ? (string)$filters['sort'] : 'updated_at';
+        // project_title lives on the joined projects row, not on tasks.
+        $sortColumn = $sort === 'project_title' ? 'p.title' : 't.' . $sort;
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
         $paginationMode = (($filters['pagination_mode'] ?? '') === 'cursor' || !empty($filters['cursor'])) ? 'cursor' : 'offset';
         $requestedLimit = (int)($filters['limit'] ?? 20);
@@ -106,7 +108,7 @@ final class TaskRepository
                   WHERE pmt.task_id = t.id AND pmt.deleted_at IS NULL AND pm.deleted_at IS NULL
                 ) AS modules",
             ])
-            ->orderBy('t.' . $sort, $order)
+            ->orderBy($sortColumn, $order)
             ->orderBy('t.public_id', $order);
 
         if ($paginationMode === 'cursor') {
