@@ -8,7 +8,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
-- Tasks list (list view) table: the «Клиент / Менеджер / Исполнитель» column is widened (110px → 170px, cap 200px) so long client names like «ТОО АлматыСтройМонтаж» are no longer ellipsized; the task column yields the space (36% → 31%) and the state column is trimmed 160px → 150px, so the table still fits without horizontal scrolling.
+- Tasks list (list view) table: the «Клиент / Менеджер / Исполнитель» column is widened (110px → 170px → 230px, cap 240px) so long client names like «ТОО АлматыСтройМонтаж» and assignee names are no longer ellipsized; the key column is narrowed to 72px (still fits the badge and the «Ключ ▲» sort header) and the task column yields the space (36% → 31% → 25%), so the table still fits without horizontal scrolling.
 
 ### Fixed
 
