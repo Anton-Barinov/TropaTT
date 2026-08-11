@@ -7516,6 +7516,7 @@ return array (
     'opt_theme_light' => 'Standard (hell)',
     'opt_theme_dark' => 'Dunkel',
     'opt_theme_contrast' => 'Hoher Kontrast',
+    'hint_theme_contrast' => 'Hoher Kontrast für angenehmes Lesen',
     'opt_theme_sepia' => 'Sepia (warm)',
     'note_theme' => 'Wird sofort nach der Auswahl angewendet.',
     'section_notifications' => 'Benachrichtigungen',

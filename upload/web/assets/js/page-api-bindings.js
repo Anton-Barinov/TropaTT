@@ -12122,9 +12122,22 @@ window.CRM.pageApiBindings = (function () {
     if (tableDensitySelect) {
       tableDensitySelect.value = String(preferences.table_density || preferences.table_view_density || 'normal');
     }
+    // Show a short explanation under the theme select while the high-contrast
+    // scheme is active so users know what it gives them (see profile.hint_theme_contrast).
+    function updateThemeContrastHint() {
+      var hint = document.getElementById('profileThemeContrastHint');
+      if (!hint) return;
+      if (themeSelect && String(themeSelect.value || '') === 'contrast') {
+        hint.classList.remove('d-none');
+      } else {
+        hint.classList.add('d-none');
+      }
+    }
+
     if (themeSelect) {
       var currentTheme = String(preferences.theme || (window.CRM.theme ? window.CRM.theme.get() : 'light'));
       themeSelect.value = currentTheme;
+      updateThemeContrastHint();
       // Apply the server-side per-user theme immediately on profile load too —
       // this is the reliable cross-device sync point (covers the first login
       // on a new browser, when the login-time preferences fetch may be aborted
@@ -12137,6 +12150,7 @@ window.CRM.pageApiBindings = (function () {
       }
       if (themeSelect.dataset.bound !== '1') {
         themeSelect.addEventListener('change', function () {
+          updateThemeContrastHint();
           if (window.CRM.theme) {
             window.CRM.theme.apply(themeSelect.value);
           }
