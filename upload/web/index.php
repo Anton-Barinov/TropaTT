@@ -680,4 +680,18 @@ $router = new Web\System\Core\Router($routes, $baseDir);
 
 crmWebInitModuleSystem($baseDir, $router);
 
-$router->dispatch($route);
+try {
+    $router->dispatch($route);
+} catch (\Throwable $e) {
+    // A page failed to render (PHP exception, DB hiccup, FPM blip). Instead of
+    // a bare 500 screen, serve a lightweight recoverable page that retries the
+    // navigation on its own a few times and then offers a manual refresh. The
+    // service worker (/web/push-sw.js) already retries navigations before this
+    // code even runs on browsers where it is registered; this catch is the
+    // fallback for every other environment (no SW, first load, login page).
+    error_log('[web] page render failed (' . $route . '): ' . $e->getMessage());
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    echo \Web\System\I18n\EarlyResponse::serverErrorPage($baseDir);
+    exit;
+}
