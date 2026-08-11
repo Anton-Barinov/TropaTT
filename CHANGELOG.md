@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- Tasks list (list view) table: the «Ключ» column is now truly content-sized — the generic table cell padding (14px 12px) was added on top of the fixed 96px width in fixed table layout, so the column rendered ~105px against ~58px key badges. The column is narrowed to 88px with 4px side padding and `white-space: nowrap`, so it fits the badge with a few px of air instead of a 47px dead zone.
+
 - In-page retry status bar ("Повторная попытка загрузки данных…") now resolves its translation correctly in every locale: the `retrying_data` key was missing from the `js.notify` client-message namespace (it only existed in the unused `page` namespace), so the i18n lookup silently fell back to the English source string "Retrying data load…" for non-English users. The key is now present in `js.notify` in all 7 language files, and a regression test guards all of them.
 
 ### Changed
