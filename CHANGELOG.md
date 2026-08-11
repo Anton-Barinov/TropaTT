@@ -7,6 +7,7 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 ## Unreleased
 
 ### Fixed
+- Module scheduler no longer duplicates scheduled tasks on every API request: `ModuleCronScheduler::registerTask()` is now idempotent (updates the existing row instead of inserting a new one) and a UNIQUE index on `(module_name, task_name)` plus an automatic de-duplication step in `ensureTables()` collapse rows already duplicated by older builds. Previously `module_scheduled_tasks` grew by 4 rows per request (hundreds of thousands of rows on active installs).
 - Service-worker retry page (shown after automatic page re-requests fail on a network-level error) now follows the CRM locale the user chose (the `crm_locale` cookie) instead of only the browser's Accept-Language, so Russian users with an English-first browser see the retry page in Russian. Accept-Language is now also parsed by q-priority as a fallback.
 
 ### Added

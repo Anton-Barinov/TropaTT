@@ -47,12 +47,46 @@ final class ModuleCronScheduler
 
     /**
      * Register a scheduled task from a module's ServiceProvider.
+     *
+     * Idempotent: exactly one row per (module_name, task_name). Older builds
+     * called this with a plain INSERT and no unique constraint on every API
+     * request, so module_scheduled_tasks accumulated one duplicate row per
+     * request (hundreds of thousands of rows on active installs). We now look
+     * the task up first, update it in place when it exists, and drop any
+     * leftover duplicates so the table converges to one row per task.
      */
     public function registerTask(string $moduleName, ScheduledTask $task): void
     {
         try {
-            $nextRun = $this->parser->getNextRunDate($task->schedule);
             $now = gmdate('Y-m-d H:i:s');
+
+            $existing = $this->pdo->prepare("SELECT id FROM {$this->tasksTable} WHERE module_name = :module AND task_name = :task LIMIT 1");
+            $existing->execute(['module' => $moduleName, 'task' => $task->name]);
+            $existingId = $existing->fetchColumn();
+
+            if ($existingId !== false) {
+                $nextRun = $this->parser->getNextRunDate($task->schedule);
+                $stmt = $this->pdo->prepare("UPDATE {$this->tasksTable} SET description = :desc, schedule = :schedule, handler_class = :class, handler_method = :method, enabled = :enabled, timeout = :timeout, overlap_allowed = :overlap, next_run_at = :next, updated_at = :updated WHERE id = :id");
+                $stmt->execute([
+                    'desc' => $task->description,
+                    'schedule' => $task->schedule,
+                    'class' => $task->handler[0],
+                    'method' => $task->handler[1],
+                    'enabled' => $task->enabled ? 1 : 0,
+                    'timeout' => $task->timeout,
+                    'overlap' => $task->overlapAllowed ? 1 : 0,
+                    'next' => $nextRun->format('Y-m-d H:i:s'),
+                    'updated' => $now,
+                    'id' => $existingId,
+                ]);
+
+                // Collapse duplicates created by older non-idempotent builds.
+                $dup = $this->pdo->prepare("DELETE FROM {$this->tasksTable} WHERE module_name = :module AND task_name = :task AND id <> :id");
+                $dup->execute(['module' => $moduleName, 'task' => $task->name, 'id' => $existingId]);
+                return;
+            }
+
+            $nextRun = $this->parser->getNextRunDate($task->schedule);
 
             $stmt = $this->pdo->prepare("INSERT INTO {$this->tasksTable} (module_name, task_name, description, schedule, handler_class, handler_method, enabled, timeout, overlap_allowed, last_run_at, next_run_at, created_at, updated_at) VALUES (:module, :task, :desc, :schedule, :class, :method, :enabled, :timeout, :overlap, NULL, :next, :created_at, :updated_at)");
             $stmt->execute([
@@ -74,6 +108,8 @@ final class ModuleCronScheduler
             if ($code !== '23000' && !str_contains($e->getMessage(), 'Duplicate') && !str_contains($e->getMessage(), 'UNIQUE')) {
                 throw $e;
             }
+            // Unique-index race: another request registered the same task just
+            // before us — the row already exists, nothing further to do.
         }
     }
 
@@ -143,8 +179,43 @@ final class ModuleCronScheduler
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'idx_scheduled_tasks_next', 'next_run_at, enabled');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'idx_scheduled_tasks_module', 'module_name');
             IndexHelper::createIndexIfNotExists($this->pdo, $this->executionsTable, 'idx_task_executions_module', 'module_name, task_name, started_at');
+
+            // Idempotency guarantee for registerTask(): one row per
+            // (module_name, task_name). Duplicates left by older builds must
+            // be collapsed first or the unique index cannot be created.
+            $this->dedupeScheduledTasks();
+            IndexHelper::createIndexIfNotExists($this->pdo, $this->tasksTable, 'uq_scheduled_tasks_module_task', 'module_name, task_name', true);
         } catch (\Throwable $e) {
             error_log('[ModuleCronScheduler::ensureTables] index creation failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete duplicate scheduled-task rows, keeping only the oldest row per
+     * (module_name, task_name). No-op once the table is already unique.
+     */
+    private function dedupeScheduledTasks(): void
+    {
+        try {
+            // Portable duplicate detection: COUNT(DISTINCT a, b) is not
+            // supported on SQLite, so count groups with more than one row.
+            $stmt = $this->pdo->query("SELECT COUNT(*) FROM (SELECT 1 FROM {$this->tasksTable} GROUP BY module_name, task_name HAVING COUNT(*) > 1) AS dupes");
+            $duplicates = (int)$stmt->fetchColumn();
+            if ($duplicates <= 0) {
+                return;
+            }
+
+            $keep = $this->pdo->query("SELECT MIN(id) FROM {$this->tasksTable} GROUP BY module_name, task_name");
+            $ids = $keep->fetchAll(PDO::FETCH_COLUMN);
+            if ($ids === []) {
+                return;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $del = $this->pdo->prepare("DELETE FROM {$this->tasksTable} WHERE id NOT IN ({$placeholders})");
+            $del->execute($ids);
+        } catch (\Throwable $e) {
+            error_log('[ModuleCronScheduler::dedupeScheduledTasks] ' . $e->getMessage());
         }
     }
 
