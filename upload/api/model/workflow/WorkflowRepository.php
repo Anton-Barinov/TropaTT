@@ -255,12 +255,17 @@ final class WorkflowRepository
         return array_values(array_unique($ids));
     }
 
+    /**
+     * Manager of the project the task belongs to (the tasks table itself has
+     * no manager column — the task's manager is the project manager).
+     */
     public function taskManagerUserId(string $taskPublicId): ?int
     {
         $row = (new QueryBuilder($this->pdo))
-            ->from('tasks')
-            ->select(['manager_user_id'])
-            ->where('public_id', '=', $taskPublicId)
+            ->from('tasks t')
+            ->leftJoin('projects p', 'p.id', '=', 't.project_id')
+            ->select(['p.manager_user_id'])
+            ->where('t.public_id', '=', $taskPublicId)
             ->first();
         $id = $row['manager_user_id'] ?? 0;
 

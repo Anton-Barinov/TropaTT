@@ -393,8 +393,8 @@ final class WorkflowService
                     $explicitManagers = $this->resolveUserIds($payload['manager_user_public_ids'] ?? []);
                     $recipients = $explicitManagers !== [] ? $explicitManagers : $this->resolveManagerIds($context);
                     if ($recipients !== []) {
-                        $managerTitle = $this->interpolate((string)($payload['title'] ?: $this->t('workflow/messages.manager_notification_title')), $context);
-                        $managerBody = $this->interpolate((string)($payload['body'] ?: $this->t('workflow/messages.manager_notification_body')), $context);
+                        $managerTitle = $this->interpolate((string)(($payload['title'] ?? '') ?: $this->t('workflow/messages.manager_notification_title')), $context);
+                        $managerBody = $this->interpolate((string)(($payload['body'] ?? '') ?: $this->t('workflow/messages.manager_notification_body')), $context);
                         $taskPublicId = (string)($context['task_public_id'] ?? '');
                         if ($this->notification !== null) {
                             $this->notification->notifyUsers($recipients, [
