@@ -22,16 +22,26 @@ window.CRM.pwa = (function () {
     return !!(body && body.getAttribute('data-protected') === '1');
   }
 
+  // The URL directory of the web app ('/web/' at the domain root, '/crm/web/'
+  // in a subdirectory install). Every install is a separate origin and gets
+  // its own correctly-scoped service worker — the same codebase must work on
+  // any domain/sub-path without hardcoding '/web/'.
+  function webBase() {
+    var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    var base = String((cfg.webBase || '') || '').trim();
+    return base !== '' ? base : '/web/';
+  }
+
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
     try {
       var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
       var version = String((cfg.assetsVersion || '') || '').trim();
-      var swUrl = '/web/push-sw.js';
+      var swUrl = webBase() + 'push-sw.js';
       if (version) {
         swUrl += '?v=' + encodeURIComponent(version);
       }
-      return navigator.serviceWorker.register(swUrl, { scope: '/web/' });
+      return navigator.serviceWorker.register(swUrl, { scope: webBase() });
     } catch (e) {
       return null;
     }

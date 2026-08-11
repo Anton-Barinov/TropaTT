@@ -42,6 +42,17 @@ if ($assetsVersion !== '') {
 } else {
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
 }
+// URL directory of the web app, e.g. '/web/' when the CRM sits at the domain
+// root or '/crm/web/' when it is installed in a subdirectory. The PWA client
+// (pwa.js / notifications-push.js) derives the service worker URL and scope
+// from this, so every install — on any domain or sub-path — gets its own
+// correctly-scoped PWA without hardcoding '/web/'.
+$webBase = '/';
+$webScriptName = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+if ($webScriptName !== '') {
+  $webBaseDir = rtrim(str_replace('index.php', '', $webScriptName), '/');
+  $webBase = ($webBaseDir !== '' ? $webBaseDir : '') . '/';
+}
 $jsOverridesPath = dirname(__DIR__, 3) . '/language/js_overrides.php';
 if (is_file($jsOverridesPath)) {
   $jsOverrides = require $jsOverridesPath;
@@ -141,5 +152,6 @@ if (is_file($jsOverridesPath)) {
     window.CRM.config.assetsVersion = <?= json_encode($assetsVersion, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.pushVapidPublicKey = <?= json_encode($vapidPublicKey, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.realtimeTransport = <?= json_encode($realtimeTransport, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.webBase = <?= json_encode($webBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
 </head>

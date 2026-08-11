@@ -9,8 +9,8 @@ self.addEventListener('push', function (event) {
   var title = String(payload.title || 'Новое уведомление');
   var options = {
     body: String(payload.body || ''),
-    icon: '/web/assets/favicon.svg',
-    badge: '/web/assets/favicon.svg',
+    icon: pwaWebRoot() + 'assets/favicon.svg',
+    badge: pwaWebRoot() + 'assets/favicon.svg',
     data: {
       link: String(payload.link || 'index.php?route=notifications'),
       notification_public_id: String(payload.notification_public_id || '')
@@ -240,7 +240,10 @@ self.addEventListener('fetch', function (event) {
     return;
   }
   if (requestUrl.origin !== self.location.origin) return;
-  if (requestUrl.pathname.indexOf('/web/') === -1 && requestUrl.pathname.indexOf('/web') !== 0) return;
+  // Only page loads inside this install's web directory (e.g. '/web/' at the
+  // domain root, '/crm/web/' in a subdirectory install) are intercepted — the
+  // CRM must work identically on every domain and sub-path.
+  if (requestUrl.pathname.indexOf(pwaWebRoot()) !== 0) return;
 
   event.respondWith(pageRetryNavigation(request));
 });
@@ -268,53 +271,74 @@ function pwaVersionFromUrl() {
   return m ? decodeURIComponent(m[1]) : '';
 }
 
+// The URL directory this service worker lives in — derived from its own
+// script path, so the same worker works on any install: '/web/' at the domain
+// root, '/crm/web/' in a subdirectory, etc. Everything below (precache,
+// static-asset detection, navigation scope, notification icons) is relative to
+// this root instead of hardcoding '/web/'.
+function pwaWebRoot() {
+  var p = String((self.location && self.location.pathname) || '');
+  var m = /^(.*\/)push-sw\.js/.exec(p);
+  return m ? m[1] : '/web/';
+}
+
+// The site root above the web app (the directory that holds both /web and
+// /api): '/web/' -> '/', '/crm/web/' -> '/crm/'. Used to exclude the API,
+// uploads and the updater from caching no matter where the CRM is installed.
+function pwaSiteRoot() {
+  var site = pwaWebRoot().replace(/web\/$/, '');
+  return site === '' ? '/' : site;
+}
+
 function pwaCacheName(version) {
   var v = String(version || '') || pwaVersionFromUrl();
   return v === '' ? PWA_CACHE_PREFIX : PWA_CACHE_PREFIX + '-' + v;
 }
 
 function pwaPrecachePaths() {
+  // Relative to the web root (pwaWebRoot()), so the same list works on any
+  // domain/sub-path install.
   return [
-    '/web/assets/favicon.svg',
-    '/web/assets/icons/icon-192.png',
-    '/web/assets/icons/icon-512.png',
-    '/web/assets/css/bootstrap.min.css',
-    '/web/assets/vendor/fontawesome/css/all.min.css',
-    '/web/assets/css/tokens.css',
-    '/web/assets/css/layout.css',
-    '/web/assets/css/components.css',
-    '/web/assets/css/pages.css',
-    '/web/assets/css/animations.css',
-    '/web/assets/css/responsive.css',
-    '/web/assets/css/ui.css',
-    '/web/assets/css/visual-editor.css',
-    '/web/assets/css/themes.css',
-    '/web/assets/vendor/bootstrap/bootstrap.bundle.min.js',
-    '/web/assets/js/api.js',
-    '/web/assets/js/i18n.js',
-    '/web/assets/js/tab-leader.js',
-    '/web/assets/js/navigation.js',
-    '/web/assets/js/ui.js',
-    '/web/assets/js/modals.js',
-    '/web/assets/js/drawers.js',
-    '/web/assets/js/tabs.js',
-    '/web/assets/js/filters.js',
-    '/web/assets/js/tables.js',
-    '/web/assets/js/text-utils.js',
-    '/web/assets/js/error-utils.js',
-    '/web/assets/js/list-utils.js',
-    '/web/assets/js/notifications.js',
-    '/web/assets/js/visual-editor.js',
-    '/web/assets/js/br1.js',
-    '/web/assets/js/page-api-bindings.js',
-    '/web/assets/js/app.js'
+    'assets/favicon.svg',
+    'assets/icons/icon-192.png',
+    'assets/icons/icon-512.png',
+    'assets/css/bootstrap.min.css',
+    'assets/vendor/fontawesome/css/all.min.css',
+    'assets/css/tokens.css',
+    'assets/css/layout.css',
+    'assets/css/components.css',
+    'assets/css/pages.css',
+    'assets/css/animations.css',
+    'assets/css/responsive.css',
+    'assets/css/ui.css',
+    'assets/css/visual-editor.css',
+    'assets/css/themes.css',
+    'assets/vendor/bootstrap/bootstrap.bundle.min.js',
+    'assets/js/api.js',
+    'assets/js/i18n.js',
+    'assets/js/tab-leader.js',
+    'assets/js/navigation.js',
+    'assets/js/ui.js',
+    'assets/js/modals.js',
+    'assets/js/drawers.js',
+    'assets/js/tabs.js',
+    'assets/js/filters.js',
+    'assets/js/tables.js',
+    'assets/js/text-utils.js',
+    'assets/js/error-utils.js',
+    'assets/js/list-utils.js',
+    'assets/js/notifications.js',
+    'assets/js/visual-editor.js',
+    'assets/js/br1.js',
+    'assets/js/page-api-bindings.js',
+    'assets/js/app.js'
   ];
 }
 
 function pwaBuildAssetUrl(path, version) {
   var p = String(path || '');
-  if (p.charAt(0) !== '/') p = '/' + p;
-  var url = self.location.origin + p;
+  if (p.charAt(0) === '/') p = p.slice(1);
+  var url = self.location.origin + pwaWebRoot() + p;
   var v = String(version || '') || pwaVersionFromUrl();
   return v === '' ? url : url + (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(v);
 }
@@ -328,11 +352,12 @@ function pwaIsStaticAsset(urlString) {
   }
   if (url.origin !== self.location.origin) return false;
   var path = url.pathname;
-  if (path.indexOf('/api/') === 0) return false;      // API responses are never cached (sensitive)
-  if (path.indexOf('/storage') === 0) return false;   // user uploads/downloads
-  if (path.indexOf('/updater') === 0) return false;   // update packages
-  if (path === '/web/install.php') return false;      // installer
-  return path.indexOf('/web/assets/') === 0;          // versioned app-shell assets
+  var siteRoot = pwaSiteRoot();
+  if (path.indexOf(siteRoot + 'api/') === 0) return false;      // API responses are never cached (sensitive)
+  if (path.indexOf(siteRoot + 'storage') === 0) return false;   // user uploads/downloads
+  if (path.indexOf(siteRoot + 'updater') === 0) return false;   // update packages
+  if (path === pwaWebRoot() + 'install.php') return false;      // installer
+  return path.indexOf(pwaWebRoot() + 'assets/') === 0;          // versioned app-shell assets
 }
 
 function pwaTrimRuntimeCache(cache) {

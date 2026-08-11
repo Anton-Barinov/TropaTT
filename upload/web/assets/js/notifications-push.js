@@ -68,16 +68,26 @@ window.CRM.notificationsPush = (function () {
     return key;
   }
 
+  // URL directory of the web app ('/web/' at the domain root, '/crm/web/' in
+  // a subdirectory install) — the service worker is registered at the same
+  // place the PWA client registers it, so every install gets its own
+  // correctly-scoped worker.
+  function webBase() {
+    var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    var base = String((cfg.webBase || '') || '').trim();
+    return base !== '' ? base : '/web/';
+  }
+
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
     try {
       var cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
       var version = String((cfg.assetsVersion || '') || '').trim();
-      var swUrl = '/web/push-sw.js';
+      var swUrl = webBase() + 'push-sw.js';
       if (version) {
         swUrl += '?v=' + encodeURIComponent(version);
       }
-      swRegistration = await navigator.serviceWorker.register(swUrl, { scope: '/web/' });
+      swRegistration = await navigator.serviceWorker.register(swUrl, { scope: webBase() });
       return swRegistration;
     } catch (e) {
       return null;
@@ -129,8 +139,8 @@ window.CRM.notificationsPush = (function () {
       title: title,
       options: {
         body: body,
-        icon: '/web/assets/favicon.svg',
-        badge: '/web/assets/favicon.svg',
+        icon: webBase() + 'assets/favicon.svg',
+        badge: webBase() + 'assets/favicon.svg',
         tag: String(item && item.public_id ? item.public_id : ('ntf-' + Date.now())),
         renotify: false,
         data: {
