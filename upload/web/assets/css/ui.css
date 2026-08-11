@@ -2246,6 +2246,24 @@ textarea.form-control:focus {
   table-layout: fixed !important;
 }
 
+/* On narrower desktops/tablets the content area (sidebar 280px + padding)
+   drops below the 980px table, which forced an internal horizontal scroll
+   even at ~1200px viewport. The columns are capped, so shrinking the table
+   min-width scales the percentage task column and trims the capped columns
+   a little; everything stays readable and the wrapper (overflow-x: auto on
+   the table-responsive card) still scrolls gracefully at phone widths. */
+@media (max-width: 1199.98px) {
+  .crm-tasks-page [data-tasks-list-view] .crm-table {
+    min-width: 780px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .crm-tasks-page [data-tasks-list-view] .crm-table {
+    min-width: 660px;
+  }
+}
+
 /* Fixed layout + hard max-widths keep the narrow columns narrow: without the
    caps, fixed layout would inflate every column equally with the spare space.
    The task column (no cap) absorbs all of it, so the key column stays
