@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- Tasks list (list view) table: sorting headers show only the direction arrow (▲/▼) — the level-rank number (e.g. «Задача ▲1») is removed, while multi-level sorting itself keeps working.
+
 - Tasks list (list view) table: the «Действия» (actions) column is now right-aligned — the header text and the buttons sit flush against the right edge of the column.
 
 - Tasks list (list view) table: the «Ключ» (key) column no longer stretches to a leftover 32% width — the table now uses auto layout so every column sizes to its content. The key column is a narrow 96px (fits the key badge and the sort button with its rank arrow), the task column takes the freed space (36%), and the people column gets a bit more room (110px). The dead duplicate width rule was removed.

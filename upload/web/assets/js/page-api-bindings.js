@@ -3519,8 +3519,8 @@ window.CRM.pageApiBindings = (function () {
         var levelIndex = -1;
         sortLevels.forEach(function (l, i) { if (l.key === sortKey) levelIndex = i; });
         var arrow = levelIndex >= 0 ? (sortLevels[levelIndex].dir === 'ASC' ? ' ▲' : ' ▼') : '';
-        var rank = levelIndex >= 0 ? String(levelIndex + 1) : '';
-        btn.textContent = btn.textContent.replace(/\s[▲▼]\d*$/, '') + arrow + rank;
+        // Направление показывает стрелка; номер уровня сортировки не выводим.
+        btn.textContent = btn.textContent.replace(/\s[▲▼]\d*$/, '') + arrow;
         if (btn.dataset.bound === '1') return;
         btn.addEventListener('click', function () {
           // Многоуровневая сортировка: клик добавляет уровень (ASC), повторный
