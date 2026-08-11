@@ -230,6 +230,9 @@ final class WorkflowRepository
 
     /**
      * Manager user IDs of every team the given user is a member of.
+     *
+     * member_user_ids is a JSON array of numbers (e.g. `[2, 15]`) so a string
+     * LIKE pattern would be unreliable — decode and compare in PHP instead.
      * @return int[]
      */
     public function findManagerIdsByMember(int $memberUserId): array
@@ -240,12 +243,14 @@ final class WorkflowRepository
 
         $rows = (new QueryBuilder($this->pdo))
             ->from('teams')
-            ->select(['manager_user_id'])
-            ->whereRaw('member_user_ids LIKE ?', ['%"' . $memberUserId . '"%'])
+            ->select(['manager_user_id', 'member_user_ids'])
             ->get();
 
         $ids = [];
         foreach ($rows as $row) {
+            if (!in_array($memberUserId, $this->decodeTeamMemberIds($row['member_user_ids'] ?? null), true)) {
+                continue;
+            }
             $managerId = (int)($row['manager_user_id'] ?? 0);
             if ($managerId > 0) {
                 $ids[] = $managerId;
@@ -253,6 +258,24 @@ final class WorkflowRepository
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /** @return int[] */
+    private function decodeTeamMemberIds(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode((string)$raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $decoded),
+            static fn(int $value): bool => $value > 0
+        )));
     }
 
     /**

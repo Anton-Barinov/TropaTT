@@ -125,10 +125,22 @@ final class WorkflowService
         }
 
         $context = $this->testContext($input, $actor);
+        $payload = $this->decodePayload($rule['payload'] ?? []);
+        if (($rule['trigger_code'] ?? '') === 'worklog_logged') {
+            // Make the Test run produce meaningful {user}/{total}/{threshold}/{day}
+            // placeholders for time-tracking rules.
+            $context['user_id'] = (int)($actor['id'] ?? 0);
+            $context['user_public_id'] = (string)($actor['public_id'] ?? '');
+            $context['user_full_name'] = (string)($actor['full_name'] ?? '');
+            $context['minutes_spent'] = max(1, (int)($input['minutes_spent'] ?? 60));
+            $context['total_minutes'] = max(1, (int)($input['total_minutes'] ?? $context['minutes_spent']));
+            $context['threshold_minutes'] = max(1, (int)($payload['threshold_minutes'] ?? 0));
+            $context['day'] = (string)($input['day'] ?? gmdate('Y-m-d'));
+        }
         $result = $this->executeAction(
             (string)$rule['action_code'],
             (string)$rule['public_id'],
-            $this->decodePayload($rule['payload'] ?? []),
+            $payload,
             $context
         );
 
