@@ -1113,6 +1113,7 @@ final class App
             $c->get('policy.hierarchy'),
             $c->get('lang'),
             $c->get('service.notification'),
+            $c->get('repository.worklog'),
         ));
         $this->container->factory('service.sla', fn(Container $c) => new SlaService(
             $c->get('repository.sla')

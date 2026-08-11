@@ -228,6 +228,45 @@ final class WorkflowRepository
         return $id !== false ? (int)$id : null;
     }
 
+    /**
+     * Manager user IDs of every team the given user is a member of.
+     * @return int[]
+     */
+    public function findManagerIdsByMember(int $memberUserId): array
+    {
+        if ($memberUserId <= 0) {
+            return [];
+        }
+
+        $rows = (new QueryBuilder($this->pdo))
+            ->from('teams')
+            ->select(['manager_user_id'])
+            ->whereRaw('member_user_ids LIKE ?', ['%"' . $memberUserId . '"%'])
+            ->get();
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $managerId = (int)($row['manager_user_id'] ?? 0);
+            if ($managerId > 0) {
+                $ids[] = $managerId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    public function taskManagerUserId(string $taskPublicId): ?int
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('tasks')
+            ->select(['manager_user_id'])
+            ->where('public_id', '=', $taskPublicId)
+            ->first();
+        $id = $row['manager_user_id'] ?? 0;
+
+        return $id > 0 ? (int)$id : null;
+    }
+
     public function updateTaskField(string $taskPublicId, string $field, mixed $value): void
     {
         (new QueryBuilder($this->pdo))

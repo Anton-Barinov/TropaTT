@@ -86,8 +86,10 @@ final class WorklogRepository
             ->leftJoin('users u', 'u.id', '=', 'w.user_id')
             ->leftJoin('tasks t', 't.id', '=', 'w.task_id')
             ->select([
+                'w.id',
                 'w.public_id',
                 'w.minutes_spent',
+                'w.task_id',
                 'w.note',
                 'w.logged_at',
                 'w.started_at',
@@ -102,6 +104,37 @@ final class WorklogRepository
             ])
             ->where('w.public_id', '=', $publicId)
             ->first();
+    }
+
+    /**
+     * Raw worklog entries of a user on a UTC day, used to evaluate the
+     * time-tracking conditions of worklog_logged automation rules.
+     *
+     * @param int $userId worklog owner
+     * @param int|null $taskId task scope filter: 0 = no filter (all tasks),
+     *        null = only task-less entries, >0 = that task only
+     * @param string $day UTC date in Y-m-d format
+     * @return array<int,array<string,mixed>>
+     */
+    public function automationEntriesByDay(int $userId, ?int $taskId, string $day): array
+    {
+        $from = $day . ' 00:00:00';
+        $to = gmdate('Y-m-d H:i:s', strtotime($from) + 86400);
+        $qb = (new QueryBuilder($this->pdo))
+            ->from('work_logs')
+            ->select(['id', 'public_id', 'minutes_spent', 'started_at', 'ended_at', 'logged_at'])
+            ->where('user_id', '=', $userId)
+            ->where('logged_at', '>=', $from)
+            ->where('logged_at', '<', $to);
+
+        if ($taskId === null) {
+            $qb->whereNull('task_id');
+        } elseif ($taskId > 0) {
+            $qb->where('task_id', '=', $taskId);
+        }
+        // $taskId === 0: no task filter — every worklog of the user counts.
+
+        return $qb->get();
     }
 
     public function findUserByPublicId(string $publicId): ?array

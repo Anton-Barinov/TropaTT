@@ -88,8 +88,44 @@ final class WorklogController extends BaseController
         }
 
         $this->invalidateCache('worklog');
+        $this->fireWorklogTrigger($item, $authUser['user']);
 
         return $this->success('WORKLOG_CREATED', $this->t('worklog/messages.created'), ['worklog' => $item], 201);
+    }
+
+    /**
+     * Fire the worklog_logged automation trigger after a successful create or
+     * update, mirroring TaskController::fireWorkflowTrigger. The context carries
+     * everything worklog rules need: executor, task, minutes, exact interval and
+     * the UTC day used for the day/continuous windows.
+     */
+    private function fireWorklogTrigger(array $worklog, array $actor): void
+    {
+        try {
+            $wf = $this->container->get('service.workflow');
+            // The day window in WorklogRepository filters on logged_at, so the
+            // same field must define the day (matches analytics grouping too).
+            $day = gmdate('Y-m-d', (int)strtotime((string)($worklog['logged_at'] ?? 'now')));
+            $context = [
+                'worklog_id' => (int)($worklog['id'] ?? 0),
+                'worklog_public_id' => (string)($worklog['public_id'] ?? ''),
+                'task_id' => (int)($worklog['task_id'] ?? 0),
+                'task_public_id' => (string)($worklog['task_public_id'] ?? ''),
+                'task_title' => (string)($worklog['task_title'] ?? ''),
+                'user_id' => (int)($worklog['user_id'] ?? 0),
+                'user_public_id' => (string)($worklog['user_public_id'] ?? ''),
+                'user_full_name' => (string)($worklog['user_full_name'] ?? $worklog['user_login'] ?? ''),
+                'minutes_spent' => (int)($worklog['minutes_spent'] ?? 0),
+                'started_at' => (string)($worklog['started_at'] ?? ''),
+                'ended_at' => (string)($worklog['ended_at'] ?? ''),
+                'day' => $day,
+                'actor_id' => (int)($actor['id'] ?? 0),
+                'actor_public_id' => (string)($actor['public_id'] ?? ''),
+            ];
+            $wf->fireTrigger('worklog_logged', $context);
+        } catch (\Throwable $e) {
+            error_log('[WorklogController::fireWorklogTrigger] ' . $e->getMessage());
+        }
     }
 
     /**
@@ -183,6 +219,7 @@ final class WorklogController extends BaseController
         }
 
         $this->invalidateCache('worklog');
+        $this->fireWorklogTrigger($item, $authUser['user']);
 
         return $this->success('WORKLOG_UPDATED', $this->t('worklog/messages.updated'), ['worklog' => $item]);
     }

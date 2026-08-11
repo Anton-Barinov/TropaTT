@@ -21,6 +21,9 @@ return [
     'action_no_follow_up_title' => '未填写跟进任务名称',
     'action_invalid_webhook_url' => '请填写有效的 http/https Webhook URL',
     'action_no_task_for_sla' => '未选择 SLA 任务',
+    'action_no_manager' => '未找到执行人的负责人',
+    'manager_notification_title' => '长时间不间断工作',
+    'manager_notification_body' => '{user}：{day} 在任务「{task}」上记录了 {total} 分钟（阈值 {threshold} 分钟）。',
     'test_task_title' => '测试任务',
     'follow_up_description' => '由自动化规则从任务创建',
 ];

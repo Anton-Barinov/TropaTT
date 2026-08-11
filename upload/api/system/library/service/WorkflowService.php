@@ -5,6 +5,7 @@ namespace Api\System\Library\Service;
 
 use Api\Model\User\UserManagementRepository;
 use Api\Model\Workflow\WorkflowRepository;
+use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Policy\HierarchyPolicy;
@@ -20,6 +21,7 @@ final class WorkflowService
         private readonly HierarchyPolicy $hierarchy,
         LanguageManager $lang,
         private readonly ?NotificationService $notification = null,
+        private readonly ?WorklogRepository $worklogs = null,
     ) {
         $this->lang = $lang;
     }
@@ -256,7 +258,19 @@ final class WorkflowService
         foreach ($rules as $rule) {
             try {
                 $payload = $this->decodePayload($rule['payload'] ?? []);
-                if (!$this->matchesTriggerConditions($triggerCode, $payload, $context)) {
+                $ruleContext = $context;
+                if ($triggerCode === 'worklog_logged') {
+                    $evaluation = $this->evaluateWorklogTrigger($payload, $ruleContext);
+                    if (!$evaluation['matched']) {
+                        continue;
+                    }
+                    // Expose the computed stats to actions so notifications can
+                    // reference {total} / {threshold} placeholders.
+                    $ruleContext['total_minutes'] = $evaluation['after'];
+                    $ruleContext['threshold_minutes'] = $evaluation['threshold'];
+                    $ruleContext['window_type'] = $evaluation['window'];
+                    $ruleContext['scope'] = $evaluation['scope'];
+                } elseif (!$this->matchesTriggerConditions($triggerCode, $payload, $context)) {
                     continue;
                 }
 
@@ -264,7 +278,7 @@ final class WorkflowService
                     (string)$rule['action_code'],
                     (string)$rule['public_id'],
                     $payload,
-                    $context
+                    $ruleContext
                 );
                 $status = $runResult['success'] ? 'success' : 'failed';
 
@@ -290,6 +304,10 @@ final class WorkflowService
 
     private function matchesTriggerConditions(string $triggerCode, array $payload, array $context): bool
     {
+        if ($triggerCode === 'worklog_logged') {
+            return $this->evaluateWorklogTrigger($payload, $context)['matched'];
+        }
+
         if ($triggerCode !== 'task_status_changed') {
             return true;
         }
@@ -367,6 +385,32 @@ final class WorkflowService
                         return ['success' => true, 'error' => null];
                     }
                     return ['success' => false, 'error' => $this->t('workflow/messages.action_no_notification_recipient')];
+
+                case 'notify_manager':
+                    // Auto-resolve the executor's manager (team manager, then
+                    // the user's creator, then the task manager) unless the rule
+                    // pins explicit recipients.
+                    $explicitManagers = $this->resolveUserIds($payload['manager_user_public_ids'] ?? []);
+                    $recipients = $explicitManagers !== [] ? $explicitManagers : $this->resolveManagerIds($context);
+                    if ($recipients !== []) {
+                        $managerTitle = $this->interpolate((string)($payload['title'] ?: $this->t('workflow/messages.manager_notification_title')), $context);
+                        $managerBody = $this->interpolate((string)($payload['body'] ?: $this->t('workflow/messages.manager_notification_body')), $context);
+                        $taskPublicId = (string)($context['task_public_id'] ?? '');
+                        if ($this->notification !== null) {
+                            $this->notification->notifyUsers($recipients, [
+                                'category' => 'workflow',
+                                'title' => $managerTitle,
+                                'body' => $managerBody,
+                                'entity_type' => $taskPublicId !== '' ? 'task' : null,
+                                'entity_public_id' => $taskPublicId !== '' ? $taskPublicId : null,
+                                'action_code' => 'workflow',
+                            ]);
+                        } else {
+                            $this->workflow->createNotifications($recipients, $managerTitle, $managerBody, $taskPublicId);
+                        }
+                        return ['success' => true, 'error' => null];
+                    }
+                    return ['success' => false, 'error' => $this->t('workflow/messages.action_no_manager')];
 
                 case 'create_comment':
                     $commentText = trim((string)($payload['comment_text'] ?? $payload['comment'] ?? $payload['message'] ?? ''));
@@ -511,5 +555,206 @@ final class WorkflowService
             'task_tags' => array_map('trim', explode(',', (string)($input['task_tags'] ?? ''))),
             'is_test' => true,
         ];
+    }
+
+    /**
+     * Evaluate the time-tracking conditions of a worklog_logged rule.
+     *
+     * The rule fires exactly once per threshold crossing: the aggregated time
+     * before this entry is below the threshold and the total including it is
+     * at or above it. Later entries on the same day/scope do not re-fire.
+     *
+     * @return array{matched: bool, before: int, after: int, threshold: int, window: string, scope: string}
+     */
+    private function evaluateWorklogTrigger(array $payload, array $context): array
+    {
+        $threshold = max(1, (int)($payload['threshold_minutes'] ?? 480));
+        $window = (string)($payload['window_type'] ?? 'day');
+        $window = in_array($window, ['day', 'continuous'], true) ? $window : 'day';
+        $scope = (string)($payload['scope'] ?? 'task');
+        $scope = in_array($scope, ['task', 'user'], true) ? $scope : 'task';
+        $breakMinutes = max(0, (int)($payload['break_threshold_minutes'] ?? 90));
+
+        $failed = ['matched' => false, 'before' => 0, 'after' => 0, 'threshold' => $threshold, 'window' => $window, 'scope' => $scope];
+
+        try {
+            $conditionUsers = $payload['condition_user_public_ids'] ?? [];
+            if (is_array($conditionUsers) && $conditionUsers !== []) {
+                $executor = (string)($context['user_public_id'] ?? '');
+                if ($executor === '' || !in_array($executor, $conditionUsers, true)) {
+                    return $failed;
+                }
+            }
+
+            // Fail-closed: without the worklog repository the rule never fires.
+            if ($this->worklogs === null) {
+                return $failed;
+            }
+
+            $userId = (int)($context['user_id'] ?? 0);
+            $entryId = (int)($context['worklog_id'] ?? 0);
+            $entryMinutes = max(0, (int)($context['minutes_spent'] ?? 0));
+            if ($userId <= 0 || $entryMinutes <= 0) {
+                return $failed;
+            }
+
+            // Task scope: restrict to the entry's task (null = task-less group).
+            // User scope: aggregate across ALL tasks of the user (0 = no filter).
+            $taskId = $scope === 'task' ? ((int)($context['task_id'] ?? 0) ?: null) : 0;
+            $day = (string)($context['day'] ?? gmdate('Y-m-d'));
+            $entries = $this->worklogs->automationEntriesByDay($userId, $taskId, $day);
+
+            if ($window === 'continuous') {
+                [$before, $after] = self::continuousSessionTotals($entries, $entryId, $entryMinutes, $breakMinutes);
+            } else {
+                $before = 0;
+                foreach ($entries as $entry) {
+                    if ((int)($entry['id'] ?? 0) === $entryId) {
+                        continue;
+                    }
+                    $before += max(0, (int)($entry['minutes_spent'] ?? 0));
+                }
+                $after = $before + $entryMinutes;
+            }
+
+            $matched = $before < $threshold && $after >= $threshold;
+        } catch (\Throwable $e) {
+            error_log('[WorkflowService::evaluateWorklogTrigger] ' . $e->getMessage());
+            $matched = false;
+        }
+
+        return ['matched' => $matched, 'before' => $before ?? 0, 'after' => $after ?? 0, 'threshold' => $threshold, 'window' => $window, 'scope' => $scope];
+    }
+
+    /**
+     * Split a day's entries into continuous sessions and return the totals of
+     * the session containing $entryId as [before, after]. A gap above
+     * $breakMinutes between the previous entry's end and the next entry's start
+     * starts a new session. Entries without interval data cannot prove a break,
+     * so they continue the current session (conservative towards continuity).
+     *
+     * @param array<int,array<string,mixed>> $entries
+     * @return array{0: int, 1: int}
+     */
+    private static function continuousSessionTotals(array $entries, int $entryId, int $entryMinutes, int $breakMinutes): array
+    {
+        if ($entries === []) {
+            return [0, $entryMinutes];
+        }
+
+        usort($entries, static function (array $a, array $b): int {
+            $ta = strtotime((string)($a['started_at'] ?? $a['logged_at'] ?? ''));
+            $tb = strtotime((string)($b['started_at'] ?? $b['logged_at'] ?? ''));
+            if ($ta === false) {
+                $ta = PHP_INT_MAX;
+            }
+            if ($tb === false) {
+                $tb = PHP_INT_MAX;
+            }
+            if ($ta === $tb) {
+                return (int)($a['id'] ?? 0) <=> (int)($b['id'] ?? 0);
+            }
+            return $ta <=> $tb;
+        });
+
+        $sessionTotal = 0;
+        $prevEndTs = null;
+        $entrySession = null;
+        $breakSeconds = $breakMinutes * 60;
+
+        foreach ($entries as $entry) {
+            $startTs = strtotime((string)($entry['started_at'] ?? $entry['logged_at'] ?? ''));
+            $endTs = strtotime((string)($entry['ended_at'] ?? ''));
+            if ($startTs === false) {
+                $startTs = null;
+            }
+            if ($endTs === false) {
+                $endTs = null;
+            }
+
+            $gapOk = true;
+            if ($startTs !== null && $prevEndTs !== null) {
+                $gapOk = ($startTs - $prevEndTs) <= $breakSeconds;
+            }
+            if (!$gapOk) {
+                $sessionTotal = 0;
+                $prevEndTs = null;
+            }
+
+            $sessionTotal += max(0, (int)($entry['minutes_spent'] ?? 0));
+            if ($endTs !== null) {
+                $prevEndTs = max($prevEndTs ?? 0, $endTs);
+            } elseif ($startTs !== null) {
+                $prevEndTs = max($prevEndTs ?? 0, $startTs);
+            }
+
+            if ((int)($entry['id'] ?? 0) === $entryId) {
+                $entrySession = $sessionTotal;
+            }
+        }
+
+        if ($entrySession === null) {
+            $entrySession = $sessionTotal;
+        }
+
+        $before = $entrySession - $entryMinutes;
+        return [$before > 0 ? $before : 0, $entrySession];
+    }
+
+    /**
+     * Resolve the manager(s) of the executor referenced in the context:
+     * team managers, then the user's creator (hierarchy), then the task manager.
+     * The executor itself is never notified.
+     *
+     * @return int[]
+     */
+    private function resolveManagerIds(array $context): array
+    {
+        $executorId = (int)($context['user_id'] ?? $context['task_assignee_id'] ?? 0);
+        $ids = [];
+
+        if ($executorId > 0) {
+            foreach ($this->workflow->findManagerIdsByMember($executorId) as $managerId) {
+                if ((int)$managerId > 0) {
+                    $ids[] = (int)$managerId;
+                }
+            }
+            $user = $this->users->findById($executorId);
+            $creatorId = (int)($user['created_by_user_id'] ?? 0);
+            if ($creatorId > 0) {
+                $ids[] = $creatorId;
+            }
+        }
+
+        $taskPublicId = (string)($context['task_public_id'] ?? '');
+        if ($taskPublicId !== '') {
+            $taskManagerId = $this->workflow->taskManagerUserId($taskPublicId);
+            if ($taskManagerId !== null && $taskManagerId > 0) {
+                $ids[] = $taskManagerId;
+            }
+        }
+
+        return array_values(array_unique(array_filter(
+            $ids,
+            static fn(int $id): bool => $id > 0 && $id !== $executorId
+        )));
+    }
+
+    /**
+     * Replace {user} / {task} / {minutes} / {total} / {threshold} / {day}
+     * placeholders in notification texts with context values.
+     */
+    private function interpolate(string $text, array $context): string
+    {
+        $values = [
+            '{user}' => (string)($context['user_full_name'] ?? $context['user_login'] ?? ''),
+            '{task}' => (string)($context['task_title'] ?? ''),
+            '{minutes}' => (string)($context['minutes_spent'] ?? ''),
+            '{total}' => (string)($context['total_minutes'] ?? ''),
+            '{threshold}' => (string)($context['threshold_minutes'] ?? ''),
+            '{day}' => (string)($context['day'] ?? ''),
+        ];
+
+        return strtr($text, $values);
     }
 }

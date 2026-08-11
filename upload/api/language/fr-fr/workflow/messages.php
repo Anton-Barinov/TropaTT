@@ -21,6 +21,9 @@ return [
     'action_no_follow_up_title' => 'Titre de la tâche de suivi non spécifié',
     'action_invalid_webhook_url' => 'Fournir une URL webhook http/https valide',
     'action_no_task_for_sla' => 'Aucune tâche sélectionnée pour la SLA',
+    'action_no_manager' => 'Aucun responsable trouvé pour l\'exécutant',
+    'manager_notification_title' => 'Longue période de travail sans pause',
+    'manager_notification_body' => '{user} : {total} minutes enregistrées sur la tâche «{task}» le {day} (seuil {threshold} minutes).',
     'test_task_title' => 'Tâche de test',
     'follow_up_description' => 'Créé par la règle d\'automatisation depuis la tâche',
 ];

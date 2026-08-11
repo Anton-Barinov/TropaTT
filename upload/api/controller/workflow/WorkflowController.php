@@ -18,6 +18,7 @@ final class WorkflowController extends BaseController
         'deadline_reached',
         'project_archived',
         'user_created',
+        'worklog_logged',
     ];
 
     private const ACTIONS = [
@@ -29,6 +30,7 @@ final class WorkflowController extends BaseController
         'create_follow_up_task',
         'call_webhook',
         'escalate_sla',
+        'notify_manager',
     ];
 
     public function list(): \Api\System\Library\Http\JsonResponse

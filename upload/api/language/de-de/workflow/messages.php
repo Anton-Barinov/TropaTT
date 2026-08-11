@@ -21,6 +21,9 @@ return [
     'action_no_follow_up_title' => 'Follow-up task title not specified',
     'action_invalid_webhook_url' => 'Provide a valid http/https webhook URL',
     'action_no_task_for_sla' => 'No task selected for SLA',
+    'action_no_manager' => 'Kein Manager für den Ausführenden gefunden',
+    'manager_notification_title' => 'Lange Arbeit ohne Pause',
+    'manager_notification_body' => '{user}: {total} Minuten zur Aufgabe «{task}» am {day} erfasst (Schwelle {threshold} Minuten).',
     'test_task_title' => 'Test task',
     'follow_up_description' => 'Created by automation rule from task',
 ];

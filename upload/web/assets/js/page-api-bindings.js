@@ -26228,7 +26228,8 @@ window.CRM.pageApiBindings = (function () {
     var workflowTriggerLabels = {
       task_created: tp('workflow.trigger_task_created', 'Task created'),
       task_updated: tp('workflow.trigger_task_updated', 'Task updated'),
-      task_status_changed: tp('workflow.trigger_task_status_changed', 'Task status changed')
+      task_status_changed: tp('workflow.trigger_task_status_changed', 'Task status changed'),
+      worklog_logged: tp('workflow.trigger_worklog_logged', 'Time logged on task')
     };
     var workflowActionLabels = {
       change_status: tp('workflow.action_change_status', 'Change task status'),
@@ -26238,7 +26239,8 @@ window.CRM.pageApiBindings = (function () {
       create_follow_up_task: tp('workflow.action_create_follow_up_task', 'Create follow-up subtask'),
       call_webhook: tp('workflow.action_call_webhook', 'Call webhook'),
       escalate_sla: tp('workflow.action_escalate_sla', 'Escalate SLA'),
-      create_reminder: tp('workflow.action_create_reminder', 'Create reminder')
+      create_reminder: tp('workflow.action_create_reminder', 'Create reminder'),
+      notify_manager: tp('workflow.action_notify_manager', 'Notify the manager')
     };
     var workflowRules = [];
     var workflowUsers = [];
@@ -26285,6 +26287,17 @@ window.CRM.pageApiBindings = (function () {
       if (actionCode === 'create_reminder') return payload.remind_at ? (tp('workflow.summary_remind_prefix', 'Remind: ') + payload.remind_at) : tp('workflow.summary_one_hour', 'In 1 hour');
       if (actionCode === 'call_webhook') return payload.url ? String(payload.url) : tp('workflow.summary_url_empty', 'URL is not set');
       if (actionCode === 'escalate_sla') return tp('workflow.summary_escalate_sla', 'Mark SLA breach');
+      if (actionCode === 'notify_manager') {
+        var mUsers = Array.isArray(payload.manager_user_public_ids) ? payload.manager_user_public_ids : [];
+        var who = mUsers.length ? (tp('workflow.summary_managers_prefix', 'Managers: ') + mUsers.length) : tp('workflow.summary_manager_auto', 'Executor manager (auto)');
+        if (payload.threshold_minutes > 0) {
+          var th = (parseInt(payload.threshold_minutes, 10) / 60).toFixed(1).replace(/\.0$/, '');
+          var windowLabel = payload.window_type === 'continuous' ? tp('workflow.summary_window_continuous', 'no break') : tp('workflow.summary_window_day', 'per day');
+          var scopeLabel = payload.scope === 'user' ? tp('workflow.summary_scope_user', 'all user tasks') : tp('workflow.summary_scope_task', 'per task');
+          return who + ' · ' + th + ' h · ' + windowLabel + ' · ' + scopeLabel;
+        }
+        return who;
+      }
       return '—';
     }
     function optionHtml(value, label, selected) {
@@ -26333,6 +26346,11 @@ window.CRM.pageApiBindings = (function () {
       fillSelect(document.getElementById('workflowNotificationUsers'), workflowUsers, 'public_id', function (user) {
         return user.full_name || user.login || user.public_id || tp('workflow.user_fallback', 'User');
       }, '');
+      ['workflowConditionUsers', 'workflowManagerUsers'].forEach(function (id) {
+        fillSelect(document.getElementById(id), workflowUsers, 'public_id', function (user) {
+          return user.full_name || user.login || user.public_id || tp('workflow.user_fallback', 'User');
+        }, '');
+      });
       fillSelect(document.getElementById('workflowStatusCode'), workflowStatuses, 'code', function (status) {
         return status.title || status.code;
       }, tp('workflow.select_status', 'Select status'));
@@ -26381,6 +26399,14 @@ window.CRM.pageApiBindings = (function () {
           body: String((form.querySelector('[name="notification_body"]') || {}).value || '').trim()
         };
       }
+      if (actionCode === 'notify_manager') {
+        var managers = Array.prototype.slice.call((form.querySelector('[name="manager_user_public_ids"]') || {}).selectedOptions || []).map(function (option) { return option.value; }).filter(Boolean);
+        return {
+          manager_user_public_ids: managers,
+          title: String((form.querySelector('[name="manager_notification_title"]') || {}).value || '').trim(),
+          body: String((form.querySelector('[name="manager_notification_body"]') || {}).value || '').trim()
+        };
+      }
       if (actionCode === 'create_follow_up_task') {
         return {
           task_title: String((form.querySelector('[name="task_title"]') || {}).value || '').trim(),
@@ -26407,6 +26433,7 @@ window.CRM.pageApiBindings = (function () {
       if (data.action_code === 'send_notification' && (!Array.isArray(payload.recipient_user_public_ids) || !payload.recipient_user_public_ids.length)) return tp('workflow.validation_recipient', 'Select notification recipient');
       if (data.action_code === 'create_follow_up_task' && !payload.task_title) return tp('workflow.validation_subtask', 'Enter follow-up subtask title');
       if (data.action_code === 'call_webhook' && !/^https?:\/\//i.test(String(payload.url || ''))) return tp('workflow.validation_webhook', 'Enter a valid http/https webhook URL');
+      if (data.trigger_code === 'worklog_logged' && !(payload.threshold_minutes > 0)) return tp('workflow.validation_threshold', 'Specify the time threshold');
       return '';
     }
     function resetWorkflowForm(rule) {
@@ -26434,6 +26461,15 @@ window.CRM.pageApiBindings = (function () {
       form.querySelector('[name="from_status_code"]').value = String(payload.from_status_code || '');
       form.querySelector('[name="to_status_code"]').value = String(payload.to_status_code || '');
       form.querySelector('[name="condition_tag_public_id"]').value = String(payload.condition_tag_public_id || '');
+      form.querySelector('[name="window_type"]').value = String(payload.window_type || 'day');
+      form.querySelector('[name="scope"]').value = String(payload.scope || 'task');
+      var thresholdMinutes = parseInt(payload.threshold_minutes || '480', 10);
+      form.querySelector('[name="threshold_hours"]').value = String((thresholdMinutes / 60).toFixed(1).replace(/\.0$/, ''));
+      form.querySelector('[name="break_threshold_minutes"]').value = String(payload.break_threshold_minutes || '90');
+      setMultiSelectValues(form.querySelector('[name="condition_user_public_ids"]'), payload.condition_user_public_ids || []);
+      setMultiSelectValues(form.querySelector('[name="manager_user_public_ids"]'), payload.manager_user_public_ids || []);
+      form.querySelector('[name="manager_notification_title"]').value = String(payload.title || '');
+      form.querySelector('[name="manager_notification_body"]').value = String(payload.body || payload.message || '');
       showActionPanel(form.querySelector('[name="action_code"]').value);
       showFilterPanel(form.querySelector('[name="trigger_code"]').value);
       var title = document.getElementById('adminWorkflowModalTitle');
@@ -26566,6 +26602,21 @@ window.CRM.pageApiBindings = (function () {
           if (fromStatus) data.payload.from_status_code = fromStatus;
           if (toStatus) data.payload.to_status_code = toStatus;
           if (condTag) data.payload.condition_tag_public_id = condTag;
+        }
+        // Include filter conditions for the time-tracking trigger
+        if (triggerCode === 'worklog_logged') {
+          var windowType = String((workflowForm.querySelector('[name="window_type"]') || {}).value || '').trim() || 'day';
+          var scope = String((workflowForm.querySelector('[name="scope"]') || {}).value || '').trim() || 'task';
+          var hours = parseFloat((workflowForm.querySelector('[name="threshold_hours"]') || {}).value || '8');
+          if (!(hours > 0)) hours = 8;
+          var breakMinutes = parseInt((workflowForm.querySelector('[name="break_threshold_minutes"]') || {}).value || '90', 10);
+          if (!(breakMinutes > 0)) breakMinutes = 90;
+          data.payload.window_type = windowType;
+          data.payload.scope = scope;
+          data.payload.threshold_minutes = Math.round(hours * 60);
+          data.payload.break_threshold_minutes = breakMinutes;
+          var condUsers = Array.prototype.slice.call((workflowForm.querySelector('[name="condition_user_public_ids"]') || {}).selectedOptions || []).map(function (option) { return option.value; }).filter(Boolean);
+          if (condUsers.length) data.payload.condition_user_public_ids = condUsers;
         }
         var validationError = validateWorkflowForm(data);
         if (validationError) {
