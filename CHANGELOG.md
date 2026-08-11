@@ -22,6 +22,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- PWA app icons (icon-192.png / icon-512.png) now actually have transparent rounded corners: GD's alpha blending was on by default, so `imagesetpixel` with the transparent color was blended over the blue tile instead of writing the alpha channel, silently producing square icons. The generator now disables alpha blending before cutting the corners.
+
 - Tasks list (list view) table: clicking a sort header now really alternates ASC → DESC on every repeated click. The sort click handler was bound once and closed over the first render's `sortLevels`/filter values, so after the first re-render a second click re-applied ASC instead of flipping to DESC (and filters could silently reset). The handler now reads the current sort levels from the URL and the current filters from the DOM at click time; the toggle logic is extracted into a pure, runtime-tested `toggleTaskSortLevel()`.
 
 - Counterparties / clients / companies / contacts tables are no longer pinned to huge fixed widths (were 1080-1400px via the global table safety layer) — they now use a responsive floor (760px → 700px → 620px) and per-column caps + ellipsis, so the tables fit the content area without an internal horizontal scroll on typical desktop widths while long names stay readable (native hover tooltips reveal truncated values).

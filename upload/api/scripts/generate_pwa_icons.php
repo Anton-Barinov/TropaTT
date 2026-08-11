@@ -46,6 +46,10 @@ function drawPwaTile(int $size, bool $rounded, float $scale): \GdImage
 {
     $img = imagecreatetruecolor($size, $size);
     imagesavealpha($img, true);
+    // Blending must be OFF so imagesetpixel() writes the alpha channel directly
+    // instead of blending the transparent color over the blue tile (otherwise
+    // the rounded-corner cut-out is a no-op and the icon stays a square).
+    imagealphablending($img, false);
     $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
     imagefill($img, 0, 0, $transparent);
     $blue = imagecolorallocate($img, 0x1f, 0x6f, 0xeb);
