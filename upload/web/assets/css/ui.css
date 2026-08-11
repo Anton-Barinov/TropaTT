@@ -2267,15 +2267,13 @@ textarea.form-control:focus {
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5),
-.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(6),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
   width: 100px;
 }
 
-.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(7),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(7) {
-  width: 132px !important;
+.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(6),
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
+  width: 160px;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table td,

@@ -3138,11 +3138,17 @@ font-size: 0.72rem;
 }
 
 .crm-tasks-page .crm-cell-state {
-  min-width: 120px;
+  min-width: 130px;
 }
 
 .crm-tasks-page .crm-cell-state .crm-state-line + .crm-state-line {
   margin-top: 0.3rem;
+}
+
+.crm-tasks-page .crm-cell-state .crm-task-due {
+  color: var(--crm-text-muted, #6c757d);
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .crm-tasks-page .crm-task-row-actions-wrap {

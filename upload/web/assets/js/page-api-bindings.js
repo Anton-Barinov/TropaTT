@@ -716,8 +716,8 @@ window.CRM.pageApiBindings = (function () {
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
-    // NOTE: thead has 8 columns (checkbox, key, task, project, people
-    // [client/manager/assignee], due, state [status/priority], actions).
+    // NOTE: thead has 7 columns (checkbox, key, task, project, people
+    // [client/manager/assignee], state [due/status/priority], actions).
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="' + window.CRM.i18n.t('js.pab.select_task', 'Select task') + ' ' + safeText(item.title || taskId || '') + '"></td>'
       + '<td>' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
@@ -727,8 +727,8 @@ window.CRM.pageApiBindings = (function () {
       + '</td>'
       + '<td class="crm-cell-project"><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
-      + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
       + '<td class="crm-cell-state">'
+      + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
       + '<div class="crm-state-line"><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
       + '<div class="crm-state-line"><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
       + '</td>'

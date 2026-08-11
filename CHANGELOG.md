@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Changed
+
+- Tasks list (list view) table: the "Срок" (due) column is merged into the status/priority column, forming one "Срок / Статус / Приоритет" header with three sort buttons. The tasks table now has 7 columns instead of 8; the due date renders as a muted line above the status badge and priority chip.
+
 ### Added
 
 - GitHub Actions workflow `.github/workflows/web-tests-ci.yml`: runs the dependency-free web frontend unit tests (`npm run test:api-retry`, `test:tasks-render`, `test:tables-render`) on every push and pull request. The npm scripts now use an `if [ -f ... ]` guard: when the local-only test files are absent (they stay git-ignored per project convention) the job exits green with a SKIP message, and if the tests are ever published the job becomes a real gate that fails on regressions. Also fixes the previous `|| echo` fallback, which would have masked real test failures with a green exit code.
