@@ -4916,6 +4916,10 @@ return array (
     'activity_filter_files' => 'Файлы',
     'activity_filter_checklists' => 'Чеклисты',
     'activity_filter_relations' => 'Связи и зависимости',
+    'chat_source_title' => 'Создано из обсуждения',
+    'chat_source_text' => 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.',
+    'chat_source_chat' => 'Чат: ',
+    'chat_source_open' => 'Открыть обсуждение',
   ),
   'projects' => 
   array (
@@ -6100,6 +6104,20 @@ return array (
     'knowledge_search_hint' => 'Начните ввод для поиска...',
     'knowledge_no_results' => 'Ничего не найдено',
     'knowledge_search_error' => 'Ошибка поиска',
+    'btn_create_task_title' => 'Создать задачу из сообщения',
+    'btn_create_task_aria' => 'Создать задачу из сообщения',
+    'btn_create_task' => 'Создать задачу',
+    'create_task_default_title' => 'Задача из сообщения',
+    'create_task_modal_title' => 'Создать задачу из сообщения',
+    'create_task_title_label' => 'Название задачи',
+    'create_task_desc_label' => 'Описание',
+    'create_task_hint' => 'Ссылка на это сообщение будет добавлена к задаче автоматически.',
+    'create_task_create_btn' => 'Создать задачу',
+    'create_task_creating' => 'Создание...',
+    'create_task_success_title' => 'Задача создана',
+    'create_task_success_text' => 'Задача создана и связана с этим обсуждением.',
+    'create_task_open_btn' => 'Открыть задачу',
+    'create_task_error' => 'Ошибка создания задачи. Попробуйте еще раз.',
   ),
   'notifications' => 
   array (

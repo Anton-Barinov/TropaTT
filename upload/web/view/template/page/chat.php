@@ -299,7 +299,7 @@
          + (message.reply_public_id ? '<button type="button" class="crm-chat-quote" data-scroll-message="' + esc(message.reply_public_id) + '" title="' + window.CRM.i18n.t('chat.btn_scroll_title', 'Перейти к исходному сообщению') + '" aria-label="' + window.CRM.i18n.t('chat.btn_scroll_aria', 'Перейти к исходному сообщению') + '">' + renderReplyQuote(message) + '</button>' : '')
         + (deleted ? '<p class="crm-chat-deleted-text">' + window.CRM.i18n.t('chat.msg_deleted', 'Сообщение удалено') + '</p>' : '<p>' + renderMessageText(message.text || '') + '</p>')
         + renderAttachments(Array.isArray(message.attachments) ? message.attachments : [])
-        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button></div></article>';
+        + '<div class="crm-chat-message-foot">' + (message.edited_at && !deleted ? '<span>' + window.CRM.i18n.t('chat.msg_edited', 'изменено') + '</span>' : '') + '<button type="button" data-reply-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_reply_title', 'Ответить на сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_reply_aria', 'Ответить на сообщение') + '">' + window.CRM.i18n.t('chat.btn_reply', 'Ответить') + '</button>' + (canEdit ? '<button type="button" data-edit-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_edit_title', 'Изменить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_edit_aria', 'Изменить сообщение') + '">' + window.CRM.i18n.t('chat.btn_edit', 'Изменить') + '</button><button type="button" data-delete-message="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_delete_title', 'Удалить сообщение') + '" aria-label="' + window.CRM.i18n.t('chat.btn_delete_aria', 'Удалить сообщение') + '">' + window.CRM.i18n.t('chat.btn_delete', 'Удалить') + '</button>' : '') + '<button type="button" data-create-knowledge="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_knowledge_title', 'Создать страницу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_knowledge_aria', 'Создать страницу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_knowledge', 'Создать страницу') + '</button>' + '<button type="button" data-create-task="' + esc(message.public_id || '') + '" title="' + window.CRM.i18n.t('chat.btn_create_task_title', 'Создать задачу из сообщения') + '" aria-label="' + window.CRM.i18n.t('chat.btn_create_task_aria', 'Создать задачу из сообщения') + '">' + window.CRM.i18n.t('chat.btn_create_task', 'Создать задачу') + '</button></div></article>';
   }
 
   function renderMessages(messages) {
@@ -315,6 +315,7 @@
     box.innerHTML = messages.map(renderMessage).join('');
     bindMessageActions();
     box.scrollTop = box.scrollHeight;
+    scrollToMessageOnLoad();
   }
 
   function appendMessages(messages) {
@@ -697,6 +698,10 @@
     root.querySelectorAll('[data-create-knowledge]:not([data-chat-bound])').forEach(function (btn) {
       btn.setAttribute('data-chat-bound', '1');
       btn.addEventListener('click', function () { createKnowledgeFromMessage(btn.getAttribute('data-create-knowledge')); });
+    });
+    root.querySelectorAll('[data-create-task]:not([data-chat-bound])').forEach(function (btn) {
+      btn.setAttribute('data-chat-bound', '1');
+      btn.addEventListener('click', function () { createTaskFromMessage(btn.getAttribute('data-create-task')); });
     });
   }
 
@@ -1376,6 +1381,117 @@
     var titleInput = document.getElementById('createKnowledgeTitleInput');
     titleInput.focus();
     titleInput.setSelectionRange(title.length, title.length);
+  }
+
+  function createTaskFromMessage(messageId) {
+    var message = findMessage(messageId);
+    if (!message) return;
+    if (!selectedChatId) return;
+    var text = (message.text || '').trim();
+    var defaultTitle = text.substring(0, 120);
+    if (text.length > 120) defaultTitle += '...';
+    if (!defaultTitle) defaultTitle = window.CRM.i18n.t('chat.create_task_default_title', 'Задача из сообщения');
+
+    var chatTitleText = chatTitle(currentChat) || '';
+    var messageLink = 'index.php?route=chat&id=' + encodeURIComponent(selectedChatId) + '&message=' + encodeURIComponent(String(message.public_id || ''));
+
+    var modal = document.getElementById('createTaskModal');
+    if (!modal) {
+      var html = '<div class="crm-chat-modal is-open" id="createTaskModal" role="dialog" aria-modal="true" aria-labelledby="createTaskModalTitle">'
+        + '<div class="crm-chat-modal-panel">'
+        + '<div class="crm-chat-modal-head"><h2 class="h5 mb-0" id="createTaskModalTitle">' + window.CRM.i18n.t('chat.create_task_modal_title', 'Создать задачу из сообщения') + '</h2><button class="btn-close" type="button" aria-label="' + window.CRM.i18n.t('page.close_aria', 'Закрыть') + '"></button></div>'
+        + '<div class="row g-3"><div class="col-12"><label class="form-label" for="createTaskTitleInput">' + window.CRM.i18n.t('chat.create_task_title_label', 'Название задачи') + '</label><input type="text" class="form-control" id="createTaskTitleInput" maxlength="255"></div>'
+        + '<div class="col-12"><label class="form-label" for="createTaskDescInput">' + window.CRM.i18n.t('chat.create_task_desc_label', 'Описание') + '</label><textarea class="form-control" id="createTaskDescInput" rows="6" maxlength="4000"></textarea>'
+        + '<div class="form-text">' + window.CRM.i18n.t('chat.create_task_hint', 'Ссылка на это сообщение будет добавлена к задаче автоматически.') + '</div></div></div>'
+        + '<div class="text-danger small mb-2 d-none" id="createTaskError" aria-live="polite"></div>'
+        + '<div class="crm-chat-modal-actions"><button class="btn crm-btn-muted" type="button" id="cancelCreateTask">' + window.CRM.i18n.t('page.cancel', 'Отмена') + '</button><button class="btn crm-btn-primary" type="button" id="submitCreateTask" disabled>' + window.CRM.i18n.t('chat.create_task_create_btn', 'Создать задачу') + '</button></div></div></div>';
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      document.body.appendChild(wrapper.firstElementChild);
+      modal = document.getElementById('createTaskModal');
+      modal.querySelector('.btn-close').addEventListener('click', function () { modal.remove(); });
+      document.getElementById('cancelCreateTask').addEventListener('click', function () { modal.remove(); });
+      modal.addEventListener('click', function (event) { if (event.target === modal) modal.remove(); });
+
+      document.getElementById('createTaskTitleInput').addEventListener('input', function () {
+        document.getElementById('submitCreateTask').disabled = !this.value.trim();
+      });
+
+      document.getElementById('submitCreateTask').addEventListener('click', async function () {
+        var title = document.getElementById('createTaskTitleInput').value.trim();
+        var desc = document.getElementById('createTaskDescInput').value.trim();
+        if (!title) return;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = window.CRM.i18n.t('chat.create_task_creating', 'Создание...');
+        document.getElementById('createTaskError').classList.add('d-none');
+        try {
+          var env = await request('api/v1/tasks', {
+            method: 'POST',
+            body: {
+              title: title,
+              description: desc ? '<p>' + esc(desc).replace(/\n/g, '<br>') + '</p>' : '',
+              source_type: 'chat',
+              source_id: selectedChatId,
+              source_url: messageLink,
+              source_payload_json: JSON.stringify({
+                chat_public_id: selectedChatId,
+                chat_title: chatTitleText,
+                message_public_id: String(message.public_id || ''),
+                message_text: text.substring(0, 2000)
+              })
+            },
+            idempotent: true
+          });
+          var task = env.data && env.data.task;
+          var taskPublicId = task && task.public_id;
+          if (!taskPublicId && env.data && env.data.public_id) taskPublicId = env.data.public_id;
+          modal.remove();
+          showInfoModal(
+            window.CRM.i18n.t('chat.create_task_success_title', 'Задача создана'),
+            '<p>' + window.CRM.i18n.t('chat.create_task_success_text', 'Задача создана и связана с этим обсуждением.') + '</p>'
+              + (taskPublicId ? '<a class="btn crm-btn-primary" href="index.php?route=task-detail&amp;task_public_id=' + encodeURIComponent(taskPublicId) + '" target="_blank" rel="noopener">' + window.CRM.i18n.t('chat.create_task_open_btn', 'Открыть задачу') + '</a>' : '')
+          );
+        } catch (err) {
+          var errorEl = document.getElementById('createTaskError');
+          errorEl.textContent = window.CRM.i18n.t('chat.create_task_error', 'Ошибка создания задачи. Попробуйте еще раз.');
+          errorEl.classList.remove('d-none');
+          btn.disabled = false;
+          btn.textContent = window.CRM.i18n.t('chat.create_task_create_btn', 'Создать задачу');
+        }
+      });
+    }
+
+    document.getElementById('createTaskTitleInput').value = defaultTitle;
+    document.getElementById('createTaskDescInput').value = text.substring(0, 2000);
+    document.getElementById('createTaskError').classList.add('d-none');
+    document.getElementById('submitCreateTask').disabled = false;
+
+    modal.style.display = 'flex';
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    var titleInput = document.getElementById('createTaskTitleInput');
+    titleInput.focus();
+    titleInput.setSelectionRange(defaultTitle.length, defaultTitle.length);
+  }
+
+  // Deep-link: scroll to a specific message (?id=<chat>&message=<msg>)
+  function scrollToMessageOnLoad() {
+    var params = new URLSearchParams(window.location.search);
+    var targetId = params.get('message') || '';
+    if (!targetId) return;
+    var box = document.getElementById('msgArea');
+    if (!box) return;
+    var target = box.querySelector('[data-message-id="' + CSS.escape(targetId) + '"]');
+    if (!target) return;
+    params.delete('message');
+    window.history.replaceState({}, document.title, window.location.pathname + '?' + params.toString());
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    target.classList.add('is-highlighted');
+    window.setTimeout(function () {
+      target.classList.remove('is-highlighted');
+    }, 4000);
   }
 
   bindPage();

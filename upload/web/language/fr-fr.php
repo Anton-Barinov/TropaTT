@@ -2158,6 +2158,20 @@ return array (
     'knowledge_search_hint' => 'Start typing to search...',
     'knowledge_no_results' => 'Nothing found',
     'knowledge_search_error' => 'Search error',
+    'btn_create_task_title' => 'Créer une tâche depuis le message',
+    'btn_create_task_aria' => 'Créer une tâche depuis le message',
+    'btn_create_task' => 'Créer une tâche',
+    'create_task_default_title' => 'Tâche depuis le message',
+    'create_task_modal_title' => 'Créer une tâche depuis le message',
+    'create_task_title_label' => 'Titre de la tâche',
+    'create_task_desc_label' => 'Description',
+    'create_task_hint' => 'Un lien vers ce message sera ajouté automatiquement à la tâche.',
+    'create_task_create_btn' => 'Créer la tâche',
+    'create_task_creating' => 'Création...',
+    'create_task_success_title' => 'Tâche créée',
+    'create_task_success_text' => 'La tâche a été créée et liée à cette discussion.',
+    'create_task_open_btn' => 'Ouvrir la tâche',
+    'create_task_error' => 'Échec de la création de la tâche. Réessayez.',
   ),
   'client_cabinet' => 
   array (
@@ -6659,6 +6673,10 @@ return array (
     'type_project_note' => 'Project note',
     'type_onboarding' => 'Onboarding',
     'alert_link_error' => 'La page a été créée, mais elle n’a pas pu être liée à l’objet',
+    'chat_source_title' => 'Créée à partir d\'une discussion',
+    'chat_source_text' => 'Cette tâche a été créée à partir d\'un message de chat. Ouvrez le dialogue pour voir le contexte.',
+    'chat_source_chat' => 'Chat : ',
+    'chat_source_open' => 'Ouvrir la discussion',
   ),
   'knowledge_page' => 
   array (

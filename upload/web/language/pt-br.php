@@ -2158,6 +2158,20 @@ return array (
     'knowledge_search_hint' => 'Start typing to search...',
     'knowledge_no_results' => 'Nothing found',
     'knowledge_search_error' => 'Search error',
+    'btn_create_task_title' => 'Criar tarefa a partir da mensagem',
+    'btn_create_task_aria' => 'Criar tarefa a partir da mensagem',
+    'btn_create_task' => 'Criar tarefa',
+    'create_task_default_title' => 'Tarefa a partir da mensagem',
+    'create_task_modal_title' => 'Criar tarefa a partir da mensagem',
+    'create_task_title_label' => 'Título da tarefa',
+    'create_task_desc_label' => 'Descrição',
+    'create_task_hint' => 'Um link para esta mensagem será adicionado à tarefa automaticamente.',
+    'create_task_create_btn' => 'Criar tarefa',
+    'create_task_creating' => 'Criando...',
+    'create_task_success_title' => 'Tarefa criada',
+    'create_task_success_text' => 'A tarefa foi criada e vinculada a este diálogo.',
+    'create_task_open_btn' => 'Abrir tarefa',
+    'create_task_error' => 'Erro ao criar a tarefa. Tente novamente.',
   ),
   'client_cabinet' => 
   array (
@@ -6659,6 +6673,10 @@ return array (
     'type_project_note' => 'Project note',
     'type_onboarding' => 'Onboarding',
     'alert_link_error' => 'A página foi criada, mas não pôde ser vinculada ao objeto',
+    'chat_source_title' => 'Criada a partir de uma discussão',
+    'chat_source_text' => 'Esta tarefa foi criada a partir de uma mensagem de chat. Abra o diálogo para ver o contexto.',
+    'chat_source_chat' => 'Chat: ',
+    'chat_source_open' => 'Abrir discussão',
   ),
   'knowledge_page' => 
   array (

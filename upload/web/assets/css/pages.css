@@ -5728,6 +5728,25 @@ body.modal-open {
   line-height: 1.55;
 }
 
+.crm-task-detail-page .crm-task-source-chat {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--crm-border);
+  border-left: 4px solid var(--crm-accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--crm-surface) 76%, transparent);
+  margin-bottom: 0.8rem;
+}
+
+.crm-task-detail-page .crm-task-source-chat .h6 {
+  font-size: 0.86rem;
+  font-weight: 750;
+  color: var(--crm-text);
+}
+
+.crm-task-detail-page .crm-task-source-chat p {
+  max-width: 70ch;
+}
+
 .crm-task-detail-page .crm-task-risk-alert {
   border-radius: 16px;
   border-width: 1px;
@@ -8243,6 +8262,21 @@ body.modal-open {
   margin-left: auto;
   background: var(--crm-primary-soft);
   border-color: var(--crm-primary-border);
+}
+
+.crm-chat-message.is-highlighted {
+  animation: crm-chat-message-highlight 4s ease;
+}
+
+@keyframes crm-chat-message-highlight {
+  0%, 60% {
+    border-color: var(--crm-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-accent) 22%, transparent);
+  }
+  100% {
+    border-color: var(--crm-border);
+    box-shadow: none;
+  }
 }
 
 .crm-chat-message-meta {

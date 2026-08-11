@@ -60,6 +60,7 @@ final class MigrationManager
             new CounterpartyAddressActualMigration(),
             new TaskDirectClientMigration(),
             new TagDescriptionMigration(),
+            new TaskChatSourceMigration(),
         ];
     }
 

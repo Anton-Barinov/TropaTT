@@ -7575,7 +7575,43 @@ window.CRM.br1 = (function () {
     renderTaskProgressByStatus(currentTask.status_code);
     renderTaskRiskBanner();
     window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
+    renderTaskSourceChat();
     renderTaskSidebarSummary();
+  }
+
+  // Task created from a chat message: show a link back to the dialogue.
+  function renderTaskSourceChat() {
+    var section = document.getElementById('taskSourceChatSection');
+    if (!section || !currentTask) return;
+    if (String(currentTask.source_type || '') !== 'chat') {
+      section.classList.add('d-none');
+      return;
+    }
+
+    var payload = null;
+    var raw = currentTask.source_payload_json;
+    if (raw) {
+      try { payload = JSON.parse(raw); } catch (e) { payload = null; }
+    }
+    payload = payload || {};
+
+    var chatPublicId = String(payload.chat_public_id || currentTask.source_id || '');
+    var messagePublicId = String(payload.message_public_id || '');
+    var chatTitle = String(payload.chat_title || '');
+    var textEl = document.getElementById('taskSourceChatText');
+    if (textEl && chatTitle) {
+      textEl.textContent = window.CRM.i18n.t('task_detail.chat_source_text', 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.')
+        + ' ' + window.CRM.i18n.t('task_detail.chat_source_chat', 'Чат: ') + chatTitle;
+    }
+
+    var link = document.getElementById('taskSourceChatLink');
+    if (link) {
+      var href = 'index.php?route=chat&id=' + encodeURIComponent(chatPublicId);
+      if (messagePublicId) href += '&message=' + encodeURIComponent(messagePublicId);
+      link.href = href;
+    }
+
+    section.classList.remove('d-none');
   }
 
   async function loadTaskCommentDraft(taskId) {

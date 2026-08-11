@@ -34,6 +34,11 @@
         </form>
         <div id="taskDescriptionContent"><div class="text-muted" data-i18n="task_detail.desc_loading"><?= htmlspecialchars($t('task_detail.desc_loading', 'Детали задачи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </section>
+      <section class="crm-task-source-chat d-none" id="taskSourceChatSection" aria-labelledby="taskSourceChatTitle">
+        <h2 class="h6 mb-1" id="taskSourceChatTitle" data-i18n="task_detail.chat_source_title"><?= htmlspecialchars($t('task_detail.chat_source_title', 'Создано из обсуждения'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p class="small text-muted mb-2" id="taskSourceChatText" data-i18n="task_detail.chat_source_text"><?= htmlspecialchars($t('task_detail.chat_source_text', 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.'), ENT_QUOTES, 'UTF-8') ?></p>
+        <a class="btn btn-sm crm-btn-secondary" id="taskSourceChatLink" href="#" target="_blank" rel="noopener" data-i18n="task_detail.chat_source_open"><?= htmlspecialchars($t('task_detail.chat_source_open', 'Открыть обсуждение'), ENT_QUOTES, 'UTF-8') ?></a>
+      </section>
       <form id="taskStatusReasonForm" class="mb-3 d-none">
         <div class="small text-muted mb-1"><span data-i18n="task_detail.status_reason_label"><?= htmlspecialchars($t('task_detail.status_reason_label', 'Причина смены статуса: '), ENT_QUOTES, 'UTF-8') ?></span><span id="taskStatusReasonTarget">—</span></div>
         <div class="d-flex gap-2">

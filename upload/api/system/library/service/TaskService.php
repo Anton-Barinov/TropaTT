@@ -164,6 +164,10 @@ final class TaskService
             'end_at' => !empty($input['end_at']) ? (string)$input['end_at'] : null,
             'assignee_user_id' => isset($input['assignee_user_id']) ? (int)$input['assignee_user_id'] : null,
             'creator_user_id' => $creatorUserId,
+            'source_type' => !empty($input['source_type']) ? substr(trim((string)$input['source_type']), 0, 64) : null,
+            'source_id' => !empty($input['source_id']) ? substr(trim((string)$input['source_id']), 0, 255) : null,
+            'source_url' => !empty($input['source_url']) ? substr(trim((string)$input['source_url']), 0, 2048) : null,
+            'source_payload_json' => $this->normalizeSourcePayload($input['source_payload_json'] ?? null),
             'created_at' => $createdAt,
             'updated_at' => $updatedAt,
             'row_version' => 1,
@@ -485,6 +489,36 @@ final class TaskService
     private function sanitizeDescription(string $description): string
     {
         return ($this->htmlSanitizer ?? new HtmlSanitizer())->sanitize($description);
+    }
+
+    /**
+     * Keep the source payload only when it is a valid JSON object/array,
+     * capped at a sane size so the JSON column cannot be abused.
+     */
+    private function normalizeSourcePayload(mixed $payload): ?string
+    {
+        if (!is_string($payload) && !is_array($payload)) {
+            return null;
+        }
+
+        if (is_array($payload)) {
+            $payload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($payload)) {
+                return null;
+            }
+        }
+
+        $trimmed = trim($payload);
+        if ($trimmed === '' || mb_strlen($trimmed) > 16000) {
+            return null;
+        }
+
+        $decoded = json_decode($trimmed, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        return $trimmed;
     }
 
     /** @param array<string,mixed> $task */

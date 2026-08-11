@@ -4894,6 +4894,10 @@ return array (
     'activity_filter_files' => 'Files',
     'activity_filter_checklists' => 'Checklists',
     'activity_filter_relations' => 'Relations and dependencies',
+    'chat_source_title' => 'Created from discussion',
+    'chat_source_text' => 'This task was created from a chat message. Open the dialogue to see the context.',
+    'chat_source_chat' => 'Chat: ',
+    'chat_source_open' => 'Open discussion',
   ),
   'projects' => 
   array (
@@ -6077,6 +6081,20 @@ return array (
     'knowledge_search_hint' => 'Start typing to search...',
     'knowledge_no_results' => 'Nothing found',
     'knowledge_search_error' => 'Search error',
+    'btn_create_task_title' => 'Create task from message',
+    'btn_create_task_aria' => 'Create task from message',
+    'btn_create_task' => 'Create task',
+    'create_task_default_title' => 'Task from message',
+    'create_task_modal_title' => 'Create task from message',
+    'create_task_title_label' => 'Task title',
+    'create_task_desc_label' => 'Description',
+    'create_task_hint' => 'A link to this message will be added to the task automatically.',
+    'create_task_create_btn' => 'Create task',
+    'create_task_creating' => 'Creating...',
+    'create_task_success_title' => 'Task created',
+    'create_task_success_text' => 'The task was created and linked to this discussion.',
+    'create_task_open_btn' => 'Open task',
+    'create_task_error' => 'Failed to create task. Please try again.',
   ),
   'notifications' => 
   array (

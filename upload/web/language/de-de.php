@@ -2158,6 +2158,20 @@ return array (
     'knowledge_search_hint' => 'Start typing to search...',
     'knowledge_no_results' => 'Nothing found',
     'knowledge_search_error' => 'Search error',
+    'btn_create_task_title' => 'Aufgabe aus Nachricht erstellen',
+    'btn_create_task_aria' => 'Aufgabe aus Nachricht erstellen',
+    'btn_create_task' => 'Aufgabe erstellen',
+    'create_task_default_title' => 'Aufgabe aus Nachricht',
+    'create_task_modal_title' => 'Aufgabe aus Nachricht erstellen',
+    'create_task_title_label' => 'Aufgabentitel',
+    'create_task_desc_label' => 'Beschreibung',
+    'create_task_hint' => 'Ein Link zu dieser Nachricht wird der Aufgabe automatisch hinzugefügt.',
+    'create_task_create_btn' => 'Aufgabe erstellen',
+    'create_task_creating' => 'Wird erstellt...',
+    'create_task_success_title' => 'Aufgabe erstellt',
+    'create_task_success_text' => 'Die Aufgabe wurde erstellt und mit diesem Dialog verknüpft.',
+    'create_task_open_btn' => 'Aufgabe öffnen',
+    'create_task_error' => 'Fehler beim Erstellen der Aufgabe. Bitte erneut versuchen.',
   ),
   'client_cabinet' => 
   array (
@@ -6659,6 +6673,10 @@ return array (
     'type_project_note' => 'Project note',
     'type_onboarding' => 'Onboarding',
     'alert_link_error' => 'Die Seite wurde erstellt, konnte aber nicht mit dem Objekt verknüpft werden',
+    'chat_source_title' => 'Aus einer Diskussion erstellt',
+    'chat_source_text' => 'Diese Aufgabe wurde aus einer Chat-Nachricht erstellt. Öffnen Sie den Dialog, um den Kontext zu sehen.',
+    'chat_source_chat' => 'Chat: ',
+    'chat_source_open' => 'Diskussion öffnen',
   ),
   'knowledge_page' => 
   array (

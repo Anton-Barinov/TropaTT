@@ -113,6 +113,25 @@ final class TaskController extends BaseController
                 $errors['status'][] = $this->t('task/messages.invalid_status');
             }
         }
+        // Source reference (e.g. a chat dialogue the task was created from).
+        if (array_key_exists('source_type', $input) && trim((string)$input['source_type']) !== '') {
+            $sourceType = trim((string)$input['source_type']);
+            if (!in_array($sourceType, ['chat'], true)) {
+                $errors['source_type'][] = $this->t('task/messages.invalid_source_type');
+            }
+        }
+        if (array_key_exists('source_id', $input) && mb_strlen((string)$input['source_id']) > 255) {
+            $errors['source_id'][] = $this->t('common/messages.max_255');
+        }
+        if (array_key_exists('source_url', $input) && mb_strlen((string)$input['source_url']) > 2048) {
+            $errors['source_url'][] = $this->t('task/messages.source_url_too_long');
+        }
+        if (array_key_exists('source_payload_json', $input) && is_string($input['source_payload_json']) && trim($input['source_payload_json']) !== '') {
+            $decoded = json_decode($input['source_payload_json'], true);
+            if (!is_array($decoded)) {
+                $errors['source_payload_json'][] = $this->t('task/messages.invalid_source_payload');
+            }
+        }
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
         }
