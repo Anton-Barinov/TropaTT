@@ -120,21 +120,38 @@ function pageRetryPickLanguage(request) {
   return best.indexOf('ru') === 0 ? 'ru' : 'en';
 }
 
-function pageRetryFallbackHtml(request) {
+function pageRetryFallbackHtml(request, offline) {
   var lang = pageRetryPickLanguage(request);
-  var messages = lang === 'ru'
-    ? {
-        title: 'Сервер временно недоступен',
-        heading: 'Сервер временно недоступен',
-        body: 'Не удалось загрузить страницу после нескольких попыток. Проверьте подключение к интернету или попробуйте ещё раз через несколько секунд.',
-        button: 'Попробовать снова'
-      }
-    : {
-        title: 'Server temporarily unavailable',
-        heading: 'Server temporarily unavailable',
-        body: 'The page could not be loaded after several attempts. Check your internet connection or try again in a few seconds.',
-        button: 'Try again'
-      };
+  var messages;
+  if (lang === 'ru') {
+    messages = offline
+      ? {
+          title: 'Нет соединения с интернетом',
+          heading: 'Вы офлайн',
+          body: 'Нет подключения к интернету. Проверьте сеть и попробуйте снова.',
+          button: 'Попробовать снова'
+        }
+      : {
+          title: 'Сервер временно недоступен',
+          heading: 'Сервер временно недоступен',
+          body: 'Не удалось загрузить страницу после нескольких попыток. Проверьте подключение к интернету или попробуйте ещё раз через несколько секунд.',
+          button: 'Попробовать снова'
+        };
+  } else {
+    messages = offline
+      ? {
+          title: 'No internet connection',
+          heading: 'You are offline',
+          body: 'No internet connection. Check your network and try again.',
+          button: 'Try again'
+        }
+      : {
+          title: 'Server temporarily unavailable',
+          heading: 'Server temporarily unavailable',
+          body: 'The page could not be loaded after several attempts. Check your internet connection or try again in a few seconds.',
+          button: 'Try again'
+        };
+  }
 
   var url = request ? request.url : location.href;
   // The URL is embedded inside an inline <script> in this HTML. Escape it for
@@ -187,7 +204,8 @@ function pageRetryNavigation(request) {
       if (attempt < PAGE_RETRY_ATTEMPTS) {
         return pageRetrySleep(PAGE_RETRY_DELAYS_MS[attempt - 1]).then(attemptOnce);
       }
-      return new Response(pageRetryFallbackHtml(request), {
+      var offline = !!(self.navigator && self.navigator.onLine === false);
+      return new Response(pageRetryFallbackHtml(request, offline), {
         status: 503,
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
       });
@@ -214,4 +232,164 @@ self.addEventListener('fetch', function (event) {
   if (requestUrl.pathname.indexOf('/web/') === -1 && requestUrl.pathname.indexOf('/web') !== 0) return;
 
   event.respondWith(pageRetryNavigation(request));
+});
+
+/**
+ * ===== PWA: offline app-shell caching =====
+ *
+ * The app shell (CSS/JS/icons) is precached at install time and every static
+ * asset under /web/assets/ is afterwards served stale-while-revalidate, so the
+ * interface loads fast from the cache on repeat visits and stays usable during
+ * short network drops. Nothing sensitive is ever cached: API calls, uploads
+ * and the installer are always passed through to the network.
+ *
+ * Asset URLs carry the ?v= version query (see header.php assetsVersion), so
+ * every deploy registers a fresh worker URL, precaches the new files and
+ * prunes the old caches on activate. The runtime cache is bounded so it can
+ * never grow without limit on long-lived installs.
+ */
+var PWA_RUNTIME_CACHE_LIMIT = 200;
+var PWA_CACHE_PREFIX = 'crm-pwa-runtime';
+
+function pwaVersionFromUrl() {
+  var search = self.location && self.location.search ? String(self.location.search) : '';
+  var m = /[?&]v=([^&]+)/.exec(search);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+function pwaCacheName(version) {
+  var v = String(version || '') || pwaVersionFromUrl();
+  return v === '' ? PWA_CACHE_PREFIX : PWA_CACHE_PREFIX + '-' + v;
+}
+
+function pwaPrecachePaths() {
+  return [
+    '/web/assets/favicon.svg',
+    '/web/assets/icons/icon-192.png',
+    '/web/assets/icons/icon-512.png',
+    '/web/assets/css/bootstrap.min.css',
+    '/web/assets/vendor/fontawesome/css/all.min.css',
+    '/web/assets/css/tokens.css',
+    '/web/assets/css/layout.css',
+    '/web/assets/css/components.css',
+    '/web/assets/css/pages.css',
+    '/web/assets/css/animations.css',
+    '/web/assets/css/responsive.css',
+    '/web/assets/css/ui.css',
+    '/web/assets/css/visual-editor.css',
+    '/web/assets/css/themes.css',
+    '/web/assets/vendor/bootstrap/bootstrap.bundle.min.js',
+    '/web/assets/js/api.js',
+    '/web/assets/js/i18n.js',
+    '/web/assets/js/tab-leader.js',
+    '/web/assets/js/navigation.js',
+    '/web/assets/js/ui.js',
+    '/web/assets/js/modals.js',
+    '/web/assets/js/drawers.js',
+    '/web/assets/js/tabs.js',
+    '/web/assets/js/filters.js',
+    '/web/assets/js/tables.js',
+    '/web/assets/js/text-utils.js',
+    '/web/assets/js/error-utils.js',
+    '/web/assets/js/list-utils.js',
+    '/web/assets/js/notifications.js',
+    '/web/assets/js/visual-editor.js',
+    '/web/assets/js/br1.js',
+    '/web/assets/js/page-api-bindings.js',
+    '/web/assets/js/app.js'
+  ];
+}
+
+function pwaBuildAssetUrl(path, version) {
+  var p = String(path || '');
+  if (p.charAt(0) !== '/') p = '/' + p;
+  var url = self.location.origin + p;
+  var v = String(version || '') || pwaVersionFromUrl();
+  return v === '' ? url : url + (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(v);
+}
+
+function pwaIsStaticAsset(urlString) {
+  var url = null;
+  try {
+    url = new URL(urlString);
+  } catch (e) {
+    return false;
+  }
+  if (url.origin !== self.location.origin) return false;
+  var path = url.pathname;
+  if (path.indexOf('/api/') === 0) return false;      // API responses are never cached (sensitive)
+  if (path.indexOf('/storage') === 0) return false;   // user uploads/downloads
+  if (path.indexOf('/updater') === 0) return false;   // update packages
+  if (path === '/web/install.php') return false;      // installer
+  return path.indexOf('/web/assets/') === 0;          // versioned app-shell assets
+}
+
+function pwaTrimRuntimeCache(cache) {
+  try {
+    cache.keys().then(function (keys) {
+      if (keys.length > PWA_RUNTIME_CACHE_LIMIT) {
+        var excess = keys.slice(0, keys.length - PWA_RUNTIME_CACHE_LIMIT);
+        for (var i = 0; i < excess.length; i += 1) {
+          cache.delete(excess[i]);
+        }
+      }
+    }).catch(function () {});
+  } catch (e) {}
+}
+
+self.addEventListener('install', function (event) {
+  if (!self.caches) return;
+  var version = pwaVersionFromUrl();
+  event.waitUntil(
+    caches.open(pwaCacheName(version)).then(function (cache) {
+      return Promise.all(pwaPrecachePaths().map(function (path) {
+        return cache.add(pwaBuildAssetUrl(path, version)).catch(function () {
+          // A single missing asset must not block activation; runtime
+          // stale-while-revalidate fills the gap on the next load.
+        });
+      }));
+    })
+  );
+});
+
+self.addEventListener('activate', function (event) {
+  var tasks = [self.clients.claim()];
+  if (self.caches) {
+    var keep = pwaCacheName();
+    tasks.push(
+      caches.keys().then(function (names) {
+        return Promise.all(names.map(function (name) {
+          if (name.indexOf(PWA_CACHE_PREFIX) === 0 && name !== keep) {
+            return caches.delete(name);
+          }
+        }));
+      })
+    );
+  }
+  event.waitUntil(Promise.all(tasks));
+});
+
+self.addEventListener('fetch', function (event) {
+  var request = event.request;
+  if (!request || request.method !== 'GET') return;
+  if (!pwaIsStaticAsset(request.url)) return;
+
+  var cacheName = pwaCacheName();
+  event.respondWith(
+    caches.open(cacheName).then(function (cache) {
+      return cache.match(request).then(function (cached) {
+        var network = fetch(request).then(function (response) {
+          if (response && response.status === 200 && response.type === 'basic') {
+            cache.put(request, response.clone());
+            pwaTrimRuntimeCache(cache);
+          }
+          return response;
+        }).catch(function () {
+          // Offline: fall back to the cached copy, if any.
+          return cached;
+        });
+        return cached || network;
+      });
+    })
+  );
 });

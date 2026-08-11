@@ -67,6 +67,15 @@ $needsNotificationsPush = in_array($currentRoute, [
   'admin',
   'admin-settings',
 ], true);
+// PWA registration runs on every logged-in page (the service worker precaches
+// the app shell and serves static assets from cache). Public pages (login,
+// password reset, invitation accept) are excluded.
+$needsPwa = !in_array($currentRoute, [
+  'login',
+  'password-reset-request',
+  'password-reset-confirm',
+  'invitation-accept',
+], true);
 $needsTaskActivity = in_array($currentRoute, [
   'task-detail',
 ], true);
@@ -139,6 +148,9 @@ $needsPageApiBindings = !in_array($currentRoute, [
 ?>
 <?php if ($needsNotificationsPush): ?>
 <script defer src="assets/js/notifications-push.js?v=<?= urlencode($assetsVersion) ?>"></script>
+<?php endif; ?>
+<?php if ($needsPwa): ?>
+<script defer src="assets/js/pwa.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if ($needsStickyNotes): ?>
 <script defer src="assets/js/sticky-notes.js?v=<?= urlencode($assetsVersion) ?>"></script>

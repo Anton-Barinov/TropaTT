@@ -89,6 +89,13 @@ if (is_file($jsOverridesPath)) {
     })();
   </script>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <!-- PWA: manifest + install meta (relative URLs keep this hosting-agnostic) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f6feb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <link rel="stylesheet" href="assets/css/bootstrap.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/tokens.css?v=<?= urlencode($assetsVersion) ?>">
