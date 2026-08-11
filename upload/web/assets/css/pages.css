@@ -3110,13 +3110,23 @@ font-size: 0.72rem;
   color: var(--crm-accent-strong) !important;
 }
 
-.crm-tasks-page .crm-cell-project a {
-  display: inline-block;
-  max-width: 180px;
+.crm-tasks-page .crm-task-row-meta a.crm-task-project-link,
+.crm-tasks-page .crm-task-row-meta a.crm-task-project-link:hover {
+  font-size: 0.75rem;
+  font-weight: 400 !important;
+  color: var(--crm-text-muted) !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: bottom;
+}
+
+.crm-tasks-page .crm-task-row-meta a.crm-task-project-link:hover {
+  color: var(--crm-accent-strong) !important;
 }
 
 .crm-tasks-page .crm-cell-people {

@@ -2266,13 +2266,13 @@ textarea.form-control:focus {
   width: 72px;
 }
 
-.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
+.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
   width: 100px;
 }
 
-.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(6),
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
+.crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
   width: 160px;
 }
 
@@ -2281,12 +2281,12 @@ textarea.form-control:focus {
   overflow-wrap: anywhere;
 }
 
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(7) {
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
   white-space: normal;
 }
 
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(7) .btn,
-.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(7) a {
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) .btn,
+.crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) a {
   max-width: 100%;
   min-height: 34px;
   padding-inline: 10px;

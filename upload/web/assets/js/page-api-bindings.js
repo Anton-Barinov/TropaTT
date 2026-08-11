@@ -716,16 +716,22 @@ window.CRM.pageApiBindings = (function () {
 
     var tagChipsHtml = taskTagsHtml(item.tags, 5);
 
-    // NOTE: thead has 7 columns (checkbox, key, task, project, people
-    // [client/manager/assignee], state [due/status/priority], actions).
+    // The project moves under the title, right after the parent link.
+    var projectMeta = (item.project_public_id || item.project_title)
+      ? '<a class="crm-task-project-link" href="' + projectLink + '" title="' + safeText(item.project_title || '') + '">'
+        + '<i class="fa-regular fa-folder" aria-hidden="true"></i> ' + safeText(item.project_title || '—') + '</a>'
+      : '';
+
+    // NOTE: thead has 6 columns (checkbox, key, task [title + project,
+    // parent], people [client/manager/assignee], state [due/status/
+    // priority], actions).
     return '<tr>'
       + '<td class="crm-table-check-cell"><input class="form-check-input crm-row-check" type="checkbox" data-select-row data-task-public-id="' + safeText(taskId) + '" aria-label="' + window.CRM.i18n.t('js.pab.select_task', 'Select task') + ' ' + safeText(item.title || taskId || '') + '"></td>'
       + '<td>' + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
       + '<td>'
       + '<div class="crm-task-row-main">' + '<a href="' + taskLink + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a></div>'
-      + '<div class="crm-task-row-meta">' + hierarchyMeta + tagChipsHtml + '</div>'
+      + '<div class="crm-task-row-meta">' + hierarchyMeta + projectMeta + tagChipsHtml + '</div>'
       + '</td>'
-      + '<td class="crm-cell-project"><a href="' + projectLink + '">' + safeText(item.project_title || '—') + '</a></td>'
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td class="crm-cell-state">'
       + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
