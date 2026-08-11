@@ -61,28 +61,30 @@ final class ContactController extends BaseController
 
         /** @var ContactService $service */
         $service = $this->container->get('service.contact');
-        try {
-            $item = $service->create($input, $authUser['user']);
-        } catch (Throwable $e) {
-            if ($e->getMessage() === 'COMPANY_NOT_FOUND') {
-                return $this->error('COMPANY_NOT_FOUND', $this->t('contact/messages.company_not_found'), 422, [
-                    'company_public_id' => [$this->t('contact/messages.company_not_found')],
-                ]);
+        return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
+            try {
+                $item = $service->create($input, $authUser['user']);
+            } catch (Throwable $e) {
+                if ($e->getMessage() === 'COMPANY_NOT_FOUND') {
+                    return $this->error('COMPANY_NOT_FOUND', $this->t('contact/messages.company_not_found'), 422, [
+                        'company_public_id' => [$this->t('contact/messages.company_not_found')],
+                    ]);
+                }
+                if ($e->getMessage() === 'CLIENT_NOT_FOUND') {
+                    return $this->error('CLIENT_NOT_FOUND', $this->t('contact/messages.client_not_found'), 422, [
+                        'client_public_id' => [$this->t('contact/messages.client_not_found')],
+                    ]);
+                }
+                if ($e->getMessage() === 'COUNTERPARTY_NOT_FOUND') {
+                    return $this->error('COUNTERPARTY_NOT_FOUND', $this->t('contact/messages.counterparty_not_found'), 422, [
+                        'counterparty_public_id' => [$this->t('contact/messages.counterparty_not_found')],
+                    ]);
+                }
+                throw $e;
             }
-            if ($e->getMessage() === 'CLIENT_NOT_FOUND') {
-                return $this->error('CLIENT_NOT_FOUND', $this->t('contact/messages.client_not_found'), 422, [
-                    'client_public_id' => [$this->t('contact/messages.client_not_found')],
-                ]);
-            }
-            if ($e->getMessage() === 'COUNTERPARTY_NOT_FOUND') {
-                return $this->error('COUNTERPARTY_NOT_FOUND', $this->t('contact/messages.counterparty_not_found'), 422, [
-                    'counterparty_public_id' => [$this->t('contact/messages.counterparty_not_found')],
-                ]);
-            }
-            throw $e;
-        }
 
-        return $this->success('CONTACT_CREATED', $this->t('contact/messages.created'), ['contact' => $item], 201);
+            return $this->success('CONTACT_CREATED', $this->t('contact/messages.created'), ['contact' => $item], 201);
+        });
     }
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse

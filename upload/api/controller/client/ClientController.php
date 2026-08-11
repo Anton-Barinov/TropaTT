@@ -73,15 +73,13 @@ final class ClientController extends BaseController
 
         /** @var ClientService $service */
         $service = $this->container->get('service.client');
-        try {
+        return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
             $item = $service->create($input, $authUser['user']);
-        } catch (Throwable $e) {
-            throw $e;
-        }
 
-        $this->invalidateCache('client');
+            $this->invalidateCache('client');
 
-        return $this->success('CLIENT_CREATED', $this->t('client/messages.created'), ['client' => $item], 201);
+            return $this->success('CLIENT_CREATED', $this->t('client/messages.created'), ['client' => $item], 201);
+        });
     }
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse

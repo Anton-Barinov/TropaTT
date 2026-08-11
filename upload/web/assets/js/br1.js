@@ -1925,6 +1925,9 @@ window.CRM.br1 = (function () {
         try {
           var envelope = await window.CRM.api.request('api/v1/clients', {
             method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-client')
+            },
             body: {
               title: title,
               client_type: typeInput ? String(typeInput.value || 'individual') : 'individual',
@@ -4606,9 +4609,14 @@ window.CRM.br1 = (function () {
         }
 
         var selectedTagIds = collectSelectedValues(createForm.querySelector('[name="tag_public_ids"]'));
+        var submitBtn = createForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
           var createEnvelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks', {
             method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-subtask')
+            },
             body: {
               title: title,
               status: String((createForm.querySelector('[name="status"]') || {}).value || 'new'),
@@ -4640,6 +4648,8 @@ window.CRM.br1 = (function () {
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
           notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_podzadachu', 'Не удалось создать подзадачу'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
       createForm.dataset.bound = '1';
@@ -6297,6 +6307,9 @@ window.CRM.br1 = (function () {
           if (!actionValue) continue;
           await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/subtasks', {
             method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-subtask-intent')
+            },
             body: {
               title: actionValue,
               description: String(meta.description || ''),

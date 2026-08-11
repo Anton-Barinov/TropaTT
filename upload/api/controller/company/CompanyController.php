@@ -60,9 +60,11 @@ final class CompanyController extends BaseController
 
         /** @var CompanyService $service */
         $service = $this->container->get('service.company');
-        $item = $service->create($input, $authUser['user']);
+        return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
+            $item = $service->create($input, $authUser['user']);
 
-        return $this->success('COMPANY_CREATED', $this->t('company/messages.created'), ['company' => $item], 201);
+            return $this->success('COMPANY_CREATED', $this->t('company/messages.created'), ['company' => $item], 201);
+        });
     }
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse

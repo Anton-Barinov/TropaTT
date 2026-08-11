@@ -57,17 +57,20 @@ final class SubtaskController extends BaseController
 
         /** @var SubtaskService $service */
         $service = $this->container->get('service.subtask');
-        $item = $service->create((string)$params['public_id'], $input, $auth['user']);
-        if ($item === 'DESCRIPTION_TOO_LONG') {
-            return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
-                'description' => [$this->t('subtask/messages.max_8000')],
-            ]);
-        }
-        if (!$item) {
-            return $this->error('TASK_NOT_FOUND', $this->t('subtask/messages.task_not_found'), 404);
-        }
+        $parentPublicId = (string)$params['public_id'];
+        return $this->withIdempotency(function () use ($service, $parentPublicId, $input, $auth): \Api\System\Library\Http\JsonResponse {
+            $item = $service->create($parentPublicId, $input, $auth['user']);
+            if ($item === 'DESCRIPTION_TOO_LONG') {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'description' => [$this->t('subtask/messages.max_8000')],
+                ]);
+            }
+            if (!$item) {
+                return $this->error('TASK_NOT_FOUND', $this->t('subtask/messages.task_not_found'), 404);
+            }
 
-        return $this->success('SUBTASK_CREATED', $this->t('subtask/messages.created'), ['subtask' => $item], 201);
+            return $this->success('SUBTASK_CREATED', $this->t('subtask/messages.created'), ['subtask' => $item], 201);
+        });
     }
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse

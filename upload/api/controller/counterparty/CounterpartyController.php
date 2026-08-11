@@ -73,15 +73,13 @@ final class CounterpartyController extends BaseController
 
         /** @var CounterpartyService $service */
         $service = $this->container->get('service.counterparty');
-        try {
+        return $this->withIdempotency(function () use ($service, $input, $authUser): \Api\System\Library\Http\JsonResponse {
             $item = $service->create($input, $authUser['user']);
-        } catch (Throwable $e) {
-            throw $e;
-        }
 
-        $this->invalidateCache('counterparty');
+            $this->invalidateCache('counterparty');
 
-        return $this->success('COUNTERPARTY_CREATED', $this->t('counterparty/messages.created'), ['counterparty' => $item], 201);
+            return $this->success('COUNTERPARTY_CREATED', $this->t('counterparty/messages.created'), ['counterparty' => $item], 201);
+        });
     }
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse

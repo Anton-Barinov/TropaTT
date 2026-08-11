@@ -9698,8 +9698,16 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         clearFormErrors(createForm);
+        var submitBtn = createForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
-          await request('api/v1/clients', { method: 'POST', body: payload });
+          await request('api/v1/clients', {
+            method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-client')
+            },
+            body: payload
+          });
           notify(tp('clients.created', 'Client added'));
           if (createModal) createModal.hide();
           fillForm(createForm, { client_type: 'individual', status: 'active' });
@@ -9708,6 +9716,8 @@ window.CRM.pageApiBindings = (function () {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
           notify((envelope && envelope.message) || tp('clients.create_fail', 'Failed to add client'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
       createForm.dataset.bound = '1';
@@ -10613,8 +10623,16 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         clearFormErrors(createForm);
+        var submitBtn = createForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
-          await request('api/v1/counterparties', { method: 'POST', body: payload });
+          await request('api/v1/counterparties', {
+            method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-counterparty')
+            },
+            body: payload
+          });
           notify(tp('counterparties.created', 'Counterparty added'));
           if (createModal) createModal.hide();
           fillForm(createForm, { counterparty_type: 'individual', status: 'active' });
@@ -10623,6 +10641,8 @@ window.CRM.pageApiBindings = (function () {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
           notify((envelope && envelope.message) || tp('counterparties.create_fail', 'Failed to add counterparty'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
       createForm.dataset.bound = '1';
@@ -24774,19 +24794,29 @@ window.CRM.pageApiBindings = (function () {
           phone: String(form.querySelector('[name="phone"]').value || '').trim() || null
         };
         if (!payload.full_name) { notify(tp('counterparty_detail.contact_name_required', 'Enter contact full name'), 'warning'); return; }
+        var submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
           if (contactId) {
             await request('api/v1/contacts/' + encodeURIComponent(contactId), { method: 'PATCH', body: payload });
             notify(tp('counterparty_detail.contact_updated', 'Contact updated'));
           } else {
             payload.counterparty_public_id = cpPublicId;
-            await request('api/v1/contacts', { method: 'POST', body: payload });
+            await request('api/v1/contacts', {
+              method: 'POST',
+              headers: {
+                'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-contact')
+              },
+              body: payload
+            });
             notify(tp('counterparty_detail.contact_added', 'Contact added'));
           }
           modal.hide();
           await refreshCurrentPage();
         } catch (error) {
           notify((error && error.envelope && error.envelope.message) || tp('counterparty_detail.contact_save_fail', 'Failed to save contact'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
       form.dataset.bound = '1';
@@ -25401,14 +25431,24 @@ window.CRM.pageApiBindings = (function () {
           tax_number: String(formData.get('tax_number') || '').trim(),
           email: String(formData.get('email') || '').trim()
         };
+        var submitBtn = createForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
-          await request('api/v1/companies', { method: 'POST', body: payload });
+          await request('api/v1/companies', {
+            method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-company')
+            },
+            body: payload
+          });
           createForm.reset();
           notify(tp('companies.created', 'Company created'));
           await loadCompanies();
         } catch (error) {
           var normalized = window.CRM.api.normalizeError(error, tp('companies.create_fail', 'Failed to create company'));
           notify(window.CRM.api.formatErrorMessage(normalized, { withRequestId: true }), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
     }
@@ -25735,8 +25775,16 @@ window.CRM.pageApiBindings = (function () {
           return;
         }
         clearFormErrors(createForm);
+        var submitBtn = createForm.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
-          await request('api/v1/contacts', { method: 'POST', body: payload });
+          await request('api/v1/contacts', {
+            method: 'POST',
+            headers: {
+              'X-Idempotency-Key': window.CRM.api.createIdempotencyKey('web-contact')
+            },
+            body: payload
+          });
           notify(tp('contacts.created', 'Contact created'));
           if (createModal) createModal.hide();
           createForm.reset();
@@ -25745,6 +25793,8 @@ window.CRM.pageApiBindings = (function () {
           var envelope = error && error.envelope ? error.envelope : null;
           showFormErrors(createForm, mapApiErrors(envelope));
           notify((envelope && envelope.message) || tp('contacts.create_fail', 'Failed to create contact'), 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
       createForm.dataset.bound = '1';
