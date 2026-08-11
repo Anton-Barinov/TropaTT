@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 
+- Local regression test for the compact tables rendering (`upload/web/tests/tables_compact_render.test.js`, run via `npm run test:tables-render`): asserts the projects table has exactly 6 columns with the merged "Client / Team" header and the counterparties table exactly 7 columns with the merged "Type / Status" and "Email / Phone" headers; evaluates the real row templates from `page-api-bindings.js` (INN under the counterparty name, stacked type/status and contacts cells, dash placeholder for empty contacts); verifies the compact mode hides only the extra-fields column (5th), never the contacts. Test file stays local-only (git-ignored) per project convention.
+
 - Local regression test for the compact tasks-list rendering (`upload/web/tests/tasks_list_render.test.js`, run via `npm run test:tasks-render`): asserts 8 table columns with the merged people/state headers, the de-emphasized parent link (weight 400 / 0.75rem), the absence of the AI-priority idle hint, and no leftover saved-views dead code. Test file stays local-only (git-ignored) per project convention.
 
 ### Fixed
