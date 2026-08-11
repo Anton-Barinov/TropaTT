@@ -3673,7 +3673,14 @@ body {
   letter-spacing: 0 !important;
   text-transform: none !important;
   vertical-align: middle !important;    
-  min-width: 200px !important;
+  /* Was 200px: in auto-layout tables every column got forced to at least
+     200px, blowing up the projects/counterparties/clients tables to
+     1100-1900px and forcing an internal horizontal scroll even on wide
+     desktops. 100px keeps short headers (Обновлён, ИНН, Статус) readable
+     while letting auto-layout size narrow columns by their content. Tables
+     that need wider columns (tasks list, estimates, ideas) define explicit
+     widths/caps of their own. */
+  min-width: 100px !important;
     text-align: left !important;
 }
 .crm-content table.crm-table thead th:first-child,

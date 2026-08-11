@@ -16,6 +16,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- Auto-layout tables (projects, counterparties, clients, knowledge, admin lists) no longer force every column to a minimum 200px — the global `thead th` rule now allows narrow columns to shrink to 100px, so the projects table fits without horizontal scroll (was 1125px+), counterparties drops from ~1400px and clients from ~1841px, and long names in narrow columns stop being cut off. Tables that need fixed wide columns (tasks list, estimates, ideas) keep their explicit per-column widths/caps.
+
 - Tasks list (list view) table: no more internal horizontal scroll on typical desktop widths — the table's `min-width` is now responsive (980px on wide screens, 780px below 1200px, 660px below 992px), so at a 1024–1280px viewport with the 280px sidebar the table fits the content area; on phones the card wrapper still scrolls gracefully and the page never scrolls horizontally. Fixed columns (key/people/state/actions) keep their caps, the percentage task column absorbs the shrink.
 
 - Tasks list (list view) table: the «Ключ» column is now truly content-sized — the generic table cell padding (14px 12px) was added on top of the fixed 96px width in fixed table layout, so the column rendered ~105px against ~58px key badges. The column is narrowed to 88px with 4px side padding and `white-space: nowrap`, so it fits the badge with a few px of air instead of a 47px dead zone.
