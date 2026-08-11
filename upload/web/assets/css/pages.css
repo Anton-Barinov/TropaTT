@@ -4461,7 +4461,7 @@ body.modal-open {
 
 .crm-projects-page table.crm-table .crm-pr-title a {
   display: inline-block;
-  max-width: 250px;
+  max-width: 245px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
