@@ -4197,7 +4197,7 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(2),
 .crm-clients-page #clientsTable td:nth-child(2) {
-  width: 16% !important;
+  width: 12% !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(3),
@@ -4214,8 +4214,8 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(5),
 .crm-clients-page #clientsTable td:nth-child(5) {
-  width: 140px !important;
-  max-width: 140px !important;
+  width: 130px !important;
+  max-width: 130px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(6),
