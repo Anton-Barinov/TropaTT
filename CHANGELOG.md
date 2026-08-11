@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Fixed
+
+- In-page retry status bar ("Повторная попытка загрузки данных…") now resolves its translation correctly in every locale: the `retrying_data` key was missing from the `js.notify` client-message namespace (it only existed in the unused `page` namespace), so the i18n lookup silently fell back to the English source string "Retrying data load…" for non-English users. The key is now present in `js.notify` in all 7 language files, and a regression test guards all of them.
+
 ### Changed
 
 - Tasks list (list view) table: sorting headers show only the direction arrow (▲/▼) — the level-rank number (e.g. «Задача ▲1») is removed, while multi-level sorting itself keeps working.

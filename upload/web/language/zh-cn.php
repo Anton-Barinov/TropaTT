@@ -4039,6 +4039,7 @@ return array (
     'notify' => 
     array (
       'new_notification' => 'New notification',
+      'retrying_data' => '正在重新加载数据…',
     ),
     'cycles' => 
     array (

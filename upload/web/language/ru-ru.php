@@ -4084,6 +4084,7 @@ return array (
     'notify' => 
     array (
       'new_notification' => 'Новое уведомление',
+      'retrying_data' => 'Повторная попытка загрузки данных…',
     ),
     'cycles' => 
     array (

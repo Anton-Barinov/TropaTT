@@ -6448,6 +6448,7 @@ return array (
     'notify' => 
     array (
       'new_notification' => 'New notification',
+      'retrying_data' => 'Nouvelle tentative de chargement des données…',
     ),
     'cycles' => 
     array (

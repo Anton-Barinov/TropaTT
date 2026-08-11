@@ -4083,6 +4083,7 @@ return array (
     'notify' => 
     array (
       'new_notification' => 'New notification',
+      'retrying_data' => 'Retrying data load…',
     ),
     'cycles' => 
     array (
