@@ -3191,16 +3191,20 @@ font-size: 0.72rem;
   flex-wrap: wrap;
   margin-top: 0.36rem;
 }
-.crm-my-day-page .crm-task-parent-link,
-.crm-my-week-page .crm-task-parent-link {
+/* Must beat the generic table-link rule in ui.css
+   (.crm-content .table.crm-table a, font-weight:650 !important). */
+.crm-my-day-page .crm-table tbody a.crm-task-parent-link,
+.crm-my-week-page .crm-table tbody a.crm-task-parent-link,
+.crm-my-day-page .crm-table tbody a.crm-task-parent-link:hover,
+.crm-my-week-page .crm-table tbody a.crm-task-parent-link:hover {
   font-size: 0.81rem;
-  font-weight: 600;
-  color: var(--crm-text-muted);
+  font-weight: 400 !important;
+  color: var(--crm-text-muted) !important;
   text-decoration: none;
 }
-.crm-my-day-page .crm-task-parent-link:hover,
-.crm-my-week-page .crm-task-parent-link:hover {
-  color: var(--crm-accent-strong);
+.crm-my-day-page .crm-table tbody a.crm-task-parent-link:hover,
+.crm-my-week-page .crm-table tbody a.crm-task-parent-link:hover {
+  color: var(--crm-accent-strong) !important;
 }
 .crm-my-day-page .crm-task-row-actions-wrap,
 .crm-my-week-page .crm-task-row-actions-wrap {
