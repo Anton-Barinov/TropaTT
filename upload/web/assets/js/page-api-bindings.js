@@ -736,7 +736,7 @@ window.CRM.pageApiBindings = (function () {
       + '<td class="crm-cell-state">'
       + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
       + '<div class="crm-state-line"><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
-      + '<div class="crm-state-line"><span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
+      + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(window.CRM.i18n.t('tasks.th_priority', 'Приоритет')) + ':</span> <span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
       + '</td>'
       + '<td>'
       + '<div class="crm-task-row-actions-wrap">'
@@ -16110,7 +16110,7 @@ window.CRM.pageApiBindings = (function () {
           + '<td class="crm-cell-state">'
           + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(task.due_at)) + '</span></div>'
           + '<div class="crm-state-line">' + statusBadge + '</div>'
-          + '<div class="crm-state-line">' + pBadge + '</div>'
+          + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(_t('my_day.th_priority', 'Приоритет')) + ':</span> ' + pBadge + '</div>'
           + '</td>'
           + '<td>' + actions + '</td></tr>';
       }

@@ -12,6 +12,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Added
 
+- Tasks list (list view) and My Day/My Week tables: the priority line in the merged «Срок / Статус / Приоритет» column now carries an explicit muted «Приоритет:» label before the chip, so a bare «Высокий»/«Низкий» is no longer ambiguous; the tasks state column cap is widened 145px → 155px to fit the labeled line.
+
 - Tasks list (list view) table: each «Клиент / Менеджер / Исполнитель» line is now clickable — a click (or Enter/Space, the lines are `role=button`) sets the corresponding page filter (Клиент / Менеджер / Исполнитель) natively through the existing filter selects and reloads the data server-side; clicking an already-active line clears the filter. Lines carry `data-people-role` + `data-people-value` (the entity public id that matches the filter option), a filter icon appears on hover (always on touch devices), and the searchable filter inputs now re-sync their visible value after programmatic filter changes (initial load, re-renders).
 
 - Tasks list (list view) table: hover tooltips on the «Клиент / Менеджер / Исполнитель» lines — when a line is clipped by `text-overflow: ellipsis` (narrow window), hovering it shows the full «Клиент: …» text in a native tooltip. The full text is kept in `data-people-title`, and a delegated listener sets the `title` attribute only for actually truncated lines (fully visible lines stay clean). Works after re-renders (filter/sort/pagination) and on any viewport width.

@@ -2300,7 +2300,7 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
-  width: 145px !important;
+  width: 155px !important;
   max-width: 180px !important;
 }
 

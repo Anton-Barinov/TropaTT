@@ -3189,6 +3189,14 @@ font-size: 0.72rem;
   white-space: nowrap;
 }
 
+/* Подпись «Приоритет:» перед чипом, чтобы строка была понятна без контекста */
+.crm-tasks-page .crm-cell-state .crm-state-label,
+.crm-my-day-page .crm-cell-state .crm-state-label {
+  color: var(--crm-text-muted, #6c757d);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
 .crm-tasks-page .crm-task-row-actions-wrap {
   display: grid;
   grid-template-columns: repeat(2, minmax(74px, 74px));
