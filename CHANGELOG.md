@@ -8,6 +8,8 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Changed
 
+- Tasks list (list view) header: sortable column buttons (`.crm-th-sort`) no longer use uppercase/extra-bold small type — they now inherit the plain header style, so all thead cells render with the same font, size and weight. Hover accent and the active-sort arrow are preserved.
+
 - My Day page: the "Срок", "Статус" and "Приоритет" columns are merged into one stacked state column (due date line, status badge, priority chip), matching the tasks list treatment. Both tables (today + overdue) now have 3 columns instead of 5; header reads "Срок / Статус / Приоритет".
 
 - Tasks list (list view) table: the task column header now offers a second sort button "Проект" (`sort=project_title`), since the project lives in the task column after the recent merge. The API accepts `project_title` in the tasks sort allowlist and orders by the joined projects title.

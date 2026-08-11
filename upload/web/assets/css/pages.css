@@ -3273,15 +3273,8 @@ font-size: 0.72rem;
   font: inherit;
   color: inherit;
   text-decoration: none;
-  font-size: 0.71rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 800;
-  border: 0;
   display: inline-flex;
   align-items: center;
-  line-height: 1.1;
-  min-height: 18px;
   vertical-align: middle;
 }
 
