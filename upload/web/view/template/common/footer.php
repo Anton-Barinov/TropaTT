@@ -81,9 +81,6 @@ $needsAdminEstimates = in_array($currentRoute, [
 $needsTaskEstimates = in_array($currentRoute, [
   'task-detail',
 ], true);
-$needsSavedViews = in_array($currentRoute, [
-  'tasks',
-], true);
 $needsIntake = in_array($currentRoute, [
   'intake',
 ], true);
@@ -151,9 +148,6 @@ $needsPageApiBindings = !in_array($currentRoute, [
 <?php endif; ?>
 <?php if ($needsTaskEstimates): ?>
 <script defer src="assets/js/task-estimates.js?v=<?= urlencode($assetsVersion) ?>"></script>
-<?php endif; ?>
-<?php if ($needsSavedViews): ?>
-<script defer src="assets/js/saved-views.js?v=<?= urlencode($assetsVersion) ?>"></script>
 <?php endif; ?>
 <?php if ($needsIntake): ?>
 <script defer src="assets/js/intake.js?v=<?= urlencode($assetsVersion) ?>"></script>

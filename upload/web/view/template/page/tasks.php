@@ -98,36 +98,3 @@
 
 </main></div></div>
 
-<!-- Saved View Create/Edit Modal -->
-<div class="modal fade" id="savedViewModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title" id="savedViewModalTitle" data-i18n="tasks.views_modal_title"><?= htmlspecialchars($t('tasks.views_modal_title', 'Сохранить представление'), ENT_QUOTES, 'UTF-8') ?></h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('common.close_aria', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.close_aria"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="savedViewPublicIdInput" value="">
-        <div class="mb-3">
-          <label for="savedViewNameInput" class="form-label" data-i18n="tasks.views_name_label"><?= htmlspecialchars($t('tasks.views_name_label', 'Название'), ENT_QUOTES, 'UTF-8') ?></label>
-          <input id="savedViewNameInput" class="form-control" type="text" maxlength="255" placeholder="<?= htmlspecialchars($t('tasks.views_name_placeholder', 'Мои задачи'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_name_placeholder">
-        </div>
-        <div class="mb-3">
-          <label for="savedViewDescInput" class="form-label" data-i18n="tasks.views_desc_label"><?= htmlspecialchars($t('tasks.views_desc_label', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
-          <textarea id="savedViewDescInput" class="form-control" rows="2" maxlength="2000" placeholder="<?= htmlspecialchars($t('tasks.views_desc_placeholder', 'Необязательное описание'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="tasks.views_desc_placeholder" data-crm-visual-editor="1" data-richtext-off="1"></textarea>
-        </div>
-        <div class="mb-3">
-          <label for="savedViewAccessSelect" class="form-label" data-i18n="tasks.views_access_label"><?= htmlspecialchars($t('tasks.views_access_label', 'Доступ'), ENT_QUOTES, 'UTF-8') ?></label>
-          <select id="savedViewAccessSelect" class="form-select">
-            <option value="private" data-i18n="tasks.views_access_private"><?= htmlspecialchars($t('tasks.views_access_private', 'Приватное'), ENT_QUOTES, 'UTF-8') ?></option>
-            <option value="public" data-i18n="tasks.views_access_public"><?= htmlspecialchars($t('tasks.views_access_public', 'Публичное'), ENT_QUOTES, 'UTF-8') ?></option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel_btn"><?= htmlspecialchars($t('common.cancel_btn', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
-        <button type="button" class="btn crm-btn-primary" id="savedViewModalSaveBtn" data-i18n="tasks.views_save_btn"><?= htmlspecialchars($t('tasks.views_save_btn', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button>
-      </div>
-    </div>
-  </div>
-</div>

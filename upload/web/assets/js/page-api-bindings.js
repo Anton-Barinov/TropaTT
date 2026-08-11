@@ -3073,7 +3073,6 @@ window.CRM.pageApiBindings = (function () {
     var sortFilter = String(query.get('sort') || '');
     var orderFilter = String(query.get('order') || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     var pageFilter = Math.max(1, Number.parseInt(String(query.get('page') || '1'), 10) || 1);
-    var currentViewPublicId = String(query.get('view_public_id') || '').trim();
     var currentView = normalizeTasksView(readCookie(VIEW_COOKIE));
     if (window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches && currentView === 'list') {
       currentView = 'cards';
@@ -3124,7 +3123,6 @@ window.CRM.pageApiBindings = (function () {
     var tasksCycleSelect = document.getElementById('tasksCycleFilter');
     var tasksTagSelect = document.getElementById('tasksTagFilter');
     var tasksPromise = tryRequest('api/v1/tasks', { query: apiQuery });
-    var savedViewsPromise = tryRequest('api/v1/views', { query: { entity_type: 'task', limit: 100 } });
     var projectOptionsPromise = tasksProjectSelect
       ? tryRequest('api/v1/projects', { query: { limit: 200 }, silent: true })
       : Promise.resolve(null);
@@ -3170,18 +3168,13 @@ window.CRM.pageApiBindings = (function () {
       sort: sortFilter,
       order: orderFilter
     };
-    var savedViewsEnvelope = await savedViewsPromise;
-    var savedViews = mapItems(savedViewsEnvelope);
     var selectionKey = tasksSelectionKey(items, currentView, filterSnapshot);
 
     function applyTaskRouteQuery(next) {
       var queryObj = getCurrentQueryObject();
-      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page'].forEach(function (key) {
+      ['search', 'status', 'priority', 'assignee', 'manager', 'project', 'client', 'cycle_public_id', 'tag', 'due', 'sort', 'order', 'page', 'view_public_id'].forEach(function (key) {
         delete queryObj[key];
       });
-      if (!next.keepViewPublicId) {
-        delete queryObj.view_public_id;
-      }
       if (next.search) queryObj.search = next.search;
       if (next.status) queryObj.status = next.status;
       if (next.priority) queryObj.priority = next.priority;
@@ -3195,7 +3188,6 @@ window.CRM.pageApiBindings = (function () {
       if (next.sort) queryObj.sort = next.sort;
       if (next.order) queryObj.order = next.order;
       if (next.page && Number(next.page) > 1) queryObj.page = String(next.page);
-      if (next.view_public_id) queryObj.view_public_id = next.view_public_id;
       var nextUrl = window.CRM.api.buildWebUrl('tasks', queryObj);
       window.history.replaceState({}, '', nextUrl);
       renderTasksPage();
@@ -3514,126 +3506,11 @@ window.CRM.pageApiBindings = (function () {
             status: statusFilter,
             priority: priorityFilter,
             sort: nextSort,
-            order: nextOrder,
-            view_public_id: currentViewPublicId
+            order: nextOrder
           });
         });
         btn.dataset.bound = '1';
       });
-    }
-
-    function bindTasksSavedViews() {
-      var select = document.getElementById('tasksSavedViewSelect');
-      var saveBtn = document.getElementById('tasksSaveViewBtn');
-      var deleteBtn = document.getElementById('tasksDeleteViewBtn');
-      if (!select && !saveBtn && !deleteBtn) return;
-
-      if (select) {
-        select.textContent = '';
-        var base = document.createElement('option');
-        base.value = '';
-        base.textContent = window.CRM.i18n.t('js.pab.saved_views', 'Saved views');
-        select.appendChild(base);
-        savedViews.forEach(function (view) {
-          var publicId = String(view.public_id || '').trim();
-          if (!publicId) return;
-          var option = document.createElement('option');
-          option.value = publicId;
-          option.textContent = String(view.title || publicId);
-          if (publicId === currentViewPublicId) option.selected = true;
-          select.appendChild(option);
-        });
-      }
-
-      if (select && select.dataset.bound !== '1') {
-        select.dataset.bound = '1';
-        select.addEventListener('change', function () {
-          var selectedId = String(select.value || '').trim();
-          if (!selectedId) {
-            applyTaskRouteQuery({ search: searchFilter, status: statusFilter, priority: priorityFilter, sort: sortFilter, order: orderFilter });
-            return;
-          }
-          var selected = savedViews.find(function (item) { return String(item.public_id || '') === selectedId; });
-          var filters = selected && selected.filters && typeof selected.filters === 'object' ? selected.filters : {};
-          applyTaskRouteQuery({
-            search: String(filters.search || ''),
-            status: String(filters.status || ''),
-            priority: String(filters.priority || ''),
-            sort: String(filters.sort || ''),
-            order: String(filters.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC',
-            view_public_id: selectedId
-          });
-        });
-      }
-
-      if (saveBtn && saveBtn.dataset.bound !== '1') {
-        saveBtn.dataset.bound = '1';
-        saveBtn.addEventListener('click', async function () {
-          var title = window.prompt(window.CRM.i18n.t('js.pab.saved_view_name_prompt', 'Saved view name'));
-          if (title === null) return;
-          var normalized = String(title || '').trim();
-          if (!normalized) {
-            notify(window.CRM.i18n.t('js.pab.view_name_empty', 'View name cannot be empty'), 'warning');
-            return;
-          }
-          try {
-            var created = await request('api/v1/views', {
-              method: 'POST',
-              body: {
-                entity_type: 'task',
-                title: normalized,
-                filters: {
-                  search: searchFilter,
-                  status: statusFilter,
-                  priority: priorityFilter,
-                  sort: sortFilter,
-                  order: orderFilter
-                }
-              }
-            });
-            var createdView = created && created.data ? created.data.view : null;
-            var createdId = String(createdView && createdView.public_id || '').trim();
-            notify(window.CRM.i18n.t('js.pab.view_saved', 'View saved'));
-            applyTaskRouteQuery({
-              search: searchFilter,
-              status: statusFilter,
-              priority: priorityFilter,
-              sort: sortFilter,
-              order: orderFilter,
-              view_public_id: createdId
-            });
-          } catch (error) {
-            var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_to_save_view', 'Failed to save view'), 'error');
-          }
-        });
-      }
-
-      if (deleteBtn && deleteBtn.dataset.bound !== '1') {
-        deleteBtn.dataset.bound = '1';
-        deleteBtn.addEventListener('click', async function () {
-          var targetId = select ? String(select.value || '').trim() : '';
-          if (!targetId) {
-            notify(window.CRM.i18n.t('js.pab.select_saved_view', 'Select saved view'), 'warning');
-            return;
-          }
-          if (!window.confirm(window.CRM.i18n.t('js.pab.delete_saved_view_confirm', 'Delete selected saved view?'))) return;
-          try {
-            await request('api/v1/views/' + encodeURIComponent(targetId), { method: 'DELETE' });
-            notify(window.CRM.i18n.t('js.pab.view_deleted', 'View deleted'));
-            applyTaskRouteQuery({
-              search: searchFilter,
-              status: statusFilter,
-              priority: priorityFilter,
-              sort: sortFilter,
-              order: orderFilter
-            });
-          } catch (error) {
-            var envelopeError = error && error.envelope ? error.envelope : null;
-            notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.pab.failed_to_delete_view', 'Failed to delete view'), 'error');
-          }
-        });
-      }
     }
 
     function bindTasksViewToggle() {
@@ -3726,7 +3603,6 @@ window.CRM.pageApiBindings = (function () {
     bindTasksFilters();
     bindTasksSorting();
     bindTasksViewToggle();
-    bindTasksSavedViews();
     bindAiPriorityActions();
 
     var tbody = document.querySelector('[data-state-item="default"] tbody');
