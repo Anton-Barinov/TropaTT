@@ -7515,7 +7515,7 @@ return array (
     'field_theme' => 'Tema',
     'opt_theme_light' => 'Padrão (claro)',
     'opt_theme_dark' => 'Escuro',
-    'opt_theme_contrast' => 'Alto contraste (baixa visão)',
+    'opt_theme_contrast' => 'Alto contraste',
     'opt_theme_sepia' => 'Sépia (quente)',
     'note_theme' => 'Aplicado imediatamente após a seleção.',
     'section_notifications' => 'Notificações',

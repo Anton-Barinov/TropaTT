@@ -6508,7 +6508,7 @@ return array (
     'field_theme' => 'Тема оформления',
     'opt_theme_light' => 'Стандартная (светлая)',
     'opt_theme_dark' => 'Тёмная',
-    'opt_theme_contrast' => 'Контрастная (для слабовидящих)',
+    'opt_theme_contrast' => 'Контрастная',
     'opt_theme_sepia' => 'Сепия (тёплая)',
     'note_theme' => 'Цветовая схема интерфейса применяется сразу после выбора.',
     'section_notifications' => 'Уведомления',

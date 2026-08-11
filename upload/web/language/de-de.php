@@ -7515,7 +7515,7 @@ return array (
     'field_theme' => 'Farbschema',
     'opt_theme_light' => 'Standard (hell)',
     'opt_theme_dark' => 'Dunkel',
-    'opt_theme_contrast' => 'Hoher Kontrast (Sehbehinderung)',
+    'opt_theme_contrast' => 'Hoher Kontrast',
     'opt_theme_sepia' => 'Sepia (warm)',
     'note_theme' => 'Wird sofort nach der Auswahl angewendet.',
     'section_notifications' => 'Benachrichtigungen',

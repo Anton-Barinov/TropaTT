@@ -6405,7 +6405,7 @@ return array (
     'field_theme' => 'Theme',
     'opt_theme_light' => 'Standard (light)',
     'opt_theme_dark' => 'Dark',
-    'opt_theme_contrast' => 'High contrast (low vision)',
+    'opt_theme_contrast' => 'High contrast',
     'opt_theme_sepia' => 'Sepia (warm)',
     'note_theme' => 'Applies immediately after selection.',
     'section_notifications' => 'Notifications',
