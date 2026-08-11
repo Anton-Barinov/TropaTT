@@ -8234,18 +8234,6 @@ return array (
     'no_access_text' => 'Solicite permisos al administrador del proyecto.',
     'no_access_tooltip' => 'Se requiere rol de Responsable o Administrador',
     'no_access_why' => 'Por qué no está disponible',
-    'views_access_label' => 'Access',
-    'views_access_private' => 'Private',
-    'views_access_public' => 'Public',
-    'views_aria' => 'Saved views',
-    'views_btn' => 'Views',
-    'views_desc_label' => 'Description',
-    'views_desc_placeholder' => 'Optional description',
-    'views_modal_title' => 'Save view',
-    'views_name_label' => 'Name',
-    'views_name_placeholder' => 'My tasks',
-    'views_save_btn' => 'Save',
-    'views_save_current' => '💾 Save current filters',
   ),
   'teams' => 
   array (

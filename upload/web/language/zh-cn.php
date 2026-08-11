@@ -4513,18 +4513,6 @@ return array (
     'no_access_text' => '请联系项目管理员获取权限。',
     'no_access_tooltip' => '需要负责人或管理员角色',
     'no_access_why' => '为什么无法访问',
-    'views_access_label' => 'Access',
-    'views_access_private' => 'Private',
-    'views_access_public' => 'Public',
-    'views_aria' => 'Saved views',
-    'views_btn' => 'Views',
-    'views_desc_label' => 'Description',
-    'views_desc_placeholder' => 'Optional description',
-    'views_modal_title' => 'Save view',
-    'views_name_label' => 'Name',
-    'views_name_placeholder' => 'My tasks',
-    'views_save_btn' => 'Save',
-    'views_save_current' => '💾 Save current filters',
   ),
   'task_detail' => 
   array (

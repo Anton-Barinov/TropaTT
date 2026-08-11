@@ -6,6 +6,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Removed
+
+- Dead `tasks.views_*` localization keys from the web language files (12 keys × 7 locales: `views_access_label`, `views_access_private`, `views_access_public`, `views_aria`, `views_btn`, `views_desc_label`, `views_desc_placeholder`, `views_modal_title`, `views_name_label`, `views_name_placeholder`, `views_save_btn`, `views_save_current`). Leftovers of the removed saved-views UI on the tasks page; nothing in the web code references them anymore.
+
 ### Added
 
 - Local regression test for the compact tables rendering (`upload/web/tests/tables_compact_render.test.js`, run via `npm run test:tables-render`): asserts the projects table has exactly 6 columns with the merged "Client / Team" header and the counterparties table exactly 7 columns with the merged "Type / Status" and "Email / Phone" headers; evaluates the real row templates from `page-api-bindings.js` (INN under the counterparty name, stacked type/status and contacts cells, dash placeholder for empty contacts); verifies the compact mode hides only the extra-fields column (5th), never the contacts. Test file stays local-only (git-ignored) per project convention.

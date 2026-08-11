@@ -4606,18 +4606,6 @@ return array (
     'no_access_text' => 'Request permissions from the project administrator.',
     'no_access_tooltip' => 'Manager or Admin role required',
     'no_access_why' => 'Why is this unavailable',
-    'views_access_label' => 'Access',
-    'views_access_private' => 'Private',
-    'views_access_public' => 'Public',
-    'views_aria' => 'Saved views',
-    'views_btn' => 'Views',
-    'views_desc_label' => 'Description',
-    'views_desc_placeholder' => 'Optional description',
-    'views_modal_title' => 'Save view',
-    'views_name_label' => 'Name',
-    'views_name_placeholder' => 'My tasks',
-    'views_save_btn' => 'Save',
-    'views_save_current' => '💾 Save current filters',
   ),
   'task_detail' => 
   array (

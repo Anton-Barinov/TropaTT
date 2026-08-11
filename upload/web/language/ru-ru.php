@@ -4628,18 +4628,6 @@ return array (
     'no_access_text' => 'Запросите права у администратора проекта.',
     'no_access_tooltip' => 'Требуется роль Менеджер или Администратор',
     'no_access_why' => 'Почему раздел недоступен',
-    'views_access_label' => 'Доступ',
-    'views_access_private' => 'Приватное',
-    'views_access_public' => 'Публичное',
-    'views_aria' => 'Сохранённые представления',
-    'views_btn' => 'Представления',
-    'views_desc_label' => 'Описание',
-    'views_desc_placeholder' => 'Необязательное описание',
-    'views_modal_title' => 'Сохранить представление',
-    'views_name_label' => 'Название',
-    'views_name_placeholder' => 'Мои задачи',
-    'views_save_btn' => 'Сохранить',
-    'views_save_current' => '💾 Сохранить текущие фильтры',
   ),
   'task_detail' => 
   array (
