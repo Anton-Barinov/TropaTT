@@ -99,7 +99,7 @@ final class WorklogController extends BaseController
      * everything worklog rules need: executor, task, minutes, exact interval and
      * the UTC day used for the day/continuous windows.
      */
-    private function fireWorklogTrigger(array $worklog, array $actor): void
+    private function fireWorklogTrigger(array $worklog, array $actor, int $previousMinutes = 0): void
     {
         try {
             $wf = $this->container->get('service.workflow');
@@ -116,6 +116,7 @@ final class WorklogController extends BaseController
                 'user_public_id' => (string)($worklog['user_public_id'] ?? ''),
                 'user_full_name' => (string)($worklog['user_full_name'] ?? $worklog['user_login'] ?? ''),
                 'minutes_spent' => (int)($worklog['minutes_spent'] ?? 0),
+                'previous_minutes_spent' => $previousMinutes,
                 'started_at' => (string)($worklog['started_at'] ?? ''),
                 'ended_at' => (string)($worklog['ended_at'] ?? ''),
                 'day' => $day,
@@ -201,6 +202,13 @@ final class WorklogController extends BaseController
 
         /** @var WorklogService $service */
         $service = $this->container->get('service.worklog');
+        $previousMinutes = 0;
+        try {
+            $existingRow = $this->container->get('repository.worklog')->findByPublicId((string)$params['public_id']);
+            $previousMinutes = (int)($existingRow['minutes_spent'] ?? 0);
+        } catch (\Throwable $e) {
+            error_log('[WorklogController::update] worklog lookup failed: ' . $e->getMessage());
+        }
         $item = $service->update((string)$params['public_id'], $input, $authUser['user']);
         if ($item === null) {
             return $this->error('WORKLOG_NOT_FOUND', $this->t('worklog/messages.not_found'), 404, [
@@ -219,7 +227,7 @@ final class WorklogController extends BaseController
         }
 
         $this->invalidateCache('worklog');
-        $this->fireWorklogTrigger($item, $authUser['user']);
+        $this->fireWorklogTrigger($item, $authUser['user'], $previousMinutes);
 
         return $this->success('WORKLOG_UPDATED', $this->t('worklog/messages.updated'), ['worklog' => $item]);
     }

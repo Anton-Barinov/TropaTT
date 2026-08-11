@@ -606,6 +606,7 @@ final class WorkflowService
             $userId = (int)($context['user_id'] ?? 0);
             $entryId = (int)($context['worklog_id'] ?? 0);
             $entryMinutes = max(0, (int)($context['minutes_spent'] ?? 0));
+            $previousMinutes = max(0, (int)($context['previous_minutes_spent'] ?? 0));
             if ($userId <= 0 || $entryMinutes <= 0) {
                 return $failed;
             }
@@ -617,16 +618,18 @@ final class WorkflowService
             $entries = $this->worklogs->automationEntriesByDay($userId, $taskId, $day);
 
             if ($window === 'continuous') {
-                [$before, $after] = self::continuousSessionTotals($entries, $entryId, $entryMinutes, $breakMinutes);
+                [$before, $after] = self::continuousSessionTotals($entries, $entryId, $entryMinutes, $breakMinutes, $previousMinutes);
             } else {
-                $before = 0;
+                // For updates the day total before this change includes the
+                // entry's previous minutes; for creates previous is 0.
+                $before = $previousMinutes;
                 foreach ($entries as $entry) {
                     if ((int)($entry['id'] ?? 0) === $entryId) {
                         continue;
                     }
                     $before += max(0, (int)($entry['minutes_spent'] ?? 0));
                 }
-                $after = $before + $entryMinutes;
+                $after = $before + $entryMinutes - $previousMinutes;
             }
 
             $matched = $before < $threshold && $after >= $threshold;
@@ -648,7 +651,7 @@ final class WorkflowService
      * @param array<int,array<string,mixed>> $entries
      * @return array{0: int, 1: int}
      */
-    private static function continuousSessionTotals(array $entries, int $entryId, int $entryMinutes, int $breakMinutes): array
+    private static function continuousSessionTotals(array $entries, int $entryId, int $entryMinutes, int $breakMinutes, int $previousMinutes = 0): array
     {
         if ($entries === []) {
             return [0, $entryMinutes];
@@ -709,7 +712,9 @@ final class WorkflowService
             $entrySession = $sessionTotal;
         }
 
-        $before = $entrySession - $entryMinutes;
+        // For updates the session total before this change includes the
+        // entry's previous minutes; for creates previous is 0.
+        $before = $entrySession - $entryMinutes + $previousMinutes;
         return [$before > 0 ? $before : 0, $entrySession];
     }
 
