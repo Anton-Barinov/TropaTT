@@ -4201,6 +4201,22 @@ body.modal-open {
   white-space: nowrap;
 }
 
+/* Email / Phone and extra-field chips must not stretch the auto-layout
+   table beyond the wrapper: long addresses and several chips used to widen
+   the column to the widest content, forcing an internal horizontal scroll.
+   Caps + ellipsis keep the table inside the content area; the full value
+   stays readable via the native title tooltip on truncation. */
+.crm-clients-page #clientsTable td:nth-child(5) {
+  max-width: 190px;
+}
+
+.crm-clients-page #clientsTable td:nth-child(6) {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .crm-clients-page #clientsTable td:last-child {
   white-space: nowrap;
 }
@@ -4407,6 +4423,26 @@ body.modal-open {
 .crm-counterparties-page #counterpartiesTable td:nth-child(4),
 .crm-counterparties-page #counterpartiesTable td:nth-child(5) {
   max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Auto-layout lets the widest content stretch the table (long names, long
+   emails, several extra-field chips pushed it to ~1400px against an ~875px
+   wrapper). Caps + ellipsis keep the table inside the content area; full
+   values are reachable via the native title tooltip on truncation. */
+.crm-counterparties-page #counterpartiesTable td:nth-child(2) {
+  max-width: 240px;
+}
+
+.crm-counterparties-page #counterpartiesTable td:nth-child(4),
+.crm-counterparties-page #counterpartiesTable td:nth-child(5) {
+  max-width: 180px;
+}
+
+.crm-counterparties-page #counterpartiesTable td:nth-child(6) {
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

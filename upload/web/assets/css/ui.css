@@ -4834,11 +4834,30 @@ body {
 .crm-companies-page .crm-table,
 .crm-contacts-page .crm-table,
 .crm-counterparties-page .crm-table {
-  min-width: 1080px !important;
+  /* Old safety layer: every auto-layout table was pinned to a huge fixed
+     width (1080-1400px), which forced an internal horizontal scroll on any
+     viewport narrower than that. The columns now carry their own caps +
+     ellipsis, so the tables can size by content inside the wrapper; this is
+     just a sane floor so the layout never collapses on phones. */
+  min-width: 760px !important;
 }
 
-.crm-counterparties-page #counterpartiesTable {
-  min-width: 1400px !important;
+@media (max-width: 991.98px) {
+  .crm-counterparties-page #counterpartiesTable,
+  .crm-clients-page .crm-table,
+  .crm-companies-page .crm-table,
+  .crm-contacts-page .crm-table {
+    min-width: 700px !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .crm-counterparties-page #counterpartiesTable,
+  .crm-clients-page .crm-table,
+  .crm-companies-page .crm-table,
+  .crm-contacts-page .crm-table {
+    min-width: 620px !important;
+  }
 }
 
 .crm-admin-page .crm-table td,
