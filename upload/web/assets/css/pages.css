@@ -4311,6 +4311,65 @@ body.modal-open {
   transition: color .18s ease, text-shadow .18s ease;
 }
 
+.crm-counterparties-page #counterpartiesTable .crm-cp-name .crm-counterparty-name-link {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.crm-counterparties-page #counterpartiesTable .crm-cp-inn {
+  font-size: 0.75rem;
+  color: var(--crm-text-muted);
+  margin-top: 0.2rem;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-counterparties-page #counterpartiesTable .crm-cp-type-status,
+.crm-counterparties-page #counterpartiesTable .crm-cp-contacts {
+  min-width: 130px;
+}
+
+.crm-counterparties-page #counterpartiesTable .crm-cp-line {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-counterparties-page #counterpartiesTable .crm-cp-line + .crm-cp-line {
+  margin-top: 0.3rem;
+}
+
+.crm-projects-page table.crm-table .crm-pr-title a {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.crm-projects-page table.crm-table .crm-pr-client-team {
+  min-width: 180px;
+}
+
+.crm-projects-page table.crm-table .crm-pr-line {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-projects-page table.crm-table .crm-pr-line + .crm-pr-line {
+  margin-top: 0.3rem;
+}
+
 .crm-counterparties-page #counterpartiesTable .crm-counterparty-name-link:hover,
 .crm-counterparties-page #counterpartiesTable .crm-counterparty-name-link:focus-visible {
   color: var(--crm-success);
@@ -4419,8 +4478,8 @@ body.modal-open {
   font-weight: 650;
 }
 
-.crm-counterparties-page #counterpartiesTable th:nth-child(7),
-.crm-counterparties-page #counterpartiesTable td:nth-child(7) {
+.crm-counterparties-page #counterpartiesTable th:nth-child(5),
+.crm-counterparties-page #counterpartiesTable td:nth-child(5) {
   overflow: hidden;
 }
 
@@ -4430,8 +4489,6 @@ body.modal-open {
   font-size: .92rem;
 }
 
-.crm-counterparties-page #counterpartiesTable.crm-compact-table th:nth-child(4),
-.crm-counterparties-page #counterpartiesTable.crm-compact-table td:nth-child(4),
 .crm-counterparties-page #counterpartiesTable.crm-compact-table th:nth-child(5),
 .crm-counterparties-page #counterpartiesTable.crm-compact-table td:nth-child(5) {
   display: none;
