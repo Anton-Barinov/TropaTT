@@ -183,6 +183,17 @@ function pageRetryFallbackHtml(request, offline) {
 }
 
 function pageRetryNavigation(request) {
+  // If the browser already reports that we are offline, do not burn the retry
+  // budget (and the user's time): serve the offline page right away. The
+  // server-retry path below is for transient server failures, not for a
+  // missing network connection.
+  if (self.navigator && self.navigator.onLine === false) {
+    return Promise.resolve(new Response(pageRetryFallbackHtml(request, true), {
+      status: 503,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    }));
+  }
+
   var attempt = 0;
 
   function attemptOnce() {

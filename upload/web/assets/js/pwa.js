@@ -57,11 +57,19 @@ window.CRM.pwa = (function () {
     btn.dataset.pwaBound = '1';
     btn.addEventListener('click', function () {
       if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function () {
-        deferredPrompt = null;
-        hideInstallButton();
-      });
+      var promptEvent = deferredPrompt;
+      // Consume the prompt first so a second click cannot re-prompt an already
+      // used beforeinstallprompt event (prompt() throws InvalidStateError).
+      deferredPrompt = null;
+      hideInstallButton();
+      try {
+        promptEvent.prompt();
+        if (promptEvent.userChoice && typeof promptEvent.userChoice.catch === 'function') {
+          promptEvent.userChoice.catch(function () {});
+        }
+      } catch (e) {
+        void e;
+      }
     });
   }
 

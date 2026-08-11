@@ -22,6 +22,10 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- PWA offline navigations now show the «Вы офлайн» page immediately instead of burning the whole retry budget (3+5+8 s of waiting) on a connection that the browser already reports as missing.
+
+- PWA install button: the `beforeinstallprompt` event is consumed on the first click, so a second click can no longer call `prompt()` on an already-used prompt (which throws `InvalidStateError`); any `userChoice` rejection is swallowed.
+
 - PWA app icons (icon-192.png / icon-512.png) now actually have transparent rounded corners: GD's alpha blending was on by default, so `imagesetpixel` with the transparent color was blended over the blue tile instead of writing the alpha channel, silently producing square icons. The generator now disables alpha blending before cutting the corners.
 
 - Tasks list (list view) table: clicking a sort header now really alternates ASC → DESC on every repeated click. The sort click handler was bound once and closed over the first render's `sortLevels`/filter values, so after the first re-render a second click re-applied ASC instead of flipping to DESC (and filters could silently reset). The handler now reads the current sort levels from the URL and the current filters from the DOM at click time; the toggle logic is extracted into a pure, runtime-tested `toggleTaskSortLevel()`.
