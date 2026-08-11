@@ -4198,7 +4198,7 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(2),
 .crm-clients-page #clientsTable td:nth-child(2) {
-  width: 150px !important;
+  width: 125px !important;
   min-width: 100px !important;
 }
 
@@ -4210,38 +4210,38 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(4),
 .crm-clients-page #clientsTable td:nth-child(4) {
-  width: 110px !important;
-  max-width: 110px !important;
+  width: 95px !important;
+  max-width: 95px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(5),
 .crm-clients-page #clientsTable td:nth-child(5) {
-  width: 130px !important;
-  max-width: 130px !important;
+  width: 100px !important;
+  max-width: 100px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(6),
 .crm-clients-page #clientsTable td:nth-child(6) {
-  width: 120px !important;
-  max-width: 120px !important;
+  width: 95px !important;
+  max-width: 95px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(7),
 .crm-clients-page #clientsTable td:nth-child(7) {
-  width: 110px !important;
-  max-width: 110px !important;
+  width: 90px !important;
+  max-width: 90px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(8),
 .crm-clients-page #clientsTable td:nth-child(8) {
-  width: 100px !important;
-  max-width: 100px !important;
+  width: 90px !important;
+  max-width: 90px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(9),
 .crm-clients-page #clientsTable td:nth-child(9) {
-  width: 100px !important;
-  max-width: 100px !important;
+  width: 90px !important;
+  max-width: 90px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(10),
