@@ -2284,7 +2284,9 @@ textarea.form-control:focus {
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
   width: 170px !important;
   max-width: 190px !important;
-  text-align: right;
+  /* !important beats the generic .crm-content table.crm-table thead th
+     rule, which forces text-align: left on every header cell. */
+  text-align: right !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table td,
