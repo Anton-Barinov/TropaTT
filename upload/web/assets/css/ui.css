@@ -2243,23 +2243,24 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table {
   min-width: 980px;
-  table-layout: fixed;
+  table-layout: fixed !important;
 }
 
 /* Fixed layout + hard max-widths keep the narrow columns narrow: without the
    caps, fixed layout would inflate every column equally with the spare space.
    The task column (no cap) absorbs all of it, so the key column stays
-   content-sized. */
+   content-sized. The !important beats the generic .crm-content table.crm-table
+   rule (table-layout: auto) that comes later in the cascade. */
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(1),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(1) {
-  width: 40px;
-  max-width: 40px;
+  width: 40px !important;
+  max-width: 40px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(2),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(2) {
-  width: 96px;
-  max-width: 96px;
+  width: 96px !important;
+  max-width: 96px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(3),
@@ -2269,20 +2270,20 @@ textarea.form-control:focus {
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(4),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(4) {
-  width: 110px;
-  max-width: 150px;
+  width: 110px !important;
+  max-width: 150px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(5),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(5) {
-  width: 160px;
-  max-width: 180px;
+  width: 160px !important;
+  max-width: 180px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table th:nth-child(6),
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
-  width: 170px;
-  max-width: 190px;
+  width: 170px !important;
+  max-width: 190px !important;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table td,
