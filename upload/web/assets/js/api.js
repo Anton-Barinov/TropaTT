@@ -814,14 +814,24 @@ window.CRM.api = (function () {
       }
     }
 
-    var isIdempotent = method === 'GET' || method === 'HEAD' || opts.idempotent === true;
+    // A request that carries an idempotency key can be safely re-sent: the
+    // server (IdempotencyService) replays the stored response for the same
+    // key+route+actor instead of executing the mutation a second time.
+    var hasIdempotencyKey = Object.keys(headers).some(function (name) {
+      return String(name).toLowerCase() === 'x-idempotency-key'
+        && String(headers[name] || '').trim() !== '';
+    });
+    var isIdempotent = method === 'GET' || method === 'HEAD' || opts.idempotent === true || hasIdempotencyKey;
     // Automatic retry: GET/HEAD data loads retry once by default so a transient
     // failure (network blip, 5xx, timeout) recovers without a manual page reload.
-    // Idempotent POSTs (AI with idempotency keys, jobs, webhooks) may already run
-    // their own retry loops, so they opt in explicitly with { retry: true }.
+    // Idempotent writes (POST/PUT/PATCH carrying an X-Idempotency-Key) also retry
+    // by default — the server dedupes by key, so a re-send can never double-create.
+    // Non-idempotent writes still require an explicit { retry: true }.
     // Opt out of the default with { retry: false }; tune with maxRetries/retryDelayMs.
     var allowRetry = opts.retry === true
-      || (opts.retry !== false && (method === 'GET' || method === 'HEAD'));
+      || (opts.retry !== false
+          && (method === 'GET' || method === 'HEAD'
+              || (hasIdempotencyKey && (method === 'POST' || method === 'PUT' || method === 'PATCH'))));
     var maxRetries = Math.max(0, Math.floor(toNumber(opts.maxRetries, 1)));
     var retryDelayMs = Math.max(0, Math.floor(toNumber(opts.retryDelayMs, 300)));
     // TLS 0-RTT anti-replay rejections get an extra retry beyond the generic cap
@@ -1019,7 +1029,14 @@ window.CRM.api = (function () {
         return envelope;
       }
 
-      if (allowRetry && isIdempotent && retryableStatus(response.status) && attempts <= maxRetries) {
+      // Idempotent writes retry on server errors only (500/502/503/504). 429 is
+      // deliberately excluded: AI endpoints report AI_BUSY/AI_RATE_LIMITED as 429
+      // and run their own retry loop in ai.js — auto-retrying 429 here would
+      // double those attempts. GET/HEAD keep the full retryableStatus set.
+      var retryableNow = method === 'GET' || method === 'HEAD'
+        ? retryableStatus(response.status)
+        : (response.status >= 500 && response.status <= 599);
+      if (allowRetry && isIdempotent && retryableNow && attempts <= maxRetries) {
         notifyApiRetrying(route, attempts, maxRetries);
         // Respect the server's Retry-After hint (rate limiting) when present.
         var retryAfterSeconds = envelope && envelope.meta && envelope.meta.retry_after

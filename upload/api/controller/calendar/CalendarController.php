@@ -56,23 +56,25 @@ final class CalendarController extends BaseController
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
 
-        /** @var CalendarService $service */
-        $service = $this->container->get('service.calendar');
-        $item = $service->createEvent($input, $authUser['user']);
-        if ($item === 'PROJECT_NOT_FOUND') {
-            return $this->error('PROJECT_NOT_FOUND', $this->t('calendar/messages.project_not_found'), 404, [
-                'project_public_id' => [$this->t('calendar/messages.project_not_found')],
-            ]);
-        }
-        if ($item === 'TASK_NOT_FOUND') {
-            return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
-                'task_public_id' => [$this->t('common/messages.task_not_found')],
-            ]);
-        }
+        return $this->withIdempotency(function () use ($input, $authUser): \Api\System\Library\Http\JsonResponse {
+            /** @var CalendarService $service */
+            $service = $this->container->get('service.calendar');
+            $item = $service->createEvent($input, $authUser['user']);
+            if ($item === 'PROJECT_NOT_FOUND') {
+                return $this->error('PROJECT_NOT_FOUND', $this->t('calendar/messages.project_not_found'), 404, [
+                    'project_public_id' => [$this->t('calendar/messages.project_not_found')],
+                ]);
+            }
+            if ($item === 'TASK_NOT_FOUND') {
+                return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
+                    'task_public_id' => [$this->t('common/messages.task_not_found')],
+                ]);
+            }
 
-        $this->invalidateCache('calendar');
+            $this->invalidateCache('calendar');
 
-        return $this->success('CALENDAR_EVENT_CREATED', $this->t('calendar/messages.event_created'), ['event' => $item], 201);
+            return $this->success('CALENDAR_EVENT_CREATED', $this->t('calendar/messages.event_created'), ['event' => $item], 201);
+        });
     }
 
     public function getEvent(array $params): \Api\System\Library\Http\JsonResponse
