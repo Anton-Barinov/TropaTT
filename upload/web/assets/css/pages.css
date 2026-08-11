@@ -4240,14 +4240,14 @@ body.modal-open {
 
 .crm-clients-page #clientsTable th:nth-child(9),
 .crm-clients-page #clientsTable td:nth-child(9) {
-  width: 90px !important;
-  max-width: 90px !important;
+  width: 80px !important;
+  max-width: 80px !important;
 }
 
 .crm-clients-page #clientsTable th:nth-child(10),
 .crm-clients-page #clientsTable td:nth-child(10) {
-  width: 90px !important;
-  max-width: 90px !important;
+  width: 70px !important;
+  max-width: 70px !important;
 }
 
 .crm-clients-page #clientsTable .crm-client-name-link {
