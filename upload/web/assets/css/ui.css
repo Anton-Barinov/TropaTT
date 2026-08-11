@@ -2284,6 +2284,7 @@ textarea.form-control:focus {
 .crm-tasks-page [data-tasks-list-view] .crm-table td:nth-child(6) {
   width: 170px !important;
   max-width: 190px !important;
+  text-align: right;
 }
 
 .crm-tasks-page [data-tasks-list-view] .crm-table td,
