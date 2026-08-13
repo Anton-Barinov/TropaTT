@@ -1,0 +1,39 @@
+{
+    "name": "crm.trello-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Trello",
+    "description": "Односторонняя миграция досок, списков, карточек и связанных данных из Trello Cloud в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": [
+        "project.manage",
+        "task.manage",
+        "import.manage"
+    ],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {
+            "module-trello-migration": "web/assets/js/trello-migration.js"
+        },
+        "css": ["web/assets/css/trello-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\TrelloMigration\\TrelloMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "attachment_download_timeout_seconds": 120,
+        "max_retries": 4,
+        "default_batch_size": 50,
+        "max_attachment_size_mb": 20,
+        "poll_interval_minutes": 15,
+        "webhook_enabled_by_default": false,
+        "include_archived_by_default": true,
+        "default_list_mode": "status",
+        "max_cards_per_job": 0
+    }
+}

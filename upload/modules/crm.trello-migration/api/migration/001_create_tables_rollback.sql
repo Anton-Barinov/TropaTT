@@ -1,0 +1,12 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `module_trello_job_logs`;
+DROP TABLE IF EXISTS `module_trello_sync_states`;
+DROP TABLE IF EXISTS `module_trello_webhooks`;
+DROP TABLE IF EXISTS `module_trello_rate_limits`;
+DROP TABLE IF EXISTS `module_trello_user_mappings`;
+DROP TABLE IF EXISTS `module_trello_board_configs`;
+DROP TABLE IF EXISTS `module_trello_source_mappings`;
+DROP TABLE IF EXISTS `module_trello_job_items`;
+DROP TABLE IF EXISTS `module_trello_jobs`;
+DROP TABLE IF EXISTS `module_trello_connections`;
+SET FOREIGN_KEY_CHECKS = 1;

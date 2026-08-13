@@ -27,6 +27,18 @@ final class ChecklistService
 
     public function create(string $taskPublicId, array $input, array $actor): ?array
     {
+        unset($input['created_at']);
+        return $this->createInternal($taskPublicId, $input, $actor, false);
+    }
+
+    /** Used only by trusted migration adapters; never exposed by the public API controllers. */
+    public function createImported(string $taskPublicId, array $input, array $actor): ?array
+    {
+        return $this->createInternal($taskPublicId, $input, $actor, true);
+    }
+
+    private function createInternal(string $taskPublicId, array $input, array $actor, bool $allowHistorical): ?array
+    {
         $task = $this->tasks->get($taskPublicId, $actor);
         if (!$task) {
             return null;
@@ -39,6 +51,10 @@ final class ChecklistService
 
         $publicId = Ulid::generate('chk');
         $now = gmdate('Y-m-d H:i:s');
+        if ($allowHistorical && !empty($input['created_at'])) {
+            $parsedCreatedAt = strtotime((string)$input['created_at']);
+            if ($parsedCreatedAt !== false) $now = gmdate('Y-m-d H:i:s', $parsedCreatedAt);
+        }
 
         $this->checklists->create([
             'public_id' => $publicId,
@@ -144,6 +160,18 @@ final class ChecklistService
 
     public function createItem(string $checklistPublicId, array $input, array $actor): ?array
     {
+        unset($input['created_at']);
+        return $this->createItemInternal($checklistPublicId, $input, $actor, false);
+    }
+
+    /** Used only by trusted migration adapters; never exposed by the public API controllers. */
+    public function createItemImported(string $checklistPublicId, array $input, array $actor): ?array
+    {
+        return $this->createItemInternal($checklistPublicId, $input, $actor, true);
+    }
+
+    private function createItemInternal(string $checklistPublicId, array $input, array $actor, bool $allowHistorical): ?array
+    {
         $checklist = $this->checklists->findByPublicId($checklistPublicId);
         if (!$checklist) {
             return null;
@@ -161,6 +189,10 @@ final class ChecklistService
 
         $publicId = Ulid::generate('cki');
         $now = gmdate('Y-m-d H:i:s');
+        if ($allowHistorical && !empty($input['created_at'])) {
+            $parsedCreatedAt = strtotime((string)$input['created_at']);
+            if ($parsedCreatedAt !== false) $now = gmdate('Y-m-d H:i:s', $parsedCreatedAt);
+        }
 
         $this->checklists->createItem([
             'public_id' => $publicId,

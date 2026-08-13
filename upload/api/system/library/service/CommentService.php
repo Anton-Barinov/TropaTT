@@ -44,6 +44,18 @@ final class CommentService
 
     public function createByTask(string $taskPublicId, array $input, int $authorUserId): ?array
     {
+        unset($input['author_user_id'], $input['created_at']);
+        return $this->createByTaskInternal($taskPublicId, $input, $authorUserId, false);
+    }
+
+    /** Used only by trusted migration adapters; never exposed by the public API controllers. */
+    public function createByTaskImported(string $taskPublicId, array $input, int $authorUserId): ?array
+    {
+        return $this->createByTaskInternal($taskPublicId, $input, $authorUserId, true);
+    }
+
+    private function createByTaskInternal(string $taskPublicId, array $input, int $authorUserId, bool $allowHistorical): ?array
+    {
         $body = $this->sanitizeBody((string)($input['body'] ?? ''));
         if ($body === '') {
             return null;
@@ -51,14 +63,21 @@ final class CommentService
 
         $commentPublicId = Ulid::generate('cmt');
         $existingParticipants = $this->comments->participantUserIdsByTaskPublicId($taskPublicId);
+        $createdAt = gmdate('Y-m-d H:i:s');
+        if ($allowHistorical && !empty($input['created_at'])) {
+            $parsedCreatedAt = strtotime((string)$input['created_at']);
+            if ($parsedCreatedAt !== false) $createdAt = gmdate('Y-m-d H:i:s', $parsedCreatedAt);
+        }
+        $effectiveAuthorId = $allowHistorical ? (int)($input['author_user_id'] ?? $authorUserId) : $authorUserId;
+        if ($effectiveAuthorId <= 0) $effectiveAuthorId = $authorUserId;
 
         $created = $this->comments->createByTaskPublicId($taskPublicId, [
             'public_id' => $commentPublicId,
-            'author_user_id' => $authorUserId,
+            'author_user_id' => $effectiveAuthorId,
             'body' => $body,
             'visibility' => (string)($input['visibility'] ?? 'internal'),
-            'created_at' => gmdate('Y-m-d H:i:s'),
-            'updated_at' => gmdate('Y-m-d H:i:s'),
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
         ]);
 
         if (!$created) {
@@ -69,13 +88,13 @@ final class CommentService
         $comment = $this->comments->findByPublicId($commentPublicId);
         if ($task && $comment) {
             $this->notifications?->notifyTaskCommentCreated($task, $comment, [
-                'id' => $authorUserId,
+                'id' => $effectiveAuthorId,
                 'public_id' => $comment['author_public_id'] ?? null,
                 'full_name' => $comment['author_name'] ?? null,
             ], $existingParticipants);
 
             $this->activity?->recordCommentAdded($task, $comment, [
-                'id' => $authorUserId,
+                'id' => $effectiveAuthorId,
                 'public_id' => $comment['author_public_id'] ?? null,
                 'full_name' => $comment['author_name'] ?? null,
             ], ['source_type' => 'web']);
