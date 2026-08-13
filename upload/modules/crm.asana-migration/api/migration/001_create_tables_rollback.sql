@@ -1,0 +1,10 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `module_asana_unresolved_entities`;
+DROP TABLE IF EXISTS `module_asana_job_logs`;
+DROP TABLE IF EXISTS `module_asana_rate_limits`;
+DROP TABLE IF EXISTS `module_asana_user_mappings`;
+DROP TABLE IF EXISTS `module_asana_source_mappings`;
+DROP TABLE IF EXISTS `module_asana_job_items`;
+DROP TABLE IF EXISTS `module_asana_jobs`;
+DROP TABLE IF EXISTS `module_asana_connections`;
+SET FOREIGN_KEY_CHECKS = 1;

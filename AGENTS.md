@@ -53,7 +53,7 @@ Groups (local only):
 - `php upload/api/scripts/test_runner.php unit` — all unit tests in `upload/api/tests/unit/` (SQLite in-memory, no MySQL or network needed).
 - `php upload/api/scripts/test_runner.php fast` (alias: `all`) — module integration tests (`StickyNoteIntegrationTest`, `ProjectModuleIntegrationTest`, `KnowledgePageVersionIntegrationTest`, `WorkCycleIntegrationTest`, `CompanyCompatibilityTest`).
 - `php upload/api/scripts/test_runner.php full` — unit + module integration tests combined.
-- Individual groups: `sticky`, `modules`, `knowledge`, `cycles`, `companies`, `updates` (`UpdaterStepMachineMysqlIntegrationTest` — end-to-end apply/rollback of the updater step machine against a live local MySQL: chunked dump/restore, multi-request migrations, DB restore on rollback).
+- Individual groups: `sticky`, `modules`, `knowledge`, `cycles`, `companies`, `updates` (`UpdaterStepMachineMysqlIntegrationTest` — end-to-end apply/rollback of the updater step machine against a live local MySQL: chunked dump/restore, multi-request migrations, DB restore on rollback), `trello` (`TrelloMigrationIntegrationTest` — opt-in live Trello authentication/discovery plus module persistence and rollback orchestration; requires an explicit dedicated test database and `TRELLO_TEST_CONFIRM=1`), `asana` (`AsanaMigrationIntegrationTest` — opt-in Asana PAT authentication, workspace discovery and temporary connection cleanup; requires an explicit dedicated test database and `ASANA_TEST_CONFIRM=1`).
 
 Legacy Composer aliases (`integration`, `contract`, `openapi`, `e2e-web`, `live`) map to the full module suite. The `fast`/`full`/module groups require a live MySQL database.
 

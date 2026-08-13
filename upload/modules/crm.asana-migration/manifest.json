@@ -1,0 +1,35 @@
+{
+    "name": "crm.asana-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Asana",
+    "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из Asana Cloud в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": [
+        "project.manage",
+        "task.manage"
+    ],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js": ["web/assets/js/asana-migration.js"],
+        "css": ["web/assets/css/asana-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\AsanaMigration\\AsanaMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "attachment_download_timeout_seconds": 120,
+        "max_retries": 4,
+        "default_batch_size": 50,
+        "max_attachment_size_mb": 20,
+        "include_archived_by_default": false,
+        "default_section_mode": "project_module",
+        "max_tasks_per_job": 0,
+        "webhooks_enabled_by_default": false
+    }
+}
