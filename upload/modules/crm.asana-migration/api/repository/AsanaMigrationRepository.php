@@ -144,9 +144,9 @@ final class AsanaMigrationRepository
         if (in_array($status, ['queued','running'], true)) { $sets[] = 'started_at=COALESCE(started_at,:started)'; $params['started'] = $this->now(); }
         if (in_array($status, ['completed','completed_with_warnings','failed','cancelled','rolled_back','rolled_back_with_warnings','rollback_failed'], true)) { $sets[] = 'finished_at=:finished'; $params['finished'] = $this->now(); }
         $where = ' WHERE public_id=:id';
-        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
+        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND lease_until >= UTC_TIMESTAMP() AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
         $stmt = $this->pdo->prepare('UPDATE module_asana_jobs SET ' . implode(',', $sets) . $where); $stmt->execute($params);
-        if ($leaseToken !== null && $stmt->rowCount() !== 1) throw new \RuntimeException('ASANA_JOB_LEASE_LOST');
+        if ($leaseToken !== null && !$this->leaseTokenMatches($publicId, $leaseToken)) throw new \RuntimeException('ASANA_JOB_LEASE_LOST');
     }
 
     public function requestStatus(string $publicId, string $status): bool
@@ -161,17 +161,22 @@ final class AsanaMigrationRepository
     {
         $this->pdo->beginTransaction();
         try {
-            $stmt = $this->pdo->prepare('SELECT id,status FROM module_asana_jobs WHERE public_id=:id LIMIT 1 FOR UPDATE');
+            $stmt = $this->pdo->prepare('SELECT id,status,lease_until,last_source_cursor FROM module_asana_jobs WHERE public_id=:id LIMIT 1 FOR UPDATE');
             $stmt->execute(['id' => $publicId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($row) || !in_array((string)$row['status'], ['completed','completed_with_warnings','failed','cancelled'], true)) {
-                $this->pdo->commit();
-                return null;
+            if (!is_array($row)) { $this->pdo->commit(); return null; }
+            $status=(string)$row['status'];
+            $terminal=in_array($status,['completed','completed_with_warnings','failed','cancelled','rolled_back_with_warnings','rollback_failed'],true);
+            $leaseUntil = (string)($row['lease_until'] ?? '');
+            $expiredRollback = false;
+            if ($status === 'rolling_back' && $leaseUntil !== '') {
+                try { $expiredRollback = new \DateTimeImmutable($leaseUntil, new \DateTimeZone('UTC')) < new \DateTimeImmutable('now', new \DateTimeZone('UTC')); } catch (\Throwable) { $expiredRollback = true; }
             }
-            $token = bin2hex(random_bytes(16));
-            $until = gmdate('Y-m-d H:i:s', time() + max(60, $leaseSeconds));
-            $update = $this->pdo->prepare("UPDATE module_asana_jobs SET status='rolling_back',lease_token=:token,lease_until=:until,updated_at=UTC_TIMESTAMP() WHERE id=:id AND status=:expected");
-            $update->execute(['token' => $token, 'until' => $until, 'id' => (int)$row['id'], 'expected' => (string)$row['status']]);
+            if (!$terminal && !$expiredRollback) { $this->pdo->commit(); return null; }
+            $token=bin2hex(random_bytes(16));$until=gmdate('Y-m-d H:i:s',time()+max(60,$leaseSeconds));
+            $cursor=$expiredRollback?(string)($row['last_source_cursor']??''):json_encode(['phase'=>'rollback','before_id'=>PHP_INT_MAX],JSON_UNESCAPED_UNICODE);
+            $update=$this->pdo->prepare("UPDATE module_asana_jobs SET status='rolling_back',lease_token=:token,lease_until=:until,last_source_cursor=:cursor,updated_at=UTC_TIMESTAMP() WHERE id=:id AND status=:expected");
+            $update->execute(['token'=>$token,'until'=>$until,'cursor'=>$cursor,'id'=>(int)$row['id'],'expected'=>$status]);
             if ($update->rowCount() !== 1) { $this->pdo->rollBack(); return null; }
             $this->pdo->commit();
             return $this->getJob($publicId);
@@ -184,7 +189,7 @@ final class AsanaMigrationRepository
     public function updateProgress(string $publicId, string $step, float $percent, array $progress, ?string $leaseToken = null): void
     {
         $params = ['step' => $step, 'percent' => max(0, min(100, $percent)), 'progress' => $this->json($progress), 'updated' => $this->now(), 'id' => $publicId]; $where = ' WHERE public_id=:id';
-        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
+        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND lease_until >= UTC_TIMESTAMP() AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
         $stmt = $this->pdo->prepare('UPDATE module_asana_jobs SET current_step=:step,progress_percent=:percent,progress_json=:progress,updated_at=:updated' . $where); $stmt->execute($params);
         if ($leaseToken !== null && !$this->ownsLease($publicId, $leaseToken)) throw new \RuntimeException('ASANA_JOB_LEASE_LOST');
     }
@@ -192,7 +197,7 @@ final class AsanaMigrationRepository
     public function updateSummary(string $publicId, array $summary, ?string $leaseToken = null): void
     {
         $params = ['summary' => $this->json($summary), 'updated' => $this->now(), 'id' => $publicId]; $where = ' WHERE public_id=:id';
-        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
+        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND lease_until >= UTC_TIMESTAMP() AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
         $stmt = $this->pdo->prepare('UPDATE module_asana_jobs SET summary_json=:summary,updated_at=:updated' . $where); $stmt->execute($params);
         if ($leaseToken !== null && !$this->ownsLease($publicId, $leaseToken)) throw new \RuntimeException('ASANA_JOB_LEASE_LOST');
     }
@@ -201,7 +206,7 @@ final class AsanaMigrationRepository
     {
         $this->pdo->beginTransaction();
         try {
-            $stmt = $this->pdo->query("SELECT j.id FROM module_asana_jobs j WHERE (j.status='queued' OR (j.status='running' AND j.lease_until IS NOT NULL AND j.lease_until < UTC_TIMESTAMP())) AND NOT EXISTS (SELECT 1 FROM module_asana_jobs active WHERE active.connection_id=j.connection_id AND active.status='running' AND active.lease_until IS NOT NULL AND active.lease_until >= UTC_TIMESTAMP()) ORDER BY j.created_at ASC LIMIT 1 FOR UPDATE");
+            $stmt = $this->pdo->query("SELECT j.id FROM module_asana_jobs j WHERE (j.status='queued' OR (j.status='running' AND j.lease_until IS NOT NULL AND j.lease_until < UTC_TIMESTAMP())) AND NOT EXISTS (SELECT 1 FROM module_asana_jobs active WHERE active.connection_id=j.connection_id AND (active.status='rolling_back' OR (active.status='running' AND active.lease_until IS NOT NULL AND active.lease_until >= UTC_TIMESTAMP()))) ORDER BY j.created_at ASC LIMIT 1 FOR UPDATE");
             $id = $stmt->fetchColumn();
             if ($id === false) { $this->pdo->commit(); return null; }
             $token = bin2hex(random_bytes(16)); $until = gmdate('Y-m-d H:i:s', time() + $leaseSeconds);
@@ -214,7 +219,7 @@ final class AsanaMigrationRepository
 
     public function heartbeat(string $publicId, string $leaseToken, int $leaseSeconds = 240): bool
     {
-        $stmt = $this->pdo->prepare("UPDATE module_asana_jobs SET lease_until=:until,updated_at=UTC_TIMESTAMP() WHERE public_id=:id AND lease_token=:token AND status IN ('running','rolling_back')"); $stmt->execute(['until' => gmdate('Y-m-d H:i:s', time() + $leaseSeconds), 'id' => $publicId, 'token' => $leaseToken]); return $this->ownsLease($publicId, $leaseToken);
+        $stmt = $this->pdo->prepare("UPDATE module_asana_jobs SET lease_until=:until,updated_at=UTC_TIMESTAMP() WHERE public_id=:id AND lease_token=:token AND lease_until >= UTC_TIMESTAMP() AND status IN ('running','rolling_back')"); $stmt->execute(['until' => gmdate('Y-m-d H:i:s', time() + $leaseSeconds), 'id' => $publicId, 'token' => $leaseToken]); return $this->ownsLease($publicId, $leaseToken);
     }
 
     public function ownsLease(string $publicId, string $leaseToken): bool
@@ -222,11 +227,32 @@ final class AsanaMigrationRepository
         $stmt = $this->pdo->prepare("SELECT id FROM module_asana_jobs WHERE public_id=:id AND lease_token=:token AND status IN ('running','rolling_back') AND lease_until >= UTC_TIMESTAMP() LIMIT 1"); $stmt->execute(['id' => $publicId, 'token' => $leaseToken]); return $stmt->fetchColumn() !== false;
     }
 
+    private function leaseTokenMatches(string $publicId, string $leaseToken): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT id FROM module_asana_jobs WHERE public_id=:id AND lease_token=:token AND lease_until >= UTC_TIMESTAMP() LIMIT 1');
+        $stmt->execute(['id' => $publicId, 'token' => $leaseToken]);
+        return $stmt->fetchColumn() !== false;
+    }
+
     public function releaseLease(string $publicId, string $leaseToken): void
     { $this->pdo->prepare('UPDATE module_asana_jobs SET lease_token=NULL,lease_until=NULL,updated_at=UTC_TIMESTAMP() WHERE public_id=:id AND lease_token=:token')->execute(['id' => $publicId, 'token' => $leaseToken]); }
 
+    /** Atomically queues failed items and resets the import checkpoint. */
+    public function retryJob(string $publicId): ?int
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $jobStmt=$this->pdo->prepare("SELECT id FROM module_asana_jobs WHERE public_id=:id AND status IN ('completed_with_warnings','failed','cancelled') LIMIT 1 FOR UPDATE");
+            $jobStmt->execute(['id'=>$publicId]);$job=$jobStmt->fetch(PDO::FETCH_ASSOC);
+            if(!is_array($job)){$this->pdo->commit();return null;}
+            $items=$this->pdo->prepare("UPDATE module_asana_job_items SET status='pending',error_code=NULL,error_message=NULL,updated_at=UTC_TIMESTAMP() WHERE job_id=:job AND status='failed'");$items->execute(['job'=>(int)$job['id']]);$count=$items->rowCount();
+            $this->pdo->prepare("UPDATE module_asana_jobs SET status='queued',last_source_cursor=NULL,updated_at=UTC_TIMESTAMP() WHERE id=:id")->execute(['id'=>(int)$job['id']]);
+            $this->pdo->commit();return $count;
+        } catch(\Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
+    }
+
     public function resetFailedItems(string $publicId): int
-    { $stmt = $this->pdo->prepare("UPDATE module_asana_job_items SET status='pending',error_code=NULL,error_message=NULL,updated_at=UTC_TIMESTAMP() WHERE job_id=(SELECT id FROM module_asana_jobs WHERE public_id=:id) AND status='failed'"); $stmt->execute(['id' => $publicId]); return $stmt->rowCount(); }
+    { return $this->retryJob($publicId) ?? 0; }
 
     public function upsertItem(int $jobId, string $type, string $sourceId, array $data): void
     {
@@ -246,6 +272,34 @@ final class AsanaMigrationRepository
 
     public function items(int $jobId, ?string $status = null, int $limit = 5000): array
     { $sql = 'SELECT * FROM module_asana_job_items WHERE job_id=:job'; $params = ['job' => $jobId]; if ($status !== null && $status !== '') { $sql .= ' AND status=:status'; $params['status'] = $status; } $sql .= ' ORDER BY id ASC LIMIT ' . max(1, min(10000, $limit)); $stmt = $this->pdo->prepare($sql); $stmt->execute($params); return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []; }
+
+    /** @return array<int,array<string,mixed>> */
+    public function importItemsBatch(int $jobId, int $priority = 0, int $lastId = 0, int $limit = 250): array
+    {
+        $limit = max(1, min(1000, $limit));
+        $sql = "SELECT * FROM (SELECT i.*, CASE i.source_type WHEN 'project' THEN 10 WHEN 'section' THEN 20 WHEN 'tag' THEN 30 WHEN 'task' THEN 40 WHEN 'subtask' THEN 45 WHEN 'dependency' THEN 55 WHEN 'comment' THEN 60 WHEN 'attachment' THEN 70 ELSE 90 END AS import_priority FROM module_asana_job_items i WHERE i.job_id=:job AND i.status='pending') AS ordered_items WHERE (ordered_items.import_priority>:priority OR (ordered_items.import_priority=:same_priority AND ordered_items.id>:last_id)) ORDER BY ordered_items.import_priority ASC, ordered_items.id ASC LIMIT {$limit}";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['job' => $jobId, 'priority' => $priority, 'same_priority' => $priority, 'last_id' => $lastId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function rollbackItemsBatch(int $jobId, int $beforeId, int $limit = 250): array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM module_asana_job_items WHERE job_id=:job AND created_by_job=1 AND target_public_id IS NOT NULL AND status<>\'rolled_back\' AND id<:before_id ORDER BY id DESC LIMIT ' . max(1, min(1000, $limit)));
+        $stmt->execute(['job' => $jobId, 'before_id' => $beforeId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function updateCursor(string $publicId, string $cursor, ?string $leaseToken = null): void
+    {
+        $params = ['id' => $publicId, 'cursor' => $cursor];
+        $where = ' WHERE public_id=:id';
+        if ($leaseToken !== null) { $where .= ' AND lease_token=:lease AND lease_until >= UTC_TIMESTAMP() AND status IN (\'running\',\'rolling_back\')'; $params['lease'] = $leaseToken; }
+        $stmt = $this->pdo->prepare('UPDATE module_asana_jobs SET last_source_cursor=:cursor,updated_at=UTC_TIMESTAMP()' . $where);
+        $stmt->execute($params);
+        if ($leaseToken !== null && !$this->ownsLease($publicId, $leaseToken)) throw new \RuntimeException('ASANA_JOB_LEASE_LOST');
+    }
 
     public function itemCounts(int $jobId): array
     { $stmt = $this->pdo->prepare('SELECT status,COUNT(*) AS count FROM module_asana_job_items WHERE job_id=:job GROUP BY status'); $stmt->execute(['job' => $jobId]); $out = []; foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) $out[(string)$row['status']]=(int)$row['count']; return $out; }

@@ -95,6 +95,47 @@ final class AsanaClient
         return $this->collection($token, '/workspaces/' . rawurlencode($workspaceGid) . '/tags', ['opt_fields' => 'gid,name,color,created_at'], 100);
     }
 
+    /** Stream a paginated collection so large workspaces are not accumulated in PHP memory. */
+    public function eachUsers(string $token, string $workspaceGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/workspaces/' . rawurlencode($workspaceGid) . '/users', ['opt_fields' => 'gid,name,email'], 100, $consumer);
+    }
+
+    public function eachTags(string $token, string $workspaceGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/workspaces/' . rawurlencode($workspaceGid) . '/tags', ['opt_fields' => 'gid,name,color,created_at'], 100, $consumer);
+    }
+
+    public function eachProjects(string $token, string $workspaceGid, bool $includeArchived, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/workspaces/' . rawurlencode($workspaceGid) . '/projects', ['opt_fields' => 'gid,name,notes,archived,public,owner,team,created_at,modified_at,permalink_url', 'archived' => $includeArchived ? 'true' : 'false'], 100, $consumer);
+    }
+
+    public function eachSections(string $token, string $projectGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/projects/' . rawurlencode($projectGid) . '/sections', ['opt_fields' => 'gid,name,project,created_at,modified_at'], 100, $consumer);
+    }
+
+    public function eachTasks(string $token, string $projectGid, bool $includeArchived, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/projects/' . rawurlencode($projectGid) . '/tasks', ['opt_fields' => 'gid,name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,start_at,assignee,followers,parent,projects,memberships,tags,custom_fields,dependencies,dependents,permalink_url,resource_subtype,archived', 'archived' => $includeArchived ? 'true' : 'false'], 100, $consumer);
+    }
+
+    public function eachStories(string $token, string $taskGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/tasks/' . rawurlencode($taskGid) . '/stories', ['opt_fields' => 'gid,resource_subtype,text,html_text,created_at,created_by'], 100, $consumer);
+    }
+
+    public function eachAttachments(string $token, string $taskGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/tasks/' . rawurlencode($taskGid) . '/attachments', ['opt_fields' => 'gid,name,resource_subtype,download_url,view_url,permanent_url,created_at,size,mime_type'], 100, $consumer);
+    }
+
+    public function eachSubtasks(string $token, string $taskGid, callable $consumer): int
+    {
+        return $this->streamCollection($token, '/tasks/' . rawurlencode($taskGid) . '/subtasks', ['opt_fields' => 'gid,name,notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,start_at,assignee,followers,parent,projects,memberships,tags,custom_fields,dependencies,dependents,permalink_url,resource_subtype,archived'], 100, $consumer);
+    }
+
     /** @return array<string,mixed> */
     public function downloadAttachment(string $token, string $url, int $maxBytes): array
     {
@@ -139,49 +180,6 @@ final class AsanaClient
         return ['path' => $tmp, 'size' => $written, 'mime_type' => (string)($headers['content-type'] ?? 'application/octet-stream')];
     }
 
-    private function legacyDownloadAttachment(string $token, string $url, int $maxBytes): array
-    {
-        $parts = parse_url($url);
-        $host = strtolower((string)($parts['host'] ?? ''));
-        if (($parts['scheme'] ?? '') !== 'https' || $host === '' || (!$this->allowedHost($host) || $this->privateHost($host))) {
-            throw new RuntimeException('ASANA_SSRF_BLOCKED');
-        }
-        $tmp = tempnam(sys_get_temp_dir(), 'asana-');
-        if ($tmp === false) throw new RuntimeException('ASANA_ATTACHMENT_TEMP_FAILED');
-        $fp = fopen($tmp, 'wb');
-        if ($fp === false) { @unlink($tmp); throw new RuntimeException('ASANA_ATTACHMENT_TEMP_FAILED'); }
-        $written = 0;
-        $headers = [];
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use ($fp, &$written, $maxBytes): int {
-                $length = strlen($chunk);
-                if ($written + $length > $maxBytes) return 0;
-                $written += $length;
-                return fwrite($fp, $chunk) ?: 0;
-            },
-            CURLOPT_TIMEOUT => max(10, $this->timeout * 2),
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'Accept: */*', 'User-Agent: TropaTT-Asana-Migration/1.0'],
-            CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int {
-                $length = strlen($line);
-                if (str_contains($line, ':')) { [$name, $value] = array_pad(explode(':', $line, 2), 2, ''); $headers[strtolower(trim($name))] = trim($value); }
-                return $length;
-            },
-        ]);
-        $ok = curl_exec($ch);
-        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        fclose($fp);
-        if ($ok === false || $code < 200 || $code >= 300 || $written > $maxBytes) {
-            @unlink($tmp);
-            throw new RuntimeException($written > $maxBytes ? 'ASANA_ATTACHMENT_TOO_LARGE' : 'ASANA_ATTACHMENT_DOWNLOAD_FAILED');
-        }
-        return ['path' => $tmp, 'size' => $written, 'mime_type' => (string)($headers['content-type'] ?? 'application/octet-stream')];
-    }
-
     /** @return array<string,mixed> */
     private function getData(string $token, string $path, array $query = []): array
     {
@@ -209,6 +207,29 @@ final class AsanaClient
             if ($offset === '') $offset = null;
         } while ($offset !== null);
         return $items;
+    }
+
+    /** Stream one page at a time; a false callback result stops discovery cleanly. */
+    private function streamCollection(string $token, string $path, array $query, int $limit, callable $consumer): int
+    {
+        $query = array_filter($query, static fn(mixed $value): bool => $value !== null && $value !== '');
+        $query['limit'] = min(100, max(1, $limit));
+        $offset = null;
+        $count = 0;
+        do {
+            $pageQuery = $query;
+            if ($offset !== null) $pageQuery['offset'] = $offset;
+            $response = $this->request($token, $path, $pageQuery);
+            foreach ((array)($response['data'] ?? []) as $item) {
+                if (!is_array($item)) continue;
+                $count++;
+                if ($count > self::MAX_COLLECTION_ITEMS) throw new RuntimeException('ASANA_COLLECTION_LIMIT_EXCEEDED');
+                if ($consumer($item) === false) return $count - 1;
+            }
+            $offset = is_array($response['next_page'] ?? null) ? (string)($response['next_page']['offset'] ?? '') : null;
+            if ($offset === '') $offset = null;
+        } while ($offset !== null);
+        return $count;
     }
 
     /** @return array<string,mixed> */
@@ -292,13 +313,24 @@ final class AsanaClient
         $signature = $normalized['x-amz-signature'] ?? $normalized['signature'] ?? '';
         $credential = $normalized['x-amz-credential'] ?? '';
         $expires = $normalized['x-amz-expires'] ?? $normalized['expires'] ?? '';
-        return $signature !== '' && $expires !== '' && ($credential !== '' || isset($normalized['signature']));
+        if ($signature === '' || !ctype_digit($expires) || (int)$expires < 1 || (int)$expires > 604800) return false;
+        // Accept legacy Asana/S3 signatures and AWS Signature V4, but never treat
+        // an arbitrary public S3 URL with dummy query parameters as trusted.
+        if (isset($normalized['x-amz-signature'])) return $credential !== '' && strlen($signature) >= 16 && isset($normalized['x-amz-algorithm'], $normalized['x-amz-date']);
+        return strlen($signature) >= 16;
     }
 
-    private function privateHost(string $host)
+    private function privateHost(string $host): bool
     {
         if ($host === 'localhost' || str_ends_with($host, '.local')) return true;
-        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
+        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : [];
+        if ($ips === [] && function_exists('dns_get_record')) {
+            foreach ((array)@dns_get_record($host, DNS_A | DNS_AAAA) as $record) {
+                $ip = (string)($record['ip'] ?? $record['ipv6'] ?? '');
+                if ($ip !== '') $ips[] = $ip;
+            }
+        }
+        if ($ips === []) $ips = gethostbynamel($host) ?: [];
         if ($ips === []) return true;
         foreach ($ips as $ip) if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return true;
         return false;
