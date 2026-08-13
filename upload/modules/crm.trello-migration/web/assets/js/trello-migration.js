@@ -5,9 +5,9 @@
   var api = window.CRM && window.CRM.api;
   if (!api || typeof api.request !== 'function') return;
   var state = { connection: null, boards: [], selectedBoards: [], job: null, poll: null };
-  // Keep the module route assembled so the shared API-link contract checker
-  // does not mistake the dynamically mounted module prefix for a core route.
-  var moduleApi = ['api', 'v1', 'modules', 'crm.trello-migration'].join('/');
+  // Module API routes are mounted by Router::addManyFromModule() under
+  // /_module/{vendor}.{name}/, just like the Jira/Confluence modules.
+  var moduleApi = '_module/crm.trello-migration';
   var qs = function (selector) { return document.querySelector(selector); };
   var esc = function (value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]; }); };
   var data = function (envelope) { return envelope && envelope.data && typeof envelope.data === 'object' ? envelope.data : {}; };
