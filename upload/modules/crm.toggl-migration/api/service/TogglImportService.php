@@ -20,6 +20,10 @@ final class TogglImportService
     {
         $job = $this->repo->getJob($jobPublicId);
         if (!$job) return;
+        if (($job['mode'] ?? 'import') !== 'dry_run') {
+            $owner = $this->repo->actor((int)($job['created_by_user_id'] ?? 0));
+            if (empty($owner['is_root'])) throw new RuntimeException('TOGGL_ROOT_REQUIRED');
+        }
         $connection = $this->repo->getConnectionById((int)$job['connection_id']);
         if (!$connection) throw new RuntimeException('TOGGL_CONNECTION_NOT_FOUND');
         $token = EncryptionService::decrypt((string)($connection['access_token_encrypted'] ?? ''));
@@ -111,7 +115,10 @@ final class TogglImportService
                         'status'=>'failed', 'attempts'=>(int)($item['attempts'] ?? 0) + 1,
                         'error_code'=>'IMPORT_FAILED', 'error_message'=>'Не удалось импортировать элемент. Подробности доступны в логе.',
                     ]);
-                    if ($type === 'time_entry' && $e->getMessage() === 'TOGGL_TIME_ENTRY_USER_UNMAPPED') $this->repo->unresolved((int)$job['id'], $type, (string)$item['source_id'], 'USER_UNMAPPED', 'Toggl user has no CRM mapping.', $payload);
+                    if ($type === 'time_entry' && in_array($e->getMessage(), ['TOGGL_TIME_ENTRY_USER_UNMAPPED', 'TOGGL_TIME_ENTRY_USER_FORBIDDEN'], true)) {
+                        $this->repo->unresolved((int)$job['id'], $type, (string)$item['source_id'], $e->getMessage() === 'TOGGL_TIME_ENTRY_USER_FORBIDDEN' ? 'USER_FORBIDDEN' : 'USER_UNMAPPED', 'Toggl user could not be safely assigned to a CRM user.', $payload);
+                    }
+
                     $this->repo->addLog((int)$job['id'], 'error', 'import_' . $type, 'Toggl item import failed.', ['source_type'=>$type,'source_id'=>$item['source_id'],'error_code'=>$e->getCode() ?: $e->getMessage()]);
                 }
                 ++$done;
@@ -147,6 +154,12 @@ final class TogglImportService
                     if ((int)($item['created_by_job'] ?? 0) !== 1 || empty($item['target_public_id'])) continue;
                     try {
                         $type = (string)$item['target_type'];
+                        if ($this->repo->targetReferencedByOtherJob((int)$job['id'], $type, (string)$item['target_public_id'])) {
+                            $warnings[] = (string)$item['source_id'];
+                            $this->repo->upsertItem((int)$job['id'], (string)$item['source_type'], (string)$item['source_id'], ['status'=>'rollback_preserved_shared','error_code'=>'TARGET_SHARED_BY_OTHER_JOB','error_message'=>'Target preserved because another migration job still refers to it.']);
+                            $this->repo->addLog((int)$job['id'], 'warning', 'rollback', 'Toggl target was preserved because another job still refers to it.', ['source_id'=>$item['source_id'],'target_type'=>$type]);
+                            continue;
+                        }
                         if ($type === 'worklog') {
                             $deleted = $this->writer->service('service.worklog')->delete((string)$item['target_public_id'], $actor);
                             if ($deleted !== true) throw new RuntimeException('TOGGL_WORKLOG_NOT_DELETED');

@@ -103,6 +103,7 @@ final class TogglMigrationController
         if ($newToken !== '') $update['access_token_encrypted'] = EncryptionService::encrypt($newToken);
         if (array_key_exists('workspace_gid', $input)) $update['workspace_gid'] = trim((string)$input['workspace_gid']) ?: null;
         $this->repo->updateConnection((string)$params['public_id'], $update);
+        if ($newToken !== '') $this->repo->updateConnectionCheck((string)$params['public_id'], false, 'Credentials changed; connection test required');
         return JsonResponse::success('TOGGL_CONNECTION_UPDATED', 'Connection updated', ['connection' => $this->publicConnection($this->repo->getConnection((string)$params['public_id']) ?? [])]);
     }
 
@@ -111,6 +112,7 @@ final class TogglMigrationController
         $result = $this->connection((string)($params['public_id'] ?? ''));
         if ($result instanceof JsonResponse) return $result;
         if ($this->repo->hasRunningJobs((int)$result['id'])) return JsonResponse::error('CONNECTION_HAS_RUNNING_JOBS', 'Cancel running jobs before deleting the connection', 409);
+        if ($this->repo->hasImportedTargets((int)$result['id'])) return JsonResponse::error('CONNECTION_HAS_IMPORTED_TARGETS', 'Rollback imported targets before deleting the connection', 409);
         $this->repo->deleteConnection((int)$result['id']);
         return JsonResponse::success('TOGGL_CONNECTION_DELETED', 'Connection deleted');
     }
@@ -143,10 +145,11 @@ final class TogglMigrationController
             $workspaces = $client->workspaces($token);
             $sourceWorkspace = null;
             foreach ($workspaces as $candidate) if ((string)($candidate['id'] ?? $candidate['gid'] ?? '') === $workspace) { $sourceWorkspace = $candidate; break; }
-            $organization = is_array($sourceWorkspace) ? (string)($sourceWorkspace['organization_id'] ?? $sourceWorkspace['organization_gid'] ?? '') : '';
+            if ($sourceWorkspace === null) return JsonResponse::error('TOGGL_WORKSPACE_NOT_ACCESSIBLE', 'The selected workspace is not accessible with this connection', 422);
+            $organization = (string)($sourceWorkspace['organization_id'] ?? $sourceWorkspace['organization_gid'] ?? '');
             foreach ($client->users($token, $workspace, $organization !== '' ? $organization : null) as $user) $this->repo->upsertUserMapping((int)$result['id'], $user);
             $projects = $client->projects($token, $workspace, !empty($input['include_archived']));
-            $clients = $client->clients($token, $workspace);
+            $clients = $client->clients($token, $workspace, !empty($input['include_archived']));
             $tags = $client->tags($token, $workspace);
             return JsonResponse::success('TOGGL_DISCOVERY_COMPLETE', 'Toggl workspace discovered', ['workspace_gid'=>$workspace,'projects'=>$projects,'clients'=>$clients,'tags'=>$tags,'user_mappings'=>$this->repo->listUserMappings((int)$result['id']),'crm_users'=>$this->repo->listCrmUsers()]);
         } catch (\Throwable) { return JsonResponse::error('TOGGL_DISCOVERY_FAILED', 'Toggl discovery failed', 400); }
@@ -182,13 +185,18 @@ final class TogglMigrationController
         try {
             $workspaceFound = false;
             foreach ($this->client($connection)->workspaces($token) as $sourceWorkspace) {
-                if ((string)($sourceWorkspace['gid'] ?? '') === $workspace) { $workspaceFound = true; break; }
+                if ((string)($sourceWorkspace['id'] ?? $sourceWorkspace['gid'] ?? '') === $workspace) { $workspaceFound = true; break; }
             }
             if (!$workspaceFound) return JsonResponse::error('TOGGL_WORKSPACE_NOT_ACCESSIBLE', 'The selected workspace is not accessible with this connection', 422);
         } catch (\Throwable) {
             return JsonResponse::error('TOGGL_WORKSPACE_VALIDATION_FAILED', 'Could not validate the selected Toggl workspace', 422);
         }
         $mode = (string)($input['mode'] ?? 'import'); if (!in_array($mode, ['import', 'sync', 'dry_run'], true)) return JsonResponse::error('VALIDATION_ERROR', 'mode must be import, sync or dry_run', 422);
+        // WorklogService intentionally allows non-root actors to write only
+        // their own entries. Since this job always crawls time entries, reject
+        // real imports up front instead of completing with a misleadingly
+        // partial result. Dry-run remains available to non-root operators.
+        if ($mode !== 'dry_run' && empty($this->actor()['is_root'])) return JsonResponse::error('TOGGL_ROOT_REQUIRED', 'Full Toggl imports require a root user because they include time entries for mapped users', 403);
         $scope = (array)($input['source_scope'] ?? []);
         $scope['project_gids'] = array_values(array_filter(array_map('strval', (array)($input['project_gids'] ?? $scope['project_gids'] ?? []))));
         $scope['max_tasks'] = max(0, (int)($input['max_tasks'] ?? $scope['max_tasks'] ?? 0));
@@ -207,7 +215,7 @@ final class TogglMigrationController
     public function resumeJob(array $params): JsonResponse { return $this->changeJob((string)$params['public_id'], 'queued', 'TOGGL_JOB_RESUMED'); }
     public function cancelJob(array $params): JsonResponse { return $this->changeJob((string)$params['public_id'], 'cancelling', 'TOGGL_JOB_CANCELLING'); }
 
-    public function retryFailed(array $params): JsonResponse { $result = $this->job((string)$params['public_id']); if ($result instanceof JsonResponse) return $result; if (!in_array((string)($result['status'] ?? ''), ['completed_with_warnings', 'failed', 'cancelled'], true)) return JsonResponse::error('INVALID_JOB_STATUS', 'Only a finished job can be retried', 409); $count = $this->repo->retryJob((string)$params['public_id']); if ($count === null) return JsonResponse::error('INVALID_JOB_STATUS', 'Job changed concurrently; retry it again', 409); return JsonResponse::success('TOGGL_JOB_RETRY_QUEUED', 'Failed items queued for retry', ['reset_items' => $count]); }
+    public function retryFailed(array $params): JsonResponse { $result = $this->job((string)$params['public_id']); if ($result instanceof JsonResponse) return $result; if (!in_array((string)($result['status'] ?? ''), ['completed_with_warnings', 'failed', 'cancelled'], true)) return JsonResponse::error('INVALID_JOB_STATUS', 'Only a finished job can be retried', 409); if (($result['mode'] ?? 'import') !== 'dry_run' && empty($this->actor()['is_root'])) return JsonResponse::error('TOGGL_ROOT_REQUIRED', 'Full Toggl imports require a root user', 403); $count = $this->repo->retryJob((string)$params['public_id']); if ($count === null) return JsonResponse::error('INVALID_JOB_STATUS', 'Job changed concurrently; retry it again', 409); return JsonResponse::success('TOGGL_JOB_RETRY_QUEUED', 'Failed items queued for retry', ['reset_items' => $count]); }
 
     public function rollbackJob(array $params): JsonResponse
     {
@@ -225,7 +233,14 @@ final class TogglMigrationController
         $result = $this->job($id); if ($result instanceof JsonResponse) return $result; $current = (string)($result['status'] ?? '');
         $allowed = match ($status) { 'queued' => in_array($current, ['draft', 'paused', 'failed', 'cancelled'], true), 'pausing' => in_array($current, ['queued', 'running'], true), 'cancelling' => in_array($current, ['draft', 'queued', 'running', 'paused', 'pausing'], true), default => false };
         if (!$allowed) return JsonResponse::error('INVALID_JOB_STATUS', 'Job cannot be changed from status: ' . $current, 409);
-        if (!$this->repo->requestStatus($id, $status)) return JsonResponse::error('INVALID_JOB_STATUS', 'Job changed concurrently; retry the action', 409);
+        if ($status === 'queued' && ($result['mode'] ?? 'import') !== 'dry_run' && empty($this->actor()['is_root'])) return JsonResponse::error('TOGGL_ROOT_REQUIRED', 'Full Toggl imports require a root user', 403);
+        // A queued job is not yet claimed by the worker, so pausing/cancelling
+        // it as an in-flight transitional state would leave it permanently
+        // invisible to claimNextJob(). Resolve those requests immediately.
+        $requestedStatus = $status;
+        if ($current === 'queued' && $status === 'pausing') $requestedStatus = 'paused';
+        if (in_array($current, ['draft', 'queued', 'paused', 'pausing'], true) && $status === 'cancelling') $requestedStatus = 'cancelled';
+        if (!$this->repo->requestStatus($id, $requestedStatus)) return JsonResponse::error('INVALID_JOB_STATUS', 'Job changed concurrently; retry the action', 409);
         return JsonResponse::success($code, 'Job state updated');
     }
 

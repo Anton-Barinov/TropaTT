@@ -23,7 +23,7 @@ final class TogglCrawler
         $options = (array)($job['target_options'] ?? []);
         $selectedProjects = array_values(array_filter(array_map('strval', (array)($scope['project_gids'] ?? []))));
         $includeArchived = (bool)($scope['include_archived'] ?? $options['include_archived'] ?? false);
-        $includeArchivedTasks = (bool)($scope['include_archived_tasks'] ?? $options['include_archived_tasks'] ?? false);
+        $includeArchivedTasks = (bool)($scope['include_archived_tasks'] ?? $options['include_archived_tasks'] ?? $includeArchived);
         $maxTasks = max(0, (int)($scope['max_tasks'] ?? $options['max_tasks'] ?? 0));
         $from = (string)($scope['time_entries_from'] ?? '');
         $to = (string)($scope['time_entries_to'] ?? '');
@@ -44,7 +44,7 @@ final class TogglCrawler
             ++$stats['users'];
         }
 
-        foreach ($this->client->clients($token, $workspaceId) as $client) {
+        foreach ($this->client->clients($token, $workspaceId, $includeArchived) as $client) {
             $gid = $this->stringId($client['id'] ?? $client['gid'] ?? null);
             if ($gid === '') continue;
             $client['gid'] = $gid;
@@ -55,6 +55,10 @@ final class TogglCrawler
         }
 
         foreach ($this->client->tags($token, $workspaceId) as $tag) {
+            if (!empty($tag['deleted_at'])) {
+                $stats['warnings'][] = 'Удалённая метка Toggl пропущена.';
+                continue;
+            }
             $gid = $this->stringId($tag['id'] ?? $tag['gid'] ?? null);
             if ($gid === '') continue;
             $tag['gid'] = $gid;

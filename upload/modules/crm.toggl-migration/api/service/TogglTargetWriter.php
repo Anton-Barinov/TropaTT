@@ -28,16 +28,17 @@ final class TogglTargetWriter
         $workspace = (string)$job['workspace_gid'];
         $mapping = $this->repo->findMapping((int)$job['connection_id'], $workspace, 'client', $source);
         if ($mapping && !empty($mapping['target_public_id']) && !$this->repo->targetExists('client', (string)$mapping['target_public_id'])) $mapping = null;
+        $status = $this->isActive($payload) ? 'active' : 'archived';
         if ($mapping && !empty($mapping['target_public_id'])) {
             if (($job['mode'] ?? 'import') !== 'sync') return $this->result('client', (string)$mapping['target_public_id'], 'skipped');
-            $updated = $this->service('service.client')->update((string)$mapping['target_public_id'], ['title' => $this->name($payload)], $actor);
+            $updated = $this->service('service.client')->update((string)$mapping['target_public_id'], ['title' => $this->name($payload), 'status' => $status], $actor);
             if (!is_array($updated)) throw new RuntimeException('TOGGL_CLIENT_UPDATE_FAILED');
             return $this->result('client', (string)$mapping['target_public_id'], 'updated');
         }
         $created = $this->service('service.client')->create([
             'title' => $this->name($payload),
             'client_type' => 'legal_entity',
-            'status' => 'active',
+            'status' => $status,
             'notes' => 'Imported from Toggl client ' . $source,
             'extra_attributes' => ['source' => 'toggl', 'source_id' => $source, 'workspace_id' => $workspace],
         ], $actor);
@@ -56,6 +57,7 @@ final class TogglTargetWriter
             if (($job['mode'] ?? 'import') !== 'sync') return $this->result('project', (string)$mapping['target_public_id'], 'skipped');
             $updated = $this->service('service.project')->update((string)$mapping['target_public_id'], [
                 'title' => $this->name($payload), 'description' => $this->description($payload),
+                'status' => $this->isActive($payload) ? 'active' : 'archived',
             ], $actor);
             if (!is_array($updated)) throw new RuntimeException('TOGGL_PROJECT_UPDATE_FAILED');
             return $this->result('project', (string)$mapping['target_public_id'], 'updated');
@@ -69,7 +71,7 @@ final class TogglTargetWriter
         $created = $this->service('service.project')->create([
             'title' => $this->name($payload),
             'description' => $this->description($payload),
-            'status' => !empty($payload['active']) && empty($payload['archived']) ? 'active' : 'archived',
+            'status' => $this->isActive($payload) ? 'active' : 'archived',
             'priority' => 'normal',
             'client_public_id' => $clientPublicId,
             'task_key_prefix' => 'TG' . strtoupper(substr(hash('sha256', $workspace . ':' . $source), 0, 6)),
@@ -181,7 +183,7 @@ final class TogglTargetWriter
         if ($stop === null) $stop = $start + $duration;
         if ($duration <= 0) $duration = $stop - $start;
         if ($duration <= 0 || $stop <= $start) throw new RuntimeException('TOGGL_TIME_ENTRY_INVALID_INTERVAL');
-        $sourceUser = $this->sourceId($payload['user_id'] ?? $payload['uid'] ?? null);
+        $sourceUser = $this->sourceId($payload['user_id'] ?? $payload['uid'] ?? $payload['_source_user_id'] ?? null);
         $userId = $sourceUser !== '' ? $this->repo->mappedUserId($connection, $sourceUser) : null;
         $userPublicId = $sourceUser !== '' ? $this->repo->mappedUserPublicId($connection, $sourceUser) : null;
         if ($userId === null || $userPublicId === null) throw new RuntimeException('TOGGL_TIME_ENTRY_USER_UNMAPPED');
@@ -231,6 +233,33 @@ final class TogglTargetWriter
     }
 
     private function description(array $payload): string { return trim((string)($payload['notes'] ?? $payload['description'] ?? '')); }
+
+    private function isActive(array $payload): bool
+    {
+        if (array_key_exists('active', $payload)) {
+            $value = $this->booleanValue($payload['active']);
+            if ($value !== null) return $value;
+        }
+        if (array_key_exists('archived', $payload)) {
+            $value = $this->booleanValue($payload['archived']);
+            if ($value !== null) return !$value;
+        }
+        $status = strtolower(trim((string)($payload['status'] ?? '')));
+        return !in_array($status, ['archived', 'inactive', 'deleted'], true);
+    }
+
+    private function booleanValue(mixed $value): ?bool
+    {
+        if (is_bool($value)) return $value;
+        if (is_int($value) || is_float($value)) return (int)$value !== 0;
+        if (!is_string($value)) return null;
+        return match (strtolower(trim($value))) {
+            '1', 'true', 'yes', 'on', 'active' => true,
+            '0', 'false', 'no', 'off', 'inactive' => false,
+            default => null,
+        };
+    }
+
     private function color(string $value): string { return preg_match('/^#[0-9a-f]{6}$/i', $value) ? $value : '#64748b'; }
 
     private function sourceId(mixed $value): string

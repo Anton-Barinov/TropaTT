@@ -41,9 +41,14 @@ final class TogglClient
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function clients(string $token, string $workspaceId): array
+    public function clients(string $token, string $workspaceId, bool $includeArchived = false): array
     {
-        return $this->collection($token, self::API_BASE . '/workspaces/' . rawurlencode($workspaceId) . '/clients', []);
+        $url = self::API_BASE . '/workspaces/' . rawurlencode($workspaceId) . '/clients';
+        $active = $this->collection($token, $url, ['status' => 'active']);
+        if (!$includeArchived) return $active;
+        // The v9 clients endpoint accepts a single status value; `both` is
+        // not portable across accounts. Fetch both collections explicitly.
+        return $this->mergeById($active, $this->collection($token, $url, ['status' => 'archived']));
     }
 
     /** @return array<int,array<string,mixed>> */

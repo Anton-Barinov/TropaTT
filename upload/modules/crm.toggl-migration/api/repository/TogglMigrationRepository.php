@@ -87,6 +87,33 @@ final class TogglMigrationRepository
         $stmt = $this->pdo->prepare("SELECT id FROM module_toggl_jobs WHERE connection_id=:id AND status IN ('queued','running','pausing','cancelling','rolling_back') LIMIT 1"); $stmt->execute(['id' => $connectionId]); return $stmt->fetchColumn() !== false;
     }
 
+    /**
+     * A connection with imported targets must not be deleted before rollback:
+     * deleting its mappings would make those CRM records impossible to trace
+     * or remove through this module.
+     */
+    public function hasImportedTargets(int $connectionId): bool
+    {
+        $lastId = 0;
+        do {
+            $stmt = $this->pdo->prepare("SELECT i.id,i.target_type,i.target_public_id FROM module_toggl_job_items i INNER JOIN module_toggl_jobs j ON j.id=i.job_id WHERE j.connection_id=:connection AND i.created_by_job=1 AND i.target_public_id IS NOT NULL AND i.status NOT IN ('rolled_back') AND i.id>:last_id ORDER BY i.id ASC LIMIT 500");
+            $stmt->execute(['connection' => $connectionId, 'last_id' => $lastId]);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            foreach ($items as $item) {
+                $type = (string)($item['target_type'] ?? '');
+                $target = (string)($item['target_public_id'] ?? '');
+                // A shared target may have been removed by the job that still
+                // owned the last live reference; stale metadata must not make
+                // the connection undeletable forever. Unknown types remain
+                // fail-closed rather than being silently discarded.
+                $knownType = in_array($type, ['client', 'project', 'task', 'tag', 'worklog'], true);
+                if ($target !== '' && (!$knownType || $this->targetExists($type, $target))) return true;
+                $lastId = (int)$item['id'];
+            }
+            if (count($items) < 500) return false;
+        } while (true);
+    }
+
     public function rateState(int $connectionId): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM module_toggl_rate_limits WHERE connection_id=:id LIMIT 1'); $stmt->execute(['id' => $connectionId]); $row = $stmt->fetch(PDO::FETCH_ASSOC); return is_array($row) ? $row : null;
@@ -286,9 +313,21 @@ final class TogglMigrationRepository
     /** @return array<int,array<string,mixed>> */
     public function rollbackItemsBatch(int $jobId, int $beforeId, int $limit = 250): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_toggl_job_items WHERE job_id=:job AND created_by_job=1 AND target_public_id IS NOT NULL AND status<>\'rolled_back\' AND id<:before_id ORDER BY id DESC LIMIT ' . max(1, min(1000, $limit)));
+        $stmt = $this->pdo->prepare("SELECT * FROM module_toggl_job_items WHERE job_id=:job AND created_by_job=1 AND target_public_id IS NOT NULL AND status NOT IN ('rolled_back','rollback_preserved_shared') AND id<:before_id ORDER BY id DESC LIMIT " . max(1, min(1000, $limit)));
         $stmt->execute(['job' => $jobId, 'before_id' => $beforeId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Do not delete a target during rollback when another job still refers to
+     * the same CRM record. This protects a later sync/import from losing its
+     * shared target merely because an older job was rolled back.
+     */
+    public function targetReferencedByOtherJob(int $jobId, string $targetType, string $targetPublicId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT i.id FROM module_toggl_job_items i INNER JOIN module_toggl_jobs j ON j.id=i.job_id WHERE i.job_id<>:job AND i.target_type=:type AND i.target_public_id=:target AND i.status NOT IN ('rolled_back','rollback_preserved_shared') LIMIT 1");
+        $stmt->execute(['job' => $jobId, 'type' => $targetType, 'target' => $targetPublicId]);
+        return $stmt->fetchColumn() !== false;
     }
 
     public function updateCursor(string $publicId, string $cursor, ?string $leaseToken = null): void
@@ -324,10 +363,12 @@ final class TogglMigrationRepository
         $email = trim((string)($user['email'] ?? ''));
         $crmPublicId = null;
         if ($email !== '') {
-            $stmt = $this->pdo->prepare('SELECT public_id FROM users WHERE email=:email AND is_active=1 LIMIT 1');
+            // Do not auto-map an email shared by multiple active CRM users;
+            // an arbitrary match would send time entries to the wrong person.
+            $stmt = $this->pdo->prepare('SELECT public_id FROM users WHERE email=:email AND is_active=1 ORDER BY id ASC LIMIT 2');
             $stmt->execute(['email' => $email]);
-            $candidate = $stmt->fetchColumn();
-            if ($candidate !== false) $crmPublicId = (string)$candidate;
+            $candidates = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            if (count($candidates) === 1) $crmPublicId = (string)$candidates[0];
         }
         $status = $crmPublicId !== null ? 'mapped' : 'unmapped';
         $stmt = $this->pdo->prepare('INSERT INTO module_toggl_user_mappings (connection_id,toggl_user_gid,display_name,email,crm_user_public_id,mapping_status,created_at,updated_at) VALUES (:connection,:gid,:name,:email,:crm,:status,:created,:updated) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),email=VALUES(email),crm_user_public_id=COALESCE(crm_user_public_id,VALUES(crm_user_public_id)),mapping_status=CASE WHEN crm_user_public_id IS NOT NULL THEN \'mapped\' ELSE VALUES(mapping_status) END,updated_at=VALUES(updated_at)');
@@ -364,7 +405,7 @@ final class TogglMigrationRepository
 
     public function targetExists(string $targetType, string $publicId): bool
     {
-        $table = match ($targetType) { 'client' => 'counterparties', 'project' => 'projects', 'task' => 'tasks', 'tag' => 'tags', default => '' };
+        $table = match ($targetType) { 'client' => 'counterparties', 'project' => 'projects', 'task' => 'tasks', 'tag' => 'tags', 'worklog' => 'work_logs', default => '' };
         if ($table === '') return false;
         $where = $table === 'tasks' ? ' AND deleted_at IS NULL' : '';
         $stmt = $this->pdo->prepare('SELECT id FROM ' . $table . ' WHERE public_id=:id' . $where . ' LIMIT 1');
