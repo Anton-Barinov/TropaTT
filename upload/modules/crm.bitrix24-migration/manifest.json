@@ -1,0 +1,31 @@
+{
+    "name": "crm.bitrix24-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Битрикс24",
+    "description": "Идемпотентная миграция CRM-сущностей, проектов, задач, пользователей, активностей и файлов из облака или коробки Битрикс24",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage", "import.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js_routes": {"module-bitrix24-migration": "web/assets/js/bitrix24-migration.js"},
+        "css": ["web/assets/css/bitrix24-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\Bitrix24Migration\\Bitrix24MigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "max_retries": 4,
+        "default_batch_size": 50,
+        "max_items_per_entity": 10000,
+        "max_attachment_size_mb": 20,
+        "include_archived_by_default": false,
+        "download_files_by_default": false,
+        "require_root_for_write": true
+    }
+}
