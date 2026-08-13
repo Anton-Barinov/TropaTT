@@ -191,7 +191,22 @@ final class TodoistImportService
                     if (!$isProjectCommentMutation && ((int)($item['created_by_job'] ?? 0) !== 1 || empty($item['target_public_id']))) continue;
                     try {
                         if ($isProjectCommentMutation) {
-                            $restored = $this->writer->service('service.project')->update((string)$item['target_public_id'], ['description' => (string)$itemPayload['project_description_before']], $actor);
+                            // Never overwrite edits made after the import. The
+                            // after-snapshot is the exact description produced
+                            // by this comment; if it no longer matches, leave
+                            // the project untouched and make the item retryable.
+                            $expectedDescription = array_key_exists('project_description_after', $itemPayload)
+                                ? (string)$itemPayload['project_description_after']
+                                : null;
+                            if ($expectedDescription === null) {
+                                throw new RuntimeException('TODOIST_ROLLBACK_PROJECT_SNAPSHOT_MISSING');
+                            }
+                            $projectService = $this->writer->service('service.project');
+                            $currentProject = $projectService->get((string)$item['target_public_id'], $actor);
+                            if (!is_array($currentProject) || (string)($currentProject['description'] ?? '') !== $expectedDescription) {
+                                throw new RuntimeException('TODOIST_ROLLBACK_PROJECT_CHANGED');
+                            }
+                            $restored = $projectService->update((string)$item['target_public_id'], ['description' => (string)$itemPayload['project_description_before']], $actor);
                             if (!is_array($restored)) throw new RuntimeException('TODOIST_ROLLBACK_PROJECT_UPDATE_FAILED');
                         } else {
                             $serviceId = match ((string)$item['target_type']) { 'project' => 'service.project', 'task' => 'service.task', 'file' => 'service.file', 'project_module' => 'service.project_module', 'tag' => 'service.tag', 'comment' => 'service.comment', default => '' };

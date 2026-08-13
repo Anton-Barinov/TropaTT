@@ -8,9 +8,10 @@ use RuntimeException;
 
 final class TodoistClient
 {
-    private const REST = 'https://api.todoist.com/rest/v2';
-    private const SYNC = 'https://api.todoist.com/sync/v9';
-    private const OAUTH_TOKEN = 'https://api.todoist.com/oauth/access_token';
+    // Todoist's current official API is v1. Keep all resource calls on the
+    // unified API; REST v2 and Sync v9 are retired endpoints.
+    private const API = 'https://api.todoist.com/api/v1';
+    private const OAUTH_TOKEN = 'https://todoist.com/oauth/access_token';
 
     private ?int $connectionId = null;
     /** @var callable(string):?string|null */
@@ -111,15 +112,14 @@ final class TodoistClient
 
     public function eachProjects(string $token, bool $includeArchived, callable $cb): int
     {
-        // Keep archived rows in the stream so a persisted project checkpoint can
-        // advance past a project archived between cron invocations. The crawler
-        // applies the includeArchived policy after checkpoint handling.
-        return $this->stream($token, '/projects', ['limit' => 200], $cb, self::REST);
+        // API v1 lists active projects. The crawler still receives the flag so
+        // it can report the archived-project limitation consistently.
+        return $this->stream($token, '/projects', ['limit' => 200], $cb, self::API);
     }
 
     public function eachSections(string $token, string $projectId, callable $cb): int
     {
-        return $this->stream($token, '/sections', ['project_id' => $projectId, 'limit' => 200], $cb, self::REST);
+        return $this->stream($token, '/sections', ['project_id' => $projectId, 'limit' => 200], $cb, self::API);
     }
 
     public function eachTasks(string $token, ?string $projectId, callable $cb): int
@@ -128,36 +128,39 @@ final class TodoistClient
         if ($projectId !== null && $projectId !== '') {
             $query['project_id'] = $projectId;
         }
-        return $this->stream($token, '/tasks', $query, $cb, self::REST);
+        return $this->stream($token, '/tasks', $query, $cb, self::API);
     }
 
     public function eachLabels(string $token, callable $cb): int
     {
-        return $this->stream($token, '/labels', ['limit' => 200], $cb, self::REST);
+        return $this->stream($token, '/labels', ['limit' => 200], $cb, self::API);
     }
 
     public function eachComments(string $token, string $taskId, callable $cb): int
     {
-        return $this->stream($token, '/comments', ['task_id' => $taskId, 'limit' => 100], $cb, self::REST);
+        return $this->stream($token, '/comments', ['task_id' => $taskId, 'limit' => 100], $cb, self::API);
     }
 
     public function eachProjectComments(string $token, string $projectId, callable $cb): int
     {
-        return $this->stream($token, '/comments', ['project_id' => $projectId, 'limit' => 100], $cb, self::REST);
+        return $this->stream($token, '/comments', ['project_id' => $projectId, 'limit' => 100], $cb, self::API);
     }
 
     public function eachCollaborators(string $token, string $projectId, callable $cb): int
     {
-        return $this->stream($token, '/projects/' . rawurlencode($projectId) . '/collaborators', ['limit' => 100], $cb, self::REST);
+        return $this->stream($token, '/projects/' . rawurlencode($projectId) . '/collaborators', ['limit' => 100], $cb, self::API);
     }
 
     public function eachCompletedTasks(string $token, ?string $projectId, ?string $since, ?string $until, callable $cb): int
     {
         $query = ['limit' => 200];
-        if ($projectId !== null && $projectId !== '') $query['project_id'] = $projectId;
+        // API v1 completion-date history supports workspace/filter bounds, not
+        // project_id. The crawler filters the account-wide stream locally.
         if ($since !== null && $since !== '') $query['since'] = $since;
         if ($until !== null && $until !== '') $query['until'] = $until;
-        return $this->stream($token, '/completed/get_all', $query, $cb, self::SYNC);
+        // API v1 returns completed tasks under `items` and requires a bounded
+        // date range (the crawler keeps each request within the API limit).
+        return $this->stream($token, '/tasks/completed/by_completion_date', $query, $cb, self::API);
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -174,11 +177,12 @@ final class TodoistClient
         $query = array_filter($query, static fn(mixed $value): bool => $value !== null && $value !== '');
         $limit = min(200, max(1, (int)($query['limit'] ?? 100)));
         $query['limit'] = $limit;
-        $offsetPaginationAllowed = $path === '/completed/get_all' || $path === '/comments' || str_contains($path, '/collaborators');
+        $offsetPaginationAllowed = $path === '/tasks/completed/by_completion_date' || $path === '/comments' || str_contains($path, '/collaborators');
         $cursor = null;
         $offset = null;
         $count = 0;
         $seen = [];
+        $pageSignatures = [];
 
         for ($page = 0; $page < 10000; $page++) {
             $requestQuery = $query;
@@ -193,6 +197,12 @@ final class TodoistClient
             $response = $this->request($token, $path, $requestQuery, $base);
             $items = $this->listFromResponse($response);
             if ($items === []) break;
+            // Some compatible gateways omit pagination metadata and return the
+            // same first page even when an offset is supplied. Stop on a
+            // repeated page instead of issuing requests until the hard limit.
+            $signature = hash('sha256', (string)json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            if (isset($pageSignatures[$signature])) break;
+            $pageSignatures[$signature] = true;
 
             $uniqueItems = 0;
             foreach ($items as $item) {
@@ -224,9 +234,9 @@ final class TodoistClient
                 }
             }
 
-            // completed/get_all is offset based and may omit an explicit next_offset.
-            // A repeated page is a safe termination condition for non-paginated REST arrays.
-            if ($offsetPaginationAllowed && count($items) >= $limit && $uniqueItems > 0) {
+            // Keep a defensive fallback for older-compatible responses that omit
+            // a cursor. API v1 normally terminates with next_cursor=null.
+            if ($offsetPaginationAllowed && count($items) >= $limit && $uniqueItems === count($items)) {
                 $offset = ($offset ?? 0) + count($items);
                 $cursor = null;
                 continue;
@@ -237,7 +247,7 @@ final class TodoistClient
     }
 
     /** @return array<string,mixed> */
-    private function request(string $token, string $path, array $query = [], string $base = self::REST): array
+    private function request(string $token, string $path, array $query = [], string $base = self::API): array
     {
         $currentToken = $token;
         $attempts = max(1, $this->maxRetries);
@@ -306,8 +316,11 @@ final class TodoistClient
     private function waitRate(int $id): void
     {
         $state = $this->repo->rateState($id);
-        $until = strtotime((string)($state['retry_after_until'] ?? ''));
-        if ($until !== false && $until > time()) sleep($until - time() + 1);
+        $rawUntil = trim((string)($state['retry_after_until'] ?? ''));
+        if ($rawUntil === '') return;
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $rawUntil, new \DateTimeZone('UTC'));
+        $until = $date instanceof \DateTimeImmutable ? $date->getTimestamp() : null;
+        if ($until !== null && $until > time()) sleep($until - time() + 1);
     }
 
     /** Download an attachment with size, HTTPS, redirect and SSRF checks. */

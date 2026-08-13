@@ -54,7 +54,8 @@ final class TodoistTargetWriter
                 if ($existing && ($job['mode'] ?? 'import') !== 'sync') return ['target_type' => 'project', 'target_public_id' => $map['target_public_id'], 'state' => 'skipped', 'warnings' => []];
                 if ($existing) {
                     $updated = $this->service('service.project')->update((string)$map['target_public_id'], ['title' => $this->title($payload), 'description' => (string)($payload['description'] ?? '')], $actor);
-                    return ['target_type' => 'project', 'target_public_id' => $map['target_public_id'], 'state' => is_array($updated) ? 'updated' : 'warning', 'warnings' => is_array($updated) ? [] : ['Project update failed.']];
+                    if (!is_array($updated)) throw new RuntimeException('TODOIST_PROJECT_UPDATE_FAILED');
+                    return ['target_type' => 'project', 'target_public_id' => $map['target_public_id'], 'state' => 'updated', 'warnings' => []];
                 }
             } catch (\Throwable) {
                 // A stale mapping is repaired by creating the missing target below.
@@ -106,7 +107,7 @@ final class TodoistTargetWriter
         if ($parent !== '') {
             $parentMap = $this->mapping($job, 'task', $parent);
             if (!empty($parentMap['target_public_id'])) $input['parent_task_public_id'] = $parentMap['target_public_id'];
-            else $warnings[] = 'Parent task mapping is not ready.';
+            else throw new RuntimeException('TODOIST_PARENT_TASK_NOT_READY');
         }
 
         $target = '';
@@ -116,7 +117,7 @@ final class TodoistTargetWriter
             $target = (string)$map['target_public_id'];
             if (($job['mode'] ?? 'import') === 'sync') {
                 $updated = $this->service('service.task')->update($target, $input, (int)($actor['id'] ?? 0), $actor);
-                if (!is_array($updated)) $warnings[] = 'Task update failed.';
+                if (!is_array($updated)) throw new RuntimeException('TODOIST_TASK_UPDATE_FAILED');
                 $state = 'updated';
             } else {
                 $state = 'skipped';
@@ -132,14 +133,23 @@ final class TodoistTargetWriter
             foreach ((array)($payload['labels'] ?? []) as $labelName) {
                 $label = $this->repo->findLabelMappingByName((int)$job['connection_id'], (string)$labelName);
                 if (!empty($label['target_public_id'])) {
-                    try { $this->service('service.tag')->attachToTask($target, (string)$label['target_public_id'], $actor); } catch (\Throwable) { $warnings[] = 'Label attachment failed.'; }
+                    try {
+                        if ($this->service('service.tag')->attachToTask($target, (string)$label['target_public_id'], $actor) !== true) {
+                            $warnings[] = 'Label attachment failed.';
+                        }
+                    } catch (\Throwable) { $warnings[] = 'Label attachment failed.'; }
                 }
             }
             $section = (string)($payload['section_id'] ?? '');
             if ($section !== '') {
                 $sectionMap = $this->mapping($job, 'section', $section);
                 if (!empty($sectionMap['target_public_id'])) {
-                    try { $this->service('service.project_module')->addTasks((string)$sectionMap['target_public_id'], ['task_public_ids' => [$target]], $actor); } catch (\Throwable) { $warnings[] = 'Task could not be added to its section module.'; }
+                    try {
+                        $sectionResult = $this->service('service.project_module')->addTasks((string)$sectionMap['target_public_id'], ['task_public_ids' => [$target]], $actor);
+                        if (is_string($sectionResult) || (is_array($sectionResult) && !empty($sectionResult['errors']))) {
+                            $warnings[] = 'Task could not be added to its section module.';
+                        }
+                    } catch (\Throwable) { $warnings[] = 'Task could not be added to its section module.'; }
                 }
             }
             $recurrenceWarning = $this->writeRecurrence($target, $payload, $job);
@@ -176,7 +186,7 @@ final class TodoistTargetWriter
                 $updated = $projectService->update((string)$project['target_public_id'], ['description' => $description], $actor);
                 if (!is_array($updated)) throw new RuntimeException('TODOIST_COMMENT_PROJECT_UPDATE_FAILED');
             }
-            return ['target_type' => 'project', 'target_public_id' => (string)$project['target_public_id'], 'state' => 'updated', 'warnings' => ['Project comments are preserved in the project description because CRM comments are task-scoped.'], 'rollback_payload' => ['project_description_before' => $beforeDescription]];
+            return ['target_type' => 'project', 'target_public_id' => (string)$project['target_public_id'], 'state' => 'updated', 'warnings' => ['Project comments are preserved in the project description because CRM comments are task-scoped.'], 'rollback_payload' => ['project_description_before' => $beforeDescription, 'project_description_after' => $description]];
         }
         throw new RuntimeException('TODOIST_COMMENT_PARENT_NOT_READY');
     }
@@ -195,14 +205,14 @@ final class TodoistTargetWriter
             $entityPublicId = (string)$project['target_public_id'];
         }
         if ($entityPublicId === '') return ['target_type' => 'file', 'target_public_id' => '', 'state' => 'skipped', 'warnings' => ['Attachment has no task or project target in CRM and was not downloaded.']];
-        $url = (string)($payload['file_url'] ?? '');
+        $url = trim((string)($payload['file_url'] ?? $payload['url'] ?? ''));
         if ($url === '') return ['target_type' => 'file', 'target_public_id' => '', 'state' => 'skipped', 'warnings' => ['Attachment has no file URL.']];
         $download = $this->client->downloadAttachment($token, $url, $maxBytes);
         $path = (string)$download['path'];
         try {
             $content = file_get_contents($path);
             if (!is_string($content)) throw new RuntimeException('TODOIST_ATTACHMENT_READ_FAILED');
-            $created = $this->service('service.file')->create(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId, 'name' => trim((string)($payload['file_name'] ?? 'attachment.bin')), 'mime_type' => (string)($download['mime_type'] ?? 'application/octet-stream'), 'content_base64' => base64_encode($content)], [], (int)($actor['id'] ?? 0), $actor);
+            $created = $this->service('service.file')->create(['entity_type' => $entityType, 'entity_public_id' => $entityPublicId, 'name' => trim((string)($payload['file_name'] ?? $payload['title'] ?? 'attachment.bin')), 'mime_type' => (string)($download['mime_type'] ?? 'application/octet-stream'), 'content_base64' => base64_encode($content)], [], (int)($actor['id'] ?? 0), $actor);
             if (!is_array($created) || empty($created['public_id'])) throw new RuntimeException('TODOIST_FILE_CREATE_FAILED');
             return ['target_type' => 'file', 'target_public_id' => (string)$created['public_id'], 'state' => 'imported', 'warnings' => []];
         } finally { @unlink($path); }

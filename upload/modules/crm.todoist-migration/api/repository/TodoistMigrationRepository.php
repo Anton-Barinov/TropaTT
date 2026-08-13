@@ -11,6 +11,13 @@ final class TodoistMigrationRepository
     public function __construct(private readonly PDO $pdo) {}
     private function id(string $prefix): string { return $prefix . '_' . bin2hex(random_bytes(10)); }
     private function now(): string { return gmdate('Y-m-d H:i:s'); }
+    private function utcTimestamp(string $value): ?int
+    {
+        $value = trim($value);
+        if ($value === '') return null;
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, new \DateTimeZone('UTC'));
+        return $date instanceof \DateTimeImmutable ? $date->getTimestamp() : null;
+    }
     private function json(mixed $value): string { return (string)json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); }
 
     public function actor(int $id): array
@@ -202,7 +209,21 @@ final class TodoistMigrationRepository
     public function rateState(int $connection): ?array
     { $s=$this->pdo->prepare('SELECT * FROM module_todoist_rate_limits WHERE connection_id=:c LIMIT 1');$s->execute(['c'=>$connection]);$r=$s->fetch(PDO::FETCH_ASSOC);return is_array($r)?$r:null; }
     public function recordRequest(int $connection,int $status,?int $retryAfter=null): void
-    { $old=$this->rateState($connection)??[];$start=(string)($old['window_started_at']??'');$count=$start!==''&&(time()-(strtotime($start)?:time())<900)?(int)($old['requests_made']??0):0;$this->upsertRate($connection,['requests_made'=>$count+1,'window_started_at'=>$start!==''?$start:$this->now(),'retry_after_until'=>$retryAfter!==null?gmdate('Y-m-d H:i:s',time()+$retryAfter):($old['retry_after_until']??null),'last_http_status'=>$status]); }
+    {
+        $old = $this->rateState($connection) ?? [];
+        $start = (string)($old['window_started_at'] ?? '');
+        $startTimestamp = $this->utcTimestamp($start);
+        $now = time();
+        $windowActive = $startTimestamp !== null && $startTimestamp <= $now && ($now - $startTimestamp) < 900;
+        $windowStart = $windowActive ? $start : $this->now();
+        $count = $windowActive ? (int)($old['requests_made'] ?? 0) : 0;
+        $this->upsertRate($connection, [
+            'requests_made' => $count + 1,
+            'window_started_at' => $windowStart,
+            'retry_after_until' => $retryAfter !== null ? gmdate('Y-m-d H:i:s', $now + $retryAfter) : null,
+            'last_http_status' => $status,
+        ]);
+    }
     private function upsertRate(int $connection,array $d): void
     { $s=$this->pdo->prepare('INSERT INTO module_todoist_rate_limits (connection_id,requests_made,window_started_at,retry_after_until,last_http_status,updated_at) VALUES (:c,:r,:w,:ra,:s,:u) ON DUPLICATE KEY UPDATE requests_made=VALUES(requests_made),window_started_at=VALUES(window_started_at),retry_after_until=VALUES(retry_after_until),last_http_status=VALUES(last_http_status),updated_at=VALUES(updated_at)');$s->execute(['c'=>$connection,'r'=>(int)($d['requests_made']??0),'w'=>$d['window_started_at']??$this->now(),'ra'=>$d['retry_after_until']??null,'s'=>$d['last_http_status']??null,'u'=>$this->now()]); }
 }

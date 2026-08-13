@@ -33,8 +33,19 @@ final class TodoistCrawler
         $recoveringCheckpoint = !empty($scope['_checkpoint_recovery']);
         $processedProjects = 0;
         $stopAfterProject = false;
-        $lastProjectId = '';
+
         $stats = ['projects' => 0, 'sections' => 0, 'labels' => 0, 'collaborators' => 0, 'tasks' => 0, 'completed_tasks' => 0, 'comments' => 0, 'attachments' => 0, 'warnings' => [], 'crawl_complete' => true, 'last_project_id' => null];
+        if ($includeArchived) {
+            $stats['warnings'][] = 'Todoist API v1 lists active projects only; archived projects were not available for import.';
+        }
+        if ($includeCompleted && ($since === '' || $until === '')) {
+            $until = gmdate('Y-m-d\\TH:i:s\\Z');
+            $since = gmdate('Y-m-d\\TH:i:s\\Z', strtotime('-90 days'));
+            $stats['warnings'][] = 'Completed-task history was limited to the latest 90 days because no date range was supplied.';
+        }
+        if ($includeCompleted && $this->completedWindows($since, $until) === []) {
+            $stats['warnings'][] = 'Completed-task history was skipped because the supplied date range is invalid.';
+        }
 
         $this->client->eachLabels($token, function (array $label) use ($job, &$stats): void {
             $id = (string)($label['id'] ?? '');
@@ -43,7 +54,7 @@ final class TodoistCrawler
             $stats['labels']++;
         });
 
-        $this->client->eachProjects($token, $includeArchived, function (array $project) use ($job, $token, $selected, $includeCompleted, $includeComments, $includeAttachments, $maxTasks, $since, $until, $heartbeat, &$stats): bool {
+        $this->client->eachProjects($token, $includeArchived, function (array $project) use ($job, $token, $selected, $includeComments, $includeAttachments, $maxTasks, $heartbeat, $afterProjectId, &$afterFound, &$processedProjects, &$stopAfterProject, &$stats): bool {
             if ($heartbeat !== null && !$heartbeat()) throw new RuntimeException('TODOIST_JOB_LEASE_LOST');
             $projectId = (string)($project['id'] ?? '');
             if ($projectId === '' || ($selected !== [] && !in_array($projectId, $selected, true))) return true;
@@ -87,21 +98,11 @@ final class TodoistCrawler
             };
             try {
                 $this->client->eachTasks($token, $projectId, $taskConsumer);
-                if ($includeCompleted) {
-                    $this->client->eachCompletedTasks($token, $projectId, $since, $until, function (array $task) use ($job, $token, $projectId, $includeComments, $includeAttachments, $maxTasks, $heartbeat, &$stats): bool {
-                        if ($maxTasks > 0 && $stats['tasks'] >= $maxTasks) return false;
-                        $task['is_completed'] = true;
-                        $this->storeTask($job, $token, $task, $projectId, $includeComments, $includeAttachments, $heartbeat, $stats, true);
-                        $stats['completed_tasks']++;
-                        return !($maxTasks > 0 && $stats['tasks'] >= $maxTasks);
-                    });
-                }
             } catch (\Throwable $e) {
                 if (in_array($e->getMessage(), ['TODOIST_JOB_LEASE_LOST', 'TODOIST_RATE_LIMITED'], true)) throw $e;
                 $stats['warnings'][] = 'Project ' . $projectId . ' tasks could not be fully loaded.';
                 $this->repo->addLog((int)$job['id'], 'warning', 'crawl', 'Todoist task discovery failed.', ['project_id' => $projectId]);
             }
-            $lastProjectId = $projectId;
             $stats['last_project_id'] = $projectId;
             if ($processedProjects >= $projectsPerRun) $stopAfterProject = true;
             return !($maxTasks > 0 && $stats['tasks'] >= $maxTasks) && !$stopAfterProject;
@@ -115,6 +116,25 @@ final class TodoistCrawler
             $recovered['warnings'] = array_values(array_unique(array_merge(['Crawl checkpoint project was no longer visible; discovery restarted safely.'], (array)$recovered['warnings'])));
             return $recovered;
         }
+
+        // API v1's completion-date endpoint is account-wide and does not accept
+        // project_id. Fetch it once after the project batches finish, then filter
+        // by each task's project_id locally to avoid N duplicate history calls.
+        if ($includeCompleted && !$stopAfterProject && !($maxTasks > 0 && $stats['tasks'] >= $maxTasks)) {
+            foreach ($this->completedWindows($since, $until) as [$windowSince, $windowUntil]) {
+                $this->client->eachCompletedTasks($token, null, $windowSince, $windowUntil, function (array $task) use ($job, $token, $selected, $includeComments, $includeAttachments, $maxTasks, $heartbeat, &$stats): bool {
+                    $projectId = (string)($task['project_id'] ?? '');
+                    if ($projectId === '' || ($selected !== [] && !in_array($projectId, $selected, true))) return true;
+                    if ($maxTasks > 0 && $stats['tasks'] >= $maxTasks) return false;
+                    $task['is_completed'] = true;
+                    $this->storeTask($job, $token, $task, $projectId, $includeComments, $includeAttachments, $heartbeat, $stats, true);
+                    $stats['completed_tasks']++;
+                    return !($maxTasks > 0 && $stats['tasks'] >= $maxTasks);
+                });
+                if ($maxTasks > 0 && $stats['tasks'] >= $maxTasks) break;
+            }
+        }
+
         $stats['crawl_complete'] = !$stopAfterProject;
         return $stats;
     }
@@ -127,8 +147,11 @@ final class TodoistCrawler
         $parent = (string)($task['parent_id'] ?? '');
         $type = $parent !== '' ? 'subtask' : 'task';
         $task['is_completed'] = $completed || !empty($task['is_completed']) || !empty($task['completed_at']);
-        $this->repo->upsertItem((int)$job['id'], $type, $id, ['source_parent_id' => $parent !== '' ? $parent : null, 'source_project_id' => $projectId, 'status' => 'pending', 'checksum' => $this->checksum($task), 'source_updated_at' => $this->date((string)($task['added_at'] ?? $task['completed_at'] ?? '')), 'payload_json' => $task]);
-        $stats['tasks']++;
+        $existing = $this->repo->findItem((int)$job['id'], $type, $id);
+        $this->repo->upsertItem((int)$job['id'], $type, $id, ['source_parent_id' => $parent !== '' ? $parent : null, 'source_project_id' => $projectId, 'status' => 'pending', 'checksum' => $this->checksum($task), 'source_updated_at' => $this->date((string)($task['updated_at'] ?? $task['completed_at'] ?? $task['created_at'] ?? $task['added_at'] ?? '')), 'payload_json' => $task]);
+        // Active and completed endpoints may return the same task. Count only
+        // the first observation so max_tasks is a unique-entity limit.
+        if ($existing === null) $stats['tasks']++;
         if (!$comments) return;
         $this->client->eachComments($token, $id, function (array $comment) use ($job, $id, $projectId, $attachments, &$stats): void {
             $this->storeComment($job, $comment, $id, $projectId, $attachments, $stats);
@@ -143,12 +166,28 @@ final class TodoistCrawler
         if ($taskId !== null) $payload['_source_task_id'] = $taskId;
         $this->repo->upsertItem((int)$job['id'], 'comment', $commentId, ['source_parent_id' => $taskId ?? $projectId, 'source_project_id' => $projectId, 'status' => 'pending', 'checksum' => $this->checksum($payload), 'payload_json' => $payload]);
         $stats['comments']++;
-        $attachment = $comment['attachment'] ?? null;
-        if ($attachments && is_array($attachment) && !empty($attachment['file_url'])) {
-            $attachmentId = $commentId . ':' . hash('sha256', (string)$attachment['file_url']);
+        $attachment = $comment['attachment'] ?? $comment['file_attachment'] ?? null;
+        $attachmentUrl = is_array($attachment) ? trim((string)($attachment['file_url'] ?? $attachment['url'] ?? '')) : '';
+        if ($attachments && is_array($attachment) && $attachmentUrl !== '') {
+            $attachmentId = $commentId . ':' . hash('sha256', $attachmentUrl);
+            $attachment['file_url'] = $attachmentUrl;
             $this->repo->upsertItem((int)$job['id'], 'attachment', $attachmentId, ['source_parent_id' => $commentId, 'source_project_id' => $projectId, 'status' => 'pending', 'checksum' => $this->checksum($attachment), 'payload_json' => array_merge($attachment, ['_source_attachment_id' => $attachmentId, '_source_task_id' => $taskId, '_source_comment_id' => $commentId])]);
             $stats['attachments']++;
         }
+    }
+
+    /** @return array<int,array{0:string,1:string}> */
+    private function completedWindows(string $since, string $until): array
+    {
+        $start = strtotime($since);
+        $end = strtotime($until);
+        if ($start === false || $end === false || $start > $end) return [];
+        $windows = [];
+        for ($cursor = $start; $cursor <= $end; $cursor = $windowEnd + 1) {
+            $windowEnd = min($end, $cursor + (90 * 86400) - 1);
+            $windows[] = [gmdate('Y-m-d\\TH:i:s\\Z', $cursor), gmdate('Y-m-d\\TH:i:s\\Z', $windowEnd)];
+        }
+        return $windows;
     }
 
     private function checksum(array $value): string
