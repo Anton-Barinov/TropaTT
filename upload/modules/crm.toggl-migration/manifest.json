@@ -1,0 +1,33 @@
+{
+    "name": "crm.toggl-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Toggl",
+    "description": "Миграция рабочих пространств, клиентов, проектов, задач, пользователей и учёта времени из Toggl Track в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": [
+        "project.manage",
+        "task.manage",
+        "import.manage"
+    ],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js": ["web/assets/js/toggl-migration.js"],
+        "css": ["web/assets/css/toggl-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\TogglMigration\\TogglMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "max_retries": 4,
+        "default_batch_size": 50,
+        "include_archived_by_default": false,
+        "max_tasks_per_job": 0,
+        "webhooks_enabled_by_default": false
+    }
+}
