@@ -120,7 +120,7 @@ final class TogglCrawler
         $timeEntryCounter = 0;
         $stats['time_entries'] = $this->client->eachTimeEntries($token, $workspaceId, $from, $to, $filters, function (array $entry) use ($job, &$stats, &$timeEntryCounter, $heartbeat): void {
             if ($heartbeat !== null && (++$timeEntryCounter % 50) === 0 && !$heartbeat()) throw new RuntimeException('TOGGL_JOB_LEASE_LOST');
-            $sourceId = $this->timeEntryId($entry);
+            $sourceId = $this->timeEntryId($entry, (string)$job['workspace_gid']);
             if ($sourceId === '') return;
             $entry['gid'] = $sourceId;
             $projectId = $this->stringId($entry['project_id'] ?? $entry['pid'] ?? null);
@@ -158,19 +158,26 @@ final class TogglCrawler
         return $memo[$id] = min(100, 1 + $this->taskDepth((array)$byId[$parent], $byId, $memo, $path));
     }
 
-    private function timeEntryId(array $entry): string
+    private function timeEntryId(array $entry, string $workspaceId = ''): string
     {
         $id = $this->stringId($entry['id'] ?? $entry['time_entry_id'] ?? null);
         if ($id !== '') return $id;
+        $workspace = $workspaceId !== '' ? $workspaceId : (string)($entry['workspace_id'] ?? $entry['wid'] ?? '');
+        $project = (string)($entry['project_id'] ?? $entry['pid'] ?? '');
+        $task = (string)($entry['task_id'] ?? $entry['tid'] ?? '');
+        $user = (string)($entry['user_id'] ?? $entry['uid'] ?? '');
+        $start = (string)($entry['start'] ?? '');
+        $stop = (string)($entry['stop'] ?? $entry['end'] ?? '');
+        $duration = (string)($entry['duration'] ?? $entry['seconds'] ?? '');
+        $description = (string)($entry['description'] ?? '');
+        $tags = (array)($entry['tags'] ?? []);
+        if (trim($workspace . $project . $task . $user . $start . $stop . $duration . $description) === '' && $tags === []) return '';
         $stable = implode('|', [
-            (string)($entry['workspace_id'] ?? $entry['wid'] ?? ''),
-            (string)($entry['project_id'] ?? $entry['pid'] ?? ''),
-            (string)($entry['task_id'] ?? $entry['tid'] ?? ''),
-            (string)($entry['user_id'] ?? $entry['uid'] ?? ''),
-            (string)($entry['start'] ?? ''),
-            (string)($entry['description'] ?? ''),
+            $workspace, $project, $task, $user, $start, $stop, $duration,
+            !empty($entry['billable']) ? '1' : '0', $description,
+            (string)json_encode($tags, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
-        return $stable === '|||||' ? '' : 'hash_' . hash('sha256', $stable);
+        return 'hash_' . hash('sha256', $stable);
     }
 
     private function stringId(mixed $value): string

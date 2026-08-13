@@ -122,7 +122,8 @@ final class TogglTargetWriter
             'project_public_id' => (string)$project['target_public_id'],
             'title' => $this->name($payload),
             'description' => trim((string)($payload['description'] ?? $payload['notes'] ?? '')),
-            'status' => !empty($payload['completed']) || !empty($payload['done']) ? 'done' : 'new',
+            'status' => !$this->isActive($payload) ? 'archived' : (!empty($payload['completed']) || !empty($payload['done']) ? 'done' : 'new'),
+            'archived' => !$this->isActive($payload),
             'priority' => 'normal',
             'assignee_user_id' => $assignee,
             'source_type' => 'toggl',
@@ -150,6 +151,13 @@ final class TogglTargetWriter
             $created = $taskService->create($input, $actor);
             if (!is_array($created) || empty($created['public_id'])) throw new RuntimeException(is_string($created) ? 'TOGGL_' . $created : 'TOGGL_TASK_CREATE_FAILED');
             $target = (string)$created['public_id'];
+            // TaskService::create persists status_code but does not consume
+            // archived_at. Apply the archive through the same public service
+            // path so archived Toggl tasks are hidden by CRM queries too.
+            if (!$this->isActive($payload)) {
+                $archived = $taskService->update($target, ['archived' => true], (int)($actor['id'] ?? 0), $actor);
+                if (!is_array($archived)) throw new RuntimeException('TOGGL_TASK_ARCHIVE_FAILED');
+            }
             $state = 'imported';
         }
         foreach ((array)($payload['tags'] ?? []) as $tag) {

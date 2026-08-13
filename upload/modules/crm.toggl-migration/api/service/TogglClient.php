@@ -112,16 +112,45 @@ final class TogglClient
         $start = $this->date($from);
         $end = $this->date($to);
         if ($start === null || $end === null || $start > $end) throw new RuntimeException('TOGGL_INVALID_TIME_ENTRY_RANGE');
-        $total = 0;
+        $accepted = 0;
+        $stop = false;
+        $seenEntries = [];
+        $windowConsumer = function (array $entry) use (&$seenEntries, &$accepted, &$stop, $workspaceId, $consumer): mixed {
+            $id = (string)($entry['id'] ?? $entry['time_entry_id'] ?? '');
+            if ($id === '') {
+                $id = hash('sha256', implode('|', [
+                    $workspaceId,
+                    (string)($entry['project_id'] ?? $entry['pid'] ?? ''),
+                    (string)($entry['task_id'] ?? $entry['tid'] ?? ''),
+                    (string)($entry['user_id'] ?? $entry['uid'] ?? ''),
+                    (string)($entry['start'] ?? ''),
+                    (string)($entry['stop'] ?? $entry['end'] ?? ''),
+                    (string)($entry['duration'] ?? $entry['seconds'] ?? ''),
+                    !empty($entry['billable']) ? '1' : '0',
+                    (string)($entry['description'] ?? ''),
+                    (string)json_encode($entry['tags'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ]));
+            }
+            if (isset($seenEntries[$id])) return true;
+            $seenEntries[$id] = true;
+            $result = $consumer($entry);
+            if ($result === false) {
+                $stop = true;
+                return false;
+            }
+            ++$accepted;
+            return $result;
+        };
         $cursorDate = new \DateTimeImmutable($start . ' 00:00:00', new \DateTimeZone('UTC'));
         $endDate = new \DateTimeImmutable($end . ' 00:00:00', new \DateTimeZone('UTC'));
         while ($cursorDate <= $endDate) {
             $windowEnd = $cursorDate->modify('+30 days');
             if ($windowEnd > $endDate) $windowEnd = $endDate;
-            $total += $this->eachReportWindow($token, $workspaceId, $cursorDate->format('Y-m-d'), $windowEnd->format('Y-m-d'), $filters, $consumer);
+            $this->eachReportWindow($token, $workspaceId, $cursorDate->format('Y-m-d'), $windowEnd->format('Y-m-d'), $filters, $windowConsumer);
+            if ($stop) break;
             $cursorDate = $windowEnd->modify('+1 day');
         }
-        return $total;
+        return $accepted;
     }
 
     /** @return array<string,mixed> */

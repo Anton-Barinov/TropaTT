@@ -111,10 +111,17 @@ final class TogglMigrationController
     {
         $result = $this->connection((string)($params['public_id'] ?? ''));
         if ($result instanceof JsonResponse) return $result;
-        if ($this->repo->hasRunningJobs((int)$result['id'])) return JsonResponse::error('CONNECTION_HAS_RUNNING_JOBS', 'Cancel running jobs before deleting the connection', 409);
-        if ($this->repo->hasImportedTargets((int)$result['id'])) return JsonResponse::error('CONNECTION_HAS_IMPORTED_TARGETS', 'Rollback imported targets before deleting the connection', 409);
-        $this->repo->deleteConnection((int)$result['id']);
-        return JsonResponse::success('TOGGL_CONNECTION_DELETED', 'Connection deleted');
+        try {
+            $this->repo->deleteConnection((int)$result['id']);
+            return JsonResponse::success('TOGGL_CONNECTION_DELETED', 'Connection deleted');
+        } catch (\RuntimeException $e) {
+            return match ($e->getMessage()) {
+                'TOGGL_CONNECTION_HAS_RUNNING_JOBS' => JsonResponse::error('CONNECTION_HAS_RUNNING_JOBS', 'Cancel running jobs before deleting the connection', 409),
+                'TOGGL_CONNECTION_HAS_IMPORTED_TARGETS' => JsonResponse::error('CONNECTION_HAS_IMPORTED_TARGETS', 'Rollback imported targets before deleting the connection', 409),
+                'TOGGL_CONNECTION_NOT_FOUND' => JsonResponse::error('NOT_FOUND', 'Toggl connection not found', 404),
+                default => JsonResponse::error('TOGGL_CONNECTION_DELETE_FAILED', 'Connection could not be deleted', 409),
+            };
+        }
     }
 
     public function testConnection(array $params): JsonResponse
@@ -205,7 +212,12 @@ final class TogglMigrationController
         if ($fromTimestamp === false || $toTimestamp === false || gmdate('Y-m-d', $fromTimestamp) > gmdate('Y-m-d', $toTimestamp)) return JsonResponse::error('TOGGL_TIME_ENTRY_RANGE_REQUIRED', 'time_entries_from and time_entries_to must be a valid ordered date range', 422);
         $scope['time_entries_from'] = gmdate('Y-m-d', $fromTimestamp);
         $scope['time_entries_to'] = gmdate('Y-m-d', $toTimestamp);
-        $job = $this->repo->createJob(['connection_id' => (int)$connection['id'], 'workspace_gid' => $workspace, 'mode' => $mode, 'source_scope' => $scope, 'target_options' => (array)($input['target_options'] ?? $input['options'] ?? []), 'created_by_user_id' => $this->actorId()]);
+        try {
+            $job = $this->repo->createJob(['connection_id' => (int)$connection['id'], 'workspace_gid' => $workspace, 'mode' => $mode, 'source_scope' => $scope, 'target_options' => (array)($input['target_options'] ?? $input['options'] ?? []), 'created_by_user_id' => $this->actorId()]);
+        } catch (\RuntimeException $e) {
+            if (in_array($e->getMessage(), ['TOGGL_CONNECTION_DELETE_IN_PROGRESS', 'TOGGL_CONNECTION_NOT_FOUND'], true)) return JsonResponse::error('TOGGL_CONNECTION_CHANGED', 'The Toggl connection changed while creating the job', 409);
+            throw $e;
+        }
         return JsonResponse::success('TOGGL_JOB_CREATED', 'Job created', ['job' => $job], 201);
     }
 

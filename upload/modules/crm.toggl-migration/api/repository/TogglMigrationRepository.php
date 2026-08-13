@@ -76,6 +76,17 @@ final class TogglMigrationRepository
     {
         $this->pdo->beginTransaction();
         try {
+            $lock = $this->pdo->prepare('SELECT id,status FROM module_toggl_connections WHERE id=:id LIMIT 1 FOR UPDATE');
+            $lock->execute(['id' => $connectionId]);
+            if (!is_array($lock->fetch(PDO::FETCH_ASSOC))) throw new \RuntimeException('TOGGL_CONNECTION_NOT_FOUND');
+            // Hold the connection row in a deleting state while checking and
+            // removing its metadata. Job creation and worker claiming exclude
+            // this state, avoiding a check-then-delete race.
+            $this->pdo->prepare("UPDATE module_toggl_connections SET status='deleting',updated_at=UTC_TIMESTAMP() WHERE id=:id")->execute(['id' => $connectionId]);
+            $running = $this->pdo->prepare("SELECT id FROM module_toggl_jobs WHERE connection_id=:id AND status IN ('queued','running','pausing','cancelling','rolling_back') LIMIT 1");
+            $running->execute(['id' => $connectionId]);
+            if ($running->fetchColumn() !== false) throw new \RuntimeException('TOGGL_CONNECTION_HAS_RUNNING_JOBS');
+            if ($this->hasImportedTargets($connectionId)) throw new \RuntimeException('TOGGL_CONNECTION_HAS_IMPORTED_TARGETS');
             foreach (['module_toggl_unresolved_entities' => 'job_id IN (SELECT id FROM module_toggl_jobs WHERE connection_id=:id)', 'module_toggl_job_logs' => 'job_id IN (SELECT id FROM module_toggl_jobs WHERE connection_id=:id)', 'module_toggl_job_items' => 'job_id IN (SELECT id FROM module_toggl_jobs WHERE connection_id=:id)', 'module_toggl_jobs' => 'connection_id=:id', 'module_toggl_source_mappings' => 'connection_id=:id', 'module_toggl_user_mappings' => 'connection_id=:id', 'module_toggl_rate_limits' => 'connection_id=:id'] as $table => $where) $this->pdo->prepare('DELETE FROM ' . $table . ' WHERE ' . $where)->execute(['id' => $connectionId]);
             $this->pdo->prepare('DELETE FROM module_toggl_connections WHERE id=:id')->execute(['id' => $connectionId]);
             $this->pdo->commit();
@@ -142,8 +153,17 @@ final class TogglMigrationRepository
     public function createJob(array $data): array
     {
         $publicId = $this->id('tgj'); $now = $this->now();
-        $stmt = $this->pdo->prepare('INSERT INTO module_toggl_jobs (public_id,connection_id,workspace_gid,mode,status,source_scope_json,target_options_json,created_by_user_id,created_at,updated_at) VALUES (:public_id,:connection,:workspace,:mode,\'draft\',:scope,:options,:owner,:created,:updated)');
-        $stmt->execute(['public_id' => $publicId, 'connection' => $data['connection_id'], 'workspace' => $data['workspace_gid'], 'mode' => $data['mode'] ?? 'import', 'scope' => $this->json($data['source_scope'] ?? []), 'options' => $this->json($data['target_options'] ?? []), 'owner' => $data['created_by_user_id'], 'created' => $now, 'updated' => $now]);
+        $this->pdo->beginTransaction();
+        try {
+            $lock = $this->pdo->prepare('SELECT id,status FROM module_toggl_connections WHERE id=:id LIMIT 1 FOR UPDATE');
+            $lock->execute(['id' => (int)$data['connection_id']]);
+            $connection = $lock->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($connection)) throw new \RuntimeException('TOGGL_CONNECTION_NOT_FOUND');
+            if ((string)($connection['status'] ?? '') === 'deleting') throw new \RuntimeException('TOGGL_CONNECTION_DELETE_IN_PROGRESS');
+            $stmt = $this->pdo->prepare('INSERT INTO module_toggl_jobs (public_id,connection_id,workspace_gid,mode,status,source_scope_json,target_options_json,created_by_user_id,created_at,updated_at) VALUES (:public_id,:connection,:workspace,:mode,\'draft\',:scope,:options,:owner,:created,:updated)');
+            $stmt->execute(['public_id' => $publicId, 'connection' => $data['connection_id'], 'workspace' => $data['workspace_gid'], 'mode' => $data['mode'] ?? 'import', 'scope' => $this->json($data['source_scope'] ?? []), 'options' => $this->json($data['target_options'] ?? []), 'owner' => $data['created_by_user_id'], 'created' => $now, 'updated' => $now]);
+            $this->pdo->commit();
+        } catch (\Throwable $e) { if ($this->pdo->inTransaction()) $this->pdo->rollBack(); throw $e; }
         return $this->getJob($publicId) ?? ['public_id' => $publicId];
     }
 
@@ -233,7 +253,7 @@ final class TogglMigrationRepository
     {
         $this->pdo->beginTransaction();
         try {
-            $stmt = $this->pdo->query("SELECT j.id FROM module_toggl_jobs j WHERE (j.status='queued' OR (j.status='running' AND j.lease_until IS NOT NULL AND j.lease_until < UTC_TIMESTAMP())) AND NOT EXISTS (SELECT 1 FROM module_toggl_jobs active WHERE active.connection_id=j.connection_id AND (active.status='rolling_back' OR (active.status='running' AND active.lease_until IS NOT NULL AND active.lease_until >= UTC_TIMESTAMP()))) ORDER BY j.created_at ASC LIMIT 1 FOR UPDATE");
+            $stmt = $this->pdo->query("SELECT j.id FROM module_toggl_jobs j INNER JOIN module_toggl_connections c ON c.id=j.connection_id AND c.status <> 'deleting' WHERE (j.status='queued' OR (j.status='running' AND j.lease_until IS NOT NULL AND j.lease_until < UTC_TIMESTAMP())) AND NOT EXISTS (SELECT 1 FROM module_toggl_jobs active WHERE active.connection_id=j.connection_id AND (active.status='rolling_back' OR (active.status='running' AND active.lease_until IS NOT NULL AND active.lease_until >= UTC_TIMESTAMP()))) ORDER BY j.created_at ASC LIMIT 1 FOR UPDATE");
             $id = $stmt->fetchColumn();
             if ($id === false) { $this->pdo->commit(); return null; }
             $token = bin2hex(random_bytes(16)); $until = gmdate('Y-m-d H:i:s', time() + $leaseSeconds);
