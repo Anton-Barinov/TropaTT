@@ -81,6 +81,8 @@ final class DashboardRepository
 
         if (!$isRoot) {
             $query->where('owner_user_id', '=', $userId);
+        } else {
+            $query->whereRaw("(source_type IS NULL OR source_type <> 'google_calendar' OR source_owner_user_id = ?)", [$userId]);
         }
 
         return $query->count();

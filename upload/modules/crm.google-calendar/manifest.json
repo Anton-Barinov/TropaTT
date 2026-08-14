@@ -1,0 +1,25 @@
+{
+  "name": "crm.google-calendar",
+  "version": "1.0.0",
+  "vendor": "crm",
+  "title": "Google Calendar",
+  "description": "Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT CRM",
+  "core_version": ">=1.0.0",
+  "license": "MIT",
+  "dependencies": [],
+  "require_permissions": ["task.manage"],
+  "api_routes": "api/config/routes.php",
+  "web_routes": "web/config/routes.php",
+  "migrations": "api/migration/",
+  "assets": {"js": ["web/assets/js/google-calendar.js"], "css": ["web/assets/css/google-calendar.css"]},
+  "hooks": {},
+  "menu_items": [],
+  "service_provider": "Module\\Crm\\GoogleCalendar\\GoogleCalendarServiceProvider",
+  "config_defaults": {
+    "request_timeout_seconds": 30,
+    "max_retries": 5,
+    "sync_interval_minutes": 15,
+    "max_events_per_page": 2500,
+    "enable_push": false
+  }
+}
