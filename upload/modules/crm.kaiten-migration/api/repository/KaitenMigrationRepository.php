@@ -174,7 +174,7 @@ final class KaitenMigrationRepository
             }
             if (!$terminal && !$expiredRollback) { $this->pdo->commit(); return null; }
             $token=bin2hex(random_bytes(16));$until=gmdate('Y-m-d H:i:s',time()+max(60,$leaseSeconds));
-            $cursor=$expiredRollback?(string)($row['last_source_cursor']??''):json_encode(['phase'=>'rollback','before_id'=>PHP_INT_MAX],JSON_UNESCAPED_UNICODE);
+            $cursor=$expiredRollback?(string)($row['last_source_cursor']??''):json_encode(['phase'=>'rollback','rollback_priority'=>0,'before_id'=>PHP_INT_MAX],JSON_UNESCAPED_UNICODE);
             $update=$this->pdo->prepare("UPDATE module_kaiten_jobs SET status='rolling_back',lease_token=:token,lease_until=:until,last_source_cursor=:cursor,updated_at=UTC_TIMESTAMP() WHERE id=:id AND status=:expected");
             $update->execute(['token'=>$token,'until'=>$until,'cursor'=>$cursor,'id'=>(int)$row['id'],'expected'=>$status]);
             if ($update->rowCount() !== 1) { $this->pdo->rollBack(); return null; }
@@ -284,11 +284,15 @@ final class KaitenMigrationRepository
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function rollbackItemsBatch(int $jobId, int $beforeId, int $limit = 250): array
+    public function rollbackItemsBatch(int $jobId, int $priority = 0, int $beforeId = PHP_INT_MAX, int $limit = 250): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM module_kaiten_job_items WHERE job_id=:job AND created_by_job=1 AND target_public_id IS NOT NULL AND status<>\'rolled_back\' AND id<:before_id ORDER BY id DESC LIMIT ' . max(1, min(1000, $limit)));
-        $stmt->execute(['job' => $jobId, 'before_id' => $beforeId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $limit=max(1,min(1000,$limit));$sql="SELECT * FROM (SELECT i.*,CASE i.target_type WHEN 'file' THEN 10 WHEN 'comment' THEN 20 WHEN 'history' THEN 30 WHEN 'subcard' THEN 40 WHEN 'task' THEN 50 WHEN 'status' THEN 60 WHEN 'tag' THEN 70 WHEN 'project_module' THEN 80 WHEN 'project' THEN 90 ELSE 100 END AS rollback_priority FROM module_kaiten_job_items i WHERE i.job_id=:job AND i.created_by_job=1 AND i.target_public_id IS NOT NULL AND i.status<>'rolled_back') AS ordered_items WHERE ordered_items.rollback_priority>:priority OR (ordered_items.rollback_priority=:same_priority AND ordered_items.id<:before_id) ORDER BY ordered_items.rollback_priority ASC,ordered_items.id DESC LIMIT {$limit}";$stmt=$this->pdo->prepare($sql);$stmt->execute(['job'=>$jobId,'priority'=>$priority,'same_priority'=>$priority,'before_id'=>$beforeId]);return$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function subcardItemsBatch(int $jobId, int $afterId = 0, int $limit = 250): array
+    {
+        $limit=max(1,min(1000,$limit));$stmt=$this->pdo->prepare("SELECT * FROM module_kaiten_job_items WHERE job_id=:job AND source_type='subcard' AND source_parent_id IS NOT NULL AND target_public_id IS NOT NULL AND status IN ('imported','updated','skipped') AND id>:after ORDER BY id ASC LIMIT {$limit}");$stmt->execute(['job'=>$jobId,'after'=>$afterId]);return$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
     }
 
     public function updateCursor(string $publicId, string $cursor, ?string $leaseToken = null): void

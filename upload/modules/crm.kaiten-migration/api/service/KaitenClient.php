@@ -59,10 +59,10 @@ final class KaitenClient
         $query = array_merge(['limit' => 100, 'broken_api' => 'false'], $filters); $offset = 0; $count = 0; $seen = [];
         for ($pageNumber = 0; $pageNumber < 100000; $pageNumber++) {
             if (isset($seen[$offset])) throw new RuntimeException('KAITEN_PAGINATION_LOOP'); $seen[$offset] = true;
-            $page = $this->request($token, '/cards', array_merge($query, ['limit' => 100, 'offset' => $offset])); $batch = $this->extractItems($page); if ($batch === []) break;
+            $fallbackPage=false;try{$page=$this->request($token,'/cards',array_merge($query,['limit'=>100,'offset'=>$offset]));}catch(RuntimeException $e){if($e->getMessage()!=='KAITEN_NOT_FOUND'||empty($filters['space_id'])||empty($filters['board_id']))throw$e;$fallbackPage=true;$page=$this->request($token,'/spaces/'.rawurlencode((string)$filters['space_id']).'/boards/'.rawurlencode((string)$filters['board_id']),['broken_api'=>'false']);}$batch=$this->extractItems($page);if($batch===[])break;
             foreach ($batch as $item) { if (!is_array($item)) continue; $count++; if ($consumer($item) === false) return $count - 1; }
             $next = $page['next'] ?? $page['pagination']['next'] ?? null;
-            if ($next === null || $next === '') { if (count($batch) < 100) break; $nextOffset = $offset + count($batch); }
+            if ($next === null || $next === '') { if ($fallbackPage || count($batch) < 100) break; $nextOffset = $offset + count($batch); }
             elseif (is_numeric($next)) $nextOffset = (int)$next;
             elseif (is_array($next)) $nextOffset = (int)($next['offset'] ?? $next['start_position'] ?? ($offset + count($batch)));
             else { parse_str((string)(parse_url((string)$next, PHP_URL_QUERY) ?? ''), $nextQuery); $nextOffset = isset($nextQuery['offset']) ? (int)$nextQuery['offset'] : $offset + count($batch); }
@@ -98,13 +98,15 @@ final class KaitenClient
     /** @return array<int,array<string,mixed>> */
     public function users(string $token): array
     {
-        return $this->collection($token, '/users', ['limit' => 100]);
+        try { return $this->collection($token, '/users', ['limit' => 100]); }
+        catch (RuntimeException $e) { if ($e->getMessage() !== 'KAITEN_NOT_FOUND') throw $e; return $this->collection($token, '/company-users', ['limit' => 100]); }
     }
 
     /** @return array<int,array<string,mixed>> */
     public function customFields(string $token): array
     {
-        return $this->collection($token, '/company/custom-properties');
+        try { return $this->collection($token, '/custom-properties'); }
+        catch (RuntimeException $e) { if ($e->getMessage() !== 'KAITEN_NOT_FOUND') throw $e; return $this->collection($token, '/company/custom-properties'); }
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -114,18 +116,25 @@ final class KaitenClient
     }
 
     /** @return array<string,mixed> */
-    public function downloadAttachment(string $token, string $url, int $maxBytes, int $redirects = 0): array
+    public function downloadAttachment(string $token, string $url, int $maxBytes, int $redirects = 0, bool $sendAuthorization = true): array
     {
         $parts = parse_url($url);
         if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https') throw new RuntimeException('KAITEN_ATTACHMENT_URL_INVALID');
         $host = strtolower((string)($parts['host'] ?? ''));
-        if ($host === '' || !$this->isTenantHost($host) || $this->isPrivateHost($host)) throw new RuntimeException('KAITEN_ATTACHMENT_HOST_NOT_ALLOWED');
+        $port = $parts['port'] ?? null;
+        if ($port !== null && (int)$port !== 443) throw new RuntimeException('KAITEN_ATTACHMENT_PORT_NOT_ALLOWED');
+        if ($host === '' || $this->isPrivateHost($host)) throw new RuntimeException('KAITEN_ATTACHMENT_HOST_NOT_ALLOWED');
+        // Kaiten may return a pre-signed object-storage URL directly. Such URLs
+        // are allowed only over public HTTPS and must never receive the tenant token.
+        $sendAuthorization = $sendAuthorization && $this->isTenantHost($host);
         $tmp = tempnam(sys_get_temp_dir(), 'kaiten-');
         if ($tmp === false) throw new RuntimeException('KAITEN_ATTACHMENT_TEMP_FAILED');
         $fp = fopen($tmp, 'wb');
         if ($fp === false) { @unlink($tmp); throw new RuntimeException('KAITEN_ATTACHMENT_TEMP_FAILED'); }
         $written = 0; $overflow = false; $headers = [];
         $ch = curl_init($url);
+        $httpHeaders = ['Accept: */*', 'User-Agent: TropaTT-Kaiten-Migration/1.0'];
+        if ($sendAuthorization) $httpHeaders[] = 'Authorization: Bearer ' . $token;
         curl_setopt_array($ch, [
             CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use ($fp, &$written, &$overflow, $maxBytes): int {
                 $length = strlen($chunk);
@@ -140,11 +149,13 @@ final class KaitenClient
             },
             CURLOPT_RETURNTRANSFER => false, CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => max(10, $this->timeout * 2), CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => ['Accept: */*', 'Authorization: Bearer ' . $token, 'User-Agent: TropaTT-Kaiten-Migration/1.0'],
+            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => $httpHeaders,
         ]);
         $ok = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $primaryIp = (string)curl_getinfo($ch, CURLINFO_PRIMARY_IP); curl_close($ch); fclose($fp);
         if ($primaryIp === '' || $this->isPrivateIp($primaryIp)) { @unlink($tmp); throw new RuntimeException('KAITEN_ATTACHMENT_SSRF_BLOCKED'); }
-        if (in_array($code,[301,302,303,307,308],true)&&!empty($headers['location'])) { @unlink($tmp); if($redirects>=3)throw new RuntimeException('KAITEN_ATTACHMENT_REDIRECT_LIMIT');$location=trim((string)$headers['location']);if(str_starts_with($location,'//'))$location='https:'.$location;elseif(!preg_match('~^https?://~i',$location)){$origin='https://'.$host;$path=(string)($parts['path']??'/');$location=str_starts_with($location,'/')?$origin.$location:$origin.'/'.ltrim(dirname($path).'/'.$location,'/');}return$this->downloadAttachment($token,$location,$maxBytes,$redirects+1); }
+        if (in_array($code,[301,302,303,307,308],true)&&!empty($headers['location'])) { @unlink($tmp); if($redirects>=3)throw new RuntimeException('KAITEN_ATTACHMENT_REDIRECT_LIMIT');$location=trim((string)$headers['location']);if(str_starts_with($location,'//'))$location='https:'.$location;elseif(!preg_match('~^https?://~i',$location)){$origin='https://'.$host;$path=(string)($parts['path']??'/');$location=str_starts_with($location,'/')?$origin.$location:$origin.'/'.ltrim(dirname($path).'/'.$location,'/');}$nextParts=parse_url($location);$nextHost=strtolower((string)(is_array($nextParts)?($nextParts['host']??''):''));$nextPort=is_array($nextParts)?($nextParts['port']??null):null;if($nextHost===''||($nextPort!==null&&(int)$nextPort!==443)||$this->isPrivateHost($nextHost))throw new RuntimeException('KAITEN_ATTACHMENT_HOST_NOT_ALLOWED');// Authorization is intentionally sent only on the initial request; a redirect
+        // may point to signed object storage and must never receive the bearer token.
+        return$this->downloadAttachment($token,$location,$maxBytes,$redirects+1,false); }
         if ($ok === false || $code < 200 || $code >= 300 || $overflow || $written > $maxBytes) { @unlink($tmp); throw new RuntimeException($overflow ? 'KAITEN_ATTACHMENT_TOO_LARGE' : 'KAITEN_ATTACHMENT_DOWNLOAD_FAILED'); }
         return ['path' => $tmp, 'size' => $written, 'mime_type' => (string)($headers['content-type'] ?? 'application/octet-stream')];
     }
@@ -201,7 +212,12 @@ final class KaitenClient
     private function extractItems(array $response): array
     {
         if (array_is_list($response)) return $response;
-        foreach (['data', 'items', 'results', 'spaces', 'boards', 'cards', 'comments', 'files', 'users', 'tags'] as $key) if (isset($response[$key]) && is_array($response[$key])) return $response[$key];
+        if (isset($response['data']) && is_array($response['data'])) {
+            $data=$response['data'];
+            if (array_is_list($data)) return $data;
+            foreach (['items','results','spaces','boards','cards','comments','files','users','tags'] as $key) if (isset($data[$key]) && is_array($data[$key])) return $data[$key];
+        }
+        foreach (['items', 'results', 'spaces', 'boards', 'cards', 'comments', 'files', 'users', 'tags'] as $key) if (isset($response[$key]) && is_array($response[$key])) return $response[$key];
         return [];
     }
 
@@ -210,6 +226,8 @@ final class KaitenClient
         $url = trim($url); if ($url === '') return '';
         if (!preg_match('~^https://[^/]+(?:/api/(?:v1|latest))?/?$~i', $url)) throw new RuntimeException('KAITEN_BASE_URL_INVALID');
         $host = strtolower((string)(parse_url($url, PHP_URL_HOST) ?? ''));
+        $port = parse_url($url, PHP_URL_PORT);
+        if ($port !== null && (int)$port !== 443) throw new RuntimeException('KAITEN_BASE_URL_PORT_NOT_ALLOWED');
         if ($host === '' || $this->isPrivateHost($host)) throw new RuntimeException('KAITEN_BASE_URL_PRIVATE_HOST');
         return rtrim($url, '/') . (preg_match('~/api/(?:v1|latest)$~i', rtrim($url, '/')) ? '' : '/api/latest');
     }
@@ -217,7 +235,7 @@ final class KaitenClient
     private function isTenantHost(string $host): bool
     {
         $baseHost = strtolower((string)(parse_url($this->baseUrl, PHP_URL_HOST) ?? ''));
-        return $baseHost !== '' && ($host === $baseHost || $host === 'files.' . $baseHost || str_ends_with($host, '.' . $baseHost));
+        return $baseHost !== '' && ($host === $baseHost || $host === 'files.' . $baseHost);
     }
 
     private function isPrivateHost(string $host): bool
