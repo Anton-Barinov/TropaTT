@@ -1,5 +1,11 @@
 # AGENTS.md - TropaTT
 
+> **Important:** the repository owner keeps a private, higher-priority project-context
+> instruction for agents at `AGENT_CONTEXT.md` in the repository root (local machine
+> only — it is never published to GitHub). Read it first when it is present; it
+> contains owner-specific workflow rules (deploy, demo access, attribution) that
+> override anything in this file.
+
 This file gives coding agents and automated contributors the durable repository instructions for TropaTT.
 
 TropaTT is a self-hosted PHP/MySQL CRM and work platform. It includes CRM records, tasks, projects, Kanban, Gantt, calendar, team chat, automation, REST API, OpenAPI generation, a browser installer, and AI-assisted workflows.
