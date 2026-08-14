@@ -45,7 +45,7 @@ final class GoogleCalendarSyncService
     {
         $connection = $this->ownedConnection($connectionId, $userId);
         $access = $this->accessToken($connection);
-        $calendars = $this->client->calendars($access);
+        $calendars = $this->calendarsWithRefresh($connection, $access);
         foreach ($calendars as $calendar) {
             $this->repository->upsertSource($connectionId, $calendar);
         }
@@ -58,7 +58,7 @@ final class GoogleCalendarSyncService
     {
         $connection = $this->ownedConnection($connectionId, $userId);
         $access = $this->accessToken($connection);
-        $calendars = $this->client->calendars($access);
+        $calendars = $this->calendarsWithRefresh($connection, $access);
         foreach ($calendars as $calendar) {
             $this->repository->upsertSource($connectionId, $calendar);
         }
@@ -221,15 +221,15 @@ final class GoogleCalendarSyncService
             $crmId = (string)($mapping['crm_event_public_id'] ?? ''); if ($crmId === '') continue;
             $local = $this->repository->calendarEvent($crmId);
             if (!$local) {
-                try { $this->client->deleteEvent($access, (string)$source['calendar_id'], (string)$mapping['google_event_id']); } catch (\Throwable) {}
+                try { $this->deleteRemoteWithRefresh($connection, $access, (string)$source['calendar_id'], (string)$mapping['google_event_id']); } catch (\Throwable) {}
                 $this->repository->deleteEventMapping((int)$mapping['id']); continue;
             }
             if ($last !== '' && strtotime((string)$local['updated_at']) <= strtotime((string)($mapping['last_synced_at'] ?? '1970-01-01'))) continue;
-            $remote = $this->client->updateEvent($access, (string)$source['calendar_id'], (string)$mapping['google_event_id'], $this->googleData($local, $crmId, $mapping));
+            $remote = $this->updateRemoteWithRefresh($connection, $access, (string)$source['calendar_id'], (string)$mapping['google_event_id'], $this->googleData($local, $crmId, $mapping));
             $this->repository->updateEventMapping((int)$mapping['id'], ['etag' => $remote['etag'] ?? $mapping['etag'], 'google_updated_at' => $this->googleUpdated($remote), 'last_synced_at' => gmdate('Y-m-d H:i:s')]); $count++;
         }
         foreach ($this->repository->localEventsForUser((int)$connection['user_id'], $last !== '' ? $last : null) as $local) {
-            $remote = $this->client->createEvent($access, (string)$source['calendar_id'], $this->googleData($local, (string)$local['public_id']));
+            $remote = $this->createRemoteWithRefresh($connection, $access, (string)$source['calendar_id'], $this->googleData($local, (string)$local['public_id']));
             $this->repository->updateCalendarEvent((string)$local['public_id'], $local + ['google_event_id' => $remote['id'] ?? null], (int)$connection['user_id']);
             $this->repository->insertEvent((int)$source['id'], (string)($remote['id'] ?? ''), (string)$local['public_id'], ['etag' => $remote['etag'] ?? null, 'google_updated_at' => $this->googleUpdated($remote)]); $count++;
         }
@@ -241,6 +241,38 @@ final class GoogleCalendarSyncService
         $connection = $this->repository->connectionById($id);
         if (!$connection || (int)$connection['user_id'] !== $userId) throw new RuntimeException('GOOGLE_CONNECTION_NOT_FOUND');
         return $connection;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function calendarsWithRefresh(array $connection, string &$access): array
+    {
+        try {
+            return $this->client->calendars($access);
+        } catch (RuntimeException $e) {
+            if ((int)$e->getCode() !== 401 && $e->getMessage() !== 'GOOGLE_ACCESS_TOKEN_EXPIRED') throw $e;
+            $access = $this->forceRefreshAccessToken($connection);
+            return $this->client->calendars($access);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function updateRemoteWithRefresh(array $connection, string &$access, string $calendarId, string $eventId, array $payload): array
+    {
+        try { return $this->client->updateEvent($access, $calendarId, $eventId, $payload); }
+        catch (RuntimeException $e) { if ((int)$e->getCode() !== 401 && $e->getMessage() !== 'GOOGLE_ACCESS_TOKEN_EXPIRED') throw $e; $access = $this->forceRefreshAccessToken($connection); return $this->client->updateEvent($access, $calendarId, $eventId, $payload); }
+    }
+
+    /** @return array<string,mixed> */
+    private function createRemoteWithRefresh(array $connection, string &$access, string $calendarId, array $payload): array
+    {
+        try { return $this->client->createEvent($access, $calendarId, $payload); }
+        catch (RuntimeException $e) { if ((int)$e->getCode() !== 401 && $e->getMessage() !== 'GOOGLE_ACCESS_TOKEN_EXPIRED') throw $e; $access = $this->forceRefreshAccessToken($connection); return $this->client->createEvent($access, $calendarId, $payload); }
+    }
+
+    private function deleteRemoteWithRefresh(array $connection, string &$access, string $calendarId, string $eventId): void
+    {
+        try { $this->client->deleteEvent($access, $calendarId, $eventId); }
+        catch (RuntimeException $e) { if ((int)$e->getCode() !== 401 && $e->getMessage() !== 'GOOGLE_ACCESS_TOKEN_EXPIRED') throw $e; $access = $this->forceRefreshAccessToken($connection); $this->client->deleteEvent($access, $calendarId, $eventId); }
     }
 
     private function accessToken(array $connection): string

@@ -44,7 +44,7 @@ final class GoogleCalendarController
 
     public function connections(): JsonResponse
     {
-        $items=[];foreach($this->repository->listConnectionsForUser($this->actorId()) as $connection){$connection['calendars']=$this->repository->sources((int)$connection['id']);$items[]=$this->publicConnection($connection);}return JsonResponse::success('GOOGLE_CONNECTIONS','OK',['connections'=>$items]);
+        $items=[];foreach($this->repository->listConnectionsForUser($this->actorId()) as $connection){$connection['calendars']=array_map([$this,'publicSource'],$this->repository->allSources((int)$connection['id']));$items[]=$this->publicConnection($connection);}return JsonResponse::success('GOOGLE_CONNECTIONS','OK',['connections'=>$items]);
     }
 
     public function test(array $params): JsonResponse
@@ -59,7 +59,7 @@ final class GoogleCalendarController
 
     public function updateCalendar(array $params): JsonResponse
     {
-        $input=$this->body();$direction=(string)($input['direction']??'google_to_crm');$enabled=array_key_exists('is_enabled',$input)?(bool)$input['is_enabled']:true;if(!$this->updateDirectionByPublicId((string)($params['public_id']??''),$this->actorId(),$direction,$enabled))return JsonResponse::error('GOOGLE_CALENDAR_NOT_FOUND','Calendar not found or direction is invalid',404);return JsonResponse::success('GOOGLE_CALENDAR_UPDATED','Calendar settings updated');
+        $input=$this->body();$direction=(string)($input['direction']??'google_to_crm');$source=$this->repository->sourceForUser((string)($params['public_id']??''),$this->actorId());$enabled=array_key_exists('is_enabled',$input)?(bool)$input['is_enabled']:(bool)($source['is_enabled']??true);if(!$this->updateDirectionByPublicId((string)($params['public_id']??''),$this->actorId(),$direction,$enabled))return JsonResponse::error('GOOGLE_CALENDAR_NOT_FOUND','Calendar not found or direction is invalid',404);return JsonResponse::success('GOOGLE_CALENDAR_UPDATED','Calendar settings updated');
     }
 
     public function disconnect(array $params): JsonResponse
@@ -80,6 +80,20 @@ final class GoogleCalendarController
     private function actorId():int{return(int)($this->actor()['id']??0);}
     private function body():array{$request=$this->container->get('request');$decoded=json_decode((string)($request->rawBody??''),true);return is_array($decoded)?$decoded:((array)$request->allInput());}
     private function validState(string $state):bool{if(session_status()===PHP_SESSION_NONE)@session_start();$expires=(int)($_SESSION['google_calendar_oauth_expires']??0);$expected=(string)($_SESSION['google_calendar_oauth_state']??'');$user=(int)($_SESSION['google_calendar_oauth_user_id']??0);$ok=$user===$this->actorId()&&$expires>=time()&&$expected!==''&&hash_equals($expected,hash_hmac('sha256',$state,(string)$this->actorId()));if($ok)unset($_SESSION['google_calendar_oauth_state'],$_SESSION['google_calendar_oauth_expires'],$_SESSION['google_calendar_oauth_user_id']);return$ok;}
+    private function publicSource(array $source): array
+    {
+        return [
+            'public_id' => (string)($source['public_id'] ?? ''),
+            'calendar_id' => (string)($source['calendar_id'] ?? ''),
+            'summary' => $source['summary'] ?? null,
+            'timezone' => $source['timezone'] ?? null,
+            'direction' => (string)($source['direction'] ?? 'google_to_crm'),
+            'is_enabled' => (bool)($source['is_enabled'] ?? false),
+            'is_primary' => (bool)($source['is_primary'] ?? false),
+            'last_sync_at' => $source['last_sync_at'] ?? null,
+            'last_error' => $source['last_error'] ?? null,
+        ];
+    }
     private function publicConnection(array $connection):array{unset($connection['refresh_token_encrypted'],$connection['access_token_encrypted'],$connection['access_token_expires_at']);return$connection;}
     private function notFound():JsonResponse{return JsonResponse::error('GOOGLE_CONNECTION_NOT_FOUND','Google Calendar connection not found',404);}
 }

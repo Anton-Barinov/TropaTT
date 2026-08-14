@@ -19,7 +19,12 @@ final class GoogleCalendarRepository
 
     public function activeConnections(): array
     {
-        return $this->pdo->query("SELECT * FROM google_calendar_connections WHERE status IN ('active','sync_warning') ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $this->pdo->query("SELECT c.* FROM google_calendar_connections c JOIN users u ON u.id = c.user_id WHERE u.is_active = 1 AND u.deleted_at IS NULL AND c.status IN ('active','sync_warning') ORDER BY c.id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function orphanedConnections(): array
+    {
+        return $this->pdo->query("SELECT c.id,c.user_id FROM google_calendar_connections c LEFT JOIN users u ON u.id = c.user_id WHERE u.id IS NULL OR u.deleted_at IS NOT NULL ORDER BY c.id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function connectionForUser(int $userId): ?array

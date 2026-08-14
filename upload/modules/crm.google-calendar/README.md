@@ -15,7 +15,7 @@ GOOGLE_REDIRECT_URI=https://crm.example.com/api/index.php?route=api/v1/modules/c
 
 `GOOGLE_REDIRECT_URI` должен быть заранее заданным HTTPS URL callback, а не значением из запроса пользователя. `APP_SECRET` обязателен: refresh/access tokens хранятся только зашифрованными.
 
-Модуль запрашивает только `calendar.readonly` и `calendar.events`, использует authorization-code flow с offline access и cron-инкрементальную синхронизацию. Push `watch` намеренно выключен по умолчанию: на shared-hosting нет гарантии публичного HTTPS webhook и продления каналов. Cron является обязательным рабочим fallback.
+Модуль запрашивает только `calendar.readonly` и `calendar.events`, использует authorization-code flow с offline access и cron-инкрементальную синхронизацию. После подключения все календари видны владельцу, но синхронизируются только отмеченные включённые календари; направление можно менять отдельно для каждого. Push `watch` намеренно выключен по умолчанию: на shared-hosting нет гарантии публичного HTTPS webhook и продления каналов. Cron является обязательным рабочим fallback.
 
 ## Приватность
 
@@ -31,5 +31,6 @@ GOOGLE_REDIRECT_URI=https://crm.example.com/api/index.php?route=api/v1/modules/c
 - Повторения сохраняются как событие с recurrence metadata в mapping; экземпляры не размножаются при `singleEvents=false`.
 - Фоновые jobs работают через зарегистрированный cron `sync_google_calendars` каждые 15 минут.
 - Для OAuth Cloud проекта в режиме Testing Google может выдать refresh token с ограниченным сроком; приложение должно быть опубликовано или пользователь должен повторно авторизоваться.
+- Cron также очищает подключения, принадлежащие отключённым или удалённым CRM-пользователям, включая локальные события и зашифрованные токены.
 
 Официальные источники: [OAuth web server flow](https://developers.google.com/identity/protocols/oauth2/web-server), [incremental sync](https://developers.google.com/workspace/calendar/api/guides/sync), [push notifications](https://developers.google.com/workspace/calendar/api/guides/push), [events](https://developers.google.com/calendar/api/v3/reference/events).
