@@ -306,19 +306,39 @@ final class TrelloMigrationController
         }
         $input = $this->body();
         $modelId = trim((string)($input['model_id'] ?? ''));
+        if ($modelId === '') return JsonResponse::error('VALIDATION_ERROR', 'model_id is required', 422);
         $callbackUrl = trim((string)($input['callback_url'] ?? ''));
-        if ($modelId === '' || $callbackUrl === '') return JsonResponse::error('VALIDATION_ERROR', 'model_id and callback_url are required', 422);
-        $parsed = parse_url($callbackUrl);
-        if (!is_array($parsed) || strtolower((string)($parsed['scheme'] ?? '')) !== 'https' || empty($parsed['host']) || isset($parsed['user'], $parsed['pass']) || strlen($callbackUrl) > 2048) {
-            return JsonResponse::error('VALIDATION_ERROR', 'callback_url must be an HTTPS URL without credentials', 422);
-        }
+        // Idempotent re-runs: a webhook already registered for this Trello
+        // model is returned as-is. An explicit callback_url that differs from
+        // the stored one is a conflict; an empty one simply means "the one that
+        // already exists" (typically auto-derived on first creation).
         $existingWebhook = $this->repo->webhookForModel((int)$connection['id'], $modelId);
         if ($existingWebhook !== null) {
-            if ((string)$existingWebhook['callback_url'] !== $callbackUrl) {
+            if ($callbackUrl !== '' && (string)$existingWebhook['callback_url'] !== $callbackUrl) {
                 return JsonResponse::error('TRELLO_WEBHOOK_EXISTS', 'An active webhook already exists for this Trello model', 409);
             }
             unset($existingWebhook['api_secret_encrypted']);
             return JsonResponse::success('TRELLO_WEBHOOK_EXISTS', 'Webhook already exists', ['webhook' => $existingWebhook]);
+        }
+        // Callback URL is auto-derived from the actual installation when the
+        // caller leaves it empty: Trello must reach the public webhook route
+        // (/_module/crm.trello-migration/webhooks/{public_id}) of THIS install,
+        // so subdirectory deployments get their own URL instead of a hardcoded
+        // domain-root path. The webhook public_id is minted before the Trello
+        // API call so the callback already points at the record we save.
+        $mintedPublicId = '';
+        $derivedCallback = '';
+        if ($callbackUrl === '') {
+            $mintedPublicId = 'trw_' . bin2hex(random_bytes(10));
+            $derivedCallback = $this->defaultWebhookCallbackUrl($mintedPublicId);
+            if ($derivedCallback === '') {
+                return JsonResponse::error('TRELLO_WEBHOOK_CALLBACK_REQUIRED', 'callback_url is required: the install URL could not be derived (needs HTTPS with a resolvable host)', 422);
+            }
+            $callbackUrl = $derivedCallback;
+        }
+        $parsed = parse_url($callbackUrl);
+        if (!is_array($parsed) || strtolower((string)($parsed['scheme'] ?? '')) !== 'https' || empty($parsed['host']) || isset($parsed['user'], $parsed['pass']) || strlen($callbackUrl) > 2048) {
+            return JsonResponse::error('VALIDATION_ERROR', 'callback_url must be an HTTPS URL without credentials', 422);
         }
         $key = EncryptionService::decrypt((string)$connection['api_key_encrypted']);
         $token = EncryptionService::decrypt((string)$connection['token_encrypted']);
@@ -328,11 +348,45 @@ final class TrelloMigrationController
             $client->setConnectionId((int)$connection['id']);
             $created = $client->webhook($key, $token, $modelId, $callbackUrl, 'TropaTT Trello migration');
             if (empty($created['id'])) throw new RuntimeException('TRELLO_WEBHOOK_ID_MISSING');
-            $webhook = $this->repo->createWebhook((int)$connection['id'], ['trello_webhook_id' => (string)($created['id'] ?? ''), 'model_id' => $modelId, 'callback_url' => $callbackUrl]);
-            return JsonResponse::success('TRELLO_WEBHOOK_CREATED', 'Webhook created', ['webhook' => $this->publicWebhook($webhook)], 201);
+            $webhook = $this->repo->createWebhook((int)$connection['id'], [
+                'public_id' => $mintedPublicId,
+                'trello_webhook_id' => (string)($created['id'] ?? ''),
+                'model_id' => $modelId,
+                'callback_url' => $callbackUrl,
+            ]);
+            $payload = ['webhook' => $this->publicWebhook($webhook)];
+            if ($derivedCallback !== '') {
+                $payload['default_callback_url'] = $derivedCallback;
+            }
+            return JsonResponse::success('TRELLO_WEBHOOK_CREATED', 'Webhook created', $payload, 201);
         } catch (\Throwable) {
             return JsonResponse::error('TRELLO_WEBHOOK_CREATE_FAILED', 'Could not create Trello webhook', 400);
         }
+    }
+
+    /**
+     * Derive the public Trello webhook callback URL for this installation
+     * (HTTPS + HTTP_HOST + SCRIPT_NAME + the module webhook route). Empty when
+     * the request is not HTTPS or the host cannot be resolved, so callers can
+     * fall back to supplying an explicit callback_url.
+     */
+    private function defaultWebhookCallbackUrl(string $webhookPublicId): string
+    {
+        $server = $this->container->get('request')->server;
+        $https = strtolower((string)($server['HTTPS'] ?? ''));
+        $forwardedProto = strtolower((string)($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        $trustedProxyConfig = trim((string)getenv('CRM_TRUSTED_PROXIES'));
+        $scheme = ($https !== '' && $https !== 'off') || ($forwardedProto === 'https' && $trustedProxyConfig !== '') ? 'https' : 'http';
+        if ($scheme !== 'https') return '';
+        $host = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+        if ($host === '' || preg_match('/^[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/', $host) !== 1) return '';
+        $script = (string)($server['SCRIPT_NAME'] ?? '/api/index.php');
+        if ($script === '' || !str_ends_with($script, '.php')) {
+            $script = '/api/index.php';
+        }
+        $script = '/' . ltrim(strtok($script, '?') ?: '/api/index.php', '/');
+        return 'https://' . $host . $script
+            . '?route=' . urlencode('_module/crm.trello-migration/webhooks/' . $webhookPublicId);
     }
 
     public function deleteWebhook(array $params): JsonResponse

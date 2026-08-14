@@ -442,7 +442,10 @@ final class TrelloMigrationRepository
 
     public function createWebhook(int $connectionId, array $data): array
     {
-        $publicId = $this->id('trw');
+        $publicId = (string)($data['public_id'] ?? '');
+        if ($publicId === '' || !str_starts_with($publicId, 'trw_')) {
+            $publicId = $this->id('trw');
+        }
         $now = $this->now();
         $stmt = $this->pdo->prepare('INSERT INTO module_trello_webhooks (public_id,connection_id,trello_webhook_id,model_id,callback_url,active,created_at,updated_at) VALUES (:public_id,:connection,:trello_id,:model,:callback,1,:created,:updated)');
         $stmt->execute(['public_id' => $publicId, 'connection' => $connectionId, 'trello_id' => $data['trello_webhook_id'] ?? null, 'model' => $data['model_id'], 'callback' => $data['callback_url'], 'created' => $now, 'updated' => $now]);
