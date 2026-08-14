@@ -9,6 +9,7 @@ use Api\Controller\Admin\RoleMatrixController;
 use Api\Controller\Admin\OpsController;
 use Api\Controller\Activity\ActivityController;
 use Api\Controller\Chat\ChatController;
+use Api\Controller\Dashboard\DashboardController;
 use Api\Controller\Auth\MenuController;
 use Api\Controller\Idea\IdeaController;
 use Api\Controller\Knowledge\KnowledgeAiController;
@@ -17,6 +18,7 @@ use Api\Controller\Knowledge\KnowledgeController;
 use Api\Controller\Knowledge\KnowledgePageVersionController;
 use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
+use Api\Controller\Setting\RetentionController;
 use Api\Model\Tag\TagRepository;
 use Api\Controller\System\CoreUpdateController;
 use Api\Controller\System\CoreVersionController;
@@ -30,6 +32,7 @@ use Api\System\Library\Service\AuthzService;
 use Api\System\Library\Service\BusinessCalendarService;
 use Api\System\Library\Service\CalendarService;
 use Api\System\Library\Service\ChecklistService;
+use Api\System\Library\Service\CommentDraftService;
 use Api\System\Library\Service\ClientService;
 use Api\System\Library\Service\ClientCabinetService;
 use Api\System\Library\Service\AnalyticsService;
@@ -545,6 +548,7 @@ MD;
     {
         $tools = [
             $this->tool('crm_get_current_user', 'Get the authenticated CRM user profile and permission codes visible to MCP.', []),
+            $this->tool('crm_get_health_status', 'Get a lightweight health status for the current CRM installation.', []),
             $this->tool('crm_get_profile', 'Get the authenticated CRM user profile and preferences.', []),
             $this->tool('crm_update_profile', 'Update the authenticated CRM user profile.', [
                 'full_name' => ['type' => 'string'],
@@ -634,6 +638,16 @@ MD;
                 'body' => ['type' => 'string', 'description' => 'Comment body, up to 8000 characters.'],
                 'visibility' => ['type' => 'string', 'enum' => ['internal', 'public'], 'default' => 'internal'],
             ], ['task_public_id', 'body']);
+            $tools[] = $this->tool('crm_get_comment_draft', 'Get the saved comment draft for a task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
+            $tools[] = $this->tool('crm_save_comment_draft', 'Save a comment draft for a task.', [
+                'task_public_id' => ['type' => 'string'],
+                'body' => ['type' => 'string'],
+            ], ['task_public_id', 'body']);
+            $tools[] = $this->tool('crm_delete_comment_draft', 'Delete the saved comment draft for a task.', [
+                'task_public_id' => ['type' => 'string'],
+            ], ['task_public_id']);
             $tools[] = $this->tool('crm_delete_task', 'Soft-delete a CRM task. Creators can delete their own tasks. Root and admin users can delete any task.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
@@ -907,6 +921,11 @@ MD;
             $tools[] = $this->tool('crm_list_request_logs', 'List HTTP request logs.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+            ]);
+            $tools[] = $this->tool('crm_get_frontend_errors_chart', 'Get frontend error chart data for diagnostics.', [
+                'hours' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 168, 'default' => 48],
+                'from' => ['type' => 'string'],
+                'to' => ['type' => 'string'],
             ]);
             $tools[] = $this->tool('crm_get_admin_summary_widget', 'Get admin dashboard summary widget.', []);
             $tools[] = $this->tool('crm_get_admin_system_widget', 'Get admin system health widget.', []);
@@ -1241,6 +1260,16 @@ MD;
                 'scope' => ['type' => 'string', 'default' => 'system'],
                 'name' => ['type' => 'string'],
             ], ['name']);
+            $tools[] = $this->tool('crm_get_retention_metadata', 'Get data retention metadata (log, recycle bin and backup retention days).', []);
+            $tools[] = $this->tool('crm_set_retention_metadata', 'Update data retention metadata.', [
+                'enabled' => ['type' => 'boolean'],
+                'request_logs_days' => ['type' => 'integer', 'minimum' => 1],
+                'security_logs_days' => ['type' => 'integer', 'minimum' => 1],
+                'audit_logs_days' => ['type' => 'integer', 'minimum' => 1],
+                'recycle_bin_days' => ['type' => 'integer', 'minimum' => 1],
+                'orphan_files_days' => ['type' => 'integer', 'minimum' => 1],
+                'backup_metadata_days' => ['type' => 'integer', 'minimum' => 1],
+            ]);
             $tools[] = $this->tool('crm_list_feature_flags', 'List CRM feature flags.', [
                 'q' => ['type' => 'string'],
                 'is_enabled' => ['type' => 'integer', 'enum' => [0, 1]],
@@ -1366,6 +1395,11 @@ MD;
         }
 
         $tools[] = $this->tool('crm_get_dashboard_summary', 'Get dashboard summary counters and recent workload.', []);
+        $tools[] = $this->tool('crm_get_dashboard_widgets', 'Get the dashboard widget catalog and the current user\'s active widgets.', []);
+        $tools[] = $this->tool('crm_save_dashboard_widgets', 'Save the current user\'s dashboard widget layout.', [
+            'active' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Ordered list of widget keys to enable.'],
+            'widgets' => ['type' => 'array', 'items' => ['type' => 'object'], 'description' => 'Alternative legacy format: list of {key, enabled} objects.'],
+        ]);
         $tools[] = $this->tool('crm_get_ai_settings', 'Get global AI settings and provider configuration summary.', []);
         $tools[] = $this->tool('crm_update_ai_settings', 'Update global AI settings and provider configuration.', [
             'default_provider_public_id' => ['type' => 'string'],
@@ -2887,6 +2921,7 @@ MD;
 
         return match ($name) {
             'crm_get_current_user' => $this->toolResult($this->crmGetCurrentUser()),
+            'crm_get_health_status' => $this->toolResult($this->crmGetHealthStatus()),
             'crm_get_profile' => $this->toolResult($this->crmGetProfile()),
             'crm_update_profile' => $this->toolResult($this->crmUpdateProfile($arguments)),
             'crm_get_profile_preferences' => $this->toolResult($this->crmGetProfilePreferences()),
@@ -2905,6 +2940,8 @@ MD;
             'crm_get_role_permissions' => $this->withPermissionAny(['role.view', 'role.manage'], fn() => $this->toolResult($this->crmGetRolePermissions($arguments))),
             'crm_list_settings' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListSettings($arguments))),
             'crm_get_setting' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetSetting($arguments))),
+            'crm_get_retention_metadata' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmGetRetentionMetadata())),
+            'crm_set_retention_metadata' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmSetRetentionMetadata($arguments))),
             'crm_list_feature_flags' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListFeatureFlags($arguments))),
             'crm_update_feature_flag' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmUpdateFeatureFlag($arguments))),
             'crm_list_modules' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmListModules())),
@@ -2942,6 +2979,8 @@ MD;
             'crm_list_webhooks' => $this->withPermission('webhook.manage', fn() => $this->toolResult($this->crmListWebhooks($arguments))),
             'crm_list_webhook_deliveries' => $this->withPermission('webhook.manage', fn() => $this->toolResult($this->crmListWebhookDeliveries($arguments))),
             'crm_get_dashboard_summary' => $this->toolResult($this->crmGetDashboardSummary()),
+            'crm_get_dashboard_widgets' => $this->toolResult($this->crmGetDashboardWidgets()),
+            'crm_save_dashboard_widgets' => $this->toolResult($this->crmSaveDashboardWidgets($arguments)),
             'crm_get_analytics_summary' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmGetAnalyticsSummary())),
             'crm_list_analytics_projects' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmListAnalyticsProjects($arguments))),
             'crm_list_analytics_users' => $this->withPermissionAny(['analytics.view', 'task.manage'], fn() => $this->toolResult($this->crmListAnalyticsUsers($arguments))),
@@ -3038,6 +3077,9 @@ MD;
             'crm_list_task_comments' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListTaskComments($arguments))),
             'crm_update_comment' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateComment($arguments))),
             'crm_delete_comment' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteComment($arguments))),
+            'crm_get_comment_draft' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmGetCommentDraft($arguments))),
+            'crm_save_comment_draft' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmSaveCommentDraft($arguments))),
+            'crm_delete_comment_draft' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmDeleteCommentDraft($arguments))),
             'crm_list_subtasks' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmListSubtasks($arguments))),
             'crm_create_subtask' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmCreateSubtask($arguments))),
             'crm_update_subtask' => $this->withPermission('task.manage', fn() => $this->toolResult($this->crmUpdateSubtask($arguments))),
@@ -3100,6 +3142,7 @@ MD;
             'crm_create_invitation' => $this->withPermission('user.manage', fn() => $this->toolResult($this->crmCreateInvitation($arguments))),
             'crm_get_api_key_usage' => $this->withPermission('api_client.view', fn() => $this->toolResult($this->crmGetApiKeyUsage($arguments))),
             'crm_list_request_logs' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmListRequestLogs($arguments))),
+            'crm_get_frontend_errors_chart' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetFrontendErrorsChart($arguments))),
             'crm_get_admin_summary_widget' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetAdminSummaryWidget())),
             'crm_get_admin_system_widget' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetAdminSystemWidget())),
             'crm_get_openapi_spec' => $this->withPermission('logs.view', fn() => $this->toolResult($this->crmGetOpenApiSpec())),
@@ -3213,6 +3256,11 @@ MD;
             'crm_run_workflow_rule_test' => $this->withPermission('settings.manage', fn() => $this->toolResult($this->crmRunWorkflowRuleTest($arguments))),
             'crm_list_projects' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmListProjects($arguments))),
             'crm_get_project' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProject($arguments))),
+            'crm_get_project_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectSummary($arguments))),
+            'crm_get_project_timeline' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectTimeline($arguments))),
+            'crm_get_project_milestones_summary' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectMilestonesSummary($arguments))),
+            'crm_get_project_risks' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectRisks($arguments))),
+            'crm_get_project_workload' => $this->withPermission('project.manage', fn() => $this->toolResult($this->crmGetProjectWorkload($arguments))),
             'crm_get_knowledge_overview' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeOverview($arguments))),
             'crm_list_knowledge_spaces_tree' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmListKnowledgeSpacesTree($arguments))),
             'crm_get_knowledge_tree' => $this->withPermission('knowledge.view', fn() => $this->toolResult($this->crmGetKnowledgeTree($arguments))),
@@ -3463,6 +3511,93 @@ MD;
         /** @var DashboardService $service */
         $service = $this->container->get('service.dashboard');
         return $this->publicData($service->summary($this->actor()));
+    }
+
+    private function crmGetHealthStatus(): array
+    {
+        return ['status' => 'ok', 'version' => 'v1'];
+    }
+
+    private function crmGetDashboardWidgets(): array
+    {
+        return $this->invokeControllerTool(DashboardController::class, 'widgets', [], 'GET', []);
+    }
+
+    private function crmSaveDashboardWidgets(array $arguments): array
+    {
+        return $this->invokeControllerTool(DashboardController::class, 'saveWidgets', $arguments, 'PUT', []);
+    }
+
+    private function crmGetRetentionMetadata(): array
+    {
+        return $this->invokeControllerTool(RetentionController::class, 'getMetadata', [], 'GET', []);
+    }
+
+    private function crmSetRetentionMetadata(array $arguments): array
+    {
+        return $this->invokeControllerTool(RetentionController::class, 'setMetadata', $arguments, 'POST', []);
+    }
+
+    private function crmGetCommentDraft(array $arguments): array
+    {
+        $taskId = $this->argumentPublicId($arguments, ['task_public_id', 'public_id']);
+        if ($taskId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+
+        /** @var CommentDraftService $service */
+        $service = $this->container->get('service.comment_draft');
+        $draft = $service->get($taskId, $this->actor());
+        if ($draft === 'TASK_NOT_FOUND') {
+            return ['error' => 'Task not found.'];
+        }
+
+        return ['draft' => $draft === null ? null : $this->publicData($draft)];
+    }
+
+    private function crmSaveCommentDraft(array $arguments): array
+    {
+        $taskId = $this->argumentPublicId($arguments, ['task_public_id', 'public_id']);
+        if ($taskId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+        $body = trim((string)($arguments['body'] ?? ''));
+        if ($body === '') {
+            return ['error' => 'body is required.'];
+        }
+
+        /** @var CommentDraftService $service */
+        $service = $this->container->get('service.comment_draft');
+        $draft = $service->save($taskId, $body, $this->actor());
+        if ($draft === 'TASK_NOT_FOUND') {
+            return ['error' => 'Task not found.'];
+        }
+
+        return ['draft' => $this->publicData($draft)];
+    }
+
+    private function crmDeleteCommentDraft(array $arguments): array
+    {
+        $taskId = $this->argumentPublicId($arguments, ['task_public_id', 'public_id']);
+        if ($taskId === '') {
+            return ['error' => 'task_public_id is required.'];
+        }
+
+        /** @var CommentDraftService $service */
+        $service = $this->container->get('service.comment_draft');
+        $ok = $service->clear($taskId, $this->actor());
+        if ($ok === 'TASK_NOT_FOUND') {
+            return ['error' => 'Task not found.'];
+        }
+
+        return ['deleted' => (bool)$ok];
+    }
+
+    private function crmGetFrontendErrorsChart(array $arguments): array
+    {
+        /** @var LogsService $service */
+        $service = $this->container->get('service.logs');
+        return $this->publicData($service->frontendErrorChart($this->pick($arguments, ['hours', 'from', 'to'])));
     }
 
     private function crmGetAiSettings(): array
