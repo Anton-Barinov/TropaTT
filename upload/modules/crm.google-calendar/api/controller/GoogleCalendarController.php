@@ -108,7 +108,12 @@ final class GoogleCalendarController
             );
             $items[] = $this->publicConnection($connection);
         }
-        return JsonResponse::success('GOOGLE_CONNECTIONS', 'OK', ['connections' => $items]);
+        return JsonResponse::success('GOOGLE_CONNECTIONS', 'OK', [
+            'connections' => $items,
+            // Lets the module page show a setup hint instead of a cryptic error
+            // when the instance has no Google OAuth credentials configured yet.
+            'configured' => $this->client->configured(),
+        ]);
     }
 
     public function test(array $params): JsonResponse

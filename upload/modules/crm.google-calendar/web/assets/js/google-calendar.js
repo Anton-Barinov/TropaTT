@@ -7,7 +7,16 @@
       try { normalized.body = JSON.parse(normalized.body); } catch (_) { /* keep non-JSON bodies unchanged */ }
     }
     if (window.CRM?.api?.request) {
-      return window.CRM.api.request(route, normalized).then(envelope => envelope.data || envelope);
+      // The shared client throws Error(code) with the human-readable text in
+      // error.envelope.message — surface that text instead of the raw code
+      // (e.g. show "OAuth credentials are not configured" not
+      // "GOOGLE_OAUTH_NOT_CONFIGURED").
+      return window.CRM.api.request(route, normalized)
+        .then(envelope => envelope.data || envelope)
+        .catch(error => {
+          const msg = (error && error.envelope && error.envelope.message) || (error && error.message) || 'Ошибка API';
+          throw new Error(msg);
+        });
     }
 
     // Fallback for a page rendered without the shared API bundle. Keep the
@@ -44,7 +53,15 @@
   const render = data => {
     const items = data.connections || [];
     const status = $('gcalStatus'); const actions = $('gcalConnectionActions'); const root = $('gcalCalendars'); root.innerHTML = ''; if (actions) actions.innerHTML = '';
-    if (!items.length) { connection = null; status.textContent = 'Google Calendar ещё не подключён.'; return; }
+    if (!items.length) {
+      connection = null;
+      if (data.configured === false) {
+        status.innerHTML = 'Google Calendar ещё не подключён.<div class="gcal-calendar-meta">OAuth не настроен: задайте GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env (см. README модуля).</div>';
+      } else {
+        status.textContent = 'Google Calendar ещё не подключён.';
+      }
+      return;
+    }
     connection = items[0]; status.innerHTML = `<strong>Подключено</strong><div class="gcal-calendar-meta">${escapeHtml(connection.google_account_email || 'Google account')} · ${escapeHtml(connection.status || '')}</div>`;
     if (actions) {
       actions.innerHTML = '<button type="button" class="btn crm-btn-secondary btn-sm" id="gcalTest"><i class="fa-solid fa-plug-circle-check"></i> Проверить</button><button type="button" class="btn btn-outline-danger btn-sm" id="gcalDisconnect"><i class="fa-solid fa-link-slash"></i> Отключить</button>';
