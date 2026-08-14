@@ -73,5 +73,12 @@
       message(e.message, true);
     });
   };
-  document.addEventListener('DOMContentLoaded', () => { $('gcalConnect')?.addEventListener('click', connect); $('gcalRefresh')?.addEventListener('click', load); load(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    // This module's page may not be mounted (e.g. stale cached HTML that
+    // still references this script). Never touch DOM that does not exist.
+    if (!$('gcalConnect') && !$('gcalStatus') && !$('gcalCalendars')) return;
+    $('gcalConnect')?.addEventListener('click', connect);
+    $('gcalRefresh')?.addEventListener('click', load);
+    load();
+  });
 })();

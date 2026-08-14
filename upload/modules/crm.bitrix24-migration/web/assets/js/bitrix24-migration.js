@@ -109,6 +109,9 @@
   };
 
   document.addEventListener('DOMContentLoaded', () => {
+    // This module's page may not be mounted (e.g. stale cached HTML that
+    // still references this script). Never touch DOM that does not exist.
+    if (!$('b24AddConnection') && !$('b24Connections') && !$('b24Jobs')) return;
     $('b24AddConnection')?.addEventListener('click', () => bootstrap.Modal.getOrCreateInstance($('b24ConnectionModal')).show());
     $('b24ConnectionForm')?.addEventListener('submit', createConnection);
     $('b24CreateJob')?.addEventListener('click', createJob);

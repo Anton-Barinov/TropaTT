@@ -137,6 +137,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (!$('shtabConnections') && !$('shtabJobs') && !$('shtabFile')) return;
     $('shtabFile').addEventListener('change', function (event) { state.file = event.target.files[0] || null; toggle(); });
     $('shtabConnection').addEventListener('change', function () { toggle(); loadMappings(); });
     $('shtabStart').addEventListener('click', createJob);

@@ -30,5 +30,12 @@
   };
   const load = () => api('/connections').then(render).catch(e => { $('ycalStatus').textContent = e.message; });
   const sync = () => { if (!connection) return; message('Синхронизация выполняется…'); api(`/connections/${encodeURIComponent(connection.public_id)}/sync`, {method:'POST'}).then(data => { const r = data.result || {}; message(`Готово: загружено ${r.pulled || 0}, отправлено ${r.pushed || 0}, удалено ${r.deleted || 0}.`); load(); }).catch(e => message(e.message, true)); };
-  document.addEventListener('DOMContentLoaded', () => { $('ycalConnectForm')?.addEventListener('submit', event => { event.preventDefault(); const email = $('ycalEmail').value.trim(); const appPassword = $('ycalPassword').value; message('Проверяем подключение…'); api('/connections', {method:'POST', body:{email, app_password:appPassword}}).then(() => { $('ycalPassword').value = ''; message('Яндекс.Календарь подключён.'); load(); }).catch(e => message(e.message, true)); }); $('ycalRefresh')?.addEventListener('click', load); load(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    // This module's page may not be mounted (e.g. stale cached HTML that
+    // still references this script). Never touch DOM that does not exist.
+    if (!$('ycalConnectForm') && !$('ycalStatus') && !$('ycalCalendars')) return;
+    $('ycalConnectForm')?.addEventListener('submit', event => { event.preventDefault(); const email = $('ycalEmail').value.trim(); const appPassword = $('ycalPassword').value; message('Проверяем подключение…'); api('/connections', {method:'POST', body:{email, app_password:appPassword}}).then(() => { $('ycalPassword').value = ''; message('Яндекс.Календарь подключён.'); load(); }).catch(e => message(e.message, true)); });
+    $('ycalRefresh')?.addEventListener('click', load);
+    load();
+  });
 })();

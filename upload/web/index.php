@@ -536,8 +536,31 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
     $moduleAutoloader = new \Api\System\Library\Module\ModuleAutoloader($projectRoot);
     $moduleAutoloader->register();
 
+    // Load only modules enabled in the registry (is_active = 1), mirroring the
+    // API bootstrap. Disabled/uninstalled modules must not contribute assets
+    // (css/js) or web routes to any page. If the DB or the registry table is
+    // unavailable (fresh install, missing .env), fall back to loading every
+    // discovered module so the installer and pre-install pages keep working.
+    $registryReadOk = false;
+    $activeModuleNames = [];
+    $pdo = crmWebApiDbConnect($webBaseDir);
+    if ($pdo !== null) {
+        try {
+            $stmt = $pdo->query('SELECT module_name FROM module_registry WHERE is_active = 1');
+            $activeModuleNames = $stmt ? array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'module_name') : [];
+            $registryReadOk = true;
+        } catch (\Throwable $e) {
+            error_log('[web] module registry read failed, falling back to all modules: ' . $e->getMessage());
+        }
+    }
+
     $discovered = $pluginManager->getDiscovered();
     foreach ($discovered as $name => $manifest) {
+        // Honor the registry whenever it was readable — an empty registry means
+        // no modules are installed, so none should be loaded.
+        if ($registryReadOk && !in_array($name, $activeModuleNames, true)) {
+            continue;
+        }
         $pluginManager->load($name);
         $moduleAutoloader->registerModule($manifest->name, $manifest->vendor);
     }

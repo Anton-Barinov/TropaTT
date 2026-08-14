@@ -175,6 +175,9 @@
   };
 
   document.addEventListener('DOMContentLoaded', () => {
+    // This module's page may not be mounted (e.g. stale cached HTML that
+    // still references this script). Never touch DOM that does not exist.
+    if (!$('todoistConnections') && !$('todoistJobs')) return;
     $('todoistAddConnection')?.addEventListener('click', addConnection);
     $('todoistConnectionForm')?.addEventListener('submit', submitConnection);
     $('todoistOAuthAuthorize')?.addEventListener('click', authorizeOAuth);
