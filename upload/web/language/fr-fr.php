@@ -3303,7 +3303,7 @@ return array (
     'dashboard_item1' => '<strong>Quick actions</strong> — buttons for creating a project, creating a task, going to the task list, and accessing the help system.',
     'dashboard_item2' => '<strong>My session</strong> — information about the current user, logout button.',
     'dashboard_item3' => '<strong>Recent tasks</strong> — a list of tasks assigned to the current user, filterable by status.',
-    'dashboard_link' => '/web/index.php?route=dashboard',
+    'dashboard_link' => 'index.php?route=dashboard',
     'dashboard_link_label' => 'Link:',
     'dashboard_note' => 'Overview dashboard of the system.',
     'dashboard_title' => 'Home (Dashboard)',

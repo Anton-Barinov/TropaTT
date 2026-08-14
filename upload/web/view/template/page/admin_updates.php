@@ -468,6 +468,36 @@ $auJs = [
     return String(params.get('route') || raw.replace(/^\/+/, '')).replace(/^\/+/, '');
   }
 
+  // Resolve install-relative entry points from the actual deployment instead
+  // of hardcoding '/api/index.php' or '/updater/index.php' (which breaks
+  // subdirectory installs like /crm/api/index.php). apiBaseUrl is derived by
+  // the core header from SCRIPT_NAME; webBase is the install's web directory.
+  function installApiUrl(rawUrl) {
+    const query = String(rawUrl || '').includes('?')
+      ? String(rawUrl).slice(String(rawUrl).indexOf('?'))
+      : '';
+    const preset = window.CRM && window.CRM.config && typeof window.CRM.config.apiBaseUrl === 'string'
+      ? window.CRM.config.apiBaseUrl
+      : '';
+    if (preset && preset !== '') {
+      return preset.replace(/\/+$/, '') + query;
+    }
+    const cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    const webBase = String((cfg.webBase || '') || '').trim().replace(/\/+$/, '');
+    const wb = webBase.replace(/\/web$/, '');
+    return (wb !== '' ? wb : '') + '/api/index.php' + query;
+  }
+
+  function installUpdaterUrl(rawUrl) {
+    const query = String(rawUrl || '').includes('?')
+      ? String(rawUrl).slice(String(rawUrl).indexOf('?'))
+      : '';
+    const cfg = window.CRM && window.CRM.config ? window.CRM.config : {};
+    const webBase = String((cfg.webBase || '') || '').trim().replace(/\/+$/, '');
+    const wb = webBase.replace(/\/web$/, '');
+    return (wb !== '' ? wb : '') + '/updater/index.php' + query;
+  }
+
   async function waitForCrmApi() {
     if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') return window.CRM.api;
     const started = Date.now();
@@ -529,8 +559,14 @@ $auJs = [
     const timeoutHandle = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     let res;
     let text;
+    // Rewrite hardcoded entry points to this install's real locations so a
+    // subdirectory deployment (e.g. /crm/web/) talks to its own API/updater.
+    const rawUrl = String(url || '');
+    const fetchUrl = rawUrl.indexOf('/api/index.php') === 0
+      ? installApiUrl(rawUrl)
+      : (rawUrl.indexOf('/updater/index.php') === 0 ? installUpdaterUrl(rawUrl) : rawUrl);
     try {
-      res = await fetch(url, Object.assign({credentials: 'same-origin', headers, signal: controller ? controller.signal : undefined}, options));
+      res = await fetch(fetchUrl, Object.assign({credentials: 'same-origin', headers, signal: controller ? controller.signal : undefined}, options));
       // The body read is inside the same try: a proxy that resets the
       // connection mid-body also surfaces as a retryable network error
       // instead of an unmarked exception that aborts the update loop.

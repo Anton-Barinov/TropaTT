@@ -630,9 +630,11 @@ if (!$isPublic) {
             $redirectRoute = $route;
         }
 
-        $loginEntry = trim((string)($_SERVER['SCRIPT_NAME'] ?? '/web/index.php'));
+        $loginEntry = trim((string)($_SERVER['SCRIPT_NAME'] ?? ''));
         if ($loginEntry === '') {
-            $loginEntry = '/web/index.php';
+            // Relative to this entry point so a subdirectory install keeps
+            // working even when the server does not populate SCRIPT_NAME.
+            $loginEntry = './index.php';
         }
         header('Location: ' . $loginEntry . '?route=login&redirect=' . rawurlencode($redirectRoute), true, 302);
         exit;

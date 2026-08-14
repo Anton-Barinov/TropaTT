@@ -125,7 +125,7 @@ if (!str_starts_with($docsLocale, 'ru')) {
 <li data-i18n="docs.dashboard_item3"><?= htmlspecialchars($t('docs.dashboard_item3', '<strong>Последние задачи</strong> — список задач, назначенных на текущего пользователя, с фильтрацией по статусу.'), ENT_QUOTES, 'UTF-8') ?></li>
 </ul>
 <p data-i18n="docs.dashboard_auto"><?= htmlspecialchars($t('docs.dashboard_auto', 'Дашборд автоматически загружает данные через API; никакой ручной настройки не требуется.'), ENT_QUOTES, 'UTF-8') ?></p>
-<p><strong data-i18n="docs.dashboard_link_label"><?= htmlspecialchars($t('docs.dashboard_link_label', 'Ссылка:'), ENT_QUOTES, 'UTF-8') ?></strong> <a href="index.php?route=dashboard" data-i18n="docs.dashboard_link"><?= htmlspecialchars($t('docs.dashboard_link', '/web/index.php?route=dashboard'), ENT_QUOTES, 'UTF-8') ?></a></p>
+<p><strong data-i18n="docs.dashboard_link_label"><?= htmlspecialchars($t('docs.dashboard_link_label', 'Ссылка:'), ENT_QUOTES, 'UTF-8') ?></strong> <a href="index.php?route=dashboard" data-i18n="docs.dashboard_link"><?= htmlspecialchars($t('docs.dashboard_link', 'index.php?route=dashboard'), ENT_QUOTES, 'UTF-8') ?></a></p>
 </div></section></div>
 
 <!-- ==================== 2. Задачи ==================== -->

@@ -255,8 +255,18 @@ $footerUpdateBadgeTemplate = $footerT('update_available_badge', 'Update {version
     }
     // Use the current core update API. Keep this quiet: the footer badge is optional.
     var currentVersion = <?= json_encode($footerVersionRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    // Derive the API entry point from the install (apiBaseUrl is exposed by
+    // header.php from SCRIPT_NAME) so subdirectory installs poll their own
+    // /<prefix>/api/index.php instead of the hardcoded domain-root path.
+    var apiBase = window.CRM && window.CRM.config && window.CRM.config.apiBaseUrl
+      ? String(window.CRM.config.apiBaseUrl)
+      : '';
+    if (!apiBase) {
+      var wb = String((window.CRM && window.CRM.config && window.CRM.config.webBase) || '').trim().replace(/\/+$/, '').replace(/\/web$/, '');
+      apiBase = (wb !== '' ? wb : '') + '/api/index.php';
+    }
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/index.php?route=api/v1/core/updates/status', true);
+    xhr.open('GET', apiBase + '?route=api/v1/core/updates/status', true);
     xhr.timeout = 5000;
     xhr.onload = function () {
       try {

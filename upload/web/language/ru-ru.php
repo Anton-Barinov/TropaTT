@@ -592,7 +592,7 @@ return array (
     'dashboard_item1' => '<strong>Быстрые действия</strong> — кнопки создания проекта, задачи, перехода к списку задач и справочной системе.',
     'dashboard_item2' => '<strong>Моя сессия</strong> — информация о текущем пользователе, кнопка выхода.',
     'dashboard_item3' => '<strong>Последние задачи</strong> — список задач, назначенных на текущего пользователя, с фильтрацией по статусу.',
-    'dashboard_link' => '/web/index.php?route=dashboard',
+    'dashboard_link' => 'index.php?route=dashboard',
     'dashboard_link_label' => 'Ссылка:',
     'dashboard_note' => 'Обзорный дашборд системы.',
     'dashboard_title' => 'Главная (Dashboard)',
