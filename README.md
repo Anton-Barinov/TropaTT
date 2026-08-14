@@ -1,6 +1,6 @@
-# TropaTT
+# TropaTT — Free Self-Hosted Open-Source CRM & Work Platform
 
-**The free, self-hosted, open-source CRM, task manager, and work platform — with 20+ AI tools, built-in team chat, automation, REST API, and no artificial SaaS limits. For freelancers, teams, and businesses that want their data on their own server.**
+**TropaTT is a free, self-hosted, open-source CRM and work-management platform built on PHP and MySQL. It combines CRM, task management, projects, Kanban, Gantt, calendar, team chat, workflow automation, REST API, OpenAPI, MCP, and 20+ AI workflows in one application — no per-seat fees, no SaaS plan limits. For freelancers, teams, and businesses that want their data on their own server.**
 
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-4F5B93?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
@@ -284,6 +284,7 @@ TropaTT's automation and API are production-grade. Built for teams that need the
 - **Module system** — extend business logic without touching core. 19 CLI commands.
 - **Generated REST API endpoints** — every entity, task, project, chat, calendar, analytic, and admin function accessible via API.
 - **OpenAPI 3.1 spec** — generated from route config, never out of sync with reality.
+- **MCP server — 567 tools** — a Model Context Protocol endpoint that gives AI agents safe, permission-scoped access to the CRM (reference: [`docs_mcp/mcp_en.md`](docs_mcp/mcp_en.md)).
 
 ---
 
@@ -386,11 +387,13 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 
 | Metric | Value |
 |--------|-------|
-| API endpoints | Generated from the live route configuration |
+| API endpoints | 906 route records · 953 unique URLs (713 core + 240 module) · 1,346 method-level routes |
+| MCP tools | 567 — Model Context Protocol server for AI agents |
 | Web routes | 68 pages, ~55 templates |
 | Backend services | 100+ |
 | Repositories | 65+ |
 | Domain modules | 35+ |
+| Integration modules | 15 — Jira, Trello, Asana, Bitrix24, ClickUp, Google & Yandex Calendar, WIP limits, and more |
 | JS modules | 24 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, MySQL schema smoke test, OpenAPI consistency check |
 | AI endpoints | 65 |
@@ -427,7 +430,7 @@ TropaTT/
 ├── upload/         # The CRM itself — copy the CONTENTS of this folder to your server
 │   ├── api/        #   API core — controllers, services, repositories, config, migrations, scripts
 │   ├── web/        #   Web UI — installer, pages, templates, JS modules, assets
-│   ├── modules/    #   Pluggable business modules (boilerplate, hello-world, WIP-limit examples)
+│   ├── modules/    #   15 pluggable integration modules (Jira, Trello, Asana, Bitrix24, ClickUp, calendars, WIP limits)
 │   └── index.php   #   Root entry point
 ├── README.md       # You're reading it (docs and config stay at the repo root)
 └── ...             # Other .md docs, LICENSE, .github/, .gitignore
@@ -565,7 +568,7 @@ The project is a practical, self-hosted work system: PHP-first, MySQL-compatible
 
 ### Что такое TropaTT
 
-TropaTT — бесплатная self-hosted рабочая платформа с открытым исходным кодом на PHP/MySQL для клиентских проектов. В одной системе собраны CRM, задачи, проекты, Канбан, Гант, календарь, командный чат, автоматизация, REST API и 20+ ИИ-процессов. Всё это разворачивается на вашем сервере, VPS, локальной машине или обычном PHP-хостинге.
+TropaTT — это бесплатная self-hosted CRM и платформа управления работой с открытым исходным кодом на PHP и MySQL. В одной системе собраны CRM, задачи, проекты, Канбан, Гант, календарь, командный чат, автоматизация, REST API, OpenAPI, MCP и 20+ ИИ-процессов. Всё это разворачивается на вашем сервере, VPS, локальной машине или обычном PHP-хостинге — без оплаты за каждого пользователя и без тарифных лимитов.
 
 Проект сделан для людей, которые каждый день ведут реальную работу: фрилансеров с десятками клиентов, небольших агентств, сервисных компаний, выездных бригад, студий и команд, которым надоело держать клиентов в одной системе, задачи во второй, чат в третьей, а отчёты — в таблицах.
 
@@ -742,6 +745,7 @@ TropaTT поддерживает полный цикл клиентской ра
 - **Модульная система** — расширение бизнес-логики без модификации ядра. 19 CLI-команд для управления модулями.
 - **REST API-эндпоинты, сгенерированные из маршрутов** — каждая CRM-сущность, задача, проект, чат, календарь, аналитика и административная функция доступны через API.
 - **Спецификация OpenAPI 3.1** — генерируется из конфигурации маршрутов, никогда не расходится с реализацией.
+- **MCP-сервер — 567 tools** — endpoint Model Context Protocol для безопасного доступа AI-агентов к CRM с проверкой прав (справочник: [`docs_mcp/mcp_ru.md`](docs_mcp/mcp_ru.md)).
 
 ---
 
@@ -846,11 +850,13 @@ TropaTT включает браузерный установщик для про
 
 | Метрика | Значение |
 |--------|----------|
-| API эндпоинтов | Генерируются из актуальной конфигурации маршрутов |
+| API эндпоинтов | 906 route-записей · 953 уникальных URL (713 core + 240 модульных) · 1346 method-level маршрутов |
+| MCP tools | 567 — Model Context Protocol сервер для AI-агентов |
 | Веб-страниц | 68 маршрутов, ~55 шаблонов |
 | PHP-сервисов | 100+ |
 | Репозиториев БД | 65+ |
 | Доменных модулей | 35+ |
+| Интеграционных модулей | 15 — Jira, Trello, Asana, Битрикс24, ClickUp, Google/Яндекс Календарь, WIP-лимиты и др. |
 | JavaScript-модулей | 24 собственных модуля на ванильном JS, без SPA-фреймворков и сборки |
 | Публичный CI | PHP lint на 8.1 и 8.2 |
 | AI API эндпоинтов | 65 |
@@ -887,7 +893,7 @@ TropaTT/
 ├── upload/         # Сама CRM — скопируйте СОДЕРЖИМОЕ этой папки на сервер
 │   ├── api/        #   Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
 │   ├── web/        #   Веб-интерфейс — установщик, страницы, шаблоны, JS-модули, ресурсы
-│   ├── modules/    #   Подключаемые бизнес-модули (boilerplate, hello-world, WIP-limit)
+│   ├── modules/    #   15 подключаемых интеграционных модулей (Jira, Trello, Asana, Битрикс24, ClickUp, календари, WIP-лимиты)
 │   └── index.php   #   Корневая точка входа
 ├── README.md       # Этот файл (документация и конфигурация остаются в корне)
 └── ...             # Остальные .md-документы, LICENSE, .github/, .gitignore
@@ -1019,7 +1025,7 @@ TropaTT разрабатывает **Антон Баринов**, PHP-разра
 
 ### TropaTT 是什么
 
-TropaTT 是一套免费、开源、可自行部署的 PHP/MySQL 工作平台，用于管理客户项目。它把 CRM、任务、项目、看板、甘特图、日历、团队聊天、自动化、REST API 和 20 多项 AI 辅助流程放在同一个系统中，由您部署在自己的服务器、VPS、本地环境或普通 PHP 主机上。
+TropaTT 是一个免费、开源、可自行部署的 CRM 和工作管理平台，基于 PHP 和 MySQL 构建。它把 CRM、任务管理、项目、看板、甘特图、日历、团队聊天、工作流自动化、REST API、OpenAPI、MCP 和 20 多项 AI 工作流整合到同一个系统中，由您部署在自己的服务器、VPS、本地环境或普通 PHP 主机上——无需按用户付费，也没有套餐限制。
 
 它面向每天真正交付工作的人：管理许多客户的自由职业者、小型代理机构、服务公司、现场团队、工作室，以及厌倦在客户系统、任务工具、聊天软件和电子表格之间来回复制信息的团队。
 
@@ -1196,6 +1202,7 @@ TropaTT 的自动化层和 REST API 是生产级的——为需要系统与业�
 - **模块系统**——在不修改核心的情况下扩展业务逻辑。19 个模块管理 CLI 命令。
 - **从路由配置生成的 REST API 端点**——每个 CRM 实体、任务、项目、聊天、日历、分析和管理员功能均可通过 API 访问。
 - **OpenAPI 3.1 规范**——从实际路由配置生成，与实现保持同步。
+- **MCP 服务器 — 567 个工具**——通过 Model Context Protocol 端点，让 AI 代理安全地、按权限访问 CRM（参考：[`docs_mcp/mcp_zh.md`](docs_mcp/mcp_zh.md)）。
 
 ---
 
@@ -1297,11 +1304,13 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 | 指标 | 数值 |
 |------|------|
-| API 端点 | 从当前路由配置生成 |
+| API 端点 | 906 条路由记录 · 953 个唯一 URL（713 核心 + 240 模块）· 1346 个方法级路由 |
+| MCP 工具 | 567 — 面向 AI 代理的 Model Context Protocol 服务器 |
 | Web 应用路由 | 68 个页面，~55 个模板 |
 | 后端 PHP 服务 | 100+ |
 | 数据库仓库 | 65+ |
 | 后端域模块 | 35+ |
+| 集成模块 | 15 — Jira、Trello、Asana、Bitrix24、ClickUp、Google/Yandex 日历、WIP 限制等 |
 | JavaScript 模块 | 24 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
 | 公开 CI | PHP 8.1 和 8.2 lint |
 | AI API 端点 | 65 |
@@ -1338,7 +1347,7 @@ TropaTT/
 ├── upload/         # CRM 本体——请将该文件夹的 CONTENTS 复制到服务器
 │   ├── api/        #   API 核心——控制器、服务、仓库、配置、迁移、脚本
 │   ├── web/        #   Web 界面——安装程序、页面、模板、JS 模块、资源
-│   ├── modules/    #   可选业务模块（boilerplate、hello-world、WIP-limit 示例）
+│   ├── modules/    #   15 个可选集成模块（Jira、Trello、Asana、Bitrix24、ClickUp、日历、WIP 限制）
 │   └── index.php   #   根入口点
 ├── README.md       # 本文件（文档和配置保留在仓库根目录）
 └── ...             # 其他 .md 文档、LICENSE、.github/、.gitignore
