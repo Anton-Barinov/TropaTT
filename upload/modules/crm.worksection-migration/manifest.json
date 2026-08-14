@@ -1,0 +1,38 @@
+{
+    "name": "crm.worksection-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из Worksection",
+    "description": "Односторонняя миграция проектов, задач, подзадач, комментариев, файлов, меток, пользователей и учёта времени из Worksection в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": [
+        "project.manage",
+        "task.manage",
+        "import.manage"
+    ],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js": ["web/assets/js/worksection-migration.js"],
+        "css": ["web/assets/css/worksection-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\WorksectionMigration\\WorksectionMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "attachment_download_timeout_seconds": 120,
+        "max_retries": 4,
+        "default_batch_size": 100,
+        "max_attachment_size_mb": 20,
+        "include_archived_by_default": false,
+        "include_completed_by_default": true,
+        "include_comments_by_default": true,
+        "include_attachments_by_default": false,
+        "include_time_records_by_default": true,
+        "max_tasks_per_job": 0
+    }
+}
