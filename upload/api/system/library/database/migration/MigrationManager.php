@@ -29,6 +29,7 @@ final class MigrationManager
             new TaskSubtaskRelationsMigration(),
             new ClientProfileExpansionMigration(),
             new CalendarEventDescriptionMigration(),
+            new CalendarEventSourcePrivacyMigration(),
             new AiFoundationMigration(),
             new AiJobsRuntimeCompatibilityMigration(),
             new AiIndexCoverageMigration(),
