@@ -61,8 +61,13 @@
   const sync = () => { if (!connection) return; message('Синхронизация выполняется…'); api(`/connections/${encodeURIComponent(connection.public_id)}/sync`, { method: 'POST' }).then(data => { const r = data.result || {}; message(`Готово: загружено ${r.pulled || 0}, отправлено ${r.pushed || 0}, удалено ${r.deleted || 0}.`); load(); }).catch(e => message(e.message, true)); };
   const connect = () => {
     // Open synchronously from the click handler so popup blockers do not
-    // discard the OAuth window after the asynchronous API response.
-    const popup = window.open('about:blank', '_blank', 'noopener');
+    // discard the OAuth window after the asynchronous API response. `noopener`
+    // is deliberately NOT used: with it window.open() returns null in Chrome,
+    // so we could never navigate the popup to the authorization URL nor close
+    // it when the API call fails — the user would be stuck with a blank tab.
+    // The popup immediately navigates to Google's cross-origin OAuth page,
+    // which cannot reach back into this window.
+    const popup = window.open('about:blank', '_blank');
     api('/oauth/start', { method: 'POST', body: {} }).then(data => {
       if (!data.authorization_url) throw new Error('Google не вернул authorization URL');
       if (popup && !popup.closed) popup.location.href = data.authorization_url;
