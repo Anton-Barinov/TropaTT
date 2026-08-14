@@ -139,8 +139,8 @@ window.CRM.notificationsPush = (function () {
       title: title,
       options: {
         body: body,
-        icon: webBase() + 'assets/favicon.svg',
-        badge: webBase() + 'assets/favicon.svg',
+        icon: webBase() + 'assets/icons/icon-192.png',
+        badge: webBase() + 'assets/icons/icon-192.png',
         tag: String(item && item.public_id ? item.public_id : ('ntf-' + Date.now())),
         renotify: false,
         data: {

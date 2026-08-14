@@ -3059,13 +3059,15 @@ if (isAlreadyInstalled()) {
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <title><?php echo t('already_installed'); ?> — CRM</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:"Aptos","Segoe UI Variable","Segoe UI",system-ui,Arial,sans-serif;background:#f5f8f7;color:#111a19;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
         .install-container{width:100%;max-width:480px;animation:fadeIn 0.5s ease-out}
         @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .install-logo{text-align:center;font-size:2rem;font-weight:800;margin-bottom:16px}
+        .install-logo{display:flex;align-items:center;justify-content:center;gap:10px;font-size:2rem;font-weight:800;margin-bottom:16px}
+        .install-logo img{width:36px;height:36px;flex-shrink:0}
         .install-card{background:#fff;border:1px solid #d7e2df;border-radius:8px;padding:32px;box-shadow:0 1px 2px rgba(17,26,25,.04);text-align:center}
         .install-card h1{font-size:1.5rem;margin-bottom:16px;font-weight:700}
         .installed-desc{color:#596966;margin-bottom:24px;line-height:1.6;font-size:0.9rem}
@@ -3077,7 +3079,7 @@ if (isAlreadyInstalled()) {
 <body>
     <div class="install-container">
         <div class="install-card">
-            <div class="install-logo">CRM</div>
+            <div class="install-logo"><img src="assets/icons/icon-192.png" alt="">CRM</div>
             <h1><?php echo t('already_installed'); ?></h1>
             <p class="installed-desc"><?php echo t('already_installed_desc'); ?></p>
             <a href="index.php?route=dashboard" class="btn btn-primary btn-block"><?php echo t('go_to_dashboard'); ?></a>
@@ -3311,6 +3313,7 @@ if (isset($_GET['lang']) && in_array($_GET['lang'], ['ru', 'en', 'zh', 'es', 'pt
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <title><?php echo t('title'); ?> — CRM</title>
     <style><?php
 // Embedded CSS
@@ -3371,12 +3374,21 @@ body.installed-page {
 }
 
 .install-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     text-align: center;
     font-size: 2rem;
     font-weight: 800;
     letter-spacing: 0;
     margin-bottom: 8px;
     color: var(--text-primary);
+}
+.install-logo img {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
 .install-subtitle {
@@ -3896,7 +3908,7 @@ echo $css;
 <body>
 <div class="install-container">
 
-    <div class="install-logo">CRM</div>
+    <div class="install-logo"><img src="assets/icons/icon-192.png" alt="">CRM</div>
     <div class="install-subtitle"><?php echo t('title'); ?> v<?php echo INSTALL_VERSION; ?></div>
 
     <div class="lang-switch">

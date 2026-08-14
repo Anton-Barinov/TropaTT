@@ -91,7 +91,7 @@ a:focus-visible {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: var(--crm-accent);
+  background: url('../icons/brand-mark.png') center / cover no-repeat;
   flex-shrink: 0;
 }
 

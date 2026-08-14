@@ -121,7 +121,7 @@ $manifest = [
     'display' => 'standalone',
     'orientation' => 'any',
     'background_color' => '#ffffff',
-    'theme_color' => '#1f6feb',
+    'theme_color' => '#0f8f72',
     'icons' => [
         $icon192,
         ['src' => 'assets/icons/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],

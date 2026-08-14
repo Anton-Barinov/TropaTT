@@ -123,14 +123,15 @@ if (is_file($jsOverridesPath)) {
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
   <!-- PWA: manifest (localized per user locale, relative URLs keep this hosting-agnostic) + install meta -->
   <link rel="manifest" href="manifest.php">
-  <meta name="theme-color" content="#1f6feb">
+  <meta name="theme-color" content="#0f8f72">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/bootstrap.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css?v=<?= urlencode($assetsVersion) ?>">
   <link rel="stylesheet" href="assets/css/tokens.css?v=<?= urlencode($assetsVersion) ?>">

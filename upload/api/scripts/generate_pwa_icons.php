@@ -2,13 +2,16 @@
 declare(strict_types=1);
 
 /**
- * Generates the PWA icons from the favicon design (upload/web/assets/favicon.svg):
- * a blue (#1f6feb) tile with three white horizontal bars.
+ * Generates the PWA and brand icons from the committed master icon
+ * (upload/web/assets/icons/icon-512.png — the brand leaf on a transparent
+ * background, installed from the official icon set):
  *
- *   icon-192.png          192x192  rounded tile   (installed app icon)
- *   icon-512.png          512x512  rounded tile   (installed app icon)
- *   icon-512-maskable.png 512x512  full-bleed tile with the glyph inside the
- *                                  safe zone (80%) — used for adaptive icons
+ *   icon-192.png          192x192  leaf on transparent (official app icon)
+ *   icon-512.png          512x512  leaf on transparent (official app icon)
+ *   icon-512-maskable.png 512x512  full-bleed brand tile with the leaf inside
+ *                                  the safe zone (80%) — adaptive icons
+ *   brand-mark.png        256x256  rounded brand tile with the leaf, used for
+ *                                  the sidebar/login logo mark
  *
  * Requires the GD extension. Run:
  *
@@ -17,50 +20,78 @@ declare(strict_types=1);
  * The output overwrites the committed PNGs in upload/web/assets/icons/.
  */
 
-$outDir = dirname(__DIR__, 2) . '/web/assets/icons';
-if (!is_dir($outDir)) {
-    if (!mkdir($outDir, 0755, true) && !is_dir($outDir)) {
-        fwrite(STDERR, 'Cannot create ' . $outDir . PHP_EOL);
-        exit(1);
-    }
+$assetsDir = dirname(__DIR__, 2) . '/web/assets';
+$outDir = $assetsDir . '/icons';
+$masterPath = $outDir . '/icon-512.png';
+if (!is_file($masterPath)) {
+    fwrite(STDERR, 'Master icon not found: ' . $masterPath . PHP_EOL);
+    exit(1);
 }
 if (!function_exists('imagecreatetruecolor')) {
     fwrite(STDERR, 'PHP GD extension is required.' . PHP_EOL);
     exit(1);
 }
 
+$master = imagecreatefrompng($masterPath);
+if (!$master) {
+    fwrite(STDERR, 'Cannot decode master icon: ' . $masterPath . PHP_EOL);
+    exit(1);
+}
+$masterSize = imagesx($master);
+
 /**
- * Draws the TropaTT tile.
+ * Resamples the master leaf (transparent background) to the given size.
  *
- * Geometry mirrors the 64x64 viewBox of favicon.svg:
- *   bars at y 18/29/40, height 6, x from 14 to 50 (width 36),
- *   corner radius 14.
- *
- * @param float $scale   1.0 = exact favicon geometry; 0.8 = shrunk into the
- *                       maskable safe zone (full-bleed background).
- * @param bool  $rounded  true = transparent rounded corners (regular icon),
- *                       false = full-bleed square (maskable icon).
  * @return \GdImage
  */
-function drawPwaTile(int $size, bool $rounded, float $scale): \GdImage
+function drawMasterLeaf(int $size): \GdImage
 {
+    global $master, $masterSize;
     $img = imagecreatetruecolor($size, $size);
-    imagesavealpha($img, true);
-    // Blending must be OFF so imagesetpixel() writes the alpha channel directly
-    // instead of blending the transparent color over the blue tile (otherwise
-    // the rounded-corner cut-out is a no-op and the icon stays a square).
     imagealphablending($img, false);
+    imagesavealpha($img, true);
     $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
     imagefill($img, 0, 0, $transparent);
-    $blue = imagecolorallocate($img, 0x1f, 0x6f, 0xeb);
-    $white = imagecolorallocate($img, 255, 255, 255);
+    imagecopyresampled($img, $master, 0, 0, 0, 0, $size, $size, $masterSize, $masterSize);
+    return $img;
+}
 
-    // Background tile.
-    imagefilledrectangle($img, 0, 0, $size - 1, $size - 1, $blue);
+/**
+ * Draws a brand tile: brand-green background (gradient, or full-bleed solid)
+ * with the master leaf composited in the centre.
+ *
+ * @return \GdImage
+ */
+function drawBrandTile(int $size, float $leafScale, bool $rounded, bool $gradient): \GdImage
+{
+    global $master, $masterSize;
+    $img = imagecreatetruecolor($size, $size);
+    imagealphablending($img, false);
+    imagesavealpha($img, true);
+    $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
+    imagefill($img, 0, 0, $transparent);
+
+    if ($gradient) {
+        // 135deg gradient between the brand tokens (#0f8f72 -> #0b725c).
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
+                $t = min(1.0, max(0.0, ($x + $y) / (2 * ($size - 1))));
+                $cr = (int)round(15 + (11 - 15) * $t);
+                $cg = (int)round(143 + (114 - 143) * $t);
+                $cb = (int)round(114 + (92 - 114) * $t);
+                $c = imagecolorallocatealpha($img, $cr, $cg, $cb, 0);
+                imagesetpixel($img, $x, $y, $c);
+                imagecolordeallocate($img, $c);
+            }
+        }
+    } else {
+        // Solid brand green, full bleed (required for maskable icons).
+        $green = imagecolorallocatealpha($img, 15, 143, 114, 0);
+        imagefilledrectangle($img, 0, 0, $size - 1, $size - 1, $green);
+    }
 
     if ($rounded) {
-        // Punch the four corners so the tile gets a rounded shape with a
-        // transparent background (radius ratio 14/64 from the SVG).
+        // Punch the four corners (radius ratio 14/64 of the original tile).
         $radius = (int)round($size * (14 / 64));
         foreach ([[0, 0], [1, 0], [0, 1], [1, 1]] as $corner) {
             $cx = $corner[0] * ($size - 1);
@@ -79,28 +110,34 @@ function drawPwaTile(int $size, bool $rounded, float $scale): \GdImage
         }
     }
 
-    // Three white bars (scaled by $scale, centered in the tile).
-    $barW = (int)round($size * (36 / 64) * $scale);
-    $barH = max(1, (int)round($size * (6 / 64) * $scale));
-    $gap = max(1, (int)round($size * (11 / 64) * $scale));
-    $margin = (int)round(($size - $barW) / 2);
-    $y0 = (int)round($size * (18 / 64) * $scale + ($size * (1 - $scale)) / 2);
-    for ($i = 0; $i < 3; $i++) {
-        $y = $y0 + $i * $gap;
-        imagefilledrectangle($img, $margin, $y, $margin + $barW - 1, $y + $barH - 1, $white);
-    }
+    // Master leaf, centred at the requested scale.
+    $leaf = (int)round($size * $leafScale);
+    $offset = (int)(($size - $leaf) / 2);
+    imagecopyresampled($img, $master, $offset, $offset, 0, 0, $leaf, $leaf, $masterSize, $masterSize);
 
     return $img;
 }
 
-$targets = [
-    'icon-192.png'           => [192, true,  1.0],
-    'icon-512.png'           => [512, true,  1.0],
-    'icon-512-maskable.png'  => [512, false, 0.8],
-];
+// Plain leaf resamples of the master (official icons, transparent background).
+foreach ([
+    'icon-192.png' => 192,
+    'icon-512.png' => 512,
+] as $file => $size) {
+    $img = drawMasterLeaf($size);
+    $path = $outDir . '/' . $file;
+    if (!imagepng($img, $path)) {
+        fwrite(STDERR, 'Failed to write ' . $path . PHP_EOL);
+        exit(1);
+    }
+    echo 'OK ' . $path . ' (' . $size . 'x' . $size . ', leaf)' . PHP_EOL;
+}
 
-foreach ($targets as $file => [$size, $rounded, $scale]) {
-    $img = drawPwaTile($size, $rounded, $scale);
+// Brand tiles: maskable (full-bleed solid) and sidebar logo mark (rounded gradient).
+foreach ([
+    'icon-512-maskable.png' => [512, 0.62, false, false],
+    'brand-mark.png'        => [256, 0.78, true, true],
+] as $file => [$size, $leafScale, $rounded, $gradient]) {
+    $img = drawBrandTile($size, $leafScale, $rounded, $gradient);
     $path = $outDir . '/' . $file;
     if (!imagepng($img, $path)) {
         fwrite(STDERR, 'Failed to write ' . $path . PHP_EOL);

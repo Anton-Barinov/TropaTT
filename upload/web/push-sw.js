@@ -9,8 +9,8 @@ self.addEventListener('push', function (event) {
   var title = String(payload.title || 'Новое уведомление');
   var options = {
     body: String(payload.body || ''),
-    icon: pwaWebRoot() + 'assets/favicon.svg',
-    badge: pwaWebRoot() + 'assets/favicon.svg',
+    icon: pwaWebRoot() + 'assets/icons/icon-192.png',
+    badge: pwaWebRoot() + 'assets/icons/icon-192.png',
     data: {
       link: String(payload.link || 'index.php?route=notifications'),
       notification_public_id: String(payload.notification_public_id || '')
@@ -303,9 +303,11 @@ function pwaPrecachePaths() {
   // Relative to the web root (pwaWebRoot()), so the same list works on any
   // domain/sub-path install.
   return [
-    'assets/favicon.svg',
+    'assets/favicon.ico',
+    'assets/apple-touch-icon.png',
     'assets/icons/icon-192.png',
     'assets/icons/icon-512.png',
+    'assets/icons/brand-mark.png',
     'assets/css/bootstrap.min.css',
     'assets/vendor/fontawesome/css/all.min.css',
     'assets/css/tokens.css',
