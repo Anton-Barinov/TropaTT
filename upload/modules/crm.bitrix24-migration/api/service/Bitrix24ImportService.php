@@ -157,7 +157,25 @@ final class Bitrix24ImportService
         if (!$job) throw new RuntimeException('BITRIX24_JOB_NOT_FOUND');
         if (!in_array((string)$job['status'], ['completed', 'completed_with_warnings', 'failed', 'cancelled', 'rolled_back', 'rolled_back_with_warnings'], true)) throw new RuntimeException('BITRIX24_ROLLBACK_JOB_NOT_FINISHED');
         $warnings = [];
-        foreach (array_reverse($this->repo->items((int)$job['id'], null, 10000)) as $item) {
+        $rollbackItems = $this->repo->items((int)$job['id'], null, 10000);
+        usort($rollbackItems, static function (array $left, array $right): int {
+            $rank = static function (array $item): int {
+                return match ((string)($item['source_type'] ?? '')) {
+                    'file', 'product_row' => 10,
+                    'comment', 'timeline_comment' => 20,
+                    'calendar_event', 'event', 'activity' => 30,
+                    'subtask' => 40,
+                    'task', 'file_task' => 50,
+                    'project', 'task_project' => 60,
+                    'contact', 'counterparty', 'company', 'department', 'tag' => 70,
+                    default => 80,
+                };
+            };
+            $rankCompare = $rank($left) <=> $rank($right);
+            return $rankCompare !== 0 ? $rankCompare : ((int)($right['id'] ?? 0) <=> (int)($left['id'] ?? 0));
+        });
+        foreach ($rollbackItems as $item) {
+            if ((string)($item['status'] ?? '') === 'rolled_back') continue;
             if ((int)($item['created_by_job'] ?? 0) !== 1 || empty($item['target_public_id'])) continue;
             $targetType = (string)$item['target_type'];
             $serviceId = match ($targetType) {

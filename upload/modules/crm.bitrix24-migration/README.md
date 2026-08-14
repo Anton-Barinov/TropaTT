@@ -31,7 +31,7 @@
 | `crm.deal` | task в служебном проекте | в текущем core нет DealService; сумма, валюта, стадия и payload сохраняются в описании/исходном JSON |
 | `crm.activity` / `calendar.event` | calendar event | только записи с корректным диапазоном дат |
 | `crm.timeline.comment` / task comments | task comment или task | комментарий привязывается к task; для company/contact/lead без native comment target создаётся служебная задача с исходным текстом |
-| `disk.file` / comment FILES | task file | HTTPS URL портала или Bitrix24 CDN, максимум 20 MiB; файл без связи получает отдельную import-task |
+| `disk.file` / comment FILES | task file | HTTPS URL портала/Bitrix24 CDN; контролируемый redirect на публичное object storage, максимум 20 MiB; файл без связи получает отдельную import-task |
 | `crm.invoice`, `crm.quote`, `crm.product` | task в служебном проекте | native сущности отсутствуют в core; исходные поля и payload сохраняются в описании/исходном JSON |
 | product rows | comment к задаче invoice/quote/deal | количество и цена сохраняются как комментарий; если родитель не импортирован — unresolved |
 
@@ -48,9 +48,9 @@
 ## Ограничения
 
 - Нативных Deal/Invoice/Quote/Product/Smart-process сервисов в текущем TropaTT core нет. Поэтому deal/invoice/quote/product представлены задачами служебного проекта, а product rows — комментариями к соответствующей задаче.
-- Удалённые записи Bitrix24, корзина, сложные множественные UF-поля и все типы CRM activities не могут быть достоверно восстановлены без соответствующего scope/API метода; они получают warning/unresolved.
+- Удалённые записи Bitrix24, корзина, сложные множественные UF-поля и все типы CRM activities не могут быть достоверно восстановлены без соответствующего scope/API метода; они получают warning/unresolved. Для календарных событий исходный owner ID сохраняется в описании, но текущий CalendarService назначает владельцем пользователя, запустившего импорт.
 - Автоматическое создание CRM users и выдача прав намеренно запрещены.
-- Для коробки администратор должен обеспечить публичный HTTPS DNS и совместимость методов REST; старые версии Bitrix24 могут не поддерживать часть методов.
+- Для коробки администратор должен обеспечить публичный HTTPS DNS и совместимость методов REST; старые версии Bitrix24 могут не поддерживать часть методов. Ссылки на файлы принимаются только от Bitrix24/портала, а redirects допускаются лишь на HTTPS-хосты с публичными IP; приватные адреса и DNS-rebinding блокируются.
 
 ## Проверка
 

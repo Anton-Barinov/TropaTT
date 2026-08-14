@@ -67,6 +67,13 @@ final class CalendarService
         $startsAt = (string)$input['starts_at'];
         $endsAt = (string)($input['ends_at'] ?? $startsAt);
         $now = gmdate('Y-m-d H:i:s');
+        // Trusted migration adapters may preserve a mapped owner, but only a
+        // root actor may assign an event to another CRM user. Public callers
+        // continue to get the historical behavior: actor owns the event.
+        $ownerUserId = (int)($actor['id'] ?? 0);
+        if ((bool)($actor['is_root'] ?? false) && (int)($input['owner_user_id'] ?? 0) > 0) {
+            $ownerUserId = (int)$input['owner_user_id'];
+        }
 
         $this->events->create([
             'public_id' => $publicId,
@@ -74,7 +81,7 @@ final class CalendarService
             'description' => trim((string)($input['description'] ?? '')),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
-            'owner_user_id' => (int)$actor['id'],
+            'owner_user_id' => $ownerUserId,
             'project_id' => $projectId,
             'task_id' => $taskId,
             'created_at' => $now,

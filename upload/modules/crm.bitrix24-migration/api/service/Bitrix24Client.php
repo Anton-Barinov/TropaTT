@@ -66,13 +66,16 @@ final class Bitrix24Client
     /** @return array<int,array<string,mixed>> */
     public function products(): array { return $this->collection('crm.product.list', ['select' => ['ID','NAME','DESCRIPTION','PRICE','CURRENCY_ID','ACTIVE','DATE_CREATE','DATE_UPDATE','SECTION_ID','UF_*'], 'order' => ['ID' => 'ASC']]); }
     /** @return array<int,array<string,mixed>> */
-    public function projects(): array { return $this->collection('sonet_group.get', ['ORDER' => ['ID' => 'ASC'], 'FILTER' => ['ACTIVE' => 'Y']]); }
+    public function projects(bool $includeArchived = false): array { return $this->collection('sonet_group.get', ['ORDER' => ['ID' => 'ASC'], 'FILTER' => $includeArchived ? [] : ['ACTIVE' => 'Y']]); }
     /** @return array<int,array<string,mixed>> */
     public function tasks(): array { return $this->collection('tasks.task.list', ['order' => ['ID' => 'ASC'], 'select' => ['ID','TITLE','DESCRIPTION','STATUS','PRIORITY','DEADLINE','START_DATE_PLAN','END_DATE_PLAN','RESPONSIBLE_ID','CREATED_BY','GROUP_ID','PARENT_ID','TAGS','DATE_CREATE','CHANGED_DATE','CLOSED_DATE','UF_*']]); }
     /** @return array<int,array<string,mixed>> */
     public function activities(): array { return $this->collection('crm.activity.list', ['order' => ['ID' => 'ASC'], 'filter' => ['CHECK_PERMISSIONS' => 'N']]); }
-    /** @return array<int,array<string,mixed>> */
-    public function events(): array { return $this->collection('calendar.event.get', ['type' => 'user', 'ownerId' => 0]); }
+    /** @param array<int,int> $ownerIds @return array<int,array<string,mixed>> */
+    public function events(?string $from = null, ?string $to = null, array $ownerIds = [0]): array
+    {
+        $items=[];$seen=[];foreach(array_values(array_unique(array_map('intval',$ownerIds))) as $ownerId){$params=['type'=>$ownerId===0?'company_calendar':'user','ownerId'=>$ownerId];if($from!==null&&trim($from)!=='')$params['from']=$from;if($to!==null&&trim($to)!=='')$params['to']=$to;foreach($this->collection('calendar.event.get',$params,false) as $item){$id=(string)($item['ID']??$item['id']??hash('sha256',(string)json_encode($item)));if(isset($seen[$id]))continue;$seen[$id]=true;$items[]=$item;}}return$items;
+    }
     /** @return array<int,array<string,mixed>> */
     public function files(): array { return $this->collection('disk.file.list', ['order' => ['ID' => 'ASC'], 'filter' => ['DELETED_TYPE' => 0]]); }
 
@@ -99,6 +102,19 @@ final class Bitrix24Client
     /** @return array<int,array<string,mixed>> */
     public function productRows(string $ownerType, string $ownerId): array
     {
+        $legacy = match (strtoupper($ownerType)) {
+            'D' => 'crm.deal.productrows.get',
+            'I' => 'crm.invoice.productrows.get',
+            'Q' => 'crm.quote.productrows.get',
+            default => '',
+        };
+        if ($legacy !== '') {
+            try {
+                return $this->collection($legacy, ['id' => $ownerId]);
+            } catch (RuntimeException) {
+                // Universal product-row API is available on newer portals.
+            }
+        }
         return $this->collection('crm.item.productrow.list', ['filter' => ['=ownerType' => $ownerType, '=ownerId' => $ownerId], 'select' => ['*']]);
     }
 
@@ -116,7 +132,8 @@ final class Bitrix24Client
         $parts = parse_url($url);
         $host = strtolower((string)($parts['host'] ?? ''));
         $portalHost = strtolower((string)(parse_url($this->portalUrl, PHP_URL_HOST) ?? ''));
-        if (($parts['scheme'] ?? '') !== 'https' || !$this->allowedDownloadHost($host, $portalHost) || $this->privateHost($host)) throw new RuntimeException('BITRIX24_FILE_URL_BLOCKED');
+        $resolvedIps = $this->publicIps($host);
+        if (($parts['scheme'] ?? '') !== 'https' || (($redirects === 0) && !$this->allowedDownloadHost($host, $portalHost)) || $resolvedIps === []) throw new RuntimeException('BITRIX24_FILE_URL_BLOCKED');
         $tmp = tempnam(sys_get_temp_dir(), 'b24-');
         if ($tmp === false) throw new RuntimeException('BITRIX24_FILE_TEMP_FAILED');
         $fp = fopen($tmp, 'wb');
@@ -127,7 +144,7 @@ final class Bitrix24Client
         if ($this->authType === 'oauth' && $this->accessToken !== '') $requestHeaders[] = 'Authorization: Bearer ' . $this->accessToken;
         curl_setopt_array($ch, [
             CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use ($fp, &$written, &$overflow, $maxBytes): int { $length = strlen($chunk); if ($written + $length > $maxBytes) { $overflow = true; return 0; } $written += $length; return fwrite($fp, $chunk) ?: 0; },
-            CURLOPT_TIMEOUT => max(10, $this->timeout * 2), CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => $requestHeaders,
+            CURLOPT_TIMEOUT => max(10, $this->timeout * 2), CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_RESOLVE => array_map(static fn(string $ip): string => $host . ':443:' . $ip, $resolvedIps), CURLOPT_HTTPHEADER => $requestHeaders,
             CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int { $length = strlen($line); if (str_contains($line, ':')) { [$name,$value]=array_pad(explode(':',$line,2),2,'');$headers[strtolower(trim($name))]=trim($value); } return $length; },
         ]);
         $ok = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); fclose($fp);
@@ -139,7 +156,7 @@ final class Bitrix24Client
             elseif (str_starts_with($location, '/')) $location = $this->portalUrl . $location;
             $next = parse_url($location);
             $nextHost = strtolower((string)($next['host'] ?? ''));
-            if (($next['scheme'] ?? '') !== 'https' || !$this->allowedDownloadHost($nextHost, $portalHost) || $this->privateHost($nextHost)) throw new RuntimeException('BITRIX24_FILE_REDIRECT_BLOCKED');
+            if (($next['scheme'] ?? '') !== 'https' || !$this->allowedDownloadHost($nextHost, $portalHost) || $this->publicIps($nextHost) === []) throw new RuntimeException('BITRIX24_FILE_REDIRECT_BLOCKED');
             return $this->downloadFile($location, $maxBytes, $redirects + 1);
         }
         if ($ok === false || $code < 200 || $code >= 300 || $overflow) { @unlink($tmp); throw new RuntimeException($overflow ? 'BITRIX24_FILE_TOO_LARGE' : 'BITRIX24_FILE_DOWNLOAD_FAILED'); }
@@ -147,8 +164,12 @@ final class Bitrix24Client
     }
 
     /** @return array<int,array<string,mixed>> */
-    private function collection(string $method, array $params): array
+    private function collection(string $method, array $params, bool $paginate = true): array
     {
+        if (!$paginate) {
+            return $this->extractItems($this->call($method, $params));
+        }
+
         $items = []; $start = 0; $seen = [];
         do {
             $page = $this->call($method, $params + ['start' => $start]);
@@ -186,6 +207,14 @@ final class Bitrix24Client
         $headers = [];
         $ch = curl_init($url);
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => max(5, $this->timeout), CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: TropaTT-Bitrix24-Migration/1.0'], CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int { $length=strlen($line);if(str_contains($line,':')){[$name,$value]=array_pad(explode(':',$line,2),2,'');$headers[strtolower(trim($name))]=trim($value);}return$length;}]);
+        $endpointParts = parse_url($url);
+        $endpointHost = strtolower((string)($endpointParts['host'] ?? ''));
+        $endpointIps = $this->publicIps($endpointHost);
+        if (($endpointParts['scheme'] ?? '') !== 'https' || $endpointIps === []) {
+            curl_close($ch);
+            throw new RuntimeException('BITRIX24_ENDPOINT_BLOCKED');
+        }
+        curl_setopt($ch, CURLOPT_RESOLVE, array_map(static fn(string $ip): string => $endpointHost . ':443:' . $ip, $endpointIps));
         $body = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $error = curl_error($ch); curl_close($ch);
         $this->repo->recordRequest((int)$this->connectionId, $code, $headers);
         $decoded = is_string($body) ? json_decode($body, true) : null;
@@ -245,12 +274,18 @@ final class Bitrix24Client
         return false;
     }
 
+    /** @return array<int,string> */
+    private function publicIps(string $host): array
+    {
+        if ($host === '' || $host === 'localhost' || str_ends_with($host, '.local')) return [];
+        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
+        $public = [];
+        foreach ($ips as $ip) if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) $public[] = $ip;
+        return array_values(array_unique($public));
+    }
+
     private function privateHost(string $host): bool
     {
-        if ($host === 'localhost' || str_ends_with($host, '.local')) return true;
-        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
-        if ($ips === []) return true;
-        foreach ($ips as $ip) if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return true;
-        return false;
+        return $this->publicIps($host) === [];
     }
 }
