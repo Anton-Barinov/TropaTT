@@ -16,7 +16,7 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migration/",
     "assets": {
-        "js": ["web/assets/js/toggl-migration.js"],
+        "js_routes": {"module-toggl-migration": "web/assets/js/toggl-migration.js"},
         "css": ["web/assets/css/toggl-migration.css"]
     },
     "hooks": {},

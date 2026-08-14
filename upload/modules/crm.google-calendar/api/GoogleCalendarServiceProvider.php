@@ -54,7 +54,9 @@ final class GoogleCalendarServiceProvider extends AbstractModuleServiceProvider
 
     public function getAssets(): array
     {
-        return ['js' => ['web/assets/js/google-calendar.js'], 'css' => ['web/assets/css/google-calendar.css']];
+        // Web assets are loaded per-route from the manifest (js_routes) so the
+        // module script only runs on its own page and never throws on others.
+        return ['css' => ['web/assets/css/google-calendar.css']];
     }
 
     public function getConfig(): array

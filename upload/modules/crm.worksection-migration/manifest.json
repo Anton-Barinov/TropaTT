@@ -16,7 +16,7 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migration/",
     "assets": {
-        "js": ["web/assets/js/worksection-migration.js"],
+        "js_routes": {"module-worksection-migration": "web/assets/js/worksection-migration.js"},
         "css": ["web/assets/css/worksection-migration.css"]
     },
     "hooks": {},

@@ -31,6 +31,6 @@ final class YandexCalendarServiceProvider extends AbstractModuleServiceProvider
     public function getPermissions(): array { return ['module.yandex-calendar.view','module.yandex-calendar.manage','module.yandex-calendar.sync']; }
     public function getMenuItems(): array { return [['route'=>'module-yandex-calendar','label'=>'Яндекс.Календарь','icon'=>'<i class="fa-solid fa-calendar-days"></i>','permission'=>'module.yandex-calendar.view','parent'=>null]]; }
     public function getScheduledTasks(): array { return [new ScheduledTask(name:'sync_yandex_calendars',description:'Synchronize private Yandex Calendar CalDAV connections',schedule:'*/15 * * * *',handler:[YandexCalendarWorkerHandler::class,'run'],enabled:true,timeout:240,overlapAllowed:false,notifyOnError:true)]; }
-    public function getAssets(): array { return ['js'=>['web/assets/js/yandex-calendar.js'],'css'=>['web/assets/css/yandex-calendar.css']]; }
+    public function getAssets(): array { return ['css'=>['web/assets/css/yandex-calendar.css']]; }
     public function getConfig(): array { return ['request_timeout_seconds'=>30,'max_retries'=>4,'sync_interval_minutes'=>15,'sync_days_past'=>90,'sync_days_future'=>365,'max_events_per_sync'=>5000]; }
 }

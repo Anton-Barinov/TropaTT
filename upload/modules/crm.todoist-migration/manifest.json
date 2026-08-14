@@ -12,7 +12,7 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migration/",
     "assets": {
-        "js": ["web/assets/js/todoist-migration.js"],
+        "js_routes": {"module-todoist-migration": "web/assets/js/todoist-migration.js"},
         "css": ["web/assets/css/todoist-migration.css"]
     },
     "hooks": {},

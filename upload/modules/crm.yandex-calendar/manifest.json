@@ -11,7 +11,7 @@
   "api_routes": "api/config/routes.php",
   "web_routes": "web/config/routes.php",
   "migrations": "api/migration/",
-  "assets": {"js": ["web/assets/js/yandex-calendar.js"], "css": ["web/assets/css/yandex-calendar.css"]},
+  "assets": {"js_routes": {"module-yandex-calendar": "web/assets/js/yandex-calendar.js"}, "css": ["web/assets/css/yandex-calendar.css"]},
   "hooks": {},
   "menu_items": [],
   "service_provider": "Module\\Crm\\YandexCalendar\\YandexCalendarServiceProvider",

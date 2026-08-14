@@ -16,7 +16,7 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migration/",
     "assets": {
-        "js": ["web/assets/js/activecollab-migration.js"],
+        "js_routes": {"module-activecollab-migration": "web/assets/js/activecollab-migration.js"},
         "css": ["web/assets/css/activecollab-migration.css"]
     },
     "hooks": {},

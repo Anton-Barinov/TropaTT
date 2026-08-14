@@ -15,7 +15,7 @@
     "web_routes": "web/config/routes.php",
     "migrations": "api/migration/",
     "assets": {
-        "js": ["web/assets/js/asana-migration.js"],
+        "js_routes": {"module-asana-migration": "web/assets/js/asana-migration.js"},
         "css": ["web/assets/css/asana-migration.css"]
     },
     "hooks": {},
