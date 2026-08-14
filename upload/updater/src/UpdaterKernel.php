@@ -148,7 +148,7 @@ final class UpdaterKernel
             'checks' => $checks,
             'package_head' => $packageHead,
             'manifest_report' => $manifestReport,
-            'modules_note' => 'modules/** are excluded from core updates and will not be changed.',
+            'modules_note' => 'modules/** are delivered with core updates: module files are added/updated from the package and are never deleted unless the module was removed from the product.',
         ];
         $state->writeFile('plan.json', $plan);
         $state->writeFile('manifest.json', $manifest);

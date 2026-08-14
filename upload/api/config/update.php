@@ -92,6 +92,7 @@ return [
     'core_paths' => [
         'api/**',
         'web/**',
+        'modules/**',
         'index.php',
         'favicon.ico',
         'README.md',
@@ -102,7 +103,6 @@ return [
         'updater/**',
     ],
     'protected_paths' => [
-        'modules/**',
         'storage/**',
         'storage_api/**',
         'uploads/**',
