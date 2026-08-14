@@ -463,6 +463,7 @@ The public repository currently includes a focused maintainer documentation set:
 |-------|-------|------|
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | OpenAPI generation entry point for API documentation automation |
+| API reference | [`docs_api/api_en.md`](docs_api/api_en.md) | Complete REST API reference — endpoints, authentication, RBAC, and conventions (English) |
 | Web docs | `upload/web/docs/README.md`, [`updates.md`](upload/web/docs/updates.md) | In-app user documentation (RU): architecture, install, and the self-update system (update server pipeline + user update flow) |
 | Project root | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Public usage, agent, security, contribution, installation troubleshooting, shared hosting, and webhook security guidance |
 ---
@@ -915,6 +916,7 @@ TropaTT/
 |------|-------------|-----------|
 | Maintainer docs | kept local (not published) | Release checklist, security review checklist, Codex for OSS notes, starter issues, GitHub labels |
 | API tooling | `upload/api/scripts/generate_openapi.php` | Точка входа для автоматизации генерации OpenAPI |
+| API-справочник | [`docs_api/api_ru.md`](docs_api/api_ru.md) | Полный справочник REST API — endpoint'ы, авторизация, RBAC и соглашения (на русском) |
 | Web docs | `upload/web/docs/README.md`, [`updates.md`](upload/web/docs/updates.md) | Внутренняя пользовательская документация (RU): архитектура, установка и система обновлений (конвейер сервера обновлений + поток обновления для пользователя) |
 | Корень проекта | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md`, [`INSTALL_TROUBLESHOOTING.md`](INSTALL_TROUBLESHOOTING.md), [`SHARED_HOSTING_GUIDE.md`](SHARED_HOSTING_GUIDE.md), [`WEBHOOK_SECURITY.md`](WEBHOOK_SECURITY.md) | Публичные правила использования, работы агентов, безопасности, вклада, troubleshooting установки, shared hosting гайд, webhook security |
 ---
@@ -1364,6 +1366,7 @@ TropaTT/
 |------|------|------|
 | 维护者文档 | 本地保存（不公开） | Release checklist、security review checklist、Codex for OSS notes、starter issues、GitHub labels |
 | API 工具 | `upload/api/scripts/generate_openapi.php` | API 文档自动化的 OpenAPI 生成入口 |
+| API 参考 | [`docs_api/api_zh.md`](docs_api/api_zh.md) | 完整 REST API 参考 — 端点、认证、RBAC 和约定（中文） |
 | Web 文档 | `upload/web/docs/README.md`, [`updates.md`](upload/web/docs/updates.md) | 应用内用户文档（俄语）：架构、安装和自更新系统（更新服务器流水线 + 用户更新流程） |
 | 项目根目录 | `README.md`, `AGENTS.md`, `SECURITY.md`, `CONTRIBUTING.md` | 公开使用、代理、安全和贡献指南 |
 
