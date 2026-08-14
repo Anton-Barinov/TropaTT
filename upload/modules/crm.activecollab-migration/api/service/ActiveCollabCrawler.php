@@ -64,6 +64,23 @@ final class ActiveCollabCrawler
                 $stats['task_lists']++;
             }
 
+            // ActiveCollab returns project and task time records together from
+            // this endpoint. Queue them once per project; fetching the same
+            // collection from every task both misses project-level records and
+            // creates duplicate API work.
+            if ($includeTime) foreach ($this->client->projectTimeRecords($token, $projectId) as $record) {
+                if ($this->isTruthy($record['is_trashed'] ?? false)) continue;
+                $recordId = $this->sourceId($record['id'] ?? $record['time_record_id'] ?? null);
+                if ($recordId === '') continue;
+                $parentType = strtolower((string)($record['parent_type'] ?? ''));
+                $parentId = $parentType === 'task'
+                    ? $this->sourceId($record['parent_id'] ?? $record['task_id'] ?? null)
+                    : '';
+                $record['_task_id'] = $parentId;
+                $this->repo->upsertItem($jobId, 'time_record', $recordId, ['source_parent_id'=>$parentId !== '' ? $parentId : null,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($record),'payload_json'=>$record]);
+                $stats['time_records']++;
+            }
+
             foreach ($this->client->tasks($token, $projectId, $includeArchived) as $task) {
                 if ($maxTasks > 0 && ($stats['tasks'] + $stats['subtasks']) >= $maxTasks) break 2;
                 $this->storeTask($job, $token, $task, $projectId, $stats, $includeComments, $includeAttachments, $includeTime, $heartbeat, $maxTasks, 0, null);
@@ -109,22 +126,31 @@ final class ActiveCollabCrawler
             $comment['_task_id'] = $id;
             $this->repo->upsertItem((int)$job['id'], 'comment', $commentId, ['source_parent_id'=>$id,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($comment),'payload_json'=>$comment]);
             $stats['comments']++;
+            if ($attachments && isset($comment['attachments']) && is_array($comment['attachments'])) {
+                foreach (array_values(array_filter($comment['attachments'], 'is_array')) as $attachment) {
+                    $attachmentId = $this->sourceId($attachment['id'] ?? $attachment['attachment_id'] ?? null);
+                    if ($attachmentId === '') continue;
+                    $attachment['_task_id'] = $id;
+                    $this->repo->upsertItem((int)$job['id'], 'attachment', $attachmentId, ['source_parent_id'=>$id,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($attachment),'payload_json'=>$attachment]);
+                    $stats['attachments']++;
+                }
+            }
         }
-        if ($attachments) foreach ($this->client->attachments($token, $projectId, $id) as $attachment) {
-            $attachmentId = $this->sourceId($attachment['id'] ?? $attachment['attachment_id'] ?? null);
-            if ($attachmentId === '') continue;
-            $attachment['_task_id'] = $id;
-            $this->repo->upsertItem((int)$job['id'], 'attachment', $attachmentId, ['source_parent_id'=>$id,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($attachment),'payload_json'=>$attachment]);
-            $stats['attachments']++;
+        if ($attachments) {
+            // Attachments are often embedded in the task representation. Use
+            // that data when present and fall back to the documented endpoint;
+            // otherwise large imports make one redundant request per task.
+            $taskAttachments = isset($task['attachments']) && is_array($task['attachments'])
+                ? array_values(array_filter($task['attachments'], 'is_array'))
+                : $this->client->attachments($token, $projectId, $id);
+            foreach ($taskAttachments as $attachment) {
+                $attachmentId = $this->sourceId($attachment['id'] ?? $attachment['attachment_id'] ?? null);
+                if ($attachmentId === '') continue;
+                $attachment['_task_id'] = $id;
+                $this->repo->upsertItem((int)$job['id'], 'attachment', $attachmentId, ['source_parent_id'=>$id,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($attachment),'payload_json'=>$attachment]);
+                $stats['attachments']++;
+            }
         }
-        if ($timeRecords) foreach ($this->client->timeRecords($token, $projectId, $id) as $record) {
-            $recordId = $this->sourceId($record['id'] ?? $record['time_record_id'] ?? null);
-            if ($recordId === '') continue;
-            $record['_task_id'] = $id;
-            $this->repo->upsertItem((int)$job['id'], 'time_record', $recordId, ['source_parent_id'=>$id,'source_project_id'=>$projectId,'status'=>'pending','checksum'=>$this->checksum($record),'payload_json'=>$record]);
-            $stats['time_records']++;
-        }
-
         if ($depth >= 20) return;
         $children = [];
         foreach (['subtasks','children'] as $key) if (isset($task[$key]) && is_array($task[$key])) $children = array_merge($children, array_values(array_filter($task[$key], 'is_array')));
@@ -156,8 +182,17 @@ final class ActiveCollabCrawler
     private function date(mixed $value): ?string
     {
         if (!is_scalar($value) || trim((string)$value) === '') return null;
+        // ActiveCollab v1 returns created_on/updated_on as Unix seconds.
+        if (is_numeric($value) && (int)$value >= 100000000) return gmdate('Y-m-d H:i:s', (int)$value);
         $time = strtotime((string)$value);
         return $time === false ? null : gmdate('Y-m-d H:i:s', $time);
+    }
+
+    private function isTruthy(mixed $value): bool
+    {
+        if (is_bool($value)) return $value;
+        if (is_numeric($value)) return (int)$value !== 0;
+        return in_array(strtolower(trim((string)$value)), ['1', 'true', 'yes', 'on'], true);
     }
 
     private function checksum(array $payload): string

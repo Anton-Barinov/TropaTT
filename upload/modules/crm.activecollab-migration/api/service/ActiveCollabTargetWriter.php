@@ -96,7 +96,9 @@ final class ActiveCollabTargetWriter
         $workspace = (string)$job['workspace_gid'];
         $connection = (int)$job['connection_id'];
         $mapping = $this->repo->findMapping($connection, $workspace, 'task', $source);
-        $sourceKey = 'ac:' . hash('sha256', $workspace . ':' . $source);
+        // Include the connection in the recovery key: two self-hosted
+        // ActiveCollab instances may legitimately use the same account/task ID.
+        $sourceKey = 'ac:' . hash('sha256', (string)$connection . ':' . $workspace . ':' . $source);
         if (!$mapping) {
             $recoveredTarget = $this->repo->findTaskTargetBySource($sourceKey);
             if ($recoveredTarget !== null) {
@@ -153,7 +155,12 @@ final class ActiveCollabTargetWriter
     {
         $workspace=(string)$job['workspace_gid'];$source=$this->id($payload['id']??$payload['attachment_id']??null);$mapping=$this->repo->findMapping((int)$job['connection_id'],$workspace,'attachment',$source);if($mapping&&!empty($mapping['target_public_id']))return $this->result('file',(string)$mapping['target_public_id'],'skipped');
         $task=$this->repo->findMapping((int)$job['connection_id'],$workspace,'task',$this->id($payload['_task_id']??$payload['task_id']??null));if(!$task||empty($task['target_public_id']))throw new RuntimeException('ACTIVECOLLAB_ATTACHMENT_TASK_NOT_READY');
-        $url=(string)($payload['download_url']??$payload['url']??$payload['content_url']??'');if($url==='')return $this->result('file','skipped','skipped',['У вложения нет URL скачивания.']);
+        $url=(string)($payload['download_url']??$payload['url']??$payload['content_url']??'');
+        if ($url === '') {
+            $attachmentId=$this->id($payload['id']??$payload['attachment_id']??null);
+            $url=$attachmentId!==''?(string)($this->client->attachmentDownloadUrl($token,$attachmentId)??''):'';
+        }
+        if($url==='')return $this->result('file','skipped','skipped',['У вложения нет URL скачивания.']);
         $download=$this->client->downloadAttachment($token,$url,$maxBytes);$path=(string)$download['path'];
         try{$content=file_get_contents($path);if(!is_string($content))throw new RuntimeException('ACTIVECOLLAB_ATTACHMENT_READ_FAILED');$created=$this->service('service.file')->create(['entity_type'=>'task','entity_public_id'=>(string)$task['target_public_id'],'name'=>$this->fileName((string)($payload['name']??$payload['filename']??'attachment.bin')),'mime_type'=>(string)($download['mime_type']??$payload['mime_type']??'application/octet-stream'),'content_base64'=>base64_encode($content)],[],(int)($actor['id']??0),$actor);if(!is_array($created)||empty($created['public_id']))throw new RuntimeException('ACTIVECOLLAB_FILE_CREATE_FAILED');return $this->result('file',(string)$created['public_id'],'imported');}finally{@unlink($path);}
     }
@@ -162,9 +169,13 @@ final class ActiveCollabTargetWriter
     {
         $workspace=(string)$job['workspace_gid'];$source=$this->id($payload['id']??$payload['time_record_id']??null);$mapping=$this->repo->findMapping((int)$job['connection_id'],$workspace,'time_record',$source);if($mapping&&!empty($mapping['target_public_id']))return $this->result('worklog',(string)$mapping['target_public_id'],'skipped');
         $userSource=$this->id($payload['user_id']??$payload['user']['id']??null);$userPublic=$userSource!==''?$this->repo->mappedUserPublicId((int)$job['connection_id'],$userSource):null;if($userPublic===null)throw new RuntimeException('ACTIVECOLLAB_TIME_RECORD_USER_UNMAPPED');
-        $task=$this->repo->findMapping((int)$job['connection_id'],$workspace,'task',$this->id($payload['_task_id']??$payload['task_id']??null));if(!$task||empty($task['target_public_id']))throw new RuntimeException('ACTIVECOLLAB_TIME_RECORD_TASK_NOT_READY');
+        $taskId=$this->id($payload['_task_id']??$payload['task_id']??null);
+        $task=$taskId!==''?$this->repo->findMapping((int)$job['connection_id'],$workspace,'task',$taskId):null;
+        if ($taskId !== '' && (!$task || empty($task['target_public_id']))) throw new RuntimeException('ACTIVECOLLAB_TIME_RECORD_TASK_NOT_READY');
         $minutes=$this->minutes($payload);if($minutes<=0)return $this->result('worklog','skipped','skipped',['Нулевая запись времени пропущена.']);$date=$this->date($payload['record_date']??$payload['date']??$payload['created_at']??null)??gmdate('Y-m-d H:i:s');$note=trim((string)($payload['summary']??$payload['description']??$payload['note']??''));$note=mb_substr('[ActiveCollab] '.($note!==''?$note:'time record')."\nBillable: ".(!empty($payload['billable_status'])?'yes':'no'),0,65000);
-        $created=$this->service('service.worklog')->create(['user_public_id'=>$userPublic,'task_public_id'=>(string)$task['target_public_id'],'minutes_spent'=>$minutes,'note'=>$note,'logged_at'=>$date,'started_at'=>$date],$actor);if(!is_array($created)||empty($created['public_id']))throw new RuntimeException('ACTIVECOLLAB_TIME_RECORD_CREATE_FAILED');return $this->result('worklog',(string)$created['public_id'],'imported');
+        $input=['user_public_id'=>$userPublic,'minutes_spent'=>$minutes,'note'=>$note,'logged_at'=>$date,'started_at'=>$date];
+        if ($task !== null && !empty($task['target_public_id'])) $input['task_public_id']=(string)$task['target_public_id'];
+        $created=$this->service('service.worklog')->create($input,$actor);if(!is_array($created)||empty($created['public_id']))throw new RuntimeException('ACTIVECOLLAB_TIME_RECORD_CREATE_FAILED');return $this->result('worklog',(string)$created['public_id'],'imported');
     }
 
     private function result(string $type,string $target,string $state,array $warnings=[]): array { return ['target_type'=>$type,'target_public_id'=>$target,'state'=>$state,'warnings'=>$warnings]; }
@@ -175,9 +186,9 @@ final class ActiveCollabTargetWriter
     private function status(array $p): string { if(!$this->active($p))return 'archived';if(!empty($p['is_completed'])||!empty($p['completed']))return 'done';return 'new'; }
     private function priority(array $p): string { $v=strtolower((string)($p['priority']??$p['priority_name']??''));return match($v){'urgent','critical','highest'=>'urgent','high'=>'high','low','lowest'=>'low',default=>'normal'}; }
     private function bool(mixed $v): ?bool { if(is_bool($v))return$v;if(is_numeric($v))return(int)$v!==0;if(is_string($v))return match(strtolower(trim($v))){ '1','true','yes','on'=>true,'0','false','no','off'=>false,default=>null};return null; }
-    private function date(mixed $v): ?string { if(!is_scalar($v)||trim((string)$v)==='')return null;$t=strtotime((string)$v);return$t===false?null:gmdate('Y-m-d H:i:s',$t); }
+    private function date(mixed $v): ?string { if(!is_scalar($v)||trim((string)$v)==='')return null;if(is_numeric($v)&&(int)$v>=100000000)return gmdate('Y-m-d H:i:s',(int)$v);$t=strtotime((string)$v);return$t===false?null:gmdate('Y-m-d H:i:s',$t); }
     private function color(string $v): string { return preg_match('/^#[0-9a-f]{6}$/i',$v)?$v:'#64748b'; }
     private function labels(array $p): array { foreach(['labels','tags'] as $k)if(isset($p[$k])&&is_array($p[$k]))return array_values(array_filter(array_map(static fn(mixed$v):array=>is_array($v)?$v:['id'=>(string)$v,'name'=>(string)$v],$p[$k])));return[]; }
-    private function minutes(array $p): int { if(isset($p['minutes'])&&is_numeric($p['minutes']))return max(0,(int)$p['minutes']);if(isset($p['value'])&&is_numeric($p['value']))return max(0,(int)round((float)$p['value']*60));if(isset($p['hours'])&&is_numeric($p['hours']))return max(0,(int)round((float)$p['hours']*60));return 0; }
+    private function minutes(array $p): int { if(isset($p['minutes'])&&is_numeric($p['minutes']))return max(0,(int)$p['minutes']);$value=$p['value']??$p['hours']??null;if(is_string($value)&&preg_match('/^(\d+)\s*:\s*([0-5]\d)$/',trim($value),$m))return((int)$m[1]*60)+(int)$m[2];if(is_numeric($value))return max(0,(int)round((float)$value*60));return 0; }
     private function fileName(string $name): string { $name=basename(str_replace('\\','/',$name));return trim($name)!==''?$name:'attachment.bin'; }
 }

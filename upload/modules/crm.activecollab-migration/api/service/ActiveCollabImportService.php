@@ -61,8 +61,12 @@ final class ActiveCollabImportService
                 $mappingType=match($type){'subtask'=>'task','label'=>'label',default=>$type};
                 $existing=$this->repo->findMapping((int)$job['connection_id'],(string)$job['workspace_gid'],$mappingType,(string)$item['source_id']);
                 if(empty($item['target_public_id'])&&!empty($existing['target_public_id'])){$item['target_public_id']=(string)$existing['target_public_id'];$item['created_by_job']=(int)($existing['created_by_job_id']??0)===(int)$job['id']?1:0;$this->repo->upsertItem((int)$job['id'],$type,(string)$item['source_id'],['target_type'=>$existing['target_type']??null,'target_public_id'=>$item['target_public_id'],'created_by_job'=>$item['created_by_job']]);}
-                $writeTransaction = $this->repo->beginWrite();
+                // beginWrite can fail before a transaction flag exists (for
+                // example after a lost DB connection); keep that failure in
+                // the same per-item error path instead of aborting the job.
+                $writeTransaction = false;
                 try {
+                    $writeTransaction = $this->repo->beginWrite();
                     $result=match($type){
                         'company'=>$this->writer->company($job,$payload,$actor),
                         'project'=>$this->writer->project($job,$payload,$actor),

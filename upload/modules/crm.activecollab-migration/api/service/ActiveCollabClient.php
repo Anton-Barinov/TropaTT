@@ -109,10 +109,44 @@ final class ActiveCollabClient
         }
     }
 
+    /**
+     * ActiveCollab exposes the complete project time-record collection. It
+     * includes records attached directly to the project and records attached
+     * to its tasks, so callers should fetch it once per project and inspect
+     * parent_type/parent_id instead of issuing one request per task.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function projectTimeRecords(string $token, string $projectId): array
+    {
+        return $this->optionalCollection($token, '/projects/' . rawurlencode($projectId) . '/time-records', [], 'time_records');
+    }
+
     /** @return array<int,array<string,mixed>> */
     public function timeRecords(string $token, string $projectId, string $taskId): array
     {
-        return $this->optionalCollection($token, '/projects/' . rawurlencode($projectId) . '/tasks/' . rawurlencode($taskId) . '/time-records', [], 'time_records');
+        // Kept for callers from older module revisions. The project-level
+        // endpoint is the canonical collection source; filter it locally so
+        // this compatibility method never relies on an undocumented route.
+        $records = $this->projectTimeRecords($token, $projectId);
+        return array_values(array_filter($records, static function (array $record) use ($taskId): bool {
+            $parentType = strtolower((string)($record['parent_type'] ?? ''));
+            $parentId = (string)($record['parent_id'] ?? $record['task_id'] ?? '');
+            return $parentType === 'task' && $parentId === $taskId;
+        }));
+    }
+
+    /**
+     * Resolve an attachment's short representation to its protected download
+     * URL. Task/comment payloads commonly contain only id/name/size.
+     */
+    public function attachmentDownloadUrl(string $token, string $attachmentId): ?string
+    {
+        $id = trim($attachmentId);
+        if ($id === '') return null;
+        $response = $this->request($token, '/attachments/' . rawurlencode($id));
+        $candidate = $response['download_url'] ?? ($response['single']['download_url'] ?? null);
+        return is_string($candidate) && trim($candidate) !== '' ? trim($candidate) : null;
     }
 
     /** Download an attachment URL without forwarding the API token to redirects. */
@@ -333,20 +367,40 @@ final class ActiveCollabClient
         return $signature !== '' && strlen($signature) >= 16 && ctype_digit($expires) && (int)$expires > 0 && (int)$expires <= 604800;
     }
 
+    /** @return array<int,string> */
+    private function resolveHostIps(string $host): array
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) return [$host];
+
+        $ips = [];
+        if (function_exists('dns_get_record')) {
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    $ip = (string)($record['ip'] ?? $record['ipv6'] ?? '');
+                    if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) !== false) $ips[] = $ip;
+                }
+            }
+        }
+        if ($ips === []) $ips = gethostbynamel($host) ?: [];
+        return array_values(array_unique(array_map('strval', $ips)));
+    }
+
     private function isPrivateHost(string $host): bool
     {
         if ($host === 'localhost' || str_ends_with($host, '.local')) return true;
-        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
+        $ips = $this->resolveHostIps($host);
         if ($ips === []) return true;
-        foreach ($ips as $ip) if ($this->isPrivateIp((string)$ip)) return true;
+        // Fail closed if any address is private/reserved: the resolver could
+        // otherwise select a public A record while curl selects a private AAAA.
+        foreach ($ips as $ip) if ($this->isPrivateIp($ip)) return true;
         return false;
     }
 
     private function publicIpForHost(string $host): string
     {
         if ($host === '' || $this->isPrivateHost($host)) throw new RuntimeException('ACTIVECOLLAB_HOST_RESOLUTION_BLOCKED');
-        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
-        foreach ($ips as $ip) if (!$this->isPrivateIp((string)$ip)) return (string)$ip;
+        foreach ($this->resolveHostIps($host) as $ip) if (!$this->isPrivateIp($ip)) return $ip;
         throw new RuntimeException('ACTIVECOLLAB_HOST_RESOLUTION_BLOCKED');
     }
 

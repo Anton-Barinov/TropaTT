@@ -20,7 +20,7 @@
 
 ## Тест
 
-Без credentials тест ничего не выполняет и завершается как skipped:
+Локальные unit-регрессии не требуют credentials и не делают сетевых запросов:
 
 ```bash
 ACTIVECOLLAB_TEST_CONFIRM=1 \
@@ -29,7 +29,7 @@ ACTIVECOLLAB_TEST_DB_DATABASE=crm_activecollab_test \
 ACTIVECOLLAB_TEST_DB_USER=root \
 ACTIVECOLLAB_TEST_DB_PASSWORD= \
 APP_SECRET=... \
-php upload/api/tests/ActiveCollabMigrationIntegrationTest.php
+php upload/api/tests/ActiveCollabMigrationUnitTest.php
 ```
 
-Используйте только отдельную тестовую БД. Тест выполняет только чтение ActiveCollab и удаляет временную connection из CRM.
+Для реального API используйте отдельный стенд и отдельную БД. Перед production-импортом рекомендуется выполнить `dry_run`, затем небольшой job с одним проектом и проверить rollback.
