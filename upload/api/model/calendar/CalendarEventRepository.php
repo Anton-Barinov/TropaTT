@@ -54,7 +54,7 @@ final class CalendarEventRepository
         } else {
             // Root users may see normal shared CRM events, but never another
             // user's private external-calendar event.
-            $query->whereRaw("(e.source_type IS NULL OR e.source_type <> 'google_calendar' OR e.source_owner_user_id = ?)", [$userId]);
+            $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
 
         if (!empty($filters['from'])) {
@@ -102,7 +102,7 @@ final class CalendarEventRepository
         if (!$isRoot) {
             $query->where('e.owner_user_id', '=', $userId);
         } else {
-            $query->whereRaw("(e.source_type IS NULL OR e.source_type <> 'google_calendar' OR e.source_owner_user_id = ?)", [$userId]);
+            $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
 
         return $query->first();
@@ -121,7 +121,7 @@ final class CalendarEventRepository
         if (!$isRoot) {
             $query->where('owner_user_id', '=', $userId);
         } else {
-            $query->whereRaw("(source_type IS NULL OR source_type <> 'google_calendar' OR source_owner_user_id = ?)", [$userId]);
+            $query->whereRaw("(source_type IS NULL OR source_type NOT IN ('google_calendar', 'yandex_calendar') OR source_owner_user_id = ?)", [$userId]);
         }
 
         return $query->update($set) > 0;
@@ -136,7 +136,7 @@ final class CalendarEventRepository
         if (!$isRoot) {
             $query->where('owner_user_id', '=', $userId);
         } else {
-            $query->whereRaw("(source_type IS NULL OR source_type <> 'google_calendar' OR source_owner_user_id = ?)", [$userId]);
+            $query->whereRaw("(source_type IS NULL OR source_type NOT IN ('google_calendar', 'yandex_calendar') OR source_owner_user_id = ?)", [$userId]);
         }
 
         return $query->delete() > 0;
@@ -166,7 +166,7 @@ final class CalendarEventRepository
         if (!$isRoot) {
             $query->where('e.owner_user_id', '=', $userId);
         } else {
-            $query->whereRaw("(e.source_type IS NULL OR e.source_type <> 'google_calendar' OR e.source_owner_user_id = ?)", [$userId]);
+            $query->whereRaw("(e.source_type IS NULL OR e.source_type NOT IN ('google_calendar', 'yandex_calendar') OR e.source_owner_user_id = ?)", [$userId]);
         }
 
         return $query

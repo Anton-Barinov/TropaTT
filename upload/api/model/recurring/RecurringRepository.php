@@ -48,7 +48,7 @@ final class RecurringRepository
         // private Google event. The owner can see their own rule; root is not a
         // bypass for this deliberately private data.
         $query->whereRaw(
-            "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+            "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type IN ('google_calendar', 'yandex_calendar') AND ce.source_owner_user_id <> ?))",
             [$actorId]
         );
 
@@ -79,7 +79,7 @@ final class RecurringRepository
             ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId)
             ->whereRaw(
-                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type IN ('google_calendar', 'yandex_calendar') AND ce.source_owner_user_id <> ?))",
                 [$actorId]
             )
             ->first();
@@ -104,7 +104,7 @@ final class RecurringRepository
             ->from('recurring_rules')
             ->where('public_id', '=', $publicId)
             ->whereRaw(
-                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type IN ('google_calendar', 'yandex_calendar') AND ce.source_owner_user_id <> ?))",
                 [$actorId]
             )
             ->update($set) > 0;
@@ -116,7 +116,7 @@ final class RecurringRepository
             ->from('recurring_rules')
             ->where('public_id', '=', $publicId)
             ->whereRaw(
-                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type IN ('google_calendar', 'yandex_calendar') AND ce.source_owner_user_id <> ?))",
                 [$actorId]
             )
             ->delete() > 0;
@@ -125,7 +125,7 @@ final class RecurringRepository
     public function canUseEntity(string $entityType, string $entityPublicId, int $actorId = 0): bool
     {
         if (trim($entityType) !== 'calendar_event') return true;
-        $stmt = $this->pdo->prepare("SELECT source_owner_user_id FROM calendar_events WHERE public_id = :public_id AND source_type = 'google_calendar' LIMIT 1");
+        $stmt = $this->pdo->prepare("SELECT source_owner_user_id FROM calendar_events WHERE public_id = :public_id AND source_type IN ('google_calendar', 'yandex_calendar') LIMIT 1");
         $stmt->execute(['public_id' => trim($entityPublicId)]);
         $ownerId = $stmt->fetchColumn();
         return $ownerId === false || (int)$ownerId === $actorId;
@@ -151,7 +151,7 @@ final class RecurringRepository
             // Private external-calendar events are intentionally not resolvable
             // through the generic recurring subsystem. This prevents a title
             // leak through recurring-rule normalization, including for root.
-            return $this->fetchSingleTitle("SELECT title FROM calendar_events WHERE public_id = ? AND (source_type IS NULL OR source_type <> 'google_calendar') LIMIT 1", [$entityPublicId]);
+            return $this->fetchSingleTitle("SELECT title FROM calendar_events WHERE public_id = ? AND (source_type IS NULL OR source_type NOT IN ('google_calendar', 'yandex_calendar')) LIMIT 1", [$entityPublicId]);
         }
 
         if ($entityType === 'reminder') {

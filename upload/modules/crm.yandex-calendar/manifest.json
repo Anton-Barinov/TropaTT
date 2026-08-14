@@ -1,0 +1,26 @@
+{
+  "name": "crm.yandex-calendar",
+  "version": "1.0.0",
+  "vendor": "crm",
+  "title": "Яндекс.Календарь",
+  "description": "Приватная двусторонняя синхронизация Яндекс.Календаря через CalDAV",
+  "core_version": ">=1.0.0",
+  "license": "MIT",
+  "dependencies": [],
+  "require_permissions": [],
+  "api_routes": "api/config/routes.php",
+  "web_routes": "web/config/routes.php",
+  "migrations": "api/migration/",
+  "assets": {"js": ["web/assets/js/yandex-calendar.js"], "css": ["web/assets/css/yandex-calendar.css"]},
+  "hooks": {},
+  "menu_items": [],
+  "service_provider": "Module\\Crm\\YandexCalendar\\YandexCalendarServiceProvider",
+  "config_defaults": {
+    "request_timeout_seconds": 30,
+    "max_retries": 4,
+    "sync_interval_minutes": 15,
+    "sync_days_past": 90,
+    "sync_days_future": 365,
+    "max_events_per_sync": 5000
+  }
+}
