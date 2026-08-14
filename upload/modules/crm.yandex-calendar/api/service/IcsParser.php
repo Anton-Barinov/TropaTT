@@ -90,7 +90,7 @@ final class IcsParser
 
     public static function toIcs(array $event, string $uid, ?string $rrule = null): string
     {
-        $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TropaTT CRM//Yandex Calendar//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT'];
+        $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TropaTT//Yandex Calendar//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT'];
         $lines[] = 'UID:' . self::escape($uid);
         $lines[] = 'DTSTAMP:' . gmdate('Ymd\THis\Z');
         if (!empty($event['is_all_day']) && !empty($event['all_day_start']) && !empty($event['all_day_end'])) {

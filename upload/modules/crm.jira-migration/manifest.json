@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из Jira",
-    "description": "Модуль миграции проектов, задач, спринтов, комментариев, вложений и метаданных из Jira Cloud в проекты и задачи TropaTT CRM",
+    "description": "Модуль миграции проектов, задач, спринтов, комментариев, вложений и метаданных из Jira Cloud в проекты и задачи TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

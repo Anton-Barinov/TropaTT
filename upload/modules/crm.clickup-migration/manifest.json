@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из ClickUp",
-    "description": "Односторонняя миграция проектов, секций, задач и связанных данных из ClickUp в TropaTT CRM",
+    "description": "Односторонняя миграция проектов, секций, задач и связанных данных из ClickUp в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

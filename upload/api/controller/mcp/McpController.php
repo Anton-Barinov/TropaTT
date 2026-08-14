@@ -236,7 +236,7 @@ final class McpController extends BaseController
                 ],
             ],
             'serverInfo' => [
-                'name' => 'TropaTT CRM',
+                'name' => 'TropaTT',
                 'version' => '0.1.0',
             ],
         ];

@@ -1,6 +1,6 @@
 # crm.activecollab-migration
 
-Модуль односторонней миграции ActiveCollab Cloud в TropaTT CRM.
+Модуль односторонней миграции ActiveCollab Cloud в TropaTT.
 
 ## Реализовано
 

@@ -1,6 +1,6 @@
 # crm.clickup-migration
 
-Модуль односторонней миграции ClickUp Cloud в TropaTT CRM. Реализация рассчитана на PHP 8.1+, MySQL/InnoDB и cron-worker без Redis/Composer-зависимостей.
+Модуль односторонней миграции ClickUp Cloud в TropaTT. Реализация рассчитана на PHP 8.1+, MySQL/InnoDB и cron-worker без Redis/Composer-зависимостей.
 
 ## Поддерживаемый scope
 

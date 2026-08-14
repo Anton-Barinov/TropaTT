@@ -1,6 +1,6 @@
 # crm.asana-migration
 
-Модуль односторонней миграции Asana Cloud в TropaTT CRM.
+Модуль односторонней миграции Asana Cloud в TropaTT.
 
 ## MVP
 

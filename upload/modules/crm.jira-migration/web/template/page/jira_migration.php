@@ -9,7 +9,7 @@
                 <li class="breadcrumb-item active" data-i18n="jira_migration.title"><?= htmlspecialchars($t('jira_migration.title', 'Миграция из Jira'), ENT_QUOTES, 'UTF-8') ?></li>
             </ol>
             <h1 class="crm-page-title" data-i18n="jira_migration.title"><?= htmlspecialchars($t('jira_migration.title', 'Миграция из Jira'), ENT_QUOTES, 'UTF-8') ?></h1>
-            <p class="crm-subtitle" data-i18n="jira_migration.description"><?= htmlspecialchars($t('jira_migration.description', 'Перенос проектов, задач и рабочих данных из Jira Cloud в TropaTT CRM'), ENT_QUOTES, 'UTF-8') ?></p>
+            <p class="crm-subtitle" data-i18n="jira_migration.description"><?= htmlspecialchars($t('jira_migration.description', 'Перенос проектов, задач и рабочих данных из Jira Cloud в TropaTT'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
     </div>
 

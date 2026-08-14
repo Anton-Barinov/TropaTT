@@ -1,6 +1,6 @@
 # crm.kaiten-migration
 
-Односторонняя миграция данных из Kaiten в TropaTT CRM для self-hosted/shared-hosting установки.
+Односторонняя миграция данных из Kaiten в TropaTT для self-hosted/shared-hosting установки.
 
 ## Поддерживаемый охват
 

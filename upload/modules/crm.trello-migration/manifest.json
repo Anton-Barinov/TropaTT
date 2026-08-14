@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из Trello",
-    "description": "Односторонняя миграция досок, списков, карточек и связанных данных из Trello Cloud в TropaTT CRM",
+    "description": "Односторонняя миграция досок, списков, карточек и связанных данных из Trello Cloud в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

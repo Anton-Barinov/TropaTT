@@ -112,7 +112,7 @@ $icon192 = ['src' => 'assets/icons/icon-192.png', 'sizes' => '192x192', 'type' =
 
 $manifest = [
     'id' => './',
-    'name' => 'TropaTT CRM',
+    'name' => 'TropaTT',
     'short_name' => 'TropaTT',
     'description' => $t['description'],
     'lang' => $locale,

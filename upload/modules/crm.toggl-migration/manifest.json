@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из Toggl",
-    "description": "Миграция рабочих пространств, клиентов, проектов, задач, пользователей и учёта времени из Toggl Track в TropaTT CRM",
+    "description": "Миграция рабочих пространств, клиентов, проектов, задач, пользователей и учёта времени из Toggl Track в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

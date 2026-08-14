@@ -1,6 +1,6 @@
 # crm.worksection-migration
 
-Односторонняя миграция данных из Worksection в TropaTT CRM для self-hosted/shared-hosting установки.
+Односторонняя миграция данных из Worksection в TropaTT для self-hosted/shared-hosting установки.
 
 ## Поддерживаемый охват
 

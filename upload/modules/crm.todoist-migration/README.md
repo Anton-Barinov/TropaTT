@@ -1,6 +1,6 @@
 # crm.todoist-migration
 
-Модуль односторонней миграции Todoist Cloud в TropaTT CRM.
+Модуль односторонней миграции Todoist Cloud в TropaTT.
 
 ## Техническое задание и границы MVP
 

@@ -3,7 +3,7 @@
 return [
     'jira_migration' => [
         'title' => 'Миграция из Jira',
-        'description' => 'Перенос проектов, задач, спринтов и рабочих данных из Jira Cloud в проекты и задачи TropaTT CRM',
+        'description' => 'Перенос проектов, задач, спринтов и рабочих данных из Jira Cloud в проекты и задачи TropaTT',
 
         'step_connections' => 'Подключение',
         'step_source' => 'Источник',

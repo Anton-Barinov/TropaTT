@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "vendor": "crm",
   "title": "Google Calendar",
-  "description": "Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT CRM",
+  "description": "Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT",
   "core_version": ">=1.0.0",
   "license": "MIT",
   "dependencies": [],

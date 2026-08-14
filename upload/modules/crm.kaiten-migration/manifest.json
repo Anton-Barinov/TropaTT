@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "vendor": "crm",
   "title": "Миграция из Kaiten",
-  "description": "Миграция пространств, досок, колонок, карточек и связанных данных из Kaiten в TropaTT CRM",
+  "description": "Миграция пространств, досок, колонок, карточек и связанных данных из Kaiten в TropaTT",
   "core_version": ">=1.0.0",
   "license": "MIT",
   "dependencies": [],

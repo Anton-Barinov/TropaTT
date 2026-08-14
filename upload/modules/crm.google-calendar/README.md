@@ -1,6 +1,6 @@
 # crm.google-calendar
 
-Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT CRM.
+Приватная двусторонняя синхронизация Google Calendar с календарём TropaTT.
 
 ## Настройка
 

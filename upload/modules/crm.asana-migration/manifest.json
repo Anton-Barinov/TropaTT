@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из Asana",
-    "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из Asana Cloud в TropaTT CRM",
+    "description": "Односторонняя миграция рабочих пространств, проектов, задач и связанных данных из Asana Cloud в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

@@ -5,7 +5,7 @@
     <div class="crm-page-head"><div>
         <ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin"><?= htmlspecialchars($t('nav.admin', 'Администрирование'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active">Миграция из Trello</li></ol>
         <h1 class="crm-page-title">Миграция из Trello</h1>
-        <p class="crm-subtitle">Перенос досок, списков, карточек, меток, чек-листов, комментариев и вложений в TropaTT CRM.</p>
+        <p class="crm-subtitle">Перенос досок, списков, карточек, меток, чек-листов, комментариев и вложений в TropaTT.</p>
     </div></div>
 
     <div id="trelloMigrationApp" class="trello-migration-grid">

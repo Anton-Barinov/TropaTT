@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "vendor": "crm",
     "title": "Миграция из Worksection",
-    "description": "Односторонняя миграция проектов, задач, подзадач, комментариев, файлов, меток, пользователей и учёта времени из Worksection в TropaTT CRM",
+    "description": "Односторонняя миграция проектов, задач, подзадач, комментариев, файлов, меток, пользователей и учёта времени из Worksection в TropaTT",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "dependencies": [],

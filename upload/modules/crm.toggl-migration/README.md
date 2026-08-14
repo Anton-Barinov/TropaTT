@@ -1,6 +1,6 @@
 # crm.toggl-migration
 
-Модуль односторонней миграции Toggl Track в TropaTT CRM.
+Модуль односторонней миграции Toggl Track в TropaTT.
 
 ## Что переносится
 
