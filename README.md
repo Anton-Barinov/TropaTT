@@ -375,7 +375,7 @@ Generated REST API endpoints. OpenAPI 3.1 spec generated from code. Every featur
 Yes. PHP/MySQL stack, modules, REST API, webhooks, workflow rules, custom fields, roles, permissions.
 
 **How do updates work?**
-Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Details: [`upload/web/docs/updates.md`](upload/web/docs/updates.md).
+Updates are installed from the admin panel (**Admin → System Updates**, no SSH or Composer needed). An update server (`update.tropatt.com`) builds and signs ready packages from GitHub on a cron; your CRM downloads the package, verifies the signature, runs a safety preflight, creates a backup, applies files and database migrations, and can roll back from that backup if anything goes wrong. Module files are shipped together with the update, so new modules reach every installation automatically (they appear under **Admin → Modules** with status «Обнаружен» and just need to be activated). Details: [`upload/web/docs/updates.md`](upload/web/docs/updates.md).
 
 **Who built this?**
 **Barinov Anton**, PHP developer. Creator of TropaTT.
@@ -833,7 +833,7 @@ TropaTT включает браузерный установщик для про
 Да. PHP/MySQL стек, модульные расширения, REST API, вебхуки, workflow-правила, настраиваемые поля, роли, права — всё адаптируется под ваши процессы.
 
 **Как работают обновления?**
-Обновления устанавливаются из админки (**Администрирование → Обновления системы**), без SSH и Composer. Сервер обновлений (`update.tropatt.com`) по cron собирает и подписывает готовые архивы из GitHub; ваша CRM скачивает пакет, проверяет подпись, выполняет безопасную проверку, делает backup, применяет файлы и миграции БД, а при ошибке может откатиться из этого backup. Подробнее: [`upload/web/docs/updates.md`](upload/web/docs/updates.md).
+Обновления устанавливаются из админки (**Администрирование → Обновления системы**), без SSH и Composer. Сервер обновлений (`update.tropatt.com`) по cron собирает и подписывает готовые архивы из GitHub; ваша CRM скачивает пакет, проверяет подпись, выполняет безопасную проверку, делает backup, применяет файлы и миграции БД, а при ошибке может откатиться из этого backup. Модули доставляются вместе с обновлением, поэтому новые модули автоматически появляются во всех установках (страница **Администрирование → Модули**, статус «Обнаружен» — останется только активировать). Подробнее: [`upload/web/docs/updates.md`](upload/web/docs/updates.md).
 
 **Кто разрабатывает TropaTT?**
 Разрабатывает **Антон Баринов**, PHP-разработчик и создатель проекта TropaTT.
@@ -1282,7 +1282,7 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 可以。PHP/MySQL 技术栈、模块化扩展、REST API、Webhook、工作流规则、自定义字段、角色、权限——全部可适应您的流程。
 
 **更新是如何工作的？**
-更新从管理后台安装（**管理 → 系统更新**），无需 SSH 或 Composer。更新服务器（`update.tropatt.com`）通过 cron 从 GitHub 构建并签名现成的更新包；您的 CRM 会下载软件包、验证签名、运行安全检查、创建备份、应用文件和数据库迁移，如果出现问题还可以从该备份回滚。详情：[`upload/web/docs/updates.md`](upload/web/docs/updates.md)。
+更新从管理后台安装（**管理 → 系统更新**），无需 SSH 或 Composer。更新服务器（`update.tropatt.com`）通过 cron 从 GitHub 构建并签名现成的更新包；您的 CRM 会下载软件包、验证签名、运行安全检查、创建备份、应用文件和数据库迁移，如果出现问题还可以从该备份回滚。模块文件随更新一起分发，因此新模块会自动到达所有安装（在 **管理 → 模块** 中显示为「已发现」，只需激活即可）。详情：[`upload/web/docs/updates.md`](upload/web/docs/updates.md)。
 
 **谁开发了 TropaTT？**
 由 **Anton Barinov** 开发，PHP 开发者，TropaTT 项目的创建者。
