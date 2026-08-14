@@ -1248,7 +1248,7 @@ textarea:focus-visible,
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: url('../icons/brand-mark.png') center / cover no-repeat;
+  background: url('../apple-touch-icon.png') center / cover no-repeat;
   box-shadow:
     0 14px 28px color-mix(in srgb, var(--crm-accent) 24%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 36%, transparent);
@@ -3443,7 +3443,7 @@ body {
 }
 
 .crm-brand-mark {
-  background: url('../icons/brand-mark.png') center / cover no-repeat !important;
+  background: url('../apple-touch-icon.png') center / cover no-repeat !important;
   box-shadow: 0 8px 18px color-mix(in srgb, var(--crm-accent) 14%, transparent) !important;
 }
 

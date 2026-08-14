@@ -10,8 +10,10 @@ declare(strict_types=1);
  *   icon-512.png          512x512  leaf on transparent (official app icon)
  *   icon-512-maskable.png 512x512  full-bleed brand tile with the leaf inside
  *                                  the safe zone (80%) — adaptive icons
- *   brand-mark.png        256x256  rounded brand tile with the leaf, used for
- *                                  the sidebar/login logo mark
+ *
+ * The sidebar/login logo mark (the .crm-brand-mark CSS background) uses the
+ * original apple-touch-icon.png from the official icon set and is therefore
+ * not generated here.
  *
  * Requires the GD extension. Run:
  *
@@ -132,10 +134,9 @@ foreach ([
     echo 'OK ' . $path . ' (' . $size . 'x' . $size . ', leaf)' . PHP_EOL;
 }
 
-// Brand tiles: maskable (full-bleed solid) and sidebar logo mark (rounded gradient).
+// Brand tiles: maskable (full-bleed solid).
 foreach ([
     'icon-512-maskable.png' => [512, 0.62, false, false],
-    'brand-mark.png'        => [256, 0.78, true, true],
 ] as $file => [$size, $leafScale, $rounded, $gradient]) {
     $img = drawBrandTile($size, $leafScale, $rounded, $gradient);
     $path = $outDir . '/' . $file;

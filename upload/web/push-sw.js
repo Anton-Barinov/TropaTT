@@ -307,7 +307,6 @@ function pwaPrecachePaths() {
     'assets/apple-touch-icon.png',
     'assets/icons/icon-192.png',
     'assets/icons/icon-512.png',
-    'assets/icons/brand-mark.png',
     'assets/css/bootstrap.min.css',
     'assets/vendor/fontawesome/css/all.min.css',
     'assets/css/tokens.css',
