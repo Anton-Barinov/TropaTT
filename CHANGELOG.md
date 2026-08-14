@@ -27,6 +27,14 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
+- **Update flow for installations that still protect `modules/**`.** Older
+  installations whose `api/config/update.php` lists `modules/**` in
+  `protected_paths` rejected packages containing module files at the safety
+  preflight («Защищённые пути»). Such installations first receive a
+  config-only build (which stops protecting `modules/**`) and only then the
+  package that delivers the modules themselves; the update page now also shows
+  exactly which package paths failed the protected-path check.
+
 - **Subdirectory installs now talk to their own API.** The web header computes
   `window.CRM.config.apiBaseUrl` from the install path (`/api/index.php` at the
   domain root, `/crm/api/index.php` in a subdirectory), and the JS fallbacks in
