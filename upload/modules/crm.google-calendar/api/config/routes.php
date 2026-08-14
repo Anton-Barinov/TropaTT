@@ -7,6 +7,8 @@ return [
  ['methods'=>['POST'],'route'=>'/oauth/start','controller'=>GoogleCalendarController::class,'action'=>'oauthStart','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['GET'],'route'=>'/oauth/callback','controller'=>GoogleCalendarController::class,'action'=>'oauthCallback','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['GET'],'route'=>'/connections','controller'=>GoogleCalendarController::class,'action'=>'connections','auth'=>true,'required_permissions'=>['module.google-calendar.view']],
+ ['methods'=>['PUT'],'route'=>'/credentials','controller'=>GoogleCalendarController::class,'action'=>'saveCredentials','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
+ ['methods'=>['DELETE'],'route'=>'/credentials','controller'=>GoogleCalendarController::class,'action'=>'deleteCredentials','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['DELETE'],'route'=>'/connections/{public_id}','controller'=>GoogleCalendarController::class,'action'=>'disconnect','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['POST'],'route'=>'/connections/{public_id}/test','controller'=>GoogleCalendarController::class,'action'=>'test','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['POST'],'route'=>'/connections/{public_id}/sync','controller'=>GoogleCalendarController::class,'action'=>'sync','auth'=>true,'required_permissions'=>['module.google-calendar.sync']],

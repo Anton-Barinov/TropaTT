@@ -26,7 +26,10 @@ final class GoogleCalendarController
 
     public function oauthStart(): JsonResponse
     {
-        if (!$this->client->configured()) return JsonResponse::error('GOOGLE_OAUTH_NOT_CONFIGURED', 'Google OAuth credentials are not configured on this CRM instance', 503);
+        $credentials = $this->actorCredentials();
+        if (!$this->client->configured($credentials)) {
+            return JsonResponse::error('GOOGLE_OAUTH_NOT_CONFIGURED', 'Google OAuth credentials are not configured for your account', 503);
+        }
         if (session_status() === PHP_SESSION_NONE) @session_start();
         try {
             $redirectUri = $this->client->redirectUri();
@@ -38,7 +41,7 @@ final class GoogleCalendarController
         $_SESSION['google_calendar_oauth_expires'] = time() + 600;
         $_SESSION['google_calendar_oauth_user_id'] = $this->actorId();
         $_SESSION['google_calendar_oauth_redirect_uri'] = $redirectUri;
-        return JsonResponse::success('GOOGLE_OAUTH_URL', 'Open the Google authorization URL', ['authorization_url' => $this->client->authorizeUrl($state, $redirectUri)]);
+        return JsonResponse::success('GOOGLE_OAUTH_URL', 'Open the Google authorization URL', ['authorization_url' => $this->client->authorizeUrl($state, $redirectUri, $credentials)]);
     }
 
     public function oauthCallback(): JsonResponse
@@ -56,7 +59,7 @@ final class GoogleCalendarController
         $tokens = [];
         $previous = $this->repository->connectionForUser($this->actorId());
         try {
-            $tokens = $this->client->exchangeCode($code, $redirectUri !== '' ? $redirectUri : null);
+            $tokens = $this->client->exchangeCode($code, $redirectUri !== '' ? $redirectUri : null, $this->actorCredentials());
             $accountEmail = $this->client->accountEmail((string)($tokens['access_token'] ?? ''));
             $previousEmail = trim((string)($previous['google_account_email'] ?? ''));
             // Never replace an existing connection with a different Google
@@ -112,8 +115,30 @@ final class GoogleCalendarController
             'connections' => $items,
             // Lets the module page show a setup hint instead of a cryptic error
             // when the instance has no Google OAuth credentials configured yet.
-            'configured' => $this->client->configured(),
+            'configured' => $this->client->configured($this->actorCredentials()),
+            'credentials' => $this->publicCredentials(),
         ]);
+    }
+
+    public function saveCredentials(): JsonResponse
+    {
+        $input = $this->body();
+        $clientId = trim((string)($input['client_id'] ?? ''));
+        $clientSecret = trim((string)($input['client_secret'] ?? ''));
+        if ($clientId === '' || $clientSecret === '') {
+            return JsonResponse::error('VALIDATION_ERROR', 'client_id and client_secret are required', 422);
+        }
+        if (strlen($clientId) > 255 || strlen($clientSecret) > 512) {
+            return JsonResponse::error('VALIDATION_ERROR', 'Credentials are too long', 422);
+        }
+        $this->repository->saveCredentials($this->actorId(), EncryptionService::encrypt($clientId), EncryptionService::encrypt($clientSecret));
+        return JsonResponse::success('GOOGLE_CREDENTIALS_SAVED', 'OAuth credentials saved', ['credentials' => $this->publicCredentials()]);
+    }
+
+    public function deleteCredentials(): JsonResponse
+    {
+        $this->repository->deleteCredentials($this->actorId());
+        return JsonResponse::success('GOOGLE_CREDENTIALS_DELETED', 'OAuth credentials cleared', ['credentials' => $this->publicCredentials()]);
     }
 
     public function test(array $params): JsonResponse
@@ -260,6 +285,56 @@ final class GoogleCalendarController
             }
         }
         return null;
+    }
+
+    /**
+     * Decrypted OAuth credentials for the current actor: the user's own
+     * credentials from the database when set, otherwise the global env vars.
+     * @return array{client_id:string,client_secret:string}
+     */
+    private function actorCredentials(): array
+    {
+        $row = $this->repository->credentialsForUser($this->actorId());
+        if (is_array($row)) {
+            $clientId = EncryptionService::decrypt((string)($row['client_id_encrypted'] ?? ''));
+            $clientSecret = EncryptionService::decrypt((string)($row['client_secret_encrypted'] ?? ''));
+            if ($clientId !== null && $clientSecret !== null && $clientId !== '' && $clientSecret !== '') {
+                return ['client_id' => $clientId, 'client_secret' => $clientSecret];
+            }
+        }
+        return [
+            'client_id' => trim((string)getenv('GOOGLE_CLIENT_ID')),
+            'client_secret' => trim((string)getenv('GOOGLE_CLIENT_SECRET')),
+        ];
+    }
+
+    /**
+     * Safe, non-secret description of where the actor's OAuth credentials
+     * come from, for display in the module UI. Never contains the secret.
+     * @return array{source:string|null,configured:bool,client_id_masked:string|null}
+     */
+    private function publicCredentials(): array
+    {
+        $row = $this->repository->credentialsForUser($this->actorId());
+        if (is_array($row)) {
+            $clientId = EncryptionService::decrypt((string)($row['client_id_encrypted'] ?? ''));
+            if ($clientId === null || $clientId === '') {
+                return ['source' => 'user', 'configured' => false, 'client_id_masked' => null];
+            }
+            return ['source' => 'user', 'configured' => true, 'client_id_masked' => $this->maskSecret($clientId)];
+        }
+        $envClientId = trim((string)getenv('GOOGLE_CLIENT_ID'));
+        if ($envClientId !== '') {
+            return ['source' => 'env', 'configured' => true, 'client_id_masked' => $this->maskSecret($envClientId)];
+        }
+        return ['source' => null, 'configured' => false, 'client_id_masked' => null];
+    }
+
+    private function maskSecret(string $value): string
+    {
+        $length = mb_strlen($value);
+        if ($length <= 4) return str_repeat('•', $length);
+        return mb_substr($value, 0, 4) . str_repeat('•', min(12, $length - 4));
     }
 
     private function actor(): array

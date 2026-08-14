@@ -56,7 +56,7 @@
     if (!items.length) {
       connection = null;
       if (data.configured === false) {
-        status.innerHTML = 'Google Calendar ещё не подключён.<div class="gcal-calendar-meta">OAuth не настроен: задайте GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env (см. README модуля).</div>';
+        status.innerHTML = 'Google Calendar ещё не подключён.<div class="gcal-calendar-meta">OAuth-креды не настроены: укажите свои Client ID и Client secret в блоке «OAuth-креды Google» ниже.</div>';
       } else {
         status.textContent = 'Google Calendar ещё не подключён.';
       }
@@ -74,7 +74,18 @@
       const select = row.querySelector('select'); const toggle = row.querySelector('input[type="checkbox"]'); const button = row.querySelector('button'); select.value = calendar.direction || 'google_to_crm'; const save = () => api(`/calendars/${encodeURIComponent(calendar.public_id)}`, { method: 'PATCH', body: { direction: select.value, is_enabled: toggle.checked } }).then(() => message('Настройки календаря сохранены.')).catch(e => message(e.message, true)); select.addEventListener('change', save); toggle.addEventListener('change', () => { select.disabled = !toggle.checked; button.disabled = !toggle.checked; save(); }); button.addEventListener('click', () => sync()); root.appendChild(row);
     });
   };
-  const load = () => api('/connections').then(render).catch(e => { $('gcalStatus').textContent = e.message; });
+  const credentialsLabel = creds => {
+    if (!creds) return '';
+    if (creds.configured && creds.source === 'user') return `Настроены личные креды (${escapeHtml(creds.client_id_masked || '…')})`;
+    if (creds.configured && creds.source === 'env') return `Используются глобальные креды из окружения (${escapeHtml(creds.client_id_masked || '…')})`;
+    return 'Не настроены: укажите Client ID и Client secret.';
+  };
+  const renderCredentials = data => {
+    const el = $('gcalCredStatus');
+    if (!el) return;
+    el.textContent = credentialsLabel(data.credentials || null);
+  };
+  const load = () => api('/connections').then(data => { render(data); renderCredentials(data); }).catch(e => { $('gcalStatus').textContent = e.message; });
   const sync = () => { if (!connection) return; message('Синхронизация выполняется…'); api(`/connections/${encodeURIComponent(connection.public_id)}/sync`, { method: 'POST' }).then(data => { const r = data.result || {}; message(`Готово: загружено ${r.pulled || 0}, отправлено ${r.pushed || 0}, удалено ${r.deleted || 0}.`); load(); }).catch(e => message(e.message, true)); };
   const connect = () => {
     // Open synchronously from the click handler so popup blockers do not
@@ -101,6 +112,21 @@
     if (!$('gcalConnect') && !$('gcalStatus') && !$('gcalCalendars')) return;
     $('gcalConnect')?.addEventListener('click', connect);
     $('gcalRefresh')?.addEventListener('click', load);
+    $('gcalCredForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const clientId = ($('gcalClientId')?.value || '').trim();
+      const clientSecret = ($('gcalClientSecret')?.value || '').trim();
+      if (!clientId || !clientSecret) { message('Укажите Client ID и Client secret.', true); return; }
+      api('/credentials', { method: 'PUT', body: { client_id: clientId, client_secret: clientSecret } })
+        .then(data => { message('OAuth-креды сохранены.'); renderCredentials(data); load(); })
+        .catch(err => message(err.message, true));
+    });
+    $('gcalClearCreds')?.addEventListener('click', () => {
+      if (!window.confirm('Очистить ваши OAuth-креды Google?')) return;
+      api('/credentials', { method: 'DELETE' })
+        .then(data => { message('OAuth-креды очищены.'); renderCredentials(data); load(); })
+        .catch(err => message(err.message, true));
+    });
     load();
   });
 })();

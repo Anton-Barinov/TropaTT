@@ -18,9 +18,16 @@ final class GoogleCalendarClient
         private readonly ?Request $request = null,
     ) {}
 
-    public function configured(): bool
+    /**
+     * @param array{client_id:string,client_secret:string}|null $credentials
+     *        Decrypted per-user OAuth credentials; when null (or incomplete)
+     *        the global GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET env vars are
+     *        used as a fallback so existing installations keep working.
+     */
+    public function configured(?array $credentials = null): bool
     {
-        if (trim((string)getenv('GOOGLE_CLIENT_ID')) === '' || trim((string)getenv('GOOGLE_CLIENT_SECRET')) === '') {
+        $credentials = $this->credentials($credentials);
+        if ($credentials['client_id'] === '' || $credentials['client_secret'] === '') {
             return false;
         }
         try {
@@ -31,11 +38,14 @@ final class GoogleCalendarClient
         }
     }
 
-    public function authorizeUrl(string $state, ?string $redirectUri = null): string
+    public function authorizeUrl(string $state, ?string $redirectUri = null, ?array $credentials = null): string
     {
-        if (!$this->configured()) throw new RuntimeException('GOOGLE_OAUTH_NOT_CONFIGURED');
+        $credentials = $this->credentials($credentials);
+        if ($credentials['client_id'] === '' || $credentials['client_secret'] === '') {
+            throw new RuntimeException('GOOGLE_OAUTH_NOT_CONFIGURED');
+        }
         $query = http_build_query([
-            'client_id' => trim((string)getenv('GOOGLE_CLIENT_ID')),
+            'client_id' => $credentials['client_id'],
             'redirect_uri' => $this->redirectUri($redirectUri),
             'response_type' => 'code',
             'access_type' => 'offline',
@@ -53,15 +63,34 @@ final class GoogleCalendarClient
     }
 
     /** @return array{access_token:string,refresh_token?:string,expires_in:int,scope?:string} */
-    public function exchangeCode(string $code, ?string $redirectUri = null): array
+    public function exchangeCode(string $code, ?string $redirectUri = null, ?array $credentials = null): array
     {
-        return $this->tokenRequest(['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>$this->redirectUri($redirectUri)]);
+        return $this->tokenRequest(['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>$this->redirectUri($redirectUri)], $credentials);
     }
 
     /** @return array{access_token:string,expires_in:int,scope?:string} */
-    public function refresh(string $refreshToken): array
+    public function refresh(string $refreshToken, ?array $credentials = null): array
     {
-        return $this->tokenRequest(['grant_type'=>'refresh_token','refresh_token'=>$refreshToken]);
+        return $this->tokenRequest(['grant_type'=>'refresh_token','refresh_token'=>$refreshToken], $credentials);
+    }
+
+    /**
+     * @param array{client_id:string,client_secret:string}|null $credentials
+     * @return array{client_id:string,client_secret:string}
+     */
+    private function credentials(?array $credentials = null): array
+    {
+        if (is_array($credentials)) {
+            $id = trim((string)($credentials['client_id'] ?? ''));
+            $secret = trim((string)($credentials['client_secret'] ?? ''));
+            if ($id !== '' && $secret !== '') {
+                return ['client_id' => $id, 'client_secret' => $secret];
+            }
+        }
+        return [
+            'client_id' => trim((string)getenv('GOOGLE_CLIENT_ID')),
+            'client_secret' => trim((string)getenv('GOOGLE_CLIENT_SECRET')),
+        ];
     }
 
     public function revoke(string $token): void
@@ -228,9 +257,11 @@ final class GoogleCalendarClient
     }
 
     /** @return array<string,mixed> */
-    private function tokenRequest(array $fields): array
+    private function tokenRequest(array $fields, ?array $credentials = null): array
     {
-        $fields['client_id']=trim((string)getenv('GOOGLE_CLIENT_ID'));$fields['client_secret']=(string)getenv('GOOGLE_CLIENT_SECRET');
+        $credentials = $this->credentials($credentials);
+        $fields['client_id'] = $credentials['client_id'];
+        $fields['client_secret'] = $credentials['client_secret'];
         [$status,$payload]=$this->requestRaw(self::TOKEN_URL,'POST',['Content-Type: application/x-www-form-urlencoded'],http_build_query($fields),true);
         if($status<200||$status>=300||!is_array($payload)||empty($payload['access_token'])){if(is_array($payload)&&($payload['error']??'')==='invalid_grant')throw new RuntimeException('GOOGLE_REFRESH_REVOKED');throw new RuntimeException('GOOGLE_TOKEN_EXCHANGE_FAILED');}
         return $payload;

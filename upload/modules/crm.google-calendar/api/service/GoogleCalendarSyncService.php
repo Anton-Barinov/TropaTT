@@ -552,7 +552,7 @@ final class GoogleCalendarSyncService
     {
         $refresh = EncryptionService::decrypt((string)($connection['refresh_token_encrypted'] ?? '')); if ($refresh === null) throw new RuntimeException('GOOGLE_REFRESH_REVOKED');
         try {
-            $token = $this->client->refresh($refresh);
+            $token = $this->client->refresh($refresh, $this->credentialsForConnection($connection));
         } catch (\Throwable $e) {
             if ($e->getMessage() === 'GOOGLE_REFRESH_REVOKED') {
                 $this->repository->updateConnection((int)$connection['id'], ['status' => 'reauthorization_required', 'last_error' => 'Google authorization expired']);
@@ -571,6 +571,21 @@ final class GoogleCalendarSyncService
         }
         $this->repository->updateConnection((int)$connection['id'], $values);
         return $access;
+    }
+
+    /**
+     * Decrypted OAuth credentials for the connection's owner, or null to let
+     * the client fall back to the global env vars.
+     * @return array{client_id:string,client_secret:string}|null
+     */
+    private function credentialsForConnection(array $connection): ?array
+    {
+        $row = $this->repository->credentialsForUser((int)($connection['user_id'] ?? 0));
+        if (!is_array($row)) return null;
+        $clientId = EncryptionService::decrypt((string)($row['client_id_encrypted'] ?? ''));
+        $clientSecret = EncryptionService::decrypt((string)($row['client_secret_encrypted'] ?? ''));
+        if ($clientId === null || $clientSecret === null || $clientId === '' || $clientSecret === '') return null;
+        return ['client_id' => $clientId, 'client_secret' => $clientSecret];
     }
 
     /** @return array<string,mixed> */

@@ -213,4 +213,29 @@ final class GoogleCalendarRepository
     public function updateCalendarEvent(string $publicId,array $data,?int $ownerId=null):void{$sql='UPDATE calendar_events SET title=:title,description=:description,starts_at=:starts_at,ends_at=:ends_at,source_type=:source_type,source_owner_user_id=:source_owner_user_id,source_external_id=:source_external_id,updated_at=:updated_at WHERE public_id=:public_id';$p=['title'=>$data['title'],'description'=>$data['description'],'starts_at'=>$data['starts_at'],'ends_at'=>$data['ends_at'],'source_type'=>'google_calendar','source_owner_user_id'=>$ownerId,'source_external_id'=>$data['google_event_id']??null,'updated_at'=>gmdate('Y-m-d H:i:s'),'public_id'=>$publicId];if($ownerId!==null){$sql.=' AND owner_user_id=:owner_user_id';$p['owner_user_id']=$ownerId;}$this->pdo->prepare($sql)->execute($p);}
     public function deleteCalendarEvent(string $publicId,?int $ownerId=null):void{$sql='DELETE FROM calendar_events WHERE public_id=:public_id';$p=['public_id'=>$publicId];if($ownerId!==null){$sql.=' AND owner_user_id=:owner_user_id';$p['owner_user_id']=$ownerId;}$this->pdo->prepare($sql)->execute($p);}
     public function localEventsForUser(int $userId,?string $after):array{$sql="SELECT e.* FROM calendar_events e WHERE e.owner_user_id=:user_id AND (e.source_type IS NULL OR e.source_type <> 'google_calendar') AND NOT EXISTS (SELECT 1 FROM google_calendar_events ge WHERE ge.crm_event_public_id=e.public_id)";$p=['user_id'=>$userId];if($after){$sql.=' AND (e.updated_at > :after OR e.source_type = :orphan_source)';$p['after']=$after;$p['orphan_source']='google_calendar';}$sql.=' ORDER BY e.updated_at ASC LIMIT 500';$s=$this->pdo->prepare($sql);$s->execute($p);return$s->fetchAll(PDO::FETCH_ASSOC)?:[];}
+
+    public function credentialsForUser(int $userId): ?array
+    {
+        $s = $this->pdo->prepare('SELECT * FROM google_calendar_credentials WHERE user_id = :user_id LIMIT 1');
+        $s->execute(['user_id' => $userId]);
+        return $s->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function saveCredentials(int $userId, string $clientIdEncrypted, string $clientSecretEncrypted): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $existing = $this->credentialsForUser($userId);
+        if ($existing !== null) {
+            $s = $this->pdo->prepare('UPDATE google_calendar_credentials SET client_id_encrypted = :id, client_secret_encrypted = :secret, updated_at = :updated WHERE user_id = :user_id');
+            $s->execute(['id' => $clientIdEncrypted, 'secret' => $clientSecretEncrypted, 'updated' => $now, 'user_id' => $userId]);
+            return;
+        }
+        $s = $this->pdo->prepare('INSERT INTO google_calendar_credentials (public_id,user_id,client_id_encrypted,client_secret_encrypted,created_at,updated_at) VALUES (:public_id,:user_id,:id,:secret,:created,:updated)');
+        $s->execute(['public_id' => Ulid::generate('gcred'), 'user_id' => $userId, 'id' => $clientIdEncrypted, 'secret' => $clientSecretEncrypted, 'created' => $now, 'updated' => $now]);
+    }
+
+    public function deleteCredentials(int $userId): void
+    {
+        $this->pdo->prepare('DELETE FROM google_calendar_credentials WHERE user_id = :user_id')->execute(['user_id' => $userId]);
+    }
 }
