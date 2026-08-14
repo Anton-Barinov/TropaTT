@@ -5055,6 +5055,30 @@ body.crm-login-page .crm-login-brand .crm-brand-mark {
   box-shadow: 6px 6px 0 color-mix(in srgb, var(--crm-accent) 22%, transparent) !important;
 }
 
+/* Wide logo (tableau.png) is a dark wordmark meant for light surfaces, so it
+   is used on the login panel by default and falls back to the adaptive mark +
+   name pair in dark theme where black text would be unreadable. */
+body.crm-login-page .crm-login-brand .crm-login-logo-wide {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 100%;
+}
+
+body.crm-login-page .crm-login-brand .crm-login-brand-name {
+  display: none;
+}
+
+html[data-theme="dark"] body.crm-login-page .crm-login-brand .crm-login-logo-wide {
+  display: none;
+}
+
+html[data-theme="dark"] body.crm-login-page .crm-login-brand .crm-login-brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 body.crm-login-page .crm-login-kicker {
   margin-bottom: 12px;
   padding: 5px 10px;
