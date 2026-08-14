@@ -127,8 +127,16 @@ final class YandexCalendarRepository
         $row = $find->fetch(PDO::FETCH_ASSOC);
         $now = gmdate('Y-m-d H:i:s');
         if ($row) {
-            $this->pdo->prepare('UPDATE yandex_calendar_sources SET display_name=:display_name,timezone=:timezone,ctag=:ctag,last_error=NULL,updated_at=:updated_at WHERE id=:id')->execute(['display_name' => $calendar['display_name'] ?? null, 'timezone' => $calendar['timezone'] ?? null, 'ctag' => $calendar['ctag'] ?? null, 'updated_at' => $now, 'id' => $row['id']]);
-            return array_merge($row, ['display_name' => $calendar['display_name'] ?? null, 'timezone' => $calendar['timezone'] ?? null, 'ctag' => $calendar['ctag'] ?? null, 'last_error' => null]);
+            // Re-enable only calendars previously disabled by reconciliation;
+            // a user-disabled source (no reconciliation error) stays disabled.
+            $wasMissing = (string)($row['last_error'] ?? '') === 'Calendar is no longer accessible';
+            $set = 'display_name=:display_name, timezone=:timezone, ctag=:ctag, last_error=NULL, updated_at=:updated_at';
+            $params = ['display_name' => $calendar['display_name'] ?? null, 'timezone' => $calendar['timezone'] ?? null, 'ctag' => $calendar['ctag'] ?? null, 'updated_at' => $now, 'id' => $row['id']];
+            if ($wasMissing) {
+                $set .= ', is_enabled=1';
+            }
+            $this->pdo->prepare('UPDATE yandex_calendar_sources SET ' . $set . ' WHERE id=:id')->execute($params);
+            return array_merge($row, ['display_name' => $calendar['display_name'] ?? null, 'timezone' => $calendar['timezone'] ?? null, 'ctag' => $calendar['ctag'] ?? null, 'last_error' => null, 'is_enabled' => $wasMissing ? 1 : $row['is_enabled']]);
         }
         $primary = (int)$this->pdo->query('SELECT COUNT(*) FROM yandex_calendar_sources WHERE connection_id=' . (int)$connectionId)->fetchColumn() === 0 ? 1 : 0;
         $this->pdo->prepare('INSERT INTO yandex_calendar_sources (public_id,connection_id,calendar_href,display_name,timezone,ctag,is_primary,created_at,updated_at) VALUES (:public_id,:connection_id,:href,:display_name,:timezone,:ctag,:primary,:created_at,:updated_at)')->execute(['public_id' => Ulid::generate('ysrc'), 'connection_id' => $connectionId, 'href' => $href, 'display_name' => $calendar['display_name'] ?? null, 'timezone' => $calendar['timezone'] ?? null, 'ctag' => $calendar['ctag'] ?? null, 'primary' => $primary, 'created_at' => $now, 'updated_at' => $now]);
