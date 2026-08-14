@@ -1,0 +1,10 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `module_kaiten_unresolved_entities`;
+DROP TABLE IF EXISTS `module_kaiten_job_logs`;
+DROP TABLE IF EXISTS `module_kaiten_rate_limits`;
+DROP TABLE IF EXISTS `module_kaiten_user_mappings`;
+DROP TABLE IF EXISTS `module_kaiten_source_mappings`;
+DROP TABLE IF EXISTS `module_kaiten_job_items`;
+DROP TABLE IF EXISTS `module_kaiten_jobs`;
+DROP TABLE IF EXISTS `module_kaiten_connections`;
+SET FOREIGN_KEY_CHECKS = 1;
