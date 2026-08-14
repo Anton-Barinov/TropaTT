@@ -7015,6 +7015,7 @@ return array (
     'preflight_failed' => '安全检查未通过',
     'checks_title' => '检查项',
     'forbiddenPathsTitle' => '包中的受保护路径：',
+    'bridgeNote' => '本次更新分两步：先更新配置和更新机制，然后才会收到包含模块的版本。第一次更新完成后，再运行一次更新即可。',
     'apply_error' => '错误：{message}',
     'confirm_apply' => '要真正应用更新，请输入 APPLY',
     'confirm_rollback' => '回滚将从备份恢复文件。请输入 ROLLBACK',

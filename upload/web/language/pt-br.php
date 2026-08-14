@@ -1484,6 +1484,7 @@ return array (
     'preflight_failed' => 'Verificação de segurança falhou',
     'checks_title' => 'Verificações',
     'forbiddenPathsTitle' => 'Caminhos protegidos no pacote:',
+    'bridgeNote' => 'Esta atualização é instalada em duas etapas: primeiro são atualizados a configuração e o mecanismo de atualização, e depois chega a versão com os módulos. Basta executar a atualização novamente após a primeira.',
     'apply_error' => 'Erro: {message}',
     'confirm_apply' => 'Para aplicar a atualização, digite APPLY',
     'confirm_rollback' => 'A restauração recuperará os arquivos do backup. Digite ROLLBACK',

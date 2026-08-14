@@ -27,13 +27,31 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ### Fixed
 
-- **Update flow for installations that still protect `modules/**`.** Older
-  installations whose `api/config/update.php` lists `modules/**` in
-  `protected_paths` rejected packages containing module files at the safety
-  preflight («Защищённые пути»). Such installations first receive a
-  config-only build (which stops protecting `modules/**`) and only then the
-  package that delivers the modules themselves; the update page now also shows
-  exactly which package paths failed the protected-path check.
+- **Old installations update to the modules era automatically — no manual
+  two-phase rollout needed.** Installations whose `api/config/update.php`
+  still lists `modules/**` in `protected_paths` (anything on a build older
+  than the first build that shipped the new config) would reject packages
+  containing module files at the safety preflight («Защищённые пути») and
+  could never update. Two things now make the transition automatic for the
+  whole install base:
+  - The update center serves such installations a signed **bridge package**
+    first: the latest tree **without** `modules/**` (the new config and the
+    new updater code land together, nothing the old config protects), labeled
+    with a distinct `-bridge` build. Once it is applied, the next check
+    returns the real latest build — now with the modules. The bridge is built
+    automatically for every published build (`ensure-bridge` cron step) and
+    `update-plan` picks it per client based on `current_build`
+    (`modules_in_core_since_build`); fresh installs and installs already on
+    the transition build or newer are served the normal package.
+  - The client updater retires a stale `modules/**` protection for any
+    package that itself ships a new `api/config/update.php` (after the update
+    that config governs, so validating against the pre-update list would
+    reject the very files the package legitimately delivers). Every other
+    protected path (`.env`, `storage/**`, `uploads/**`, `*.local.php`, …)
+    stays enforced unconditionally. Package order no longer matters.
+  - The updates page shows a hint when a two-step (bridge → modules) update
+    is pending and still displays exactly which package paths failed the
+    protected-path check when one does fail.
 
 - **Subdirectory installs now talk to their own API.** The web header computes
   `window.CRM.config.apiBaseUrl` from the install path (`/api/index.php` at the

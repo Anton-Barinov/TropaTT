@@ -7192,6 +7192,7 @@ return array (
     'preflight_failed' => 'Safety check failed',
     'checks_title' => 'Checks',
     'forbiddenPathsTitle' => 'Protected paths in the package:',
+    'bridgeNote' => 'This update installs in two steps: first the configuration and the update mechanism are refreshed, then the build with modules arrives. Simply run the update again after the first one completes.',
     'apply_error' => 'Error: {message}',
     'confirm_apply' => 'To actually apply the update, type APPLY',
     'confirm_rollback' => 'Rollback will restore files from backup. Type ROLLBACK',

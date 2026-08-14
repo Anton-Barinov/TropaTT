@@ -335,6 +335,7 @@ $auJs = [
           <p id="kpiRiskMeta" class="updates-muted mb-0"><?= htmlspecialchars($au('kpi_risk_loading', 'Оценим перед установкой.'), ENT_QUOTES, 'UTF-8') ?></p>
         </div>
       </div>
+      <div id="bridgeNote" class="updates-empty mt-2" hidden></div>
     </section>
     <section class="updates-card">
       <div class="updates-card-head">
@@ -860,6 +861,16 @@ $auJs = [
       plan.requires.maintenance ? 'maintenance' : null,
       plan.requires.db_migration ? 'db migration' : null,
     ].filter(Boolean).join(' + ') || tr('no_special_requirements', 'без особых требований') : tr('statusUnknown', 'Неизвестно')));
+    // Transition bridge: this installation predates "modules ship with core
+    // updates", so the first package only updates the config and updater; the
+    // build with modules arrives with the NEXT check. Two short updates,
+    // both automatic - no manual steps besides clicking through twice.
+    const bridgeEl = $('bridgeNote');
+    if (bridgeEl) {
+      const bridge = plan.bridge_update === true;
+      bridgeEl.hidden = !bridge;
+      bridgeEl.textContent = bridge ? tr('bridgeNote', 'Установка пройдёт в два шага: сначала обновится конфигурация и механизм обновлений, затем придет сборка с модулями. Просто повторите установку после первого обновления.') : '';
+    }
     updateRecommendation();
   }
 

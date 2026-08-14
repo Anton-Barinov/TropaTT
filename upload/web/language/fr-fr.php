@@ -1484,6 +1484,7 @@ return array (
     'preflight_failed' => 'Vérification de sécurité échouée',
     'checks_title' => 'Vérifications',
     'forbiddenPathsTitle' => 'Chemins protégés dans l\'archive :',
+    'bridgeNote' => 'Cette mise à jour s\'installe en deux étapes : d\'abord la configuration et le mécanisme de mise à jour sont actualisés, puis la version avec les modules arrive. Relancez simplement la mise à jour après la première.',
     'apply_error' => 'Erreur : {message}',
     'confirm_apply' => 'Pour appliquer la mise à jour, saisissez APPLY',
     'confirm_rollback' => 'La restauration rétablira les fichiers depuis la sauvegarde. Saisissez ROLLBACK',

@@ -1484,6 +1484,7 @@ return array (
     'preflight_failed' => 'Comprobación de seguridad fallida',
     'checks_title' => 'Comprobaciones',
     'forbiddenPathsTitle' => 'Rutas protegidas en el paquete:',
+    'bridgeNote' => 'Esta actualización se instala en dos pasos: primero se actualizan la configuración y el mecanismo de actualizaciones, y después llega la versión con los módulos. Simplemente vuelva a ejecutar la actualización después de la primera.',
     'apply_error' => 'Error: {message}',
     'confirm_apply' => 'Para aplicar la actualización, escriba APPLY',
     'confirm_rollback' => 'La restauración recuperará los archivos desde la copia de seguridad. Escriba ROLLBACK',

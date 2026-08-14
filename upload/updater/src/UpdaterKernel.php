@@ -117,7 +117,7 @@ final class UpdaterKernel
         }
 
         $manifest = $client->getJson((string)$package['manifest_url']);
-        $verifier = new ManifestVerifier((string)$this->config['public_key_path'], (array)$this->config['protected_paths']);
+        $verifier = new ManifestVerifier((string)$this->config['public_key_path'], $this->effectiveProtectedPaths($manifest));
         $manifestReport = $verifier->verify($manifest, $package, (string)$this->config['product']);
         $packageHead = $this->packageHead((string)$package['url']);
 
@@ -222,7 +222,10 @@ final class UpdaterKernel
 
             // Extraction step machine: unzip at most max_files_per_request
             // entries per request so a large package never trips a shared-host
-            // proxy timeout.
+            // proxy timeout. The protected-path list is the same one preflight
+            // used (manifest-aware), so a package can never be rejected here
+            // after preflight accepted it.
+            $manifest = $state->readFile('manifest.json');
             for ($guard = 0; $guard < 1000; $guard++) {
                 $stored = $state->readFile('state.json') ?: [];
                 $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
@@ -234,7 +237,7 @@ final class UpdaterKernel
                     throw new \RuntimeException('Downloaded package is missing.');
                 }
                 $cursor = (int)($progress['cursor'] ?? 0);
-                $result = (new PackageExtractor($this->storageDir, (array)$this->config['protected_paths']))
+                $result = (new PackageExtractor($this->storageDir, $this->effectiveProtectedPaths($manifest)))
                     ->extract($jobId, $path, $cursor, $budget, (int)$steps['max_files_per_request']);
                 $state->write(['progress' => [
                     'phase' => 'extract',
@@ -355,7 +358,7 @@ final class UpdaterKernel
                 $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
                 $logger->info('maintenance_enabled', 'Maintenance mode enabled');
 
-                $applier = new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']);
+                $applier = new FileApplier($this->basePath, $this->storageDir, $this->effectiveProtectedPaths($manifest));
                 $files = $applier->filesFromManifest($manifest);
                 $filesForBackup = array_values(array_unique(array_merge($files['add'], $files['modify'], $files['delete'])));
                 $applyTotal = count($files['delete']) + count($files['add']) + count($files['modify']);
@@ -518,7 +521,7 @@ final class UpdaterKernel
         // (partial entries from the attempt that threw). Trim back to the
         // cursor before appending so a retry never duplicates entries.
         $this->trimJsonlToCursor($dir . '/applied.jsonl', $cursor);
-        $result = (new FileApplier($this->basePath, $this->storageDir, (array)$this->config['protected_paths']))
+        $result = (new FileApplier($this->basePath, $this->storageDir, $this->effectiveProtectedPaths($manifest)))
             ->apply($jobId, $manifest, $cursor, $budget, (int)$steps['max_files_per_request']);
         foreach ($result['files'] as $item) {
             $this->appendJsonl($dir, 'applied.jsonl', $item);
@@ -1083,6 +1086,60 @@ final class UpdaterKernel
             return $raw;
         }
         return 'upd_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(3));
+    }
+
+    /**
+     * Protected paths in effect for validating THIS package.
+     *
+     * The updater reads api/config/update.php from disk, which is the config
+     * of the PREVIOUS build. When a package itself ships an updated config
+     * (the file is part of add/modify), the on-disk list is stale BY DESIGN:
+     * after the update the package's own config governs. Validating against
+     * the stale list would reject package files that the package's config
+     * deliberately unprotects.
+     *
+     * Legacy example: installations predating "modules ship with core updates"
+     * still list modules/** in protected_paths, so they rejected packages
+     * containing module files at preflight and could never update. Module
+     * files are now part of core updates, and any package that ships the new
+     * config retires that protection for itself; everything else in
+     * protected_paths (.env, storage, uploads, backups, logs, cache, *.local
+     * configs) stays enforced unconditionally.
+     *
+     * @param array<string,mixed>|null $manifest
+     * @return array<int,string>
+     */
+    private function effectiveProtectedPaths(?array $manifest): array
+    {
+        $protected = array_values(array_map('strval', (array)$this->config['protected_paths']));
+        if (is_array($manifest) && $this->manifestCarriesConfig($manifest)) {
+            // Patterns the current product no longer protects and that a
+            // package shipping its own config removes from the on-disk list.
+            // Kept as an explicit allowlist so a stale config can never
+            // permanently block a signed update. Never include the
+            // always-protected runtime paths (storage, .env, ...) here.
+            $retired = ['modules/**'];
+            $protected = array_values(array_diff($protected, $retired));
+        }
+        return $protected;
+    }
+
+    /**
+     * Whether the package replaces api/config/update.php on the client.
+     *
+     * @param array<string,mixed> $manifest
+     */
+    private function manifestCarriesConfig(array $manifest): bool
+    {
+        $files = is_array($manifest['files'] ?? null) ? $manifest['files'] : [];
+        foreach (['add', 'modify'] as $group) {
+            foreach (is_array($files[$group] ?? null) ? $files[$group] : [] as $path) {
+                if ((string)$path === 'api/config/update.php') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

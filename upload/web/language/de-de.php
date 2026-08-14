@@ -1484,6 +1484,7 @@ return array (
     'preflight_failed' => 'Sicherheitsprüfung fehlgeschlagen',
     'checks_title' => 'Prüfungen',
     'forbiddenPathsTitle' => 'Geschützte Pfade im Paket:',
+    'bridgeNote' => 'Dieses Update wird in zwei Schritten installiert: Zuerst werden Konfiguration und Update-Mechanismus aktualisiert, danach kommt der Build mit den Modulen. Führen Sie das Update nach dem ersten Schritt einfach erneut aus.',
     'apply_error' => 'Fehler: {message}',
     'confirm_apply' => 'Zum Anwenden des Updates APPLY eingeben',
     'confirm_rollback' => 'Die Wiederherstellung stellt Dateien aus dem Backup wieder her. ROLLBACK eingeben',
