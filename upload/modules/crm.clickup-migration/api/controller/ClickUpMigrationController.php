@@ -28,6 +28,12 @@ final class ClickUpMigrationController
         $in = $this->body();
         $clientId = trim((string)($in['client_id'] ?? ''));
         $redirectUri = trim((string)($in['redirect_uri'] ?? ''));
+        // The callback is not hardcoded: by default it is derived from the
+        // current installation (HTTPS + HTTP_HOST + SCRIPT_NAME), so the module
+        // works on any domain and any subfolder deployment.
+        if ($redirectUri === '') {
+            $redirectUri = $this->defaultOAuthRedirectUri();
+        }
         if ($clientId === '' || $redirectUri === '' || !str_starts_with($redirectUri, 'https://')) return JsonResponse::error('VALIDATION_ERROR', 'client_id and an HTTPS redirect_uri are required', 422);
         if (session_status() === PHP_SESSION_NONE) @session_start();
         $state = bin2hex(random_bytes(24));
@@ -36,7 +42,7 @@ final class ClickUpMigrationController
         $_SESSION['clickup_oauth_client_id'] = $clientId;
         $_SESSION['clickup_oauth_redirect_uri'] = $redirectUri;
         $client = new ClickUpClient($this->repo);
-        return JsonResponse::success('CLICKUP_OAUTH_AUTHORIZE_URL', 'Open the authorization URL and return the code and state', ['authorization_url' => $client->oauthAuthorizeUrl($clientId, $state, $redirectUri), 'state_expires_at' => $_SESSION['clickup_oauth_state_expires']]);
+        return JsonResponse::success('CLICKUP_OAUTH_AUTHORIZE_URL', 'Open the authorization URL and return the code and state', ['authorization_url' => $client->oauthAuthorizeUrl($clientId, $state, $redirectUri), 'default_redirect_uri' => $redirectUri, 'state_expires_at' => $_SESSION['clickup_oauth_state_expires']]);
     }
 
     public function createConnection(): JsonResponse
@@ -97,6 +103,32 @@ final class ClickUpMigrationController
             if (is_array($connection) && !empty($connection['id'])) { try { $this->repo->deleteConnection((int)$connection['id']); } catch (\Throwable) {} }
             return JsonResponse::error('CLICKUP_OAUTH_EXCHANGE_FAILED', 'ClickUp OAuth authorization could not be completed', 422);
         }
+    }
+
+    /**
+     * Build the default OAuth callback URL from the actual installation
+     * (HTTPS + HTTP_HOST + SCRIPT_NAME). Empty when the request is not HTTPS
+     * or the host cannot be resolved, so callers can fall back to validation.
+     */
+    private function defaultOAuthRedirectUri(): string
+    {
+        $server = $this->container->get('request')->server;
+        $https = strtolower((string)($server['HTTPS'] ?? ''));
+        $forwardedProto = strtolower((string)($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        $trustedProxyConfig = trim((string)getenv('CRM_TRUSTED_PROXIES'));
+        $scheme = ($https !== '' && $https !== 'off') || ($forwardedProto === 'https' && $trustedProxyConfig !== '') ? 'https' : 'http';
+        if ($scheme !== 'https') return '';
+        $host = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+        if ($host === '' || preg_match('/^[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/', $host) !== 1) return '';
+        $script = (string)($server['SCRIPT_NAME'] ?? '/api/index.php');
+        if ($script === '' || !str_ends_with($script, '.php')) {
+            $script = '/api/index.php';
+        }
+        $script = '/' . ltrim(strtok($script, '?') ?: '/api/index.php', '/');
+        // No route query here: the OAuth provider appends ?code=...&state=...
+        // after the callback, and a query string on redirect_uri would produce
+        // a malformed URL on providers that concatenate naively.
+        return 'https://' . $host . $script;
     }
 
     private function validOAuthState(string $state, string $clientId, string $redirectUri): bool

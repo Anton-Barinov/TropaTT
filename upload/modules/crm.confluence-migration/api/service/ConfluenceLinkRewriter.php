@@ -21,7 +21,7 @@ final class ConfluenceLinkRewriter
             function ($match) use ($pageMapping, &$warnings) {
                 $pageId = $match[2];
                 if (isset($pageMapping[$pageId])) {
-                    return '/web/index.php?route=knowledge-page&id=' . $pageMapping[$pageId];
+                    return 'index.php?route=knowledge-page&id=' . $pageMapping[$pageId];
                 }
                 $warnings[] = [
                     'macro' => 'link',
@@ -55,7 +55,7 @@ final class ConfluenceLinkRewriter
             function ($match) use ($pageMapping, &$warnings) {
                 $pageId = $match[1];
                 if (isset($pageMapping[$pageId])) {
-                    return '/web/index.php?route=knowledge-page&id=' . $pageMapping[$pageId];
+                    return 'index.php?route=knowledge-page&id=' . $pageMapping[$pageId];
                 }
                 $warnings[] = [
                     'macro' => 'link',
@@ -92,7 +92,7 @@ final class ConfluenceLinkRewriter
             function ($match) use ($pageMapping, &$warnings) {
                 $pageId = $match[1];
                 if (isset($pageMapping[$pageId])) {
-                    return '<a href="/web/index.php?route=knowledge-page&id=' . $pageMapping[$pageId] . '">[linked page]</a>';
+                    return '<a href="index.php?route=knowledge-page&id=' . $pageMapping[$pageId] . '">[linked page]</a>';
                 }
                 $warnings[] = [
                     'macro' => 'link',

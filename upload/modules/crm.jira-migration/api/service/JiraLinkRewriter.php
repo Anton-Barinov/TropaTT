@@ -22,7 +22,7 @@ final class JiraLinkRewriter
             function ($match) use ($issueMapping) {
                 $key = $match[1];
                 if (isset($issueMapping[$key])) {
-                    $url = '/web/index.php?route=task-detail&task_public_id=' . rawurlencode($issueMapping[$key]);
+                    $url = 'index.php?route=task-detail&task_public_id=' . rawurlencode($issueMapping[$key]);
                     return '<a href="' . $url . '" class="jira-imported-link">' . $key . '</a>';
                 }
                 return $key;
@@ -41,7 +41,7 @@ final class JiraLinkRewriter
             function ($match) use ($issueMapping) {
                 $key = strtoupper($match[1]);
                 if (isset($issueMapping[$key])) {
-                    return '/web/index.php?route=task-detail&task_public_id=' . rawurlencode($issueMapping[$key]);
+                    return 'index.php?route=task-detail&task_public_id=' . rawurlencode($issueMapping[$key]);
                 }
                 return $match[0];
             },
