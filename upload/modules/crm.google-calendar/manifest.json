@@ -20,6 +20,8 @@
     "max_retries": 5,
     "sync_interval_minutes": 15,
     "max_events_per_page": 2500,
-    "enable_push": false
+    "enable_push": true,
+    "watch_ttl_seconds": 604800,
+    "watch_renew_before_seconds": 86400
   }
 }

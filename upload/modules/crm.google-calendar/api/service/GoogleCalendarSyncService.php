@@ -9,10 +9,12 @@ use RuntimeException;
 
 final class GoogleCalendarSyncService
 {
+    /** @param array<string,mixed> $config */
     public function __construct(
         private readonly GoogleCalendarRepository $repository,
         private readonly GoogleCalendarClient $client,
         private readonly PDO $pdo,
+        private readonly array $config = [],
     ) {
     }
 
@@ -122,8 +124,108 @@ final class GoogleCalendarSyncService
             $connectionValues['status'] = 'active';
             $connectionValues['last_error'] = null;
         }
+        if ($this->pushEnabled()) {
+            $this->ensureWatchChannels($connection, $access, $sources);
+        }
         $this->repository->updateConnection((int)$connection['id'], $connectionValues);
         return $result;
+    }
+
+    private function pushEnabled(): bool
+    {
+        $env = getenv('GOOGLE_ENABLE_PUSH');
+        if ($env !== false && $env !== '') {
+            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
+        }
+        return (bool)($this->config['enable_push'] ?? true);
+    }
+
+    private function pushRenewBeforeSeconds(): int
+    {
+        return max(60, (int)($this->config['watch_renew_before_seconds'] ?? 86400));
+    }
+
+    private function pushChannelTtlSeconds(): int
+    {
+        // Google hard-caps watch channels at 7 days; stay safely below it.
+        $ttl = (int)($this->config['watch_ttl_seconds'] ?? 604800);
+        return max(300, min($ttl, 604800));
+    }
+
+    /**
+     * Create Google push watch channels for enabled sources and renew them
+     * before they expire. Google channels live at most 7 days; the renewal
+     * threshold keeps the channel fresh while the periodic cron sync is the
+     * guaranteed fallback (channel creation degrades gracefully when no
+     * public HTTPS webhook address can be derived).
+     *
+     * @param array<int,array<string,mixed>> $sources
+     */
+    private function ensureWatchChannels(array $connection, string &$access, array $sources): void
+    {
+        foreach ($sources as $source) {
+            try {
+                $expiration = (int)($source['watch_expiration'] ?? 0);
+                $renew = $expiration === 0 || ($expiration - time()) < $this->pushRenewBeforeSeconds();
+                if (!$renew) continue;
+
+                $channelId = trim((string)($source['watch_channel_id'] ?? ''));
+                if ($channelId !== '') {
+                    $this->stopWatchChannel($connection, $source, $access);
+                }
+
+                $address = $this->client->watchAddress();
+                if ($address === '') {
+                    // No derivable public HTTPS URL (e.g. cron without
+                    // CRM_PUBLIC_URL). Periodic sync remains the fallback.
+                    continue;
+                }
+                $token = bin2hex(random_bytes(24));
+                $expirationMs = (time() + $this->pushChannelTtlSeconds()) * 1000;
+                $channel = $this->client->watch(
+                    $access,
+                    (string)$source['calendar_id'],
+                    'tropatt-' . bin2hex(random_bytes(12)),
+                    $address,
+                    $token,
+                    $expirationMs
+                );
+                $this->repository->updateSource((int)$source['id'], [
+                    'watch_channel_id' => (string)($channel['id'] ?? ''),
+                    'watch_resource_id' => (string)($channel['resourceId'] ?? ''),
+                    'watch_expiration' => (int)($channel['expiration'] ?? 0),
+                    'watch_token_encrypted' => EncryptionService::encrypt($token),
+                    'last_error' => null,
+                ]);
+            } catch (\Throwable) {
+                // Push is best-effort; the next cron sync retries renewal.
+                $this->repository->updateSource((int)$source['id'], ['last_error' => 'Push channel could not be created']);
+            }
+        }
+    }
+
+    private function stopWatchChannel(array $connection, array $source, string &$access): void
+    {
+        $channelId = trim((string)($source['watch_channel_id'] ?? ''));
+        $resourceId = trim((string)($source['watch_resource_id'] ?? ''));
+        if ($channelId === '' || $resourceId === '') return;
+        try {
+            $this->stopWatchWithRefresh($connection, $access, $channelId, $resourceId);
+        } catch (\Throwable) {
+            // Best effort; an expired channel is garbage-collected by Google.
+        }
+        $this->repository->updateSource((int)$source['id'], [
+            'watch_channel_id' => null,
+            'watch_resource_id' => null,
+            'watch_expiration' => null,
+            'watch_token_encrypted' => null,
+        ]);
+    }
+
+    private function stopWatchWithRefresh(array $connection, string &$access, string $channelId, string $resourceId): void
+    {
+        try { $this->client->stopWatch($access, $channelId, $resourceId); }
+        catch (RuntimeException $e) { if ((int)$e->getCode() !== 401 && $e->getMessage() !== 'GOOGLE_ACCESS_TOKEN_EXPIRED') throw $e; $access = $this->forceRefreshAccessToken($connection); $this->client->stopWatch($access, $channelId, $resourceId); }
     }
 
     private function storeCalendars(array $connection, array $calendars, ?string $accountEmail = null): ?string
@@ -191,6 +293,12 @@ final class GoogleCalendarSyncService
     private function disconnectLocked(int $connectionId, int $userId): void
     {
         $connection = $this->ownedConnection($connectionId, $userId);
+        $access = $this->accessTokenOrEmpty($connection);
+        // Stop Google watch channels so the public webhook stops delivering
+        // notifications for a connection that no longer exists.
+        foreach ($this->repository->allSources($connectionId) as $source) {
+            $this->stopWatchChannel($connection, $source, $access);
+        }
         $refresh = EncryptionService::decrypt((string)$connection['refresh_token_encrypted']);
         if ($refresh !== null) {
             try { $this->client->revoke($refresh); } catch (\Throwable) { /* local cleanup still must complete */ }
@@ -427,6 +535,17 @@ final class GoogleCalendarSyncService
         $access = EncryptionService::decrypt((string)($connection['access_token_encrypted'] ?? '')); $expires = strtotime((string)($connection['access_token_expires_at'] ?? ''));
         if ($access !== null && $expires > time() + 60) return $access;
         return $this->forceRefreshAccessToken($connection);
+    }
+
+    private function accessTokenOrEmpty(array $connection): string
+    {
+        try {
+            return $this->accessToken($connection);
+        } catch (\Throwable) {
+            // Disconnect must still complete (revoke, local cleanup) even when
+            // the token can no longer be refreshed (e.g. access revoked).
+            return '';
+        }
     }
 
     private function forceRefreshAccessToken(array $connection): string

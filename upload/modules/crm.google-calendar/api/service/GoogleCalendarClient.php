@@ -153,18 +153,42 @@ final class GoogleCalendarClient
             }
             return $override;
         }
+        return $this->installApiBase() . '?route=/_module/crm.google-calendar/oauth/callback';
+    }
 
+    /**
+     * Public HTTPS webhook address that Google Calendar push notifications
+     * are delivered to. Returns '' when the installation URL cannot be
+     * resolved from configuration or the current request (e.g. inside the
+     * cron worker without CRM_PUBLIC_URL set) — in that case the periodic
+     * sync remains the fallback.
+     */
+    public function watchAddress(): string
+    {
+        try {
+            return $this->installApiBase() . '?route=/_module/crm.google-calendar/webhook';
+        } catch (RuntimeException) {
+            return '';
+        }
+    }
+
+    /**
+     * Resolve the installation API entry point (https://host + SCRIPT_NAME)
+     * from CRM_PUBLIC_URL, or from the current request when available.
+     */
+    private function installApiBase(): string
+    {
         $publicBase = trim((string)getenv('CRM_PUBLIC_URL'));
         if ($publicBase !== '') {
             $baseParts = parse_url($publicBase);
             if (!is_array($baseParts) || strtolower((string)($baseParts['scheme'] ?? '')) !== 'https' || empty($baseParts['host']) || !empty($baseParts['query']) || !empty($baseParts['fragment'])) {
                 throw new RuntimeException('CRM_PUBLIC_URL_INVALID');
             }
-            return rtrim($publicBase, '/') . '/api/index.php?route=/_module/crm.google-calendar/oauth/callback';
+            return rtrim($publicBase, '/') . '/api/index.php';
         }
 
         if ($this->request === null) {
-            throw new RuntimeException('GOOGLE_REDIRECT_URI_UNRESOLVED');
+            throw new RuntimeException('GOOGLE_INSTALL_URL_UNRESOLVED');
         }
         $server = $this->request->server;
         $https = strtolower((string)($server['HTTPS'] ?? ''));
@@ -172,18 +196,35 @@ final class GoogleCalendarClient
         $trustedProxyConfig = trim((string)getenv('CRM_TRUSTED_PROXIES'));
         $scheme = ($https !== '' && $https !== 'off') || ($forwardedProto === 'https' && $trustedProxyConfig !== '') ? 'https' : 'http';
         if ($scheme !== 'https') {
-            throw new RuntimeException('GOOGLE_REDIRECT_URI_HTTPS_REQUIRED');
+            throw new RuntimeException('GOOGLE_INSTALL_URL_HTTPS_REQUIRED');
         }
         $host = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
         if ($host === '' || preg_match('/^[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/', $host) !== 1) {
-            throw new RuntimeException('GOOGLE_REDIRECT_URI_HOST_INVALID');
+            throw new RuntimeException('GOOGLE_INSTALL_URL_HOST_INVALID');
         }
         $script = (string)($server['SCRIPT_NAME'] ?? '/api/index.php');
         if ($script === '' || !str_ends_with($script, '.php')) {
             $script = '/api/index.php';
         }
         $script = '/' . ltrim(strtok($script, '?') ?: '/api/index.php', '/');
-        return 'https://' . $host . $script . '?route=/_module/crm.google-calendar/oauth/callback';
+        return 'https://' . $host . $script;
+    }
+
+    /** @return array<string,mixed> */
+    public function watch(string $accessToken, string $calendarId, string $channelId, string $address, string $token, int $expiration): array
+    {
+        return $this->api($accessToken, 'POST', '/calendars/'.rawurlencode($calendarId).'/watch', [], [
+            'id' => $channelId,
+            'type' => 'web_hook',
+            'address' => $address,
+            'token' => $token,
+            'expiration' => $expiration,
+        ]);
+    }
+
+    public function stopWatch(string $accessToken, string $channelId, string $resourceId): void
+    {
+        $this->api($accessToken, 'POST', '/channels/stop', [], ['id' => $channelId, 'resourceId' => $resourceId]);
     }
 
     /** @return array<string,mixed> */

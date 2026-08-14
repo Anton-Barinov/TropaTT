@@ -11,4 +11,7 @@ return [
  ['methods'=>['POST'],'route'=>'/connections/{public_id}/test','controller'=>GoogleCalendarController::class,'action'=>'test','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
  ['methods'=>['POST'],'route'=>'/connections/{public_id}/sync','controller'=>GoogleCalendarController::class,'action'=>'sync','auth'=>true,'required_permissions'=>['module.google-calendar.sync']],
  ['methods'=>['PATCH'],'route'=>'/calendars/{public_id}','controller'=>GoogleCalendarController::class,'action'=>'updateCalendar','auth'=>true,'required_permissions'=>['module.google-calendar.manage']],
+ // Google delivers push notifications here. Authentication is the per-channel
+ // token (X-Goog-Channel-Token) that we bound to the watch channel at creation.
+ ['methods'=>['POST'],'route'=>'/webhook','controller'=>GoogleCalendarController::class,'action'=>'receiveWebhook','auth'=>false],
 ];

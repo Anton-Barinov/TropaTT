@@ -6,6 +6,7 @@ namespace Module\Crm\GoogleCalendar\Controller;
 use Api\System\Library\Container;
 use Api\System\Library\Http\JsonResponse;
 use Module\Crm\GoogleCalendar\Repository\GoogleCalendarRepository;
+use Module\Crm\GoogleCalendar\Service\EncryptionService;
 use Module\Crm\GoogleCalendar\Service\GoogleCalendarClient;
 use Module\Crm\GoogleCalendar\Service\GoogleCalendarSyncService;
 use RuntimeException;
@@ -171,6 +172,73 @@ final class GoogleCalendarController
         } catch (\Throwable) {
             return JsonResponse::error('GOOGLE_DISCONNECT_FAILED', 'Google Calendar could not be disconnected', 409);
         }
+    }
+
+    /**
+     * Public webhook receiving Google Calendar push notifications.
+     *
+     * Google signs the notification with the per-channel token we stored when
+     * the watch channel was created; without a matching token the request is
+     * rejected before any work is done. The notification only triggers the
+     * normal syncToken-based incremental sync, so a replay or a burst of
+     * notifications stays idempotent and lock-protected.
+     */
+    public function receiveWebhook(): JsonResponse
+    {
+        $request = $this->container->get('request');
+        $headers = is_array($request->headers ?? null) ? $request->headers : [];
+        $channelId = trim((string)($headers['X-Goog-Channel-Id'] ?? $headers['x-goog-channel-id'] ?? ''));
+        $channelToken = trim((string)($headers['X-Goog-Channel-Token'] ?? $headers['x-goog-channel-token'] ?? ''));
+        $resourceState = strtolower(trim((string)($headers['X-Goog-Resource-State'] ?? $headers['x-goog-resource-state'] ?? '')));
+        $resourceId = trim((string)($headers['X-Goog-Resource-Id'] ?? $headers['x-goog-resource-id'] ?? ''));
+
+        if ($channelId === '') {
+            return JsonResponse::error('GOOGLE_WEBHOOK_CHANNEL_MISSING', 'Push channel identifier missing', 400);
+        }
+        $source = $this->repository->sourceByChannelId($channelId);
+        if ($source === null) {
+            // Unknown or already-stopped channel. Acknowledge instead of erroring
+            // so Google stops retrying an orphaned channel.
+            return JsonResponse::success('GOOGLE_WEBHOOK_UNKNOWN_CHANNEL', 'Unknown channel acknowledged');
+        }
+        $storedToken = EncryptionService::decrypt((string)($source['watch_token_encrypted'] ?? ''));
+        if ($storedToken === null || $channelToken === '' || !hash_equals($storedToken, $channelToken)) {
+            return JsonResponse::error('GOOGLE_WEBHOOK_TOKEN_INVALID', 'Push channel token mismatch', 403);
+        }
+        if ($resourceId !== '' && (string)($source['watch_resource_id'] ?? '') !== $resourceId) {
+            // Reject mismatched resource ids; a stale channel is renewed by cron.
+            return JsonResponse::error('GOOGLE_WEBHOOK_RESOURCE_MISMATCH', 'Push resource mismatch', 403);
+        }
+
+        // "sync" is the initial handshake Google sends right after a channel is
+        // created — the regular sync already covers it, so there is nothing to do.
+        if ($resourceState === 'sync') {
+            return JsonResponse::success('GOOGLE_WEBHOOK_ACK', 'Push notification acknowledged');
+        }
+        if ($resourceState === 'not_exists') {
+            // The watched resource disappeared (calendar removed). Drop the
+            // channel so it stops notifying us; the next periodic sync will
+            // reconcile the calendar list and disable the source.
+            $this->repository->updateSource((int)$source['id'], [
+                'watch_channel_id' => null,
+                'watch_resource_id' => null,
+                'watch_expiration' => null,
+                'watch_token_encrypted' => null,
+            ]);
+            return JsonResponse::success('GOOGLE_WEBHOOK_ACK', 'Push channel closed');
+        }
+
+        try {
+            $this->sync->sync((int)$source['connection_id'], (int)$source['user_id']);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'GOOGLE_SYNC_IN_PROGRESS') {
+                // Another sync (cron or a previous notification) is already
+                // running; it will pick up the same changes.
+                return JsonResponse::success('GOOGLE_WEBHOOK_BUSY', 'Synchronization already in progress');
+            }
+            return JsonResponse::error('GOOGLE_WEBHOOK_SYNC_FAILED', 'Synchronization failed', 503);
+        }
+        return JsonResponse::success('GOOGLE_WEBHOOK_ACK', 'Push notification acknowledged');
     }
 
     private function updateDirectionByPublicId(string $publicId, int $userId, string $direction, bool $enabled): bool

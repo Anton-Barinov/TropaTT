@@ -177,10 +177,16 @@ final class GoogleCalendarRepository
 
     public function updateSource(int $sourceId, array $values): void
     {
-        $allowed = ['direction','is_enabled','sync_token','watch_channel_id','watch_resource_id','watch_expiration','last_sync_at','last_error']; $set=[]; $params=['id'=>$sourceId];
+        $allowed = ['direction','is_enabled','sync_token','watch_channel_id','watch_resource_id','watch_expiration','watch_token_encrypted','last_sync_at','last_error']; $set=[]; $params=['id'=>$sourceId];
         foreach($values as $key=>$value){if(in_array($key,$allowed,true)){$set[]=$key.' = :'.$key;$params[$key]=$value;}}
         if($set===[])return; $set[]='updated_at=:updated_at';$params['updated_at']=gmdate('Y-m-d H:i:s');
         $this->pdo->prepare('UPDATE google_calendar_sources SET '.implode(',',$set).' WHERE id=:id')->execute($params);
+    }
+
+    public function sourceByChannelId(string $channelId): ?array
+    {
+        $s=$this->pdo->prepare('SELECT s.*,c.user_id FROM google_calendar_sources s JOIN google_calendar_connections c ON c.id=s.connection_id WHERE s.watch_channel_id=:channel_id LIMIT 1');
+        $s->execute(['channel_id'=>$channelId]); return $s->fetch(PDO::FETCH_ASSOC)?:null;
     }
 
     public function sourceForUser(string $publicId, int $userId): ?array

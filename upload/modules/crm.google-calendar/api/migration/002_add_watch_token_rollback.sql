@@ -1,0 +1,1 @@
+ALTER TABLE google_calendar_sources DROP COLUMN watch_token_encrypted;
