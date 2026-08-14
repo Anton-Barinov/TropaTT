@@ -21,14 +21,14 @@ final class RecurringRepository
         return $this->lang->get($key, $default !== '' ? $default : $key);
     }
 
-    public function list(array $filters): array
+    public function list(array $filters, int $actorId = 0): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListQuery($filters)->count();
-        $items = $this->buildListQuery($filters)
+        $total = $this->buildListQuery($filters, $actorId)->count();
+        $items = $this->buildListQuery($filters, $actorId)
             ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'created_at', 'updated_at'])
             ->orderBy('updated_at', 'DESC')
             ->orderBy('public_id', 'DESC')
@@ -39,10 +39,18 @@ final class RecurringRepository
         return [$items, $total, $page, $limit];
     }
 
-    private function buildListQuery(array $filters): QueryBuilder
+    private function buildListQuery(array $filters, int $actorId = 0): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('recurring_rules');
+
+        // A recurring rule must not become a side-channel for another user's
+        // private Google event. The owner can see their own rule; root is not a
+        // bypass for this deliberately private data.
+        $query->whereRaw(
+            "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+            [$actorId]
+        );
 
         if (!empty($filters['entity_type'])) {
             $query->where('entity_type', '=', (string)$filters['entity_type']);
@@ -64,12 +72,16 @@ final class RecurringRepository
         return $query;
     }
 
-    public function findByPublicId(string $publicId): ?array
+    public function findByPublicId(string $publicId, int $actorId = 0): ?array
     {
         $row = (new QueryBuilder($this->pdo))
             ->from('recurring_rules')
             ->select(['public_id', 'title', 'entity_type', 'entity_public_id', 'rrule', 'is_active', 'last_processed_at', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId)
+            ->whereRaw(
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                [$actorId]
+            )
             ->first();
 
         return $row ?: null;
@@ -82,7 +94,7 @@ final class RecurringRepository
             ->insert($payload);
     }
 
-    public function updateByPublicId(string $publicId, array $set): bool
+    public function updateByPublicId(string $publicId, array $set, int $actorId = 0): bool
     {
         if ($set === []) {
             return false;
@@ -91,15 +103,32 @@ final class RecurringRepository
         return (new QueryBuilder($this->pdo))
             ->from('recurring_rules')
             ->where('public_id', '=', $publicId)
+            ->whereRaw(
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                [$actorId]
+            )
             ->update($set) > 0;
     }
 
-    public function deleteByPublicId(string $publicId): bool
+    public function deleteByPublicId(string $publicId, int $actorId = 0): bool
     {
         return (new QueryBuilder($this->pdo))
             ->from('recurring_rules')
             ->where('public_id', '=', $publicId)
+            ->whereRaw(
+                "(entity_type <> 'calendar_event' OR NOT EXISTS (SELECT 1 FROM calendar_events ce WHERE ce.public_id = recurring_rules.entity_public_id AND ce.source_type = 'google_calendar' AND ce.source_owner_user_id <> ?))",
+                [$actorId]
+            )
             ->delete() > 0;
+    }
+
+    public function canUseEntity(string $entityType, string $entityPublicId, int $actorId = 0): bool
+    {
+        if (trim($entityType) !== 'calendar_event') return true;
+        $stmt = $this->pdo->prepare("SELECT source_owner_user_id FROM calendar_events WHERE public_id = :public_id AND source_type = 'google_calendar' LIMIT 1");
+        $stmt->execute(['public_id' => trim($entityPublicId)]);
+        $ownerId = $stmt->fetchColumn();
+        return $ownerId === false || (int)$ownerId === $actorId;
     }
 
     public function resolveEntityTitle(string $entityType, string $entityPublicId): ?string
@@ -119,7 +148,10 @@ final class RecurringRepository
         }
 
         if ($entityType === 'calendar_event') {
-            return $this->fetchSingleTitle('SELECT title FROM calendar_events WHERE public_id = ? LIMIT 1', [$entityPublicId]);
+            // Private external-calendar events are intentionally not resolvable
+            // through the generic recurring subsystem. This prevents a title
+            // leak through recurring-rule normalization, including for root.
+            return $this->fetchSingleTitle("SELECT title FROM calendar_events WHERE public_id = ? AND (source_type IS NULL OR source_type <> 'google_calendar') LIMIT 1", [$entityPublicId]);
         }
 
         if ($entityType === 'reminder') {

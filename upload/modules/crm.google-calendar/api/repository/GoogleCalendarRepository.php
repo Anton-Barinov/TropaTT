@@ -100,6 +100,55 @@ final class GoogleCalendarRepository
         $s->execute(['id'=>$connectionId]); return $s->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function clearSourcesForConnection(int $connectionId, int $ownerId): void
+    {
+        $ownTransaction = !$this->pdo->inTransaction();
+        if ($ownTransaction) $this->pdo->beginTransaction();
+        try {
+            $sourceStmt = $this->pdo->prepare('SELECT id FROM google_calendar_sources WHERE connection_id = :connection_id');
+            $sourceStmt->execute(['connection_id' => $connectionId]);
+            $sourceIds = array_map('intval', $sourceStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+            if ($sourceIds !== []) {
+                $sourceParams = [];
+                foreach ($sourceIds as $index => $sourceId) $sourceParams['source_'.$index] = $sourceId;
+                $placeholders = implode(',', array_map(static fn(int $index): string => ':source_'.$index, array_keys($sourceIds)));
+                $mappingStmt = $this->pdo->prepare('SELECT crm_event_public_id FROM google_calendar_events WHERE source_id IN (' . $placeholders . ') AND crm_event_public_id IS NOT NULL');
+                $mappingStmt->execute($sourceParams);
+                $eventStmt = $this->pdo->prepare('DELETE FROM calendar_events WHERE public_id = :public_id AND owner_user_id = :owner_id');
+                foreach ($mappingStmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $crmId) {
+                    $eventStmt->execute(['public_id' => (string)$crmId, 'owner_id' => $ownerId]);
+                }
+                $this->pdo->prepare('DELETE FROM google_calendar_events WHERE source_id IN (' . $placeholders . ')')->execute($sourceParams);
+            }
+            $this->pdo->prepare('DELETE FROM google_calendar_sources WHERE connection_id = :connection_id')->execute(['connection_id' => $connectionId]);
+            if ($ownTransaction) $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /** @param array<int,string> $calendarIds */
+    public function disableMissingSources(int $connectionId, array $calendarIds): void
+    {
+        if ($calendarIds === []) {
+            $this->pdo->prepare("UPDATE google_calendar_sources SET is_enabled = 0, sync_token = NULL, last_error = 'Calendar is no longer accessible', updated_at = :updated_at WHERE connection_id = :connection_id")->execute(['connection_id' => $connectionId, 'updated_at' => gmdate('Y-m-d H:i:s')]);
+            return;
+        }
+        $placeholders = [];
+        $params = [
+            'last_error' => 'Calendar is no longer accessible',
+            'updated_at' => gmdate('Y-m-d H:i:s'),
+            'connection_id' => $connectionId,
+        ];
+        foreach (array_values($calendarIds) as $index => $calendarId) {
+            $key = 'calendar_'.$index;
+            $placeholders[] = ':'.$key;
+            $params[$key] = $calendarId;
+        }
+        $this->pdo->prepare('UPDATE google_calendar_sources SET is_enabled = 0, sync_token = NULL, last_error = :last_error, updated_at = :updated_at WHERE connection_id = :connection_id AND calendar_id NOT IN (' . implode(',', $placeholders) . ')')->execute($params);
+    }
+
     public function upsertSource(int $connectionId, array $calendar): array
     {
         $calendarId = (string)($calendar['id'] ?? '');
@@ -107,9 +156,17 @@ final class GoogleCalendarRepository
         $find->execute(['connection_id'=>$connectionId,'calendar_id'=>$calendarId]); $row = $find->fetch(PDO::FETCH_ASSOC);
         $now = gmdate('Y-m-d H:i:s');
         if ($row) {
-            $s = $this->pdo->prepare('UPDATE google_calendar_sources SET summary=:summary, timezone=:timezone, updated_at=:updated_at WHERE id=:id');
-            $s->execute(['summary'=>$calendar['summary']??null,'timezone'=>$calendar['timeZone']??null,'updated_at'=>$now,'id'=>$row['id']]);
-            return array_merge($row, ['summary'=>$calendar['summary']??null,'timezone'=>$calendar['timeZone']??null]);
+            // Re-enable only calendars previously disabled by reconciliation;
+            // a user-disabled source (no reconciliation error) stays disabled.
+            $wasMissing = (string)($row['last_error'] ?? '') === 'Calendar is no longer accessible';
+            $set = 'summary=:summary, timezone=:timezone, updated_at=:updated_at';
+            $params = ['summary'=>$calendar['summary']??null,'timezone'=>$calendar['timeZone']??null,'updated_at'=>$now,'id'=>$row['id']];
+            if ($wasMissing) {
+                $set .= ', is_enabled=1, sync_token=NULL, last_error=NULL';
+            }
+            $s = $this->pdo->prepare('UPDATE google_calendar_sources SET ' . $set . ' WHERE id=:id');
+            $s->execute($params);
+            return array_merge($row, ['summary'=>$calendar['summary']??null,'timezone'=>$calendar['timeZone']??null, 'is_enabled'=>$wasMissing ? 1 : $row['is_enabled'], 'last_error'=>$wasMissing ? null : $row['last_error']]);
         }
         $primary = (int)$this->pdo->query('SELECT COUNT(*) FROM google_calendar_sources WHERE connection_id = ' . (int)$connectionId)->fetchColumn() === 0 ? 1 : 0;
         $publicId = Ulid::generate('gsrc');
@@ -149,5 +206,5 @@ final class GoogleCalendarRepository
     public function createCalendarEvent(int $ownerId,array $data):string{$id=Ulid::generate('evt');$now=gmdate('Y-m-d H:i:s');$s=$this->pdo->prepare('INSERT INTO calendar_events (public_id,title,description,starts_at,ends_at,owner_user_id,source_type,source_owner_user_id,source_external_id,created_at,updated_at) VALUES (:public_id,:title,:description,:starts_at,:ends_at,:owner_user_id,:source_type,:source_owner_user_id,:source_external_id,:created_at,:updated_at)');$s->execute(['public_id'=>$id,'title'=>$data['title'],'description'=>$data['description'],'starts_at'=>$data['starts_at'],'ends_at'=>$data['ends_at'],'owner_user_id'=>$ownerId,'source_type'=>'google_calendar','source_owner_user_id'=>$ownerId,'source_external_id'=>$data['google_event_id']??null,'created_at'=>$now,'updated_at'=>$now]);return$id;}
     public function updateCalendarEvent(string $publicId,array $data,?int $ownerId=null):void{$sql='UPDATE calendar_events SET title=:title,description=:description,starts_at=:starts_at,ends_at=:ends_at,source_type=:source_type,source_owner_user_id=:source_owner_user_id,source_external_id=:source_external_id,updated_at=:updated_at WHERE public_id=:public_id';$p=['title'=>$data['title'],'description'=>$data['description'],'starts_at'=>$data['starts_at'],'ends_at'=>$data['ends_at'],'source_type'=>'google_calendar','source_owner_user_id'=>$ownerId,'source_external_id'=>$data['google_event_id']??null,'updated_at'=>gmdate('Y-m-d H:i:s'),'public_id'=>$publicId];if($ownerId!==null){$sql.=' AND owner_user_id=:owner_user_id';$p['owner_user_id']=$ownerId;}$this->pdo->prepare($sql)->execute($p);}
     public function deleteCalendarEvent(string $publicId,?int $ownerId=null):void{$sql='DELETE FROM calendar_events WHERE public_id=:public_id';$p=['public_id'=>$publicId];if($ownerId!==null){$sql.=' AND owner_user_id=:owner_user_id';$p['owner_user_id']=$ownerId;}$this->pdo->prepare($sql)->execute($p);}
-    public function localEventsForUser(int $userId,?string $after):array{$sql='SELECT e.* FROM calendar_events e WHERE e.owner_user_id=:user_id AND (e.source_type IS NULL OR e.source_type <> :source_type) AND NOT EXISTS (SELECT 1 FROM google_calendar_events ge WHERE ge.crm_event_public_id=e.public_id)';$p=['user_id'=>$userId,'source_type'=>'google_calendar'];if($after){$sql.=' AND e.updated_at > :after';$p['after']=$after;}$sql.=' ORDER BY e.updated_at ASC LIMIT 500';$s=$this->pdo->prepare($sql);$s->execute($p);return$s->fetchAll(PDO::FETCH_ASSOC)?:[];}
+    public function localEventsForUser(int $userId,?string $after):array{$sql="SELECT e.* FROM calendar_events e WHERE e.owner_user_id=:user_id AND (e.source_type IS NULL OR e.source_type <> 'google_calendar') AND NOT EXISTS (SELECT 1 FROM google_calendar_events ge WHERE ge.crm_event_public_id=e.public_id)";$p=['user_id'=>$userId];if($after){$sql.=' AND (e.updated_at > :after OR e.source_type = :orphan_source)';$p['after']=$after;$p['orphan_source']='google_calendar';}$sql.=' ORDER BY e.updated_at ASC LIMIT 500';$s=$this->pdo->prepare($sql);$s->execute($p);return$s->fetchAll(PDO::FETCH_ASSOC)?:[];}
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Module\Crm\GoogleCalendar\Service;
 
+use Api\System\Library\Http\Request;
 use Module\Crm\GoogleCalendar\Repository\GoogleCalendarRepository;
 use RuntimeException;
 
@@ -12,26 +13,37 @@ final class GoogleCalendarClient
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
     private const API_ROOT = 'https://www.googleapis.com/calendar/v3';
 
-    public function __construct(private readonly GoogleCalendarRepository $repository) {}
+    public function __construct(
+        private readonly GoogleCalendarRepository $repository,
+        private readonly ?Request $request = null,
+    ) {}
 
     public function configured(): bool
     {
-        return trim((string)getenv('GOOGLE_CLIENT_ID')) !== ''
-            && trim((string)getenv('GOOGLE_CLIENT_SECRET')) !== ''
-            && str_starts_with(trim((string)getenv('GOOGLE_REDIRECT_URI')), 'https://');
+        if (trim((string)getenv('GOOGLE_CLIENT_ID')) === '' || trim((string)getenv('GOOGLE_CLIENT_SECRET')) === '') {
+            return false;
+        }
+        try {
+            $this->redirectUri();
+            return true;
+        } catch (RuntimeException) {
+            return false;
+        }
     }
 
-    public function authorizeUrl(string $state): string
+    public function authorizeUrl(string $state, ?string $redirectUri = null): string
     {
         if (!$this->configured()) throw new RuntimeException('GOOGLE_OAUTH_NOT_CONFIGURED');
         $query = http_build_query([
             'client_id' => trim((string)getenv('GOOGLE_CLIENT_ID')),
-            'redirect_uri' => trim((string)getenv('GOOGLE_REDIRECT_URI')),
+            'redirect_uri' => $this->redirectUri($redirectUri),
             'response_type' => 'code',
             'access_type' => 'offline',
             'prompt' => 'consent',
             'include_granted_scopes' => 'true',
             'scope' => implode(' ', [
+                'openid',
+                'email',
                 'https://www.googleapis.com/auth/calendar.readonly',
                 'https://www.googleapis.com/auth/calendar.events',
             ]),
@@ -41,9 +53,9 @@ final class GoogleCalendarClient
     }
 
     /** @return array{access_token:string,refresh_token?:string,expires_in:int,scope?:string} */
-    public function exchangeCode(string $code): array
+    public function exchangeCode(string $code, ?string $redirectUri = null): array
     {
-        return $this->tokenRequest(['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>trim((string)getenv('GOOGLE_REDIRECT_URI'))]);
+        return $this->tokenRequest(['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>$this->redirectUri($redirectUri)]);
     }
 
     /** @return array{access_token:string,expires_in:int,scope?:string} */
@@ -57,11 +69,25 @@ final class GoogleCalendarClient
         $this->requestRaw(self::TOKEN_URL . '/revoke?token=' . rawurlencode($token), 'POST', [], '', false);
     }
 
-    /** @return array<string,mixed> */
-    public function currentUser(string $accessToken): array
+    public function accountEmail(string $accessToken): ?string
     {
-        return $this->api($accessToken, 'GET', '/users/me/calendarList', ['maxResults'=>1]);
+        [$status, $payload] = $this->requestRaw(
+            'https://openidconnect.googleapis.com/v1/userinfo',
+            'GET',
+            ['Authorization: Bearer ' . $accessToken, 'Accept: application/json'],
+            '',
+            true
+        );
+        if ($status === 401) {
+            throw new RuntimeException('GOOGLE_ACCESS_TOKEN_EXPIRED', 401);
+        }
+        if ($status < 200 || $status >= 300 || !is_array($payload)) {
+            throw new RuntimeException('GOOGLE_ACCOUNT_IDENTITY_UNAVAILABLE', $status);
+        }
+        $email = trim((string)($payload['email'] ?? ''));
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
     }
+
 
     /** @return array<int,array<string,mixed>> */
     public function calendars(string $accessToken): array
@@ -89,14 +115,75 @@ final class GoogleCalendarClient
     }
 
     /** @return array<string,mixed> */
-    public function updateEvent(string $accessToken,string $calendarId,string $eventId,array $event):array
+    public function updateEvent(string $accessToken,string $calendarId,string $eventId,array $event,?string $etag=null):array
     {
-        return $this->api($accessToken,'PATCH','/calendars/'.rawurlencode($calendarId).'/events/'.rawurlencode($eventId),[], $event);
+        $headers = $etag !== null && $etag !== '' ? ['If-Match: '.$etag] : [];
+        return $this->api($accessToken,'PATCH','/calendars/'.rawurlencode($calendarId).'/events/'.rawurlencode($eventId),[], $event, $headers);
+    }
+
+    /** @return array<string,mixed>|null */
+    public function findEventByCrmId(string $accessToken,string $calendarId,string $crmEventPublicId):?array
+    {
+        $page = $this->api($accessToken, 'GET', '/calendars/'.rawurlencode($calendarId).'/events', [
+            'privateExtendedProperty' => 'tropatt_event_public_id='.$crmEventPublicId,
+            'showDeleted' => 'false',
+            'singleEvents' => 'false',
+            'maxResults' => 10,
+        ]);
+        foreach ((array)($page['items'] ?? []) as $event) {
+            if (is_array($event) && (string)($event['extendedProperties']['private']['tropatt_event_public_id'] ?? '') === $crmEventPublicId) {
+                return $event;
+            }
+        }
+        return null;
     }
 
     public function deleteEvent(string $accessToken,string $calendarId,string $eventId):void
     {
         $this->api($accessToken,'DELETE','/calendars/'.rawurlencode($calendarId).'/events/'.rawurlencode($eventId));
+    }
+
+    public function redirectUri(?string $explicit = null): string
+    {
+        $override = trim($explicit !== null ? $explicit : (string)getenv('GOOGLE_REDIRECT_URI'));
+        if ($override !== '') {
+            $parts = parse_url($override);
+            if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https' || empty($parts['host'])) {
+                throw new RuntimeException('GOOGLE_REDIRECT_URI_INVALID');
+            }
+            return $override;
+        }
+
+        $publicBase = trim((string)getenv('CRM_PUBLIC_URL'));
+        if ($publicBase !== '') {
+            $baseParts = parse_url($publicBase);
+            if (!is_array($baseParts) || strtolower((string)($baseParts['scheme'] ?? '')) !== 'https' || empty($baseParts['host']) || !empty($baseParts['query']) || !empty($baseParts['fragment'])) {
+                throw new RuntimeException('CRM_PUBLIC_URL_INVALID');
+            }
+            return rtrim($publicBase, '/') . '/api/index.php?route=/_module/crm.google-calendar/oauth/callback';
+        }
+
+        if ($this->request === null) {
+            throw new RuntimeException('GOOGLE_REDIRECT_URI_UNRESOLVED');
+        }
+        $server = $this->request->server;
+        $https = strtolower((string)($server['HTTPS'] ?? ''));
+        $forwardedProto = strtolower((string)($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        $trustedProxyConfig = trim((string)getenv('CRM_TRUSTED_PROXIES'));
+        $scheme = ($https !== '' && $https !== 'off') || ($forwardedProto === 'https' && $trustedProxyConfig !== '') ? 'https' : 'http';
+        if ($scheme !== 'https') {
+            throw new RuntimeException('GOOGLE_REDIRECT_URI_HTTPS_REQUIRED');
+        }
+        $host = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+        if ($host === '' || preg_match('/^[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/', $host) !== 1) {
+            throw new RuntimeException('GOOGLE_REDIRECT_URI_HOST_INVALID');
+        }
+        $script = (string)($server['SCRIPT_NAME'] ?? '/api/index.php');
+        if ($script === '' || !str_ends_with($script, '.php')) {
+            $script = '/api/index.php';
+        }
+        $script = '/' . ltrim(strtok($script, '?') ?: '/api/index.php', '/');
+        return 'https://' . $host . $script . '?route=/_module/crm.google-calendar/oauth/callback';
     }
 
     /** @return array<string,mixed> */
@@ -109,10 +196,11 @@ final class GoogleCalendarClient
     }
 
     /** @return array<string,mixed> */
-    private function api(string $accessToken,string $method,string $path,array $query=[],?array $body=null):array
+    private function api(string $accessToken,string $method,string $path,array $query=[],?array $body=null,array $extraHeaders=[]):array
     {
         $url=self::API_ROOT.$path.($query!==[]?'?'.http_build_query($query):'');$headers=['Authorization: Bearer '.$accessToken,'Accept: application/json'];
         if($body!==null)$headers[]='Content-Type: application/json';
+        foreach($extraHeaders as $extraHeader)$headers[]=(string)$extraHeader;
         [$status,$payload]=$this->requestRaw($url,$method,$headers,$body===null?'':(json_encode($body,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)?:''),true);
         if($status===410)throw new RuntimeException('GOOGLE_SYNC_TOKEN_EXPIRED',410);
         if($status===401)throw new RuntimeException('GOOGLE_ACCESS_TOKEN_EXPIRED',401);
@@ -126,13 +214,46 @@ final class GoogleCalendarClient
         if(!function_exists('curl_init'))throw new RuntimeException('CURL_REQUIRED');
         $max=max(1,min(5,(int)(getenv('GOOGLE_MAX_RETRIES')?:5)));$attempt=0;
         do {
-            $ch=curl_init($url);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$headers,CURLOPT_TIMEOUT=>max(5,min(60,(int)(getenv('GOOGLE_TIMEOUT_SECONDS')?:30))),CURLOPT_CONNECTTIMEOUT=>10]);
-            if($body!=='')curl_setopt($ch,CURLOPT_POSTFIELDS,$body);
-            $raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$error=curl_error($ch);curl_close($ch);
-            $payload=is_string($raw)?(json_decode($raw,true)?:[]):[];
-            $retryable=$error!==''||in_array($status,[429,500,502,503,504],true)||($status===403&&in_array((string)($payload['error']['errors'][0]['reason']??''),['rateLimitExceeded','userRateLimitExceeded','quotaExceeded'],true));
-            if(!$retry||!$retryable||$attempt>=$max-1){if($error!==''&&$status===0)throw new RuntimeException('GOOGLE_NETWORK_ERROR');return[$status,$payload];}
-            $retryAfter=(int)($payload['error']['retryAfter']??0);$sleep=$retryAfter>0?$retryAfter:min(32,2**$attempt)+(random_int(0,1000)/1000);usleep((int)($sleep*1000000));$attempt++;
-        } while(true);
+            $responseHeaders = [];
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => max(5, min(60, (int)(getenv('GOOGLE_TIMEOUT_SECONDS') ?: 30))),
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_HEADERFUNCTION => static function ($curl, string $header) use (&$responseHeaders): int {
+                    $parts = explode(':', $header, 2);
+                    if (count($parts) === 2) {
+                        $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+                    }
+                    return strlen($header);
+                },
+            ]);
+            if ($body !== '') curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+            $raw = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+            $payload = is_string($raw) ? (json_decode($raw, true) ?: []) : [];
+            $retryable = $error !== '' || in_array($status, [429, 500, 502, 503, 504], true)
+                || ($status === 403 && in_array((string)($payload['error']['errors'][0]['reason'] ?? ''), ['rateLimitExceeded', 'userRateLimitExceeded', 'quotaExceeded'], true));
+            if (!$retry || !$retryable || $attempt >= $max - 1) {
+                if ($error !== '' && $status === 0) throw new RuntimeException('GOOGLE_NETWORK_ERROR');
+                return [$status, $payload];
+            }
+            $retryAfter = $this->retryAfterSeconds($responseHeaders['retry-after'] ?? null);
+            $sleep = $retryAfter > 0 ? $retryAfter : min(32, 2 ** $attempt) + (random_int(0, 1000) / 1000);
+            usleep((int)($sleep * 1000000));
+            $attempt++;
+        } while (true);
+    }
+
+    private function retryAfterSeconds(?string $value): int
+    {
+        if ($value === null || trim($value) === '') return 0;
+        if (ctype_digit(trim($value))) return max(0, min(120, (int)trim($value)));
+        $timestamp = strtotime($value);
+        return $timestamp === false ? 0 : max(0, min(120, $timestamp - time()));
     }
 }

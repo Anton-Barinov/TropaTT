@@ -16,7 +16,7 @@ final class GoogleCalendarServiceProvider extends AbstractModuleServiceProvider
     public function register(Container $container): void
     {
         $container->factory('module.google_calendar.repository', static fn(Container $c): GoogleCalendarRepository => new GoogleCalendarRepository($c->get('db.pdo')));
-        $container->factory('module.google_calendar.client', static fn(Container $c): GoogleCalendarClient => new GoogleCalendarClient($c->get('module.google_calendar.repository')));
+        $container->factory('module.google_calendar.client', static fn(Container $c): GoogleCalendarClient => new GoogleCalendarClient($c->get('module.google_calendar.repository'), $c->get('request')));
         $container->factory('module.google_calendar.sync', static fn(Container $c): GoogleCalendarSyncService => new GoogleCalendarSyncService($c->get('module.google_calendar.repository'), $c->get('module.google_calendar.client'), $c->get('db.pdo')));
     }
 
