@@ -7014,6 +7014,7 @@ return array (
     'preflight_ok' => '安全检查已通过',
     'preflight_failed' => '安全检查未通过',
     'checks_title' => '检查项',
+    'forbiddenPathsTitle' => '包中的受保护路径：',
     'apply_error' => '错误：{message}',
     'confirm_apply' => '要真正应用更新，请输入 APPLY',
     'confirm_rollback' => '回滚将从备份恢复文件。请输入 ROLLBACK',

@@ -1483,6 +1483,7 @@ return array (
     'preflight_ok' => 'Sicherheitsprüfung bestanden',
     'preflight_failed' => 'Sicherheitsprüfung fehlgeschlagen',
     'checks_title' => 'Prüfungen',
+    'forbiddenPathsTitle' => 'Geschützte Pfade im Paket:',
     'apply_error' => 'Fehler: {message}',
     'confirm_apply' => 'Zum Anwenden des Updates APPLY eingeben',
     'confirm_rollback' => 'Die Wiederherstellung stellt Dateien aus dem Backup wieder her. ROLLBACK eingeben',

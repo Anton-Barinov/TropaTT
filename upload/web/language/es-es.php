@@ -1483,6 +1483,7 @@ return array (
     'preflight_ok' => 'Comprobación de seguridad superada',
     'preflight_failed' => 'Comprobación de seguridad fallida',
     'checks_title' => 'Comprobaciones',
+    'forbiddenPathsTitle' => 'Rutas protegidas en el paquete:',
     'apply_error' => 'Error: {message}',
     'confirm_apply' => 'Para aplicar la actualización, escriba APPLY',
     'confirm_rollback' => 'La restauración recuperará los archivos desde la copia de seguridad. Escriba ROLLBACK',

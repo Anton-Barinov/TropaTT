@@ -7294,6 +7294,7 @@ return array (
     'preflight_ok' => 'Проверка пройдена',
     'preflight_failed' => 'Проверка не пройдена',
     'checks_title' => 'Проверки',
+    'forbiddenPathsTitle' => 'Защищённые пути в архиве:',
     'apply_error' => 'Ошибка: {message}',
     'confirm_apply' => 'Для реального применения обновления введите APPLY',
     'confirm_rollback' => 'Rollback восстановит файлы из backup. Введите ROLLBACK',

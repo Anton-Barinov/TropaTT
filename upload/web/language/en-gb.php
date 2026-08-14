@@ -7191,6 +7191,7 @@ return array (
     'preflight_ok' => 'Safety check passed',
     'preflight_failed' => 'Safety check failed',
     'checks_title' => 'Checks',
+    'forbiddenPathsTitle' => 'Protected paths in the package:',
     'apply_error' => 'Error: {message}',
     'confirm_apply' => 'To actually apply the update, type APPLY',
     'confirm_rollback' => 'Rollback will restore files from backup. Type ROLLBACK',

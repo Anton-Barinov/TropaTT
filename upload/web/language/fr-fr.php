@@ -1483,6 +1483,7 @@ return array (
     'preflight_ok' => 'Vérification de sécurité réussie',
     'preflight_failed' => 'Vérification de sécurité échouée',
     'checks_title' => 'Vérifications',
+    'forbiddenPathsTitle' => 'Chemins protégés dans l\'archive :',
     'apply_error' => 'Erreur : {message}',
     'confirm_apply' => 'Pour appliquer la mise à jour, saisissez APPLY',
     'confirm_rollback' => 'La restauration rétablira les fichiers depuis la sauvegarde. Saisissez ROLLBACK',
