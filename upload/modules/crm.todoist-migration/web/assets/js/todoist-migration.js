@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const api = (path, options = {}) => fetch(`../api/index.php?route=api/v1/modules/crm.todoist-migration${path}`, {
+  const api = (path, options = {}) => fetch(`../api/index.php?route=${encodeURIComponent(`_module/crm.todoist-migration${path}`)}`, {
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     ...options,
