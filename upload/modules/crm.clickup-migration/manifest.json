@@ -1,0 +1,32 @@
+{
+    "name": "crm.clickup-migration",
+    "version": "1.0.0",
+    "vendor": "crm",
+    "title": "Миграция из ClickUp",
+    "description": "Односторонняя миграция проектов, секций, задач и связанных данных из ClickUp в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage", "import.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {
+        "js": ["web/assets/js/clickup-migration.js"],
+        "css": ["web/assets/css/clickup-migration.css"]
+    },
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\ClickUpMigration\\ClickUpMigrationServiceProvider",
+    "config_defaults": {
+        "request_timeout_seconds": 60,
+        "max_retries": 4,
+        "default_batch_size": 100,
+        "max_attachment_size_mb": 20,
+        "include_completed_by_default": false,
+        "include_archived_by_default": false,
+        "include_comments_by_default": true,
+        "include_attachments_by_default": false,
+        "max_tasks_per_job": 0
+    }
+}

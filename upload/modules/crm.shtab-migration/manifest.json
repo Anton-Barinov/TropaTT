@@ -1,0 +1,24 @@
+{
+    "name": "crm.shtab-migration",
+    "version": "1.1.0",
+    "vendor": "crm",
+    "title": "Миграция из Shtab.app",
+    "description": "Безопасный импорт официальных CSV/XLSX-экспортов Shtab.app в TropaTT CRM",
+    "core_version": ">=1.0.0",
+    "license": "MIT",
+    "dependencies": [],
+    "require_permissions": ["project.manage", "task.manage", "import.manage"],
+    "api_routes": "api/config/routes.php",
+    "web_routes": "web/config/routes.php",
+    "migrations": "api/migration/",
+    "assets": {"js": ["web/assets/js/shtab-migration.js"], "css": ["web/assets/css/shtab-migration.css"]},
+    "hooks": {},
+    "menu_items": [],
+    "service_provider": "Module\\Crm\\ShtabMigration\\ShtabMigrationServiceProvider",
+    "config_defaults": {
+        "max_upload_size_mb": 20,
+        "default_batch_size": 100,
+        "max_rows_per_job": 100000,
+        "supported_extensions": ["csv", "txt", "xlsx"]
+    }
+}
