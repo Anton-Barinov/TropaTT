@@ -56,13 +56,29 @@ final class KaitenClient
     /** Stream cards page by page so a large board does not accumulate in PHP memory. */
     public function eachCards(string $token, array $filters, callable $consumer): int
     {
-        $query = array_merge(['limit' => 100, 'broken_api' => 'false'], $filters); $offset = 0; $count = 0; $seen = [];
+        // Kaiten's `condition` is a scalar (1 = live, 2 = archived), not a
+        // comma-separated list like tag_ids/states. Split a multi-condition
+        // request into independent passes so archive-inclusive imports do not
+        // silently return an empty or invalid result.
+        $condition = (string)($filters['condition'] ?? '');
+        if (str_contains($condition, ',')) {
+            $total = 0;
+            foreach (array_values(array_unique(array_filter(array_map('trim', explode(',', $condition))))) as $singleCondition) {
+                $singleFilters = $filters;
+                $singleFilters['condition'] = $singleCondition;
+                $total += $this->eachCards($token, $singleFilters, $consumer);
+            }
+            return $total;
+        }
+
+        $query = array_merge(['limit' => 100, 'broken_api' => 'false'], $filters); $offset = 0; $count = 0; $seen = []; $fallbackFingerprints = [];
         for ($pageNumber = 0; $pageNumber < 100000; $pageNumber++) {
             if (isset($seen[$offset])) throw new RuntimeException('KAITEN_PAGINATION_LOOP'); $seen[$offset] = true;
-            $fallbackPage=false;try{$page=$this->request($token,'/cards',array_merge($query,['limit'=>100,'offset'=>$offset]));}catch(RuntimeException $e){if($e->getMessage()!=='KAITEN_NOT_FOUND'||empty($filters['space_id'])||empty($filters['board_id']))throw$e;$fallbackPage=true;$page=$this->request($token,'/spaces/'.rawurlencode((string)$filters['space_id']).'/boards/'.rawurlencode((string)$filters['board_id']),['broken_api'=>'false']);}$batch=$this->extractItems($page);if($batch===[])break;
+            $fallbackPage=false;try{$page=$this->request($token,'/cards',array_merge($query,['limit'=>100,'offset'=>$offset]));}catch(RuntimeException $e){if($e->getMessage()!=='KAITEN_NOT_FOUND'||empty($filters['space_id'])||empty($filters['board_id']))throw$e;$fallbackPage=true;$fallbackQuery=['limit'=>100,'offset'=>$offset,'broken_api'=>'false'];try{$page=$this->request($token,'/boards/'.rawurlencode((string)$filters['board_id']),$fallbackQuery);}catch(RuntimeException $boardError){if($boardError->getMessage()!=='KAITEN_NOT_FOUND')throw$boardError;$page=$this->request($token,'/spaces/'.rawurlencode((string)$filters['space_id']).'/boards/'.rawurlencode((string)$filters['board_id']),$fallbackQuery);}}$batch=$this->extractItems($page);if($batch===[]){if($fallbackPage&&$offset===0)throw new RuntimeException('KAITEN_FALLBACK_CARDS_EMPTY');break;}
+            if($fallbackPage){$fingerprint=hash('sha256',(string)json_encode(array_map(static fn(mixed $item):mixed=>is_array($item)?($item['id']??$item['uid']??$item['uuid']??$item):$item,$batch),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));if(isset($fallbackFingerprints[$fingerprint]))throw new RuntimeException('KAITEN_FALLBACK_PAGINATION_UNSUPPORTED');$fallbackFingerprints[$fingerprint]=true;}
             foreach ($batch as $item) { if (!is_array($item)) continue; $count++; if ($consumer($item) === false) return $count - 1; }
             $next = $page['next'] ?? $page['pagination']['next'] ?? null;
-            if ($next === null || $next === '') { if ($fallbackPage || count($batch) < 100) break; $nextOffset = $offset + count($batch); }
+            if ($next === null || $next === '') { if (count($batch) < 100) break; if($fallbackPage){$fallbackTotal=$page['total']??$page['cards_count']??$page['cardsCount']??$page['pagination']['total']??null;if($fallbackTotal!==null&&(int)$fallbackTotal<=count($batch))break;if($fallbackTotal===null&&count($batch)===100)throw new RuntimeException('KAITEN_FALLBACK_PAGINATION_UNSUPPORTED');}$nextOffset = $offset + count($batch); }
             elseif (is_numeric($next)) $nextOffset = (int)$next;
             elseif (is_array($next)) $nextOffset = (int)($next['offset'] ?? $next['start_position'] ?? ($offset + count($batch)));
             else { parse_str((string)(parse_url((string)$next, PHP_URL_QUERY) ?? ''), $nextQuery); $nextOffset = isset($nextQuery['offset']) ? (int)$nextQuery['offset'] : $offset + count($batch); }
@@ -99,7 +115,11 @@ final class KaitenClient
     public function users(string $token): array
     {
         try { return $this->collection($token, '/users', ['limit' => 100]); }
-        catch (RuntimeException $e) { if ($e->getMessage() !== 'KAITEN_NOT_FOUND') throw $e; return $this->collection($token, '/company-users', ['limit' => 100]); }
+        catch (RuntimeException $e) {
+            if ($e->getMessage() !== 'KAITEN_NOT_FOUND') throw $e;
+            try { return $this->collection($token, '/company/users', ['limit' => 100]); }
+            catch (RuntimeException $companyError) { if ($companyError->getMessage() !== 'KAITEN_NOT_FOUND') throw $companyError; return $this->collection($token, '/company-users', ['limit' => 100]); }
+        }
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -124,6 +144,9 @@ final class KaitenClient
         $port = $parts['port'] ?? null;
         if ($port !== null && (int)$port !== 443) throw new RuntimeException('KAITEN_ATTACHMENT_PORT_NOT_ALLOWED');
         if ($host === '' || $this->isPrivateHost($host)) throw new RuntimeException('KAITEN_ATTACHMENT_HOST_NOT_ALLOWED');
+        // Resolve once and pin the public address for the actual request. The
+        // preflight hostname check alone is vulnerable to DNS rebinding.
+        $resolvedIp = $this->publicIpForHost($host);
         // Kaiten may return a pre-signed object-storage URL directly. Such URLs
         // are allowed only over public HTTPS and must never receive the tenant token.
         $sendAuthorization = $sendAuthorization && $this->isTenantHost($host);
@@ -149,6 +172,7 @@ final class KaitenClient
             },
             CURLOPT_RETURNTRANSFER => false, CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => max(10, $this->timeout * 2), CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_RESOLVE => [$this->curlResolveEntry($host, 443, $resolvedIp)],
             CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => $httpHeaders,
         ]);
         $ok = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $primaryIp = (string)curl_getinfo($ch, CURLINFO_PRIMARY_IP); curl_close($ch); fclose($fp);
@@ -192,9 +216,11 @@ final class KaitenClient
             if ($until > time()) sleep($until - time() + 1);
         }
         $url = $this->baseUrl . $path . ($query !== [] ? '?' . http_build_query($query) : '');
+        $apiHost = strtolower((string)(parse_url($url, PHP_URL_HOST) ?? ''));
+        $apiIp = $this->publicIpForHost($apiHost);
         for ($attempt = 1; $attempt <= max(1, $this->maxRetries); $attempt++) {
             $headers = []; $ch = curl_init($url);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => max(5, $this->timeout), CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'Accept: application/json', 'Content-Type: application/json', 'User-Agent: TropaTT-Kaiten-Migration/1.0'], CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int { $length = strlen($line); if (str_contains($line, ':')) { [$name, $value] = array_pad(explode(':', $line, 2), 2, ''); $headers[strtolower(trim($name))] = trim($value); } return $length; }]);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => max(5, $this->timeout), CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false, CURLOPT_RESOLVE => [$this->curlResolveEntry($apiHost, 443, $apiIp)], CURLOPT_SSL_VERIFYPEER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'Accept: application/json', 'Content-Type: application/json', 'User-Agent: TropaTT-Kaiten-Migration/1.0'], CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headers): int { $length = strlen($line); if (str_contains($line, ':')) { [$name, $value] = array_pad(explode(':', $line, 2), 2, ''); $headers[strtolower(trim($name))] = trim($value); } return $length; }]);
             $body = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $primaryIp = (string)curl_getinfo($ch, CURLINFO_PRIMARY_IP); $error = curl_error($ch); curl_close($ch);
             if ($primaryIp !== '' && $this->isPrivateIp($primaryIp)) throw new RuntimeException('KAITEN_API_SSRF_BLOCKED');
             if ($this->connectionId !== null) $this->repo->recordRequest($this->connectionId, $code, $headers);
@@ -245,6 +271,19 @@ final class KaitenClient
         if ($ips === []) return true;
         foreach ($ips as $ip) if ($this->isPrivateIp((string)$ip)) return true;
         return false;
+    }
+
+    private function publicIpForHost(string $host): string
+    {
+        if ($host === '' || $this->isPrivateHost($host)) throw new RuntimeException('KAITEN_HOST_RESOLUTION_BLOCKED');
+        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
+        foreach ($ips as $ip) if (!$this->isPrivateIp((string)$ip)) return (string)$ip;
+        throw new RuntimeException('KAITEN_HOST_RESOLUTION_BLOCKED');
+    }
+
+    private function curlResolveEntry(string $host, int $port, string $ip): string
+    {
+        return str_contains($host, ':') ? '[' . $host . ']:' . $port . ':' . $ip : $host . ':' . $port . ':' . $ip;
     }
 
     private function isPrivateIp(string $ip): bool

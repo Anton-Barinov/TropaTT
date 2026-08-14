@@ -16,7 +16,7 @@
 
 ## API Kaiten
 
-Подключение принимает tenant URL вида `https://company.kaiten.ru` (также допускается `/api/latest` или `/api/v1`) и Bearer API token. Клиент использует `/api/latest`, offset/limit до 100 для коллекций и `broken_api=false`, чтобы ID пользователей не меняли тип. Для карточек сначала используется глобальный endpoint с фильтром доски, а для редакций Kaiten без него предусмотрен fallback на board endpoint. Пользователи и custom properties поддерживают актуальные и legacy endpoint-варианты. Для 401/403/404 запрос завершается с безопасной ошибкой; для 429 и временных 5xx используется ограниченный exponential backoff и `Retry-After`.
+Подключение принимает tenant URL вида `https://company.kaiten.ru` (также допускается `/api/latest` или `/api/v1`) и Bearer API token. Клиент использует `/api/latest`, offset/limit до 100 для коллекций и `broken_api=false`, чтобы ID пользователей не меняли тип. Для карточек сначала используется глобальный endpoint с фильтром доски; при включённых архивах запросы выполняются двумя корректными проходами (`condition=1` и `condition=2`), поскольку Kaiten принимает только скалярное значение condition. Для редакций Kaiten без глобального endpoint-а предусмотрен fallback на board endpoint; если встроенная выборка карточек выглядит усечённой без надёжного total, job завершается с ошибкой вместо тихой потери данных. Пользователи и custom properties поддерживают актуальные и legacy endpoint-варианты. Для 401/403/404 запрос завершается с безопасной ошибкой; для 429 и временных 5xx используется ограниченный exponential backoff, `Retry-After` и proactive throttling по `X-RateLimit-*`.
 
 ## Идемпотентность и выполнение
 

@@ -24,7 +24,7 @@ final class KaitenTargetWriter
     {
         $source=$this->id($payload);$workspace=(string)$job['workspace_gid'];$spaceId=(string)($payload['__space_id']??$payload['space_id']??$payload['spaceId']??'');$space=$this->repo->findMapping((int)$job['connection_id'],$workspace,'space',$spaceId);if(!$space||empty($space['target_public_id']))throw new RuntimeException('KAITEN_BOARD_SPACE_NOT_READY');
         $mapping=$this->repo->findMapping((int)$job['connection_id'],$workspace,'board',$source);if($mapping&& !empty($mapping['target_public_id']))return $this->result('project_module',(string)$mapping['target_public_id'],'skipped');
-        if($this->container->has('service.project_module')){$created=$this->service('service.project_module')->create(['project_public_id'=>(string)$space['target_public_id'],'title'=>$this->title($payload),'description'=>$this->description($payload),'status'=>'planned','sort_order'=>(int)($payload['sort_order']??$payload['position']??0)],$actor);if(is_array($created)&&!empty($created['public_id']))return $this->result('project_module',(string)$created['public_id'],'imported');}
+        if($this->container->has('service.project_module')){$created=$this->service('service.project_module')->create(['project_public_id'=>(string)$space['target_public_id'],'title'=>$this->title($payload),'description'=>$this->description($payload),'status'=>'planned','sort_order'=>(int)($payload['sort_order']??$payload['position']??0)],$actor);if(!is_array($created)||empty($created['public_id']))throw new RuntimeException('KAITEN_BOARD_MODULE_CREATE_FAILED');return $this->result('project_module',(string)$created['public_id'],'imported');}
         return $this->result('project',(string)$space['target_public_id'],'reused',['Board preserved in source payload; project modules are unavailable.']);
     }
 
@@ -78,7 +78,7 @@ final class KaitenTargetWriter
 
     private function result(string $type,string $id,string $state,array $warnings=[]): array { return ['target_type'=>$type,'target_public_id'=>$id,'state'=>$state,'warnings'=>$warnings]; }
     private function id(array $p): string { return trim((string)($p['id']??$p['uid']??$p['uuid']??'')); }
-    private function parent(array $p): string { return trim((string)($p['parent_id']??$p['parentId']??'')); }
+    private function parent(array $p): string { $direct=trim((string)($p['parent_card_id']??$p['parentCardId']??$p['parent_id']??$p['parentId']??''));if($direct!=='')return$direct;$parent=$p['parent']??null;if(is_array($parent)){ $parentId=$this->id($parent);if($parentId!=='')return$parentId; }foreach((array)($p['parents_ids']??[])as$id){$id=trim((string)$id);if($id!=='')return$id;}foreach((array)($p['parents']??[])as$parent){if(!is_array($parent))continue;$parentId=$this->id($parent);if($parentId!=='')return$parentId;}return''; }
     private function title(array $p): string { return trim((string)($p['name']??$p['title']??'Kaiten item'))?:'Kaiten item'; }
     private function description(array $p): string { return trim((string)($p['description']??$p['desc']??'')); }
     private function cardDescription(array $p): string { $base=$this->description($p);$properties=(array)($p['custom_properties']??$p['customProperties']??[]);$lines=[];foreach($properties as $key=>$value){if(is_array($value))$value=json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);if((string)$value!=='')$lines[]='- '.(string)$key.': '.(string)$value;}return $lines===[]?$base:trim($base."\n\nПоля Kaiten:\n".implode("\n",$lines)); }

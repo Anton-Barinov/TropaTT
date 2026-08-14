@@ -97,7 +97,16 @@ final class KaitenMigrationRepository
         $state = $this->rateState($connectionId) ?: [];
         $started = (string)($state['window_started_at'] ?? '');
         if ($started === '' || time() - (strtotime($started) ?: time()) >= 60) { $started = $this->now(); $count = 0; } else $count = (int)($state['requests_made'] ?? 0);
-        $this->upsertRateState($connectionId, ['requests_made' => $count + 1, 'window_started_at' => $started, 'retry_after_until' => $state['retry_after_until'] ?? null, 'last_http_status' => $status]);
+
+        // Kaiten exposes the reset epoch even before a 429. If the remaining
+        // budget reaches zero, pre-sleep before the next request instead of
+        // issuing a predictable rate-limit violation.
+        $retryUntil = $state['retry_after_until'] ?? null;
+        $remaining = isset($headers['x-ratelimit-remaining']) ? (int)$headers['x-ratelimit-remaining'] : null;
+        $reset = isset($headers['x-ratelimit-reset']) ? (int)$headers['x-ratelimit-reset'] : 0;
+        if ($remaining !== null && $remaining <= 0 && $reset > time()) $retryUntil = gmdate('Y-m-d H:i:s', $reset);
+
+        $this->upsertRateState($connectionId, ['requests_made' => $count + 1, 'window_started_at' => $started, 'retry_after_until' => $retryUntil, 'last_http_status' => $status]);
     }
 
     public function recordRetryAfter(int $connectionId, int $seconds): void
@@ -286,7 +295,7 @@ final class KaitenMigrationRepository
     /** @return array<int,array<string,mixed>> */
     public function rollbackItemsBatch(int $jobId, int $priority = 0, int $beforeId = PHP_INT_MAX, int $limit = 250): array
     {
-        $limit=max(1,min(1000,$limit));$sql="SELECT * FROM (SELECT i.*,CASE i.target_type WHEN 'file' THEN 10 WHEN 'comment' THEN 20 WHEN 'history' THEN 30 WHEN 'subcard' THEN 40 WHEN 'task' THEN 50 WHEN 'status' THEN 60 WHEN 'tag' THEN 70 WHEN 'project_module' THEN 80 WHEN 'project' THEN 90 ELSE 100 END AS rollback_priority FROM module_kaiten_job_items i WHERE i.job_id=:job AND i.created_by_job=1 AND i.target_public_id IS NOT NULL AND i.status<>'rolled_back') AS ordered_items WHERE ordered_items.rollback_priority>:priority OR (ordered_items.rollback_priority=:same_priority AND ordered_items.id<:before_id) ORDER BY ordered_items.rollback_priority ASC,ordered_items.id DESC LIMIT {$limit}";$stmt=$this->pdo->prepare($sql);$stmt->execute(['job'=>$jobId,'priority'=>$priority,'same_priority'=>$priority,'before_id'=>$beforeId]);return$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
+        $limit=max(1,min(1000,$limit));$sql="SELECT * FROM (SELECT i.*,CASE WHEN i.source_type='subcard' THEN 40 WHEN i.target_type='file' THEN 10 WHEN i.target_type='comment' THEN 20 WHEN i.target_type='history' THEN 30 WHEN i.target_type='task' THEN 50 WHEN i.target_type='status' THEN 60 WHEN i.target_type='tag' THEN 70 WHEN i.target_type='project_module' THEN 80 WHEN i.target_type='project' THEN 90 ELSE 100 END AS rollback_priority FROM module_kaiten_job_items i WHERE i.job_id=:job AND i.created_by_job=1 AND i.target_public_id IS NOT NULL AND i.status<>'rolled_back') AS ordered_items WHERE ordered_items.rollback_priority>:priority OR (ordered_items.rollback_priority=:same_priority AND ordered_items.id<:before_id) ORDER BY ordered_items.rollback_priority ASC,ordered_items.id DESC LIMIT {$limit}";$stmt=$this->pdo->prepare($sql);$stmt->execute(['job'=>$jobId,'priority'=>$priority,'same_priority'=>$priority,'before_id'=>$beforeId]);return$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
     }
 
     /** @return array<int,array<string,mixed>> */
