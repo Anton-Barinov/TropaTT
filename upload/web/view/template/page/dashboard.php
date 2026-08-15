@@ -398,6 +398,8 @@
       <?php endforeach; ?>
       </div>
 
+      <?= module_position('dashboard.content.after', ['route' => $route ?? 'dashboard']) ?>
+
       <div id="dashboardWidgetPool" hidden></div>
 
     </main>
