@@ -296,7 +296,27 @@ final class TaskController extends BaseController
                 'previous_status' => $before['status_code'] ?? null,
                 'new_status' => (string)$input['status'],
             ]);
+            $this->dispatchModuleHook('task.status_changed', [
+                'task_id' => (int)($item['id'] ?? 0),
+                'task_public_id' => (string)($item['public_id'] ?? ''),
+                'old_status' => (string)($before['status_code'] ?? ''),
+                'new_status' => (string)$input['status'],
+                'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
         }
+
+        if ((int)($item['assignee_user_id'] ?? 0) !== (int)($before['assignee_user_id'] ?? 0)) {
+            $this->dispatchModuleHook('task.assignee_changed', [
+                'task_id' => (int)($item['id'] ?? 0),
+                'task_public_id' => (string)($item['public_id'] ?? ''),
+                'old_assignee_id' => (int)($before['assignee_user_id'] ?? 0),
+                'new_assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                'status_code' => (string)($item['status_code'] ?? ''),
+                'actor_id' => (int)($authUser['user']['id'] ?? 0),
+            ]);
+        }
+
         $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
 
         $this->invalidateTaskCaches();
@@ -578,6 +598,24 @@ final class TaskController extends BaseController
             $wf->fireTrigger($trigger, $context);
         } catch (\Throwable $e) {
             error_log('[TaskController::fireWorkflowTrigger][' . ($task['public_id'] ?? '') . '] Workflow trigger failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dispatch a module-level hook (registered through ServiceProviderRegistry /
+     * the module HookManager) so optional modules can react to task lifecycle
+     * events without touching the core task flow.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function dispatchModuleHook(string $event, array $payload): void
+    {
+        try {
+            /** @var \Api\System\Library\Hook\HookManager $hooks */
+            $hooks = $this->container->get('hook.manager');
+            $hooks->dispatch($event, $payload);
+        } catch (\Throwable $e) {
+            error_log('[TaskController::dispatchModuleHook][' . $event . '] ' . $e->getMessage());
         }
     }
 

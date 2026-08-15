@@ -1,20 +1,24 @@
 # crm.wip-limit
 
-Ограничение количества задач в работе (Work In Progress) на пользователя, с уведомлениями при превышении. Эталонный пример модуля TropaTT (`docs/web/05-modules.md`).
+Ограничение количества задач в работе (Work In Progress) на пользователя. Живой подсчёт WIP-нагрузки, индивидуальные лимиты и контроль превышения. Эталонный пример модуля TropaTT (`docs/web/05-modules.md`).
 
 ## Возможности
 
-- Лимит задач в работе на пользователя (`default_limit`), статусы для учёта задаются `enforce_on_status` (по умолчанию `in_progress`, `review`).
-- Превышение лимита подсвечивается в UI и (опционально) уведомляет пользователя (`notify_on_exceed`).
-- Роли-исключения (`excluded_role_ids`) — лимит не применяется.
-- Hook `task.status_changed` (`Module\Crm\WipLimit\Hook\WipHook::onTaskStatusChanged`) пересчитывает загрузку при смене статуса.
+- **Живой подсчёт WIP**: текущая нагрузка всегда вычисляется напрямую из таблицы `tasks` (`assignee_user_id` + `status_code`), поэтому счётчик не расходится при создании/удалении/переназначении задач.
+- Индивидуальный лимит на пользователя (`crm_wip_limits.max_tasks`); при отсутствии записи используется `default_limit` (по умолчанию `5`).
+- Статусы для учёта задаются через `enforce_on_status` (по умолчанию `in_progress`, `review`).
+- Контроль превышения: при переходе задачи в «рабочий» статус хук `task.status_changed`/`task.assignee_changed` сверяет нагрузку с лимитом и логирует превышение (`notify_on_exceed`).
+- Роли-исключения (`excluded_role_ids`) — лимит не применяется к пользователям этих ролей.
+- Сводная таблица «пользователь → лимит → текущая нагрузка» с индикатором перегрузки.
 
 ## Архитектура
 
-- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`.
-- `api/` — сервис-провайдер `WipLimitServiceProvider`, контроллер `WipApiController`, маршруты, хук.
+- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`, версия `1.1.0`.
+- `api/Service/WipLimitService.php` — живой движок подсчёта и контроля WIP.
+- `api/Hook/WipHook.php` + `api/WipLimitServiceProvider.php` — регистрация хуков на `task.status_changed` / `task.assignee_changed` через ядерный `HookManager` (`boot()`).
+- `api/controller/WipApiController.php` — REST-эндпоинты (`/limits`, `/limits/{user_id}`, `/summary`).
 - `web/` — страница настроек модуля (`WipPageController` + шаблон), CSS/JS.
-- Миграции — `api/migrations/001_create_tables.sql` (откат рядом).
+- Миграции — `api/migrations/` (`001_create_tables.sql` создаёт `crm_wip_limits`; `002_drop_wip_counts.sql` убирает устаревший денормализованный счётчик; откаты рядом).
 
 ## Миграции и тестирование
 

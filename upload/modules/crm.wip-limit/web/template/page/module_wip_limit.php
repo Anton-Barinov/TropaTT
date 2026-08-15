@@ -20,7 +20,7 @@
       <div class="mb-3">
         <label class="form-label" data-i18n="module_wip_limit.field_max"><?= htmlspecialchars($t('module_wip_limit.field_max', 'Maximum tasks in progress'), ENT_QUOTES, 'UTF-8') ?></label>
         <input type="number" class="form-control" id="wipMaxInput" min="1" max="50" value="5">
-        <div class="form-text" data-i18n="module_wip_limit.field_hint"><?= htmlspecialchars($t('module_wip_limit.field_hint', 'Default: 5. When exceeded, an event is written to the module log.'), ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="form-text" data-i18n="module_wip_limit.field_hint"><?= htmlspecialchars($t('module_wip_limit.field_hint', 'Default: 5. The current WIP load is computed live from the task list.'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
       <button class="btn crm-btn-primary" id="wipSetBtn"><i class="fa-solid fa-floppy-disk me-1"></i> <span data-i18n="module_wip_limit.btn_set"><?= htmlspecialchars($t('module_wip_limit.btn_set', 'Set limit'), ENT_QUOTES, 'UTF-8') ?></span></button>
       <span id="wipSetStatus" class="ms-2 small"></span>
@@ -33,7 +33,7 @@
         <li data-i18n="module_wip_limit.how_item_2"><?= htmlspecialchars($t('module_wip_limit.how_item_2', 'When the limit is exceeded, the module writes an event to the log.'), ENT_QUOTES, 'UTF-8') ?></li>
         <li data-i18n="module_wip_limit.how_item_3"><?= htmlspecialchars($t('module_wip_limit.how_item_3', 'The limit can be configured individually for each user.'), ENT_QUOTES, 'UTF-8') ?></li>
         <li data-i18n="module_wip_limit.how_item_4"><?= htmlspecialchars($t('module_wip_limit.how_item_4', 'If no limit is set, the default value is used: 5.'), ENT_QUOTES, 'UTF-8') ?></li>
-        <li><?= htmlspecialchars($t('module_wip_limit.how_item_5', 'The WIP counter is updated automatically through the hook'), ENT_QUOTES, 'UTF-8') ?> <code>task.status_changed</code></li>
+        <li data-i18n="module_wip_limit.how_item_5"><?= htmlspecialchars($t('module_wip_limit.how_item_5', 'WIP counters are computed live from the task list, so they always stay up to date.'), ENT_QUOTES, 'UTF-8') ?></li>
       </ul>
     </div>
   </div>

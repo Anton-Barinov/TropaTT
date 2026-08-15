@@ -1,11 +1,11 @@
 {
     "name": "crm.wip-limit",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "WIP Limit",
-    "description": "Ограничение количества задач в работе (Work In Progress). Настройка лимитов на пользователя, уведомления при превышении.",
+    "description": "Ограничение количества задач в работе (Work In Progress). Живой подсчёт WIP-нагрузки по пользователям, индивидуальные лимиты и контроль превышения.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "productivity",
@@ -18,11 +18,7 @@
         "js": ["web/assets/js/module-wip-limit.js"],
         "css": ["web/assets/css/module-wip-limit.css"]
     },
-    "hooks": {
-        "task.status_changed": [
-            {"handler": "Module\\Crm\\WipLimit\\Hook\\WipHook::onTaskStatusChanged", "priority": 100}
-        ]
-    },
+    "hooks": {},
     "menu_items": [],
     "service_provider": "Module\\Crm\\WipLimit\\WipLimitServiceProvider",
     "config_defaults": {
