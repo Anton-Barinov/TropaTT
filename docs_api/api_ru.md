@@ -1123,6 +1123,8 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | POST | `/api/v1/modules/{name}/activate` | Активация модуля | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | Деактивация модуля | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | Удаление модуля | Да | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/purge` | Полное удаление модуля (с файлами) | Да | `settings.manage` | — |
+| POST | `/api/v1/modules/bulk` | Массовое действие над модулями | Да | `settings.manage` | Body: `action` + `modules[]` |
 | GET | `/api/v1/modules/{name}/config` | Конфигурация модуля | Да | `settings.manage` | — |
 | PUT | `/api/v1/modules/{name}/config` | Обновление конфигурации | Да | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/health` | Health check модуля | Да | `settings.manage` | — |
@@ -1323,6 +1325,50 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/_module/crm.confluence-migration/settings` | Настройки модуля | Да | — | — |
 | PATCH | `/_module/crm.confluence-migration/settings` | Обновление настроек | Да | `module.confluence-migration.manage` | — |
 
+### Module: Диаграммы draw.io (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.drawio/diagrams` | Список диаграмм | Да | `module.drawio.view` | — |
+| POST | `/_module/crm.drawio/diagrams` | Создание диаграммы | Да | `module.drawio.manage` | — |
+| GET | `/_module/crm.drawio/diagrams/{public_id}` | Детали диаграммы | Да | `module.drawio.view` | — |
+| PATCH | `/_module/crm.drawio/diagrams/{public_id}` | Обновление диаграммы | Да | `module.drawio.manage` | — |
+| DELETE | `/_module/crm.drawio/diagrams/{public_id}` | Удаление диаграммы | Да | `module.drawio.manage` | — |
+
+### Module: GitHub (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.github-integration/connections` | Список подключений | Да | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/connections` | Создание подключения | Да | `module.github-integration.manage`, `module.github-integration.secret_manage` | — |
+| PATCH | `/_module/crm.github-integration/connections/{public_id}` | Обновление подключения | Да | `module.github-integration.manage` | — |
+| DELETE | `/_module/crm.github-integration/connections/{public_id}` | Удаление подключения | Да | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/test` | Тест подключения | Да | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/discover` | Обнаружение репозиториев | Да | `module.github-integration.manage` | — |
+| GET | `/_module/crm.github-integration/links` | Список связей с репозиториями | Да | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/links` | Создание связи с репозиторием | Да | `module.github-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.github-integration/links/{public_id}` | Удаление связи | Да | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/links/{public_id}/sync` | Синхронизация сейчас | Да | `module.github-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.github-integration/links/{public_id}/logs` | Логи связи | Да | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/webhook/{public_id}` | Входящий вебхук | Нет | — | HMAC-проверка |
+
+### Module: GitLab (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.gitlab-integration/connections` | Список подключений | Да | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/connections` | Создание подключения | Да | `module.gitlab-integration.manage`, `module.gitlab-integration.secret_manage` | — |
+| PATCH | `/_module/crm.gitlab-integration/connections/{public_id}` | Обновление подключения | Да | `module.gitlab-integration.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/connections/{public_id}` | Удаление подключения | Да | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/test` | Тест подключения | Да | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/discover` | Обнаружение проектов | Да | `module.gitlab-integration.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links` | Список связей с проектами | Да | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/links` | Создание связи с проектом | Да | `module.gitlab-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/links/{public_id}` | Удаление связи | Да | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/links/{public_id}/sync` | Синхронизация сейчас | Да | `module.gitlab-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links/{public_id}/logs` | Логи связи | Да | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/webhook/{public_id}` | Входящий вебхук | Нет | — | Проверка токена |
+
 ### Module: Google Calendar (если установлен)
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
@@ -1393,6 +1439,58 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/logs` | Логи задачи | Да | `module.kaiten-migration.view` | — |
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/report` | Отчёт задачи | Да | `module.kaiten-migration.report_view` | — |
 
+### Module: Миграция из Linear (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.linear-migration/connections` | Список подключений | Да | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/connections` | Создание подключения | Да | `module.linear-migration.manage`, `module.linear-migration.secret_manage` | — |
+| GET | `/_module/crm.linear-migration/connections/{public_id}` | Детали подключения | Да | `module.linear-migration.view` | — |
+| PATCH | `/_module/crm.linear-migration/connections/{public_id}` | Обновление подключения | Да | `module.linear-migration.manage` | — |
+| DELETE | `/_module/crm.linear-migration/connections/{public_id}` | Удаление подключения | Да | `module.linear-migration.delete` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/test` | Тест подключения | Да | `module.linear-migration.manage` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/discover` | Обнаружение данных | Да | `module.linear-migration.run` | — |
+| GET | `/_module/crm.linear-migration/jobs` | Список задач миграции | Да | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs` | Создание задачи миграции | Да | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}` | Детали задачи | Да | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs/{public_id}/run` | Запуск задачи | Да | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/items` | Элементы задачи | Да | `module.linear-migration.view` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/logs` | Логи задачи | Да | `module.linear-migration.view` | — |
+
+### Module: Миграция из Notion (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.notion-migration/connections` | Список подключений | Да | — | — |
+| POST | `/_module/crm.notion-migration/connections` | Создание подключения | Да | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}` | Детали подключения | Да | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}` | Обновление подключения | Да | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| DELETE | `/_module/crm.notion-migration/connections/{public_id}` | Удаление подключения | Да | `module.notion-migration.delete` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/test` | Тест подключения | Да | `module.notion-migration.manage` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/discover` | Обнаружение объектов | Да | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs` | Список задач миграции | Да | — | — |
+| POST | `/_module/crm.notion-migration/jobs` | Создание задачи миграции | Да | `module.notion-migration.run`, `knowledge.import`, `knowledge.create`, `knowledge.edit`, `knowledge.publish` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}` | Детали задачи | Да | — | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/start` | Запуск задачи | Да | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/pause` | Пауза задачи | Да | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/resume` | Возобновление задачи | Да | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/cancel` | Отмена задачи | Да | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/retry-failed` | Повтор неудачных элементов | Да | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/items` | Элементы задачи | Да | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/logs` | Логи задачи | Да | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/report` | Отчёт задачи | Да | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/download-report` | Скачивание отчёта | Да | — | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}/user-mappings` | Маппинги пользователей | Да | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}/user-mappings/{mapping_id}` | Обновление маппинга | Да | `module.notion-migration.manage` | — |
+| GET | `/_module/crm.notion-migration/settings` | Настройки модуля | Да | — | — |
+| PATCH | `/_module/crm.notion-migration/settings` | Обновление настроек | Да | `module.notion-migration.manage` | — |
+
+### Module: Raycast (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.raycast/config` | Конфигурация MCP-подключения | Да | `module.raycast.view` | — |
+
 ### Module: Миграция из Shtab.app (если установлен)
 
 | Метод | Endpoint | Назначение | Auth | Permissions | Описание |
@@ -1416,6 +1514,22 @@ Cursor-based: используйте параметр `cursor` и `limit`, чи�
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/items` | Элементы задачи | Да | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/logs` | Логи задачи | Да | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/report` | Отчёт задачи | Да | `module.shtab-migration.report_view` | — |
+
+### Module: Уведомления в Slack (если установлен)
+
+| Метод | Endpoint | Назначение | Auth | Permissions | Описание |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.slack-integration/connections` | Список подключений | Да | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/connections` | Создание подключения | Да | `module.slack-integration.manage`, `module.slack-integration.secret_manage` | — |
+| GET | `/_module/crm.slack-integration/connections/{public_id}` | Детали подключения | Да | `module.slack-integration.view` | — |
+| PATCH | `/_module/crm.slack-integration/connections/{public_id}` | Обновление подключения | Да | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/connections/{public_id}` | Удаление подключения | Да | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/connections/{public_id}/test` | Тест подключения | Да | `module.slack-integration.manage` | — |
+| GET | `/_module/crm.slack-integration/rules` | Список правил уведомлений | Да | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/rules` | Создание правила | Да | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/rules/{public_id}` | Удаление правила | Да | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/notify` | Отправка уведомления (workflow) | Нет | — | Серверный вызов |
+| GET | `/_module/crm.slack-integration/deliveries` | Список доставок | Да | `module.slack-integration.view` | — |
 
 ### Module: Миграция из Todoist (если установлен)
 

@@ -1123,6 +1123,8 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | POST | `/api/v1/modules/{name}/activate` | Activate module | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | Deactivate module | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | Delete module | Yes | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/purge` | Purge module (delete files) | Yes | `settings.manage` | — |
+| POST | `/api/v1/modules/bulk` | Bulk action on modules | Yes | `settings.manage` | Body: `action` + `modules[]` |
 | GET | `/api/v1/modules/{name}/config` | Module configuration | Yes | `settings.manage` | — |
 | PUT | `/api/v1/modules/{name}/config` | Update configuration | Yes | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/health` | Module health check | Yes | `settings.manage` | — |
@@ -1323,6 +1325,50 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | GET | `/_module/crm.confluence-migration/settings` | Module settings | Yes | — | — |
 | PATCH | `/_module/crm.confluence-migration/settings` | Update settings | Yes | `module.confluence-migration.manage` | — |
 
+### Module: Draw.io diagrams (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.drawio/diagrams` | List diagrams | Yes | `module.drawio.view` | — |
+| POST | `/_module/crm.drawio/diagrams` | Create diagram | Yes | `module.drawio.manage` | — |
+| GET | `/_module/crm.drawio/diagrams/{public_id}` | Diagram details | Yes | `module.drawio.view` | — |
+| PATCH | `/_module/crm.drawio/diagrams/{public_id}` | Update diagram | Yes | `module.drawio.manage` | — |
+| DELETE | `/_module/crm.drawio/diagrams/{public_id}` | Delete diagram | Yes | `module.drawio.manage` | — |
+
+### Module: GitHub (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.github-integration/connections` | List connections | Yes | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/connections` | Create connection | Yes | `module.github-integration.manage`, `module.github-integration.secret_manage` | — |
+| PATCH | `/_module/crm.github-integration/connections/{public_id}` | Update connection | Yes | `module.github-integration.manage` | — |
+| DELETE | `/_module/crm.github-integration/connections/{public_id}` | Delete connection | Yes | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/test` | Test connection | Yes | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/discover` | Discover repositories | Yes | `module.github-integration.manage` | — |
+| GET | `/_module/crm.github-integration/links` | List repo links | Yes | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/links` | Create repo link | Yes | `module.github-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.github-integration/links/{public_id}` | Delete repo link | Yes | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/links/{public_id}/sync` | Sync now | Yes | `module.github-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.github-integration/links/{public_id}/logs` | Link logs | Yes | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/webhook/{public_id}` | Incoming webhook | No | — | HMAC-verified |
+
+### Module: GitLab (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.gitlab-integration/connections` | List connections | Yes | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/connections` | Create connection | Yes | `module.gitlab-integration.manage`, `module.gitlab-integration.secret_manage` | — |
+| PATCH | `/_module/crm.gitlab-integration/connections/{public_id}` | Update connection | Yes | `module.gitlab-integration.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/connections/{public_id}` | Delete connection | Yes | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/test` | Test connection | Yes | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/discover` | Discover projects | Yes | `module.gitlab-integration.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links` | List project links | Yes | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/links` | Create project link | Yes | `module.gitlab-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/links/{public_id}` | Delete project link | Yes | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/links/{public_id}/sync` | Sync now | Yes | `module.gitlab-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links/{public_id}/logs` | Link logs | Yes | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/webhook/{public_id}` | Incoming webhook | No | — | Token-verified |
+
 ### Module: Google Calendar (if installed)
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
@@ -1393,6 +1439,58 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/logs` | Task logs | Yes | `module.kaiten-migration.view` | — |
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/report` | Task report | Yes | `module.kaiten-migration.report_view` | — |
 
+### Module: Linear migration (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.linear-migration/connections` | List connections | Yes | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/connections` | Create connection | Yes | `module.linear-migration.manage`, `module.linear-migration.secret_manage` | — |
+| GET | `/_module/crm.linear-migration/connections/{public_id}` | Connection details | Yes | `module.linear-migration.view` | — |
+| PATCH | `/_module/crm.linear-migration/connections/{public_id}` | Update connection | Yes | `module.linear-migration.manage` | — |
+| DELETE | `/_module/crm.linear-migration/connections/{public_id}` | Delete connection | Yes | `module.linear-migration.delete` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/test` | Test connection | Yes | `module.linear-migration.manage` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/discover` | Discover data | Yes | `module.linear-migration.run` | — |
+| GET | `/_module/crm.linear-migration/jobs` | List migration jobs | Yes | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs` | Create migration job | Yes | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}` | Job details | Yes | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs/{public_id}/run` | Run job | Yes | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/items` | Job items | Yes | `module.linear-migration.view` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/logs` | Job logs | Yes | `module.linear-migration.view` | — |
+
+### Module: Notion migration (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.notion-migration/connections` | List connections | Yes | — | — |
+| POST | `/_module/crm.notion-migration/connections` | Create connection | Yes | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}` | Connection details | Yes | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}` | Update connection | Yes | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| DELETE | `/_module/crm.notion-migration/connections/{public_id}` | Delete connection | Yes | `module.notion-migration.delete` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/test` | Test connection | Yes | `module.notion-migration.manage` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/discover` | Discover objects | Yes | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs` | List migration jobs | Yes | — | — |
+| POST | `/_module/crm.notion-migration/jobs` | Create migration job | Yes | `module.notion-migration.run`, `knowledge.import`, `knowledge.create`, `knowledge.edit`, `knowledge.publish` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}` | Job details | Yes | — | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/start` | Start job | Yes | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/pause` | Pause job | Yes | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/resume` | Resume job | Yes | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/cancel` | Cancel job | Yes | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/retry-failed` | Retry failed items | Yes | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/items` | Job items | Yes | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/logs` | Job logs | Yes | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/report` | Job report | Yes | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/download-report` | Download report | Yes | — | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}/user-mappings` | User mappings | Yes | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}/user-mappings/{mapping_id}` | Update user mapping | Yes | `module.notion-migration.manage` | — |
+| GET | `/_module/crm.notion-migration/settings` | Module settings | Yes | — | — |
+| PATCH | `/_module/crm.notion-migration/settings` | Update settings | Yes | `module.notion-migration.manage` | — |
+
+### Module: Raycast (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.raycast/config` | MCP connection config | Yes | `module.raycast.view` | — |
+
 ### Module: Shtab.app migration (if installed)
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
@@ -1416,6 +1514,22 @@ The `X-Idempotency-Key` header prevents duplicate operations.
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/items` | Task items | Yes | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/logs` | Task logs | Yes | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/report` | Task report | Yes | `module.shtab-migration.report_view` | — |
+
+### Module: Slack notifications (if installed)
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.slack-integration/connections` | List connections | Yes | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/connections` | Create connection | Yes | `module.slack-integration.manage`, `module.slack-integration.secret_manage` | — |
+| GET | `/_module/crm.slack-integration/connections/{public_id}` | Connection details | Yes | `module.slack-integration.view` | — |
+| PATCH | `/_module/crm.slack-integration/connections/{public_id}` | Update connection | Yes | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/connections/{public_id}` | Delete connection | Yes | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/connections/{public_id}/test` | Test connection | Yes | `module.slack-integration.manage` | — |
+| GET | `/_module/crm.slack-integration/rules` | List notification rules | Yes | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/rules` | Create rule | Yes | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/rules/{public_id}` | Delete rule | Yes | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/notify` | Send notification (workflow) | No | — | Server-side |
+| GET | `/_module/crm.slack-integration/deliveries` | List deliveries | Yes | `module.slack-integration.view` | — |
 
 ### Module: Todoist migration (if installed)
 

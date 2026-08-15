@@ -1123,6 +1123,8 @@ Authorization: Bearer <token>
 | POST | `/api/v1/modules/{name}/activate` | 激活模块 | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | 停用模块 | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | 删除模块 | 是 | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/purge` | 彻底删除模块（含文件） | 是 | `settings.manage` | — |
+| POST | `/api/v1/modules/bulk` | 批量操作模块 | 是 | `settings.manage` | Body: `action` + `modules[]` |
 | GET | `/api/v1/modules/{name}/config` | 模块配置 | 是 | `settings.manage` | — |
 | PUT | `/api/v1/modules/{name}/config` | 更新配置 | 是 | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/health` | 模块健康检查 | 是 | `settings.manage` | — |
@@ -1323,6 +1325,50 @@ Authorization: Bearer <token>
 | GET | `/_module/crm.confluence-migration/settings` | 模块设置 | 是 | — | — |
 | PATCH | `/_module/crm.confluence-migration/settings` | 更新设置 | 是 | `module.confluence-migration.manage` | — |
 
+### 模块：draw.io 图表（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.drawio/diagrams` | 图表列表 | 是 | `module.drawio.view` | — |
+| POST | `/_module/crm.drawio/diagrams` | 创建图表 | 是 | `module.drawio.manage` | — |
+| GET | `/_module/crm.drawio/diagrams/{public_id}` | 图表详情 | 是 | `module.drawio.view` | — |
+| PATCH | `/_module/crm.drawio/diagrams/{public_id}` | 更新图表 | 是 | `module.drawio.manage` | — |
+| DELETE | `/_module/crm.drawio/diagrams/{public_id}` | 删除图表 | 是 | `module.drawio.manage` | — |
+
+### 模块：GitHub（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.github-integration/connections` | 连接列表 | 是 | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/connections` | 创建连接 | 是 | `module.github-integration.manage`, `module.github-integration.secret_manage` | — |
+| PATCH | `/_module/crm.github-integration/connections/{public_id}` | 更新连接 | 是 | `module.github-integration.manage` | — |
+| DELETE | `/_module/crm.github-integration/connections/{public_id}` | 删除连接 | 是 | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/test` | 测试连接 | 是 | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/connections/{public_id}/discover` | 发现仓库 | 是 | `module.github-integration.manage` | — |
+| GET | `/_module/crm.github-integration/links` | 仓库关联列表 | 是 | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/links` | 创建仓库关联 | 是 | `module.github-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.github-integration/links/{public_id}` | 删除仓库关联 | 是 | `module.github-integration.manage` | — |
+| POST | `/_module/crm.github-integration/links/{public_id}/sync` | 立即同步 | 是 | `module.github-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.github-integration/links/{public_id}/logs` | 关联日志 | 是 | `module.github-integration.view` | — |
+| POST | `/_module/crm.github-integration/webhook/{public_id}` | 入站 Webhook | 否 | — | HMAC 验证 |
+
+### 模块：GitLab（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.gitlab-integration/connections` | 连接列表 | 是 | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/connections` | 创建连接 | 是 | `module.gitlab-integration.manage`, `module.gitlab-integration.secret_manage` | — |
+| PATCH | `/_module/crm.gitlab-integration/connections/{public_id}` | 更新连接 | 是 | `module.gitlab-integration.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/connections/{public_id}` | 删除连接 | 是 | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/test` | 测试连接 | 是 | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/connections/{public_id}/discover` | 发现项目 | 是 | `module.gitlab-integration.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links` | 项目关联列表 | 是 | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/links` | 创建项目关联 | 是 | `module.gitlab-integration.manage`, `project.manage`, `task.manage` | — |
+| DELETE | `/_module/crm.gitlab-integration/links/{public_id}` | 删除项目关联 | 是 | `module.gitlab-integration.manage` | — |
+| POST | `/_module/crm.gitlab-integration/links/{public_id}/sync` | 立即同步 | 是 | `module.gitlab-integration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.gitlab-integration/links/{public_id}/logs` | 关联日志 | 是 | `module.gitlab-integration.view` | — |
+| POST | `/_module/crm.gitlab-integration/webhook/{public_id}` | 入站 Webhook | 否 | — | 令牌验证 |
+
 ### 模块：Google Calendar（如已安装）
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
@@ -1393,6 +1439,58 @@ Authorization: Bearer <token>
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/logs` | 任务日志 | 是 | `module.kaiten-migration.view` | — |
 | GET | `/_module/crm.kaiten-migration/jobs/{public_id}/report` | 任务报告 | 是 | `module.kaiten-migration.report_view` | — |
 
+### 模块：Linear 迁移（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.linear-migration/connections` | 连接列表 | 是 | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/connections` | 创建连接 | 是 | `module.linear-migration.manage`, `module.linear-migration.secret_manage` | — |
+| GET | `/_module/crm.linear-migration/connections/{public_id}` | 连接详情 | 是 | `module.linear-migration.view` | — |
+| PATCH | `/_module/crm.linear-migration/connections/{public_id}` | 更新连接 | 是 | `module.linear-migration.manage` | — |
+| DELETE | `/_module/crm.linear-migration/connections/{public_id}` | 删除连接 | 是 | `module.linear-migration.delete` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/test` | 测试连接 | 是 | `module.linear-migration.manage` | — |
+| POST | `/_module/crm.linear-migration/connections/{public_id}/discover` | 发现数据 | 是 | `module.linear-migration.run` | — |
+| GET | `/_module/crm.linear-migration/jobs` | 迁移任务列表 | 是 | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs` | 创建迁移任务 | 是 | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}` | 任务详情 | 是 | `module.linear-migration.view` | — |
+| POST | `/_module/crm.linear-migration/jobs/{public_id}/run` | 运行任务 | 是 | `module.linear-migration.run`, `project.manage`, `task.manage` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/items` | 任务条目 | 是 | `module.linear-migration.view` | — |
+| GET | `/_module/crm.linear-migration/jobs/{public_id}/logs` | 任务日志 | 是 | `module.linear-migration.view` | — |
+
+### 模块：Notion 迁移（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.notion-migration/connections` | 连接列表 | 是 | — | — |
+| POST | `/_module/crm.notion-migration/connections` | 创建连接 | 是 | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}` | 连接详情 | 是 | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}` | 更新连接 | 是 | `module.notion-migration.manage`, `module.notion-migration.secret_manage` | — |
+| DELETE | `/_module/crm.notion-migration/connections/{public_id}` | 删除连接 | 是 | `module.notion-migration.delete` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/test` | 测试连接 | 是 | `module.notion-migration.manage` | — |
+| POST | `/_module/crm.notion-migration/connections/{public_id}/discover` | 发现对象 | 是 | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs` | 迁移任务列表 | 是 | — | — |
+| POST | `/_module/crm.notion-migration/jobs` | 创建迁移任务 | 是 | `module.notion-migration.run`, `knowledge.import`, `knowledge.create`, `knowledge.edit`, `knowledge.publish` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}` | 任务详情 | 是 | — | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/start` | 启动任务 | 是 | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/pause` | 暂停任务 | 是 | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/resume` | 恢复任务 | 是 | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/cancel` | 取消任务 | 是 | `module.notion-migration.run` | — |
+| POST | `/_module/crm.notion-migration/jobs/{public_id}/retry-failed` | 重试失败条目 | 是 | `module.notion-migration.run` | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/items` | 任务条目 | 是 | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/logs` | 任务日志 | 是 | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/report` | 任务报告 | 是 | — | — |
+| GET | `/_module/crm.notion-migration/jobs/{public_id}/download-report` | 下载报告 | 是 | — | — |
+| GET | `/_module/crm.notion-migration/connections/{public_id}/user-mappings` | 用户映射 | 是 | — | — |
+| PATCH | `/_module/crm.notion-migration/connections/{public_id}/user-mappings/{mapping_id}` | 更新用户映射 | 是 | `module.notion-migration.manage` | — |
+| GET | `/_module/crm.notion-migration/settings` | 模块设置 | 是 | — | — |
+| PATCH | `/_module/crm.notion-migration/settings` | 更新设置 | 是 | `module.notion-migration.manage` | — |
+
+### 模块：Raycast（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.raycast/config` | MCP 连接配置 | 是 | `module.raycast.view` | — |
+
 ### 模块：Shtab.app 迁移（如已安装）
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
@@ -1416,6 +1514,22 @@ Authorization: Bearer <token>
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/items` | 任务条目 | 是 | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/logs` | 任务日志 | 是 | `module.shtab-migration.view` | — |
 | GET | `/_module/crm.shtab-migration/jobs/{public_id}/report` | 任务报告 | 是 | `module.shtab-migration.report_view` | — |
+
+### 模块：Slack 通知（如已安装）
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/_module/crm.slack-integration/connections` | 连接列表 | 是 | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/connections` | 创建连接 | 是 | `module.slack-integration.manage`, `module.slack-integration.secret_manage` | — |
+| GET | `/_module/crm.slack-integration/connections/{public_id}` | 连接详情 | 是 | `module.slack-integration.view` | — |
+| PATCH | `/_module/crm.slack-integration/connections/{public_id}` | 更新连接 | 是 | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/connections/{public_id}` | 删除连接 | 是 | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/connections/{public_id}/test` | 测试连接 | 是 | `module.slack-integration.manage` | — |
+| GET | `/_module/crm.slack-integration/rules` | 通知规则列表 | 是 | `module.slack-integration.view` | — |
+| POST | `/_module/crm.slack-integration/rules` | 创建规则 | 是 | `module.slack-integration.manage` | — |
+| DELETE | `/_module/crm.slack-integration/rules/{public_id}` | 删除规则 | 是 | `module.slack-integration.manage` | — |
+| POST | `/_module/crm.slack-integration/notify` | 发送通知（工作流） | 否 | — | 服务端调用 |
+| GET | `/_module/crm.slack-integration/deliveries` | 投递列表 | 是 | `module.slack-integration.view` | — |
 
 ### 模块：Todoist 迁移（如已安装）
 

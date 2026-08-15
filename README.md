@@ -186,7 +186,7 @@ TropaTT works for anyone managing clients and executing work — regardless of t
 
 **Admin panel.** Users, roles, permissions, statuses, priorities, SLA policies, workflow rules, webhooks, API clients, modules, audit logs, feature flags, rate limits, AI provider settings.
 
-**Data migration.** Move your work out of other trackers without starting over. One-way migration connectors pull boards, lists, projects, tasks, statuses, and users into TropaTT from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, and ActiveCollab. Google Calendar and Yandex Calendar sync keeps events in step.
+**Data migration & integrations.** Move your work out of other trackers without starting over. One-way migration connectors pull boards, lists, projects, tasks, statuses, and users into TropaTT from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, and Linear. Google Calendar and Yandex Calendar sync keeps events in step; GitHub and GitLab sync issues and merge requests to tasks; Slack sends notifications; draw.io adds diagrams; Raycast connects via MCP.
 
 **Ideas + AI analysis.** Capture a raw idea or client request. Let AI assess feasibility and risk. AI proposes a structured task hierarchy. Review and convert to real tasks with a click. "We should probably do something about client retention" → actionable plan in minutes.
 
@@ -399,13 +399,13 @@ Updates are installed from the admin panel (**Admin → System Updates**, no SSH
 
 | Metric | Value |
 |--------|-------|
-| API endpoints | 906 route records · 953 unique URLs (713 core + 240 module) · 1,346 method-level routes |
+| API endpoints | 908 route records · 1,010 unique URLs (715 core + 295 module) · 1,425 method-level routes |
 | MCP tools | 567 tools + 5 resources — Model Context Protocol server for AI agents |
 | Web routes | 66 pages, ~66 templates |
 | Backend services | 110+ |
 | Repositories | 87 |
 | Domain modules | 35+ |
-| Integration modules | 15 — migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google & Yandex Calendar sync + WIP limits |
+| Integration modules | 22 — migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + GitHub, GitLab, Slack integrations + Google & Yandex Calendar sync + WIP limits + draw.io diagrams + Raycast (MCP) |
 | JS modules | 39 custom vanilla JS modules, no SPA framework, no build step |
 | Public CI | PHP lint on 8.1 and 8.2, MySQL schema smoke test, OpenAPI consistency check |
 | AI endpoints | 65 |
@@ -443,7 +443,7 @@ TropaTT/
 ├── upload/         # The CRM itself — copy the CONTENTS of this folder to your server
 │   ├── api/        #   API core — controllers, services, repositories, config, migrations, scripts
 │   ├── web/        #   Web UI — installer, pages, templates, JS modules, assets
-│   ├── modules/    #   15 pluggable integration modules (migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google/Yandex Calendar + WIP limits)
+│   ├── modules/    #   22 pluggable modules (migrations from Jira, Trello, Asana, Bitrix24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + GitHub/GitLab/Slack + Google/Yandex Calendar + WIP limits + draw.io + Raycast)
 │   └── index.php   #   Root entry point
 ├── README.md       # You're reading it (docs and config stay at the repo root)
 └── ...             # Other .md docs, LICENSE, .github/, .gitignore
@@ -652,7 +652,7 @@ TropaTT подходит всем, кто управляет клиентами 
 
 **Администрирование.** Пользователи, роли, гранулярные права доступа, статусы, приоритеты, SLA-политики, workflow-правила, вебхуки, API-клиенты, модули, аудит-логи, feature-флаги, лимиты, настройки AI-провайдеров — всё из панели администратора.
 
-**Перенос данных.** Перенесите работу из других трекеров без потери накопленного. Коннекторы односторонней миграции переносят в TropaTT доски, списки, проекты, задачи, статусы и пользователей из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl и ActiveCollab. Синхронизация с Google Календарём и Яндекс Календарём держит события в актуальном состоянии.
+**Перенос данных и интеграции.** Перенесите работу из других трекеров без потери накопленного. Коннекторы односторонней миграции переносят в TropaTT доски, списки, проекты, задачи, статусы и пользователей из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion и Linear. Синхронизация с Google Календарём и Яндекс Календарём держит события в актуальном состоянии; GitHub и GitLab синхронизируют issues и merge requests с задачами; Slack отправляет уведомления; draw.io добавляет диаграммы; Raycast подключается через MCP.
 
 **Идеи и AI-проработка.** Захватите сырую идею, запрос клиента или бизнес-проблему. AI анализирует реализуемость, риски и сложность. AI предлагает структурированную иерархию задач. Просмотрите и превратите в реальные задачи одним кликом. Превращает «надо бы что-то сделать с X» в план действий за минуты.
 
@@ -866,13 +866,13 @@ TropaTT включает браузерный установщик для про
 
 | Метрика | Значение |
 |--------|----------|
-| API эндпоинтов | 906 route-записей · 953 уникальных URL (713 core + 240 модульных) · 1346 method-level маршрутов |
+| API эндпоинтов | 908 route-записей · 1010 уникальных URL (715 core + 295 модульных) · 1425 method-level маршрутов |
 | MCP tools | 567 tools + 5 resources — сервер Model Context Protocol для AI-агентов |
 | Веб-страниц | 66 маршрутов, ~66 шаблонов |
 | PHP-сервисов | 110+ |
 | Репозиториев БД | 87 |
 | Доменных модулей | 35+ |
-| Интеграционных модулей | 15 — миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + синхронизация Google/Яндекс Календаря + WIP-лимиты |
+| Интеграционных модулей | 22 — миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + интеграции GitHub, GitLab, Slack + синхронизация Google/Яндекс Календаря + WIP-лимиты + диаграммы draw.io + Raycast (MCP) |
 | JavaScript-модулей | 39 собственных модулей на ванильном JS, без SPA-фреймворков и сборки |
 | Публичный CI | PHP lint на 8.1 и 8.2, MySQL schema smoke test, проверка соответствия OpenAPI |
 | AI API эндпоинтов | 65 |
@@ -910,7 +910,7 @@ TropaTT/
 ├── upload/         # Сама CRM — скопируйте СОДЕРЖИМОЕ этой папки на сервер
 │   ├── api/        #   Ядро API — контроллеры, сервисы, репозитории, конфигурация, миграции, скрипты
 │   ├── web/        #   Веб-интерфейс — установщик, страницы, шаблоны, JS-модули, ресурсы
-│   ├── modules/    #   15 подключаемых интеграционных модулей (миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab + Google/Яндекс Календарь + WIP-лимиты)
+│   ├── modules/    #   22 подключаемых модулей (миграция из Jira, Trello, Asana, Битрикс24, ClickUp, Todoist, Shtab, Worksection, Confluence, Kaiten, Toggl, ActiveCollab, Notion, Linear + GitHub/GitLab/Slack + Google/Яндекс Календарь + WIP-лимиты + draw.io + Raycast)
 │   └── index.php   #   Корневая точка входа
 ├── README.md       # Этот файл (документация и конфигурация остаются в корне)
 └── ...             # Остальные .md-документы, LICENSE, .github/, .gitignore
@@ -1113,7 +1113,7 @@ TropaTT 适用于任何管理客户并执行工作的人——无论团队规模
 
 **管理。** 用户管理、角色、细粒度权限、状态、优先级、SLA 策略、工作流规则、Webhook、API 客户端、模块、审计日志、功能标志、速率限制和 AI 提供商配置——全部通过管理面板操作。
 
-**数据迁移。** 无需从零开始，即可把工作从其他工具迁入。单向迁移连接器将看板、列表、项目、任务、状态和用户从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl 和 ActiveCollab 导入 TropaTT。Google 日历和 Yandex 日历同步让事件保持同步。
+**数据迁移与集成。** 无需从零开始，即可把工作从其他工具迁入。单向迁移连接器将看板、列表、项目、任务、状态和用户从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion 和 Linear 导入 TropaTT。Google 日历和 Yandex 日历同步让事件保持同步；GitHub 和 GitLab 将 issue 和合并请求同步到任务；Slack 发送通知；draw.io 添加图表；Raycast 通过 MCP 连接。
 
 **想法与 AI 分析。** 捕获原始想法、客户需求或业务问题。让 AI 分析可行性、风险和复杂度。AI 提出结构化任务层级。审查并以一键转换为真实任务。将"我们可能应该处理 X"在几分钟内转化为可操作的计划。
 
@@ -1327,13 +1327,13 @@ TropaTT 包含一个适用于简单 PHP/MySQL 部署的浏览器安装程序：�
 
 | 指标 | 数值 |
 |------|------|
-| API 端点 | 906 条路由记录 · 953 个唯一 URL（713 核心 + 240 模块）· 1346 个方法级路由 |
+| API 端点 | 908 条路由记录 · 1010 个唯一 URL（715 核心 + 295 模块）· 1425 个方法级路由 |
 | MCP 工具 | 567 个工具 + 5 个资源 — 面向 AI 代理的 Model Context Protocol 服务器 |
 | Web 应用路由 | 66 个页面，~66 个模板 |
 | 后端 PHP 服务 | 110+ |
 | 数据库仓库 | 87 |
 | 后端域模块 | 35+ |
-| 集成模块 | 15 — 从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab 迁移 + Google/Yandex 日历同步 + WIP 限制 |
+| 集成模块 | 22 — 从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion、Linear 迁移 + GitHub、GitLab、Slack 集成 + Google/Yandex 日历同步 + WIP 限制 + draw.io 图表 + Raycast（MCP） |
 | JavaScript 模块 | 39 个自定义原生 JS 模块，无 SPA 框架，无构建步骤 |
 | 公开 CI | PHP 8.1 和 8.2 lint、MySQL 架构 smoke test、OpenAPI 一致性检查 |
 | AI API 端点 | 65 |
@@ -1371,7 +1371,7 @@ TropaTT/
 ├── upload/         # CRM 本体——请将该文件夹的 CONTENTS 复制到服务器
 │   ├── api/        #   API 核心——控制器、服务、仓库、配置、迁移、脚本
 │   ├── web/        #   Web 界面——安装程序、页面、模板、JS 模块、资源
-│   ├── modules/    #   15 个可选集成模块（从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab 迁移 + Google/Yandex 日历 + WIP 限制）
+│   ├── modules/    #   22 个可选模块（从 Jira、Trello、Asana、Bitrix24、ClickUp、Todoist、Shtab、Worksection、Confluence、Kaiten、Toggl、ActiveCollab、Notion、Linear 迁移 + GitHub/GitLab/Slack + Google/Yandex 日历 + WIP 限制 + draw.io + Raycast）
 │   └── index.php   #   根入口点
 ├── README.md       # 本文件（文档和配置保留在仓库根目录）
 └── ...             # 其他 .md 文档、LICENSE、.github/、.gitignore
