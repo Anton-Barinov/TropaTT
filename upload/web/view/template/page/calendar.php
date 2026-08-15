@@ -51,4 +51,5 @@
     </div>
   </aside>
 </section>
+<?= module_position('calendar.content.after', ['route' => $route ?? 'calendar']) ?>
 </main></div></div>
