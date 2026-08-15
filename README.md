@@ -10,6 +10,7 @@
 [![PHP CI](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/php-ci.yml)
 [![MySQL Integration](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/mysql-ci.yml)
 [![OpenAPI Consistency](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml/badge.svg)](https://github.com/Anton-Barinov/TropaTT/actions/workflows/openapi-ci.yml)
+[![Release](https://img.shields.io/github/v/release/Anton-Barinov/TropaTT?style=flat-square&label=Release&color=12805C)](https://github.com/Anton-Barinov/TropaTT/releases/latest)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 **Live demo:** [demo.tropatt.com](https://demo.tropatt.com/) — `admin` · `adminadmin`
